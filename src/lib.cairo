@@ -4,6 +4,9 @@ trait IHelloStarknet<TContractState> {
     fn get_balance(self: @TContractState) -> felt252;
 }
 
+#[cfg(test)]
+mod tests;
+
 #[starknet::contract]
 mod HelloStarknet {
     #[storage]

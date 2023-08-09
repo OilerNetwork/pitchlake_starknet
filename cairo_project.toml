@@ -1,2 +1,4 @@
 [crate_roots]
+pitchlake_starknet = "src"
 core = "src"
+tests = "tests"
