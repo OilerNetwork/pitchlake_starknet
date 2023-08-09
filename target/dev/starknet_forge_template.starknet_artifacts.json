@@ -1,1 +1,0 @@
-{"version":1,"contracts":[{"id":"18b2nqb6e0r2k","package_name":"starknet_forge_template","contract_name":"HelloStarknet","artifacts":{"sierra":"starknet_forge_template_HelloStarknet.sierra.json","casm":"starknet_forge_template_HelloStarknet.casm.json"}}]}
