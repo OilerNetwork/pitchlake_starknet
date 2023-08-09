@@ -1,3 +1,3 @@
-# Starknet Forge Template
+# Oiler PitchLake
 
-This repository is a basic project for Starknet Forge - testing tool that is a part of Starknet Foundry. 
+[![Tests](https://github.com/OilerNetwork/pitchlake-starknet/actions/workflows/test.yaml/badge.svg)](https://github.com/OilerNetwork/pitchlake-starknet/actions/workflows/test.yaml)
