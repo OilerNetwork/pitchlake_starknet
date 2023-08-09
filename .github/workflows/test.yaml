@@ -1,0 +1,24 @@
+# copied from https://github.com/EkuboProtocol/governance/actions
+name: Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  main:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Scarb
+        uses: software-mansion/setup-scarb@v1
+
+      - name: Test the code
+        run: |
+          scarb test
