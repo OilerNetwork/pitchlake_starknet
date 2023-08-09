@@ -15,6 +15,3 @@ starknet = "2.1.0-rc2"
 
 [tool.snforge]
 # exit_first = true
-
-[scripts]
-test = "snforge"

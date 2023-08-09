@@ -4,25 +4,28 @@ use option::OptionTrait;
 use traits::TryInto;
 use starknet::ContractAddress;
 use starknet::Felt252TryIntoContractAddress;
-use cheatcodes::PreparedContract;
 
 use pitchlake_starknet::IHelloStarknetSafeDispatcher;
+use pitchlake_starknet::IHelloStarknet;
+use pitchlake_starknet::HelloStarknet;
 use pitchlake_starknet::IHelloStarknetSafeDispatcherTrait;
+use starknet::{
+    get_contract_address, deploy_syscall, ClassHash, contract_address_const
+};
 
-fn deploy_contract(name: felt252) -> ContractAddress {
-    let class_hash = declare(name);
-    let prepared = PreparedContract {
-        class_hash, constructor_calldata: @ArrayTrait::new()
-    };
-    deploy(prepared).unwrap()
+fn deploy() -> IHelloStarknetSafeDispatcher {
+    let mut constructor_args: Array<felt252> = ArrayTrait::new();
+    let (address, _) = deploy_syscall(
+        HelloStarknet::TEST_CLASS_HASH.try_into().unwrap(), 0, constructor_args.span(), true
+    )
+        .expect('DEPLOY_AD_FAILED');
+    return IHelloStarknetSafeDispatcher { contract_address: address };
 }
 
 #[test]
 #[available_gas(3000000)]
 fn test_increase_balance() {
-    let contract_address = deploy_contract('HelloStarknet');
-
-    let safe_dispatcher = IHelloStarknetSafeDispatcher { contract_address };
+    let safe_dispatcher = deploy();
 
     let balance_before = safe_dispatcher.get_balance().unwrap();
     assert(balance_before == 0, 'Invalid balance');
@@ -36,9 +39,7 @@ fn test_increase_balance() {
 #[test]
 #[available_gas(3000000)]
 fn test_cannot_increase_balance_with_zero_value() {
-    let contract_address = deploy_contract('HelloStarknet');
-
-    let safe_dispatcher = IHelloStarknetSafeDispatcher { contract_address };
+    let safe_dispatcher = deploy();
 
     let balance_before = safe_dispatcher.get_balance().unwrap();
     assert(balance_before == 0, 'Invalid balance');
