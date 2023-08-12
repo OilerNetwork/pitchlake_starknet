@@ -55,6 +55,18 @@ use traits::TryInto;
 // define Fossil usage
 // define Fossil payments
 
+// silly simple things (1)
+// deploy ETH liquidity
+//  * soooo
+//  * you need to remember the round at which you deployed liquidity
+//  * for each round a unit premium should be stored
+//  * so I can eploy 1 unit over three rounds where
+//  * it may be +0.01 +0.02 -0.1
+//   * so -1.00 is all liq deployed and full payout? (no premium?)
+//   * -0.0x is partial liquidity deployed or partial payout?
+//   * -0.xy is sth like full payout, full liq but premium there
+// redeem ETH liquidity
+
 fn deploy() -> IHelloStarknetSafeDispatcher {
     let mut constructor_args: Array<felt252> = ArrayTrait::new();
     let (address, _) = deploy_syscall(
