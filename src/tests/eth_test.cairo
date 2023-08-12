@@ -1,6 +1,7 @@
 // how to change the test caller address in the safeDispatcher
 
 use array::ArrayTrait;
+use debug::PrintTrait;
 use option::OptionTrait;
 use pitch_lake_starknet::eth::{
     IEth,
@@ -140,27 +141,38 @@ fn test_approve() {
 fn test_approve_update() {
     let safe_dispatcher = deploy();
     let spender: felt252 = 0;
-    let caller_account: felt252 = contract_address_const::<0>().into();
+
+    // let caller_address = contract_address_const::<1>();
+    // let caller_account: felt252 = caller_address.into();
+    // starknet::testing::set_caller_address(caller_address);
+
+    let caller_account: felt252 = 0;
 
     let mut allowance_amount = safe_dispatcher.allowance(caller_account, spender).unwrap();
-    assert(allowance_amount == 0, 'invalid allowance');
+    assert(allowance_amount == 0, 'invalid allowance 0');
     let amount1: u256 = 1;
     let result1: bool = safe_dispatcher.approve(spender, amount1).unwrap();
     assert(result1 == true, 'approve 1 failed');
     allowance_amount = safe_dispatcher.allowance(caller_account, spender).unwrap();
-    assert(allowance_amount == 1, 'invalid allowance');
+    assert(allowance_amount == 1, 'invalid allowance 1');
     let amount2: u256 = 2;
     let result2: bool = safe_dispatcher.approve(spender, amount2).unwrap();
     assert(result2 == true, 'approve 2 failed');
     allowance_amount = safe_dispatcher.allowance(caller_account, spender).unwrap();
-    assert(allowance_amount == 2, 'invalid allowance');
+    assert(allowance_amount == 2, 'invalid allowance 2');
 }
 
-#[test]
-#[available_gas(1000000)]
-fn test_caller() {
-    let safe_dispatcher = deploy();
-    let expected_address = contract_address_const::<0>();
-    let caller_address: ContractAddress = safe_dispatcher.caller().unwrap();
-    assert(caller_address == expected_address, caller_address.into());
-}
+// why testing::set_caller_address does not work
+// #[test]
+// #[available_gas(1000000)]
+// fn test_caller() {
+//     let caller_address = contract_address_const::<1>();
+//     starknet::testing::set_caller_address(caller_address);
+//     let safe_dispatcher = deploy();
+
+//     let caller_account: felt252 = caller_address.into();
+//     caller_account.print();
+
+//     let actual_caller_address: ContractAddress = safe_dispatcher.caller().unwrap();
+//     assert(actual_caller_address == caller_address, actual_caller_address.into());
+// }
