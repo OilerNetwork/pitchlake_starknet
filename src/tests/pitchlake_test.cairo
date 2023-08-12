@@ -81,6 +81,8 @@ use traits::TryInto;
 // bb) allow top ups
 // c) when redeeming, need to define the round to redeem?
 // cc) remodel later, no need to be smart here
+// events: liq deployed addr round amount
+// events: liq redeemed addr round amount (base, reward)
 
 fn deploy() -> IHelloStarknetSafeDispatcher {
     let mut constructor_args: Array<felt252> = ArrayTrait::new();
