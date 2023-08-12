@@ -1,3 +1,6 @@
+// https://www.sciencedirect.com/book/9780123745071/auction-theory
+// https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4123018
+
 // TODO:
 // underlying
 // setting expiry
@@ -12,6 +15,7 @@
 // liquidity roll-over
 // reserve price (this will be difficult?)
 // liquidity cap
+// fossil
 
 #[starknet::interface]
 trait IHelloStarknet<TContractState> {

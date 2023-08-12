@@ -1,17 +1,37 @@
 use array::ArrayTrait;
-use result::ResultTrait;
 use option::OptionTrait;
-use traits::TryInto;
-use starknet::ContractAddress;
-use starknet::Felt252TryIntoContractAddress;
-
-use pitchlake_starknet::pitchlake::IHelloStarknetSafeDispatcher;
-use pitchlake_starknet::pitchlake::IHelloStarknet;
-use pitchlake_starknet::pitchlake::HelloStarknet;
-use pitchlake_starknet::pitchlake::IHelloStarknetSafeDispatcherTrait;
-use starknet::{
-    get_contract_address, deploy_syscall, ClassHash, contract_address_const
+use pitchlake_starknet::pitchlake::{
+    IHelloStarknet,
+    IHelloStarknetSafeDispatcher,
+    IHelloStarknetSafeDispatcherTrait,
+    HelloStarknet,
 };
+use result::ResultTrait;
+use starknet::{
+    ClassHash,
+    ContractAddress,
+    contract_address_const,
+    deploy_syscall,
+    Felt252TryIntoContractAddress,
+    get_contract_address,
+};
+use traits::TryInto;
+
+// TODO:
+// underlying
+// setting expiry
+// setting strike price
+// collateralization
+// settlement
+// premium
+// batch auction
+// historical volatility
+// liquidity provision
+// option minting
+// liquidity roll-over
+// reserve price (this will be difficult?)
+// liquidity cap
+// fossil
 
 fn deploy() -> IHelloStarknetSafeDispatcher {
     let mut constructor_args: Array<felt252> = ArrayTrait::new();
