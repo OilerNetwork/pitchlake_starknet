@@ -142,11 +142,9 @@ fn test_approve_update() {
     let safe_dispatcher = deploy();
     let spender: felt252 = 0;
 
-    // let caller_address = contract_address_const::<1>();
-    // let caller_account: felt252 = caller_address.into();
-    // starknet::testing::set_caller_address(caller_address);
-
-    let caller_account: felt252 = 0;
+    let caller_address = contract_address_const::<1>();
+    let caller_account: felt252 = caller_address.into();
+    starknet::testing::set_contract_address(caller_address);
 
     let mut allowance_amount = safe_dispatcher.allowance(caller_account, spender).unwrap();
     assert(allowance_amount == 0, 'invalid allowance 0');
@@ -161,18 +159,3 @@ fn test_approve_update() {
     allowance_amount = safe_dispatcher.allowance(caller_account, spender).unwrap();
     assert(allowance_amount == 2, 'invalid allowance 2');
 }
-
-// why testing::set_caller_address does not work
-// #[test]
-// #[available_gas(1000000)]
-// fn test_caller() {
-//     let caller_address = contract_address_const::<1>();
-//     starknet::testing::set_caller_address(caller_address);
-//     let safe_dispatcher = deploy();
-
-//     let caller_account: felt252 = caller_address.into();
-//     caller_account.print();
-
-//     let actual_caller_address: ContractAddress = safe_dispatcher.caller().unwrap();
-//     assert(actual_caller_address == caller_address, actual_caller_address.into());
-// }

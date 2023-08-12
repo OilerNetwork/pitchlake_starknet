@@ -19,7 +19,6 @@ trait IEth<TContractState> {
     fn transfer(ref self: TContractState, recipient: felt252, amount: u256) -> bool;
     fn transferFrom(ref self: TContractState, sender: felt252, recipient: felt252, amount: u256) -> bool;
     fn approve(ref self: TContractState, spender: felt252, amount: u256) -> bool;
-    fn caller(self: @TContractState) -> ContractAddress;
 }
 
 #[starknet::contract]
@@ -116,10 +115,6 @@ mod Eth {
             let spender_address: ContractAddress = spender.try_into().unwrap();
             self.allowances.write((caller_address, spender_address), amount);
             true
-        }
-
-        fn caller(self: @ContractState) -> ContractAddress {
-            return get_caller_address();
         }
     }
 }
