@@ -1,2 +1,2 @@
 #[cfg(test)]
-mod lib_test;
+mod pitchlake_test;

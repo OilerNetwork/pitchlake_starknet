@@ -5,10 +5,10 @@ use traits::TryInto;
 use starknet::ContractAddress;
 use starknet::Felt252TryIntoContractAddress;
 
-use pitchlake_starknet::IHelloStarknetSafeDispatcher;
-use pitchlake_starknet::IHelloStarknet;
-use pitchlake_starknet::HelloStarknet;
-use pitchlake_starknet::IHelloStarknetSafeDispatcherTrait;
+use pitchlake_starknet::pitchlake::IHelloStarknetSafeDispatcher;
+use pitchlake_starknet::pitchlake::IHelloStarknet;
+use pitchlake_starknet::pitchlake::HelloStarknet;
+use pitchlake_starknet::pitchlake::IHelloStarknetSafeDispatcherTrait;
 use starknet::{
     get_contract_address, deploy_syscall, ClassHash, contract_address_const
 };
