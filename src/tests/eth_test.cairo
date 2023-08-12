@@ -1,5 +1,3 @@
-// how to change the test caller address in the safeDispatcher
-
 use array::ArrayTrait;
 use debug::PrintTrait;
 use option::OptionTrait;

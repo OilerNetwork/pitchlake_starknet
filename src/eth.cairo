@@ -1,8 +1,9 @@
 // mocking erc20 here...
 // seems that the Cairo 0 was camelCase
 // what will the Cairo 1 ERC20? are we redeploying in regenesis?
-
 // better implementation: https://github.com/enitrat/cairo1-template
+// can experiment next with the cross-contract call testing
+// deploy contracts at different addresses like in governance
 
 use starknet::{
     ContractAddress,
