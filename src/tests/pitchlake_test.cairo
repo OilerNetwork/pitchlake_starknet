@@ -33,6 +33,28 @@ use traits::TryInto;
 // liquidity cap
 // fossil
 
+// test 3 participants, 9 blocks?
+// 0. collect liquidity
+// 1. calculate volatility
+// 2. get average basefee last month
+// 3. calculate strike price for the next month
+// 4. calculate premium for the reserve price
+// 5. calculate collateral requirements 
+// 6. calculate cap
+// 7. run batch auction
+// 8. resolve batch auction
+// 9. distribute options
+// 10. calculate settlement price
+// 11. calculate remaining liquidity
+// 12. roll forward liquidity
+// 13. allow for claims
+// 14. allow liuqidity redemption
+
+// product
+// define schedule for roll forwards / liquidity redemptions / liquidity collection
+// define Fossil usage
+// define Fossil payments
+
 fn deploy() -> IHelloStarknetSafeDispatcher {
     let mut constructor_args: Array<felt252> = ArrayTrait::new();
     let (address, _) = deploy_syscall(
