@@ -94,7 +94,7 @@ fn deploy() -> IPitchLakeSafeDispatcher {
 }
 
 #[test]
-#[available_gas(3000000)]
+#[available_gas(1000000)]
 fn test_increase_balance() {
     let safe_dispatcher = deploy();
 
@@ -108,7 +108,7 @@ fn test_increase_balance() {
 }
 
 #[test]
-#[available_gas(3000000)]
+#[available_gas(1000000)]
 fn test_cannot_increase_balance_with_zero_value() {
     let safe_dispatcher = deploy();
 
