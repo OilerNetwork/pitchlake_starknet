@@ -67,6 +67,21 @@ use traits::TryInto;
 //   * -0.xy is sth like full payout, full liq but premium there
 // redeem ETH liquidity
 
+// questions on ETH liq
+// how to accept and store information on incoming ETH transfer
+// need to read info on value transferred (ETH)
+// ETH contract transfer
+// will need approval for transfer in ERC20
+// approve and transfer?
+// storage access
+// let us lock some ETH soon
+// will need to interact with another contract here? (ETH ERC20)
+// a) allow only if liq deployments are being accepted
+// b) record current liq deployment round, address and total liquidity
+// bb) allow top ups
+// c) when redeeming, need to define the round to redeem?
+// cc) remodel later, no need to be smart here
+
 fn deploy() -> IHelloStarknetSafeDispatcher {
     let mut constructor_args: Array<felt252> = ArrayTrait::new();
     let (address, _) = deploy_syscall(
