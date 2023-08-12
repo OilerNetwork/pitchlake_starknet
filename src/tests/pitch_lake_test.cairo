@@ -1,10 +1,10 @@
 use array::ArrayTrait;
 use option::OptionTrait;
-use pitchlake_starknet::pitchlake::{
-    IHelloStarknet,
-    IHelloStarknetSafeDispatcher,
-    IHelloStarknetSafeDispatcherTrait,
-    HelloStarknet,
+use pitch_lake_starknet::pitch_lake::{
+    IPitchLake,
+    IPitchLakeSafeDispatcher,
+    IPitchLakeSafeDispatcherTrait,
+    PitchLake,
 };
 use result::ResultTrait;
 use starknet::{
@@ -48,7 +48,7 @@ use traits::TryInto;
 // 11. calculate remaining liquidity
 // 12. roll forward liquidity
 // 13. allow for claims
-// 14. allow liuqidity redemption
+// 14. allow liquidity redemption
 
 // product
 // define schedule for roll forwards / liquidity redemptions / liquidity collection
@@ -84,13 +84,13 @@ use traits::TryInto;
 // events: liq deployed addr round amount
 // events: liq redeemed addr round amount (base, reward)
 
-fn deploy() -> IHelloStarknetSafeDispatcher {
+fn deploy() -> IPitchLakeSafeDispatcher {
     let mut constructor_args: Array<felt252> = ArrayTrait::new();
     let (address, _) = deploy_syscall(
-        HelloStarknet::TEST_CLASS_HASH.try_into().unwrap(), 0, constructor_args.span(), true
+        PitchLake::TEST_CLASS_HASH.try_into().unwrap(), 0, constructor_args.span(), true
     )
         .expect('DEPLOY_AD_FAILED');
-    return IHelloStarknetSafeDispatcher { contract_address: address };
+    return IPitchLakeSafeDispatcher { contract_address: address };
 }
 
 #[test]
