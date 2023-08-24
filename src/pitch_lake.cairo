@@ -16,29 +16,48 @@
 // reserve price (this will be difficult?)
 // liquidity cap
 // fossil
+use starknet::{ContractAddress, StorePacking};
+use array::{Array};
+use traits::{Into, TryInto};
+
 
 #[starknet::interface]
 trait IPitchLake<TContractState> {
-    fn increase_balance(ref self: TContractState, amount: felt252);
-    fn get_balance(self: @TContractState) -> felt252;
+
+    //new members
+    /////////////////
+    #[view]
+    fn in_the_money_vault(ref self: TContractState) -> ContractAddress;
+    #[view]
+    fn out_the_money_vault(ref self: TContractState) -> ContractAddress;
+    #[view]
+    fn at_the_money_vault(ref self: TContractState) -> ContractAddress;
 }
 
 #[starknet::contract]
 mod PitchLake {
+    use starknet::{ContractAddress, StorePacking};
+    use starknet::contract_address::ContractAddressZeroable;
+
     #[storage]
     struct Storage {
-        balance: felt252, 
     }
 
     #[external(v0)]
     impl PitchLakeImpl of super::IPitchLake<ContractState> {
-        fn increase_balance(ref self: ContractState, amount: felt252) {
-            assert(amount != 0, 'Amount cannot be 0');
-            self.balance.write(self.balance.read() + amount);
+
+        #[view]
+        fn in_the_money_vault(ref self: ContractState) -> ContractAddress{
+            ContractAddressZeroable::zero()
+        }
+        #[view]
+        fn out_the_money_vault(ref self: ContractState) -> ContractAddress{
+            ContractAddressZeroable::zero()
+        }
+        #[view]
+        fn at_the_money_vault(ref self: ContractState) -> ContractAddress{
+            ContractAddressZeroable::zero()
         }
 
-        fn get_balance(self: @ContractState) -> felt252 {
-            self.balance.read()
-        }
     }
 }

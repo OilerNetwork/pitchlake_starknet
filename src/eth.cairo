@@ -10,7 +10,7 @@ use starknet::{
 };
 
 #[starknet::interface]
-trait IEth<TContractState> {
+trait IERC20<TContractState> {
     fn name(self: @TContractState) -> felt252;
     fn symbol(self: @TContractState) -> felt252;
     fn decimals(self: @TContractState) -> felt252;
@@ -53,7 +53,7 @@ mod Eth {
     }
 
     #[external(v0)]
-    impl Eth of super::IEth<ContractState> {
+    impl Eth of super::IERC20<ContractState> {
         fn name(self: @ContractState) -> felt252 {
             'ETH'
         }

@@ -2,9 +2,9 @@ use array::ArrayTrait;
 use debug::PrintTrait;
 use option::OptionTrait;
 use pitch_lake_starknet::eth::{
-    IEth,
-    IEthSafeDispatcher,
-    IEthSafeDispatcherTrait,
+    IERC20,
+    IERC20SafeDispatcher,
+    IERC20SafeDispatcherTrait,
     Eth,
 };
 use result::ResultTrait;
@@ -19,13 +19,13 @@ use starknet::{
 use traits::Into;
 use traits::TryInto;
 
-fn deploy() -> IEthSafeDispatcher {
+fn deploy() -> IERC20SafeDispatcher {
     let mut constructor_args: Array<felt252> = ArrayTrait::new();
     let (address, _) = deploy_syscall(
         Eth::TEST_CLASS_HASH.try_into().unwrap(), 0, constructor_args.span(), true
     )
         .expect('DEPLOY_AD_FAILED');
-    return IEthSafeDispatcher { contract_address: address };
+    return IERC20SafeDispatcher { contract_address: address };
 }
 
 #[test]
