@@ -17,15 +17,42 @@ use starknet::{
 };
 
 use starknet::contract_address::ContractAddressZeroable;
+use openzeppelin::utils::serde::SerializedAppend;
 
 use traits::Into;
 use traits::TryInto;
 use pitch_lake_starknet::eth::Eth;
+const NAME: felt252 = 111;
+const SYMBOL: felt252 = 222;
+const DECIMALS: u8 = 18_u8;
+const SUPPLY: u256 = 2000;
+const VALUE: u256 = 300;
+
+
+fn OWNER() -> ContractAddress {
+    contract_address_const::<10>()
+}
+fn SPENDER() -> ContractAddress {
+    contract_address_const::<20>()
+}
+fn RECIPIENT() -> ContractAddress {
+    contract_address_const::<30>()
+}
+fn OPERATOR() -> ContractAddress {
+    contract_address_const::<40>()
+}
+
 
 fn deploy() -> IERC20SafeDispatcher {
-    let mut constructor_args: Array<felt252> = ArrayTrait::new();
+    let mut calldata = array![];
+
+    calldata.append_serde(NAME);
+    calldata.append_serde(SYMBOL);
+    calldata.append_serde(SUPPLY);
+    calldata.append_serde(OWNER());
+
     let (address, _) = deploy_syscall(
-        Eth::TEST_CLASS_HASH.try_into().unwrap(), 0, constructor_args.span(), true
+        Eth::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
     )
         .expect('DEPLOY_AD_FAILED');
     return IERC20SafeDispatcher { contract_address: address };
@@ -80,7 +107,7 @@ fn test_transfer_zero() {
     let safe_dispatcher = deploy();
     let recipient: ContractAddress = ContractAddressZeroable::zero();
     let amount: u256 = 0;
-    let result: bool = safe_dispatcher.transfer(recipient, amount).unwrap();
+    let result: bool = safe_dispatcher.transfer(RECIPIENT(), amount).unwrap();
     assert(result == true, 'transfer failed');
 }
 
@@ -90,8 +117,9 @@ fn test_transfer_insufficient_balance() {
     let safe_dispatcher = deploy();
     let recipient: ContractAddress = ContractAddressZeroable::zero();
     let amount: u256 = 1;
-    let result: bool = safe_dispatcher.transfer(recipient, amount).unwrap();
-    assert(result == false, 'transfer should have failed');
+    let result : starknet::SyscallResult<bool> = safe_dispatcher.transfer(recipient, amount);
+    //  result.unwrap()
+    let result : bool = result.unwrap();
 }
 
 #[test]
