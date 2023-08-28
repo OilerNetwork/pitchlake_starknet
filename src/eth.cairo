@@ -5,117 +5,73 @@
 // can experiment next with the cross-contract call testing
 // deploy contracts at different addresses like in governance
 
-use starknet::{
-    ContractAddress,
-};
-
-#[starknet::interface]
-trait IERC20<TContractState> {
-    fn name(self: @TContractState) -> felt252;
-    fn symbol(self: @TContractState) -> felt252;
-    fn decimals(self: @TContractState) -> felt252;
-    fn totalSupply(self: @TContractState) -> u256;
-    fn balanceOf(self: @TContractState, account: felt252) -> u256;
-    fn allowance(self: @TContractState, owner: felt252, spender: felt252) -> u256;
-    fn transfer(ref self: TContractState, recipient: felt252, amount: u256) -> bool;
-    fn transferFrom(ref self: TContractState, sender: felt252, recipient: felt252, amount: u256) -> bool;
-    fn approve(ref self: TContractState, spender: felt252, amount: u256) -> bool;
-}
 
 #[starknet::contract]
 mod Eth {   
-    use array::ArrayTrait;
-    use option::OptionTrait;
-    use starknet::{
-        ContractAddress,
-        get_caller_address,
-    };
-    use traits::Into;
-    use traits::TryInto;
+    use openzeppelin::token::erc20::ERC20;
+    use openzeppelin::token::erc20::ERC20::ContractState as ERC20State;
+    use starknet::ContractAddress;
 
     #[storage]
-    struct Storage {
-        balance: LegacyMap::<ContractAddress, u256>, 
-        allowances: LegacyMap::<(ContractAddress, ContractAddress), u256>, 
-    }
+    struct Storage {}
 
-    fn _panic_not_implemented() {
-        let mut data = ArrayTrait::new();
-        data.append('not implemented');
-        panic(data);
-    }
-
-    #[generate_trait]
-    impl InternalFunctions of InternalFunctionsTrait {
-        fn _get_allowance(self: @ContractState, owner: ContractAddress, spender: ContractAddress) -> u256 {
-            return self.allowances.read((owner, spender));
-        }
+    #[constructor]
+    fn constructor(
+        ref self: ERC20State,
+        name: felt252,
+        symbol: felt252,
+        initial_supply: u256,
+        recipient: ContractAddress
+    ) {
+//        let mut unsafe_state = ERC20::unsafe_new_contract_state();
+        ERC20::InternalImpl::initializer(ref self, name, symbol);
+        ERC20::InternalImpl::_mint(ref self, recipient, initial_supply);
     }
 
     #[external(v0)]
-    impl Eth of super::IERC20<ContractState> {
-        fn name(self: @ContractState) -> felt252 {
-            'ETH'
-        }
+    fn name(self: @ERC20State) -> felt252 {
+        ERC20::ERC20Impl::name(self)
+    }
 
-        fn symbol(self: @ContractState) -> felt252 {
-            'ETH'
-        }
+    #[external(v0)]
+    fn symbol(self: @ERC20State) -> felt252 {
+        ERC20::ERC20Impl::symbol(self)
+    }
 
-        fn decimals(self: @ContractState) -> felt252 {
-            18
-        }
+    #[external(v0)]
+    fn decimals(self: @ERC20State) -> u8 {
+        ERC20::ERC20Impl::decimals(self)
+    }
 
-        fn totalSupply(self: @ContractState) -> u256 {
-            1000000000
-        }
+    #[external(v0)]
+    fn total_supply(self: @ERC20State) -> u256 {
+        ERC20::ERC20Impl::total_supply(self)
+    }
 
-        fn balanceOf(self: @ContractState, account: felt252) -> u256 {
-            return self.balance.read(account.try_into().unwrap());
-        }
+    #[external(v0)]
+    fn balance_of(self: @ERC20State, account: ContractAddress) -> u256 {
+        ERC20::ERC20Impl::balance_of(self, account)
+    }
 
-        fn allowance(self: @ContractState, owner: felt252, spender: felt252) -> u256 {
-            let owner_address: ContractAddress = owner.try_into().unwrap();
-            let spender_address: ContractAddress = spender.try_into().unwrap();
-            let allowance_amount: u256 = self._get_allowance(owner_address, spender_address);
-            return allowance_amount;
-        }
+    #[external(v0)]
+    fn allowance(self: @ERC20State, owner: ContractAddress, spender: ContractAddress) -> u256 {
+        ERC20::ERC20Impl::allowance(self, owner, spender)
+    }
 
-        fn transfer(ref self: ContractState, recipient: felt252, amount: u256) -> bool {
-            let sender_address: ContractAddress = get_caller_address();
-            let sender_balance: u256 = self.balance.read(sender_address);
-            if sender_balance < amount {
-                false
-            } else {
-                self.balance.write(sender_address, sender_balance - amount);
-                self.balance.write(recipient.try_into().unwrap(), sender_balance + amount);
-                true
-            }
-        }
+    #[external(v0)]
+    fn transfer(ref self: ERC20State, recipient: ContractAddress, amount: u256) -> bool {
+        ERC20::ERC20Impl::transfer(ref self, recipient, amount)
+    }
 
-        fn transferFrom(ref self: ContractState, sender: felt252, recipient: felt252, amount: u256) -> bool {
-            let caller_address: ContractAddress = get_caller_address();
-            let sender_address: ContractAddress = sender.try_into().unwrap();
-            let allowance_amount: u256 = self._get_allowance(sender_address, caller_address);
-            if allowance_amount < amount {
-                false
-            } else {
-                let sender_balance: u256 = self.balance.read(sender_address);
-                if sender_balance < amount {
-                    false
-                } else {
-                    self.balance.write(sender_address, sender_balance - amount);
-                    self.balance.write(recipient.try_into().unwrap(), sender_balance + amount);
-                    true
-                }
-            }
-        }
+    #[external(v0)]
+    fn transfer_from(
+        ref self: ERC20State, sender: ContractAddress, recipient: ContractAddress, amount: u256
+    ) -> bool {
+        ERC20::ERC20Impl::transfer_from(ref self, sender, recipient, amount)
+    }
 
-        fn approve(ref self: ContractState, spender: felt252, amount: u256) -> bool {
-            let caller_address: ContractAddress = get_caller_address();
-            let spender_address: ContractAddress = spender.try_into().unwrap();
-            self.allowances.write((caller_address, spender_address), amount);
-            true
-        }
+    #[external(v0)]
+    fn approve(ref self: ERC20State, spender: ContractAddress, amount: u256) -> bool {
+        ERC20::ERC20Impl::approve(ref self, spender, amount)
     }
 }

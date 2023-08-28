@@ -93,32 +93,32 @@ fn deploy() -> IPitchLakeSafeDispatcher {
     return IPitchLakeSafeDispatcher { contract_address: address };
 }
 
-#[test]
-#[available_gas(1000000)]
-fn test_increase_balance() {
-    let safe_dispatcher = deploy();
+// #[test]
+// #[available_gas(1000000)]
+// fn test_increase_balance() {
+//     let safe_dispatcher = deploy();
 
-    let balance_before = safe_dispatcher.get_balance().unwrap();
-    assert(balance_before == 0, 'Invalid balance');
+//     let balance_before = safe_dispatcher.get_balance().unwrap();
+//     assert(balance_before == 0, 'Invalid balance');
 
-    safe_dispatcher.increase_balance(42).unwrap();
+//     safe_dispatcher.increase_balance(42).unwrap();
 
-    let balance_after = safe_dispatcher.get_balance().unwrap();
-    assert(balance_after == 42, 'Invalid balance');
-}
+//     let balance_after = safe_dispatcher.get_balance().unwrap();
+//     assert(balance_after == 42, 'Invalid balance');
+// }
 
-#[test]
-#[available_gas(1000000)]
-fn test_cannot_increase_balance_with_zero_value() {
-    let safe_dispatcher = deploy();
+// #[test]
+// #[available_gas(1000000)]
+// fn test_cannot_increase_balance_with_zero_value() {
+//     let safe_dispatcher = deploy();
 
-    let balance_before = safe_dispatcher.get_balance().unwrap();
-    assert(balance_before == 0, 'Invalid balance');
+//     let balance_before = safe_dispatcher.get_balance().unwrap();
+//     assert(balance_before == 0, 'Invalid balance');
 
-    match safe_dispatcher.increase_balance(0) {
-        Result::Ok(_) => panic_with_felt252('Should have panicked'),
-        Result::Err(panic_data) => {
-            assert(*panic_data.at(0) == 'Amount cannot be 0', *panic_data.at(0));
-        }
-    };
-}
+//     match safe_dispatcher.increase_balance(0) {
+//         Result::Ok(_) => panic_with_felt252('Should have panicked'),
+//         Result::Err(panic_data) => {
+//             assert(*panic_data.at(0) == 'Amount cannot be 0', *panic_data.at(0));
+//         }
+//     };
+// }

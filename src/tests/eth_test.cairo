@@ -1,11 +1,10 @@
 use array::ArrayTrait;
 use debug::PrintTrait;
 use option::OptionTrait;
-use pitch_lake_starknet::eth::{
+use openzeppelin::token::erc20::interface::{
     IERC20,
     IERC20SafeDispatcher,
     IERC20SafeDispatcherTrait,
-    Eth,
 };
 use result::ResultTrait;
 use starknet::{
@@ -16,8 +15,12 @@ use starknet::{
     Felt252TryIntoContractAddress,
     get_contract_address,
 };
+
+use starknet::contract_address::ContractAddressZeroable;
+
 use traits::Into;
 use traits::TryInto;
+use pitch_lake_starknet::eth::Eth;
 
 fn deploy() -> IERC20SafeDispatcher {
     let mut constructor_args: Array<felt252> = ArrayTrait::new();
@@ -48,7 +51,7 @@ fn test_symbol() {
 #[available_gas(1000000)]
 fn test_decimals() {
     let safe_dispatcher = deploy();
-    let decimals: felt252 = safe_dispatcher.decimals().unwrap();
+    let decimals: u8 = safe_dispatcher.decimals().unwrap();
     assert(decimals == 18, 'invalid decimals');
 }
 
@@ -56,8 +59,8 @@ fn test_decimals() {
 #[available_gas(1000000)]
 fn test_balanceOf() {
     let safe_dispatcher = deploy();
-    let account: felt252 = 0;
-    let balance: u256 = safe_dispatcher.balanceOf(account).unwrap();
+    let account: ContractAddress = ContractAddressZeroable::zero();
+    let balance: u256 = safe_dispatcher.balance_of(account).unwrap();
     assert(balance == 0, 'invalid balance');
 }
 
@@ -65,8 +68,8 @@ fn test_balanceOf() {
 #[available_gas(1000000)]
 fn test_allowance() {
     let safe_dispatcher = deploy();
-    let owner: felt252 = 0;
-    let spender: felt252 = 0;
+    let owner: ContractAddress = ContractAddressZeroable::zero();
+    let spender: ContractAddress = ContractAddressZeroable::zero();
     let allowance: u256 = safe_dispatcher.allowance(owner, spender).unwrap();
     assert(allowance == 0, 'invalid allowance');
 }
@@ -75,7 +78,7 @@ fn test_allowance() {
 #[available_gas(1000000)]
 fn test_transfer_zero() {
     let safe_dispatcher = deploy();
-    let recipient: felt252 = 0;
+    let recipient: ContractAddress = ContractAddressZeroable::zero();
     let amount: u256 = 0;
     let result: bool = safe_dispatcher.transfer(recipient, amount).unwrap();
     assert(result == true, 'transfer failed');
@@ -85,7 +88,7 @@ fn test_transfer_zero() {
 #[available_gas(1000000)]
 fn test_transfer_insufficient_balance() {
     let safe_dispatcher = deploy();
-    let recipient: felt252 = 0;
+    let recipient: ContractAddress = ContractAddressZeroable::zero();
     let amount: u256 = 1;
     let result: bool = safe_dispatcher.transfer(recipient, amount).unwrap();
     assert(result == false, 'transfer should have failed');
@@ -95,10 +98,10 @@ fn test_transfer_insufficient_balance() {
 #[available_gas(1000000)]
 fn test_transfer_from_zero() {
     let safe_dispatcher = deploy();
-    let owner: felt252 = 0;
-    let spender: felt252 = 0;
+    let owner: ContractAddress = ContractAddressZeroable::zero();
+    let spender: ContractAddress = ContractAddressZeroable::zero();
     let amount: u256 = 0;
-    let result: bool = safe_dispatcher.transferFrom(owner, spender, amount).unwrap();
+    let result: bool = safe_dispatcher.transfer_from(owner, spender, amount).unwrap();
     assert(result == true, 'transfer from failed');
 }
 
@@ -106,10 +109,10 @@ fn test_transfer_from_zero() {
 #[available_gas(1000000)]
 fn test_transfer_from_insufficient_allowance() {
     let safe_dispatcher = deploy();
-    let owner: felt252 = 0;
-    let spender: felt252 = 0;
+    let owner: ContractAddress = ContractAddressZeroable::zero();
+    let spender: ContractAddress = ContractAddressZeroable::zero();
     let amount: u256 = 1;
-    let result: bool = safe_dispatcher.transferFrom(owner, spender, amount).unwrap();
+    let result: bool = safe_dispatcher.transfer_from(owner, spender, amount).unwrap();
     assert(result == false, 'should have failed');
 }
 
@@ -117,10 +120,10 @@ fn test_transfer_from_insufficient_allowance() {
 #[available_gas(1000000)]
 fn test_transfer_from_insufficient_balance() {
     let safe_dispatcher = deploy();
-    let owner: felt252 = 0;
-    let spender: felt252 = 0;
+    let owner: ContractAddress = ContractAddressZeroable::zero();
+    let spender: ContractAddress = ContractAddressZeroable::zero();
     let amount: u256 = 1;
-    let result: bool = safe_dispatcher.transferFrom(owner, spender, amount).unwrap();
+    let result: bool = safe_dispatcher.transfer_from(owner, spender, amount).unwrap();
     assert(result == false, 'should have failed');
 }
 
@@ -128,7 +131,7 @@ fn test_transfer_from_insufficient_balance() {
 #[available_gas(1000000)]
 fn test_approve() {
     let safe_dispatcher = deploy();
-    let spender: felt252 = 0;
+    let spender: ContractAddress = ContractAddressZeroable::zero();
     let amount: u256 = 1;
     let result: bool = safe_dispatcher.approve(spender, amount).unwrap();
     assert(result == true, 'approve failed');
@@ -138,10 +141,10 @@ fn test_approve() {
 #[available_gas(1000000)]
 fn test_approve_update() {
     let safe_dispatcher = deploy();
-    let spender: felt252 = 0;
+    let spender: ContractAddress = ContractAddressZeroable::zero();
 
     let caller_address = contract_address_const::<1>();
-    let caller_account: felt252 = caller_address.into();
+    let caller_account: ContractAddress = caller_address.into();
     starknet::testing::set_contract_address(caller_address);
 
     let mut allowance_amount = safe_dispatcher.allowance(caller_account, spender).unwrap();
