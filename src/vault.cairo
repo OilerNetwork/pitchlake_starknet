@@ -34,7 +34,6 @@ trait IDepositVault<TContractState> {
 
     #[view]
     fn vault_type(self: @TContractState) -> VaultType;
-
 }
 
 #[starknet::contract]
@@ -119,21 +118,19 @@ mod Vault  {
         ERC20::ERC20Impl::approve(ref unsafe_state, spender, amount)
     }
 
-    impl VaultImpl of super::IDepositVault<ContractState> {
+     #[external(v0)]
+     impl VaultImpl of super::IDepositVault<ContractState> {
 
         // liquidity for the next cycle
-         #[external]
         fn deposit_liquidity(ref self: ContractState, amount: u256, current_cycle: bool ) -> bool{
             true
         }
 
-        #[external]
         fn generate_params(ref self: ContractState) -> bool{
             true
         }
 
         // withdraw liquidity from the next cycle
-        #[external]
         fn withdraw_liquidity(ref self: ContractState, amount: u256, current_cycle: bool  )-> bool  {
             true
         }

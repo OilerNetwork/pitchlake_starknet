@@ -3,11 +3,12 @@ use debug::PrintTrait;
 use option::OptionTrait;
 use openzeppelin::token::erc20::interface::{
     IERC20,
+    IERC20Dispatcher,
     IERC20SafeDispatcher,
     IERC20SafeDispatcherTrait,
 };
 
-use pitch_lake_starknet::vault::{IDepositVaultSafeDispatcher, Vault, IDepositVaultSafeDispatcherTrait};
+use pitch_lake_starknet::vault::{IDepositVaultDispatcher, IDepositVaultSafeDispatcher, IDepositVaultDispatcherTrait, Vault, IDepositVaultSafeDispatcherTrait};
 use result::ResultTrait;
 use starknet::{
     ClassHash,
@@ -46,7 +47,7 @@ fn OPERATOR() -> ContractAddress {
     contract_address_const::<40>()
 }
 
-fn deploy() -> (IERC20SafeDispatcher, IDepositVaultSafeDispatcher) {
+fn deploy() -> (IERC20SafeDispatcher, IDepositVaultDispatcher) {
     let mut calldata = array![];
 
     calldata.append_serde(NAME);
@@ -58,10 +59,10 @@ fn deploy() -> (IERC20SafeDispatcher, IDepositVaultSafeDispatcher) {
         Vault::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
     )
         .expect('DEPLOY_AD_FAILED');
-    return (IERC20SafeDispatcher { contract_address: address }, IDepositVaultSafeDispatcher{contract_address: address});
+    return (IERC20SafeDispatcher { contract_address: address }, IDepositVaultDispatcher{contract_address: address});
 }
 
-fn deployVault() ->  IDepositVaultSafeDispatcher {
+fn deployVault() ->  IDepositVaultDispatcher {
     let mut calldata = array![];
 
     calldata.append_serde(NAME);
@@ -73,7 +74,7 @@ fn deployVault() ->  IDepositVaultSafeDispatcher {
         Vault::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
     )
         .expect('DEPLOY_AD_FAILED');
-    return IDepositVaultSafeDispatcher{contract_address: address};
+    return IDepositVaultDispatcher{contract_address: address};
 }
 
 #[test]
@@ -87,24 +88,31 @@ fn test_name() {
 #[test]
 #[available_gas(1000000)]
 fn test_deploy_liquidity() {
-    let vaultdispatcher : IDepositVaultSafeDispatcher = deployVault();
+    let vaultdispatcher : IDepositVaultDispatcher = deployVault();
     let deposit_value:u256 = 50;
-    let success:bool  = vaultdispatcher.deposit_liquidity(deposit_value, true).unwrap();
+    let success:bool  = vaultdispatcher.deposit_liquidity(deposit_value, true);
     assert(success == true, 'cannot deposit');
 }
 
 #[test]
 #[available_gas(1000000)]
 fn test_withdraw_liquidity() {
-    let vaultdispatcher : IDepositVaultSafeDispatcher = deployVault();
+    let vaultdispatcher : IDepositVaultDispatcher = deployVault();
     let withdraw_value:u256 = 50;
-    let success:bool  = vaultdispatcher.withdraw_liquidity(withdraw_value, false).unwrap();
+    let success:bool  = vaultdispatcher.withdraw_liquidity(withdraw_value, false);
     assert(success == true, 'cannot withdraw');
 }
 
 #[test]
 #[available_gas(1000000)]
 fn test_generate_params() {
-    let vaultdispatcher : IDepositVaultSafeDispatcher = deployVault();
-    let success:bool  = vaultdispatcher.generate_params().unwrap();
+    let vaultdispatcher : IDepositVaultDispatcher = deployVault();
+    let success:bool  = vaultdispatcher.generate_params();
+}
+
+#[test]
+#[available_gas(1000000)]
+fn test_get_k() {
+    let vaultdispatcher : IDepositVaultDispatcher = deployVault();
+    let success:u128  = vaultdispatcher.get_k();
 }
