@@ -14,6 +14,7 @@ trait IDepositVault<TContractState> {
 
     #[external]
     fn deposit(self: @TContractState, amount: u256 ) ;
+
     #[external]
     fn withdraw(self: @TContractState, amount: u256 ) ;
 
@@ -116,12 +117,17 @@ mod Vault  {
 
     impl VaultImpl of super::IDepositVault<ContractState> {
 
+        // liquidity for the next cycle
         #[external]
         fn deposit(self: @ContractState, amount: u256 ) {
 
         }
+
+        // withdraw liquidity from the next cycle
         #[external]
-        fn withdraw(self: @ContractState, amount: u256 ) {}
+        fn withdraw(self: @ContractState, amount: u256 ) {
+
+        }
 
         // TODO need better naming for lower case k, is it standard deviation?
         #[view]

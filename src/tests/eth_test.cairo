@@ -42,7 +42,6 @@ fn OPERATOR() -> ContractAddress {
     contract_address_const::<40>()
 }
 
-
 fn deploy() -> IERC20SafeDispatcher {
     let mut calldata = array![];
 
@@ -63,7 +62,7 @@ fn deploy() -> IERC20SafeDispatcher {
 fn test_name() {
     let safe_dispatcher = deploy();
     let name: felt252 = safe_dispatcher.name().unwrap();
-    assert(name == 'ETH', 'invalid name');
+    assert(name == NAME, 'invalid name');
 }
 
 #[test]
@@ -71,7 +70,7 @@ fn test_name() {
 fn test_symbol() {
     let safe_dispatcher = deploy();
     let symbol: felt252 = safe_dispatcher.symbol().unwrap();
-    assert(symbol == 'ETH', 'invalid symbol');
+    assert(symbol == SYMBOL, 'invalid symbol');
 }
 
 #[test]
