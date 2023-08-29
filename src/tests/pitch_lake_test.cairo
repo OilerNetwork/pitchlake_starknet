@@ -93,19 +93,15 @@ fn deploy() -> IPitchLakeSafeDispatcher {
     return IPitchLakeSafeDispatcher { contract_address: address };
 }
 
-// #[test]
-// #[available_gas(1000000)]
-// fn test_increase_balance() {
-//     let safe_dispatcher = deploy();
+#[test]
+#[available_gas(1000000)]
+fn test_vault_type() {
+    let safe_dispatcher = deploy();
+    let in_the_money_vault_address: ContractAddress =  safe_dispatcher.in_the_money_vault().unwrap();
 
-//     let balance_before = safe_dispatcher.get_balance().unwrap();
-//     assert(balance_before == 0, 'Invalid balance');
-
-//     safe_dispatcher.increase_balance(42).unwrap();
-
-//     let balance_after = safe_dispatcher.get_balance().unwrap();
-//     assert(balance_after == 42, 'Invalid balance');
-// }
+    // let balance_after = safe_dispatcher.get_balance().unwrap();
+    // assert(balance_after == 42, 'Invalid balance');
+}
 
 // #[test]
 // #[available_gas(1000000)]

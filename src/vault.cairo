@@ -12,11 +12,15 @@ enum VaultType {
 #[starknet::interface]
 trait IDepositVault<TContractState> {
 
-    #[external]
-    fn deposit(self: @TContractState, amount: u256 ) ;
+    #[external(v0)]
+    fn deposit_liquidity(ref self: TContractState, amount: u256, current_cycle:bool ) -> bool;
 
     #[external]
-    fn withdraw(self: @TContractState, amount: u256 ) ;
+    fn withdraw_liquidity(ref self: TContractState, amount: u256, current_cycle:bool ) -> bool;
+
+    // who is calling the generate params method? should it be called manually? does it check  internally that appropraite time has elapsed before generating new params.
+    #[external]
+    fn generate_params(ref self: TContractState) -> bool;
 
     // TODO need better naming for lower case k, is it standard deviation?
     #[view]
@@ -118,15 +122,20 @@ mod Vault  {
     impl VaultImpl of super::IDepositVault<ContractState> {
 
         // liquidity for the next cycle
-        #[external]
-        fn deposit(self: @ContractState, amount: u256 ) {
+         #[external]
+        fn deposit_liquidity(ref self: ContractState, amount: u256, current_cycle: bool ) -> bool{
+            true
+        }
 
+        #[external]
+        fn generate_params(ref self: ContractState) -> bool{
+            true
         }
 
         // withdraw liquidity from the next cycle
         #[external]
-        fn withdraw(self: @ContractState, amount: u256 ) {
-
+        fn withdraw_liquidity(ref self: ContractState, amount: u256, current_cycle: bool  )-> bool  {
+            true
         }
 
         // TODO need better naming for lower case k, is it standard deviation?

@@ -7,8 +7,7 @@ use openzeppelin::token::erc20::interface::{
     IERC20SafeDispatcherTrait,
 };
 
-use pitch_lake_starknet::vault::IDepositVaultSafeDispatcher;
-use pitch_lake_starknet::vault::Vault;
+use pitch_lake_starknet::vault::{IDepositVaultSafeDispatcher, Vault, IDepositVaultSafeDispatcherTrait};
 use result::ResultTrait;
 use starknet::{
     ClassHash,
@@ -62,6 +61,21 @@ fn deploy() -> (IERC20SafeDispatcher, IDepositVaultSafeDispatcher) {
     return (IERC20SafeDispatcher { contract_address: address }, IDepositVaultSafeDispatcher{contract_address: address});
 }
 
+fn deployVault() ->  IDepositVaultSafeDispatcher {
+    let mut calldata = array![];
+
+    calldata.append_serde(NAME);
+    calldata.append_serde(SYMBOL);
+    calldata.append_serde(SUPPLY);
+    calldata.append_serde(OWNER());
+
+    let (address, _) = deploy_syscall(
+        Vault::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
+    )
+        .expect('DEPLOY_AD_FAILED');
+    return IDepositVaultSafeDispatcher{contract_address: address};
+}
+
 #[test]
 #[available_gas(1000000)]
 fn test_name() {
@@ -70,3 +84,27 @@ fn test_name() {
     assert(name == NAME, 'invalid name');
 }
 
+#[test]
+#[available_gas(1000000)]
+fn test_deploy_liquidity() {
+    let vaultdispatcher : IDepositVaultSafeDispatcher = deployVault();
+    let deposit_value:u256 = 50;
+    let success:bool  = vaultdispatcher.deposit_liquidity(deposit_value, true).unwrap();
+    assert(success == true, 'cannot deposit');
+}
+
+#[test]
+#[available_gas(1000000)]
+fn test_withdraw_liquidity() {
+    let vaultdispatcher : IDepositVaultSafeDispatcher = deployVault();
+    let withdraw_value:u256 = 50;
+    let success:bool  = vaultdispatcher.withdraw_liquidity(withdraw_value, false).unwrap();
+    assert(success == true, 'cannot withdraw');
+}
+
+#[test]
+#[available_gas(1000000)]
+fn test_generate_params() {
+    let vaultdispatcher : IDepositVaultSafeDispatcher = deployVault();
+    let success:bool  = vaultdispatcher.generate_params().unwrap();
+}
