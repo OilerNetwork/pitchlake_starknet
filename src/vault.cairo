@@ -34,6 +34,13 @@ trait IDepositVault<TContractState> {
 
     #[view]
     fn vault_type(self: @TContractState) -> VaultType;
+
+    #[view]
+    fn get_unallocated_tokens(self: @TContractState) -> u128 ;
+
+    #[view]
+    fn get_allocated_tokens(self: @TContractState) -> u128 ;
+
 }
 
 #[starknet::contract]
@@ -83,6 +90,18 @@ mod Vault  {
         fn get_k(self: @ContractState) -> u128 {
             // TODO fix later, random value
             3
+        }
+
+        #[view]
+        fn get_unallocated_tokens(self: @ContractState) -> u128 {
+            // TODO fix later, random value
+            10000
+        }
+
+        #[view]
+        fn get_allocated_tokens(self: @ContractState) -> u128 {
+            // TODO fix later, random value
+            10
         }
 
         #[view]
