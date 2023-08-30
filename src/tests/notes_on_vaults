@@ -1,28 +1,89 @@
 # unallocated atm_unallocated_pool -> at-the-money vault - 1 mln ETH
 # A deployed 500k ETH -> receives 500k ATM_VLT tokens
 # B deployed 500k ETH -> receives 500k ATM_VLT tokens
-# withdraw / deposit - no limitations
+# withdraw / deposit - no limitations at any time
 
-# snapshot moment -> move unallocated pool (entirety) to allocation for next month
+# snapshot moment (monthly) -> move unallocated pool (entirety) to allocation for the next month
 # result: unallocated_pool: 0, oct_23_atm_collateral_pool: 1 mln ETH
 
 # ^^^^^^^ what happens here is that all your ETH are moved to collateral pool (oct_23_atm_collateral_pool)
 
 # then you immediately start auction
-# for each 1 ATM_VLT holders receive 1 OCT_23_ATM token 
+# OCT_23_ATM_AUCTION is the token representing
+# an auction participating option
+# (we mint options and at them to the auction)
+# OCT_23_ATM is a written option (sold in the auction)
+# auction starts and CL is 80 ETH per option
+# payout is 1 ETH per GWei of difference between the settlement and strike
+# max payout is cl - strike (100 - 20)
+# (auction parameters are set based on historical volatility and averages)
+# for each 1 ATM_VLT in the oct_23_atm_collateral_pool
+# holders receive 1/80 OCT_23_ATM_AUCTION token 
 # deposits / withdrawals (from the unallocated pool) are never stopped!
-
 # -------------
+# so 12500 OCT_23_ATM_AUCTION (1mln / 80) options are placed in the auction
+# now say 10000 options sell (80% of options sell) at a premium of 3ETH each
+# (batch auction resulting price is 3 ETH (premium))
+# read about batch auctions to understand how 3 ETH can be achieved
+# it means that 20% were not sold in the auction
 
-# auction starts and CL is 80 gwei per option, payout is 1 ETH per GWei (strike 20, cl 100)
-# so 12500 options are placed in the auction
-# now say 10000 options sell at a premium of 3$ each
+# so each of OCT_23_ATM_AUCTION is converted into
+#     0.8 of OCT_23_ATM (80% of options sold will be represented as tokens) and
+#     0.8 * 3 ETH (VLT_ATM) (premium for every option sold - 80%)
+#     0.2 * 80 ETH (VLT_ATM) (collateral for unsold 20% options becomes unlocked) and
 
-# two solutions:
-# first come first served (but then you would need to track the time of deployments) <- NO
-# the other solution is:
-# each of OCT_23_ATM_AUCTION is converted into 0.8 of OCT_23_ATM and 0.2 of VLT_ATM
 # result:
-# A: 400k of OCT_23_ATM and 100k of VLT_ATM + 10000 * 3 of USDT
-# B: 400k of OCT_23_ATM and 100k of VLT_ATM
+# A: 400k/80 of OCT_23_ATM and 100k of VLT_ATM + 5k * 3 of VLT_ATM (15k VLT_ATM for the premium)
+# B: 400k/80 of OCT_23_ATM and 100k of VLT_ATM + 5k * 3 of VLT_ATM (15k VLT_ATM for the premium)
 
+# atm_unallocated_pool: 230k VLT_ATM
+# A: 115k VLT_ATM
+#   100k or returned collateral from unsold options
+#   15k of premium collected from selling
+#     (5k options for 3 ETH each)
+# B: 115k VLT_ATM
+# so the premium is available already and unless withdrawn
+# it will be used for minting options the next month
+
+# PAYOUT
+# -----
+
+# https://coinmarketcap.com/alexandria/glossary/batch-auctions
+# uniform price auction - means everyone pays the same price
+# multi-unit auction - means that we are selling many units of the same item
+# ===
+# batch auction example 1
+# 12500 options
+# BUYER1: 2000 at 8 ETH (deposit 16000 ETH)
+# BUYER2: 5000 at 5 ETH (deposit 25000 ETH)
+# BUYER3: 5000 at 2 ETH (deposit 10000 ETH)
+# BUYER4: 10000 at 10 ETH (deposit 100000 ETH)
+# BUYER5: 500 at 3 ETH (deposit 1500 ETH)
+# price is 5ETH and 12500 is sold
+
+# demand curve:
+#   10000 at 10
+#   12000 at 8
+#   17000 at 5
+#   17500 at 3  
+#   22500 at 2
+
+# supply curve:
+#   0 below 3 ETH
+#   12500 above 3 ETH
+
+
+# batch auction example 2
+# 12500 options
+# BUYER1: 2000 at 8 ETH (deposit 16000 ETH)
+# BUYER2: 3000 at 5 ETH (deposit 15000 ETH)
+# BUYER3: 5000 at 3 ETH (deposit 15000 ETH)
+# price is 3ETH and 10000 is sold
+
+# batch auction example 3
+# 12500 options reserve price is 3
+# BUYER1: 2000 at 8 ETH (deposit 16000 ETH)
+# BUYER2: 3000 at 5 ETH (deposit 15000 ETH)
+# BUYER3: 5000 at 3 ETH (deposit 15000 ETH)
+# BUYER4: 10000 at 2 ETH (deposit 20000 ETH)
+# price is 3ETH and 10000 is sold
