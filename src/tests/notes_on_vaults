@@ -1,0 +1,28 @@
+# unallocated atm_unallocated_pool -> at-the-money vault - 1 mln ETH
+# A deployed 500k ETH -> receives 500k ATM_VLT tokens
+# B deployed 500k ETH -> receives 500k ATM_VLT tokens
+# withdraw / deposit - no limitations
+
+# snapshot moment -> move unallocated pool (entirety) to allocation for next month
+# result: unallocated_pool: 0, oct_23_atm_collateral_pool: 1 mln ETH
+
+# ^^^^^^^ what happens here is that all your ETH are moved to collateral pool (oct_23_atm_collateral_pool)
+
+# then you immediately start auction
+# for each 1 ATM_VLT holders receive 1 OCT_23_ATM token 
+# deposits / withdrawals (from the unallocated pool) are never stopped!
+
+# -------------
+
+# auction starts and CL is 80 gwei per option, payout is 1 ETH per GWei (strike 20, cl 100)
+# so 12500 options are placed in the auction
+# now say 10000 options sell at a premium of 3$ each
+
+# two solutions:
+# first come first served (but then you would need to track the time of deployments) <- NO
+# the other solution is:
+# each of OCT_23_ATM_AUCTION is converted into 0.8 of OCT_23_ATM and 0.2 of VLT_ATM
+# result:
+# A: 400k of OCT_23_ATM and 100k of VLT_ATM + 10000 * 3 of USDT
+# B: 400k of OCT_23_ATM and 100k of VLT_ATM
+
