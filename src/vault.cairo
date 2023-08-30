@@ -12,15 +12,15 @@ enum VaultType {
 #[starknet::interface]
 trait IDepositVault<TContractState> {
 
-    #[external(v0)]
-    fn deposit_liquidity(ref self: TContractState, amount: u256, current_cycle:bool ) -> bool;
+    #[external]
+    fn deposit_liquidity(ref self: TContractState, amount: u256 ) -> bool;
 
     #[external]
-    fn withdraw_liquidity(ref self: TContractState, amount: u256, current_cycle:bool ) -> bool;
+    fn withdraw_liquidity(ref self: TContractState, amount: u256 ) -> bool;
 
     // who is calling the generate params method? should it be called manually? does it check  internally that appropraite time has elapsed before generating new params.
     #[external]
-    fn generate_params(ref self: TContractState) -> bool;
+    fn generate_params_start_auction(ref self: TContractState) -> bool;
 
     // TODO need better naming for lower case k, is it standard deviation?
     #[view]
@@ -42,96 +42,39 @@ mod Vault  {
     use openzeppelin::token::erc20::interface::IERC20;
     use starknet::ContractAddress;
     use pitch_lake_starknet::vault::VaultType;
+    use pitch_lake_starknet::pool::IPoolDispatcher;
 
     #[storage]
-    struct Storage {}
+    struct Storage {
+        allocated_pool:ContractAddress,
+        un_allocated_pool: ContractAddress
+    }
 
     #[constructor]
     fn constructor(
         ref self: ContractState,
-        name: felt252,
-        symbol: felt252,
-        initial_supply: u256,
-        recipient: ContractAddress
+        allocated_pool_: ContractAddress,
+        un_allocated_pool_: ContractAddress
     ) {
-        let name = 'VAULT';
-        let symbol = 'VLT';
-
-        let mut unsafe_state = ERC20::unsafe_new_contract_state();
-        ERC20::InternalImpl::initializer(ref unsafe_state, name, symbol);
-        ERC20::InternalImpl::_mint(ref unsafe_state, recipient, initial_supply);
+        self.allocated_pool.write(allocated_pool_);
+        self.un_allocated_pool.write(un_allocated_pool_);
+        // deploy and instantiate the allocated and unallocated pool
     }
 
     #[external(v0)]
-    fn name(self: @ContractState) -> felt252 {
-        let unsafe_state = ERC20::unsafe_new_contract_state();
-        ERC20::ERC20Impl::name(@unsafe_state)
-    }
-
-    #[external(v0)]
-    fn symbol(self: @ContractState) -> felt252 {
-        let unsafe_state = ERC20::unsafe_new_contract_state();
-        ERC20::ERC20Impl::symbol(@unsafe_state)
-    }
-
-    #[external(v0)]
-    fn decimals(self: @ContractState) -> u8 {
-        let unsafe_state = ERC20::unsafe_new_contract_state();
-        ERC20::ERC20Impl::decimals(@unsafe_state)
-    }
-
-    #[external(v0)]
-    fn total_supply(self: @ContractState) -> u256 {
-        let unsafe_state = ERC20::unsafe_new_contract_state();
-        ERC20::ERC20Impl::total_supply(@unsafe_state)
-    }
-
-    #[external(v0)]
-    fn balance_of(self: @ContractState, account: ContractAddress) -> u256 {
-        let unsafe_state = ERC20::unsafe_new_contract_state();
-        ERC20::ERC20Impl::balance_of(@unsafe_state, account)
-    }
-
-    #[external(v0)]
-    fn allowance(self: @ContractState, owner: ContractAddress, spender: ContractAddress) -> u256 {
-        let unsafe_state = ERC20::unsafe_new_contract_state();
-        ERC20::ERC20Impl::allowance(@unsafe_state, owner, spender)
-    }
-
-    #[external(v0)]
-    fn transfer(ref self: ContractState, recipient: ContractAddress, amount: u256) -> bool {
-        let mut unsafe_state = ERC20::unsafe_new_contract_state();
-        ERC20::ERC20Impl::transfer(ref unsafe_state, recipient, amount)
-    }
-
-    #[external(v0)]
-    fn transfer_from(
-        ref self: ContractState, sender: ContractAddress, recipient: ContractAddress, amount: u256
-    ) -> bool {
-        let mut unsafe_state = ERC20::unsafe_new_contract_state();
-        ERC20::ERC20Impl::transfer_from(ref unsafe_state, sender, recipient, amount)
-    }
-
-    #[external(v0)]
-    fn approve(ref self: ContractState, spender: ContractAddress, amount: u256) -> bool {
-        let mut unsafe_state = ERC20::unsafe_new_contract_state();
-        ERC20::ERC20Impl::approve(ref unsafe_state, spender, amount)
-    }
-
-     #[external(v0)]
-     impl VaultImpl of super::IDepositVault<ContractState> {
+    impl VaultImpl of super::IDepositVault<ContractState> {
 
         // liquidity for the next cycle
-        fn deposit_liquidity(ref self: ContractState, amount: u256, current_cycle: bool ) -> bool{
+        fn deposit_liquidity(ref self: ContractState, amount: u256 ) -> bool{
             true
         }
 
-        fn generate_params(ref self: ContractState) -> bool{
+        fn generate_params_start_auction(ref self: ContractState) -> bool{
             true
         }
 
         // withdraw liquidity from the next cycle
-        fn withdraw_liquidity(ref self: ContractState, amount: u256, current_cycle: bool  )-> bool  {
+        fn withdraw_liquidity(ref self: ContractState, amount: u256)-> bool  {
             true
         }
 

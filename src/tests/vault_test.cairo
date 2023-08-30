@@ -90,7 +90,7 @@ fn test_name() {
 fn test_deploy_liquidity() {
     let vaultdispatcher : IDepositVaultDispatcher = deployVault();
     let deposit_value:u256 = 50;
-    let success:bool  = vaultdispatcher.deposit_liquidity(deposit_value, true);
+    let success:bool  = vaultdispatcher.deposit_liquidity(deposit_value);
     assert(success == true, 'cannot deposit');
 }
 
@@ -99,7 +99,7 @@ fn test_deploy_liquidity() {
 fn test_withdraw_liquidity() {
     let vaultdispatcher : IDepositVaultDispatcher = deployVault();
     let withdraw_value:u256 = 50;
-    let success:bool  = vaultdispatcher.withdraw_liquidity(withdraw_value, false);
+    let success:bool  = vaultdispatcher.withdraw_liquidity(withdraw_value);
     assert(success == true, 'cannot withdraw');
 }
 
@@ -107,7 +107,7 @@ fn test_withdraw_liquidity() {
 #[available_gas(1000000)]
 fn test_generate_params() {
     let vaultdispatcher : IDepositVaultDispatcher = deployVault();
-    let success:bool  = vaultdispatcher.generate_params();
+    let success:bool  = vaultdispatcher.generate_params_start_auction();
 }
 
 #[test]
