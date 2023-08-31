@@ -152,7 +152,7 @@ fn test_bid_below_reserve_price() {
 
 #[test]
 #[available_gas(1000000)]
-fn test_settle_before_expiry() {
+fn test_bid_before_auction_start() {
 
     let vaultdispatcher : IDepositVaultDispatcher = deployVault();
     let deposit_value:u256 = 50;
