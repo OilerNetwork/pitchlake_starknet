@@ -94,6 +94,26 @@ fn test_withdraw_liquidity() {
     assert(success == true, 'should be able to withdraw');
 }
 
+
+#[test]
+#[available_gas(1000000)]
+fn test_settle_before_expiry() {
+
+    let vaultdispatcher : IDepositVaultDispatcher = deployVault();
+    let deposit_value:u256 = 50;
+    let success:bool  = vaultdispatcher.deposit_liquidity(deposit_value);
+    assert(success == true, 'cannot deposit');
+
+    let optns = vaultdispatcher.generate_option_params();
+    vaultdispatcher.start_auction();
+    vaultdispatcher.bid(2,50);
+    vaultdispatcher.end_auction();
+
+    let success = vaultdispatcher.settle();
+    assert(success == false, 'no settle before expiry');
+}
+
+
 #[test]
 #[available_gas(1000000)]
 fn test_withdraw_liquidity_after_snapshot() {
@@ -127,6 +147,20 @@ fn test_bid_below_reserve_price() {
     // bid below reserve price
     let bid_below_reserve :u128 =  optns.reserve_price - 1;
     let success = vaultdispatcher.bid(2, bid_below_reserve.into() );
+    assert(success == false, 'should not be able to bid');
+}
+
+#[test]
+#[available_gas(1000000)]
+fn test_settle_before_expiry() {
+
+    let vaultdispatcher : IDepositVaultDispatcher = deployVault();
+    let deposit_value:u256 = 50;
+    let success:bool  = vaultdispatcher.deposit_liquidity(deposit_value);
+    assert(success == true, 'cannot deposit');
+
+    vaultdispatcher.generate_option_params();
+    let success = vaultdispatcher.bid(2,50);
     assert(success == false, 'should not be able to bid');
 }
 
