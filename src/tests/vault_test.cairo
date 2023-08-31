@@ -132,6 +132,27 @@ fn test_withdraw_liquidity_after_snapshot() {
     assert(success == false, 'should not be able to withdraw');
 }
 
+#[test]
+#[available_gas(1000000)]
+fn test_withdrawal_after_premium() {
+
+    let vaultdispatcher : IDepositVaultDispatcher = deployVault();
+    let deposit_value:u256 = 50;
+    let success:bool  = vaultdispatcher.deposit_liquidity(deposit_value);
+    assert(success == true, 'cannot deposit');
+
+    vaultdispatcher.generate_option_params();
+    vaultdispatcher.start_auction();
+
+    let unallocated_token_before_premium = vaultdispatcher.get_unallocated_tokens();
+
+    vaultdispatcher.bid(2,50);
+    vaultdispatcher.end_auction();
+
+    let unallocated_token_after_premium = vaultdispatcher.get_unallocated_tokens();
+    assert(unallocated_token_before_premium < unallocated_token_after_premium, 'premium should have paid out');
+}
+
 
 #[test]
 #[available_gas(1000000)]
