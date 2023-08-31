@@ -42,7 +42,6 @@ fn UN_ALLOCATED_POOL_ADDRESS() -> ContractAddress {
     contract_address_const::<100>()
 }
 
-
 fn OWNER() -> ContractAddress {
     contract_address_const::<1000>()
 }
@@ -50,27 +49,14 @@ fn OWNER() -> ContractAddress {
 fn SPENDER() -> ContractAddress {
     contract_address_const::<20>()
 }
+
 fn RECIPIENT() -> ContractAddress {
     contract_address_const::<30>()
 }
+
 fn OPERATOR() -> ContractAddress {
     contract_address_const::<40>()
 }
-
-// fn deploy() -> (IERC20SafeDispatcher, IDepositVaultDispatcher) {
-//     let mut calldata = array![];
-
-//     calldata.append_serde(ALLOCATED_POOL_ADDRESS());
-//     calldata.append_serde(UN_ALLOCATED_POOL_ADDRESS());
-//     // calldata.append_serde(SUPPLY);
-//     // calldata.append_serde(OWNER());
-
-//     let (address, _) = deploy_syscall(
-//         Vault::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
-//     )
-//         .expect('DEPLOY_AD_FAILED');
-//     return (IERC20SafeDispatcher { contract_address: address }, IDepositVaultDispatcher{contract_address: address});
-// }
 
 fn deployVault() ->  IDepositVaultDispatcher {
     let mut calldata = array![];
@@ -85,14 +71,6 @@ fn deployVault() ->  IDepositVaultDispatcher {
     return IDepositVaultDispatcher{contract_address: address};
 }
 
-// #[test]
-// #[available_gas(1000000)]
-// fn test_name() {
-//     let (erc20dispatcher, vaultdispatcher) = deploy();
-//     let name: felt252 = erc20dispatcher.name().unwrap();
-//     assert(name == NAME, 'invalid name');
-// }
-
 #[test]
 #[available_gas(1000000)]
 fn test_deploy_liquidity() {
@@ -100,42 +78,93 @@ fn test_deploy_liquidity() {
     let deposit_value:u256 = 50;
     let success:bool  = vaultdispatcher.deposit_liquidity(deposit_value);
     assert(success == true, 'cannot deposit');
+    let tokens:u256 = vaultdispatcher.get_unallocated_tokens();    
+    assert(tokens == deposit_value, 'should equal to deposited');
 }
 
 #[test]
 #[available_gas(1000000)]
 fn test_withdraw_liquidity() {
     let vaultdispatcher : IDepositVaultDispatcher = deployVault();
-    let withdraw_value:u256 = 50;
-    let success:bool  = vaultdispatcher.withdraw_liquidity(withdraw_value);
-    assert(success == true, 'cannot withdraw');
+    let deposit_value:u256 = 50;
+    let success:bool  = vaultdispatcher.deposit_liquidity(deposit_value);
+    assert(success == true, 'cannot deposit');
+    let success:bool  = vaultdispatcher.withdraw_liquidity(deposit_value);
+    assert(success == true, 'should be able to withdraw');
 }
 
 #[test]
 #[available_gas(1000000)]
-fn test_generate_params() {
+fn test_withdraw_liquidity_after_snapshot() {
+
     let vaultdispatcher : IDepositVaultDispatcher = deployVault();
-    let success:bool  = vaultdispatcher.generate_params_start_auction();
+    let deposit_value:u256 = 50;
+    let success:bool  = vaultdispatcher.deposit_liquidity(deposit_value);
+    assert(success == true, 'cannot deposit');
+
+    vaultdispatcher.generate_option_params();
+    vaultdispatcher.start_auction();
+    vaultdispatcher.bid(2,50);
+    vaultdispatcher.end_auction();
+
+    let success:bool  = vaultdispatcher.withdraw_liquidity(deposit_value);
+    assert(success == false, 'should not be able to withdraw');
 }
 
 #[test]
 #[available_gas(1000000)]
-fn test_get_k() {
+fn test_bid_without_start_auction() {
+
     let vaultdispatcher : IDepositVaultDispatcher = deployVault();
-    let success:u128  = vaultdispatcher.get_k();
+    let deposit_value:u256 = 50;
+    let success:bool  = vaultdispatcher.deposit_liquidity(deposit_value);
+    assert(success == true, 'cannot deposit');
+
+    vaultdispatcher.generate_option_params();
+    let success = vaultdispatcher.bid(2,50);
+    assert(success == false, 'should not be able to bid');
+}
+
+#[test]
+#[available_gas(1000000)]
+fn test_start_auction() {
+    let vaultdispatcher : IDepositVaultDispatcher = deployVault();
+    let success:bool  = vaultdispatcher.start_auction();
+    assert(success == false, 'no liquidity, cannot start');
 }
 
 #[test]
 #[available_gas(1000000)]
 fn test_total_tokens_after_allocation() {
     let vaultdispatcher : IDepositVaultDispatcher = deployVault();
+
     let success:bool = vaultdispatcher.deposit_liquidity(1000000);
     let success:bool = vaultdispatcher.withdraw_liquidity(100);
-    let success:bool  = vaultdispatcher.generate_params_start_auction();
+
+    let success:bool  = vaultdispatcher.start_auction();
     let allocated_tokens = vaultdispatcher.get_allocated_tokens();
     let unallocated_token = vaultdispatcher.get_unallocated_tokens();
-    // assert( allocated_tokens == 999900, 'all tokens should be allocated');
-    // assert( unallocated_token == 0, 'no unallocation');
-
+  
+    assert( allocated_tokens == 999900, 'all tokens should be allocated');
+    assert( unallocated_token == 0, 'no unallocation');
 }
+
+// #[test]
+// #[available_gas(1000000)]
+// fn test_withdraw_liquidity_after_snapshot() {
+
+//     let vaultdispatcher : IDepositVaultDispatcher = deployVault();
+//     let deposit_value:u256 = 50;
+//     let success:bool  = vaultdispatcher.deposit_liquidity(deposit_value);
+//     assert(success == true, 'cannot deposit');
+
+//     vaultdispatcher.generate_option_params();
+//     vaultdispatcher.start_auction();
+//     vaultdispatcher.bid(2,50);
+//     vaultdispatcher.end_auction();
+
+//     let success:bool  = vaultdispatcher.withdraw_liquidity(deposit_value);
+//     assert(success == false, 'should not be able to withdraw');
+// }
+
 

@@ -9,6 +9,19 @@ enum VaultType {
     OutOfMoney: u128,
 }
 
+#[derive(Copy, Drop, Serde)]
+struct OptionParams {
+    k:u128,
+    strike_price: u128,
+    volatility: u128,
+    cap_level :u128,  // cap level,
+    collateral_level: u128,
+    reserve_price: u128,
+    total_options_available: u128,
+    start_time:u256,
+    expiry:u256
+}
+
 #[starknet::interface]
 trait IDepositVault<TContractState> {
 
@@ -18,9 +31,21 @@ trait IDepositVault<TContractState> {
     #[external]
     fn withdraw_liquidity(ref self: TContractState, amount: u256 ) -> bool;
 
-    // who is calling the generate params method? should it be called manually? does it check  internally that appropraite time has elapsed before generating new params.
     #[external]
-    fn generate_params_start_auction(ref self: TContractState) -> bool;
+    fn start_auction(ref self: TContractState) -> bool;
+
+    #[external]
+    fn bid(ref self: TContractState, amount : u256, price :u256) -> bool;
+
+    // returns the clearing price for the auction
+    #[external]
+    fn end_auction(ref self: TContractState) -> u128;
+
+    #[external]
+    fn generate_option_params(ref self: TContractState) -> OptionParams;
+
+    #[external]
+    fn settle(ref self: TContractState) -> bool;
 
     // TODO need better naming for lower case k, is it standard deviation?
     #[view]
@@ -30,17 +55,13 @@ trait IDepositVault<TContractState> {
     fn get_cap_level(self: @TContractState) -> u128;
 
     #[view]
-    fn get_duration(self: @TContractState) -> u128;
-
-    #[view]
     fn vault_type(self: @TContractState) -> VaultType;
 
     #[view]
-    fn get_unallocated_tokens(self: @TContractState) -> u128 ;
+    fn get_unallocated_tokens(self: @TContractState) -> u256 ;
 
     #[view]
-    fn get_allocated_tokens(self: @TContractState) -> u128 ;
-
+    fn get_allocated_tokens(self: @TContractState) -> u256 ;
 }
 
 #[starknet::contract]
@@ -50,39 +71,66 @@ mod Vault  {
     use starknet::ContractAddress;
     use pitch_lake_starknet::vault::VaultType;
     use pitch_lake_starknet::pool::IPoolDispatcher;
+    use super::OptionParams;
 
     #[storage]
     struct Storage {
         allocated_pool:ContractAddress,
-        un_allocated_pool: ContractAddress
+        unallocated_pool: ContractAddress
     }
 
     #[constructor]
     fn constructor(
         ref self: ContractState,
         allocated_pool_: ContractAddress,
-        un_allocated_pool_: ContractAddress
+        unallocated_pool_: ContractAddress
     ) {
         self.allocated_pool.write(allocated_pool_);
-        self.un_allocated_pool.write(un_allocated_pool_);
+        self.unallocated_pool.write(unallocated_pool_);
         // deploy and instantiate the allocated and unallocated pool
     }
 
     #[external(v0)]
     impl VaultImpl of super::IDepositVault<ContractState> {
 
-        // liquidity for the next cycle
         fn deposit_liquidity(ref self: ContractState, amount: u256 ) -> bool{
             true
         }
 
-        fn generate_params_start_auction(ref self: ContractState) -> bool{
+        fn withdraw_liquidity(ref self: ContractState, amount: u256 ) -> bool{
             true
         }
 
-        // withdraw liquidity from the next cycle
-        fn withdraw_liquidity(ref self: ContractState, amount: u256)-> bool  {
+        fn start_auction(ref self: ContractState) -> bool{
             true
+        }
+
+        fn bid(ref self: ContractState, amount : u256, price :u256) -> bool{
+            true
+        }
+
+        // returns the clearing price for the auction
+        fn end_auction(ref self: ContractState) -> u128{
+            // final clearing price
+            3263
+        }
+
+        fn generate_option_params(ref self: ContractState) -> OptionParams{
+            let tmp = OptionParams{
+                    k:10,
+                    strike_price: 100,
+                    volatility: 3,
+                    cap_level :200,  // cap level,
+                    collateral_level: 100,
+                    reserve_price: 20,
+                    total_options_available: 12000,
+                    start_time:223423432,
+                    expiry:34332432432432};
+                    return tmp;
+        }
+
+        fn settle(ref self: ContractState) -> bool{
+          true  
         }
 
         // TODO need better naming for lower case k, is it standard deviation?
@@ -93,13 +141,13 @@ mod Vault  {
         }
 
         #[view]
-        fn get_unallocated_tokens(self: @ContractState) -> u128 {
+        fn get_unallocated_tokens(self: @ContractState) -> u256 {
             // TODO fix later, random value
             10000
         }
 
         #[view]
-        fn get_allocated_tokens(self: @ContractState) -> u128 {
+        fn get_allocated_tokens(self: @ContractState) -> u256 {
             // TODO fix later, random value
             10
         }
@@ -111,16 +159,9 @@ mod Vault  {
         }
 
         #[view]
-        fn get_duration(self: @ContractState) -> u128 {
-            // TODO fix later, random value
-            100
-        }
-
-        #[view]
         fn vault_type(self: @ContractState) -> VaultType  {
             // TODO fix later, random value
             VaultType::AtTheMoney(1)
         }
-
     }
 }
