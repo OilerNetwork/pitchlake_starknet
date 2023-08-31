@@ -79,7 +79,7 @@ fn test_deploy_liquidity() {
     let deposit_value:u256 = 50;
     let success:bool  = vaultdispatcher.deposit_liquidity(deposit_value);
     assert(success == true, 'cannot deposit');
-    let tokens:u256 = vaultdispatcher.get_unallocated_tokens();    
+    let tokens:u256 = vaultdispatcher.get_unallocated_token_count();    
     assert(tokens == deposit_value, 'should equal to deposited');
 }
 
@@ -106,8 +106,10 @@ fn test_settle_before_expiry() {
 
     let optns = vaultdispatcher.generate_option_params();
     vaultdispatcher.start_auction();
-    vaultdispatcher.bid(2,50);
+    vaultdispatcher.bid(50,2);
     vaultdispatcher.end_auction();
+
+    // TODO block timestamp is before the expiry date of the option
 
     let success = vaultdispatcher.settle();
     assert(success == false, 'no settle before expiry');
@@ -125,7 +127,7 @@ fn test_withdraw_liquidity_after_snapshot() {
 
     vaultdispatcher.generate_option_params();
     vaultdispatcher.start_auction();
-    vaultdispatcher.bid(2,50);
+    vaultdispatcher.bid(50,2); // lets assume this bid is successful
     vaultdispatcher.end_auction();
 
     let success:bool  = vaultdispatcher.withdraw_liquidity(deposit_value);
@@ -144,12 +146,12 @@ fn test_withdrawal_after_premium() {
     vaultdispatcher.generate_option_params();
     vaultdispatcher.start_auction();
 
-    let unallocated_token_before_premium = vaultdispatcher.get_unallocated_tokens();
+    let unallocated_token_before_premium = vaultdispatcher.get_unallocated_token_count();
 
-    vaultdispatcher.bid(2,50);
+    vaultdispatcher.bid(50,2); // lets assume this bid is successful
     vaultdispatcher.end_auction();
 
-    let unallocated_token_after_premium = vaultdispatcher.get_unallocated_tokens();
+    let unallocated_token_after_premium = vaultdispatcher.get_unallocated_token_count();
     assert(unallocated_token_before_premium < unallocated_token_after_premium, 'premium should have paid out');
 }
 
@@ -188,20 +190,6 @@ fn test_bid_before_auction_start() {
 
 #[test]
 #[available_gas(1000000)]
-fn test_bid_without_start_auction() {
-
-    let vaultdispatcher : IDepositVaultDispatcher = deployVault();
-    let deposit_value:u256 = 50;
-    let success:bool  = vaultdispatcher.deposit_liquidity(deposit_value);
-    assert(success == true, 'cannot deposit');
-
-    vaultdispatcher.generate_option_params();
-    let success = vaultdispatcher.bid(2,50);
-    assert(success == false, 'should not be able to bid');
-}
-
-#[test]
-#[available_gas(1000000)]
 fn test_start_auction() {
     let vaultdispatcher : IDepositVaultDispatcher = deployVault();
     let success:bool  = vaultdispatcher.start_auction();
@@ -215,14 +203,37 @@ fn test_total_tokens_after_allocation() {
 
     let success:bool = vaultdispatcher.deposit_liquidity(1000000);
     let success:bool = vaultdispatcher.withdraw_liquidity(100);
+    vaultdispatcher.generate_option_params();
 
     let success:bool  = vaultdispatcher.start_auction();
-    let allocated_tokens = vaultdispatcher.get_allocated_tokens();
-    let unallocated_token = vaultdispatcher.get_unallocated_tokens();
+    vaultdispatcher.bid(999900,1); // lets assume the rserve price is one
+    vaultdispatcher.end_auction();
+
+    let allocated_tokens = vaultdispatcher.get_allocated_token_count();
+    let unallocated_token = vaultdispatcher.get_unallocated_token_count();
   
     assert( allocated_tokens == 999900, 'all tokens should be allocated');
     assert( unallocated_token == 0, 'no unallocation');
 }
+
+#[test]
+#[available_gas(1000000)]
+fn test_option_count() {
+    let vaultdispatcher : IDepositVaultDispatcher = deployVault();
+    let success:bool = vaultdispatcher.deposit_liquidity(1000000);
+    let params = vaultdispatcher.generate_option_params();
+    
+    let success:bool  = vaultdispatcher.start_auction();
+    vaultdispatcher.bid(10,20);
+    vaultdispatcher.end_auction();
+
+    let allocated_tokens = vaultdispatcher.get_allocated_token_count();
+    let unallocated_token = vaultdispatcher.get_unallocated_token_count();
+  
+    assert( allocated_tokens == 999900, 'all tokens should be allocated');
+    assert( unallocated_token == 0, 'no unallocation');
+}
+
 
 // #[test]
 // #[available_gas(1000000)]

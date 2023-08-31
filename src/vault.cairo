@@ -1,6 +1,7 @@
 use starknet::{ContractAddress, StorePacking};
 use array::{Array};
 use traits::{Into, TryInto};
+use openzeppelin::token::erc20::interface::IERC20Dispatcher;
 
 #[derive(Copy, Drop, Serde, PartialEq)]
 enum VaultType {
@@ -47,6 +48,15 @@ trait IDepositVault<TContractState> {
     #[external]
     fn settle(ref self: TContractState) -> bool;
 
+    #[view]
+    fn get_allocated_token_address(self: @TContractState) -> IERC20Dispatcher;
+
+    #[view]
+    fn get_unallocated_token_address(self: @TContractState) -> IERC20Dispatcher;
+
+    #[view]
+    fn get_options_token_address(self: @TContractState) -> IERC20Dispatcher;
+
     // TODO need better naming for lower case k, is it standard deviation?
     #[view]
     fn get_k(self: @TContractState) -> u128;
@@ -58,10 +68,14 @@ trait IDepositVault<TContractState> {
     fn vault_type(self: @TContractState) -> VaultType;
 
     #[view]
-    fn get_unallocated_tokens(self: @TContractState) -> u256 ;
+    fn get_unallocated_token_count(self: @TContractState) -> u256 ;
 
     #[view]
-    fn get_allocated_tokens(self: @TContractState) -> u256 ;
+    fn get_allocated_token_count(self: @TContractState) -> u256 ;
+
+    #[view]
+    fn get_options_token_count(self: @TContractState) -> u256;
+
 }
 
 #[starknet::contract]
@@ -71,12 +85,14 @@ mod Vault  {
     use starknet::ContractAddress;
     use pitch_lake_starknet::vault::VaultType;
     use pitch_lake_starknet::pool::IPoolDispatcher;
+    use openzeppelin::token::erc20::interface::IERC20Dispatcher;
     use super::OptionParams;
 
     #[storage]
     struct Storage {
-        allocated_pool:ContractAddress,
-        unallocated_pool: ContractAddress
+        allocated_pool:IERC20Dispatcher,
+        unallocated_pool: IERC20Dispatcher,
+        options_pool: IERC20Dispatcher
     }
 
     #[constructor]
@@ -85,8 +101,8 @@ mod Vault  {
         allocated_pool_: ContractAddress,
         unallocated_pool_: ContractAddress
     ) {
-        self.allocated_pool.write(allocated_pool_);
-        self.unallocated_pool.write(unallocated_pool_);
+        // self.allocated_pool.write(allocated_pool_);
+        // self.unallocated_pool.write(unallocated_pool_);
         // deploy and instantiate the allocated and unallocated pool
     }
 
@@ -141,13 +157,19 @@ mod Vault  {
         }
 
         #[view]
-        fn get_unallocated_tokens(self: @ContractState) -> u256 {
+        fn get_unallocated_token_count(self: @ContractState) -> u256 {
             // TODO fix later, random value
             10000
         }
 
         #[view]
-        fn get_allocated_tokens(self: @ContractState) -> u256 {
+        fn get_allocated_token_count(self: @ContractState) -> u256 {
+            // TODO fix later, random value
+            10
+        }
+
+        #[view]
+        fn get_options_token_count(self: @ContractState) -> u256 {
             // TODO fix later, random value
             10
         }
@@ -163,5 +185,21 @@ mod Vault  {
             // TODO fix later, random value
             VaultType::AtTheMoney(1)
         }
+
+        #[view]
+        fn get_allocated_token_address(self: @ContractState) -> IERC20Dispatcher{
+            self.allocated_pool.read()
+        }
+
+        #[view]
+        fn get_unallocated_token_address(self: @ContractState) -> IERC20Dispatcher{
+           self.unallocated_pool.read() 
+        }
+
+        #[view]
+        fn get_options_token_address(self: @ContractState) -> IERC20Dispatcher{
+            self.options_pool.read()
+        }
+
     }
 }
