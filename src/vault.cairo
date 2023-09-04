@@ -19,12 +19,12 @@ struct OptionParams {
     collateral_level: u128,
     reserve_price: u128,
     total_options_available: u128,
-    start_time:u256,
-    expiry:u256
+    start_time:u64,
+    expiry_time:u64
 }
 
 #[starknet::interface]
-trait IDepositVault<TContractState> {
+trait IVault<TContractState> {
 
     #[external]
     fn deposit_liquidity(ref self: TContractState, amount: u256 ) -> bool;
@@ -33,29 +33,23 @@ trait IDepositVault<TContractState> {
     fn withdraw_liquidity(ref self: TContractState, amount: u256 ) -> bool;
 
     #[external]
-    fn start_auction(ref self: TContractState) -> bool;
+    fn start_auction(ref self: TContractState, option_params : OptionParams);
 
     #[external]
     fn bid(ref self: TContractState, amount : u256, price :u256) -> bool;
 
-    // returns the clearing price for the auction
     #[external]
-    fn end_auction(ref self: TContractState) -> u128;
+    fn end_auction(ref self: TContractState) -> bool;
 
+    #[view]
+    fn get_auction_clearing_price(ref self: TContractState) -> u128;
+
+    // TODO this should be part of a seperate interface
     #[external]
-    fn generate_option_params(ref self: TContractState) -> OptionParams;
+    fn generate_option_params(ref self: TContractState, start_time:u64, end_time:u64 ) -> OptionParams;
 
     #[external]
     fn settle(ref self: TContractState) -> bool;
-
-    #[view]
-    fn get_allocated_token_address(self: @TContractState) -> IERC20Dispatcher;
-
-    #[view]
-    fn get_unallocated_token_address(self: @TContractState) -> IERC20Dispatcher;
-
-    #[view]
-    fn get_options_token_address(self: @TContractState) -> IERC20Dispatcher;
 
     // TODO need better naming for lower case k, is it standard deviation?
     #[view]
@@ -75,6 +69,18 @@ trait IDepositVault<TContractState> {
 
     #[view]
     fn get_options_token_count(self: @TContractState) -> u256;
+
+
+
+
+    #[view]
+    fn get_allocated_token_address(self: @TContractState) -> IERC20Dispatcher;
+
+    #[view]
+    fn get_unallocated_token_address(self: @TContractState) -> IERC20Dispatcher;
+
+    #[view]
+    fn get_options_token_address(self: @TContractState) -> IERC20Dispatcher;
 
 }
 
@@ -107,7 +113,7 @@ mod Vault  {
     }
 
     #[external(v0)]
-    impl VaultImpl of super::IDepositVault<ContractState> {
+    impl VaultImpl of super::IVault<ContractState> {
 
         fn deposit_liquidity(ref self: ContractState, amount: u256 ) -> bool{
             true
@@ -117,8 +123,8 @@ mod Vault  {
             true
         }
 
-        fn start_auction(ref self: ContractState) -> bool{
-            true
+        fn start_auction(ref self: ContractState, option_params:OptionParams) {
+            
         }
 
         fn bid(ref self: ContractState, amount : u256, price :u256) -> bool{
@@ -126,12 +132,16 @@ mod Vault  {
         }
 
         // returns the clearing price for the auction
-        fn end_auction(ref self: ContractState) -> u128{
+        fn end_auction(ref self: ContractState) -> bool{
             // final clearing price
-            3263
+            true
         }
 
-        fn generate_option_params(ref self: ContractState) -> OptionParams{
+        fn get_auction_clearing_price(ref self: ContractState) -> u128{
+            100
+        }
+
+        fn generate_option_params(ref self: ContractState, start_time:u64, end_time:u64) -> OptionParams{
             let tmp = OptionParams{
                     k:10,
                     strike_price: 100,
@@ -140,8 +150,8 @@ mod Vault  {
                     collateral_level: 100,
                     reserve_price: 20,
                     total_options_available: 12000,
-                    start_time:223423432,
-                    expiry:34332432432432};
+                    start_time:start_time,
+                    expiry_time:end_time};
                     return tmp;
         }
 

@@ -4,3 +4,5 @@
 mod pitch_lake_test;
 #[cfg(test)]
 mod vault_test;
+#[cfg(test)]
+mod utils;

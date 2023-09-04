@@ -94,7 +94,7 @@ fn deploy() -> IPitchLakeSafeDispatcher {
 }
 
 #[test]
-#[available_gas(1000000)]
+#[available_gas(10000000)]
 fn test_vault_type() {
     let safe_dispatcher = deploy();
     let in_the_money_vault_address: ContractAddress =  safe_dispatcher.in_the_money_vault().unwrap();
@@ -104,7 +104,7 @@ fn test_vault_type() {
 }
 
 // #[test]
-// #[available_gas(1000000)]
+// #[available_gas(10000000)]
 // fn test_cannot_increase_balance_with_zero_value() {
 //     let safe_dispatcher = deploy();
 
