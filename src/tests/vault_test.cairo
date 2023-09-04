@@ -362,7 +362,7 @@ fn test_withdrawal_after_premium() {
     let unallocated_token_before_premium = vaultdispatcher.get_unallocated_token_count();
 
     set_contract_address(option_bidder_buyer_1());
-    vaultdispatcher.bid(unit_amount, unit_price); // lets assume this bid is successfull
+    vaultdispatcher.bid(unit_amount, option_params.reserve_price.into()); // lets assume this bid is successfull
     
     set_contract_address(vault_manager());
     vaultdispatcher.end_auction();
@@ -412,7 +412,55 @@ fn test_bid_before_auction_start() {
 
 #[test]
 #[available_gas(10000000)]
-fn test_total_tokens_after_allocation() {
+fn test_total_allocated_tokens() {
+    let (vaultdispatcher, ethDispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+
+    set_contract_address(liquiduty_provider_1());
+
+    let deposit_amount = 1000000;
+    let success:bool = vaultdispatcher.deposit_liquidity(deposit_amount);  
+    let option_params: OptionParams = vaultdispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
+    
+    set_contract_address(vault_manager());
+    vaultdispatcher.start_auction(option_params);
+
+    // start auction will move the tokens from unallocated pool to allocated pool
+
+    let allocated_tokens = vaultdispatcher.get_allocated_token_count();
+    assert( allocated_tokens == deposit_amount, 'all tokens should be allocated');
+}
+
+
+#[test]
+#[available_gas(10000000)]
+fn test_total_options_after_allocation() {
+    let (vaultdispatcher, ethDispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+
+    set_contract_address(liquiduty_provider_1());
+    let deposit_amount = 1000000;
+    let success:bool = vaultdispatcher.deposit_liquidity(deposit_amount);  
+    let option_params: OptionParams = vaultdispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
+    
+    set_contract_address(vault_manager());
+    vaultdispatcher.start_auction(option_params);
+    
+    set_contract_address(option_bidder_buyer_1());
+    vaultdispatcher.bid(option_params.total_options_available.into()/2 + 1, option_params.reserve_price.into()); // lets assume the reserve price is one
+
+    set_contract_address(option_bidder_buyer_2());
+    vaultdispatcher.bid(option_params.total_options_available.into()/2, option_params.reserve_price.into()); // lets assume the reserve price is one
+
+    
+    set_contract_address(vault_manager());
+    vaultdispatcher.end_auction();
+
+    let options_created_count = vaultdispatcher.get_options_token_count();
+    assert( options_created_count == option_params.total_options_available.into(), 'all tokens should be allocated');
+}
+
+#[test]
+#[available_gas(10000000)]
+fn test_premium_conversion_unallocated_pool() {
     let (vaultdispatcher, ethDispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
 
     set_contract_address(liquiduty_provider_1());
@@ -424,17 +472,24 @@ fn test_total_tokens_after_allocation() {
     vaultdispatcher.start_auction(option_params);
     
     set_contract_address(option_bidder_buyer_1());
-    vaultdispatcher.bid(999900,1); // lets assume the reserve price is one
+    vaultdispatcher.bid(option_params.total_options_available.into()/2 + 1, option_params.reserve_price.into()); // lets assume the reserve price is one
+
+    set_contract_address(option_bidder_buyer_2());
+    vaultdispatcher.bid(option_params.total_options_available.into()/2, option_params.reserve_price.into()); // lets assume the reserve price is one
+
     
     set_contract_address(vault_manager());
     vaultdispatcher.end_auction();
 
-    let allocated_tokens = vaultdispatcher.get_allocated_token_count();
-    let unallocated_token = vaultdispatcher.get_unallocated_token_count();
+    //premium paid will be converted into unallocated.
+
+    let unallocated_token :u256= vaultdispatcher.get_unallocated_token_count();
+    let expected_unallocated_token:u256 = vaultdispatcher.get_auction_clearing_price().into() * vaultdispatcher.get_options_token_count();
+
   
-    assert( allocated_tokens == 999900, 'all tokens should be allocated');
-    assert( unallocated_token == 0, 'no unallocation');
+    assert( unallocated_token == expected_unallocated_token, 'paid premiums should translate');
 }
+
 
 #[test]
 #[available_gas(10000000)]
@@ -447,17 +502,15 @@ fn test_option_count() {
     set_contract_address(vault_manager());
     vaultdispatcher.start_auction(option_params);
 
+    let bid_count: u128 = 2;
     set_contract_address(option_bidder_buyer_1());
-    vaultdispatcher.bid(10,20);
+    vaultdispatcher.bid(bid_count.into(), option_params.reserve_price.into());
 
     set_contract_address(vault_manager());
     vaultdispatcher.end_auction();
-
-    let allocated_tokens = vaultdispatcher.get_allocated_token_count();
-    let unallocated_token = vaultdispatcher.get_unallocated_token_count();
-  
-    assert( allocated_tokens == 999900, 'all tokens should be allocated');
-    assert( unallocated_token == 0, 'no unallocation');
+ 
+    let options_created = vaultdispatcher.get_options_token_count();
+    assert(options_created == bid_count.into(), 'options equal successful bids');
 }
 
 

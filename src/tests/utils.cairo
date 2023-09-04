@@ -46,7 +46,7 @@ fn mock_option_params(start_time:u64, expiry_time:u64, total_liquidity:u128, opt
     let collateral_level = cap_level - in_the_money_strike_price; // per notes from tomasz
     let total_options_available = total_liquidity/ collateral_level;
 
-    let option_reserver_price = option_reserve_price_;// just an assumption
+    let option_reserve_price = option_reserve_price_;// just an assumption
 
     let tmp = OptionParams{
         k:standard_deviation,
@@ -54,7 +54,7 @@ fn mock_option_params(start_time:u64, expiry_time:u64, total_liquidity:u128, opt
         volatility: standard_deviation,
         cap_level :cap_level,  
         collateral_level: collateral_level,
-        reserve_price: option_reserver_price,
+        reserve_price: option_reserve_price,
         total_options_available: total_options_available,
         start_time:timestamp_start_month(),
         expiry_time:timestamp_end_month()};
