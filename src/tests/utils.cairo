@@ -40,18 +40,20 @@ fn mock_option_params(start_time:u64, expiry_time:u64, total_liquidity:u128, opt
 
     let average_basefee :u128 = 20;
     let standard_deviation : u128 = 30;
-
     let cap_level :u128 = average_basefee + (3 * standard_deviation); //per notes from tomasz, we set cap level at 3 standard deviation
+
     let in_the_money_strike_price: u128 = average_basefee + standard_deviation;
+    let at_the_money_strike_price: u128 = average_basefee ;
+    let out_the_money_strike_price: u128 = average_basefee - standard_deviation;
+
     let collateral_level = cap_level - in_the_money_strike_price; // per notes from tomasz
     let total_options_available = total_liquidity/ collateral_level;
 
     let option_reserve_price = option_reserve_price_;// just an assumption
 
     let tmp = OptionParams{
-        k:standard_deviation,
         strike_price: in_the_money_strike_price,
-        volatility: standard_deviation,
+        standard_deviation: standard_deviation,
         cap_level :cap_level,  
         collateral_level: collateral_level,
         reserve_price: option_reserve_price,

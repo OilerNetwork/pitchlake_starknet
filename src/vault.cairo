@@ -12,9 +12,8 @@ enum VaultType {
 
 #[derive(Copy, Drop, Serde)]
 struct OptionParams {
-    k:u128,
+    standard_deviation:u128,
     strike_price: u128,
-    volatility: u128,
     cap_level :u128,  // cap level,
     collateral_level: u128,
     reserve_price: u128,
@@ -144,9 +143,8 @@ mod Vault  {
 
         fn generate_option_params(ref self: ContractState, start_time:u64, end_time:u64) -> OptionParams{
             let tmp = OptionParams{
-                    k:10,
+                    standard_deviation:10,
                     strike_price: 100,
-                    volatility: 3,
                     cap_level :200,  // cap level,
                     collateral_level: 100,
                     reserve_price: 20,
