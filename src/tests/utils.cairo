@@ -20,12 +20,12 @@ fn unallocated_pool_address() -> ContractAddress {
     contract_address_const::<'unallocated_pool_address'>()
 }
 
-fn liquiduty_provider_1() -> ContractAddress {
-    contract_address_const::<'liquiduty_provider_1'>()
+fn liquidity_provider_1() -> ContractAddress {
+    contract_address_const::<'liquidity_provider_1'>()
 }
 
-fn liquiduty_provider_2() -> ContractAddress {
-    contract_address_const::<'liquiduty_provider_2'>()
+fn liquidity_provider_2() -> ContractAddress {
+    contract_address_const::<'liquidity_provider_2'>()
 }
 
 fn option_bidder_buyer_1() -> ContractAddress {
