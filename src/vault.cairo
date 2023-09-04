@@ -49,7 +49,7 @@ trait IVault<TContractState> {
     fn generate_option_params(ref self: TContractState, start_time:u64, end_time:u64 ) -> OptionParams;
 
     #[external]
-    fn settle(ref self: TContractState) -> bool;
+    fn settle(ref self: TContractState, current_price:u128) -> bool;
 
     // TODO need better naming for lower case k, is it standard deviation?
     #[view]
@@ -64,6 +64,7 @@ trait IVault<TContractState> {
     #[view]
     fn get_unallocated_token_count(self: @TContractState) -> u256 ;
 
+    // TODO may be rename it to collaterized pool
     #[view]
     fn get_allocated_token_count(self: @TContractState) -> u256 ;
 
@@ -155,7 +156,7 @@ mod Vault  {
                     return tmp;
         }
 
-        fn settle(ref self: ContractState) -> bool{
+        fn settle(ref self: ContractState, current_price:u128) -> bool{
           true  
         }
 

@@ -9,6 +9,8 @@ use starknet::{
     get_contract_address,
     contract_address_try_from_felt252
 };
+use pitch_lake_starknet::vault::{IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait, OptionParams};
+
 
 fn allocated_pool_address() -> ContractAddress {
     contract_address_const::<'allocated_pool_address'>()
@@ -34,6 +36,30 @@ fn option_bidder_buyer_2() -> ContractAddress {
     contract_address_const::<'option_bidder_buyer'>()
 }
 
+fn mock_option_params(start_time:u64, expiry_time:u64, total_liquidity:u128, option_reserve_price_:u128)-> OptionParams{
+
+    let average_basefee :u128 = 20;
+    let standard_deviation : u128 = 30;
+
+    let cap_level :u128 = 3 * standard_deviation; //per notes from tomasz, we set cap level at 3 standard deviation
+    let in_the_money_strike_price: u128 = average_basefee + standard_deviation;
+    let collateral_level = cap_level - in_the_money_strike_price; // per notes from tomasz
+    let total_options_available = total_liquidity/ collateral_level;
+
+    let option_reserver_price = option_reserve_price_;// just an assumption
+
+    let tmp = OptionParams{
+        k:standard_deviation,
+        strike_price: in_the_money_strike_price,
+        volatility: standard_deviation,
+        cap_level :cap_level,  
+        collateral_level: collateral_level,
+        reserve_price: option_reserver_price,
+        total_options_available: total_options_available,
+        start_time:timestamp_start_month(),
+        expiry_time:timestamp_end_month()};
+    return tmp;
+}
 
 fn vault_manager() -> ContractAddress {
     contract_address_const::<'vault_manager'>()
@@ -50,7 +76,6 @@ fn timestamp_start_month() -> u64 {
 fn timestamp_end_month() -> u64 {
     30*24*60*60
 }
-
 
 fn SPENDER() -> ContractAddress {
     contract_address_const::<20>()

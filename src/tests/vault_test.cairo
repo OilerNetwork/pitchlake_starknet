@@ -63,7 +63,6 @@ fn deployVault() ->  IVaultDispatcher {
     return IVaultDispatcher{contract_address: address};
 }
 
-
 fn setup() -> (IVaultDispatcher, IERC20Dispatcher){
 
     let ethDispatcher : IERC20Dispatcher = deployEth();
@@ -78,6 +77,132 @@ fn setup() -> (IVaultDispatcher, IERC20Dispatcher){
 
     return (vaultdispatcher, ethDispatcher);
 }
+
+//////////////////////////////
+/// auth level tests
+/////////////////////////////
+#[test]
+#[available_gas(10000000)]
+#[should_panic(expected: ('auth error', 'only vault manager',))]
+fn test_auth_role_generate_params_failure() {
+
+    let (vaultdispatcher, ethDispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+    let deposit_value:u256 = 50;
+    set_contract_address(liquiduty_provider_1());
+    let option_params: OptionParams = vaultdispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
+}
+
+#[test]
+#[available_gas(10000000)]
+fn test_auth_role_generate_params_success() {
+
+    let (vaultdispatcher, ethDispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+    let deposit_value:u256 = 50;
+    set_contract_address(vault_manager());
+    let option_params: OptionParams = vaultdispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
+    // should not generate an exception
+}
+
+
+#[test]
+#[available_gas(10000000)]
+#[should_panic(expected: ('auth error', 'only vault manager',))]
+fn test_auth_role_start_auction_failure() {
+
+    let (vaultdispatcher, ethDispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+    let deposit_value:u256 = 50;
+    set_contract_address(vault_manager());
+    let option_params: OptionParams = vaultdispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
+    set_contract_address(liquiduty_provider_1());
+    vaultdispatcher.start_auction(option_params);
+
+}
+
+#[test]
+#[available_gas(10000000)]
+fn test_auth_role_start_auction_success() {
+
+    let (vaultdispatcher, ethDispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+    let deposit_value:u256 = 50;
+    set_contract_address(vault_manager());
+    let option_params: OptionParams = vaultdispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
+    set_contract_address(vault_manager());
+    vaultdispatcher.start_auction(option_params);
+    // should not panic, thats all
+
+}
+
+#[test]
+#[available_gas(10000000)]
+#[should_panic(expected: ('auth error', 'only vault manager'))]
+fn test_auth_role_end_auction_failure() {
+
+    let (vaultdispatcher, ethDispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+    let deposit_value:u256 = 50;
+    set_contract_address(vault_manager());
+    let option_params: OptionParams = vaultdispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
+    set_contract_address(vault_manager());
+    vaultdispatcher.start_auction(option_params);
+
+    set_contract_address(liquiduty_provider_1());
+    vaultdispatcher.end_auction();
+
+}
+
+#[test]
+#[available_gas(10000000)]
+fn test_auth_role_end_auction_success() {
+
+    let (vaultdispatcher, ethDispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+    let deposit_value:u256 = 50;
+    set_contract_address(vault_manager());
+    let option_params: OptionParams = vaultdispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
+    set_contract_address(vault_manager());
+    vaultdispatcher.start_auction(option_params);
+    vaultdispatcher.end_auction();
+    // should not panic, thats all
+
+}
+
+#[test]
+#[available_gas(10000000)]
+#[should_panic(expected: ('auth error', 'only vault manager'))]
+fn test_auth_role_settle_failure() {
+
+    let (vaultdispatcher, ethDispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+    let deposit_value:u256 = 50;
+    set_contract_address(vault_manager());
+    let option_params: OptionParams = vaultdispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
+    set_contract_address(vault_manager());
+    vaultdispatcher.start_auction(option_params);
+    vaultdispatcher.end_auction();
+
+    set_contract_address(liquiduty_provider_1());
+    set_block_timestamp(option_params.expiry_time + 1);
+    vaultdispatcher.settle(option_params.strike_price + 10);
+}
+
+#[test]
+#[available_gas(10000000)]
+fn test_auth_role_settle_success() {
+
+    let (vaultdispatcher, ethDispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+    let deposit_value:u256 = 50;
+    set_contract_address(vault_manager());
+    let option_params: OptionParams = vaultdispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
+    set_contract_address(vault_manager());
+    vaultdispatcher.start_auction(option_params);
+    vaultdispatcher.end_auction();
+    set_block_timestamp(option_params.expiry_time + 1);
+    vaultdispatcher.settle(option_params.strike_price + 10);
+    // should not panic, thats all
+
+}
+
+
+//////////////////////////////
+/// liquidity/token count tests
+/////////////////////////////
 
 #[test]
 #[available_gas(10000000)]
@@ -105,6 +230,21 @@ fn test_eth_has_descreased_after_deposit() {
     assert(eth_value_after_transfer == eth_value_before_transfer - deposit_value  , 'deposit is not decremented');
 }
 
+#[test]
+#[available_gas(10000000)]
+fn test_eth_has_increased_after_withdrawal() {
+
+    let (vaultdispatcher, ethDispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+    let deposit_value:u256 = 50;
+    set_contract_address(liquiduty_provider_1());
+    let success:bool  = vaultdispatcher.deposit_liquidity(deposit_value);
+    let eth_value_before_withdrawal: u256 = ethDispatcher.balance_of(liquiduty_provider_1());
+    let success:bool  = vaultdispatcher.withdraw_liquidity(deposit_value);
+    let eth_value_after_withdrawal: u256 = ethDispatcher.balance_of(liquiduty_provider_1());
+    let unallocated_tokens:u256 = vaultdispatcher.get_unallocated_token_count();    
+    assert(eth_value_before_withdrawal == eth_value_after_withdrawal + deposit_value, 'withdrawal is not incremented');
+    assert(unallocated_tokens == 0, 'unalloc after withdrawal,0');
+}
 
 #[test]
 #[available_gas(10000000)]
@@ -134,6 +274,22 @@ fn test_withdraw_liquidity() {
 
 #[test]
 #[available_gas(10000000)]
+fn test_withdraw_liquidity_valid_user() {
+    // only valid user should be able to withdraw liquidity
+    let (vaultdispatcher, ethDispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+    let deposit_value:u256 = 50;
+    set_contract_address(liquiduty_provider_1());
+    let success:bool  = vaultdispatcher.deposit_liquidity(deposit_value);
+    set_contract_address(liquiduty_provider_2());
+    let success:bool  = vaultdispatcher.withdraw_liquidity(deposit_value);
+    // TODO may be a panic is more appropriate here
+    assert(success == false, 'should not be able to withdraw');
+
+}
+
+
+#[test]
+#[available_gas(10000000)]
 fn test_settle_before_expiry() {
 
     let (vaultdispatcher, ethDispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
@@ -155,14 +311,13 @@ fn test_settle_before_expiry() {
     vaultdispatcher.end_auction();
 
     set_block_timestamp(option_params.expiry_time - 10000);
-    let success = vaultdispatcher.settle();
+    let success = vaultdispatcher.settle(option_params.strike_price + 10);
     assert(success == false, 'no settle before expiry');
 }
 
-
 #[test]
 #[available_gas(10000000)]
-fn test_withdraw_liquidity_after_snapshot() {
+fn test_withdraw_liquidity_allocation() {
 
     let (vaultdispatcher, ethDispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
     let deposit_value:u256 = 50;
@@ -261,7 +416,7 @@ fn test_total_tokens_after_allocation() {
     let (vaultdispatcher, ethDispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
 
     set_contract_address(liquiduty_provider_1());
-    let success:bool = vaultdispatcher.deposit_liquidity(1000000);
+    let success:bool = vaultdispatcher.deposit_liquidity(1000000);  
     let success:bool = vaultdispatcher.withdraw_liquidity(100);
     let option_params: OptionParams = vaultdispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
     
