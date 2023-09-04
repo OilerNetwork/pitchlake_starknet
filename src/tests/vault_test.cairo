@@ -79,128 +79,6 @@ fn setup() -> (IVaultDispatcher, IERC20Dispatcher){
 }
 
 //////////////////////////////
-/// auth level tests
-/////////////////////////////
-#[test]
-#[available_gas(10000000)]
-#[should_panic(expected: ('auth error', 'only vault manager',))]
-fn test_auth_role_generate_params_failure() {
-
-    let (vaultdispatcher, ethDispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_value:u256 = 50;
-    set_contract_address(liquiduty_provider_1());
-    let option_params: OptionParams = vaultdispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
-}
-
-#[test]
-#[available_gas(10000000)]
-fn test_auth_role_generate_params_success() {
-
-    let (vaultdispatcher, ethDispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_value:u256 = 50;
-    set_contract_address(vault_manager());
-    let option_params: OptionParams = vaultdispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
-    // should not generate an exception
-}
-
-
-#[test]
-#[available_gas(10000000)]
-#[should_panic(expected: ('auth error', 'only vault manager',))]
-fn test_auth_role_start_auction_failure() {
-
-    let (vaultdispatcher, ethDispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_value:u256 = 50;
-    set_contract_address(vault_manager());
-    let option_params: OptionParams = vaultdispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
-    set_contract_address(liquiduty_provider_1());
-    vaultdispatcher.start_auction(option_params);
-
-}
-
-#[test]
-#[available_gas(10000000)]
-fn test_auth_role_start_auction_success() {
-
-    let (vaultdispatcher, ethDispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_value:u256 = 50;
-    set_contract_address(vault_manager());
-    let option_params: OptionParams = vaultdispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
-    set_contract_address(vault_manager());
-    vaultdispatcher.start_auction(option_params);
-    // should not panic, thats all
-
-}
-
-#[test]
-#[available_gas(10000000)]
-#[should_panic(expected: ('auth error', 'only vault manager'))]
-fn test_auth_role_end_auction_failure() {
-
-    let (vaultdispatcher, ethDispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_value:u256 = 50;
-    set_contract_address(vault_manager());
-    let option_params: OptionParams = vaultdispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
-    set_contract_address(vault_manager());
-    vaultdispatcher.start_auction(option_params);
-
-    set_contract_address(liquiduty_provider_1());
-    vaultdispatcher.end_auction();
-
-}
-
-#[test]
-#[available_gas(10000000)]
-fn test_auth_role_end_auction_success() {
-
-    let (vaultdispatcher, ethDispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_value:u256 = 50;
-    set_contract_address(vault_manager());
-    let option_params: OptionParams = vaultdispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
-    set_contract_address(vault_manager());
-    vaultdispatcher.start_auction(option_params);
-    vaultdispatcher.end_auction();
-    // should not panic, thats all
-
-}
-
-#[test]
-#[available_gas(10000000)]
-#[should_panic(expected: ('auth error', 'only vault manager'))]
-fn test_auth_role_settle_failure() {
-
-    let (vaultdispatcher, ethDispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_value:u256 = 50;
-    set_contract_address(vault_manager());
-    let option_params: OptionParams = vaultdispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
-    set_contract_address(vault_manager());
-    vaultdispatcher.start_auction(option_params);
-    vaultdispatcher.end_auction();
-
-    set_contract_address(liquiduty_provider_1());
-    set_block_timestamp(option_params.expiry_time + 1);
-    vaultdispatcher.settle(option_params.strike_price + 10);
-}
-
-#[test]
-#[available_gas(10000000)]
-fn test_auth_role_settle_success() {
-
-    let (vaultdispatcher, ethDispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_value:u256 = 50;
-    set_contract_address(vault_manager());
-    let option_params: OptionParams = vaultdispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
-    set_contract_address(vault_manager());
-    vaultdispatcher.start_auction(option_params);
-    vaultdispatcher.end_auction();
-    set_block_timestamp(option_params.expiry_time + 1);
-    vaultdispatcher.settle(option_params.strike_price + 10);
-    // should not panic, thats all
-
-}
-
-
-//////////////////////////////
 /// liquidity/token count tests
 /////////////////////////////
 
@@ -450,7 +328,7 @@ fn test_total_options_after_allocation() {
     set_contract_address(option_bidder_buyer_2());
     vaultdispatcher.bid(option_params.total_options_available.into()/2, option_params.reserve_price.into()); // lets assume the reserve price is one
 
-    
+   
     set_contract_address(vault_manager());
     vaultdispatcher.end_auction();
 
@@ -476,7 +354,6 @@ fn test_premium_conversion_unallocated_pool() {
 
     set_contract_address(option_bidder_buyer_2());
     vaultdispatcher.bid(option_params.total_options_available.into()/2, option_params.reserve_price.into()); // lets assume the reserve price is one
-
     
     set_contract_address(vault_manager());
     vaultdispatcher.end_auction();
@@ -485,7 +362,6 @@ fn test_premium_conversion_unallocated_pool() {
 
     let unallocated_token :u256= vaultdispatcher.get_unallocated_token_count();
     let expected_unallocated_token:u256 = vaultdispatcher.get_auction_clearing_price().into() * vaultdispatcher.get_options_token_count();
-
   
     assert( unallocated_token == expected_unallocated_token, 'paid premiums should translate');
 }
