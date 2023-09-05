@@ -14,7 +14,7 @@ enum VaultType {
 struct OptionParams {
     standard_deviation:u256,
     strike_price: u256,
-    cap_level :u256,  // cap level,
+    cap_level :u256, 
     collateral_level: u256,
     reserve_price: u256,
     total_options_available: u256,
@@ -55,9 +55,6 @@ trait IVault<TContractState> {
     #[external]
     fn settle(ref self: TContractState, current_price:u256) -> bool;
 
-    // TODO need better naming for lower case k, is it standard deviation?
-    #[view]
-    fn get_k(self: @TContractState) -> u256;
 
     #[view]
     fn get_cap_level(self: @TContractState) -> u256;
@@ -190,14 +187,6 @@ mod Vault  {
 
         fn claim_payout(ref self: ContractState, user: ContractAddress ) -> u256{
             33
-        }
-
-
-        // TODO need better naming for lower case k, is it standard deviation?
-        #[view]
-        fn get_k(self: @ContractState) -> u256 {
-            // TODO fix later, random value
-            3
         }
 
         #[view]
