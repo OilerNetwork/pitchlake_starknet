@@ -69,6 +69,9 @@ trait IVault<TContractState> {
 //// total balances in different pools within the vault
 //////////////////////////////////////////////////////
     #[view]
+    fn payout_token_count(self: @TContractState) -> u256;
+
+    #[view]
     fn get_unallocated_token_count(self: @TContractState) -> u256 ;
 
     // TODO may be rename it to collaterized pool
@@ -195,6 +198,11 @@ mod Vault  {
         fn get_k(self: @ContractState) -> u256 {
             // TODO fix later, random value
             3
+        }
+
+        #[view]
+        fn payout_token_count(self: @ContractState) -> u256{
+            22
         }
 
         #[view]

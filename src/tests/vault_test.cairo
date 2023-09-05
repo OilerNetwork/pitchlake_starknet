@@ -680,11 +680,61 @@ fn test_option_payout_claim_1() {
     vault_dispatcher.settle(settlement_price);
 
     let payout_balance : u256= vault_dispatcher.payout_balance_of(option_bidder_buyer_1());
-    let balance_before_claim:u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
+    let balance_before_claim:u256 = eth_dispatcher.balance_of(option_bidder_buyer_1()); 
     vault_dispatcher.claim_payout(option_bidder_buyer_1());
     let balance_after_claim:u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
     assert(balance_after_claim == payout_balance + balance_before_claim, 'expected payout doesnt match');
 }
 
+#[test]
+#[available_gas(10000000)]
+fn test_option_payout_allocated_count() {
+    let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+    let deposit_amount:u256 = 1000000;
+    set_contract_address(liquidity_provider_1());
+    vault_dispatcher.deposit_liquidity(deposit_amount);
+    let option_params: OptionParams = vault_dispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
+    vault_dispatcher.start_auction(option_params);
 
+    let bid_count: u256 = 2;
+    set_contract_address(option_bidder_buyer_1());
+    vault_dispatcher.bid(bid_count, option_params.reserve_price);
+    vault_dispatcher.end_auction();
 
+    let settlement_price :u256 =  option_params.strike_price + 10;
+    set_block_timestamp(option_params.expiry_time);
+    vault_dispatcher.settle(settlement_price);
+
+    let total_allocated_count_after_settle : u256= vault_dispatcher.get_allocated_token_count();
+    assert(total_allocated_count_after_settle == 0, 'allocated should be zero')
+}
+
+#[test]
+#[available_gas(10000000)]
+fn test_option_payout_unallocated_count_1() {
+    let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+    let deposit_amount:u256 = 1000000;
+    set_contract_address(liquidity_provider_1());
+    vault_dispatcher.deposit_liquidity(deposit_amount);
+    let option_params: OptionParams = vault_dispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
+    let total_allocated_count_before_auction : u256= vault_dispatcher.get_unallocated_token_count();
+
+    vault_dispatcher.start_auction(option_params);
+
+    let bid_count: u256 = 2;
+    set_contract_address(option_bidder_buyer_1());
+    vault_dispatcher.bid(bid_count, option_params.reserve_price);
+    vault_dispatcher.end_auction();
+
+    let settlement_price :u256 =  option_params.strike_price + 10;
+    set_block_timestamp(option_params.expiry_time);
+    vault_dispatcher.settle(settlement_price);
+
+    let premium_paid = (bid_count*  option_params.reserve_price);
+    let total_allocated_count_after_settle : u256= vault_dispatcher.get_unallocated_token_count();
+    let claim_payout_amount:u256 = vault_dispatcher.payout_balance_of(option_bidder_buyer_1()); 
+    vault_dispatcher.claim_payout(option_bidder_buyer_1());
+    let total_allocated_count_after_claim : u256= vault_dispatcher.get_allocated_token_count();
+
+    assert(total_allocated_count_after_settle == total_allocated_count_before_auction - claim_payout_amount + premium_paid, 'expec allocated doesnt match');
+}
