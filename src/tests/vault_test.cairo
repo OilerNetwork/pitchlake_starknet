@@ -276,7 +276,7 @@ fn test_withdrawal_after_premium() {
     vault_dispatcher.start_auction(option_params);
     let unallocated_token_before_premium = vault_dispatcher.get_unallocated_token_count();
     set_contract_address(option_bidder_buyer_1());
-    vault_dispatcher.bid(unit_amount, option_params.reserve_price.into()); 
+    vault_dispatcher.bid(unit_amount, option_params.reserve_price); 
     
     vault_dispatcher.end_auction();
     let unallocated_token_after_premium = vault_dispatcher.get_unallocated_token_count();
@@ -299,7 +299,7 @@ fn test_bid_below_reserve_price() {
     let bid_below_reserve :u256 =  option_params.reserve_price - 1;
 
     set_contract_address(option_bidder_buyer_1());
-    let success = vault_dispatcher.bid(2, bid_below_reserve.into() );
+    let success = vault_dispatcher.bid(2, bid_below_reserve );
     assert(success == false, 'should not be able to bid');
 }
 
@@ -372,14 +372,14 @@ fn test_total_options_after_allocation_1() {
     
     vault_dispatcher.start_auction(option_params);
     set_contract_address(option_bidder_buyer_1());
-    vault_dispatcher.bid(option_params.total_options_available.into()/2 + 1, option_params.reserve_price.into());
+    vault_dispatcher.bid(option_params.total_options_available/2 + 1, option_params.reserve_price);
 
     set_contract_address(option_bidder_buyer_2());
-    vault_dispatcher.bid(option_params.total_options_available.into()/2, option_params.reserve_price.into()); 
+    vault_dispatcher.bid(option_params.total_options_available/2, option_params.reserve_price); 
     vault_dispatcher.end_auction();
 
     let options_created_count = vault_dispatcher.get_options_token_count();
-    assert( options_created_count == option_params.total_options_available.into(), 'all tokens should be allocated');
+    assert( options_created_count == option_params.total_options_available, 'all tokens should be allocated');
 }
 
 #[test]
@@ -392,14 +392,14 @@ fn test_total_options_after_allocation_2() {
     vault_dispatcher.deposit_liquidity(deposit_amount);  
     let option_params: OptionParams = vault_dispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
     
-    let bid_amount_user_1 :u256 =  (option_params.total_options_available.into()/2) + 1;
-    let bid_amount_user_2 :u256 =  (option_params.total_options_available.into()/2) ;
+    let bid_amount_user_1 :u256 =  (option_params.total_options_available/2) + 1;
+    let bid_amount_user_2 :u256 =  (option_params.total_options_available/2) ;
     vault_dispatcher.start_auction(option_params);
     set_contract_address(option_bidder_buyer_1());
-    vault_dispatcher.bid(bid_amount_user_1, option_params.reserve_price.into());
+    vault_dispatcher.bid(bid_amount_user_1, option_params.reserve_price);
 
     set_contract_address(option_bidder_buyer_2());
-    vault_dispatcher.bid(bid_amount_user_2, option_params.reserve_price.into() - 10); 
+    vault_dispatcher.bid(bid_amount_user_2, option_params.reserve_price - 10); 
     vault_dispatcher.end_auction();
 
     let options_created_count = vault_dispatcher.get_options_token_count();
@@ -418,20 +418,20 @@ fn test_premium_conversion_unallocated_pool() {
     let option_params: OptionParams = vault_dispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
     vault_dispatcher.start_auction(option_params);
 
-    let bid_amount_user_1 :u256 =  (option_params.total_options_available.into()/2) + 1;
-    let bid_amount_user_2 :u256 =  (option_params.total_options_available.into()/2) ;
+    let bid_amount_user_1 :u256 =  (option_params.total_options_available/2) + 1;
+    let bid_amount_user_2 :u256 =  (option_params.total_options_available/2) ;
     
     set_contract_address(option_bidder_buyer_1());
-    vault_dispatcher.bid(bid_amount_user_1, option_params.reserve_price.into()); 
+    vault_dispatcher.bid(bid_amount_user_1, option_params.reserve_price); 
 
     set_contract_address(option_bidder_buyer_2());
-    vault_dispatcher.bid(bid_amount_user_2, option_params.reserve_price.into()); 
+    vault_dispatcher.bid(bid_amount_user_2, option_params.reserve_price); 
     
     vault_dispatcher.end_auction();
 
     //premium paid will be converted into unallocated.
     let unallocated_token_count :u256 = vault_dispatcher.get_unallocated_token_count();
-    let expected_unallocated_token:u256 = vault_dispatcher.get_auction_clearing_price().into() * option_params.total_options_available.into();
+    let expected_unallocated_token:u256 = vault_dispatcher.get_auction_clearing_price() * option_params.total_options_available;
     assert( unallocated_token_count == expected_unallocated_token, 'paid premiums should translate');
 }
 
@@ -447,11 +447,11 @@ fn test_option_count() {
 
     let bid_count: u256 = 2;
     set_contract_address(option_bidder_buyer_1());
-    vault_dispatcher.bid(bid_count.into(), option_params.reserve_price.into());
+    vault_dispatcher.bid(bid_count, option_params.reserve_price);
     vault_dispatcher.end_auction();
  
     let options_created = vault_dispatcher.get_options_token_count();
-    assert(options_created == bid_count.into(), 'options equal successful bids');
+    assert(options_created == bid_count, 'options equal successful bids');
 }
 
 #[test]
@@ -466,7 +466,7 @@ fn test_clearing_price_1() {
 
     let bid_count: u256 = 2;
     set_contract_address(option_bidder_buyer_1());
-    vault_dispatcher.bid(bid_count.into(), option_params.reserve_price.into());
+    vault_dispatcher.bid(bid_count, option_params.reserve_price);
     vault_dispatcher.end_auction();
  
     let clearing_price: u256 = vault_dispatcher.get_auction_clearing_price();
@@ -485,13 +485,13 @@ fn test_clearing_price_2() {
     vault_dispatcher.start_auction(option_params);
 
     let bid_count: u256 = option_params.total_options_available;
-    let bid_price_user_1 : u256 = option_params.reserve_price.into();
-    let bid_price_user_2 : u256 = option_params.reserve_price.into() + 10;
+    let bid_price_user_1 : u256 = option_params.reserve_price;
+    let bid_price_user_2 : u256 = option_params.reserve_price + 10;
 
     set_contract_address(option_bidder_buyer_1());
-    vault_dispatcher.bid(bid_count.into(), bid_price_user_1 );
+    vault_dispatcher.bid(bid_count, bid_price_user_1 );
     set_contract_address(option_bidder_buyer_2());
-    vault_dispatcher.bid(bid_count.into(),  bid_price_user_2);
+    vault_dispatcher.bid(bid_count,  bid_price_user_2);
 
     vault_dispatcher.end_auction();
  
@@ -512,8 +512,8 @@ fn test_clearing_price_3() {
     let bid_count_user_1: u256 = option_params.total_options_available - 20;
     let bid_count_user_2: u256 = 20;
 
-    let bid_price_user_1 : u256 = option_params.reserve_price.into() + 100;
-    let bid_price_user_2 : u256 = option_params.reserve_price.into() ;
+    let bid_price_user_1 : u256 = option_params.reserve_price + 100;
+    let bid_price_user_2 : u256 = option_params.reserve_price ;
 
     set_contract_address(option_bidder_buyer_1());
     vault_dispatcher.bid(bid_count_user_1, bid_price_user_1 );
@@ -542,10 +542,10 @@ fn test_lock_of_bid_funds() {
     set_contract_address(option_bidder_buyer_1());
 
     let eth_balance_before_bid :u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
-    vault_dispatcher.bid(bid_count.into(), option_params.reserve_price.into());
+    vault_dispatcher.bid(bid_count, option_params.reserve_price);
     let eth_balance_after_bid :u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
 
-    assert(eth_balance_before_bid == eth_balance_after_bid + (bid_count.into() * option_params.reserve_price.into()), 'bid amounts should be locked up');
+    assert(eth_balance_before_bid == eth_balance_after_bid + (bid_count * option_params.reserve_price), 'bid amounts should be locked up');
 }
 
 #[test]
@@ -562,7 +562,7 @@ fn test_eth_unused_for_rejected_bids() {
     set_contract_address(option_bidder_buyer_1());
 
     let eth_balance_before_bid :u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
-    vault_dispatcher.bid(bid_count.into(), option_params.reserve_price.into() - 100);
+    vault_dispatcher.bid(bid_count, option_params.reserve_price - 100);
     let eth_balance_after_bid :u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
 
     assert(eth_balance_before_bid == eth_balance_after_bid, 'bid should not be locked up');
@@ -581,11 +581,11 @@ fn test_eth_refund_for_unused_bids() {
     let bid_count: u256 = option_params.total_options_available + 10;
     set_contract_address(option_bidder_buyer_1());
     let eth_balance_before_bid :u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
-    vault_dispatcher.bid(bid_count.into(), option_params.reserve_price.into());
+    vault_dispatcher.bid(bid_count, option_params.reserve_price);
 
     vault_dispatcher.end_auction();
     let eth_balance_after_auction :u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
-    assert(eth_balance_before_bid == eth_balance_after_auction + ((bid_count.into() - option_params.total_options_available.into()) * option_params.reserve_price.into()), 'bid amounts should be locked up');
+    assert(eth_balance_before_bid == eth_balance_after_auction + ((bid_count - option_params.total_options_available) * option_params.reserve_price), 'bid amounts should be locked up');
 } 
 
 #[test]
@@ -600,11 +600,11 @@ fn test_option_count_2() {
 
     let bid_count: u256 = 2;
     set_contract_address(option_bidder_buyer_1());
-    vault_dispatcher.bid(bid_count.into(), option_params.reserve_price.into());
+    vault_dispatcher.bid(bid_count, option_params.reserve_price);
     vault_dispatcher.end_auction();
  
     let options_created = vault_dispatcher.get_options_token_count();
-    assert(options_created == bid_count.into(), 'options equal successful bids');
+    assert(options_created == bid_count, 'options equal successful bids');
 }
 
 //////////////////////////////////////
@@ -623,7 +623,7 @@ fn test_option_payout_1() {
 
     let bid_count: u256 = 2;
     set_contract_address(option_bidder_buyer_1());
-    vault_dispatcher.bid(bid_count.into(), option_params.reserve_price.into());
+    vault_dispatcher.bid(bid_count, option_params.reserve_price);
     vault_dispatcher.end_auction();
 
     let settlement_price :u256 =  option_params.strike_price + 10;
@@ -647,7 +647,7 @@ fn test_option_payout_2() {
 
     let bid_count: u256 = 2;
     set_contract_address(option_bidder_buyer_1());
-    vault_dispatcher.bid(bid_count.into(), option_params.reserve_price.into());
+    vault_dispatcher.bid(bid_count, option_params.reserve_price);
     vault_dispatcher.end_auction();
 
     let settlement_price :u256 =  option_params.strike_price - 10;
@@ -672,7 +672,7 @@ fn test_option_payout_claim_1() {
 
     let bid_count: u256 = 2;
     set_contract_address(option_bidder_buyer_1());
-    vault_dispatcher.bid(bid_count.into(), option_params.reserve_price.into());
+    vault_dispatcher.bid(bid_count, option_params.reserve_price);
     vault_dispatcher.end_auction();
 
     let settlement_price :u256 =  option_params.strike_price + 10;

@@ -171,7 +171,7 @@ fn test_approve_update() {
     let spender: ContractAddress = ContractAddressZeroable::zero();
 
     let caller_address = contract_address_const::<1>();
-    let caller_account: ContractAddress = caller_address.into();
+    let caller_account: ContractAddress = caller_address;
     starknet::testing::set_contract_address(caller_address);
 
     let mut allowance_amount = safe_dispatcher.allowance(caller_account, spender).unwrap();

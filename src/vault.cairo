@@ -185,6 +185,11 @@ mod Vault  {
           true  
         }
 
+        fn claim_payout(ref self: ContractState, user: ContractAddress ) -> u256{
+            33
+        }
+
+
         // TODO need better naming for lower case k, is it standard deviation?
         #[view]
         fn get_k(self: @ContractState) -> u256 {
@@ -221,6 +226,34 @@ mod Vault  {
             // TODO fix later, random value
             VaultType::AtTheMoney(1)
         }
+
+//////////////////////////////////////////////////////
+//// user balances in different pools within the vault
+//////////////////////////////////////////////////////
+
+        #[view]
+        fn payout_balance_of(ref self: ContractState, user: ContractAddress ) -> u256{
+            32
+        }
+
+        #[view]
+        fn option_balance_of(self: @ContractState, user:ContractAddress) -> u256 {
+            23
+        }
+
+        #[view]
+        fn unallocated_balance_of(self: @ContractState) -> u256 {
+            3
+        }
+
+        #[view]
+        fn allocated_balance_of(self: @ContractState, user:ContractAddress) -> u256 {
+            43
+        }
+
+//////////////////////////////////////////////////////
+//// contract address of the pools being utilized within the vault
+//////////////////////////////////////////////////////
 
         #[view]
         fn get_allocated_token_address(self: @ContractState) -> IERC20Dispatcher{
