@@ -32,8 +32,13 @@ trait IVault<TContractState> {
     fn withdraw_liquidity(ref self: TContractState, amount: u256 ) -> bool;
 
     #[external]
+    fn claim_payout(ref self: TContractState, user: ContractAddress ) -> u256;
+
+    // auction also moves capital from unallocated pool to allocated pool
+    #[external]
     fn start_auction(ref self: TContractState, option_params : OptionParams);
 
+    // returns true if bid if capital has been locked up in the auction. false if auction not running or bid below reserve price
     #[external]
     fn bid(ref self: TContractState, amount : u256, price :u256) -> bool;
 
@@ -60,6 +65,9 @@ trait IVault<TContractState> {
     #[view]
     fn vault_type(self: @TContractState) -> VaultType;
 
+//////////////////////////////////////////////////////
+//// total balances in different pools within the vault
+//////////////////////////////////////////////////////
     #[view]
     fn get_unallocated_token_count(self: @TContractState) -> u256 ;
 
@@ -70,7 +78,26 @@ trait IVault<TContractState> {
     #[view]
     fn get_options_token_count(self: @TContractState) -> u256;
 
+//////////////////////////////////////////////////////
+//// user balances in different pools within the vault
+//////////////////////////////////////////////////////
 
+    #[view]
+    fn payout_balance_of(ref self: TContractState, user: ContractAddress ) -> u256;
+
+    #[view]
+    fn option_balance_of(self: @TContractState, user:ContractAddress) -> u256 ;
+
+    #[view]
+    fn unallocated_balance_of(self: @TContractState) -> u256 ;
+
+    #[view]
+    fn allocated_balance_of(self: @TContractState, user:ContractAddress) -> u256 ;
+
+
+//////////////////////////////////////////////////////
+//// contract address of the pools being utilized within the vault
+//////////////////////////////////////////////////////
 
 
     #[view]
