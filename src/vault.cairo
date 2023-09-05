@@ -12,12 +12,12 @@ enum VaultType {
 
 #[derive(Copy, Drop, Serde)]
 struct OptionParams {
-    standard_deviation:u128,
-    strike_price: u128,
-    cap_level :u128,  // cap level,
-    collateral_level: u128,
-    reserve_price: u128,
-    total_options_available: u128,
+    standard_deviation:u256,
+    strike_price: u256,
+    cap_level :u256,  // cap level,
+    collateral_level: u256,
+    reserve_price: u256,
+    total_options_available: u256,
     start_time:u64,
     expiry_time:u64
 }
@@ -41,21 +41,21 @@ trait IVault<TContractState> {
     fn end_auction(ref self: TContractState) -> bool;
 
     #[view]
-    fn get_auction_clearing_price(ref self: TContractState) -> u128;
+    fn get_auction_clearing_price(ref self: TContractState) -> u256;
 
     // TODO this should be part of a seperate interface
     #[external]
     fn generate_option_params(ref self: TContractState, start_time:u64, end_time:u64 ) -> OptionParams;
 
     #[external]
-    fn settle(ref self: TContractState, current_price:u128) -> bool;
+    fn settle(ref self: TContractState, current_price:u256) -> bool;
 
     // TODO need better naming for lower case k, is it standard deviation?
     #[view]
-    fn get_k(self: @TContractState) -> u128;
+    fn get_k(self: @TContractState) -> u256;
 
     #[view]
-    fn get_cap_level(self: @TContractState) -> u128;
+    fn get_cap_level(self: @TContractState) -> u256;
 
     #[view]
     fn vault_type(self: @TContractState) -> VaultType;
@@ -137,7 +137,7 @@ mod Vault  {
             true
         }
 
-        fn get_auction_clearing_price(ref self: ContractState) -> u128{
+        fn get_auction_clearing_price(ref self: ContractState) -> u256{
             100
         }
 
@@ -154,13 +154,13 @@ mod Vault  {
                     return tmp;
         }
 
-        fn settle(ref self: ContractState, current_price:u128) -> bool{
+        fn settle(ref self: ContractState, current_price:u256) -> bool{
           true  
         }
 
         // TODO need better naming for lower case k, is it standard deviation?
         #[view]
-        fn get_k(self: @ContractState) -> u128 {
+        fn get_k(self: @ContractState) -> u256 {
             // TODO fix later, random value
             3
         }
@@ -184,7 +184,7 @@ mod Vault  {
         }
 
         #[view]
-        fn get_cap_level(self: @ContractState) -> u128 {
+        fn get_cap_level(self: @ContractState) -> u256 {
             // TODO fix later, random value
             100
         }

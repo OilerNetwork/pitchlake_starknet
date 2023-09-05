@@ -165,6 +165,7 @@ fn test_withdraw_liquidity_valid_user() {
 }
 
 
+
 #[test]
 #[available_gas(10000000)]
 fn test_settle_before_expiry() {
@@ -175,7 +176,7 @@ fn test_settle_before_expiry() {
     let unit_price = 2;
     
     set_contract_address(liquidity_provider_1());
-    let success:bool  = vault_dispatcher.deposit_liquidity(deposit_value);
+    vault_dispatcher.deposit_liquidity(deposit_value);
     let option_params: OptionParams = vault_dispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
     vault_dispatcher.start_auction(option_params);
 
@@ -187,6 +188,53 @@ fn test_settle_before_expiry() {
     let success = vault_dispatcher.settle(option_params.strike_price + 10);
     assert(success == false, 'no settle before expiry');
 }
+
+#[test]
+#[available_gas(10000000)]
+fn test_settle_before_end_auction() {
+
+    let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+    let deposit_value:u256 = 50;
+    let unit_amount:u256 = 50;
+    let unit_price:u256 = 2;
+    let final_settlement_price:u256 = 30;
+    
+    set_contract_address(liquidity_provider_1());
+    vault_dispatcher.deposit_liquidity(deposit_value);
+    let option_params: OptionParams = vault_dispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
+    vault_dispatcher.start_auction(option_params);
+
+    set_contract_address(option_bidder_buyer_1());
+    set_block_timestamp(option_params.expiry_time );
+    let success = vault_dispatcher.settle(final_settlement_price);
+
+    assert(success == false, 'no settle before auction end');
+}
+
+
+#[test]
+#[available_gas(10000000)]
+fn test_bid_after_expiry() {
+
+    let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+    let deposit_value:u256 = 50;
+    let unit_amount = 50;
+    let unit_price = 2;
+    
+    set_contract_address(liquidity_provider_1());
+    vault_dispatcher.deposit_liquidity(deposit_value);
+    let option_params: OptionParams = vault_dispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
+    vault_dispatcher.start_auction(option_params);
+
+    set_contract_address(option_bidder_buyer_1());
+    set_block_timestamp(option_params.expiry_time );
+    vault_dispatcher.end_auction();
+    let success = vault_dispatcher.bid(unit_amount, unit_price);
+
+    assert(success == false, 'no bid after expiry');
+}
+
+
 
 #[test]
 #[available_gas(10000000)]
@@ -248,7 +296,7 @@ fn test_bid_below_reserve_price() {
     
     vault_dispatcher.start_auction(option_params);
     // bid below reserve price
-    let bid_below_reserve :u128 =  option_params.reserve_price - 1;
+    let bid_below_reserve :u256 =  option_params.reserve_price - 1;
 
     set_contract_address(option_bidder_buyer_1());
     let success = vault_dispatcher.bid(2, bid_below_reserve.into() );
@@ -374,10 +422,10 @@ fn test_premium_conversion_unallocated_pool() {
     let bid_amount_user_2 :u256 =  (option_params.total_options_available.into()/2) ;
     
     set_contract_address(option_bidder_buyer_1());
-    vault_dispatcher.bid(bid_amount_user_1, option_params.reserve_price.into()); // lets assume the reserve price is one
+    vault_dispatcher.bid(bid_amount_user_1, option_params.reserve_price.into()); 
 
     set_contract_address(option_bidder_buyer_2());
-    vault_dispatcher.bid(bid_amount_user_2, option_params.reserve_price.into()); // lets assume the reserve price is one
+    vault_dispatcher.bid(bid_amount_user_2, option_params.reserve_price.into()); 
     
     vault_dispatcher.end_auction();
 
@@ -397,7 +445,7 @@ fn test_option_count() {
     let option_params: OptionParams = vault_dispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
     vault_dispatcher.start_auction(option_params);
 
-    let bid_count: u128 = 2;
+    let bid_count: u256 = 2;
     set_contract_address(option_bidder_buyer_1());
     vault_dispatcher.bid(bid_count.into(), option_params.reserve_price.into());
     vault_dispatcher.end_auction();
@@ -408,7 +456,7 @@ fn test_option_count() {
 
 #[test]
 #[available_gas(10000000)]
-fn test_clearing_price() {
+fn test_clearing_price_1() {
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
     set_contract_address(liquidity_provider_1());
     let deposit_amount:u256 = 1000000;
@@ -416,14 +464,129 @@ fn test_clearing_price() {
     let option_params: OptionParams = vault_dispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
     vault_dispatcher.start_auction(option_params);
 
-    let bid_count: u128 = 2;
+    let bid_count: u256 = 2;
     set_contract_address(option_bidder_buyer_1());
     vault_dispatcher.bid(bid_count.into(), option_params.reserve_price.into());
     vault_dispatcher.end_auction();
  
-    let clearing_price: u128 = vault_dispatcher.get_auction_clearing_price();
+    let clearing_price: u256 = vault_dispatcher.get_auction_clearing_price();
     assert(clearing_price == option_params.reserve_price, 'clear price equal reserve price');
+}
+
+
+#[test]
+#[available_gas(10000000)]
+fn test_clearing_price_2() {
+    let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+    set_contract_address(liquidity_provider_1());
+    let deposit_amount:u256 = 1000000;
+    vault_dispatcher.deposit_liquidity(deposit_amount);
+    let option_params: OptionParams = vault_dispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
+    vault_dispatcher.start_auction(option_params);
+
+    let bid_count: u256 = option_params.total_options_available;
+    let bid_price_user_1 : u256 = option_params.reserve_price.into();
+    let bid_price_user_2 : u256 = option_params.reserve_price.into() + 10;
+
+    set_contract_address(option_bidder_buyer_1());
+    vault_dispatcher.bid(bid_count.into(), bid_price_user_1 );
+    set_contract_address(option_bidder_buyer_2());
+    vault_dispatcher.bid(bid_count.into(),  bid_price_user_2);
+
+    vault_dispatcher.end_auction();
+ 
+    let clearing_price: u256 = vault_dispatcher.get_auction_clearing_price();
+    assert(clearing_price == bid_price_user_2, 'clear price equal reserve price');
 }   
+
+#[test]
+#[available_gas(10000000)]
+fn test_clearing_price_3() {
+    let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+    set_contract_address(liquidity_provider_1());
+    let deposit_amount:u256 = 1000000;
+    vault_dispatcher.deposit_liquidity(deposit_amount);
+    let option_params: OptionParams = vault_dispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
+    vault_dispatcher.start_auction(option_params);
+
+    let bid_count_user_1: u256 = option_params.total_options_available - 20;
+    let bid_count_user_2: u256 = 20;
+
+    let bid_price_user_1 : u256 = option_params.reserve_price.into() + 100;
+    let bid_price_user_2 : u256 = option_params.reserve_price.into() ;
+
+    set_contract_address(option_bidder_buyer_1());
+    vault_dispatcher.bid(bid_count_user_1, bid_price_user_1 );
+
+    set_contract_address(option_bidder_buyer_2());
+    vault_dispatcher.bid(bid_count_user_2,  bid_price_user_2);
+
+    vault_dispatcher.end_auction();
+ 
+    let clearing_price: u256 = vault_dispatcher.get_auction_clearing_price();
+    assert(clearing_price == bid_price_user_2, 'clear price equal reserve price');
+}   
+
+
+#[test]
+#[available_gas(10000000)]
+fn test_lock_of_bid_funds() {
+    let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+    set_contract_address(liquidity_provider_1());
+    let deposit_amount:u256 = 1000000;
+    vault_dispatcher.deposit_liquidity(deposit_amount);
+    let option_params: OptionParams = vault_dispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
+    vault_dispatcher.start_auction(option_params);
+
+    let bid_count: u256 = 2;
+    set_contract_address(option_bidder_buyer_1());
+
+    let eth_balance_before_bid :u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
+    vault_dispatcher.bid(bid_count.into(), option_params.reserve_price.into());
+    let eth_balance_after_bid :u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
+
+    assert(eth_balance_before_bid == eth_balance_after_bid + (bid_count.into() * option_params.reserve_price.into()), 'bid amounts should be locked up');
+}
+
+#[test]
+#[available_gas(10000000)]
+fn test_eth_unused_for_rejected_bids() {
+    let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+    set_contract_address(liquidity_provider_1());
+    let deposit_amount:u256 = 1000000;
+    vault_dispatcher.deposit_liquidity(deposit_amount);
+    let option_params: OptionParams = vault_dispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
+    vault_dispatcher.start_auction(option_params);
+
+    let bid_count: u256 = 2;
+    set_contract_address(option_bidder_buyer_1());
+
+    let eth_balance_before_bid :u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
+    vault_dispatcher.bid(bid_count.into(), option_params.reserve_price.into() - 100);
+    let eth_balance_after_bid :u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
+
+    assert(eth_balance_before_bid == eth_balance_after_bid, 'bid should not be locked up');
+}
+
+#[test]
+#[available_gas(10000000)]
+fn test_eth_refund_for_unused_bids() {
+    let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+    set_contract_address(liquidity_provider_1());
+    let deposit_amount:u256 = 1000000;
+    vault_dispatcher.deposit_liquidity(deposit_amount);
+    let option_params: OptionParams = vault_dispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
+    vault_dispatcher.start_auction(option_params);
+
+    let bid_count: u256 = option_params.total_options_available + 10;
+    set_contract_address(option_bidder_buyer_1());
+    let eth_balance_before_bid :u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
+    vault_dispatcher.bid(bid_count.into(), option_params.reserve_price.into());
+
+    vault_dispatcher.end_auction();
+    let eth_balance_after_auction :u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
+    assert(eth_balance_before_bid == eth_balance_after_auction + ((bid_count.into() - option_params.total_options_available.into()) * option_params.reserve_price.into()), 'bid amounts should be locked up');
+} 
 
 #[test]
 #[available_gas(10000000)]
@@ -435,7 +598,7 @@ fn test_option_count_2() {
     let option_params: OptionParams = vault_dispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
     vault_dispatcher.start_auction(option_params);
 
-    let bid_count: u128 = 2;
+    let bid_count: u256 = 2;
     set_contract_address(option_bidder_buyer_1());
     vault_dispatcher.bid(bid_count.into(), option_params.reserve_price.into());
     vault_dispatcher.end_auction();
