@@ -25,6 +25,9 @@ struct OptionParams {
 #[starknet::interface]
 trait IVault<TContractState> {
 
+    #[view]
+    fn decimals(ref self: TContractState)->u8;
+
     #[external]
     fn deposit_liquidity(ref self: TContractState, amount: u256 ) -> bool;
 
@@ -89,7 +92,7 @@ trait IVault<TContractState> {
     fn option_balance_of(self: @TContractState, user:ContractAddress) -> u256 ;
 
     #[view]
-    fn unallocated_balance_of(self: @TContractState) -> u256 ;
+    fn unallocated_balance_of(self: @TContractState, user:ContractAddress) -> u256 ;
 
     #[view]
     fn allocated_balance_of(self: @TContractState, user:ContractAddress) -> u256 ;
@@ -141,6 +144,11 @@ mod Vault  {
 
     #[external(v0)]
     impl VaultImpl of super::IVault<ContractState> {
+
+        #[view]
+        fn decimals(ref self: ContractState)->u8{
+            18
+        }
 
         fn deposit_liquidity(ref self: ContractState, amount: u256 ) -> bool{
             true
@@ -239,7 +247,7 @@ mod Vault  {
         }
 
         #[view]
-        fn unallocated_balance_of(self: @ContractState) -> u256 {
+        fn unallocated_balance_of(self: @ContractState, user:ContractAddress) -> u256 {
             3
         }
 
