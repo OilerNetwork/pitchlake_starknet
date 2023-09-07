@@ -41,6 +41,14 @@ trait IVault<TContractState> {
     #[external]
     fn start_auction(ref self: TContractState, option_params : OptionParams);
 
+    // take liquidity from collaterized to unllocated
+    #[external]
+    fn roll_over_allocated_to_unallocated(ref self: TContractState, user: ContractAddress);
+
+    // take liquidity from collaterized to unllocated
+    #[external]
+    fn roll_over_premium_to_unallocated(ref self: TContractState, user: ContractAddress);
+
     // returns true if bid if capital has been locked up in the auction. false if auction not running or bid below reserve price
     #[external]
     fn bid(ref self: TContractState, amount : u256, price :u256) -> bool;
@@ -170,6 +178,16 @@ mod Vault  {
         fn end_auction(ref self: ContractState) -> bool{
             // final clearing price
             true
+        }
+
+        // take liquidity from collaterized to unllocated
+        fn roll_over_allocated_to_unallocated(ref self: ContractState, user: ContractAddress){
+
+        }
+
+        // take liquidity from collaterized to unllocated
+        fn roll_over_premium_to_unallocated(ref self: ContractState, user: ContractAddress){
+            
         }
 
         fn get_auction_clearing_price(ref self: ContractState) -> u256{

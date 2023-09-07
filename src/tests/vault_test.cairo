@@ -169,8 +169,6 @@ fn test_withdraw_liquidity_valid_user() {
 
 }
 
-
-
 #[test]
 #[available_gas(10000000)]
 fn test_settle_before_expiry() {
