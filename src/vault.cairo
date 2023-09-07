@@ -10,13 +10,15 @@ enum VaultType {
     OutOfMoney: u128,
 }
 
+
+// unit of account is in wei
 #[derive(Copy, Drop, Serde)]
 struct OptionParams {
     standard_deviation:u256,
-    strike_price: u256,
-    cap_level :u256, 
+    strike_price: u256, // wei
+    cap_level :u256,  //wei 
     collateral_level: u256,
-    reserve_price: u256,
+    reserve_price: u256, //wei
     total_options_available: u256,
     start_time:u64,
     expiry_time:u64
@@ -35,7 +37,10 @@ trait IVault<TContractState> {
     fn withdraw_liquidity(ref self: TContractState, amount: u256 ) -> bool;
 
     #[external]
-    fn claim_payout(ref self: TContractState, user: ContractAddress ) -> u256;
+    fn claim_deposit(ref self: TContractState, option_bidder: ContractAddress ) -> u256;
+
+    #[external]
+    fn claim_payout(ref self: TContractState, option_buyer: ContractAddress ) -> u256;
 
     // auction also moves capital from unallocated pool to allocated pool
     #[external]
@@ -43,11 +48,11 @@ trait IVault<TContractState> {
 
     // take liquidity from collaterized to unllocated
     #[external]
-    fn roll_over_allocated_to_unallocated(ref self: TContractState, user: ContractAddress);
+    fn roll_over_allocated_to_unallocated(ref self: TContractState, liquidity_provider: ContractAddress);
 
     // take liquidity from collaterized to unllocated
     #[external]
-    fn roll_over_premium_to_unallocated(ref self: TContractState, user: ContractAddress);
+    fn roll_over_premium_to_unallocated(ref self: TContractState, liquidity_provider: ContractAddress);
 
     // returns true if bid if capital has been locked up in the auction. false if auction not running or bid below reserve price
     #[external]
@@ -65,7 +70,6 @@ trait IVault<TContractState> {
 
     #[external]
     fn settle(ref self: TContractState, current_price:u256) -> bool;
-
 
     #[view]
     fn get_cap_level(self: @TContractState) -> u256;
@@ -109,7 +113,6 @@ trait IVault<TContractState> {
 //////////////////////////////////////////////////////
 //// contract address of the pools being utilized within the vault
 //////////////////////////////////////////////////////
-
 
     #[view]
     fn get_allocated_token_address(self: @TContractState) -> IERC20Dispatcher;
@@ -181,12 +184,12 @@ mod Vault  {
         }
 
         // take liquidity from collaterized to unllocated
-        fn roll_over_allocated_to_unallocated(ref self: ContractState, user: ContractAddress){
+        fn roll_over_allocated_to_unallocated(ref self: ContractState, liquidity_provider: ContractAddress){
 
         }
 
         // take liquidity from collaterized to unllocated
-        fn roll_over_premium_to_unallocated(ref self: ContractState, user: ContractAddress){
+        fn roll_over_premium_to_unallocated(ref self: ContractState, liquidity_provider: ContractAddress){
             
         }
 
@@ -211,7 +214,11 @@ mod Vault  {
           true  
         }
 
-        fn claim_payout(ref self: ContractState, user: ContractAddress ) -> u256{
+        fn claim_deposit(ref self: ContractState, option_bidder: ContractAddress ) -> u256{
+            33
+        }
+
+        fn claim_payout(ref self: ContractState, option_buyer: ContractAddress ) -> u256{
             33
         }
 
