@@ -7,9 +7,75 @@ use starknet::{
     deploy_syscall,
     Felt252TryIntoContractAddress,
     get_contract_address,
-    contract_address_try_from_felt252
+    contract_address_try_from_felt252 ,
+    testing::{set_block_timestamp, set_contract_address}
 };
+use openzeppelin::token::erc20::interface::{
+    IERC20,
+    IERC20Dispatcher,
+    IERC20DispatcherTrait,
+    IERC20SafeDispatcher,
+    IERC20SafeDispatcherTrait,
+};
+use openzeppelin::utils::serde::SerializedAppend;
+use pitch_lake_starknet::eth::Eth;
+
 use pitch_lake_starknet::vault::{IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait, OptionParams};
+
+const NAME: felt252 = 'WETH';
+const SYMBOL: felt252 = 'WETH';
+const DECIMALS: u8 = 18_u8;
+const SUPPLY: u256 = 99999999999999999999999999999; 
+
+fn deployEth() ->  IERC20Dispatcher {
+
+    
+    let mut calldata = array![];
+
+    calldata.append_serde(NAME);
+    calldata.append_serde(SYMBOL);
+    calldata.append_serde(SUPPLY);
+    calldata.append_serde(weth_owner());
+
+    let (address, _) = deploy_syscall(
+        Eth::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
+    )
+        .expect('DEPLOY_AD_FAILED');
+    return IERC20Dispatcher{contract_address: address};
+}
+
+fn deployVault() ->  IVaultDispatcher {
+    let mut calldata = array![];
+
+    calldata.append_serde(allocated_pool_address());
+    calldata.append_serde(unallocated_pool_address());
+
+    let (address, _) = deploy_syscall(
+        Vault::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
+    )
+        .expect('DEPLOY_AD_FAILED');
+    return IVaultDispatcher{contract_address: address};
+}
+
+fn setup() -> (IVaultDispatcher, IERC20Dispatcher){
+
+    let eth_dispatcher : IERC20Dispatcher = deployEth();
+    let vault_dispatcher : IVaultDispatcher = deployVault();
+    set_contract_address(weth_owner());
+    let deposit_amount_ether : u256 = 1000000;
+    let deposit_amount_wei: u256 = deposit_amount_ether  * eth_dispatcher.decimals().into();
+
+    eth_dispatcher.transfer(liquidity_provider_1(),deposit_amount_wei);
+    eth_dispatcher.transfer(liquidity_provider_2(),deposit_amount_wei);
+
+    let deposit_amount_ether : u256 = 100000;
+    let deposit_amount_wei: u256 = deposit_amount_ether  * eth_dispatcher.decimals().into();
+
+    eth_dispatcher.transfer(option_bidder_buyer_1(),deposit_amount_wei);
+    eth_dispatcher.transfer(option_bidder_buyer_2(),deposit_amount_wei);
+
+    return (vault_dispatcher, eth_dispatcher);
+}
 
 
 fn allocated_pool_address() -> ContractAddress {

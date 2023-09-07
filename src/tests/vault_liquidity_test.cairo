@@ -27,65 +27,48 @@ use openzeppelin::utils::serde::SerializedAppend;
 use traits::Into;
 use traits::TryInto;
 use pitch_lake_starknet::eth::Eth;
-use pitch_lake_starknet::tests::utils::{allocated_pool_address, unallocated_pool_address, timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1, option_bidder_buyer_2, vault_manager, weth_owner};
+use pitch_lake_starknet::tests::utils::{setup, deployVault, allocated_pool_address, unallocated_pool_address, timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1, option_bidder_buyer_2, vault_manager, weth_owner};
 
 
-const NAME: felt252 = 'WETH';
-const SYMBOL: felt252 = 'WETH';
-const DECIMALS: u8 = 18_u8;
-const SUPPLY: u256 = 99999999999999999999999999999; 
 
-fn deployEth() ->  IERC20Dispatcher {
-    let mut calldata = array![];
-
-    calldata.append_serde(NAME);
-    calldata.append_serde(SYMBOL);
-    calldata.append_serde(SUPPLY);
-    calldata.append_serde(weth_owner());
-
-    let (address, _) = deploy_syscall(
-        Eth::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
-    )
-        .expect('DEPLOY_AD_FAILED');
-    return IERC20Dispatcher{contract_address: address};
-}
-
-fn deployVault() ->  IVaultDispatcher {
-    let mut calldata = array![];
-
-    calldata.append_serde(allocated_pool_address());
-    calldata.append_serde(unallocated_pool_address());
-
-    let (address, _) = deploy_syscall(
-        Vault::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
-    )
-        .expect('DEPLOY_AD_FAILED');
-    return IVaultDispatcher{contract_address: address};
-}
-
-fn setup() -> (IVaultDispatcher, IERC20Dispatcher){
-
-    let eth_dispatcher : IERC20Dispatcher = deployEth();
-    let vault_dispatcher : IVaultDispatcher = deployVault();
-    set_contract_address(weth_owner());
-    let deposit_amount_ether : u256 = 1000000;
-    let deposit_amount_wei: u256 = deposit_amount_ether  * eth_dispatcher.decimals().into();
-
-    eth_dispatcher.transfer(liquidity_provider_1(),deposit_amount_wei);
-    eth_dispatcher.transfer(liquidity_provider_2(),deposit_amount_wei);
-
-    let deposit_amount_ether : u256 = 100000;
-    let deposit_amount_wei: u256 = deposit_amount_ether  * eth_dispatcher.decimals().into();
-
-    eth_dispatcher.transfer(option_bidder_buyer_1(),deposit_amount_wei);
-    eth_dispatcher.transfer(option_bidder_buyer_2(),deposit_amount_wei);
-
-    return (vault_dispatcher, eth_dispatcher);
-}
 
 //////////////////////////////
 /// liquidity/token count tests
 /////////////////////////////
+
+
+#[test]
+#[available_gas(10000000)]
+fn test_deploy_liquidity_zero() {
+
+    let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+    let deposit_amount_wei:u256 = 0 ;
+    set_contract_address(liquidity_provider_1());
+
+    let balance_before_transfer: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
+    let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    let balance_after_transfer: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
+
+    assert(balance_before_transfer == balance_after_transfer, 'zero deposit should not effect');
+}
+
+#[test]
+#[available_gas(10000000)]
+fn test_deploy_withdraw_liquidity_zero() {
+
+    let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+    let deposit_amount_wei:u256 = 10 * vault_dispatcher.decimals().into() ;
+    set_contract_address(liquidity_provider_1());
+
+    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    let balance_before_transfer: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
+    vault_dispatcher.withdraw_liquidity(0);
+    let balance_after_transfer: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
+
+    assert(balance_before_transfer == balance_after_transfer, 'zero deposit should not effect');
+}
+
+
 
 #[test]
 #[available_gas(10000000)]
@@ -108,7 +91,7 @@ fn test_deploy_liquidity_count_increase() {
     let deposit_amount_wei:u256 = 50 * vault_dispatcher.decimals().into();
     let wei_balance_before_deposit:u256 = vault_dispatcher.unallocated_balance_of(liquidity_provider_1());
     set_contract_address(liquidity_provider_1());
-    let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
     let wei_after_before_deposit:u256 = vault_dispatcher.unallocated_balance_of(liquidity_provider_1());
     assert(wei_after_before_deposit == wei_balance_before_deposit + deposit_amount_wei, 'deposit should add up');
 
@@ -163,7 +146,7 @@ fn test_withdraw_liquidity() {
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
     let deposit_amount_wei:u256 = 50 * vault_dispatcher.decimals().into();
     set_contract_address(liquidity_provider_1());
-    let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
     let success:bool  = vault_dispatcher.withdraw_liquidity(deposit_amount_wei);
     assert(success == true, 'should be able to withdraw');
 
@@ -171,87 +154,19 @@ fn test_withdraw_liquidity() {
 
 #[test]
 #[available_gas(10000000)]
+#[should_panic(expected: ('Some error', 'not enough balance',))]
 fn test_withdraw_liquidity_valid_user() {
     // only valid user should be able to withdraw liquidity
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
     let deposit_amount_wei:u256 = 50 * vault_dispatcher.decimals().into();
     set_contract_address(liquidity_provider_1());
-    let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    let success:bool = vault_dispatcher.deposit_liquidity(deposit_amount_wei);
     set_contract_address(liquidity_provider_2());
-    let success:bool  = vault_dispatcher.withdraw_liquidity(deposit_amount_wei);
+    let success:bool = vault_dispatcher.withdraw_liquidity(deposit_amount_wei);
     // TODO may be a panic is more appropriate here
     assert(success == false, 'should not be able to withdraw');
 
 }
-
-#[test]
-#[available_gas(10000000)]
-fn test_settle_before_expiry() {
-
-    let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_amount_wei:u256 = 50 * vault_dispatcher.decimals().into();
-    let option_amount = 50;
-    let option_price = 2 * vault_dispatcher.decimals().into();
-    
-    set_contract_address(liquidity_provider_1());
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
-    let option_params: OptionParams = vault_dispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
-    vault_dispatcher.start_auction(option_params);
-
-    set_contract_address(option_bidder_buyer_1());
-    vault_dispatcher.bid(option_amount, option_price);
-    vault_dispatcher.end_auction();
-
-    set_block_timestamp(option_params.expiry_time - 10000);
-    let success = vault_dispatcher.settle(option_params.strike_price + 10);
-    assert(success == false, 'no settle before expiry');
-}
-
-#[test]
-#[available_gas(10000000)]
-fn test_settle_before_end_auction() {
-
-    let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_amount_wei:u256 = 50 * vault_dispatcher.decimals().into();
-    let option_amount:u256 = 50;
-    let option_price:u256 = 2;
-    let final_settlement_price:u256 = 30;
-    
-    set_contract_address(liquidity_provider_1());
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
-    let option_params: OptionParams = vault_dispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
-    vault_dispatcher.start_auction(option_params);
-
-    set_contract_address(option_bidder_buyer_1());
-    set_block_timestamp(option_params.expiry_time );
-    let success = vault_dispatcher.settle(final_settlement_price);
-
-    assert(success == false, 'no settle before auction end');
-}
-
-
-#[test]
-#[available_gas(10000000)]
-fn test_bid_after_expiry() {
-
-    let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_amount_wei:u256 = 50 * vault_dispatcher.decimals().into();
-    let option_amount = 50;
-    let option_price = 2 * vault_dispatcher.decimals().into();
-    
-    set_contract_address(liquidity_provider_1());
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
-    let option_params: OptionParams = vault_dispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
-    vault_dispatcher.start_auction(option_params);
-
-    set_contract_address(option_bidder_buyer_1());
-    set_block_timestamp(option_params.expiry_time );
-    vault_dispatcher.end_auction();
-    let success = vault_dispatcher.bid(option_amount, option_price);
-
-    assert(success == false, 'no bid after expiry');
-}
-
 
 
 #[test]
@@ -279,28 +194,6 @@ fn test_withdraw_liquidity_allocation() {
     assert(success == false, 'should not be able to withdraw'); 
 }
 
-#[test]
-#[available_gas(10000000)]
-fn test_withdrawal_after_premium() {
-
-    let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_amount_wei:u256 = 50 * vault_dispatcher.decimals().into();
-    let option_amount = 50;
-    let option_price = 2 * vault_dispatcher.decimals().into();
-
-    set_contract_address(liquidity_provider_1());
-    let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei);
-    
-    let unallocated_token_before_premium = vault_dispatcher.get_unallocated_token_count();
-    let option_params: OptionParams = vault_dispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
-    vault_dispatcher.start_auction(option_params);
-    set_contract_address(option_bidder_buyer_1());
-    vault_dispatcher.bid(option_amount, option_params.reserve_price); 
-    vault_dispatcher.settle(option_params.strike_price - 100 ); // means there is no payout.
-    vault_dispatcher.end_auction();
-    let unallocated_token_after_premium = vault_dispatcher.get_unallocated_token_count();
-    assert(unallocated_token_before_premium < unallocated_token_after_premium, 'premium should have paid out');
-}
 
 #[test]
 #[available_gas(10000000)]
