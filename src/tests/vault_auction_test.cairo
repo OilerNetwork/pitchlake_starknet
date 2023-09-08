@@ -13,7 +13,8 @@ use openzeppelin::token::erc20::interface::{
     IERC20SafeDispatcherTrait,
 };
 
-use pitch_lake_starknet::vault::{IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait, OptionParams};
+use pitch_lake_starknet::vault::{IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait};
+use pitch_lake_starknet::option_round::{IOptionRound, IOptionRoundDispatcher, IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait, OptionRoundParams};
 use pitch_lake_starknet::eth::Eth;
 use pitch_lake_starknet::tests::utils::{setup, deployVault, allocated_pool_address, unallocated_pool_address, timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1, option_bidder_buyer_2, vault_manager, weth_owner};
 
@@ -45,13 +46,13 @@ fn test_bid_after_expiry() {
     
     set_contract_address(liquidity_provider_1());
     vault_dispatcher.deposit_liquidity(deposit_amount_wei);
-    let option_params: OptionParams = vault_dispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
-    vault_dispatcher.start_auction(option_params);
+    // start_new_option_round will also start the auction
+    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(timestamp_start_month(), timestamp_end_month());
 
     set_contract_address(option_bidder_buyer_1());
     set_block_timestamp(option_params.expiry_time );
-    vault_dispatcher.end_auction();
-    let success = vault_dispatcher.bid(option_amount, option_price);
+    round_dispatcher.end_auction();
+    let success = round_dispatcher.bid(option_amount, option_price);
 
     assert(success == false, 'no bid after expiry');
 }
@@ -69,13 +70,13 @@ fn test_withdrawal_after_premium() {
     set_contract_address(liquidity_provider_1());
     let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei);
     
-    let unallocated_token_before_premium = vault_dispatcher.get_unallocated_token_count();
-    let option_params: OptionParams = vault_dispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
-    vault_dispatcher.start_auction(option_params);
+    let unallocated_token_before_premium = vault_dispatcher.total_liquidity_unallocated();
+    // start_new_option_round will also start the auction
+    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(timestamp_start_month(), timestamp_end_month());
     set_contract_address(option_bidder_buyer_1());
-    vault_dispatcher.bid(option_amount, option_params.reserve_price); 
-    vault_dispatcher.settle(option_params.strike_price - 100 ); // means there is no payout.
-    vault_dispatcher.end_auction();
-    let unallocated_token_after_premium = vault_dispatcher.get_unallocated_token_count();
+    round_dispatcher.bid(option_amount, option_params.reserve_price); 
+    round_dispatcher.settle(option_params.strike_price - 100 , ArrayTrait::new()); // means there is no payout.
+    round_dispatcher.end_auction();
+    let unallocated_token_after_premium = vault_dispatcher.total_liquidity_unallocated();
     assert(unallocated_token_before_premium < unallocated_token_after_premium, 'premium should have paid out');
 }

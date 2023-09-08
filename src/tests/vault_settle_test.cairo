@@ -9,7 +9,9 @@ use openzeppelin::token::erc20::interface::{
     IERC20SafeDispatcherTrait,
 };
 
-use pitch_lake_starknet::vault::{IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait, OptionParams};
+use pitch_lake_starknet::vault::{IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait};
+use pitch_lake_starknet::option_round::{IOptionRound, IOptionRoundDispatcher, IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait, OptionRoundParams};
+
 use result::ResultTrait;
 use starknet::{
     ClassHash,
@@ -43,15 +45,16 @@ fn test_settle_before_expiry() {
     
     set_contract_address(liquidity_provider_1());
     vault_dispatcher.deposit_liquidity(deposit_amount_wei);
-    let option_params: OptionParams = vault_dispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
-    vault_dispatcher.start_auction(option_params);
+    // start_new_option_round will also start the auction
+    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(timestamp_start_month(), timestamp_end_month());
 
     set_contract_address(option_bidder_buyer_1());
-    vault_dispatcher.bid(option_amount, option_price);
-    vault_dispatcher.end_auction();
+    round_dispatcher.bid(option_amount, option_price);
+    round_dispatcher.end_auction();
 
     set_block_timestamp(option_params.expiry_time - 10000);
-    let success = vault_dispatcher.settle(option_params.strike_price + 10);
+    let success = round_dispatcher.settle(option_params.strike_price + 10, ArrayTrait::new()) ;
+
     assert(success == false, 'no settle before expiry');
 }
 
@@ -67,12 +70,144 @@ fn test_settle_before_end_auction() {
     
     set_contract_address(liquidity_provider_1());
     vault_dispatcher.deposit_liquidity(deposit_amount_wei);
-    let option_params: OptionParams = vault_dispatcher.generate_option_params(timestamp_start_month(), timestamp_end_month());
-    vault_dispatcher.start_auction(option_params);
+    // start_new_option_round will also start the auction
+    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(timestamp_start_month(), timestamp_end_month());
 
     set_contract_address(option_bidder_buyer_1());
     set_block_timestamp(option_params.expiry_time );
-    let success = vault_dispatcher.settle(final_settlement_price);
+    let success = round_dispatcher.settle(final_settlement_price, ArrayTrait::new());
 
     assert(success == false, 'no settle before auction end');
+}
+
+
+#[test]
+#[available_gas(10000000)]
+fn test_option_payout_1() {
+    let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+    let deposit_amount_wei:u256 = 1000000 * vault_dispatcher.decimals().into();
+    set_contract_address(liquidity_provider_1());
+    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    // start_new_option_round will also start the auction
+    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(timestamp_start_month(), timestamp_end_month());
+
+    let bid_count: u256 = 2;
+    set_contract_address(option_bidder_buyer_1());
+    round_dispatcher.bid(bid_count, option_params.reserve_price);
+    round_dispatcher.end_auction();
+
+    let settlement_price :u256 =  option_params.strike_price + 10;
+    set_block_timestamp(option_params.expiry_time);
+    round_dispatcher.settle(settlement_price, ArrayTrait::new());
+
+    let payout_balance = round_dispatcher.payout_balance_of(option_bidder_buyer_1());
+    let payout_balance_expected = round_dispatcher.option_balance_of(option_bidder_buyer_1()) * (settlement_price - option_params.strike_price);
+    assert(payout_balance == payout_balance_expected, 'expected payout doesnt match');
+}
+
+#[test]
+#[available_gas(10000000)]
+fn test_option_payout_2() {
+    let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+    let deposit_amount_wei:u256 = 1000000 * vault_dispatcher.decimals().into();
+    set_contract_address(liquidity_provider_1());
+    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    // start_new_option_round will also start the auction
+    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(timestamp_start_month(), timestamp_end_month());
+
+    let bid_count: u256 = 2;
+    set_contract_address(option_bidder_buyer_1());
+    round_dispatcher.bid(bid_count, option_params.reserve_price);
+    round_dispatcher.end_auction();
+
+    let settlement_price :u256 =  option_params.strike_price - 10;
+    set_block_timestamp(option_params.expiry_time);
+    round_dispatcher.settle(settlement_price, ArrayTrait::new());
+
+    let payout_balance = round_dispatcher.payout_balance_of(option_bidder_buyer_1());
+    let payout_balance_expected = 0; // payout is zero because the settlement price is below the strike price
+    assert(payout_balance == payout_balance_expected, 'expected payout doesnt match');
+}
+
+
+#[test]
+#[available_gas(10000000)]
+fn test_option_payout_claim_1() {
+    let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+    let deposit_amount_wei:u256 = 1000000 * vault_dispatcher.decimals().into();
+    set_contract_address(liquidity_provider_1());
+    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    // start_new_option_round will also start the auction
+    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(timestamp_start_month(), timestamp_end_month());
+
+    let bid_count: u256 = 2;
+    set_contract_address(option_bidder_buyer_1());
+    round_dispatcher.bid(bid_count, option_params.reserve_price);
+    round_dispatcher.end_auction();
+
+    let settlement_price :u256 =  option_params.strike_price + 10;
+    set_block_timestamp(option_params.expiry_time);
+    round_dispatcher.settle(settlement_price, ArrayTrait::new());
+
+    let payout_balance : u256= round_dispatcher.payout_balance_of(option_bidder_buyer_1());
+    let balance_before_claim:u256 = eth_dispatcher.balance_of(option_bidder_buyer_1()); 
+
+    set_contract_address(option_bidder_buyer_1());
+    round_dispatcher.claim_payout();
+    let balance_after_claim:u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
+    assert(balance_after_claim == payout_balance + balance_before_claim, 'expected payout doesnt match');
+}
+
+#[test]
+#[available_gas(10000000)]
+fn test_option_payout_collaterized_count() {
+    let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+    let deposit_amount_wei:u256 = 1000000 * vault_dispatcher.decimals().into();
+    set_contract_address(liquidity_provider_1());
+    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    // start_new_option_round will also start the auction
+    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(timestamp_start_month(), timestamp_end_month());
+
+    let bid_count: u256 = 2;
+    set_contract_address(option_bidder_buyer_1());
+    round_dispatcher.bid(bid_count, option_params.reserve_price);
+    round_dispatcher.end_auction();
+
+    let settlement_price :u256 =  option_params.strike_price + 10;
+    set_block_timestamp(option_params.expiry_time);
+    round_dispatcher.settle(settlement_price, ArrayTrait::new());
+
+    let total_collaterized_count_after_settle : u256= round_dispatcher.total_collateral();
+    assert(total_collaterized_count_after_settle == 0, 'collaterized should be zero')
+}
+
+#[test]
+#[available_gas(10000000)]
+fn test_option_payout_unallocated_count_1() {
+    let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+    let deposit_amount_wei:u256 = 1000000 * vault_dispatcher.decimals().into();
+    set_contract_address(liquidity_provider_1());
+    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    // start_new_option_round will also start the auction
+    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(timestamp_start_month(), timestamp_end_month());
+    let total_collaterized_count_before_auction : u256= vault_dispatcher.total_liquidity_unallocated();
+
+    let bid_count: u256 = 2;
+    set_contract_address(option_bidder_buyer_1());
+    round_dispatcher.bid(bid_count, option_params.reserve_price);
+    round_dispatcher.end_auction();
+
+    let settlement_price :u256 =  option_params.strike_price + 10;
+    set_block_timestamp(option_params.expiry_time);
+    round_dispatcher.settle(settlement_price, ArrayTrait::new());
+
+    let premium_paid: u256 = (bid_count*  option_params.reserve_price);
+    let total_collaterized_count_after_settle : u256= vault_dispatcher.total_liquidity_unallocated();
+    let claim_payout_amount:u256 = round_dispatcher.payout_balance_of(option_bidder_buyer_1()); 
+
+    set_contract_address(option_bidder_buyer_1());
+    round_dispatcher.claim_payout();
+    let total_collaterized_count_after_claim : u256= round_dispatcher.total_collateral();
+
+    assert(total_collaterized_count_after_settle == total_collaterized_count_before_auction - claim_payout_amount + premium_paid, 'expec collaterized doesnt match');
 }

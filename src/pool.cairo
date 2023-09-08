@@ -4,7 +4,7 @@ use traits::{Into, TryInto};
 
 #[derive(Copy, Drop, Serde, PartialEq)]
 enum PoolType {
-    Allocated: u128,
+    Collaterized: u128,
     Unallocated: u128,
 }
 

@@ -20,7 +20,8 @@ use openzeppelin::token::erc20::interface::{
 use openzeppelin::utils::serde::SerializedAppend;
 use pitch_lake_starknet::eth::Eth;
 
-use pitch_lake_starknet::vault::{IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait, OptionParams};
+use pitch_lake_starknet::vault::{IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait};
+use pitch_lake_starknet::option_round::{IOptionRound, IOptionRoundDispatcher, IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait, OptionRoundParams};
 
 const NAME: felt252 = 'WETH';
 const SYMBOL: felt252 = 'WETH';
@@ -102,8 +103,9 @@ fn option_bidder_buyer_2() -> ContractAddress {
     contract_address_const::<'option_bidder_buyer'>()
 }
 
-fn mock_option_params(start_time:u64, expiry_time:u64, total_liquidity:u256, option_reserve_price_:u256)-> OptionParams{
-
+fn mock_option_params(start_time:u64, expiry_time:u64)-> OptionRoundParams{
+    let total_liquidity_unallocated:u256 = 10000 ;
+    let option_reserve_price_:u256 = 6;
     let average_basefee :u256 = 20;
     let standard_deviation : u256 = 30;
     let cap_level :u256 = average_basefee + (3 * standard_deviation); //per notes from tomasz, we set cap level at 3 standard deviation
@@ -113,11 +115,11 @@ fn mock_option_params(start_time:u64, expiry_time:u64, total_liquidity:u256, opt
     let out_the_money_strike_price: u256 = average_basefee - standard_deviation;
 
     let collateral_level = cap_level - in_the_money_strike_price; // per notes from tomasz
-    let total_options_available = total_liquidity/ collateral_level;
+    let total_options_available = total_liquidity_unallocated/ collateral_level;
 
     let option_reserve_price = option_reserve_price_;// just an assumption
 
-    let tmp = OptionParams{
+    let tmp = OptionRoundParams{
         strike_price: in_the_money_strike_price,
         standard_deviation: standard_deviation,
         cap_level :cap_level,  
