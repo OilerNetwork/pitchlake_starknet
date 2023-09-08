@@ -80,3 +80,139 @@ fn test_withdrawal_after_premium() {
     let unallocated_token_after_premium = vault_dispatcher.total_liquidity_unallocated();
     assert(unallocated_token_before_premium < unallocated_token_after_premium, 'premium should have paid out');
 }
+#[test]
+#[available_gas(10000000)]
+fn test_clearing_price_1() {
+    let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+    set_contract_address(liquidity_provider_1());
+    let deposit_amount_wei:u256 = 1000000 * vault_dispatcher.decimals().into();
+    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    // start_new_option_round will also start the auction
+    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(timestamp_start_month(), timestamp_end_month());
+
+    let bid_count: u256 = 2;
+    set_contract_address(option_bidder_buyer_1());
+    round_dispatcher.bid(bid_count, option_params.reserve_price);
+    round_dispatcher.end_auction();
+ 
+    let clearing_price: u256 = round_dispatcher.get_auction_clearing_price();
+    assert(clearing_price == option_params.reserve_price, 'clear price equal reserve price');
+}
+
+
+#[test]
+#[available_gas(10000000)]
+fn test_clearing_price_2() {
+    let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+    set_contract_address(liquidity_provider_1());
+    let deposit_amount_wei:u256 = 1000000 * vault_dispatcher.decimals().into();
+    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    // start_new_option_round will also start the auction
+    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(timestamp_start_month(), timestamp_end_month());
+
+    let bid_count: u256 = option_params.total_options_available;
+    let bid_price_user_1 : u256 = option_params.reserve_price;
+    let bid_price_user_2 : u256 = option_params.reserve_price + 10;
+
+    set_contract_address(option_bidder_buyer_1());
+    round_dispatcher.bid(bid_count, bid_price_user_1 );
+    set_contract_address(option_bidder_buyer_2());
+    round_dispatcher.bid(bid_count,  bid_price_user_2);
+
+    round_dispatcher.end_auction();
+ 
+    let clearing_price: u256 = round_dispatcher.get_auction_clearing_price();
+    assert(clearing_price == bid_price_user_2, 'clear price equal reserve price');
+}   
+
+#[test]
+#[available_gas(10000000)]
+fn test_clearing_price_3() {
+    let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+    set_contract_address(liquidity_provider_1());
+    let deposit_amount_wei:u256 = 1000000 * vault_dispatcher.decimals().into();
+    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    // start_new_option_round will also start the auction
+    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(timestamp_start_month(), timestamp_end_month());
+
+    let bid_count_user_1: u256 = option_params.total_options_available - 20;
+    let bid_count_user_2: u256 = 20;
+
+    let bid_price_user_1 : u256 = option_params.reserve_price + 100;
+    let bid_price_user_2 : u256 = option_params.reserve_price ;
+
+    set_contract_address(option_bidder_buyer_1());
+    round_dispatcher.bid(bid_count_user_1, bid_price_user_1 );
+
+    set_contract_address(option_bidder_buyer_2());
+    round_dispatcher.bid(bid_count_user_2,  bid_price_user_2);
+
+    round_dispatcher.end_auction();
+ 
+    let clearing_price: u256 = round_dispatcher.get_auction_clearing_price();
+    assert(clearing_price == bid_price_user_2, 'clear price equal reserve price');
+}   
+
+
+#[test]
+#[available_gas(10000000)]
+fn test_lock_of_bid_funds() {
+    let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+    set_contract_address(liquidity_provider_1());
+    let deposit_amount_wei:u256 = 1000000 * vault_dispatcher.decimals().into();
+    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    // start_new_option_round will also start the auction
+    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(timestamp_start_month(), timestamp_end_month());
+
+    let bid_count: u256 = 2;
+    set_contract_address(option_bidder_buyer_1());
+
+    let eth_balance_before_bid :u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
+    round_dispatcher.bid(bid_count, option_params.reserve_price);
+    let eth_balance_after_bid :u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
+
+    assert(eth_balance_before_bid == eth_balance_after_bid + (bid_count * option_params.reserve_price), 'bid amounts should be locked up');
+}
+
+#[test]
+#[available_gas(10000000)]
+fn test_eth_unused_for_rejected_bids() {
+    let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+    set_contract_address(liquidity_provider_1());
+    let deposit_amount_wei:u256 = 1000000 * vault_dispatcher.decimals().into();
+    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    // start_new_option_round will also start the auction
+    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(timestamp_start_month(), timestamp_end_month());
+
+    let bid_count: u256 = 2;
+    set_contract_address(option_bidder_buyer_1());
+
+    let eth_balance_before_bid :u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
+    round_dispatcher.bid(bid_count, option_params.reserve_price - 100);
+    let eth_balance_after_bid :u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
+
+    assert(eth_balance_before_bid == eth_balance_after_bid, 'bid should not be locked up');
+}
+
+#[test]
+#[available_gas(10000000)]
+fn test_eth_refund_for_unused_bids() {
+    let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+    set_contract_address(liquidity_provider_1());
+    let deposit_amount_wei:u256 = 1000000 * vault_dispatcher.decimals().into();
+    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    // start_new_option_round will also start the auction
+    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(timestamp_start_month(), timestamp_end_month());
+
+    let bid_count: u256 = option_params.total_options_available + 10;
+    set_contract_address(option_bidder_buyer_1());
+    let eth_balance_before_bid :u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
+    round_dispatcher.bid(bid_count, option_params.reserve_price);
+
+    round_dispatcher.end_auction();
+    let eth_balance_after_auction :u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
+    assert(eth_balance_before_bid == eth_balance_after_auction + ((bid_count - option_params.total_options_available) * option_params.reserve_price), 'bid amounts should be locked up');
+} 
+
+
+

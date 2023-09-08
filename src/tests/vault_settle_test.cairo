@@ -173,9 +173,12 @@ fn test_option_payout_collaterized_count() {
     round_dispatcher.bid(bid_count, option_params.reserve_price);
     round_dispatcher.end_auction();
 
-    let settlement_price :u256 =  option_params.strike_price + 10;
+    let settlement_price :u256 =  option_params.cap_level;
     set_block_timestamp(option_params.expiry_time);
     round_dispatcher.settle(settlement_price, ArrayTrait::new());
+
+    set_contract_address(option_bidder_buyer_1());
+    round_dispatcher.claim_payout();
 
     let total_collaterized_count_after_settle : u256= round_dispatcher.total_collateral();
     assert(total_collaterized_count_after_settle == 0, 'collaterized should be zero')
@@ -201,12 +204,18 @@ fn test_option_payout_unallocated_count_1() {
     set_block_timestamp(option_params.expiry_time);
     round_dispatcher.settle(settlement_price, ArrayTrait::new());
 
+
     let premium_paid: u256 = (bid_count*  option_params.reserve_price);
     let total_collaterized_count_after_settle : u256= vault_dispatcher.total_liquidity_unallocated();
     let claim_payout_amount:u256 = round_dispatcher.payout_balance_of(option_bidder_buyer_1()); 
 
     set_contract_address(option_bidder_buyer_1());
     round_dispatcher.claim_payout();
+
+    set_contract_address(liquidity_provider_1());
+    round_dispatcher.transfer_premium_paid_to_vault();
+    round_dispatcher.transfer_collateral_to_vault();
+
     let total_collaterized_count_after_claim : u256= round_dispatcher.total_collateral();
 
     assert(total_collaterized_count_after_settle == total_collaterized_count_before_auction - claim_payout_amount + premium_paid, 'expec collaterized doesnt match');
