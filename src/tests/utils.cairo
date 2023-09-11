@@ -21,7 +21,7 @@ use openzeppelin::utils::serde::SerializedAppend;
 use pitch_lake_starknet::eth::Eth;
 
 use pitch_lake_starknet::vault::{IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait};
-use pitch_lake_starknet::option_round::{IOptionRound, IOptionRoundDispatcher, IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait, OptionRoundParams};
+use pitch_lake_starknet::option_round::{IOptionRound, IOptionRoundDispatcher, IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait, OptionRoundParams, OptionRound};
 
 const NAME: felt252 = 'WETH';
 const SYMBOL: felt252 = 'WETH';
@@ -48,8 +48,7 @@ fn deployEth() ->  IERC20Dispatcher {
 fn deployVault() ->  IVaultDispatcher {
     let mut calldata = array![];
 
-    calldata.append_serde(allocated_pool_address());
-    calldata.append_serde(unallocated_pool_address());
+    calldata.append_serde(OptionRound::TEST_CLASS_HASH);
 
     let (address, _) = deploy_syscall(
         Vault::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
@@ -104,7 +103,7 @@ fn option_bidder_buyer_2() -> ContractAddress {
 }
 
 fn mock_option_params(start_time:u64, expiry_time:u64)-> OptionRoundParams{
-    let total_liquidity_unallocated:u256 = 10000 ;
+    let total_unallocated_liquidity:u256 = 10000 ;
     let option_reserve_price_:u256 = 6;
     let average_basefee :u256 = 20;
     let standard_deviation : u256 = 30;
@@ -115,7 +114,7 @@ fn mock_option_params(start_time:u64, expiry_time:u64)-> OptionRoundParams{
     let out_the_money_strike_price: u256 = average_basefee - standard_deviation;
 
     let collateral_level = cap_level - in_the_money_strike_price; // per notes from tomasz
-    let total_options_available = total_liquidity_unallocated/ collateral_level;
+    let total_options_available = total_unallocated_liquidity/ collateral_level;
 
     let option_reserve_price = option_reserve_price_;// just an assumption
 

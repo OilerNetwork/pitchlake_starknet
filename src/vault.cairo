@@ -42,15 +42,19 @@ trait IVault<TContractState> {
     fn decimals(ref self: TContractState)->u8;
 
     #[view]
-    fn total_liquidity_unallocated(self: @TContractState) -> u256 ;
+    fn total_unallocated_liquidity(self: @TContractState) -> u256 ;
 
-    #[view]
+    #[view] 
     fn unallocated_liquidity_balance_of(self: @TContractState, liquidity_provider: ContractAddress) -> u256 ;
 
 }
 
 #[starknet::contract]
 mod Vault  {
+    use core::option::OptionTrait;
+    use core::traits::TryInto;
+    use core::traits::Into;
+    use pitch_lake_starknet::vault::IVault;
     use openzeppelin::token::erc20::ERC20;
     use openzeppelin::token::erc20::interface::IERC20;
     use starknet::{ContractAddress, deploy_syscall, contract_address_const};
@@ -63,17 +67,29 @@ mod Vault  {
     #[storage]
     struct Storage {
         current_option_round_params: OptionRoundParams,
-        current_option_round: IOptionRoundDispatcher
+        current_option_round_dispatcher: IOptionRoundDispatcher,
+        option_round_class_hash: felt252
     }
 
     #[constructor]
     fn constructor(
         ref self: ContractState,
+        option_round_class_hash_: felt252
     ) {
+         self.option_round_class_hash.write( option_round_class_hash_);
+        let mut calldata = array![];
+
+        let (address, _) = deploy_syscall(
+            self.option_round_class_hash.read().try_into().unwrap(), 0, calldata.span(), true
+            )
+        .expect('DEPLOY_AD_FAILED');
+        let round_dispatcher : IOptionRoundDispatcher = IOptionRoundDispatcher{contract_address: address};
+        self.current_option_round_dispatcher.write(round_dispatcher);
+
     }
 
     fn initialize_option_params(start_time_:u64, expiry_time_:u64)-> OptionRoundParams{
-        let total_liquidity_unallocated:u256 = 10000 ;
+        let total_unallocated_liquidity:u256 = 10000 ;
         let option_reserve_price_:u256 = 6;
         let average_basefee :u256 = 20;
         let standard_deviation : u256 = 30;
@@ -84,7 +100,7 @@ mod Vault  {
         let out_the_money_strike_price: u256 = average_basefee - standard_deviation;
 
         let collateral_level = cap_level - in_the_money_strike_price; // per notes from tomasz
-        let total_options_available = total_liquidity_unallocated/ collateral_level;
+        let total_options_available = total_unallocated_liquidity/ collateral_level;
 
         let option_reserve_price = option_reserve_price_;// just an assumption
 
@@ -97,7 +113,7 @@ mod Vault  {
             total_options_available: total_options_available,
             start_time:start_time_,
             expiry_time:expiry_time_};
-            return tmp;
+        return tmp;
     }
 
 
@@ -118,16 +134,16 @@ mod Vault  {
         }
 
         fn start_new_option_round(ref self: ContractState, start_time:u64, end_time:u64 ) -> (OptionRoundParams, IOptionRoundDispatcher){
-            let params = initialize_option_params(start_time, end_time);
-            let mut calldata = array![];
-            // test class hash TODO fix later
-            let TEST_CLASS_HASH : felt252 = 0x000000000;
-
-            let (address, _) = deploy_syscall(
-                TEST_CLASS_HASH .try_into().unwrap(), 0, calldata.span(), true
-                )
-            .expect('DEPLOY_AD_FAILED');
-            return (params, IOptionRoundDispatcher{contract_address: address});
+            let tmp_params : OptionRoundParams = OptionRoundParams{
+                strike_price: 10,
+                standard_deviation: 10,
+                cap_level :10,  
+                collateral_level: 10,
+                reserve_price: 10,
+                total_options_available: 10,
+                start_time:start_time,
+                expiry_time:end_time}; 
+            return (tmp_params, self.current_option_round_dispatcher.read());
         }
 
         fn vault_type(self: @ContractState) -> VaultType  {
@@ -145,7 +161,7 @@ mod Vault  {
             return (initialize_option_params(0, 0), IOptionRoundDispatcher{contract_address: contract_address_const::<0>()});
         }
 
-        fn total_liquidity_unallocated(self: @ContractState) -> u256 {
+        fn total_unallocated_liquidity(self: @ContractState) -> u256 {
             // TODO fix later, random value
             100
         }

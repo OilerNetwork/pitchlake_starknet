@@ -193,7 +193,7 @@ fn test_option_payout_unallocated_count_1() {
     vault_dispatcher.deposit_liquidity(deposit_amount_wei);
     // start_new_option_round will also start the auction
     let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(timestamp_start_month(), timestamp_end_month());
-    let total_collaterized_count_before_auction : u256= vault_dispatcher.total_liquidity_unallocated();
+    let total_collaterized_count_before_auction : u256= vault_dispatcher.total_unallocated_liquidity();
 
     let bid_count: u256 = 2;
     set_contract_address(option_bidder_buyer_1());
@@ -206,7 +206,7 @@ fn test_option_payout_unallocated_count_1() {
 
 
     let premium_paid: u256 = (bid_count*  option_params.reserve_price);
-    let total_collaterized_count_after_settle : u256= vault_dispatcher.total_liquidity_unallocated();
+    let total_collaterized_count_after_settle : u256= vault_dispatcher.total_unallocated_liquidity();
     let claim_payout_amount:u256 = round_dispatcher.payout_balance_of(option_bidder_buyer_1()); 
 
     set_contract_address(option_bidder_buyer_1());

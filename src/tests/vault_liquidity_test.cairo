@@ -121,20 +121,20 @@ fn test_eth_has_increased_after_withdrawal() {
     let wei_amount_before_withdrawal: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
     vault_dispatcher.withdraw_liquidity(deposit_amount_wei);
     let wei_amount_after_withdrawal: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
-    let unallocated_tokens:u256 = vault_dispatcher.total_liquidity_unallocated();    
+    let unallocated_wei:u256 = vault_dispatcher.total_unallocated_liquidity();    
     assert(wei_amount_before_withdrawal == wei_amount_after_withdrawal + deposit_amount_wei, 'withdrawal is not incremented');
-    assert(unallocated_tokens == 0, 'unalloc after withdrawal,0');
+    assert(unallocated_wei == 0, 'unalloc after withdrawal,0');
 }
 
 #[test]
 #[available_gas(10000000)]
-fn test_unallocated_token_count() {
+fn test_unallocated_wei_count() {
 
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
     let deposit_amount_wei:u256 = 50 * vault_dispatcher.decimals().into();
     set_contract_address(liquidity_provider_1());
     let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei);
-    let tokens:u256 = vault_dispatcher.total_liquidity_unallocated();    
+    let tokens:u256 = vault_dispatcher.total_unallocated_liquidity();    
     assert(tokens == deposit_amount_wei, 'should equal to deposited');
 
 }
@@ -226,7 +226,7 @@ fn test_bid_before_auction_start() {
 
 #[test]
 #[available_gas(10000000)]
-fn test_total_collaterized_tokens_1() {
+fn test_total_collaterized_wei_1() {
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
 
     set_contract_address(liquidity_provider_1());
@@ -237,13 +237,13 @@ fn test_total_collaterized_tokens_1() {
     let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(timestamp_start_month(), timestamp_end_month());
 
     // start auction will move the tokens from unallocated pool to collaterized pool
-    let allocated_tokens = round_dispatcher.total_collateral();
-    assert( allocated_tokens == deposit_amount_wei, 'all tokens shld be collaterized');
+    let allocated_wei = round_dispatcher.total_collateral();
+    assert( allocated_wei == deposit_amount_wei, 'all tokens shld be collaterized');
 }
 
 #[test]
 #[available_gas(10000000)]
-fn test_total_collaterized_tokens_2() {
+fn test_total_collaterized_wei_2() {
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
     let deposit_amount_wei_1 = 1000000 * vault_dispatcher.decimals().into();
     let deposit_amount_wei_2 = 1000000 * vault_dispatcher.decimals().into();
@@ -258,10 +258,10 @@ fn test_total_collaterized_tokens_2() {
      // auction also moves the tokens
 
     // start auction will move the tokens from unallocated pool to collaterized pool
-    let allocated_token_count :u256 = round_dispatcher.total_collateral();
-    let unallocated_token_count :u256 = vault_dispatcher.total_liquidity_unallocated();
-    assert( allocated_token_count == deposit_amount_wei_1 + deposit_amount_wei_2, 'all tokens shld be collaterized');
-    assert( unallocated_token_count == 0,'unallocated should be 0');
+    let allocated_wei_count :u256 = round_dispatcher.total_collateral();
+    let unallocated_wei_count :u256 = vault_dispatcher.total_unallocated_liquidity();
+    assert( allocated_wei_count == deposit_amount_wei_1 + deposit_amount_wei_2, 'all tokens shld be collaterized');
+    assert( unallocated_wei_count == 0,'unallocated should be 0');
 }
 
 #[test]
@@ -332,8 +332,8 @@ fn test_paid_premium_withdrawal() {
     set_contract_address(liquidity_provider_1());
     round_dispatcher.transfer_premium_paid_to_vault();
 
-    let expected_unallocated_token:u256 = round_dispatcher.get_auction_clearing_price() * round_dispatcher.total_options_sold();
-    let success: bool = vault_dispatcher.withdraw_liquidity(expected_unallocated_token);
+    let expected_unallocated_wei:u256 = round_dispatcher.get_auction_clearing_price() * round_dispatcher.total_options_sold();
+    let success: bool = vault_dispatcher.withdraw_liquidity(expected_unallocated_wei);
     assert( success == true, 'should be able withdraw premium');
 }
 
@@ -461,9 +461,9 @@ fn test_premium_conversion_unallocated_pool_2 () {
     round_dispatcher.transfer_premium_paid_to_vault();
 
     //premium paid will be converted into unallocated.
-    let unallocated_token_count :u256 = vault_dispatcher.total_liquidity_unallocated();
-    let expected_unallocated_token:u256 = round_dispatcher.get_auction_clearing_price() * option_params.total_options_available;
-    assert( unallocated_token_count == expected_unallocated_token, 'paid premiums should translate');
+    let unallocated_wei_count :u256 = vault_dispatcher.total_unallocated_liquidity();
+    let expected_unallocated_wei:u256 = round_dispatcher.get_auction_clearing_price() * option_params.total_options_available;
+    assert( unallocated_wei_count == expected_unallocated_wei, 'paid premiums should translate');
 }
 
 
