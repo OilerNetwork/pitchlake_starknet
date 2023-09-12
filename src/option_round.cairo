@@ -18,6 +18,15 @@ struct OptionRoundParams {
     expiry_time:u64
 }
 
+#[derive(Copy, Drop, Serde, PartialEq)]
+enum OptionRoundState {
+    Initialized: (),
+    AuctionStarted: (),
+    AuctionEnded: (),
+    AuctionSettled: (),
+}
+
+
 
 #[starknet::interface]
 trait IOptionRound<TContractState> {
@@ -37,6 +46,10 @@ trait IOptionRound<TContractState> {
     // if the option is past the expiry date then upon proof verification final_price is accepted and payouts can begin. 
     #[external]
     fn settle(ref self: TContractState, final_price:u256, proof: Array<u256>) -> bool;
+
+    // returns the current state of the option round
+    #[external]
+    fn get_option_round_state(ref self: TContractState) -> OptionRoundState;
 
     // gets the most auction price for the option, if the auction has ended
     #[view]
@@ -62,7 +75,12 @@ trait IOptionRound<TContractState> {
     #[external]
     fn transfer_premium_paid_to_vault(ref self: TContractState) -> u256;
 
-    // payout due to a option buyer
+    // total amount deposited as part of bidding by an option buyer, if the auction has not ended this represents the total amount locked up for auction and cannot be claimed back,
+    // if the auction has ended this the amount which was not converted into an option and can be claimed back.
+    #[view]
+    fn bid_deposit_balance_of(self: @TContractState, option_buyer: ContractAddress) -> u256;
+
+    // payout due to an option buyer
     #[view]
     fn payout_balance_of(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
@@ -96,7 +114,7 @@ mod OptionRound  {
     use pitch_lake_starknet::vault::VaultType;
     use pitch_lake_starknet::pool::IPoolDispatcher;
     use openzeppelin::token::erc20::interface::IERC20Dispatcher;
-    use super::OptionRoundParams;
+    use super::{OptionRoundParams, OptionRoundState};
 
     #[storage]
     struct Storage {
@@ -105,6 +123,7 @@ mod OptionRound  {
     #[constructor]
     fn constructor(
         ref self: ContractState,
+        owner: ContractAddress
     ) {
     }
 
@@ -127,6 +146,11 @@ mod OptionRound  {
 
         fn settle(ref self: ContractState, final_price:u256, proof: Array<u256>) -> bool{
             true
+        }
+
+        fn get_option_round_state(ref self: ContractState) -> OptionRoundState{
+            // final clearing price
+            OptionRoundState::AuctionStarted
         }
 
         fn get_auction_clearing_price(ref self: ContractState) -> u256{
@@ -174,6 +198,11 @@ mod OptionRound  {
         fn total_options_sold(self: @ContractState) -> u256{
             100
         }
+
+        fn bid_deposit_balance_of(self: @ContractState, option_buyer: ContractAddress) -> u256{
+            100
+        }
+
 
     }
 }

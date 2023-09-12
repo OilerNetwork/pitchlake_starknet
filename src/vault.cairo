@@ -2,6 +2,8 @@ use starknet::{ContractAddress, StorePacking};
 use array::{Array};
 use traits::{Into, TryInto};
 use openzeppelin::token::erc20::interface::IERC20Dispatcher;
+use openzeppelin::utils::serde::SerializedAppend;
+
 use pitch_lake_starknet::option_round::{IOptionRound, IOptionRoundDispatcher, IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait, OptionRoundParams};
 
 
@@ -26,7 +28,7 @@ trait IVault<TContractState> {
 
     // generate the option parameters and also deploy the option contract and move the liquidity over to the new option contract, also start the auction on the new option contract,
     #[external]
-    fn start_new_option_round(ref self: TContractState, start_time:u64, end_time:u64 ) -> (OptionRoundParams, IOptionRoundDispatcher);
+    fn start_new_option_round(ref self: TContractState, params:OptionRoundParams ) -> (OptionRoundParams, IOptionRoundDispatcher);
 
     #[view]
     fn vault_type(self: @TContractState) -> VaultType;
@@ -57,10 +59,11 @@ mod Vault  {
     use pitch_lake_starknet::vault::IVault;
     use openzeppelin::token::erc20::ERC20;
     use openzeppelin::token::erc20::interface::IERC20;
-    use starknet::{ContractAddress, deploy_syscall, contract_address_const};
+    use starknet::{ContractAddress, deploy_syscall, contract_address_const, get_contract_address};
     use pitch_lake_starknet::vault::VaultType;
     use pitch_lake_starknet::pool::IPoolDispatcher;
     use openzeppelin::token::erc20::interface::IERC20Dispatcher;
+    use openzeppelin::utils::serde::SerializedAppend;
     use pitch_lake_starknet::option_round::{IOptionRound, IOptionRoundDispatcher, IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait, OptionRoundParams};
 
 
@@ -78,6 +81,7 @@ mod Vault  {
     ) {
          self.option_round_class_hash.write( option_round_class_hash_);
         let mut calldata = array![];
+        calldata.append_serde(get_contract_address());
 
         let (address, _) = deploy_syscall(
             self.option_round_class_hash.read().try_into().unwrap(), 0, calldata.span(), true
@@ -133,17 +137,8 @@ mod Vault  {
             true
         }
 
-        fn start_new_option_round(ref self: ContractState, start_time:u64, end_time:u64 ) -> (OptionRoundParams, IOptionRoundDispatcher){
-            let tmp_params : OptionRoundParams = OptionRoundParams{
-                strike_price: 10,
-                standard_deviation: 10,
-                cap_level :10,  
-                collateral_level: 10,
-                reserve_price: 10,
-                total_options_available: 10,
-                start_time:start_time,
-                expiry_time:end_time}; 
-            return (tmp_params, self.current_option_round_dispatcher.read());
+        fn start_new_option_round(ref self: ContractState, params:OptionRoundParams ) -> (OptionRoundParams, IOptionRoundDispatcher){
+            return (params, self.current_option_round_dispatcher.read());
         }
 
         fn vault_type(self: @ContractState) -> VaultType  {

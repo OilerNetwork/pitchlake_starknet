@@ -45,6 +45,19 @@ fn deployEth() ->  IERC20Dispatcher {
     return IERC20Dispatcher{contract_address: address};
 }
 
+fn deployOptionRound(owner:ContractAddress) ->  IOptionRoundDispatcher {
+    let mut calldata = array![];
+
+    calldata.append_serde(owner);
+
+    let (address, _) = deploy_syscall(
+        OptionRound::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
+    )
+        .expect('DEPLOY_AD_FAILED');
+    return IOptionRoundDispatcher{contract_address: address};
+}
+
+
 fn deployVault() ->  IVaultDispatcher {
     let mut calldata = array![];
 
@@ -77,6 +90,9 @@ fn setup() -> (IVaultDispatcher, IERC20Dispatcher){
     return (vault_dispatcher, eth_dispatcher);
 }
 
+fn option_round_test_owner() -> ContractAddress {
+    contract_address_const::<'option_round_test_owner'>()
+}
 
 fn allocated_pool_address() -> ContractAddress {
     contract_address_const::<'allocated_pool_address'>()
@@ -95,16 +111,29 @@ fn liquidity_provider_2() -> ContractAddress {
 }
 
 fn option_bidder_buyer_1() -> ContractAddress {
-    contract_address_const::<'option_bidder_buyer'>()
+    contract_address_const::<'option_bidder_buyer1'>()
 }
 
 fn option_bidder_buyer_2() -> ContractAddress {
-    contract_address_const::<'option_bidder_buyer'>()
+    contract_address_const::<'option_bidder_buyer2'>()
 }
 
-fn mock_option_params(start_time:u64, expiry_time:u64)-> OptionRoundParams{
-    let total_unallocated_liquidity:u256 = 10000 ;
-    let option_reserve_price_:u256 = 6;
+fn option_bidder_buyer_3() -> ContractAddress {
+    contract_address_const::<'option_bidder_buyer3'>()
+}
+
+fn option_bidder_buyer_4() -> ContractAddress {
+    contract_address_const::<'option_bidder_buyer4'>()
+}
+
+fn decimals() -> u256 {
+    //10  ** 18
+    1000000000000000000
+}
+
+fn mock_option_params()-> OptionRoundParams{
+    let total_unallocated_liquidity:u256 = 10000 * decimals() ;
+    let option_reserve_price_:u256 = 6 * decimals();
     let average_basefee :u256 = 20;
     let standard_deviation : u256 = 30;
     let cap_level :u256 = average_basefee + (3 * standard_deviation); //per notes from tomasz, we set cap level at 3 standard deviation
