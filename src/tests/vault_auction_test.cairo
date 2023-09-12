@@ -62,7 +62,7 @@ fn test_bid_after_expiry() {
 
 #[test]
 #[available_gas(10000000)]
-#[should_panic(expected: ('Some error', 'multiple parallel rounds not allowed',))]
+#[should_panic(expected: ('Some error', 'multiple parallel rounds not allowed'))]
 fn test_multiple_parallel_rounds_failure() {
 
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
@@ -106,6 +106,7 @@ fn test_new_round_after_settle() {
     round_dispatcher.bid(bid_count,  bid_price_user_2);
 
     round_dispatcher.end_auction();
+    set_block_timestamp(option_params.expiry_time);
     round_dispatcher.settle(option_params.reserve_price + 10, ArrayTrait::new()); 
 
     let mock_params = mock_option_params();

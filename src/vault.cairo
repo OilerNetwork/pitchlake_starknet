@@ -26,6 +26,9 @@ trait IVault<TContractState> {
     #[external]
     fn withdraw_liquidity(ref self: TContractState, amount: u256 ) -> bool;
 
+    #[view]
+    fn generate_option_round_params(ref self: TContractState, start_time_:u64, expiry_time_:u64)-> OptionRoundParams;
+
     // generate the option parameters and also deploy the option contract and move the liquidity over to the new option contract, also start the auction on the new option contract,
     #[external]
     fn start_new_option_round(ref self: TContractState, params:OptionRoundParams ) -> (OptionRoundParams, IOptionRoundDispatcher);
@@ -92,33 +95,8 @@ mod Vault  {
 
     }
 
-    fn initialize_option_params(start_time_:u64, expiry_time_:u64)-> OptionRoundParams{
-        let total_unallocated_liquidity:u256 = 10000 ;
-        let option_reserve_price_:u256 = 6;
-        let average_basefee :u256 = 20;
-        let standard_deviation : u256 = 30;
-        let cap_level :u256 = average_basefee + (3 * standard_deviation); //per notes from tomasz, we set cap level at 3 standard deviation
-
-        let in_the_money_strike_price: u256 = average_basefee + standard_deviation;
-        let at_the_money_strike_price: u256 = average_basefee ;
-        let out_the_money_strike_price: u256 = average_basefee - standard_deviation;
-
-        let collateral_level = cap_level - in_the_money_strike_price; // per notes from tomasz
-        let total_options_available = total_unallocated_liquidity/ collateral_level;
-
-        let option_reserve_price = option_reserve_price_;// just an assumption
-
-        let tmp = OptionRoundParams{
-            strike_price: in_the_money_strike_price,
-            standard_deviation: standard_deviation,
-            cap_level :cap_level,  
-            collateral_level: collateral_level,
-            reserve_price: option_reserve_price,
-            total_options_available: total_options_available,
-            start_time:start_time_,
-            expiry_time:expiry_time_};
-        return tmp;
-    }
+    // fn initialize_option_params(start_time_:u64, expiry_time_:u64)-> OptionRoundParams{
+    // }
 
 
     #[external(v0)]
@@ -137,6 +115,35 @@ mod Vault  {
             true
         }
 
+        fn generate_option_round_params(ref self: ContractState, start_time_:u64, expiry_time_:u64)-> OptionRoundParams{
+            let total_unallocated_liquidity:u256 = self.total_unallocated_liquidity() ;
+            assert(total_unallocated_liquidity > 0, 'liquidity cannnot be zero');
+            let option_reserve_price_:u256 = 6;
+            let average_basefee :u256 = 20;
+            let standard_deviation : u256 = 30;
+            let cap_level :u256 = average_basefee + (3 * standard_deviation); //per notes from tomasz, we set cap level at 3 standard deviation
+
+            let in_the_money_strike_price: u256 = average_basefee - standard_deviation;
+            let at_the_money_strike_price: u256 = average_basefee ;
+            let out_the_money_strike_price: u256 = average_basefee + standard_deviation;
+
+            let collateral_level = cap_level - in_the_money_strike_price; // per notes from tomasz
+            let total_options_available = total_unallocated_liquidity/ collateral_level;
+
+            let option_reserve_price = option_reserve_price_;// just an assumption
+
+            let tmp = OptionRoundParams{
+                strike_price: in_the_money_strike_price,
+                standard_deviation: standard_deviation,
+                cap_level :cap_level,  
+                collateral_level: collateral_level,
+                reserve_price: option_reserve_price,
+                total_options_available: total_options_available,
+                start_time:start_time_,
+                expiry_time:expiry_time_};
+            return tmp;
+        }
+
         fn start_new_option_round(ref self: ContractState, params:OptionRoundParams ) -> (OptionRoundParams, IOptionRoundDispatcher){
             return (params, self.current_option_round_dispatcher.read());
         }
@@ -148,12 +155,12 @@ mod Vault  {
 
         fn current_option_round(ref self: ContractState ) -> (OptionRoundParams, IOptionRoundDispatcher){
             // TODO fix later, random value
-            return (initialize_option_params(0, 0), IOptionRoundDispatcher{contract_address: contract_address_const::<0>()});
+            return (self.generate_option_round_params(0, 0), IOptionRoundDispatcher{contract_address: contract_address_const::<0>()});
         }
 
         fn previous_option_round(ref self: ContractState ) -> (OptionRoundParams, IOptionRoundDispatcher){
             // TODO fix later, random value
-            return (initialize_option_params(0, 0), IOptionRoundDispatcher{contract_address: contract_address_const::<0>()});
+            return (self.generate_option_round_params(0, 0), IOptionRoundDispatcher{contract_address: contract_address_const::<0>()});
         }
 
         fn total_unallocated_liquidity(self: @ContractState) -> u256 {

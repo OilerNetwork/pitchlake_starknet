@@ -64,8 +64,6 @@ fn test_round_start_auction_success() {
     assert(success == true, 'should be able to start');
 }
 
-
-
 #[test]
 #[available_gas(10000000)]
 fn test_round_state_started() {
@@ -113,7 +111,7 @@ fn test_round_state_auction_settled() {
     let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(mock_option_params());
 
     round_dispatcher.end_auction();
-    set_block_timestamp(timestamp_end_month());
+    set_block_timestamp(option_params.expiry_time);
     round_dispatcher.settle(option_params.reserve_price, ArrayTrait::new());
 
     let state:OptionRoundState = round_dispatcher.get_option_round_state();

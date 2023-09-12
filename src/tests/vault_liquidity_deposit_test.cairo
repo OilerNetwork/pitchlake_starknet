@@ -159,6 +159,17 @@ fn test_withdraw_liquidity_valid_user() {
     vault_dispatcher.withdraw_liquidity(deposit_amount_wei);
 }
 
+#[test]
+#[available_gas(10000000)]
+#[should_panic(expected: ('Some error', 'cannot generate params for zeo liquidity'))]
+fn test_start_option_zero_liquidity() {
+
+    let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+    // start_new_option_round will also starts the auction
+    let params : OptionRoundParams = vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month() );
+}
+
+
 // #[test]
 // #[available_gas(10000000)]
 // fn test_transfer_bidder_to_option_round() {

@@ -53,6 +53,8 @@ fn test_withdrawal_after_settle() {
     set_contract_address(option_bidder_buyer_1());
     round_dispatcher.bid(option_amount, option_params.reserve_price); 
     round_dispatcher.end_auction();
+
+    set_block_timestamp(option_params.expiry_time);
     round_dispatcher.settle(option_params.strike_price - 100 , ArrayTrait::new()); // means there is no payout.
     let unallocated_wei_after_premium:u256 = vault_dispatcher.total_unallocated_liquidity();
     assert(unallocated_wei_before_premium < unallocated_wei_after_premium, 'premium should have paid out');
@@ -84,6 +86,7 @@ fn test_settle_before_expiry() {
 
 #[test]
 #[available_gas(10000000)]
+#[should_panic(expected : ('some error','no settle before auction end'))]
 fn test_settle_before_end_auction() {
 
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
