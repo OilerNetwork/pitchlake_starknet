@@ -57,7 +57,7 @@ fn test_paid_premium_withdrawal() {
     round_dispatcher.end_auction();
 
     set_contract_address(liquidity_provider_1());
-    round_dispatcher.transfer_premium_paid_to_vault();
+    round_dispatcher.transfer_premium_collected_to_vault();
 
     let expected_unallocated_wei:u256 = round_dispatcher.get_auction_clearing_price() * round_dispatcher.total_options_sold();
     let success: bool = vault_dispatcher.withdraw_liquidity(expected_unallocated_wei);
@@ -94,10 +94,10 @@ fn test_premium_conversion_unallocated_pool_1 () {
 
     //premium paid will be converted into unallocated.
     set_contract_address(liquidity_provider_1());
-    round_dispatcher.transfer_premium_paid_to_vault();
+    round_dispatcher.transfer_premium_collected_to_vault();
 
     set_contract_address(liquidity_provider_2());
-    round_dispatcher.transfer_premium_paid_to_vault();
+    round_dispatcher.transfer_premium_collected_to_vault();
 
     //premium paid will be converted into unallocated.
     let total_collateral :u256 = round_dispatcher.total_collateral();
@@ -146,9 +146,9 @@ fn test_premium_conversion_unallocated_pool_2 () {
     round_dispatcher.end_auction();
 
     set_contract_address(liquidity_provider_1());
-    round_dispatcher.transfer_premium_paid_to_vault();
+    round_dispatcher.transfer_premium_collected_to_vault();
     set_contract_address(liquidity_provider_2());
-    round_dispatcher.transfer_premium_paid_to_vault();
+    round_dispatcher.transfer_premium_collected_to_vault();
 
     //premium paid will be converted into unallocated.
     let unallocated_wei_count :u256 = vault_dispatcher.total_unallocated_liquidity();

@@ -245,7 +245,7 @@ fn test_option_payout_unallocated_count_1() {
     round_dispatcher.claim_payout();
 
     set_contract_address(liquidity_provider_1());
-    round_dispatcher.transfer_premium_paid_to_vault();
+    round_dispatcher.transfer_premium_collected_to_vault();
     round_dispatcher.transfer_collateral_to_vault();
 
     let total_collaterized_count_after_claim : u256= round_dispatcher.total_collateral();

@@ -161,7 +161,7 @@ fn test_withdraw_liquidity_valid_user() {
 
 #[test]
 #[available_gas(10000000)]
-#[should_panic(expected: ('Some error', 'cannot generate params for zeo liquidity'))]
+#[should_panic(expected: ('Some error', 'cannot generate params for zero liquidity'))]
 fn test_start_option_zero_liquidity() {
 
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();

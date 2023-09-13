@@ -45,14 +45,6 @@ fn test_round_initialized() {
 }
 
 
-#[test]
-#[available_gas(10000000)]
-#[should_panic(expected: ('Some error', 'only owner can start auction',))]
-fn test_round_start_auction_failure() {
-    let round_dispatcher: IOptionRoundDispatcher = deployOptionRound(option_round_test_owner());
-    set_contract_address(liquidity_provider_1());
-    round_dispatcher.start_auction(mock_option_params());
-}
 
 #[test]
 #[available_gas(10000000)]
@@ -62,6 +54,27 @@ fn test_round_start_auction_success() {
     let success  : bool = round_dispatcher.start_auction(mock_option_params());
     assert(success == true, 'should be able to start');
 }
+
+#[test]
+#[available_gas(10000000)]
+fn test_round_clearing_price_pre_auction_end() {
+    let round_dispatcher: IOptionRoundDispatcher = deployOptionRound(option_round_test_owner());
+    set_contract_address(option_round_test_owner());
+    round_dispatcher.start_auction(mock_option_params());
+    let clearing_price : u256 = round_dispatcher.get_auction_clearing_price();
+    assert(clearing_price == 0, 'clearing price should be 0'); // should be zero as auction has not ended
+}
+
+#[test]
+#[available_gas(10000000)]
+fn test_round_option_sold_pre_auction_end() {
+    let round_dispatcher: IOptionRoundDispatcher = deployOptionRound(option_round_test_owner());
+    set_contract_address(option_round_test_owner());
+    round_dispatcher.start_auction(mock_option_params());
+    let options_sold : u256 = round_dispatcher.total_options_sold();
+    assert(options_sold == 0, 'options_sold should be 0'); // should be zero as auction has not ended
+}
+
 
 #[test]
 #[available_gas(10000000)]
@@ -115,6 +128,101 @@ fn test_round_state_auction_settled() {
     round_dispatcher.settle(option_params.reserve_price, ArrayTrait::new());
 
     let state:OptionRoundState = round_dispatcher.get_option_round_state();
-    // assert (state == OptionRoundState::AuctionEnded, "state should be AuctionSettled");
+    // assert (state == OptionRoundState::AuctionEnded, "state should be Settled");
+
+}
+
+#[test]
+#[available_gas(10000000)]
+#[should_panic(expected: ('Some error', 'only owner can start auction',))]
+fn test_round_start_auction_failure() {
+    let round_dispatcher: IOptionRoundDispatcher = deployOptionRound(option_round_test_owner());
+    set_contract_address(liquidity_provider_1());
+    round_dispatcher.start_auction(mock_option_params());
+}
+
+
+
+#[test]
+#[available_gas(10000000)]
+#[should_panic(expected: ('Some error', 'auction has not ended, cannot claim bid deposit',))]
+fn test_claim_unused_bid_deposit_failure() {
+    let round_dispatcher: IOptionRoundDispatcher = deployOptionRound(option_round_test_owner());
+    set_contract_address(liquidity_provider_1());
+    let option_params: OptionRoundParams = mock_option_params();
+    round_dispatcher.start_auction(mock_option_params());
+
+
+    let bid_count: u256 = option_params.total_options_available + 10;
+    let bid_price_user_1 : u256 = option_params.reserve_price;
+
+    set_contract_address(option_bidder_buyer_1());
+    round_dispatcher.bid(bid_count, bid_price_user_1 );
+    round_dispatcher.claim_unused_bid_deposit();   // should fail as auction has not ended
+
+}
+
+#[test]
+#[available_gas(10000000)]
+#[should_panic(expected: ('Some error', 'option has not settled, cannot claim payout',))]
+fn test_claim_payout_failure() {
+    let round_dispatcher: IOptionRoundDispatcher = deployOptionRound(option_round_test_owner());
+    set_contract_address(liquidity_provider_1());
+    let option_params: OptionRoundParams = mock_option_params();
+    round_dispatcher.start_auction(mock_option_params());
+
+
+    let bid_count: u256 = option_params.total_options_available + 10;
+    let bid_price_user_1 : u256 = option_params.reserve_price;
+
+    set_contract_address(option_bidder_buyer_1());
+    round_dispatcher.bid(bid_count, bid_price_user_1 );
+    round_dispatcher.claim_payout();   // should fail as option has not settled
+
+}
+
+#[test]
+#[available_gas(10000000)]
+#[should_panic(expected: ('Some error', 'auction has not ended, cannot claim premium collected',))]
+fn test_claim_premium_failure() {
+    let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+
+    set_contract_address(liquidity_provider_1());
+    let deposit_amount_wei = 10000 * vault_dispatcher.decimals().into();
+    let success:bool = vault_dispatcher.deposit_liquidity(deposit_amount_wei);  
+    // start_new_option_round will also starts the auction
+    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
+
+
+    let bid_count: u256 = option_params.total_options_available + 10;
+    let bid_price_user_1 : u256 = option_params.reserve_price;
+
+    set_contract_address(option_bidder_buyer_1());
+    round_dispatcher.bid(bid_count, bid_price_user_1 );
+    round_dispatcher.transfer_premium_collected_to_vault(); // should fail as option has not ended
+}
+
+
+#[test]
+#[available_gas(10000000)]
+#[should_panic(expected: ('Some error', 'option has not settled, cannot claim payout'))]
+fn test_transfer_to_vault_failure() {
+    let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+
+    set_contract_address(liquidity_provider_1());
+    let deposit_amount_wei = 10000 * vault_dispatcher.decimals().into();
+    let success:bool = vault_dispatcher.deposit_liquidity(deposit_amount_wei);  
+    // start_new_option_round will also starts the auction
+    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
+
+    let bid_count: u256 = option_params.total_options_available + 10;
+    let bid_price_user_1 : u256 = option_params.reserve_price;
+
+    set_contract_address(option_bidder_buyer_1());
+    round_dispatcher.bid(bid_count, bid_price_user_1 );
+    round_dispatcher.end_auction();
+    round_dispatcher.transfer_collateral_to_vault();   // should fail as option has not settled
 
 }

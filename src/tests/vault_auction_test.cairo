@@ -450,7 +450,7 @@ fn test_eth_lockup_for_unused_bids() {
 
     round_dispatcher.end_auction();
     set_contract_address(option_bidder_buyer_1());
-    // round_dispatcher.claim_premium_deposit();
+    // round_dispatcher.claim_unused_bid_deposit();
     let wei_balance_after_auction :u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
     assert(wei_balance_before_bid == wei_balance_after_auction + ((bid_count ) * option_params.reserve_price), 'bid amounts should be locked up');
     assert(bid_count > option_params.total_options_available, 'bid count cannot be > total opt');
@@ -476,7 +476,7 @@ fn test_eth_transfer_for_unused_bids_after_claim() {
     set_contract_address(option_bidder_buyer_1());
 
     let wei_balance_before_claim :u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
-    let amount_transferred :u256 = round_dispatcher.claim_premium_deposit();
+    let amount_transferred :u256 = round_dispatcher.claim_unused_bid_deposit();
     let wei_balance_after_claim :u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
     
 

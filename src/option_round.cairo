@@ -23,7 +23,7 @@ enum OptionRoundState {
     Initialized,
     AuctionStarted,
     AuctionEnded,
-    AuctionSettled,
+    Settled,
 }
 
 #[starknet::interface]
@@ -58,9 +58,9 @@ trait IOptionRound<TContractState> {
     fn get_auction_clearing_price(ref self: TContractState) -> u256;
 
     // moves/transfers the unused premium deposit back to the bidder, return value is the amount of the transfer
-    // this is per option buyer. every option buyer will have to individually call claim_premium_deposit to transfer any used deposits
+    // this is per option buyer. every option buyer will have to individually call claim_unused_bid_deposit to transfer any used deposits
     #[external]
-    fn claim_premium_deposit(ref self: TContractState ) -> u256;
+    fn claim_unused_bid_deposit(ref self: TContractState ) -> u256;
 
     // transfers any payout due to the option buyer, return value is the amount of the transfer
     // this is per option buyer. every option buyer will have to individually call claim_payout.
@@ -73,9 +73,9 @@ trait IOptionRound<TContractState> {
     fn transfer_collateral_to_vault(ref self: TContractState) -> u256;
 
     // after the auction ends, liquidity_providers can transfer the premiums paid to them back to the vault from where they can be immediately withdrawn.
-    // this is per liquidity provider, every liquidity provider will have to individually call transfer_premium_paid_to_vault
+    // this is per liquidity provider, every liquidity provider will have to individually call transfer_premium_collected_to_vault
     #[external]
-    fn transfer_premium_paid_to_vault(ref self: TContractState) -> u256;
+    fn transfer_premium_collected_to_vault(ref self: TContractState) -> u256;
 
     // total amount deposited as part of bidding by an option buyer, if the auction has not ended this represents the total amount locked up for auction and cannot be claimed back,
     // if the auction has ended this the amount which was not converted into an option and can be claimed back.
@@ -179,7 +179,7 @@ mod OptionRound  {
             100
         }
 
-        fn claim_premium_deposit(ref self: ContractState ) -> u256{
+        fn claim_unused_bid_deposit(ref self: ContractState ) -> u256{
             100
         }
 
@@ -192,7 +192,7 @@ mod OptionRound  {
         }
 
 
-        fn transfer_premium_paid_to_vault(ref self: ContractState) -> u256{
+        fn transfer_premium_collected_to_vault(ref self: ContractState) -> u256{
             100
         }
 
