@@ -9,9 +9,9 @@ use pitch_lake_starknet::option_round::{IOptionRound, IOptionRoundDispatcher, IO
 
 #[derive(Copy, Drop, Serde, PartialEq)]
 enum VaultType {
-    InTheMoney: u128,
-    AtTheMoney: u128,
-    OutOfMoney: u128,
+    InTheMoney,
+    AtTheMoney,
+    OutOfMoney,
 }
 
 
@@ -80,19 +80,10 @@ mod Vault  {
     #[constructor]
     fn constructor(
         ref self: ContractState,
-        option_round_class_hash_: felt252
+        option_round_class_hash_: felt252,
+        vault_type: VaultType
     ) {
-        // let mut calldata = array![];
-        // calldata.append_serde(get_contract_address());
-
-        // let (address, _) = deploy_syscall(
-        //     option_round_class_hash_.try_into().unwrap(), 0, calldata.span(), true
-        //     )
-        // .expect('DEPLOY_AD_FAILED');
-        // let round_dispatcher : IOptionRoundDispatcher = IOptionRoundDispatcher{contract_address: address};
-        // self.current_option_round_dispatcher.write(round_dispatcher);
         self.option_round_class_hash.write( option_round_class_hash_);
-
     }
 
     #[external(v0)]
@@ -158,7 +149,7 @@ mod Vault  {
 
         fn vault_type(self: @ContractState) -> VaultType  {
             // TODO fix later, random value
-            VaultType::AtTheMoney(1)
+            VaultType::AtTheMoney
         }
 
         fn current_option_round(ref self: ContractState ) -> (OptionRoundParams, IOptionRoundDispatcher){

@@ -20,7 +20,7 @@ use openzeppelin::token::erc20::interface::{
 use openzeppelin::utils::serde::SerializedAppend;
 use pitch_lake_starknet::eth::Eth;
 
-use pitch_lake_starknet::vault::{IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait};
+use pitch_lake_starknet::vault::{IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait, VaultType};
 use pitch_lake_starknet::option_round::{IOptionRound, IOptionRoundDispatcher, IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait, OptionRoundParams, OptionRound};
 
 const NAME: felt252 = 'WETH';
@@ -63,6 +63,7 @@ fn deployVault() ->  IVaultDispatcher {
     let mut calldata = array![];
 
     calldata.append_serde(OptionRound::TEST_CLASS_HASH);
+    calldata.append_serde(VaultType::InTheMoney);
 
     let (address, _) = deploy_syscall(
         Vault::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true

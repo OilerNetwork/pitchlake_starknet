@@ -76,7 +76,6 @@ fn test_round_state_started() {
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
     let state:OptionRoundState = round_dispatcher.get_option_round_state();
     // assert (state == OptionRoundState::AuctionStarted, "state should be AuctionStarted");
-    // round_dispatcher.get
 }
 
 
@@ -96,7 +95,6 @@ fn test_round_state_auction_ended() {
     let state:OptionRoundState = round_dispatcher.get_option_round_state();
     // assert (state == OptionRoundState::AuctionEnded, "state should be AuctionEnded");
 
-    // round_dispatcher.get
 }
 
 
@@ -119,5 +117,4 @@ fn test_round_state_auction_settled() {
     let state:OptionRoundState = round_dispatcher.get_option_round_state();
     // assert (state == OptionRoundState::AuctionEnded, "state should be AuctionSettled");
 
-    // round_dispatcher.get
 }
