@@ -18,15 +18,13 @@ struct OptionRoundParams {
     expiry_time:u64
 }
 
-#[derive(Copy, Drop, Serde, PartialEq)]
+#[derive(Copy, Drop, Serde, PartialEq, starknet::Store)]
 enum OptionRoundState {
-    Initialized: (),
-    AuctionStarted: (),
-    AuctionEnded: (),
-    AuctionSettled: (),
+    Initialized,
+    AuctionStarted,
+    AuctionEnded,
+    AuctionSettled,
 }
-
-
 
 #[starknet::interface]
 trait IOptionRound<TContractState> {

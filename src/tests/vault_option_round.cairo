@@ -31,7 +31,7 @@ use traits::TryInto;
 use pitch_lake_starknet::eth::Eth;
 use pitch_lake_starknet::tests::utils::{setup, deployOptionRound, option_round_test_owner, deployVault, allocated_pool_address, unallocated_pool_address, timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1, option_bidder_buyer_2, vault_manager, weth_owner, mock_option_params};
 
-/// TODO 
+/// TODO fix enum compares
 
 
 #[test]
@@ -39,9 +39,9 @@ use pitch_lake_starknet::tests::utils::{setup, deployOptionRound, option_round_t
 fn test_round_initialized() {
     let round_dispatcher: IOptionRoundDispatcher = deployOptionRound(option_round_test_owner());
     let state:OptionRoundState = round_dispatcher.get_option_round_state();
-    let expectedInitializedValue = OptionRoundState::Initialized(());
-    // assert (state::Initialized(()) == expectedInitializedValue, "state should be Initialized");
-    // round_dispatcher.get
+    // let expectedInitializedValue :OptionRoundState = OptionRoundState::Initialized;
+    // assert (expectedInitializedValue == state, "state should be Initialized");
+    // assert (expectedInitializedValue == OptionRoundState::Initialized, "state should be Initialized");
 }
 
 
@@ -52,7 +52,6 @@ fn test_round_start_auction_failure() {
     let round_dispatcher: IOptionRoundDispatcher = deployOptionRound(option_round_test_owner());
     set_contract_address(liquidity_provider_1());
     round_dispatcher.start_auction(mock_option_params());
-    // round_dispatcher.get
 }
 
 #[test]
