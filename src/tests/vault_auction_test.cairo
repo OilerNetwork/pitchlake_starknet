@@ -19,7 +19,7 @@ use pitch_lake_starknet::eth::Eth;
 use pitch_lake_starknet::tests::utils::{setup, deployVault, allocated_pool_address, unallocated_pool_address
                                         , timestamp_start_month, timestamp_end_month, liquidity_provider_1, 
                                         liquidity_provider_2, option_bidder_buyer_1, option_bidder_buyer_2,
-                                         option_bidder_buyer_3, option_bidder_buyer_4, vault_manager, weth_owner, mock_option_params};
+                                         option_bidder_buyer_3, option_bidder_buyer_4, vault_manager, weth_owner, mock_option_params, month_duration};
 
 use result::ResultTrait;
 use starknet::{
@@ -51,7 +51,8 @@ fn test_bid_after_expiry() {
     set_contract_address(liquidity_provider_1());
     vault_dispatcher.deposit_liquidity(deposit_amount_wei);
     // start_new_option_round will also starts the auction
-    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(mock_option_params());
+    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     set_contract_address(option_bidder_buyer_1());
     set_block_timestamp(option_params.expiry_time + 10 );
@@ -73,16 +74,17 @@ fn test_multiple_parallel_rounds_failure() {
     set_contract_address(liquidity_provider_1());
     vault_dispatcher.deposit_liquidity(deposit_amount_wei);
     // start_new_option_round will also starts the auction
-    let mock_params = mock_option_params();
-    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(mock_params);
+    let option_params = vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
     // following line should generate an exception
-    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(mock_params);
+    let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
+
 }
 
 
 #[test]
 #[available_gas(10000000)]
-fn test_new_round_after_settle() {
+fn test_current_round_round_is_new_round() {
 
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
     let deposit_amount_wei:u256 = 50 * vault_dispatcher.decimals().into();
@@ -92,27 +94,71 @@ fn test_new_round_after_settle() {
     set_contract_address(liquidity_provider_1());
     vault_dispatcher.deposit_liquidity(deposit_amount_wei);
     // start_new_option_round will also starts the auction
-    let mock_params = mock_option_params();
-    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(mock_params);
-    // following line should generate an exception
+    let option_params = vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
+    let (curr_option_params, curr_round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.current_option_round();
+    assert (option_params == curr_option_params, 'current round is new round');
+
+}
+
+#[test]
+#[available_gas(10000000)]
+fn test_settled_and_new_round_sets_prev_round() {
+
+    let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+    let deposit_amount_wei:u256 = 50 * vault_dispatcher.decimals().into();
+    
+    set_contract_address(liquidity_provider_1());
+    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    // start_new_option_round will also starts the auction
+    let option_params = vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
+    
 
     let bid_count: u256 = option_params.total_options_available;
     let bid_price_user_1 : u256 = option_params.reserve_price;
-    let bid_price_user_2 : u256 = option_params.reserve_price + 10;
 
     set_contract_address(option_bidder_buyer_1());
     round_dispatcher.bid(bid_count, bid_price_user_1 );
-    set_contract_address(option_bidder_buyer_2());
-    round_dispatcher.bid(bid_count,  bid_price_user_2);
 
     round_dispatcher.end_auction();
     set_block_timestamp(option_params.expiry_time);
     round_dispatcher.settle(option_params.reserve_price + 10, ArrayTrait::new()); 
 
-    let mock_params = mock_option_params();
-    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(mock_params);
-    // TODO not the best assert below, need a  way to check round_dispatcher is initialized
-    assert(option_params.reserve_price != 0, 'dispatcher is properly set');
+    let new_option_params : OptionRoundParams = vault_dispatcher.generate_option_round_params(timestamp_end_month(), timestamp_end_month() +  month_duration()  );
+    let new_round_dispatcher: IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(new_option_params);
+    let (previous_option_params, previous_round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.previous_option_round();
+    assert(previous_option_params == option_params, 'curr round = prev round ');
+}
+
+
+
+#[test]
+#[available_gas(10000000)]
+fn test_new_round_after_settle() {
+
+    let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+    let deposit_amount_wei:u256 = 50 * vault_dispatcher.decimals().into();
+    
+    set_contract_address(liquidity_provider_1());
+    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    // start_new_option_round will also starts the auction
+    let option_params = vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
+ 
+    let bid_count: u256 = option_params.total_options_available;
+    let bid_price_user_1 : u256 = option_params.reserve_price;
+    set_contract_address(option_bidder_buyer_1());
+    round_dispatcher.bid(bid_count, bid_price_user_1 );
+
+    round_dispatcher.end_auction();
+    set_block_timestamp(option_params.expiry_time);
+    round_dispatcher.settle(option_params.reserve_price + 10, ArrayTrait::new()); 
+
+    let new_option_params : OptionRoundParams = vault_dispatcher.generate_option_round_params(timestamp_end_month(), timestamp_end_month() +  month_duration()  );
+    let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(new_option_params);
+    // should not throw an exception, TODO better way to check round_dispatcher is valid
+
 }
 
 
@@ -129,7 +175,8 @@ fn test_new_round_after_settle() {
     
 //     let unallocated_wei_before_premium = vault_dispatcher.total_unallocated_liquidity();
 //     // start_new_option_round will also starts the auction
-//     let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(mock_option_params());
+//     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+        // let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 //     set_contract_address(option_bidder_buyer_1());
 //     round_dispatcher.bid(option_amount, option_params.reserve_price); 
 //     round_dispatcher.end_auction();
@@ -146,7 +193,8 @@ fn test_clearing_price_1() {
     let deposit_amount_wei:u256 = 10000 * vault_dispatcher.decimals().into();
     vault_dispatcher.deposit_liquidity(deposit_amount_wei);
     // start_new_option_round will also starts the auction
-    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(mock_option_params());
+    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     let bid_count: u256 = 2;
     set_contract_address(option_bidder_buyer_1());
@@ -165,7 +213,8 @@ fn test_clearing_price_2() {
     let deposit_amount_wei:u256 = 10000 * vault_dispatcher.decimals().into();
     vault_dispatcher.deposit_liquidity(deposit_amount_wei);
     // start_new_option_round will also starts the auction
-    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(mock_option_params());
+    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     let bid_count: u256 = option_params.total_options_available;
     let bid_price_user_1 : u256 = option_params.reserve_price;
@@ -190,7 +239,8 @@ fn test_clearing_price_3() {
     let deposit_amount_wei:u256 = 10000 * vault_dispatcher.decimals().into();
     vault_dispatcher.deposit_liquidity(deposit_amount_wei);
     // start_new_option_round will also starts the auction
-    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(mock_option_params());
+    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     let bid_count_user_1: u256 = option_params.total_options_available - 20;
     let bid_count_user_2: u256 = 20;
@@ -218,7 +268,8 @@ fn test_clearing_price_4() {
     let deposit_amount_wei:u256 = 10000 * vault_dispatcher.decimals().into();
     vault_dispatcher.deposit_liquidity(deposit_amount_wei);
     // start_new_option_round will also starts the auction
-    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(mock_option_params());
+    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     let bid_count_user_1: u256 = option_params.total_options_available/ 3;
     let bid_count_user_2: u256 = option_params.total_options_available/ 2;
@@ -251,7 +302,8 @@ fn test_clearing_price_5() {
     let deposit_amount_wei:u256 = 10000 * vault_dispatcher.decimals().into();
     vault_dispatcher.deposit_liquidity(deposit_amount_wei);
     // start_new_option_round will also starts the auction
-    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(mock_option_params());
+    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     let bid_count_user_1: u256 = option_params.total_options_available/ 2;
     let bid_count_user_2: u256 = option_params.total_options_available/ 2;
@@ -287,7 +339,8 @@ fn test_bid_below_reserve_price() {
     let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei);
 
     // start_new_option_round will also starts the auction
-    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(mock_option_params());
+    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
     // bid below reserve price
     let bid_below_reserve :u256 =  option_params.reserve_price - 1;
 
@@ -305,7 +358,8 @@ fn test_lock_of_bid_funds() {
     let deposit_amount_wei:u256 = 10000 * vault_dispatcher.decimals().into();
     vault_dispatcher.deposit_liquidity(deposit_amount_wei);
     // start_new_option_round will also starts the auction
-    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(mock_option_params());
+    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     let bid_count: u256 = 2;
     set_contract_address(option_bidder_buyer_1());
@@ -325,7 +379,8 @@ fn test_zero_bid_count() {
     let deposit_amount_wei:u256 = 10000 * vault_dispatcher.decimals().into();
     vault_dispatcher.deposit_liquidity(deposit_amount_wei);
     // start_new_option_round will also starts the auction
-    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(mock_option_params());
+    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     let bid_count: u256 = 0;
     set_contract_address(option_bidder_buyer_1());
@@ -344,7 +399,8 @@ fn test_zero_bid_price() {
     let deposit_amount_wei:u256 = 10000 * vault_dispatcher.decimals().into();
     vault_dispatcher.deposit_liquidity(deposit_amount_wei);
     // start_new_option_round will also starts the auction
-    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(mock_option_params());
+    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     let bid_count: u256 = 2;
     set_contract_address(option_bidder_buyer_1());
@@ -363,7 +419,8 @@ fn test_eth_unused_for_rejected_bids() {
     let deposit_amount_wei:u256 = 10000 * vault_dispatcher.decimals().into();
     vault_dispatcher.deposit_liquidity(deposit_amount_wei);
     // start_new_option_round will also starts the auction
-    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(mock_option_params());
+    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     let bid_count: u256 = 2;
     set_contract_address(option_bidder_buyer_1());
@@ -383,7 +440,8 @@ fn test_eth_lockup_for_unused_bids() {
     let deposit_amount_wei:u256 = 10000 * vault_dispatcher.decimals().into();
     vault_dispatcher.deposit_liquidity(deposit_amount_wei);
     // start_new_option_round will also starts the auction
-    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(mock_option_params());
+    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     let bid_count: u256 = option_params.total_options_available + 10;
     set_contract_address(option_bidder_buyer_1());
@@ -406,7 +464,8 @@ fn test_eth_transfer_for_unused_bids_after_claim() {
     let deposit_amount_wei:u256 = 10000 * vault_dispatcher.decimals().into();
     vault_dispatcher.deposit_liquidity(deposit_amount_wei);
     // start_new_option_round will also starts the auction
-    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(mock_option_params());
+    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     let bid_count: u256 = option_params.total_options_available + 10;
     set_contract_address(option_bidder_buyer_1());
@@ -433,7 +492,8 @@ fn test_total_options_after_auction_1() {
     let deposit_amount_wei = 10000 * vault_dispatcher.decimals().into();
     let success:bool = vault_dispatcher.deposit_liquidity(deposit_amount_wei);  
     // start_new_option_round will also starts the auction
-    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(mock_option_params());
+    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
     
     set_contract_address(option_bidder_buyer_1());
     round_dispatcher.bid(option_params.total_options_available/2 + 1, option_params.reserve_price);
@@ -455,7 +515,8 @@ fn test_total_options_after_auction_2() {
     set_contract_address(liquidity_provider_1());
     vault_dispatcher.deposit_liquidity(deposit_amount_wei);  
     // start_new_option_round will also starts the auction
-    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(mock_option_params());
+    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
     let bid_amount_user_1 :u256 =  (option_params.total_options_available/2) + 1;
     let bid_amount_user_2 :u256 =  (option_params.total_options_available/2) ;
     
@@ -479,7 +540,8 @@ fn test_total_options_after_auction_3() {
     set_contract_address(liquidity_provider_1());
     vault_dispatcher.deposit_liquidity(deposit_amount_wei);
     // start_new_option_round will also starts the auction
-    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(mock_option_params());
+    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     let bid_count: u256 = 2;
     set_contract_address(option_bidder_buyer_1());
@@ -498,7 +560,8 @@ fn test_total_options_after_auction_4() {
     set_contract_address(liquidity_provider_1());
     vault_dispatcher.deposit_liquidity(deposit_amount_wei);
     // start_new_option_round will also starts the auction
-    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(mock_option_params());
+    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     let bid_count: u256 = 2;
     set_contract_address(option_bidder_buyer_1());
@@ -517,7 +580,8 @@ fn test_total_options_after_auction_5() {
     set_contract_address(liquidity_provider_1());
     vault_dispatcher.deposit_liquidity(deposit_amount_wei);
     // start_new_option_round will also starts the auction
-    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(mock_option_params());
+    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     let bid_count: u256 = option_params.total_options_available + 10;
     set_contract_address(option_bidder_buyer_1());

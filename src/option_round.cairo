@@ -6,7 +6,7 @@ use openzeppelin::token::erc20::interface::IERC20Dispatcher;
 
 
 // unit of account is in wei
-#[derive(Copy, Drop, Serde, starknet::Store)]
+#[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
 struct OptionRoundParams {
     standard_deviation:u256,
     strike_price: u256, // wei

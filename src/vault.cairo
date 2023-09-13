@@ -31,7 +31,7 @@ trait IVault<TContractState> {
 
     // generate the option parameters and also deploy the option contract and move the liquidity over to the new option contract, also start the auction on the new option contract,
     #[external]
-    fn start_new_option_round(ref self: TContractState, params:OptionRoundParams ) -> (OptionRoundParams, IOptionRoundDispatcher);
+    fn start_new_option_round(ref self: TContractState, params:OptionRoundParams ) -> IOptionRoundDispatcher;
 
     #[view]
     fn vault_type(self: @TContractState) -> VaultType;
@@ -144,8 +144,8 @@ mod Vault  {
             return tmp;
         }
 
-        fn start_new_option_round(ref self: ContractState, params:OptionRoundParams ) -> (OptionRoundParams, IOptionRoundDispatcher){
-            return (params, self.current_option_round_dispatcher.read());
+        fn start_new_option_round(ref self: ContractState, params:OptionRoundParams ) -> IOptionRoundDispatcher{
+            return self.current_option_round_dispatcher.read();
         }
 
         fn vault_type(self: @ContractState) -> VaultType  {

@@ -47,7 +47,8 @@ fn test_paid_premium_withdrawal() {
     vault_dispatcher.deposit_liquidity(deposit_amount_wei);  
     
     // start_new_option_round will also starts the auction
-    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(mock_option_params());
+    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     let bid_amount_user_1 :u256 =  (option_params.total_options_available/2);
     
@@ -81,7 +82,8 @@ fn test_premium_conversion_unallocated_pool_1 () {
     vault_dispatcher.deposit_liquidity(deposit_amount_wei_2);  
 
     // start_new_option_round will also starts the auction
-    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(mock_option_params());
+    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     let bid_count_user_1 :u256 =  (option_params.total_options_available) ;
     
@@ -129,7 +131,8 @@ fn test_premium_conversion_unallocated_pool_2 () {
     vault_dispatcher.deposit_liquidity(deposit_amount_wei);  
 
     // start_new_option_round will also starts the auction
-    let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(mock_option_params());
+    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     let bid_amount_user_1 :u256 =  (option_params.total_options_available/2) + 1;
     let bid_amount_user_2 :u256 =  (option_params.total_options_available/2) ;

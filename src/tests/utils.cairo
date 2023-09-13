@@ -175,6 +175,10 @@ fn timestamp_end_month() -> u64 {
     30*24*60*60
 }
 
+fn month_duration() -> u64 {
+    30*24*60*60
+}
+
 fn SPENDER() -> ContractAddress {
     contract_address_const::<20>()
 }

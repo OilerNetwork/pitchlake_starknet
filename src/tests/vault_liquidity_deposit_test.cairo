@@ -179,7 +179,8 @@ fn test_start_option_zero_liquidity() {
 //     set_contract_address(liquidity_provider_1());
 //     vault_dispatcher.deposit_liquidity(deposit_amount_wei);  
 //     // start_new_option_round will also starts the auction
-//     let (option_params, round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.start_new_option_round(mock_option_params());
+//     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+ //       let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 //     let bid_amount_user_1 :u256 =  (option_params.total_options_available) ;
     
 //     set_contract_address(option_bidder_buyer_1());
