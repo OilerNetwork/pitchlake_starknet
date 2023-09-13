@@ -144,6 +144,8 @@ mod Vault  {
 
             let mut calldata = array![];
             calldata.append_serde(get_contract_address());
+            calldata.append_serde(get_contract_address()); // TODO upadte it to the erco 20 collaterized pool
+            calldata.append_serde(params);
 
             let (address, _) = deploy_syscall(
                 self.option_round_class_hash.read().try_into().unwrap(), 0, calldata.span(), true

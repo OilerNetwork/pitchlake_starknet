@@ -49,7 +49,8 @@ fn deployOptionRound(owner:ContractAddress) ->  IOptionRoundDispatcher {
     let mut calldata = array![];
 
     calldata.append_serde(owner);
-
+    calldata.append_serde(owner); // TODO upadte it to the erco 20 collaterized pool
+    calldata.append_serde(mock_option_params());
     let (address, _) = deploy_syscall(
         OptionRound::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
     )

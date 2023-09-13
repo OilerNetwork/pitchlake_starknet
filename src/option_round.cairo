@@ -51,6 +51,10 @@ trait IOptionRound<TContractState> {
 
     // gets the most auction price for the option, if the auction has ended
     #[view]
+    fn get_option_round_params(ref self: TContractState) -> OptionRoundParams;
+
+    // gets the most auction price for the option, if the auction has ended
+    #[view]
     fn get_auction_clearing_price(ref self: TContractState) -> u256;
 
     // moves/transfers the unused premium deposit back to the bidder, return value is the amount of the transfer
@@ -121,8 +125,11 @@ mod OptionRound  {
     #[constructor]
     fn constructor(
         ref self: ContractState,
-        owner: ContractAddress
+        owner: ContractAddress,
+        collaterized_pool: ContractAddress,
+        option_round_params: OptionRoundParams,
     ) {
+        // self.
     }
 
     #[external(v0)]
@@ -150,6 +157,22 @@ mod OptionRound  {
             // final clearing price
             OptionRoundState::AuctionStarted
         }
+
+        #[view]
+        fn get_option_round_params(ref self: ContractState) -> OptionRoundParams{
+            // dummy value
+            OptionRoundParams{
+                standard_deviation: 100,
+                strike_price: 100,
+                cap_level : 100,
+                collateral_level: 100,
+                reserve_price: 100,
+                total_options_available: 100,
+                start_time: 100,
+                expiry_time: 100
+            }   
+        }
+
 
         fn get_auction_clearing_price(ref self: ContractState) -> u256{
             // final clearing price
