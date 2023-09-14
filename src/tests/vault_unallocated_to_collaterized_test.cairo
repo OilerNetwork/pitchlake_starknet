@@ -37,7 +37,7 @@ use pitch_lake_starknet::tests::utils::{setup, deployVault, allocated_pool_addre
 #[test]
 #[available_gas(10000000)]
 #[should_panic(expected: ('Some error', 'not enough balance in liquidity pool',))]
-fn test_withdraw_liquidity_after_collaterization() {
+fn test_withdraw_liquidity_to_after_collaterization() {
 
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
     let deposit_amount_wei:u256 = 50 * vault_dispatcher.decimals().into();
@@ -45,12 +45,12 @@ fn test_withdraw_liquidity_after_collaterization() {
     let option_price = 2 * vault_dispatcher.decimals().into();
 
     set_contract_address(liquidity_provider_1());
-    let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
     // start_new_option_round will also starts the auction
     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
-    vault_dispatcher.withdraw_liquidity(deposit_amount_wei);
+    vault_dispatcher.withdraw_liquidity_to(deposit_amount_wei, liquidity_provider_1());
     //should not be able to withdraw because the liquidity has been moves to the collaterized/collaterized pool
 }
 
@@ -62,7 +62,7 @@ fn test_total_collaterized_wei_1() {
     set_contract_address(liquidity_provider_1());
 
     let deposit_amount_wei = 10000 * vault_dispatcher.decimals().into();
-    let success:bool = vault_dispatcher.deposit_liquidity(deposit_amount_wei);  
+    let success:bool = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());  
     // start_new_option_round will also starts the auction
     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
@@ -80,9 +80,9 @@ fn test_total_collaterized_wei_2() {
     let deposit_amount_wei_2 = 10000 * vault_dispatcher.decimals().into();
 
     set_contract_address(liquidity_provider_1());
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei_1);  
+    vault_dispatcher.deposit_liquidity(deposit_amount_wei_1, liquidity_provider_1(), liquidity_provider_1());  
     set_contract_address(liquidity_provider_2());
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei_2);  
+    vault_dispatcher.deposit_liquidity(deposit_amount_wei_2, liquidity_provider_2(), liquidity_provider_2());  
 
     // start_new_option_round will also starts the auction
     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());

@@ -14,8 +14,6 @@ enum VaultType {
     OutOfMoney,
 }
 
-
-
 #[event]
 #[derive(Drop, starknet::Event)]
 enum Event {
@@ -42,13 +40,14 @@ struct OptionRoundCreated {
 #[starknet::interface]
 trait IVault<TContractState> {
 
-    // add liquidity to the unallocated/uncollaterized pool
+    // add liquidity to the unallocated/uncollaterized pool in eth(wei). sender and registered_for should be the same for most cases, 
+    // but option_round can deposit liquidity back after an option round has completed on behalf of the orginal liquidity provider
     #[external]
-    fn deposit_liquidity(ref self: TContractState, amount: u256 ) -> bool;
+    fn deposit_liquidity(ref self: TContractState, amount: u256, sender:ContractAddress, registered_for:ContractAddress) -> bool;
 
-    // withdraw liquidity from the unallocated/uncollaterized pool
+    // withdraw liquidity from the unallocated/uncollaterized pool to the recicpient.
     #[external]
-    fn withdraw_liquidity(ref self: TContractState, amount: u256 ) -> bool;
+    fn withdraw_liquidity_to(ref self: TContractState, amount: u256, recipient:ContractAddress ) -> bool;
 
     #[view]
     fn generate_option_round_params(ref self: TContractState, start_time_:u64, expiry_time_:u64)-> OptionRoundParams;
@@ -118,11 +117,11 @@ mod Vault  {
             18
         }
 
-        fn deposit_liquidity(ref self: ContractState, amount: u256 ) -> bool{
+        fn deposit_liquidity(ref self: ContractState, amount: u256, sender:ContractAddress, registered_for:ContractAddress ) -> bool{
             true
         }
 
-        fn withdraw_liquidity(ref self: ContractState, amount: u256 ) -> bool{
+        fn withdraw_liquidity_to(ref self: ContractState, amount: u256, recipient:ContractAddress  ) -> bool{
             true
         }
 

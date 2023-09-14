@@ -45,7 +45,7 @@ fn test_withdrawal_after_settle() {
     let option_price = 2 * vault_dispatcher.decimals().into();
 
     set_contract_address(liquidity_provider_1());
-    let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
     
     let unallocated_wei_before_premium = vault_dispatcher.total_unallocated_liquidity();
     // start_new_option_round will also starts the auction
@@ -71,7 +71,7 @@ fn test_settle_before_expiry() {
     let option_price = 2 * vault_dispatcher.decimals().into();
     
     set_contract_address(liquidity_provider_1());
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
     // start_new_option_round will also starts the auction
     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
@@ -98,7 +98,7 @@ fn test_settle_before_end_auction() {
     let final_settlement_price:u256 = 30 * vault_dispatcher.decimals().into();
     
     set_contract_address(liquidity_provider_1());
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
     // start_new_option_round will also starts the auction
     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
@@ -116,7 +116,7 @@ fn test_option_payout_1() {
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
     let deposit_amount_wei:u256 = 10000 * vault_dispatcher.decimals().into();
     set_contract_address(liquidity_provider_1());
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
     // start_new_option_round will also starts the auction
     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
@@ -141,7 +141,7 @@ fn test_option_payout_2() {
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
     let deposit_amount_wei:u256 = 10000 * vault_dispatcher.decimals().into();
     set_contract_address(liquidity_provider_1());
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
     // start_new_option_round will also starts the auction
     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
@@ -166,7 +166,7 @@ fn test_option_payout_claim_1() {
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
     let deposit_amount_wei:u256 = 10000 * vault_dispatcher.decimals().into();
     set_contract_address(liquidity_provider_1());
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
     // start_new_option_round will also starts the auction
     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
@@ -184,7 +184,7 @@ fn test_option_payout_claim_1() {
     let balance_before_claim:u256 = eth_dispatcher.balance_of(option_bidder_buyer_1()); 
 
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.claim_payout();
+    round_dispatcher.claim_payout(option_bidder_buyer_1());
     let balance_after_claim:u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
     assert(balance_after_claim == payout_balance + balance_before_claim, 'expected payout doesnt match');
 }
@@ -195,7 +195,7 @@ fn test_option_payout_collaterized_count() {
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
     let deposit_amount_wei:u256 = 10000 * vault_dispatcher.decimals().into();
     set_contract_address(liquidity_provider_1());
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
     // start_new_option_round will also starts the auction
     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
@@ -210,7 +210,7 @@ fn test_option_payout_collaterized_count() {
     round_dispatcher.settle(settlement_price, ArrayTrait::new());
 
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.claim_payout();
+    round_dispatcher.claim_payout(option_bidder_buyer_1());
 
     let total_collaterized_count_after_settle : u256= round_dispatcher.total_collateral();
     assert(total_collaterized_count_after_settle == 0, 'collaterized should be zero')
@@ -222,7 +222,7 @@ fn test_option_payout_unallocated_count_1() {
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
     let deposit_amount_wei:u256 = 10000 * vault_dispatcher.decimals().into();
     set_contract_address(liquidity_provider_1());
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
     // start_new_option_round will also starts the auction
     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
@@ -242,11 +242,11 @@ fn test_option_payout_unallocated_count_1() {
     let claim_payout_amount:u256 = round_dispatcher.payout_balance_of(option_bidder_buyer_1()); 
 
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.claim_payout();
+    round_dispatcher.claim_payout(option_bidder_buyer_1());
 
     set_contract_address(liquidity_provider_1());
-    round_dispatcher.transfer_premium_collected_to_vault();
-    round_dispatcher.transfer_collateral_to_vault();
+    round_dispatcher.transfer_premium_collected_to_vault(liquidity_provider_1());
+    round_dispatcher.transfer_collateral_to_vault(liquidity_provider_1());
 
     let total_collaterized_count_after_claim : u256= round_dispatcher.total_collateral();
     assert(total_collaterized_count_after_settle == total_collaterized_count_before_auction - claim_payout_amount + premium_paid, 'expec collaterized doesnt match');

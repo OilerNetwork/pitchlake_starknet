@@ -38,14 +38,14 @@ use pitch_lake_starknet::tests::utils::{setup, deployVault, allocated_pool_addre
 
 #[test]
 #[available_gas(10000000)]
-fn test_deploy_liquidity_zero() {
+fn test_deposit_liquidity_zero() {
 
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
     let deposit_amount_wei:u256 = 0 ;
     set_contract_address(liquidity_provider_1());
 
     let balance_before_transfer: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
     let balance_after_transfer: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
 
     assert(balance_before_transfer == balance_after_transfer, 'zero deposit should not effect');
@@ -53,40 +53,40 @@ fn test_deploy_liquidity_zero() {
 
 #[test]
 #[available_gas(10000000)]
-fn test_deploy_withdraw_liquidity_zero() {
+fn test_deposit_withdraw_liquidity_zero() {
 
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
     let deposit_amount_wei:u256 = 10 * vault_dispatcher.decimals().into() ;
     set_contract_address(liquidity_provider_1());
 
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
     let balance_before_transfer: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
-    vault_dispatcher.withdraw_liquidity(0);
+    vault_dispatcher.withdraw_liquidity_to(0, liquidity_provider_1());
     let balance_after_transfer: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
 
     assert(balance_before_transfer == balance_after_transfer, 'zero deposit should not effect');
 }
 
 #[test]#[available_gas(10000000)]
-fn test_deploy_liquidity() {
+fn test_deposit_liquidity() {
 
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
     let deposit_amount_wei:u256 = 50 * vault_dispatcher.decimals().into();
     set_contract_address(liquidity_provider_1());
-    let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
     assert(success == true, 'cannot deposit');
 
 }
 
 #[test]
 #[available_gas(10000000)]
-fn test_deploy_liquidity_count_increase() {
+fn test_deposit_liquidity_count_increase() {
 
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
     let deposit_amount_wei:u256 = 50 * vault_dispatcher.decimals().into();
     let wei_balance_before_deposit:u256 = vault_dispatcher.unallocated_liquidity_balance_of(liquidity_provider_1());
     set_contract_address(liquidity_provider_1());
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
     let wei_after_before_deposit:u256 = vault_dispatcher.unallocated_liquidity_balance_of(liquidity_provider_1());
     assert(wei_after_before_deposit == wei_balance_before_deposit + deposit_amount_wei, 'deposit should add up');
 
@@ -94,13 +94,13 @@ fn test_deploy_liquidity_count_increase() {
 
 #[test]
 #[available_gas(10000000)]
-fn test_eth_has_descreased_after_deposit() {
+fn test_eth_has_decreased_after_deposit() {
 
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
     let deposit_amount_wei:u256 = 50 * vault_dispatcher.decimals().into() ;
     let wei_amount_before_transfer: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
     set_contract_address(liquidity_provider_1());
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
     let wei_amount_after_transfer: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
     assert(wei_amount_after_transfer == wei_amount_before_transfer - deposit_amount_wei  , 'deposit is not decremented');
 }
@@ -112,9 +112,9 @@ fn test_eth_has_increased_after_withdrawal() {
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
     let deposit_amount_wei:u256 = 50 * vault_dispatcher.decimals().into();
     set_contract_address(liquidity_provider_1());
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
     let wei_amount_before_withdrawal: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
-    vault_dispatcher.withdraw_liquidity(deposit_amount_wei);
+    vault_dispatcher.withdraw_liquidity_to(deposit_amount_wei, liquidity_provider_1());
     let wei_amount_after_withdrawal: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
     let unallocated_wei:u256 = vault_dispatcher.total_unallocated_liquidity();    
     assert(wei_amount_before_withdrawal == wei_amount_after_withdrawal + deposit_amount_wei, 'withdrawal is not incremented');
@@ -128,7 +128,7 @@ fn test_unallocated_wei_count() {
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
     let deposit_amount_wei:u256 = 50 * vault_dispatcher.decimals().into();
     set_contract_address(liquidity_provider_1());
-    let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
     let tokens:u256 = vault_dispatcher.total_unallocated_liquidity();    
     assert(tokens == deposit_amount_wei, 'should equal to deposited');
 
@@ -136,13 +136,13 @@ fn test_unallocated_wei_count() {
 
 #[test]
 #[available_gas(10000000)]
-fn test_withdraw_liquidity() {
+fn test_withdraw_liquidity_to() {
  
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
     let deposit_amount_wei:u256 = 50 * vault_dispatcher.decimals().into();
     set_contract_address(liquidity_provider_1());
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
-    let success:bool  = vault_dispatcher.withdraw_liquidity(deposit_amount_wei);
+    vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
+    let success:bool  = vault_dispatcher.withdraw_liquidity_to(deposit_amount_wei, liquidity_provider_1());
     assert(success == true, 'should be able to withdraw');
 
 }
@@ -150,14 +150,14 @@ fn test_withdraw_liquidity() {
 #[test]
 #[available_gas(10000000)]
 #[should_panic(expected: ('Some error', 'not enough balance',))]
-fn test_withdraw_liquidity_valid_user() {
+fn test_withdraw_liquidity_to_valid_user() {
     // only valid user should be able to withdraw liquidity
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
     let deposit_amount_wei:u256 = 50 * vault_dispatcher.decimals().into();
     set_contract_address(liquidity_provider_1());
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
     set_contract_address(liquidity_provider_2());
-    vault_dispatcher.withdraw_liquidity(deposit_amount_wei);
+    vault_dispatcher.withdraw_liquidity_to(deposit_amount_wei, liquidity_provider_2());
 }
 
 #[test]
@@ -187,7 +187,7 @@ fn assert_event_transfer(from: ContractAddress, to: ContractAddress, token_id: u
 
 //     let deposit_amount_wei = 10000 * vault_dispatcher.decimals().into();
 //     set_contract_address(liquidity_provider_1());
-//     vault_dispatcher.deposit_liquidity(deposit_amount_wei);  
+//     let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());  
 //     // start_new_option_round will also starts the auction
 //     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
  //       let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);

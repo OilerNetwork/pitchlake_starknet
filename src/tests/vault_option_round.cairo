@@ -83,7 +83,7 @@ fn test_round_state_started() {
 
     set_contract_address(liquidity_provider_1());
     let deposit_amount_wei :u256 = 10000 * vault_dispatcher.decimals().into();
-    let success:bool = vault_dispatcher.deposit_liquidity(deposit_amount_wei);  
+    let success:bool = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());  
     // start_new_option_round will also starts the auction
     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
@@ -99,7 +99,7 @@ fn test_round_state_auction_ended() {
 
     set_contract_address(liquidity_provider_1());
     let deposit_amount_wei = 10000 * vault_dispatcher.decimals().into();
-    let success:bool = vault_dispatcher.deposit_liquidity(deposit_amount_wei);  
+    let success:bool = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());  
     // start_new_option_round will also starts the auction
     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
@@ -118,7 +118,7 @@ fn test_round_state_auction_settled() {
 
     set_contract_address(liquidity_provider_1());
     let deposit_amount_wei = 10000 * vault_dispatcher.decimals().into();
-    let success:bool = vault_dispatcher.deposit_liquidity(deposit_amount_wei);  
+    let success:bool = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());  
     // start_new_option_round will also starts the auction
     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
@@ -139,7 +139,7 @@ fn test_round_double_settle_failure() {
 
     set_contract_address(liquidity_provider_1());
     let deposit_amount_wei = 10000 * vault_dispatcher.decimals().into();
-    let success:bool = vault_dispatcher.deposit_liquidity(deposit_amount_wei);  
+    let success:bool = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());  
     // start_new_option_round will also starts the auction
     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
@@ -175,7 +175,7 @@ fn test_claim_unused_bid_deposit_failure() {
 
     set_contract_address(option_bidder_buyer_1());
     round_dispatcher.bid(bid_count, bid_price_user_1 );
-    round_dispatcher.claim_unused_bid_deposit();   // should fail as auction has not ended
+    round_dispatcher.claim_unused_bid_deposit(option_bidder_buyer_1());   // should fail as auction has not ended
 
 }
 
@@ -194,7 +194,7 @@ fn test_claim_payout_failure() {
 
     set_contract_address(option_bidder_buyer_1());
     round_dispatcher.bid(bid_count, bid_price_user_1 );
-    round_dispatcher.claim_payout();   // should fail as option has not settled
+    round_dispatcher.claim_payout(option_bidder_buyer_1());   // should fail as option has not settled
 
 }
 
@@ -206,7 +206,7 @@ fn test_claim_premium_failure() {
 
     set_contract_address(liquidity_provider_1());
     let deposit_amount_wei = 10000 * vault_dispatcher.decimals().into();
-    let success:bool = vault_dispatcher.deposit_liquidity(deposit_amount_wei);  
+    let success:bool = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());  
     // start_new_option_round will also starts the auction
     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
@@ -217,7 +217,7 @@ fn test_claim_premium_failure() {
 
     set_contract_address(option_bidder_buyer_1());
     round_dispatcher.bid(bid_count, bid_price_user_1 );
-    round_dispatcher.transfer_premium_collected_to_vault(); // should fail as option has not ended
+    round_dispatcher.transfer_premium_collected_to_vault(liquidity_provider_1()); // should fail as option has not ended
 }
 
 
@@ -229,7 +229,7 @@ fn test_transfer_to_vault_failure() {
 
     set_contract_address(liquidity_provider_1());
     let deposit_amount_wei = 10000 * vault_dispatcher.decimals().into();
-    let success:bool = vault_dispatcher.deposit_liquidity(deposit_amount_wei);  
+    let success:bool = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());  
     // start_new_option_round will also starts the auction
     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
@@ -240,6 +240,7 @@ fn test_transfer_to_vault_failure() {
     set_contract_address(option_bidder_buyer_1());
     round_dispatcher.bid(bid_count, bid_price_user_1 );
     round_dispatcher.end_auction();
-    round_dispatcher.transfer_collateral_to_vault();   // should fail as option has not settled
+    set_contract_address(liquidity_provider_1());
+    round_dispatcher.transfer_collateral_to_vault(liquidity_provider_1());   // should fail as option has not settled
 
 }
