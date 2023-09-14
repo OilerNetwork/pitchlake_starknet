@@ -129,8 +129,27 @@ fn test_round_state_auction_settled() {
 
     let state:OptionRoundState = round_dispatcher.get_option_round_state();
     // assert (state == OptionRoundState::AuctionEnded, "state should be Settled");
-
 }
+
+#[test]
+#[available_gas(10000000)]
+#[should_panic(expected: ('Some error', 'option has already settled',))]
+fn test_round_double_settle_failure() {
+    let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+
+    set_contract_address(liquidity_provider_1());
+    let deposit_amount_wei = 10000 * vault_dispatcher.decimals().into();
+    let success:bool = vault_dispatcher.deposit_liquidity(deposit_amount_wei);  
+    // start_new_option_round will also starts the auction
+    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
+
+    round_dispatcher.end_auction();
+    set_block_timestamp(option_params.expiry_time);
+    round_dispatcher.settle(option_params.reserve_price, ArrayTrait::new());
+    round_dispatcher.settle(option_params.reserve_price, ArrayTrait::new());
+}
+
 
 #[test]
 #[available_gas(10000000)]
@@ -140,8 +159,6 @@ fn test_round_start_auction_failure() {
     set_contract_address(liquidity_provider_1());
     round_dispatcher.start_auction(mock_option_params());
 }
-
-
 
 #[test]
 #[available_gas(10000000)]
@@ -206,7 +223,7 @@ fn test_claim_premium_failure() {
 
 #[test]
 #[available_gas(10000000)]
-#[should_panic(expected: ('Some error', 'option has not settled, cannot claim payout'))]
+#[should_panic(expected: ('Some error', 'option has not settled, cannot transfer'))]
 fn test_transfer_to_vault_failure() {
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
 

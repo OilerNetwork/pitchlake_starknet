@@ -10,6 +10,8 @@ use starknet::{
     contract_address_try_from_felt252 ,
     testing::{set_block_timestamp, set_contract_address}
 };
+use starknet::testing;
+
 use openzeppelin::token::erc20::interface::{
     IERC20,
     IERC20Dispatcher,
@@ -201,3 +203,24 @@ fn zero_address() -> ContractAddress {
     contract_address_const::<0>()
 }
 
+/// Pop the earliest unpopped logged event for the contract as the requested type
+/// and checks there's no more data left on the event, preventing unaccounted params.
+/// Indexed event members are currently not supported, so they are ignored.
+fn pop_log<T, impl TDrop: Drop<T>, impl TEvent: starknet::Event<T>>(
+    address: ContractAddress
+) -> Option<T> {
+    let (mut keys, mut data) = testing::pop_log_raw(address)?;
+    let ret = starknet::Event::deserialize(ref keys, ref data);
+    assert(data.is_empty(), 'Event has extra data');
+    ret
+}
+
+
+
+fn assert_no_events_left(address: ContractAddress) {
+    assert(testing::pop_log_raw(address).is_none(), 'Events remaining on queue');
+}
+
+fn drop_event(address: ContractAddress) {
+    testing::pop_log_raw(address);
+}

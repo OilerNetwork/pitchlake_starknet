@@ -9,7 +9,7 @@ use openzeppelin::token::erc20::interface::{
     IERC20SafeDispatcherTrait,
 };
 
-use pitch_lake_starknet::vault::{IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait};
+use pitch_lake_starknet::vault::{IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait, Transfer};
 use pitch_lake_starknet::option_round::{IOptionRound, IOptionRoundDispatcher, IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait, OptionRoundParams};
 
 use result::ResultTrait;
@@ -29,10 +29,11 @@ use openzeppelin::utils::serde::SerializedAppend;
 use traits::Into;
 use traits::TryInto;
 use pitch_lake_starknet::eth::Eth;
+use pitch_lake_starknet::tests::utils;
 use pitch_lake_starknet::tests::utils::{setup, deployVault, allocated_pool_address, unallocated_pool_address
                                         , timestamp_start_month, timestamp_end_month, liquidity_provider_1, 
                                         liquidity_provider_2, option_bidder_buyer_1, option_bidder_buyer_2,
-                                         option_bidder_buyer_3, option_bidder_buyer_4, vault_manager, weth_owner, mock_option_params};
+                                         option_bidder_buyer_3, option_bidder_buyer_4, vault_manager, weth_owner, mock_option_params, pop_log, assert_no_events_left};
 
 
 #[test]
@@ -168,6 +169,15 @@ fn test_start_option_zero_liquidity() {
     // start_new_option_round will also starts the auction
     let params : OptionRoundParams = vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month() );
 }
+
+fn assert_event_transfer(from: ContractAddress, to: ContractAddress, token_id: u256) {
+    // let event = pop_log::<Transfer>(ZERO()).unwrap();
+    // assert(event.from == from, 'Invalid `from`');
+    // assert(event.to == to, 'Invalid `to`');
+    // assert(event.token_id == token_id, 'Invalid `token_id`');
+    // utils::assert_no_events_left(ZERO());
+}
+
 
 
 // #[test]

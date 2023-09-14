@@ -15,6 +15,30 @@ enum VaultType {
 }
 
 
+
+#[event]
+#[derive(Drop, starknet::Event)]
+enum Event {
+    Deposit: Transfer,
+    Withdrawal: Transfer,
+    OptionRoundCreated: OptionRoundCreated,
+}
+
+#[derive(Drop, starknet::Event)]
+struct Transfer {
+    from: ContractAddress,
+    to: ContractAddress,
+    value: u256
+}
+
+#[derive(Drop, starknet::Event)]
+struct OptionRoundCreated {
+    prev_round: ContractAddress,
+    new_round: ContractAddress,
+    collaterized: u256
+}
+
+
 #[starknet::interface]
 trait IVault<TContractState> {
 
