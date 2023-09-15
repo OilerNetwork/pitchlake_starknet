@@ -106,6 +106,10 @@ fn unallocated_pool_address() -> ContractAddress {
     contract_address_const::<'unallocated_pool_address'>()
 }
 
+fn option_round_contract_address() -> ContractAddress {
+    contract_address_const::<'option_round_contract_address'>()
+}
+
 fn liquidity_provider_1() -> ContractAddress {
     contract_address_const::<'liquidity_provider_1'>()
 }
