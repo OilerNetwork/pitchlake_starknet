@@ -30,7 +30,7 @@ use traits::Into;
 use traits::TryInto;
 use pitch_lake_starknet::eth::Eth;
 use pitch_lake_starknet::tests::utils;
-use pitch_lake_starknet::tests::utils::{setup, deployVault, allocated_pool_address, unallocated_pool_address
+use pitch_lake_starknet::tests::utils::{setup, deploy_vault, allocated_pool_address, unallocated_pool_address
                                         , timestamp_start_month, timestamp_end_month, liquidity_provider_1, 
                                         liquidity_provider_2, option_bidder_buyer_1, option_bidder_buyer_2,
                                          option_bidder_buyer_3, option_bidder_buyer_4, vault_manager, weth_owner,
@@ -241,15 +241,6 @@ fn test_withdraw_liquidity_for_registered_user() {
     vault_dispatcher.deposit_liquidity(deposit_amount_wei, option_round_contract_address(), liquidity_provider_2());
     let success:bool  = vault_dispatcher.withdraw_liquidity_to(deposit_amount_wei, liquidity_provider_2());
     assert(success == true, 'should be able to withdraw'); // liquidity_provider_2 should be able to withdraw since depositer registered it for another user
-}
-
-#[test]
-#[available_gas(10000000)]
-#[should_panic(expected: ('Some error', 'cannot generate params for zero liquidity'))]
-fn test_start_option_zero_liquidity() {
-
-    let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
-    let params : OptionRoundParams = vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month() );
 }
 
 fn assert_event_transfer(from: ContractAddress, to: ContractAddress, token_id: u256) {

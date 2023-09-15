@@ -143,6 +143,7 @@ mod Vault  {
             // let option_reserve_price = option_reserve_price_;// just an assumption
 
             let tmp :OptionRoundParams= OptionRoundParams{
+                current_average_basefee: 100,
                 strike_price: 1000,
                 standard_deviation: 50,
                 cap_level :100,  

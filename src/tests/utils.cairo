@@ -23,6 +23,8 @@ use openzeppelin::utils::serde::SerializedAppend;
 use pitch_lake_starknet::eth::Eth;
 
 use pitch_lake_starknet::vault::{IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait, VaultType};
+use pitch_lake_starknet::pitch_lake::{IPitchLakeDispatcher, IPitchLakeSafeDispatcher, IPitchLakeDispatcherTrait, PitchLake, IPitchLakeSafeDispatcherTrait};
+
 use pitch_lake_starknet::option_round::{IOptionRound, IOptionRoundDispatcher, IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait, OptionRoundParams, OptionRound};
 
 const NAME: felt252 = 'WETH';
@@ -30,7 +32,7 @@ const SYMBOL: felt252 = 'WETH';
 const DECIMALS: u8 = 18_u8;
 const SUPPLY: u256 = 99999999999999999999999999999; 
 
-fn deployEth() ->  IERC20Dispatcher {
+fn deploy_eth() ->  IERC20Dispatcher {
 
     
     let mut calldata = array![];
@@ -47,7 +49,7 @@ fn deployEth() ->  IERC20Dispatcher {
     return IERC20Dispatcher{contract_address: address};
 }
 
-fn deployOptionRound(owner:ContractAddress) ->  IOptionRoundDispatcher {
+fn deploy_option_round(owner:ContractAddress) ->  IOptionRoundDispatcher {
     let mut calldata = array![];
 
     calldata.append_serde(owner);
@@ -61,11 +63,11 @@ fn deployOptionRound(owner:ContractAddress) ->  IOptionRoundDispatcher {
 }
 
 
-fn deployVault() ->  IVaultDispatcher {
+fn deploy_vault(vault_type: VaultType) ->  IVaultDispatcher {
     let mut calldata = array![];
 
     calldata.append_serde(OptionRound::TEST_CLASS_HASH);
-    calldata.append_serde(VaultType::InTheMoney);
+    calldata.append_serde(vault_type);
 
     let (address, _) = deploy_syscall(
         Vault::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
@@ -74,10 +76,29 @@ fn deployVault() ->  IVaultDispatcher {
     return IVaultDispatcher{contract_address: address};
 }
 
+fn deploy_pitch_lake() ->IPitchLakeDispatcher {
+
+    let vault_dispatcher_in_the_money : IVaultDispatcher = deploy_vault(VaultType::InTheMoney);
+    let vault_dispatcher_out_of_money : IVaultDispatcher = deploy_vault(VaultType::OutOfMoney);
+    let vault_dispatcher_at_the_money : IVaultDispatcher = deploy_vault(VaultType::AtTheMoney);
+
+    let mut calldata = array![];
+
+    calldata.append_serde(vault_dispatcher_in_the_money);
+    calldata.append_serde(vault_dispatcher_out_of_money);
+    calldata.append_serde(vault_dispatcher_at_the_money);
+
+    let (address, _) = deploy_syscall(
+        PitchLake::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
+    )
+        .expect('DEPLOY_AD_FAILED');
+    return IPitchLakeDispatcher{contract_address: address};
+}
+
 fn setup() -> (IVaultDispatcher, IERC20Dispatcher){
 
-    let eth_dispatcher : IERC20Dispatcher = deployEth();
-    let vault_dispatcher : IVaultDispatcher = deployVault();
+    let eth_dispatcher : IERC20Dispatcher = deploy_eth();
+    let vault_dispatcher : IVaultDispatcher = deploy_vault(VaultType::InTheMoney);
     set_contract_address(weth_owner());
     let deposit_amount_ether : u256 = 1000000;
     let deposit_amount_wei: u256 = deposit_amount_ether  * eth_dispatcher.decimals().into();
@@ -156,6 +177,7 @@ fn mock_option_params()-> OptionRoundParams{
     let option_reserve_price = option_reserve_price_;// just an assumption
 
     let tmp = OptionRoundParams{
+        current_average_basefee : average_basefee,
         strike_price: in_the_money_strike_price,
         standard_deviation: standard_deviation,
         cap_level :cap_level,  

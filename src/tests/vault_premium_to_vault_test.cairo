@@ -29,7 +29,7 @@ use openzeppelin::utils::serde::SerializedAppend;
 use traits::Into;
 use traits::TryInto;
 use pitch_lake_starknet::eth::Eth;
-use pitch_lake_starknet::tests::utils::{setup, deployVault, allocated_pool_address, unallocated_pool_address
+use pitch_lake_starknet::tests::utils::{setup, deploy_vault, allocated_pool_address, unallocated_pool_address
                                         , timestamp_start_month, timestamp_end_month, liquidity_provider_1, 
                                         liquidity_provider_2, option_bidder_buyer_1, option_bidder_buyer_2,
                                          option_bidder_buyer_3, option_bidder_buyer_4, vault_manager, weth_owner, mock_option_params};

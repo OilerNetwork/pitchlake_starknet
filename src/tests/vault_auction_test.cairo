@@ -16,7 +16,7 @@ use openzeppelin::token::erc20::interface::{
 use pitch_lake_starknet::vault::{IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait};
 use pitch_lake_starknet::option_round::{IOptionRound, IOptionRoundDispatcher, IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait, OptionRoundParams};
 use pitch_lake_starknet::eth::Eth;
-use pitch_lake_starknet::tests::utils::{setup, deployVault, allocated_pool_address, unallocated_pool_address
+use pitch_lake_starknet::tests::utils::{setup, deploy_vault, allocated_pool_address, unallocated_pool_address
                                         , timestamp_start_month, timestamp_end_month, liquidity_provider_1, 
                                         liquidity_provider_2, option_bidder_buyer_1, option_bidder_buyer_2,
                                          option_bidder_buyer_3, option_bidder_buyer_4, vault_manager, weth_owner, mock_option_params, month_duration};
@@ -45,8 +45,8 @@ fn test_bid_after_expiry() {
 
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
     let deposit_amount_wei:u256 = 50 * vault_dispatcher.decimals().into();
-    let option_amount = 50;
-    let option_price = 2 * vault_dispatcher.decimals().into();
+    let option_amount : u256 = 50;
+    let option_price : u256 = 2 * vault_dispatcher.decimals().into();
     
     set_contract_address(liquidity_provider_1());
     vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1() );
@@ -68,13 +68,13 @@ fn test_multiple_parallel_rounds_failure() {
 
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
     let deposit_amount_wei:u256 = 50 * vault_dispatcher.decimals().into();
-    let option_amount = 50;
-    let option_price = 2 * vault_dispatcher.decimals().into();
+    let option_amount : u256 = 50;
+    let option_price : u256 = 2 * vault_dispatcher.decimals().into();
     
     set_contract_address(liquidity_provider_1());
     vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
     // start_new_option_round will also starts the auction
-    let option_params = vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let option_params : OptionRoundParams = vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
     // following line should generate an exception
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
@@ -88,13 +88,13 @@ fn test_current_round_round_is_new_round() {
 
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
     let deposit_amount_wei:u256 = 50 * vault_dispatcher.decimals().into();
-    let option_amount = 50;
-    let option_price = 2 * vault_dispatcher.decimals().into();
+    let option_amount : u256 = 50;
+    let option_price : u256 = 2 * vault_dispatcher.decimals().into();
     
     set_contract_address(liquidity_provider_1());
     vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
     // start_new_option_round will also starts the auction
-    let option_params = vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let option_params : OptionRoundParams = vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
     let (curr_option_params, curr_round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.current_option_round();
     assert (option_params == curr_option_params, 'current round is new round');
@@ -111,7 +111,7 @@ fn test_settled_and_new_round_sets_prev_round() {
     set_contract_address(liquidity_provider_1());
     vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
     // start_new_option_round will also starts the auction
-    let option_params = vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let option_params : OptionRoundParams = vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
     
 
@@ -143,7 +143,7 @@ fn test_new_round_after_settle() {
     set_contract_address(liquidity_provider_1());
     vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
     // start_new_option_round will also starts the auction
-    let option_params = vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let option_params : OptionRoundParams = vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
  
     let bid_count: u256 = option_params.total_options_available;
@@ -167,8 +167,8 @@ fn test_new_round_after_settle() {
 
 //     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
 //     let deposit_amount_wei:u256 = 50 * vault_dispatcher.decimals().into();
-//     let option_amount = 50;
-//     let option_price = 2 * vault_dispatcher.decimals().into();
+//     let option_amount : u256 = 50;
+//     let option_price : u256 = 2 * vault_dispatcher.decimals().into();
 
 //     set_contract_address(liquidity_provider_1());
 //     let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());

@@ -8,6 +8,7 @@ use openzeppelin::token::erc20::interface::IERC20Dispatcher;
 // unit of account is in wei
 #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
 struct OptionRoundParams {
+    current_average_basefee: u256, // wei
     standard_deviation:u256,
     strike_price: u256, // wei
     cap_level :u256,  //wei 
@@ -162,6 +163,7 @@ mod OptionRound  {
         fn get_option_round_params(ref self: ContractState) -> OptionRoundParams{
             // dummy value
             OptionRoundParams{
+                current_average_basefee: 100,
                 standard_deviation: 100,
                 strike_price: 100,
                 cap_level : 100,

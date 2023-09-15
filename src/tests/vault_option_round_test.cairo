@@ -29,7 +29,7 @@ use openzeppelin::utils::serde::SerializedAppend;
 use traits::Into;
 use traits::TryInto;
 use pitch_lake_starknet::eth::Eth;
-use pitch_lake_starknet::tests::utils::{setup, deployOptionRound, option_round_test_owner, deployVault, allocated_pool_address, unallocated_pool_address, timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1, option_bidder_buyer_2, vault_manager, weth_owner, mock_option_params};
+use pitch_lake_starknet::tests::utils::{setup, deploy_option_round, option_round_test_owner, deploy_vault, allocated_pool_address, unallocated_pool_address, timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1, option_bidder_buyer_2, vault_manager, weth_owner, mock_option_params};
 
 /// TODO fix enum compares
 
@@ -37,7 +37,7 @@ use pitch_lake_starknet::tests::utils::{setup, deployOptionRound, option_round_t
 #[test]
 #[available_gas(10000000)]
 fn test_round_initialized() {
-    let round_dispatcher: IOptionRoundDispatcher = deployOptionRound(option_round_test_owner());
+    let round_dispatcher: IOptionRoundDispatcher = deploy_option_round(option_round_test_owner());
     let state:OptionRoundState = round_dispatcher.get_option_round_state();
     // let expectedInitializedValue :OptionRoundState = OptionRoundState::Initialized;
     // assert (expectedInitializedValue == state, "state should be Initialized");
@@ -49,7 +49,7 @@ fn test_round_initialized() {
 #[test]
 #[available_gas(10000000)]
 fn test_round_start_auction_success() {
-    let round_dispatcher: IOptionRoundDispatcher = deployOptionRound(option_round_test_owner());
+    let round_dispatcher: IOptionRoundDispatcher = deploy_option_round(option_round_test_owner());
     set_contract_address(option_round_test_owner());
     let success  : bool = round_dispatcher.start_auction(mock_option_params());
     assert(success == true, 'should be able to start');
@@ -58,7 +58,7 @@ fn test_round_start_auction_success() {
 #[test]
 #[available_gas(10000000)]
 fn test_round_clearing_price_pre_auction_end() {
-    let round_dispatcher: IOptionRoundDispatcher = deployOptionRound(option_round_test_owner());
+    let round_dispatcher: IOptionRoundDispatcher = deploy_option_round(option_round_test_owner());
     set_contract_address(option_round_test_owner());
     round_dispatcher.start_auction(mock_option_params());
     let clearing_price : u256 = round_dispatcher.get_auction_clearing_price();
@@ -68,7 +68,7 @@ fn test_round_clearing_price_pre_auction_end() {
 #[test]
 #[available_gas(10000000)]
 fn test_round_option_sold_pre_auction_end() {
-    let round_dispatcher: IOptionRoundDispatcher = deployOptionRound(option_round_test_owner());
+    let round_dispatcher: IOptionRoundDispatcher = deploy_option_round(option_round_test_owner());
     set_contract_address(option_round_test_owner());
     round_dispatcher.start_auction(mock_option_params());
     let options_sold : u256 = round_dispatcher.total_options_sold();
@@ -155,7 +155,7 @@ fn test_round_double_settle_failure() {
 #[available_gas(10000000)]
 #[should_panic(expected: ('Some error', 'only owner can start auction',))]
 fn test_round_start_auction_failure() {
-    let round_dispatcher: IOptionRoundDispatcher = deployOptionRound(option_round_test_owner());
+    let round_dispatcher: IOptionRoundDispatcher = deploy_option_round(option_round_test_owner());
     set_contract_address(liquidity_provider_1());
     round_dispatcher.start_auction(mock_option_params());
 }
@@ -164,7 +164,7 @@ fn test_round_start_auction_failure() {
 #[available_gas(10000000)]
 #[should_panic(expected: ('Some error', 'auction has not ended, cannot claim bid deposit',))]
 fn test_claim_unused_bid_deposit_failure() {
-    let round_dispatcher: IOptionRoundDispatcher = deployOptionRound(option_round_test_owner());
+    let round_dispatcher: IOptionRoundDispatcher = deploy_option_round(option_round_test_owner());
     set_contract_address(liquidity_provider_1());
     let option_params: OptionRoundParams = mock_option_params();
     round_dispatcher.start_auction(mock_option_params());
@@ -183,7 +183,7 @@ fn test_claim_unused_bid_deposit_failure() {
 #[available_gas(10000000)]
 #[should_panic(expected: ('Some error', 'option has not settled, cannot claim payout',))]
 fn test_claim_payout_failure() {
-    let round_dispatcher: IOptionRoundDispatcher = deployOptionRound(option_round_test_owner());
+    let round_dispatcher: IOptionRoundDispatcher = deploy_option_round(option_round_test_owner());
     set_contract_address(liquidity_provider_1());
     let option_params: OptionRoundParams = mock_option_params();
     round_dispatcher.start_auction(mock_option_params());
