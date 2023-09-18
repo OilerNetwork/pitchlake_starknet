@@ -36,7 +36,6 @@ use pitch_lake_starknet::tests::utils::{setup, deploy_vault, allocated_pool_addr
 
 #[test]
 #[available_gas(10000000)]
-#[should_panic(expected: ('Some error', 'not enough balance in liquidity pool',))]
 fn test_withdraw_liquidity_to_after_collaterization() {
 
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
@@ -50,8 +49,9 @@ fn test_withdraw_liquidity_to_after_collaterization() {
     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
-    vault_dispatcher.withdraw_liquidity_to(deposit_amount_wei, liquidity_provider_1());
-    //should not be able to withdraw because the liquidity has been moves to the collaterized/collaterized pool
+    let success : bool = vault_dispatcher.withdraw_liquidity_to(deposit_amount_wei, liquidity_provider_1());
+    assert(success == false, 'cannot withdraw');
+    //should not be able to withdraw because the liquidity has been moves to the collaterizedpool
 }
 
 #[test]

@@ -38,9 +38,8 @@ use pitch_lake_starknet::tests::utils::{setup, deploy_vault, allocated_pool_addr
 
 #[test]
 #[available_gas(10000000)]
-fn test_paid_premium_withdrawal() {
+fn test_paid_premium_withdrawal_to_liquidity_provider() {
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
-    
     let deposit_amount_wei:u256 = 100000 * vault_dispatcher.decimals().into();
     
     set_contract_address(liquidity_provider_1());
@@ -56,7 +55,6 @@ fn test_paid_premium_withdrawal() {
     round_dispatcher.bid(bid_amount_user_1, option_params.reserve_price); 
     round_dispatcher.end_auction();
 
-    set_contract_address(liquidity_provider_1());
     round_dispatcher.transfer_premium_collected_to_vault(liquidity_provider_1());
 
     let expected_unallocated_wei:u256 = round_dispatcher.get_auction_clearing_price() * round_dispatcher.total_options_sold();
@@ -64,12 +62,36 @@ fn test_paid_premium_withdrawal() {
     assert( success == true, 'should be able withdraw premium');
 }
 
+#[test]
+#[available_gas(10000000)]
+fn test_paid_premium_withdrawal_to_invalid_provider() {
+    let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+    let deposit_amount_wei:u256 = 100000 * vault_dispatcher.decimals().into();
+    
+    set_contract_address(liquidity_provider_1());
+    let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());  
+    
+    // start_new_option_round will also starts the auction
+    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
+    let bid_amount_user_1 :u256 =  (option_params.total_options_available/2);
+    
+    set_contract_address(option_bidder_buyer_1());
+    round_dispatcher.bid(bid_amount_user_1, option_params.reserve_price); 
+    round_dispatcher.end_auction();
+
+    round_dispatcher.transfer_premium_collected_to_vault(liquidity_provider_1());
+
+    let expected_unallocated_wei:u256 = round_dispatcher.get_auction_clearing_price() * round_dispatcher.total_options_sold();
+    let success: bool = vault_dispatcher.withdraw_liquidity_to(expected_unallocated_wei, liquidity_provider_2());
+    assert( success == false, 'should not be able withdraw'); // invalid liquidity provider withdrawal
+}
 
 
 #[test]
 #[available_gas(10000000)]
-fn test_premium_conversion_unallocated_pool_1 () {
+fn test_premium_collection_ratio_conversion_unallocated_pool_1 () {
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
     
     let deposit_amount_wei_1:u256 = 1000 * vault_dispatcher.decimals().into();
@@ -93,10 +115,7 @@ fn test_premium_conversion_unallocated_pool_1 () {
     round_dispatcher.end_auction();
 
     //premium paid will be converted into unallocated.
-    set_contract_address(liquidity_provider_1());
     round_dispatcher.transfer_premium_collected_to_vault(liquidity_provider_1());
-
-    set_contract_address(liquidity_provider_2());
     round_dispatcher.transfer_premium_collected_to_vault(liquidity_provider_2());
 
     //premium paid will be converted into unallocated.
@@ -119,7 +138,7 @@ fn test_premium_conversion_unallocated_pool_1 () {
 
 #[test]
 #[available_gas(10000000)]
-fn test_premium_conversion_unallocated_pool_2 () {
+fn test_premium_collection_ratio_conversion_unallocated_pool_2 () {
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
     
     let deposit_amount_wei:u256 = 10000 * vault_dispatcher.decimals().into();
@@ -142,12 +161,9 @@ fn test_premium_conversion_unallocated_pool_2 () {
 
     set_contract_address(option_bidder_buyer_2());
     round_dispatcher.bid(bid_amount_user_2, option_params.reserve_price); 
-    
     round_dispatcher.end_auction();
 
-    set_contract_address(liquidity_provider_1());
     round_dispatcher.transfer_premium_collected_to_vault(liquidity_provider_1());
-    set_contract_address(liquidity_provider_2());
     round_dispatcher.transfer_premium_collected_to_vault(liquidity_provider_2());
 
     //premium paid will be converted into unallocated.
