@@ -47,7 +47,7 @@ trait IOptionRound<TContractState> {
     fn settle(ref self: TContractState, final_price:u256, proof: Array<u256>) -> bool;
 
     // returns the current state of the option round
-    #[external]
+    #[view]
     fn get_option_round_state(ref self: TContractState) -> OptionRoundState;
 
     // gets the most auction price for the option, if the auction has ended
