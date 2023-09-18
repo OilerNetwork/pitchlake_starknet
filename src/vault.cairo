@@ -52,14 +52,16 @@ trait IVault<TContractState> {
     #[view]
     fn generate_option_round_params(ref self: TContractState, start_time_:u64, expiry_time_:u64)-> OptionRoundParams;
 
-    // generate the option parameters and also deploy the option contract and move the liquidity over to the new option contract, also start the auction on the new option contract,
+    // generate the option parameters and also deploy the option contract and move the liquidity over to the new option contract, also start the auction on the new option contract. 
+    // after a new round is started, both total_unallocated_liquidity and unallocated_liquidity_balance_of will return zero, unless a new liquidity is deposited via deposit_liquidity function.
+    // after the call previos_option_round will return the previous round and current_option_round will return the new round
     #[external]
     fn start_new_option_round(ref self: TContractState, params:OptionRoundParams ) -> IOptionRoundDispatcher;
 
     #[view]
     fn vault_type(self: @TContractState) -> VaultType;
 
-    // returns the current running option round.
+    // returns the latest option round
     #[view]
     fn current_option_round(ref self: TContractState ) -> (OptionRoundParams, IOptionRoundDispatcher);
 
