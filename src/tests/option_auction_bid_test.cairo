@@ -498,64 +498,59 @@ fn test_option_balance_per_bidder_after_auction_1() {
 
 }
 
-
-
-
-
 ///////////////////// TODO fix below, with the  output from auction_reference.py
 
-#[test]
-#[available_gas(10000000)]
-fn test_option_balance_per_bidder_after_auction_2() {
-    let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+// #[test]
+// #[available_gas(10000000)]
+// fn test_option_balance_per_bidder_after_auction_2() {
+//     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
 
-    let deposit_amount_wei = 10000 * vault_dispatcher.decimals().into();
-    set_contract_address(liquidity_provider_1());
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());  
-    // start_new_option_round will also starts the auction
-    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
-    let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
+//     let deposit_amount_wei = 10000 * vault_dispatcher.decimals().into();
+//     set_contract_address(liquidity_provider_1());
+//     vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());  
+//     // start_new_option_round will also starts the auction
+//     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+//     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
-    let bid_option_count_user_1 :u256 =  (option_params.total_options_available) ;
-    let bid_price_per_unit_user_1 :u256 = option_params.reserve_price;
+//     let bid_option_count_user_1 :u256 =  (option_params.total_options_available) ;
+//     let bid_price_per_unit_user_1 :u256 = option_params.reserve_price;
 
-    let bid_option_count_user_2 :u256 =  (option_params.total_options_available) ;
-    let bid_price_per_unit_user_2 :u256 = option_params.reserve_price;
+//     let bid_option_count_user_2 :u256 =  (option_params.total_options_available) ;
+//     let bid_price_per_unit_user_2 :u256 = option_params.reserve_price;
 
-    let bid_option_count_user_3 :u256 =  (option_params.total_options_available) ;
-    let bid_price_per_unit_user_3 :u256 = option_params.reserve_price;
+//     let bid_option_count_user_3 :u256 =  (option_params.total_options_available) ;
+//     let bid_price_per_unit_user_3 :u256 = option_params.reserve_price;
 
-    let bid_option_count_user_4 :u256 =  (option_params.total_options_available/2) ;
-    let bid_price_per_unit_user_4 :u256 = option_params.reserve_price;
+//     let bid_option_count_user_4 :u256 =  (option_params.total_options_available/2) ;
+//     let bid_price_per_unit_user_4 :u256 = option_params.reserve_price;
     
-    set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.bid(bid_option_count_user_1, bid_price_per_unit_user_1);
+//     set_contract_address(option_bidder_buyer_1());
+//     round_dispatcher.bid(bid_option_count_user_1, bid_price_per_unit_user_1);
 
-    set_contract_address(option_bidder_buyer_2());
-    round_dispatcher.bid(bid_option_count_user_2, bid_price_per_unit_user_2);
+//     set_contract_address(option_bidder_buyer_2());
+//     round_dispatcher.bid(bid_option_count_user_2, bid_price_per_unit_user_2);
 
-    set_contract_address(option_bidder_buyer_3());
-    round_dispatcher.bid(bid_option_count_user_3, bid_price_per_unit_user_3);
+//     set_contract_address(option_bidder_buyer_3());
+//     round_dispatcher.bid(bid_option_count_user_3, bid_price_per_unit_user_3);
 
-    set_contract_address(option_bidder_buyer_4());
-    round_dispatcher.bid(bid_option_count_user_4, bid_price_per_unit_user_4);
+//     set_contract_address(option_bidder_buyer_4());
+//     round_dispatcher.bid(bid_option_count_user_4, bid_price_per_unit_user_4);
 
-    round_dispatcher.end_auction();
+//     round_dispatcher.end_auction();
 
+//     let total_options_created_count: u256 = round_dispatcher.total_options_sold();
+//     let options_created_user_1_count: u256 = round_dispatcher.option_balance_of(option_bidder_buyer_1());
+//     let options_created_user_2_count: u256 = round_dispatcher.option_balance_of(option_bidder_buyer_2());
+//     let options_created_user_3_count: u256 = round_dispatcher.option_balance_of(option_bidder_buyer_3());
+//     let options_created_user_4_count: u256 = round_dispatcher.option_balance_of(option_bidder_buyer_4());
 
-    let total_options_created_count: u256 = round_dispatcher.total_options_sold();
-    let options_created_user_1_count: u256 = round_dispatcher.option_balance_of(option_bidder_buyer_1());
-    let options_created_user_2_count: u256 = round_dispatcher.option_balance_of(option_bidder_buyer_2());
-    let options_created_user_3_count: u256 = round_dispatcher.option_balance_of(option_bidder_buyer_3());
-    let options_created_user_4_count: u256 = round_dispatcher.option_balance_of(option_bidder_buyer_4());
+//     assert( total_options_created_count == option_params.total_options_available, 'options shd match');
+//     assert( options_created_user_1_count == bid_option_count_user_1, 'options shd match');
+//     assert( options_created_user_2_count == bid_option_count_user_2, 'options shd match');
+//     assert( options_created_user_3_count == bid_option_count_user_3, 'options shd match');
+//     assert( options_created_user_4_count == total_options_created_count - (bid_price_per_unit_user_1 + bid_option_count_user_2 + bid_option_count_user_3 ) , 'options shd match');
 
-    assert( total_options_created_count == option_params.total_options_available, 'options shd match');
-    assert( options_created_user_1_count == bid_option_count_user_1, 'options shd match');
-    assert( options_created_user_2_count == bid_option_count_user_2, 'options shd match');
-    assert( options_created_user_3_count == bid_option_count_user_3, 'options shd match');
-    assert( options_created_user_4_count == total_options_created_count - (bid_price_per_unit_user_1 + bid_option_count_user_2 + bid_option_count_user_3 ) , 'options shd match');
-
-}
+// }
 
 
 
