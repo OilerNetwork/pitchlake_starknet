@@ -34,17 +34,19 @@ trait IOptionRound<TContractState> {
     #[external]
     fn start_auction(ref self: TContractState, option_params : OptionRoundParams) -> bool;
 
-    // returns true if bid if deposit has been locked up in the auction. false if auction not running or bid below reserve price
+    // returns true if auction_place_bid if deposit has been locked up in the auction. false if auction not running or auction_place_bid below reserve price
+    // amount: max amount in auction_place_bid token to be used for bidding in the auction
+    // price: max price in auction_place_bid token(eth) per option. if the auction ends with a price higher than this then the auction_place_bid is not accepted
     #[external]
-    fn bid(ref self: TContractState, amount : u256, price :u256) -> bool;
+    fn auction_place_bid(ref self: TContractState, amount : u256, price :u256) -> bool;
 
     // successfully ended an auction, false if there was no auction in process
     #[external]
-    fn end_auction(ref self: TContractState) -> bool;
+    fn settle_auction(ref self: TContractState) -> bool;
 
     // if the option is past the expiry date then upon proof verification final_price is accepted and payouts can begin. 
     #[external]
-    fn settle(ref self: TContractState, final_price:u256, proof: Array<u256>) -> bool;
+    fn settle_option_round(ref self: TContractState, final_price:u256, proof: Array<u256>) -> bool;
 
     // returns the current state of the option round
     #[view]
@@ -140,17 +142,17 @@ mod OptionRound  {
             true            
         }
 
-        fn bid(ref self: ContractState, amount : u256, price :u256) -> bool{
+        fn auction_place_bid(ref self: ContractState, amount : u256, price :u256) -> bool{
             true
         }
 
         // returns the clearing price for the auction
-        fn end_auction(ref self: ContractState) -> bool{
+        fn settle_auction(ref self: ContractState) -> bool{
             // final clearing price
             true
         }
 
-        fn settle(ref self: ContractState, final_price:u256, proof: Array<u256>) -> bool{
+        fn settle_option_round(ref self: ContractState, final_price:u256, proof: Array<u256>) -> bool{
             true
         }
 

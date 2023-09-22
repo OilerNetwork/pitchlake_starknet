@@ -52,8 +52,8 @@ fn test_paid_premium_withdrawal_to_liquidity_provider() {
     let bid_amount_user_1 :u256 =  (option_params.total_options_available/2);
     
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.bid(bid_amount_user_1, option_params.reserve_price); 
-    round_dispatcher.end_auction();
+    round_dispatcher.auction_place_bid(bid_amount_user_1, option_params.reserve_price); 
+    round_dispatcher.settle_auction();
 
     round_dispatcher.transfer_premium_collected_to_vault(liquidity_provider_1());
 
@@ -78,8 +78,8 @@ fn test_paid_premium_withdrawal_to_invalid_provider() {
     let bid_amount_user_1 :u256 =  (option_params.total_options_available/2);
     
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.bid(bid_amount_user_1, option_params.reserve_price); 
-    round_dispatcher.end_auction();
+    round_dispatcher.auction_place_bid(bid_amount_user_1, option_params.reserve_price); 
+    round_dispatcher.settle_auction();
 
     round_dispatcher.transfer_premium_collected_to_vault(liquidity_provider_1());
 
@@ -110,9 +110,9 @@ fn test_premium_collection_ratio_conversion_unallocated_pool_1 () {
     let bid_count_user_1 :u256 =  (option_params.total_options_available) ;
     
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.bid(bid_count_user_1, option_params.reserve_price); 
+    round_dispatcher.auction_place_bid(bid_count_user_1, option_params.reserve_price); 
    
-    round_dispatcher.end_auction();
+    round_dispatcher.settle_auction();
 
     //premium paid will be converted into unallocated.
     round_dispatcher.transfer_premium_collected_to_vault(liquidity_provider_1());
@@ -157,11 +157,11 @@ fn test_premium_collection_ratio_conversion_unallocated_pool_2 () {
     let bid_amount_user_2 :u256 =  (option_params.total_options_available/2) ;
     
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.bid(bid_amount_user_1, option_params.reserve_price); 
+    round_dispatcher.auction_place_bid(bid_amount_user_1, option_params.reserve_price); 
 
     set_contract_address(option_bidder_buyer_2());
-    round_dispatcher.bid(bid_amount_user_2, option_params.reserve_price); 
-    round_dispatcher.end_auction();
+    round_dispatcher.auction_place_bid(bid_amount_user_2, option_params.reserve_price); 
+    round_dispatcher.settle_auction();
 
     round_dispatcher.transfer_premium_collected_to_vault(liquidity_provider_1());
     round_dispatcher.transfer_premium_collected_to_vault(liquidity_provider_2());

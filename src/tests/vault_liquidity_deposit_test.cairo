@@ -267,7 +267,7 @@ fn assert_event_transfer(from: ContractAddress, to: ContractAddress, token_id: u
 //     let bid_amount_user_1 :u256 =  (option_params.total_options_available) ;
     
 //     set_contract_address(option_bidder_buyer_1());
-//     round_dispatcher.bid(bid_amount_user_1, option_params.reserve_price);
+//     round_dispatcher.auction_place_bid(bid_amount_user_1, option_params.reserve_price);
 
 //     let options_created_count = round_dispatcher.total_options_sold();
 //     assert( options_created_count == bid_amount_user_1, 'options shd match');
