@@ -49,8 +49,9 @@ fn test_clearing_price_1() {
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     let bid_count: u256 = 2;
+    let bid_amount: u256 = bid_count * option_params.reserve_price * vault_dispatcher.decimals().into();
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_count, option_params.reserve_price);
+    round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
     round_dispatcher.settle_auction();
  
     let clearing_price: u256 = round_dispatcher.get_auction_clearing_price();
@@ -72,10 +73,13 @@ fn test_clearing_price_2() {
     let bid_price_user_1 : u256 = option_params.reserve_price;
     let bid_price_user_2 : u256 = option_params.reserve_price + 10;
 
+    let bid_amount_user_1: u256 = bid_count * bid_price_user_1 * vault_dispatcher.decimals().into();
+    let bid_amount_user_2: u256 = bid_count * bid_price_user_2 * vault_dispatcher.decimals().into();
+
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_count, bid_price_user_1 );
+    round_dispatcher.auction_place_bid(bid_amount_user_1, bid_price_user_1 );
     set_contract_address(option_bidder_buyer_2());
-    round_dispatcher.auction_place_bid(bid_count,  bid_price_user_2);
+    round_dispatcher.auction_place_bid(bid_amount_user_2,  bid_price_user_2);
 
     round_dispatcher.settle_auction();
  
@@ -100,11 +104,14 @@ fn test_clearing_price_3() {
     let bid_price_user_1 : u256 = option_params.reserve_price + 100;
     let bid_price_user_2 : u256 = option_params.reserve_price ;
 
+    let bid_amount_user_1: u256 = bid_count_user_1 * bid_price_user_1 * vault_dispatcher.decimals().into();
+    let bid_amount_user_2: u256 = bid_count_user_2 * bid_price_user_2 * vault_dispatcher.decimals().into();
+
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_count_user_1, bid_price_user_1 );
+    round_dispatcher.auction_place_bid(bid_amount_user_1, bid_price_user_1 );
 
     set_contract_address(option_bidder_buyer_2());
-    round_dispatcher.auction_place_bid(bid_count_user_2,  bid_price_user_2);
+    round_dispatcher.auction_place_bid(bid_amount_user_2,  bid_price_user_2);
 
     round_dispatcher.settle_auction();
  
@@ -131,14 +138,18 @@ fn test_clearing_price_4() {
     let bid_price_user_2 : u256 = option_params.reserve_price + 5 ;
     let bid_price_user_3 : u256 = option_params.reserve_price ;
 
+    let bid_amount_user_1: u256 = bid_count_user_1 * bid_price_user_1 * vault_dispatcher.decimals().into();
+    let bid_amount_user_2: u256 = bid_count_user_2 * bid_price_user_2 * vault_dispatcher.decimals().into();
+    let bid_amount_user_3: u256 = bid_count_user_3 * bid_price_user_3 * vault_dispatcher.decimals().into();
+
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_count_user_1, bid_price_user_1 );
+    round_dispatcher.auction_place_bid(bid_amount_user_1, bid_price_user_1 );
 
     set_contract_address(option_bidder_buyer_2());
-    round_dispatcher.auction_place_bid(bid_count_user_2,  bid_price_user_2);
+    round_dispatcher.auction_place_bid(bid_amount_user_2,  bid_price_user_2);
 
     set_contract_address(option_bidder_buyer_3());
-    round_dispatcher.auction_place_bid(bid_count_user_3,  bid_price_user_3);
+    round_dispatcher.auction_place_bid(bid_amount_user_3,  bid_price_user_3);
 
     round_dispatcher.settle_auction();
  
@@ -165,14 +176,18 @@ fn test_clearing_price_5() {
     let bid_price_user_2 : u256 = option_params.reserve_price + 5 ;
     let bid_price_user_3 : u256 = option_params.reserve_price ;
 
+    let bid_amount_user_1: u256 = bid_count_user_1 * bid_price_user_1 * vault_dispatcher.decimals().into();
+    let bid_amount_user_2: u256 = bid_count_user_2 * bid_price_user_2 * vault_dispatcher.decimals().into();
+    let bid_amount_user_3: u256 = bid_count_user_3 * bid_price_user_3 * vault_dispatcher.decimals().into();
+
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_count_user_1, bid_price_user_1 );
+    round_dispatcher.auction_place_bid(bid_amount_user_1, bid_price_user_1 );
 
     set_contract_address(option_bidder_buyer_2());
-    round_dispatcher.auction_place_bid(bid_count_user_2,  bid_price_user_2);
+    round_dispatcher.auction_place_bid(bid_amount_user_2,  bid_price_user_2);
 
     set_contract_address(option_bidder_buyer_3());
-    round_dispatcher.auction_place_bid(bid_count_user_3,  bid_price_user_3);
+    round_dispatcher.auction_place_bid(bid_amount_user_3,  bid_price_user_3);
 
     round_dispatcher.settle_auction();
     
@@ -197,7 +212,7 @@ fn test_bid_below_reserve_price() {
     let bid_below_reserve :u256 =  option_params.reserve_price - 1;
 
     set_contract_address(option_bidder_buyer_1());
-    let success = round_dispatcher.auction_place_bid(2, bid_below_reserve );
+    let success = round_dispatcher.auction_place_bid(10 * vault_dispatcher.decimals().into()  , bid_below_reserve );
     assert(success == false, 'should not be able to bid');
 }
 
@@ -214,12 +229,13 @@ fn test_lock_of_bid_funds() {
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     let bid_count: u256 = 2;
+    let bid_amount: u256 = bid_count * option_params.reserve_price * vault_dispatcher.decimals().into();
     set_contract_address(option_bidder_buyer_1());
     let wei_balance_before_bid :u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_count, option_params.reserve_price);
+    round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
     let wei_balance_after_bid :u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
 
-    assert(wei_balance_before_bid == wei_balance_after_bid + (bid_count * option_params.reserve_price), 'bid amounts should be locked up');
+    assert(wei_balance_before_bid == wei_balance_after_bid + bid_amount, 'bid amounts should be locked up');
 }
 
 
@@ -234,10 +250,9 @@ fn test_zero_bid_count() {
     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
-    let bid_count: u256 = 0;
     set_contract_address(option_bidder_buyer_1());
     let wei_balance_before_bid :u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_count, option_params.reserve_price);
+    round_dispatcher.auction_place_bid(0, option_params.reserve_price);
     let wei_balance_after_bid :u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
 
     assert(wei_balance_before_bid == wei_balance_after_bid , 'balance should match');
@@ -255,9 +270,10 @@ fn test_zero_bid_price() {
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     let bid_count: u256 = 2;
+    let bid_amount: u256 = bid_count * option_params.reserve_price * vault_dispatcher.decimals().into();
     set_contract_address(option_bidder_buyer_1());
     let wei_balance_before_bid :u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_count, 0);
+    round_dispatcher.auction_place_bid(bid_amount, 0);
     let wei_balance_after_bid :u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
 
     assert(wei_balance_before_bid == wei_balance_after_bid , 'balance should match');
@@ -275,10 +291,11 @@ fn test_eth_unused_for_rejected_bids() {
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     let bid_count: u256 = 2;
+    let bid_amount: u256 = bid_count * option_params.reserve_price * vault_dispatcher.decimals().into();
     set_contract_address(option_bidder_buyer_1());
 
     let wei_balance_before_bid :u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_count, option_params.reserve_price - 100);
+    round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price - 100);
     let wei_balance_after_bid :u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
 
     assert(wei_balance_before_bid == wei_balance_after_bid, 'bid should not be locked up');
@@ -296,14 +313,15 @@ fn test_eth_lockup_for_unused_bids() { // accepted but still unused bids
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     let bid_count: u256 = option_params.total_options_available + 10;
+    let bid_amount: u256 = bid_count * option_params.reserve_price * vault_dispatcher.decimals().into();
     set_contract_address(option_bidder_buyer_1());
     let wei_balance_before_bid :u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_count, option_params.reserve_price);
+    round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
 
     round_dispatcher.settle_auction();
     set_contract_address(option_bidder_buyer_1());
     let wei_balance_after_auction :u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
-    assert(wei_balance_before_bid == wei_balance_after_auction + ((bid_count ) * option_params.reserve_price), 'bid amounts should be locked up');
+    assert(wei_balance_before_bid == wei_balance_after_auction + bid_amount, 'bid amounts should be locked up');
     assert(bid_count > option_params.total_options_available, 'bid count cannot be > total opt');
 }
 
@@ -319,9 +337,10 @@ fn test_eth_transfer_for_unused_bids_after_claim() {
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     let bid_count: u256 = option_params.total_options_available + 10;
+    let bid_amount: u256 = bid_count * option_params.reserve_price * vault_dispatcher.decimals().into();
     set_contract_address(option_bidder_buyer_1());
     let wei_balance_before_bid :u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_count, option_params.reserve_price);
+    round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
 
     round_dispatcher.settle_auction();
     set_contract_address(option_bidder_buyer_1());
@@ -346,11 +365,16 @@ fn test_total_options_after_auction_1() {
     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
     
+    let bid_count_1: u256 = option_params.total_options_available/2 + 1;
+    let bid_count_2: u256 = option_params.total_options_available/2;
+    let bid_amount_1: u256 = bid_count_1 * option_params.reserve_price * vault_dispatcher.decimals().into();
+    let bid_amount_2: u256 = bid_count_2 * option_params.reserve_price * vault_dispatcher.decimals().into();
+
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(option_params.total_options_available/2 + 1, option_params.reserve_price);
+    round_dispatcher.auction_place_bid(bid_amount_1, option_params.reserve_price);
 
     set_contract_address(option_bidder_buyer_2());
-    round_dispatcher.auction_place_bid(option_params.total_options_available/2, option_params.reserve_price); 
+    round_dispatcher.auction_place_bid(bid_amount_2, option_params.reserve_price); 
     round_dispatcher.settle_auction();
 
     let options_created_count = round_dispatcher.total_options_sold();
@@ -370,12 +394,15 @@ fn test_total_options_after_auction_2() {
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
     let bid_option_count_user_1 :u256 =  (option_params.total_options_available/2) + 1;
     let bid_option_count_user_2 :u256 =  (option_params.total_options_available/2) ;
+
+    let bid_amount_user_1: u256 = bid_option_count_user_1 * option_params.reserve_price * vault_dispatcher.decimals().into();
+    let bid_amount_user_2: u256 = bid_option_count_user_2 * (option_params.reserve_price - 10) * vault_dispatcher.decimals().into();
     
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_option_count_user_1, option_params.reserve_price);
+    round_dispatcher.auction_place_bid(bid_amount_user_1, option_params.reserve_price);
 
     set_contract_address(option_bidder_buyer_2());
-    round_dispatcher.auction_place_bid(bid_option_count_user_2, option_params.reserve_price - 10); 
+    round_dispatcher.auction_place_bid(bid_amount_user_2, option_params.reserve_price - 10); 
     round_dispatcher.settle_auction();
 
     let options_created_count = round_dispatcher.total_options_sold();
@@ -395,8 +422,10 @@ fn test_total_options_after_auction_3() {
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     let bid_count: u256 = 2;
+    let bid_amount: u256 = bid_count * option_params.reserve_price * vault_dispatcher.decimals().into();
+
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_count, option_params.reserve_price);
+    round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
     round_dispatcher.settle_auction();
  
     let options_created = round_dispatcher.total_options_sold();
@@ -415,8 +444,9 @@ fn test_total_options_after_auction_4() {
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     let bid_count: u256 = 2;
+    let bid_amount: u256 = bid_count * (option_params.reserve_price -1 ) * vault_dispatcher.decimals().into();
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_count, option_params.reserve_price - 1);
+    round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price - 1);
     round_dispatcher.settle_auction();
  
     let options_created = round_dispatcher.total_options_sold();
@@ -435,8 +465,9 @@ fn test_total_options_after_auction_5() {
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     let bid_count: u256 = option_params.total_options_available + 10;
+    let bid_amount: u256 = bid_count * option_params.reserve_price * vault_dispatcher.decimals().into();
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_count, option_params.reserve_price);
+    round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
     round_dispatcher.settle_auction();
  
     let options_created = round_dispatcher.total_options_sold();
@@ -459,27 +490,31 @@ fn test_option_balance_per_bidder_after_auction_1() {
 
     let bid_option_count_user_1 :u256 =  (option_params.total_options_available/3) ;
     let bid_price_per_unit_user_1 :u256 = option_params.reserve_price + 1;
+    let bid_amount_user_1: u256 = bid_option_count_user_1 * bid_price_per_unit_user_1 * vault_dispatcher.decimals().into();
 
     let bid_option_count_user_2 :u256 =  (option_params.total_options_available/3) ;
     let bid_price_per_unit_user_2 :u256 = option_params.reserve_price + 2;
+    let bid_amount_user_2: u256 = bid_option_count_user_2 * bid_price_per_unit_user_2 * vault_dispatcher.decimals().into();
 
     let bid_option_count_user_3 :u256 =  (option_params.total_options_available/3) ;
     let bid_price_per_unit_user_3 :u256 = option_params.reserve_price + 3;
+    let bid_amount_user_3: u256 = bid_option_count_user_3 * bid_price_per_unit_user_3 * vault_dispatcher.decimals().into();
 
     let bid_option_count_user_4 :u256 =  (option_params.total_options_available/3) ;
     let bid_price_per_unit_user_4 :u256 = option_params.reserve_price + 4;
+    let bid_amount_user_4: u256 = bid_option_count_user_4 * bid_price_per_unit_user_4 * vault_dispatcher.decimals().into();
     
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_option_count_user_1, bid_price_per_unit_user_1);
+    round_dispatcher.auction_place_bid(bid_amount_user_1, bid_price_per_unit_user_1);
 
     set_contract_address(option_bidder_buyer_2());
-    round_dispatcher.auction_place_bid(bid_option_count_user_2, bid_price_per_unit_user_2);
+    round_dispatcher.auction_place_bid(bid_amount_user_2, bid_price_per_unit_user_2);
 
     set_contract_address(option_bidder_buyer_3());
-    round_dispatcher.auction_place_bid(bid_option_count_user_3, bid_price_per_unit_user_3);
+    round_dispatcher.auction_place_bid(bid_amount_user_3, bid_price_per_unit_user_3);
 
     set_contract_address(option_bidder_buyer_4());
-    round_dispatcher.auction_place_bid(bid_option_count_user_4, bid_price_per_unit_user_4);
+    round_dispatcher.auction_place_bid(bid_amount_user_4, bid_price_per_unit_user_4);
 
     round_dispatcher.settle_auction();
 

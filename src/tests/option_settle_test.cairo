@@ -51,7 +51,9 @@ fn test_invalid_user_collection_of_premium_after_settle() {
     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(option_amount, option_params.reserve_price); 
+
+    let bid_amount : u256 = option_amount * option_price;
+    round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price); 
     round_dispatcher.settle_auction();
 
     set_block_timestamp(option_params.expiry_time);
@@ -80,7 +82,9 @@ fn test_invalid_user_collection_of_payout_after_settle() {
     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(option_amount, option_params.reserve_price); 
+
+    let bid_amount : u256 = option_amount * option_price;
+    round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price); 
     round_dispatcher.settle_auction();
 
     set_block_timestamp(option_params.expiry_time);
@@ -106,7 +110,9 @@ fn test_collection_of_premium_after_settle() {
     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(option_amount, option_params.reserve_price); 
+
+    let bid_amount : u256 = option_amount * option_price;
+    round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price); 
     round_dispatcher.settle_auction();
 
     set_block_timestamp(option_params.expiry_time);
@@ -131,7 +137,6 @@ fn test_failure_collection_of_multiple_premium_after_settle() {
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
     let deposit_amount_wei:u256 = 50 * vault_dispatcher.decimals().into();
     let option_amount : u256 = 50;
-    let option_price : u256 = 2 * vault_dispatcher.decimals().into();
 
     set_contract_address(liquidity_provider_1());
     let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
@@ -141,7 +146,9 @@ fn test_failure_collection_of_multiple_premium_after_settle() {
     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(option_amount, option_params.reserve_price); 
+
+    let bid_amount : u256 = option_amount * option_params.reserve_price;
+    round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price); 
     round_dispatcher.settle_auction();
 
     set_block_timestamp(option_params.expiry_time);
@@ -167,8 +174,9 @@ fn test_option_payout_1() {
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     let bid_count: u256 = 2;
+    let bid_amount : u256 = bid_count * option_params.reserve_price;
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_count, option_params.reserve_price);
+    round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
     round_dispatcher.settle_auction();
 
     let settlement_price :u256 =  option_params.strike_price + 10;
@@ -192,8 +200,9 @@ fn test_option_payout_2() {
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     let bid_count: u256 = 2;
+    let bid_amount : u256 = bid_count * option_params.reserve_price;
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_count, option_params.reserve_price);
+    round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
     round_dispatcher.settle_auction();
 
     let settlement_price :u256 =  option_params.strike_price - 10;
@@ -217,8 +226,9 @@ fn test_option_post_payout_collaterized_count_1() {
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     let bid_count: u256 = 2;
+    let bid_amount : u256 = bid_count * option_params.reserve_price;
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_count, option_params.reserve_price);
+    round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
     round_dispatcher.settle_auction();
 
     let settlement_price :u256 =  option_params.cap_level;
@@ -246,8 +256,9 @@ fn test_option_post_payout_collaterized_count_2() {
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     let bid_count: u256 = 2;
+    let bid_amount : u256 = bid_count * option_params.reserve_price;
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_count, option_params.reserve_price);
+    round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
     round_dispatcher.settle_auction();
 
     let settlement_price :u256 =  option_params.cap_level;
@@ -274,15 +285,16 @@ fn test_option_post_payout_collaterized_count_3() {
     let total_collaterized_count_before_auction : u256= round_dispatcher.total_collateral();
 
     let bid_count: u256 = 2;
+    let bid_amount : u256 = bid_count * option_params.reserve_price;
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_count, option_params.reserve_price);
+    round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
     round_dispatcher.settle_auction();
 
     let settlement_price :u256 =  option_params.strike_price + 10;
     set_block_timestamp(option_params.expiry_time);
     round_dispatcher.settle_option_round(settlement_price, ArrayTrait::new());
 
-    let premium_paid: u256 = (bid_count*  option_params.reserve_price);
+    let premium_paid: u256 = bid_amount;
     let total_collaterized_count_after_settle : u256= vault_dispatcher.total_unallocated_liquidity();
     let claim_payout_amount:u256 = round_dispatcher.payout_balance_of(option_bidder_buyer_1()); 
 
@@ -310,8 +322,9 @@ fn test_option_payout_buyer_eth_balance() {
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     let bid_count: u256 = 2;
+    let bid_amount : u256 = bid_count * option_params.reserve_price;
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_count, option_params.reserve_price);
+    round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
     round_dispatcher.settle_auction();
 
     let settlement_price :u256 =  option_params.strike_price + 10;

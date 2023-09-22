@@ -49,7 +49,7 @@ fn test_paid_premium_withdrawal_to_liquidity_provider() {
     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
-    let bid_amount_user_1 :u256 =  (option_params.total_options_available/2);
+    let bid_amount_user_1 :u256 =  (option_params.total_options_available/2) * option_params.reserve_price;
     
     set_contract_address(option_bidder_buyer_1());
     round_dispatcher.auction_place_bid(bid_amount_user_1, option_params.reserve_price); 
@@ -75,7 +75,7 @@ fn test_paid_premium_withdrawal_to_invalid_provider() {
     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
-    let bid_amount_user_1 :u256 =  (option_params.total_options_available/2);
+    let bid_amount_user_1 :u256 =  (option_params.total_options_available/2) * option_params.reserve_price;
     
     set_contract_address(option_bidder_buyer_1());
     round_dispatcher.auction_place_bid(bid_amount_user_1, option_params.reserve_price); 
@@ -107,10 +107,10 @@ fn test_premium_collection_ratio_conversion_unallocated_pool_1 () {
     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
-    let bid_count_user_1 :u256 =  (option_params.total_options_available) ;
+    let bid_amount_user_1 :u256 =  (option_params.total_options_available) * option_params.reserve_price;
     
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_count_user_1, option_params.reserve_price); 
+    round_dispatcher.auction_place_bid(bid_amount_user_1, option_params.reserve_price); 
    
     round_dispatcher.settle_auction();
 
@@ -153,8 +153,8 @@ fn test_premium_collection_ratio_conversion_unallocated_pool_2 () {
     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
-    let bid_amount_user_1 :u256 =  (option_params.total_options_available/2) + 1;
-    let bid_amount_user_2 :u256 =  (option_params.total_options_available/2) ;
+    let bid_amount_user_1 :u256 =  ((option_params.total_options_available/2) + 1) * option_params.reserve_price;
+    let bid_amount_user_2 :u256 =  (option_params.total_options_available/2) *  option_params.reserve_price;
     
     set_contract_address(option_bidder_buyer_1());
     round_dispatcher.auction_place_bid(bid_amount_user_1, option_params.reserve_price); 

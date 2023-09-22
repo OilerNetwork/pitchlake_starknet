@@ -172,9 +172,10 @@ fn test_claim_unused_bid_deposit_failure() {
 
     let bid_count: u256 = option_params.total_options_available + 10;
     let bid_price_user_1 : u256 = option_params.reserve_price;
+    let bid_amount_user_1 : u256 = bid_count * bid_price_user_1;
 
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_count, bid_price_user_1 );
+    round_dispatcher.auction_place_bid(bid_amount_user_1, bid_price_user_1 );
     round_dispatcher.claim_unused_bid_deposit(option_bidder_buyer_1());   // should fail as auction has not ended
 
 }
@@ -191,9 +192,10 @@ fn test_claim_payout_failure() {
 
     let bid_count: u256 = option_params.total_options_available + 10;
     let bid_price_user_1 : u256 = option_params.reserve_price;
+    let bid_amount_user_1 : u256 = bid_count * bid_price_user_1;
 
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_count, bid_price_user_1 );
+    round_dispatcher.auction_place_bid(bid_amount_user_1, bid_price_user_1 );
     round_dispatcher.claim_payout(option_bidder_buyer_1());   // should fail as option has not settled
 
 }
@@ -211,12 +213,12 @@ fn test_claim_premium_failure() {
     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
-
     let bid_count: u256 = option_params.total_options_available + 10;
     let bid_price_user_1 : u256 = option_params.reserve_price;
+    let bid_amount_user_1 : u256 = bid_count * bid_price_user_1;
 
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_count, bid_price_user_1 );
+    round_dispatcher.auction_place_bid(bid_amount_user_1, bid_price_user_1 );
     round_dispatcher.transfer_premium_collected_to_vault(liquidity_provider_1()); // should fail as option has not ended
 }
 
@@ -236,9 +238,10 @@ fn test_transfer_to_vault_failure() {
 
     let bid_count: u256 = option_params.total_options_available + 10;
     let bid_price_user_1 : u256 = option_params.reserve_price;
+    let bid_amount_user_1 : u256 = bid_count * bid_price_user_1;
 
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_count, bid_price_user_1 );
+    round_dispatcher.auction_place_bid(bid_amount_user_1, bid_price_user_1 );
     round_dispatcher.settle_auction();
     set_contract_address(liquidity_provider_1());
     round_dispatcher.transfer_collateral_to_vault(liquidity_provider_1());   // should fail as option has not settled

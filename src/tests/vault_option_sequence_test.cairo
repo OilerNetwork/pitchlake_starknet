@@ -46,6 +46,7 @@ fn test_bid_after_expiry() {
     let deposit_amount_wei:u256 = 50 * vault_dispatcher.decimals().into();
     let option_amount : u256 = 50;
     let option_price : u256 = 2 * vault_dispatcher.decimals().into();
+    let bid_amount: u256 = option_amount * option_price;
     
     set_contract_address(liquidity_provider_1());
     vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1() );
@@ -55,7 +56,7 @@ fn test_bid_after_expiry() {
 
     set_contract_address(option_bidder_buyer_1());
     set_block_timestamp(option_params.expiry_time + 10 );
-    round_dispatcher.auction_place_bid(option_amount, option_price);
+    round_dispatcher.auction_place_bid(bid_amount, option_price);
 
 }
 
@@ -115,9 +116,10 @@ fn test_settled_and_new_round_sets_prev_round() {
 
     let bid_count: u256 = option_params.total_options_available;
     let bid_price_user_1 : u256 = option_params.reserve_price;
+    let bid_amount: u256 = bid_count * bid_price_user_1;
 
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_count, bid_price_user_1 );
+    round_dispatcher.auction_place_bid(bid_amount, bid_price_user_1 );
 
     round_dispatcher.settle_auction();
     set_block_timestamp(option_params.expiry_time);
@@ -146,8 +148,9 @@ fn test_new_round_after_settle() {
  
     let bid_count: u256 = option_params.total_options_available;
     let bid_price_user_1 : u256 = option_params.reserve_price;
+    let bid_amount: u256 = bid_count * bid_price_user_1;
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_count, bid_price_user_1 );
+    round_dispatcher.auction_place_bid(bid_amount, bid_price_user_1 );
 
     round_dispatcher.settle_auction();
     set_block_timestamp(option_params.expiry_time);
@@ -168,6 +171,7 @@ fn test_settle_before_expiry() {
     let deposit_amount_wei:u256 = 50 * vault_dispatcher.decimals().into();
     let option_amount : u256 = 50;
     let option_price : u256 = 2 * vault_dispatcher.decimals().into();
+    let bid_amount: u256 = option_amount * option_price;
     
     set_contract_address(liquidity_provider_1());
     let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
@@ -176,7 +180,7 @@ fn test_settle_before_expiry() {
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(option_amount, option_price);
+    round_dispatcher.auction_place_bid(bid_amount, option_price);
     round_dispatcher.settle_auction();
 
     set_block_timestamp(option_params.expiry_time - 10000);
