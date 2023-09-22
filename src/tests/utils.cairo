@@ -155,6 +155,15 @@ fn option_bidder_buyer_4() -> ContractAddress {
     contract_address_const::<'option_bidder_buyer4'>()
 }
 
+fn option_bidder_buyer_5() -> ContractAddress {
+    contract_address_const::<'option_bidder_buyer4'>()
+}
+
+fn option_bidder_buyer_6() -> ContractAddress {
+    contract_address_const::<'option_bidder_buyer4'>()
+}
+
+
 fn decimals() -> u256 {
     //10  ** 18
     1000000000000000000
