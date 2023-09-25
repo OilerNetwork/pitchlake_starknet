@@ -5,7 +5,7 @@ use openzeppelin::token::erc20::interface::IERC20Dispatcher;
 use openzeppelin::utils::serde::SerializedAppend;
 
 use pitch_lake_starknet::option_round::{IOptionRound, IOptionRoundDispatcher, IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait, OptionRoundParams};
-
+use pitch_lake_starknet::market_aggregator::{IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait};
 
 #[derive(Copy, Drop, Serde, PartialEq)]
 enum VaultType {
@@ -77,6 +77,9 @@ trait IVault<TContractState> {
     #[view] 
     fn unallocated_liquidity_balance_of(self: @TContractState, liquidity_provider: ContractAddress) -> u256 ;
 
+    #[view]
+    fn market_aggregator(self: @TContractState) -> IMarketAggregatorDispatcher;
+
 }
 
 #[starknet::contract]
@@ -93,22 +96,26 @@ mod Vault  {
     use openzeppelin::token::erc20::interface::IERC20Dispatcher;
     use openzeppelin::utils::serde::SerializedAppend;
     use pitch_lake_starknet::option_round::{IOptionRound, IOptionRoundDispatcher, IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait, OptionRoundParams};
+    use pitch_lake_starknet::market_aggregator::{IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait};
 
 
     #[storage]
     struct Storage {
         current_option_round_params: OptionRoundParams,
         current_option_round_dispatcher: IOptionRoundDispatcher,
-        option_round_class_hash: felt252
+        option_round_class_hash: felt252,
+        market_aggregator: IMarketAggregatorDispatcher
     }
 
     #[constructor]
     fn constructor(
         ref self: ContractState,
         option_round_class_hash_: felt252,
-        vault_type: VaultType
+        vault_type: VaultType,
+        market_aggregator: IMarketAggregatorDispatcher
     ) {
         self.option_round_class_hash.write( option_round_class_hash_);
+        self.market_aggregator.write(market_aggregator);
     }
 
     #[external(v0)]
@@ -145,15 +152,19 @@ mod Vault  {
             // let option_reserve_price = option_reserve_price_;// just an assumption
 
             let tmp :OptionRoundParams= OptionRoundParams{
-                current_average_basefee: 100,
-                strike_price: 1000,
-                standard_deviation: 50,
-                cap_level :100,  
-                collateral_level: 100,
-                reserve_price: 10,
-                total_options_available:1000,
-                // start_time:start_time_,
-                option_expiry_time:option_expiry_time_};
+                    current_average_basefee: 100,
+                    strike_price: 1000,
+                    standard_deviation: 50,
+                    cap_level :100,  
+                    collateral_level: 100,
+                    reserve_price: 10,
+                    total_options_available:1000,
+                    // start_time:start_time_,
+                    option_expiry_time:option_expiry_time_,
+                    auction_end_time: 1000,
+                    minimum_bid_amount: 100,
+                    minimum_collateral_required:100
+                };
             return tmp;
         }
 
@@ -163,6 +174,7 @@ mod Vault  {
             calldata.append_serde(get_contract_address());
             calldata.append_serde(get_contract_address()); // TODO upadte it to the erco 20 collaterized pool
             calldata.append_serde(params);
+            calldata.append_serde(self.market_aggregator.read());
 
             let (address, _) = deploy_syscall(
                 self.option_round_class_hash.read().try_into().unwrap(), 0, calldata.span(), true
@@ -196,6 +208,10 @@ mod Vault  {
         fn unallocated_liquidity_balance_of(self: @ContractState, liquidity_provider: ContractAddress) -> u256 {
             // TODO fix later, random value
             100
+        }
+
+        fn market_aggregator(self: @ContractState) -> IMarketAggregatorDispatcher {
+            return self.market_aggregator.read();
         }
     }
 }

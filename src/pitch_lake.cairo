@@ -19,7 +19,9 @@
 use starknet::{ContractAddress, StorePacking};
 use array::{Array};
 use traits::{Into, TryInto};
- use pitch_lake_starknet::vault::{Vault, IVault, IVaultDispatcher};
+use pitch_lake_starknet::vault::{Vault, IVault, IVaultDispatcher};
+
+
 
 
 #[starknet::interface]
@@ -38,12 +40,14 @@ mod PitchLake {
     use starknet::{ContractAddress, StorePacking};
     use starknet::contract_address::ContractAddressZeroable;
     use pitch_lake_starknet::vault::{Vault, IVault, IVaultDispatcher};
+    use pitch_lake_starknet::market_aggregator::{IMarketAggregator, IMarketAggregatorDispatcher};
 
     #[storage]
     struct Storage {
         in_the_money_vault: IVaultDispatcher,
         out_the_money_vault: IVaultDispatcher,
         at_the_money_vault: IVaultDispatcher,
+        market_aggregator: IMarketAggregatorDispatcher,
     }
 
     #[constructor]
@@ -52,6 +56,7 @@ mod PitchLake {
         in_the_money_vault_: IVaultDispatcher,
         out_the_money_vault_: IVaultDispatcher,
         at_the_money_vault_: IVaultDispatcher,
+         market_aggregator_: IMarketAggregatorDispatcher
     ) {
         // self.option_round_class_hash.write( option_round_class_hash_);
     }

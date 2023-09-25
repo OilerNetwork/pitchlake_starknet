@@ -2,6 +2,7 @@ use starknet::{ContractAddress, StorePacking};
 use array::{Array};
 use traits::{Into, TryInto};
 use openzeppelin::token::erc20::interface::IERC20Dispatcher;
+use pitch_lake_starknet::market_aggregator::{IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait};
 
 
 
@@ -47,9 +48,9 @@ trait IOptionRound<TContractState> {
     #[external]
     fn settle_auction(ref self: TContractState) -> bool;
 
-    // if the option is past the expiry date then upon proof verification final_price is accepted and payouts can begin. 
+    // if the option is past the expiry date then using the market_aggregator we can settle the option round
     #[external]
-    fn settle_option_round(ref self: TContractState, final_price:u256, proof: Array<u256>) -> bool;
+    fn settle_option_round(ref self: TContractState) -> bool;
 
     // returns the current state of the option round
     #[view]
@@ -112,6 +113,9 @@ trait IOptionRound<TContractState> {
     #[view]
     fn total_options_sold(self: @TContractState) -> u256;
 
+    #[view]
+    fn market_aggregator(self: @TContractState) -> IMarketAggregatorDispatcher;
+
 }
 
 #[starknet::contract]
@@ -123,9 +127,11 @@ mod OptionRound  {
     use pitch_lake_starknet::pool::IPoolDispatcher;
     use openzeppelin::token::erc20::interface::IERC20Dispatcher;
     use super::{OptionRoundParams, OptionRoundState};
+    use pitch_lake_starknet::market_aggregator::{IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait};
 
     #[storage]
     struct Storage {
+        market_aggregator: IMarketAggregatorDispatcher
     }
 
     #[constructor]
@@ -134,8 +140,9 @@ mod OptionRound  {
         owner: ContractAddress,
         collaterized_pool: ContractAddress,
         option_round_params: OptionRoundParams,
+        market_aggregator: IMarketAggregatorDispatcher,
     ) {
-        // self.
+        self.market_aggregator.write(market_aggregator);
     }
 
     #[external(v0)]
@@ -155,7 +162,7 @@ mod OptionRound  {
             true
         }
 
-        fn settle_option_round(ref self: ContractState, final_price:u256, proof: Array<u256>) -> bool{
+        fn settle_option_round(ref self: ContractState) -> bool{
             true
         }
 
@@ -179,7 +186,7 @@ mod OptionRound  {
                 option_expiry_time: 100,
                 auction_end_time: 100,
                 minimum_bid_amount: 100,
-                minimum_collateral_required: 100
+                minimum_collateral_required: 100,
 
             }   
         }
@@ -235,6 +242,10 @@ mod OptionRound  {
             100
         }
 
+        #[view]
+        fn market_aggregator(self: @ContractState) -> IMarketAggregatorDispatcher{
+            self.market_aggregator.read()
+        }
 
     }
 }

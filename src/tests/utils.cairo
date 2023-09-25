@@ -26,6 +26,7 @@ use pitch_lake_starknet::vault::{IVaultDispatcher, IVaultSafeDispatcher, IVaultD
 use pitch_lake_starknet::pitch_lake::{IPitchLakeDispatcher, IPitchLakeSafeDispatcher, IPitchLakeDispatcherTrait, PitchLake, IPitchLakeSafeDispatcherTrait};
 
 use pitch_lake_starknet::option_round::{IOptionRound, IOptionRoundDispatcher, IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait, OptionRoundParams, OptionRound};
+use pitch_lake_starknet::market_aggregator::{IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait, IMarketAggregatorSafeDispatcher, IMarketAggregatorSafeDispatcherTrait, MarketAggregator};
 
 const NAME: felt252 = 'WETH';
 const SYMBOL: felt252 = 'WETH';
@@ -53,26 +54,41 @@ fn deploy_option_round(owner:ContractAddress) ->  IOptionRoundDispatcher {
     let mut calldata = array![];
 
     calldata.append_serde(owner);
-    calldata.append_serde(owner); // TODO upadte it to the erco 20 collaterized pool
+    calldata.append_serde(owner); // TODO update it to the erco 20 collaterized pool
     calldata.append_serde(mock_option_params());
+    calldata.append_serde(deploy_market_aggregator());
+
     let (address, _) = deploy_syscall(
         OptionRound::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
     )
-        .expect('DEPLOY_AD_FAILED');
+        .expect('DEPLOY_OPTION_ROUND_FAILED');
     return IOptionRoundDispatcher{contract_address: address};
 }
 
+fn deploy_market_aggregator() ->  IMarketAggregatorDispatcher {
+    let mut calldata = array![];
+
+    // calldata.append_serde(OptionRound::TEST_CLASS_HASH);
+    // calldata.append_serde(vault_type);
+
+    let (address, _) = deploy_syscall(
+        MarketAggregator::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
+    )
+        .expect('DEPLOY_MARKET_AGGREGATOR_FAILED');
+    return IMarketAggregatorDispatcher{contract_address: address};
+}
 
 fn deploy_vault(vault_type: VaultType) ->  IVaultDispatcher {
     let mut calldata = array![];
 
     calldata.append_serde(OptionRound::TEST_CLASS_HASH);
     calldata.append_serde(vault_type);
+    calldata.append_serde(deploy_market_aggregator());
 
     let (address, _) = deploy_syscall(
         Vault::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
     )
-        .expect('DEPLOY_AD_FAILED');
+        .expect('DEPLOY_VAULT_FAILED');
     return IVaultDispatcher{contract_address: address};
 }
 
@@ -87,6 +103,7 @@ fn deploy_pitch_lake() ->IPitchLakeDispatcher {
     calldata.append_serde(vault_dispatcher_in_the_money);
     calldata.append_serde(vault_dispatcher_out_of_money);
     calldata.append_serde(vault_dispatcher_at_the_money);
+    calldata.append_serde(deploy_market_aggregator());
 
     let (address, _) = deploy_syscall(
         PitchLake::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
@@ -185,6 +202,11 @@ fn mock_option_params()-> OptionRoundParams{
 
     let option_reserve_price = option_reserve_price_;// just an assumption
 
+    // option_expiry_time:u64, // OptionRound cannot settle before this time
+    // auction_end_time:u64, // auction cannot settle before this time
+    // minimum_bid_amount:u256,  // to prevent a dos vector
+    // minimum_collateral_required:u256 // the option round will not start until this much collateral is deposited
+
     let tmp = OptionRoundParams{
         current_average_basefee : average_basefee,
         strike_price: in_the_money_strike_price,
@@ -194,7 +216,11 @@ fn mock_option_params()-> OptionRoundParams{
         reserve_price: option_reserve_price,
         total_options_available: total_options_available,
         // start_time:timestamp_start_month(),
-        option_expiry_time:timestamp_end_month()};
+        option_expiry_time:timestamp_end_month(),
+        auction_end_time:week_duration(),
+        minimum_bid_amount: 1000,
+        minimum_collateral_required: 10000,
+        };
     return tmp;
 }
 
@@ -213,6 +239,11 @@ fn timestamp_start_month() -> u64 {
 fn timestamp_end_month() -> u64 {
     30*24*60*60
 }
+
+fn week_duration() -> u64 {
+    7*24*60*60
+}
+
 
 fn month_duration() -> u64 {
     30*24*60*60
