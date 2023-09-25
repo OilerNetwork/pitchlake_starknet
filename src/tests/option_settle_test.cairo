@@ -56,7 +56,7 @@ fn test_invalid_user_collection_of_premium_after_settle() {
     round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price); 
     round_dispatcher.settle_auction();
 
-    set_block_timestamp(option_params.expiry_time);
+    set_block_timestamp(option_params.option_expiry_time);
     round_dispatcher.settle_option_round(option_params.strike_price - 100 , ArrayTrait::new()); // means there is no payout. TODO confirm this is correct that there will be no payout if settle_option_round price is less than strike price?
     round_dispatcher.claim_payout(option_bidder_buyer_1());
 
@@ -87,7 +87,7 @@ fn test_invalid_user_collection_of_payout_after_settle() {
     round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price); 
     round_dispatcher.settle_auction();
 
-    set_block_timestamp(option_params.expiry_time);
+    set_block_timestamp(option_params.option_expiry_time);
     round_dispatcher.settle_option_round(option_params.strike_price + 5 , ArrayTrait::new()); 
     let claimed_payout_amount :u256= round_dispatcher.claim_payout(option_bidder_buyer_2()); 
     assert(claimed_payout_amount == 0, 'nothing should be claimed'); // option_bidder_buyer_2 never auction_place_bid in the auction, so should not be able to claim payout
@@ -115,7 +115,7 @@ fn test_collection_of_premium_after_settle() {
     round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price); 
     round_dispatcher.settle_auction();
 
-    set_block_timestamp(option_params.expiry_time);
+    set_block_timestamp(option_params.option_expiry_time);
     round_dispatcher.settle_option_round(option_params.strike_price - 100 , ArrayTrait::new()); // means there is no payout. TODO confirm this is correct that there will be no payout if settle_option_round price is less than strike price?
     let claimed_payout_amount :u256 = round_dispatcher.claim_payout(option_bidder_buyer_1()); 
 
@@ -151,7 +151,7 @@ fn test_failure_collection_of_multiple_premium_after_settle() {
     round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price); 
     round_dispatcher.settle_auction();
 
-    set_block_timestamp(option_params.expiry_time);
+    set_block_timestamp(option_params.option_expiry_time);
     round_dispatcher.settle_option_round(option_params.strike_price - 100 , ArrayTrait::new()); // means there is no payout. TODO confirm this is correct that there will be no payout if settle_option_round price is less than strike price?
     let claimed_payout_amount :u256 = round_dispatcher.claim_payout(option_bidder_buyer_1()); 
 
@@ -180,7 +180,7 @@ fn test_option_payout_1() {
     round_dispatcher.settle_auction();
 
     let settlement_price :u256 =  option_params.strike_price + 10;
-    set_block_timestamp(option_params.expiry_time);
+    set_block_timestamp(option_params.option_expiry_time);
     round_dispatcher.settle_option_round(settlement_price, ArrayTrait::new());
 
     let payout_balance = round_dispatcher.payout_balance_of(option_bidder_buyer_1());
@@ -206,7 +206,7 @@ fn test_option_payout_2() {
     round_dispatcher.settle_auction();
 
     let settlement_price :u256 =  option_params.strike_price - 10;
-    set_block_timestamp(option_params.expiry_time);
+    set_block_timestamp(option_params.option_expiry_time);
     round_dispatcher.settle_option_round(settlement_price, ArrayTrait::new());
 
     let payout_balance = round_dispatcher.payout_balance_of(option_bidder_buyer_1());
@@ -232,7 +232,7 @@ fn test_option_post_payout_collaterized_count_1() {
     round_dispatcher.settle_auction();
 
     let settlement_price :u256 =  option_params.cap_level;
-    set_block_timestamp(option_params.expiry_time);
+    set_block_timestamp(option_params.option_expiry_time);
     round_dispatcher.settle_option_round(settlement_price, ArrayTrait::new());
 
     set_contract_address(option_bidder_buyer_1());
@@ -262,7 +262,7 @@ fn test_option_post_payout_collaterized_count_2() {
     round_dispatcher.settle_auction();
 
     let settlement_price :u256 =  option_params.cap_level;
-    set_block_timestamp(option_params.expiry_time);
+    set_block_timestamp(option_params.option_expiry_time);
     round_dispatcher.settle_option_round(settlement_price, ArrayTrait::new());
 
     let claimed_payout :u256 = round_dispatcher.claim_payout(option_bidder_buyer_1());
@@ -291,7 +291,7 @@ fn test_option_post_payout_collaterized_count_3() {
     round_dispatcher.settle_auction();
 
     let settlement_price :u256 =  option_params.strike_price + 10;
-    set_block_timestamp(option_params.expiry_time);
+    set_block_timestamp(option_params.option_expiry_time);
     round_dispatcher.settle_option_round(settlement_price, ArrayTrait::new());
 
     let premium_paid: u256 = bid_amount;
@@ -328,7 +328,7 @@ fn test_option_payout_buyer_eth_balance() {
     round_dispatcher.settle_auction();
 
     let settlement_price :u256 =  option_params.strike_price + 10;
-    set_block_timestamp(option_params.expiry_time);
+    set_block_timestamp(option_params.option_expiry_time);
     round_dispatcher.settle_option_round(settlement_price, ArrayTrait::new());
 
     let payout_balance : u256= round_dispatcher.payout_balance_of(option_bidder_buyer_1());

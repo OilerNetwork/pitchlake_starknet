@@ -124,7 +124,7 @@ fn test_round_state_auction_settled() {
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     round_dispatcher.settle_auction();
-    set_block_timestamp(option_params.expiry_time);
+    set_block_timestamp(option_params.option_expiry_time);
     round_dispatcher.settle_option_round(option_params.reserve_price, ArrayTrait::new());
 
     let state:OptionRoundState = round_dispatcher.get_option_round_state();
@@ -145,7 +145,7 @@ fn test_round_double_settle_failure() {
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     round_dispatcher.settle_auction();
-    set_block_timestamp(option_params.expiry_time);
+    set_block_timestamp(option_params.option_expiry_time);
     round_dispatcher.settle_option_round(option_params.reserve_price, ArrayTrait::new());
     round_dispatcher.settle_option_round(option_params.reserve_price, ArrayTrait::new());
 }

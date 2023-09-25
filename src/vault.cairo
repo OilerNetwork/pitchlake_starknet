@@ -50,7 +50,7 @@ trait IVault<TContractState> {
     fn withdraw_liquidity_to(ref self: TContractState, amount: u256, recipient:ContractAddress ) -> bool;
 
     #[view]
-    fn generate_option_round_params(ref self: TContractState, expiry_time_:u64)-> OptionRoundParams;
+    fn generate_option_round_params(ref self: TContractState, option_expiry_time_:u64)-> OptionRoundParams;
 
     // generate the option parameters and also deploy the option contract and move the liquidity over to the new option contract, also start the auction on the new option contract. 
     // after a new round is started, both total_unallocated_liquidity and unallocated_liquidity_balance_of will return zero, unless a new liquidity is deposited via deposit_liquidity function.
@@ -127,7 +127,7 @@ mod Vault  {
             true
         }
 
-        fn generate_option_round_params(ref self: ContractState, expiry_time_:u64)-> OptionRoundParams{
+        fn generate_option_round_params(ref self: ContractState, option_expiry_time_:u64)-> OptionRoundParams{
             // let total_unallocated_liquidity:u256 = 1000000000000000000000; // should be -> self.total_unallocated_liquidity() ;
             // // assert(total_unallocated_liquidity > 0, 'liquidity cannnot be zero');
             // let option_reserve_price_:u256 = 6;
@@ -153,7 +153,7 @@ mod Vault  {
                 reserve_price: 10,
                 total_options_available:1000,
                 // start_time:start_time_,
-                expiry_time:expiry_time_};
+                option_expiry_time:option_expiry_time_};
             return tmp;
         }
 

@@ -55,7 +55,7 @@ fn test_bid_after_expiry() {
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     set_contract_address(option_bidder_buyer_1());
-    set_block_timestamp(option_params.expiry_time + 10 );
+    set_block_timestamp(option_params.option_expiry_time + 10 );
     round_dispatcher.auction_place_bid(bid_amount, option_price);
 
 }
@@ -122,7 +122,7 @@ fn test_settled_and_new_round_sets_prev_round() {
     round_dispatcher.auction_place_bid(bid_amount, bid_price_user_1 );
 
     round_dispatcher.settle_auction();
-    set_block_timestamp(option_params.expiry_time);
+    set_block_timestamp(option_params.option_expiry_time);
     round_dispatcher.settle_option_round(option_params.reserve_price + 10, ArrayTrait::new()); 
 
     let new_option_params : OptionRoundParams = vault_dispatcher.generate_option_round_params( timestamp_end_month() +  month_duration()  );
@@ -153,7 +153,7 @@ fn test_new_round_after_settle() {
     round_dispatcher.auction_place_bid(bid_amount, bid_price_user_1 );
 
     round_dispatcher.settle_auction();
-    set_block_timestamp(option_params.expiry_time);
+    set_block_timestamp(option_params.option_expiry_time);
     round_dispatcher.settle_option_round(option_params.reserve_price + 10, ArrayTrait::new()); 
 
     let new_option_params : OptionRoundParams = vault_dispatcher.generate_option_round_params(timestamp_end_month() +  month_duration()  );
@@ -183,7 +183,7 @@ fn test_settle_before_expiry() {
     round_dispatcher.auction_place_bid(bid_amount, option_price);
     round_dispatcher.settle_auction();
 
-    set_block_timestamp(option_params.expiry_time - 10000);
+    set_block_timestamp(option_params.option_expiry_time - 10000);
     let success = round_dispatcher.settle_option_round(option_params.strike_price + 10, ArrayTrait::new()) ;
 
     assert(success == false, 'no settle before expiry');
@@ -207,7 +207,7 @@ fn test_settle_before_end_auction() {
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     set_contract_address(option_bidder_buyer_1());
-    set_block_timestamp(option_params.expiry_time );
+    set_block_timestamp(option_params.option_expiry_time );
     let success = round_dispatcher.settle_option_round(final_settlement_price, ArrayTrait::new());
 
     assert(success == false, 'no settle before auction end');

@@ -16,7 +16,10 @@ struct OptionRoundParams {
     reserve_price: u256, //wei
     total_options_available: u256,
     // start_time:u64,
-    expiry_time:u64
+    option_expiry_time:u64, // OptionRound cannot settle before this time
+    auction_end_time:u64, // auction cannot settle before this time
+    minimum_bid_amount:u256,  // to prevent a dos vector
+    minimum_collateral_required:u256 // the option round will not start until this much collateral is deposited
 }
 
 #[derive(Copy, Drop, Serde, PartialEq, starknet::Store)]
@@ -173,7 +176,11 @@ mod OptionRound  {
                 reserve_price: 100,
                 total_options_available: 100,
                 // start_time: 100,
-                expiry_time: 100
+                option_expiry_time: 100,
+                auction_end_time: 100,
+                minimum_bid_amount: 100,
+                minimum_collateral_required: 100
+
             }   
         }
 
