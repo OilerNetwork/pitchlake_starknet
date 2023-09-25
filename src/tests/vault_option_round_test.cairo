@@ -85,7 +85,7 @@ fn test_round_state_started() {
     let deposit_amount_wei :u256 = 10000 * vault_dispatcher.decimals().into();
     let success:bool = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());  
     // start_new_option_round will also starts the auction
-    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params( timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
     let state:OptionRoundState = round_dispatcher.get_option_round_state();
     // assert (state == OptionRoundState::AuctionStarted, "state should be AuctionStarted");
@@ -101,7 +101,7 @@ fn test_round_state_auction_ended() {
     let deposit_amount_wei = 10000 * vault_dispatcher.decimals().into();
     let success:bool = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());  
     // start_new_option_round will also starts the auction
-    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params( timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     round_dispatcher.settle_auction();
@@ -120,7 +120,7 @@ fn test_round_state_auction_settled() {
     let deposit_amount_wei = 10000 * vault_dispatcher.decimals().into();
     let success:bool = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());  
     // start_new_option_round will also starts the auction
-    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params( timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     round_dispatcher.settle_auction();
@@ -141,7 +141,7 @@ fn test_round_double_settle_failure() {
     let deposit_amount_wei = 10000 * vault_dispatcher.decimals().into();
     let success:bool = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());  
     // start_new_option_round will also starts the auction
-    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params( timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     round_dispatcher.settle_auction();
@@ -210,7 +210,7 @@ fn test_claim_premium_failure() {
     let deposit_amount_wei = 10000 * vault_dispatcher.decimals().into();
     let success:bool = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());  
     // start_new_option_round will also starts the auction
-    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params( timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     let bid_count: u256 = option_params.total_options_available + 10;
@@ -233,7 +233,7 @@ fn test_transfer_to_vault_failure() {
     let deposit_amount_wei = 10000 * vault_dispatcher.decimals().into();
     let success:bool = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());  
     // start_new_option_round will also starts the auction
-    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params( timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     let bid_count: u256 = option_params.total_options_available + 10;

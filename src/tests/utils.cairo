@@ -193,7 +193,7 @@ fn mock_option_params()-> OptionRoundParams{
         collateral_level: collateral_level,
         reserve_price: option_reserve_price,
         total_options_available: total_options_available,
-        start_time:timestamp_start_month(),
+        // start_time:timestamp_start_month(),
         expiry_time:timestamp_end_month()};
     return tmp;
 }

@@ -46,7 +46,7 @@ fn test_withdraw_liquidity_to_after_collaterization() {
     set_contract_address(liquidity_provider_1());
     let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
     // start_new_option_round will also starts the auction
-    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params( timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     let success : bool = vault_dispatcher.withdraw_liquidity_to(deposit_amount_wei, liquidity_provider_1());
@@ -64,7 +64,7 @@ fn test_total_collaterized_wei_1() {
     let deposit_amount_wei = 10000 * vault_dispatcher.decimals().into();
     let success:bool = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());  
     // start_new_option_round will also starts the auction
-    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params( timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     // start auction will move the tokens from unallocated pool to collaterized pool within the option_round
@@ -85,7 +85,7 @@ fn test_total_collaterized_wei_2() {
     vault_dispatcher.deposit_liquidity(deposit_amount_wei_2, liquidity_provider_2(), liquidity_provider_2());  
 
     // start_new_option_round will also starts the auction
-    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params( timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 
     // start auction will move the tokens from unallocated pool to collaterized pool within the option_round

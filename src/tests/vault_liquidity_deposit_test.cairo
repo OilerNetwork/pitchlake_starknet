@@ -262,7 +262,7 @@ fn assert_event_transfer(from: ContractAddress, to: ContractAddress, token_id: u
 //     set_contract_address(liquidity_provider_1());
 //     let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());  
 //     // start_new_option_round will also starts the auction
-//     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month());
+//     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params( timestamp_end_month());
  //       let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
 //     let bid_amount_user_1 :u256 =  (option_params.total_options_available) ;
     

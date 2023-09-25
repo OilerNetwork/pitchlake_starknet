@@ -15,7 +15,7 @@ struct OptionRoundParams {
     collateral_level: u256,
     reserve_price: u256, //wei
     total_options_available: u256,
-    start_time:u64,
+    // start_time:u64,
     expiry_time:u64
 }
 
@@ -172,7 +172,7 @@ mod OptionRound  {
                 collateral_level: 100,
                 reserve_price: 100,
                 total_options_available: 100,
-                start_time: 100,
+                // start_time: 100,
                 expiry_time: 100
             }   
         }

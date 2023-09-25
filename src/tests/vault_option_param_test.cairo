@@ -45,21 +45,21 @@ use pitch_lake_starknet::tests::utils::{setup, deploy_vault, allocated_pool_addr
 fn test_start_option_zero_liquidity() {
 
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
-    let params : OptionRoundParams = vault_dispatcher.generate_option_round_params(timestamp_start_month(), timestamp_end_month() );
+    let params : OptionRoundParams = vault_dispatcher.generate_option_round_params( timestamp_end_month() );
 }
 
 
-#[test]
-#[available_gas(10000000)]
-#[should_panic(expected: ('Some error', 'end date must be greater than start date'))]
-fn test_option_dates_valid() {
+// #[test]
+// #[available_gas(10000000)]
+// #[should_panic(expected: ('Some error', 'end date must be greater than start date'))]
+// fn test_option_dates_valid() {
 
-    let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_amount_wei:u256 = 100 * vault_dispatcher.decimals().into();
-    set_contract_address(liquidity_provider_1());
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
-    let params : OptionRoundParams = vault_dispatcher.generate_option_round_params(timestamp_end_month(), timestamp_start_month() );
-}
+//     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+//     let deposit_amount_wei:u256 = 100 * vault_dispatcher.decimals().into();
+//     set_contract_address(liquidity_provider_1());
+//     vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
+//     let params : OptionRoundParams = vault_dispatcher.generate_option_round_params(timestamp_end_month(), timestamp_start_month() );
+// }
 
 
 #[test]
@@ -77,13 +77,13 @@ fn test_strike_price_based_on_vault_types() {
     vault_dispatcher_in_the_money.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
     vault_dispatcher_out_the_money.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
 
-    let params : OptionRoundParams = vault_dispatcher_in_the_money.generate_option_round_params(timestamp_start_month(), timestamp_end_month() );
+    let params : OptionRoundParams = vault_dispatcher_in_the_money.generate_option_round_params( timestamp_end_month() );
     assert(params.strike_price >  params.current_average_basefee, ' ITM strike > average basefee');
 
-    let params : OptionRoundParams = vault_dispatcher_at_the_money.generate_option_round_params(timestamp_start_month(), timestamp_end_month() );
+    let params : OptionRoundParams = vault_dispatcher_at_the_money.generate_option_round_params( timestamp_end_month() );
     assert(params.strike_price ==  params.current_average_basefee, ' ITM strike == average basefee');
 
-    let params : OptionRoundParams = vault_dispatcher_out_the_money.generate_option_round_params(timestamp_start_month(), timestamp_end_month() );
+    let params : OptionRoundParams = vault_dispatcher_out_the_money.generate_option_round_params( timestamp_end_month() );
     assert(params.strike_price <  params.current_average_basefee, ' ITM strike < average basefee');
 
 }
