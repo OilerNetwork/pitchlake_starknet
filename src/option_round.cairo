@@ -114,7 +114,7 @@ trait IOptionRound<TContractState> {
     fn total_options_sold(self: @TContractState) -> u256;
 
     #[view]
-    fn market_aggregator(self: @TContractState) -> IMarketAggregatorDispatcher;
+    fn get_market_aggregator(self: @TContractState) -> IMarketAggregatorDispatcher;
 
 }
 
@@ -243,7 +243,7 @@ mod OptionRound  {
         }
 
         #[view]
-        fn market_aggregator(self: @ContractState) -> IMarketAggregatorDispatcher{
+        fn get_market_aggregator(self: @ContractState) -> IMarketAggregatorDispatcher{
             self.market_aggregator.read()
         }
 

@@ -30,6 +30,8 @@ use traits::Into;
 use traits::TryInto;
 use pitch_lake_starknet::eth::Eth;
 use pitch_lake_starknet::tests::utils::{setup, deploy_option_round, option_round_test_owner, deploy_vault, allocated_pool_address, unallocated_pool_address, timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1, option_bidder_buyer_2, vault_manager, weth_owner, mock_option_params};
+use pitch_lake_starknet::tests::mock_market_aggregator::{MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher, IMarketAggregatorSetterDispatcherTrait};
+
 
 /// TODO fix enum compares
 
@@ -125,7 +127,11 @@ fn test_round_state_auction_settled() {
 
     round_dispatcher.settle_auction();
     set_block_timestamp(option_params.option_expiry_time);
-    round_dispatcher.settle_option_round(option_params.reserve_price, ArrayTrait::new());
+
+    let mock_maket_aggregator_setter: IMarketAggregatorSetterDispatcher = IMarketAggregatorSetterDispatcher{contract_address:round_dispatcher.get_market_aggregator().contract_address};
+    mock_maket_aggregator_setter.set_current_base_fee(option_params.reserve_price);    
+
+    round_dispatcher.settle_option_round();
 
     let state:OptionRoundState = round_dispatcher.get_option_round_state();
     // assert (state == OptionRoundState::AuctionEnded, "state should be Settled");
@@ -146,8 +152,9 @@ fn test_round_double_settle_failure() {
 
     round_dispatcher.settle_auction();
     set_block_timestamp(option_params.option_expiry_time);
-    round_dispatcher.settle_option_round(option_params.reserve_price, ArrayTrait::new());
-    round_dispatcher.settle_option_round(option_params.reserve_price, ArrayTrait::new());
+
+    round_dispatcher.settle_option_round();
+    round_dispatcher.settle_option_round();
 }
 
 

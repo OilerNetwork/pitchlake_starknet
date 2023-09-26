@@ -26,7 +26,8 @@ use pitch_lake_starknet::vault::{IVaultDispatcher, IVaultSafeDispatcher, IVaultD
 use pitch_lake_starknet::pitch_lake::{IPitchLakeDispatcher, IPitchLakeSafeDispatcher, IPitchLakeDispatcherTrait, PitchLake, IPitchLakeSafeDispatcherTrait};
 
 use pitch_lake_starknet::option_round::{IOptionRound, IOptionRoundDispatcher, IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait, OptionRoundParams, OptionRound};
-use pitch_lake_starknet::market_aggregator::{IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait, IMarketAggregatorSafeDispatcher, IMarketAggregatorSafeDispatcherTrait, MarketAggregator};
+use pitch_lake_starknet::market_aggregator::{IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait, IMarketAggregatorSafeDispatcher, IMarketAggregatorSafeDispatcherTrait};
+use pitch_lake_starknet::tests::mock_market_aggregator::{MockMarketAggregator };
 
 const NAME: felt252 = 'WETH';
 const SYMBOL: felt252 = 'WETH';
@@ -72,7 +73,7 @@ fn deploy_market_aggregator() ->  IMarketAggregatorDispatcher {
     // calldata.append_serde(vault_type);
 
     let (address, _) = deploy_syscall(
-        MarketAggregator::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
+        MockMarketAggregator::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
     )
         .expect('DEPLOY_MARKET_AGGREGATOR_FAILED');
     return IMarketAggregatorDispatcher{contract_address: address};

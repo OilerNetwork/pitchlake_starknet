@@ -78,7 +78,7 @@ trait IVault<TContractState> {
     fn unallocated_liquidity_balance_of(self: @TContractState, liquidity_provider: ContractAddress) -> u256 ;
 
     #[view]
-    fn market_aggregator(self: @TContractState) -> IMarketAggregatorDispatcher;
+    fn get_market_aggregator(self: @TContractState) -> IMarketAggregatorDispatcher;
 
 }
 
@@ -210,7 +210,7 @@ mod Vault  {
             100
         }
 
-        fn market_aggregator(self: @ContractState) -> IMarketAggregatorDispatcher {
+        fn get_market_aggregator(self: @ContractState) -> IMarketAggregatorDispatcher {
             return self.market_aggregator.read();
         }
     }

@@ -34,7 +34,7 @@ use pitch_lake_starknet::tests::utils::{setup, deploy_vault, allocated_pool_addr
                                         liquidity_provider_2, option_bidder_buyer_1, option_bidder_buyer_2,
                                          option_bidder_buyer_3, option_bidder_buyer_4, vault_manager, weth_owner, 
                                          mock_option_params, month_duration};
-
+use pitch_lake_starknet::tests::mock_market_aggregator::{MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher, IMarketAggregatorSetterDispatcherTrait};
 
 
 #[test]
@@ -123,7 +123,11 @@ fn test_settled_and_new_round_sets_prev_round() {
 
     round_dispatcher.settle_auction();
     set_block_timestamp(option_params.option_expiry_time);
-    round_dispatcher.settle_option_round(option_params.reserve_price + 10, ArrayTrait::new()); 
+
+    let mock_maket_aggregator_setter: IMarketAggregatorSetterDispatcher = IMarketAggregatorSetterDispatcher{contract_address:round_dispatcher.get_market_aggregator().contract_address};
+    mock_maket_aggregator_setter.set_current_base_fee(option_params.reserve_price + 10);    
+
+    round_dispatcher.settle_option_round(); 
 
     let new_option_params : OptionRoundParams = vault_dispatcher.generate_option_round_params( timestamp_end_month() +  month_duration()  );
     let new_round_dispatcher: IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(new_option_params);
@@ -154,7 +158,11 @@ fn test_new_round_after_settle() {
 
     round_dispatcher.settle_auction();
     set_block_timestamp(option_params.option_expiry_time);
-    round_dispatcher.settle_option_round(option_params.reserve_price + 10, ArrayTrait::new()); 
+
+    let mock_maket_aggregator_setter: IMarketAggregatorSetterDispatcher = IMarketAggregatorSetterDispatcher{contract_address:round_dispatcher.get_market_aggregator().contract_address};
+    mock_maket_aggregator_setter.set_current_base_fee(option_params.reserve_price + 10);    
+
+    round_dispatcher.settle_option_round(); 
 
     let new_option_params : OptionRoundParams = vault_dispatcher.generate_option_round_params(timestamp_end_month() +  month_duration()  );
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(new_option_params);
@@ -184,7 +192,8 @@ fn test_settle_before_expiry() {
     round_dispatcher.settle_auction();
 
     set_block_timestamp(option_params.option_expiry_time - 10000);
-    let success = round_dispatcher.settle_option_round(option_params.strike_price + 10, ArrayTrait::new()) ;
+    
+    let success = round_dispatcher.settle_option_round() ;
 
     assert(success == false, 'no settle before expiry');
 }
@@ -196,9 +205,6 @@ fn test_settle_before_end_auction() {
 
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
     let deposit_amount_wei:u256 = 50 * vault_dispatcher.decimals().into();
-    let option_amount:u256 = 50;
-    let option_price:u256 = 2 * vault_dispatcher.decimals().into();
-    let final_settlement_price:u256 = 30 * vault_dispatcher.decimals().into();
     
     set_contract_address(liquidity_provider_1());
     let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
@@ -208,7 +214,7 @@ fn test_settle_before_end_auction() {
 
     set_contract_address(option_bidder_buyer_1());
     set_block_timestamp(option_params.option_expiry_time );
-    let success = round_dispatcher.settle_option_round(final_settlement_price, ArrayTrait::new());
+    let success = round_dispatcher.settle_option_round();
 
     assert(success == false, 'no settle before auction end');
 }

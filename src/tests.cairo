@@ -20,3 +20,6 @@ mod vault_option_round_test;
 mod vault_option_param_test;
 #[cfg(test)]
 mod vault_option_sequence_test;
+
+#[cfg(test)]
+mod mock_market_aggregator;
