@@ -20,7 +20,7 @@ use pitch_lake_starknet::tests::utils::{setup, deploy_vault, allocated_pool_addr
                                         , timestamp_start_month, timestamp_end_month, liquidity_provider_1, 
                                         liquidity_provider_2, option_bidder_buyer_1, option_bidder_buyer_2,
                                          option_bidder_buyer_3, option_bidder_buyer_4, option_bidder_buyer_5, option_bidder_buyer_6,
-                                         vault_manager, weth_owner, mock_option_params, month_duration};
+                                         vault_manager, weth_owner, mock_option_params, month_duration, assert_event_auction_bid};
 
 use result::ResultTrait;
 use starknet::{
@@ -57,6 +57,7 @@ fn test_clearing_price_1() {
  
     let clearing_price: u256 = round_dispatcher.get_auction_clearing_price();
     assert(clearing_price == option_params.reserve_price, 'clear price equal reserve price');
+    assert_event_auction_bid(option_bidder_buyer_1(), bid_amount, option_params.reserve_price);
 }
 
 #[test]
@@ -86,6 +87,8 @@ fn test_clearing_price_2() {
  
     let clearing_price: u256 = round_dispatcher.get_auction_clearing_price();
     assert(clearing_price == bid_price_user_2, 'clear price equal reserve price');
+    assert_event_auction_bid(option_bidder_buyer_1(), bid_amount_user_1, bid_price_user_1);
+    assert_event_auction_bid(option_bidder_buyer_2(), bid_amount_user_2, bid_price_user_2);
 }   
 
 #[test]
@@ -118,6 +121,9 @@ fn test_clearing_price_3() {
  
     let clearing_price: u256 = round_dispatcher.get_auction_clearing_price();
     assert(clearing_price == bid_price_user_2, 'clear price equal reserve price');
+    assert_event_auction_bid(option_bidder_buyer_1(), bid_amount_user_1, bid_price_user_1);
+    assert_event_auction_bid(option_bidder_buyer_2(), bid_amount_user_2, bid_price_user_2);
+
 }
 
 #[test]
@@ -156,6 +162,9 @@ fn test_clearing_price_4() {
  
     let clearing_price: u256 = round_dispatcher.get_auction_clearing_price();
     assert(clearing_price == bid_price_user_3, 'clear price equal reserve price');
+    assert_event_auction_bid(option_bidder_buyer_1(), bid_amount_user_1, bid_price_user_1);
+    assert_event_auction_bid(option_bidder_buyer_1(), bid_amount_user_2, bid_price_user_2);
+    assert_event_auction_bid(option_bidder_buyer_3(), bid_amount_user_3, bid_price_user_3);
 }
 
 #[test]

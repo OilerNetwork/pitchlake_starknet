@@ -25,6 +25,7 @@ use pitch_lake_starknet::eth::Eth;
 use pitch_lake_starknet::vault::{IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait, VaultType};
 use pitch_lake_starknet::pitch_lake::{IPitchLakeDispatcher, IPitchLakeSafeDispatcher, IPitchLakeDispatcherTrait, PitchLake, IPitchLakeSafeDispatcherTrait};
 
+use pitch_lake_starknet::option_round;
 use pitch_lake_starknet::option_round::{IOptionRound, IOptionRoundDispatcher, IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait, OptionRoundParams, OptionRound};
 use pitch_lake_starknet::market_aggregator::{IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait, IMarketAggregatorSafeDispatcher, IMarketAggregatorSafeDispatcherTrait};
 use pitch_lake_starknet::tests::mock_market_aggregator::{MockMarketAggregator };
@@ -289,11 +290,36 @@ fn drop_event(address: ContractAddress) {
     testing::pop_log_raw(address);
 }
 
+fn assert_event_auction_start(total_options_available:u256) {
+    let event = pop_log::<option_round::AuctionStart>(zero_address()).unwrap();
+    assert(event.total_options_available == total_options_available, 'options_available shd match');
+    assert_no_events_left(zero_address());
+}
 
-// fn assert_event_transfer(from: ContractAddress, to: ContractAddress, token_id: u256) {
-//     let event = utils::pop_log::<Transfer>(ZERO()).unwrap();
-//     assert(event.from == from, 'Invalid `from`');
-//     assert(event.to == to, 'Invalid `to`');
-//     assert(event.token_id == token_id, 'Invalid `token_id`');
-//     utils::assert_no_events_left(ZERO());
-// }
+fn assert_event_auction_bid(bidder:ContractAddress, amount:u256, price :u256) {
+    let event = pop_log::<option_round::AuctionBid>(zero_address()).unwrap();
+    assert(event.amount == amount, 'amount shd match');
+    assert(event.price == price, 'price shd match');
+    assert(event.bidder == bidder, 'bidder shd match');
+    assert_no_events_left(zero_address());
+}
+
+fn assert_event_auction_settle(auction_clearing_price :u256) {
+    let event = pop_log::<option_round::AuctionSettle>(zero_address()).unwrap();
+    assert(event.clearing_price == auction_clearing_price, 'price shd match');
+    assert_no_events_left(zero_address());
+}
+
+fn assert_event_option_settle(option_settlement_price :u256) {
+    let event = pop_log::<option_round::OptionSettle>(zero_address()).unwrap();
+    assert(event.settlement_price == option_settlement_price, 'price shd match');
+    assert_no_events_left(zero_address());
+}
+
+fn assert_event_option_amount_transfer(from: ContractAddress, to: ContractAddress, for_user:ContractAddress, amount: u256) {
+    let event = pop_log::<option_round::OptionTransferEvent>(zero_address()).unwrap();
+    assert(event.from == from, 'from shd match');
+    assert(event.to == to, 'to shd match');
+    assert(event.amount == amount, 'amount shd match');
+    assert_no_events_left(zero_address());
+}

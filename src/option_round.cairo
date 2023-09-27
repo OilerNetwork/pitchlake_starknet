@@ -36,7 +36,8 @@ enum OptionRoundState {
 #[derive(Drop, starknet::Event)]
 enum Event {
     AuctionStart: AuctionStart,
-    AuctionBid: AuctionBid,
+    AuctionAcceptedBid: AuctionBid,
+    AuctionRejectedBid: AuctionBid,
     AuctionSettle: AuctionSettle,
     OptionSettle: OptionSettle,
     WithdrawPremium: OptionTransferEvent,
@@ -47,10 +48,12 @@ enum Event {
 
 #[derive(Drop, starknet::Event)]
 struct AuctionStart {
+    total_options_available: u256
 }
 
 #[derive(Drop, starknet::Event)]
 struct AuctionBid {
+    bidder: ContractAddress,
     amount: u256,
     price: u256
 }
@@ -69,16 +72,8 @@ struct OptionSettle {
 struct OptionTransferEvent {
     from: ContractAddress,
     to: ContractAddress,
-    value: u256
+    amount: u256
 }
-
-// #[derive(Drop, starknet::Event)]
-// struct OptionRoundCreated {
-//     prev_round: ContractAddress,
-//     new_round: ContractAddress,
-//     collaterized: u256,
-//     option_round_params:OptionRoundParams
-// }
 
 
 #[starknet::interface]

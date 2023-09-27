@@ -11,7 +11,7 @@ use openzeppelin::token::erc20::interface::{
 
 use pitch_lake_starknet::vault::{IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait};
 use pitch_lake_starknet::option_round::{IOptionRound, IOptionRoundDispatcher, IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait, OptionRoundParams, OptionRoundState};
-
+use pitch_lake_starknet::market_aggregator::{IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait, IMarketAggregatorSafeDispatcher, IMarketAggregatorSafeDispatcherTrait};
 use result::ResultTrait;
 use starknet::{
     ClassHash,
@@ -29,7 +29,12 @@ use openzeppelin::utils::serde::SerializedAppend;
 use traits::Into;
 use traits::TryInto;
 use pitch_lake_starknet::eth::Eth;
-use pitch_lake_starknet::tests::utils::{setup, deploy_option_round, option_round_test_owner, deploy_vault, allocated_pool_address, unallocated_pool_address, timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1, option_bidder_buyer_2, vault_manager, weth_owner, mock_option_params};
+use pitch_lake_starknet::tests::utils::{setup, deploy_option_round, option_round_test_owner, 
+                                        deploy_vault, allocated_pool_address, unallocated_pool_address, 
+                                        timestamp_start_month, timestamp_end_month, liquidity_provider_1, 
+                                        liquidity_provider_2, option_bidder_buyer_1, option_bidder_buyer_2, 
+                                        vault_manager, weth_owner, mock_option_params, assert_event_auction_start, 
+                                        assert_event_auction_settle, assert_event_option_settle};
 use pitch_lake_starknet::tests::mock_market_aggregator::{MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher, IMarketAggregatorSetterDispatcherTrait};
 
 
@@ -55,6 +60,7 @@ fn test_round_start_auction_success() {
     set_contract_address(option_round_test_owner());
     let success  : bool = round_dispatcher.start_auction(mock_option_params());
     assert(success == true, 'should be able to start');
+    assert_event_auction_start(round_dispatcher.get_option_round_params().total_options_available);
 }
 
 #[test]
@@ -65,6 +71,8 @@ fn test_round_clearing_price_pre_auction_end() {
     round_dispatcher.start_auction(mock_option_params());
     let clearing_price : u256 = round_dispatcher.get_auction_clearing_price();
     assert(clearing_price == 0, 'clearing price should be 0'); // should be zero as auction has not ended
+    assert_event_auction_start(round_dispatcher.get_option_round_params().total_options_available);
+
 }
 
 #[test]
@@ -91,6 +99,7 @@ fn test_round_state_started() {
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
     let state:OptionRoundState = round_dispatcher.get_option_round_state();
     // assert (state == OptionRoundState::AuctionStarted, "state should be AuctionStarted");
+    assert_event_auction_start(round_dispatcher.get_option_round_params().total_options_available);
 }
 
 
@@ -105,10 +114,12 @@ fn test_round_state_auction_ended() {
     // start_new_option_round will also starts the auction
     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params( timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
+    assert_event_auction_start(round_dispatcher.get_option_round_params().total_options_available);
 
     round_dispatcher.settle_auction();
     let state:OptionRoundState = round_dispatcher.get_option_round_state();
     // assert (state == OptionRoundState::AuctionEnded, "state should be AuctionEnded");
+    assert_event_auction_settle(round_dispatcher.get_auction_clearing_price());
 
 }
 
@@ -134,7 +145,9 @@ fn test_round_state_auction_settled() {
     round_dispatcher.settle_option_round();
 
     let state:OptionRoundState = round_dispatcher.get_option_round_state();
+    let settlement_price :u256 = round_dispatcher.get_market_aggregator().get_current_base_fee();
     // assert (state == OptionRoundState::AuctionEnded, "state should be Settled");
+    assert_event_option_settle(settlement_price);
 }
 
 #[test]
@@ -254,3 +267,6 @@ fn test_transfer_to_vault_failure() {
     round_dispatcher.transfer_collateral_to_vault(liquidity_provider_1());   // should fail as option has not settled
 
 }
+
+
+

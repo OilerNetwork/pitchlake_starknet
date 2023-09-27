@@ -32,7 +32,8 @@ use pitch_lake_starknet::eth::Eth;
 use pitch_lake_starknet::tests::utils::{setup, deploy_vault, allocated_pool_address, unallocated_pool_address
                                         , timestamp_start_month, timestamp_end_month, liquidity_provider_1, 
                                         liquidity_provider_2, option_bidder_buyer_1, option_bidder_buyer_2,
-                                         option_bidder_buyer_3, option_bidder_buyer_4, vault_manager, weth_owner, mock_option_params};
+                                         option_bidder_buyer_3, option_bidder_buyer_4, vault_manager, weth_owner, 
+                                         mock_option_params, assert_event_option_amount_transfer};
 
 
 
@@ -60,6 +61,8 @@ fn test_paid_premium_withdrawal_to_liquidity_provider() {
     let expected_unallocated_wei:u256 = round_dispatcher.get_auction_clearing_price() * round_dispatcher.total_options_sold();
     let success: bool = vault_dispatcher.withdraw_liquidity_to(expected_unallocated_wei, liquidity_provider_1());
     assert( success == true, 'should be able withdraw premium');
+    assert_event_option_amount_transfer(round_dispatcher.contract_address, vault_dispatcher.contract_address, liquidity_provider_1(), expected_unallocated_wei);
+
 }
 
 #[test]
@@ -163,6 +166,9 @@ fn test_premium_collection_ratio_conversion_unallocated_pool_2 () {
     round_dispatcher.auction_place_bid(bid_amount_user_2, option_params.reserve_price); 
     round_dispatcher.settle_auction();
 
+    let premium_balance_of_liquidity_provider_1 : u256 = round_dispatcher.premium_balance_of(liquidity_provider_1());
+    let premium_balance_of_liquidity_provider_2 : u256 = round_dispatcher.premium_balance_of(liquidity_provider_2());
+
     round_dispatcher.transfer_premium_collected_to_vault(liquidity_provider_1());
     round_dispatcher.transfer_premium_collected_to_vault(liquidity_provider_2());
 
@@ -170,5 +176,8 @@ fn test_premium_collection_ratio_conversion_unallocated_pool_2 () {
     let unallocated_wei_count :u256 = vault_dispatcher.total_unallocated_liquidity();
     let expected_unallocated_wei:u256 = round_dispatcher.get_auction_clearing_price() * option_params.total_options_available;
     assert( unallocated_wei_count == expected_unallocated_wei, 'paid premiums should translate');
+    assert_event_option_amount_transfer(round_dispatcher.contract_address, vault_dispatcher.contract_address, liquidity_provider_1(), premium_balance_of_liquidity_provider_1);
+    assert_event_option_amount_transfer(round_dispatcher.contract_address, vault_dispatcher.contract_address, liquidity_provider_2(), premium_balance_of_liquidity_provider_2);
+    
 }
 
