@@ -55,10 +55,11 @@ fn test_invalid_user_collection_of_premium_after_settle() {
 
     let bid_amount : u256 = option_amount * option_price;
     round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price); 
+    set_block_timestamp(option_params.auction_end_time + 1);
     round_dispatcher.settle_auction();
 
 
-    set_block_timestamp(option_params.option_expiry_time);
+    set_block_timestamp(option_params.option_expiry_time + 1);
     // following makes sure the market aggregator returns the mocked current price
     let mock_maket_aggregator_setter: IMarketAggregatorSetterDispatcher = IMarketAggregatorSetterDispatcher{contract_address:round_dispatcher.get_market_aggregator().contract_address};
     mock_maket_aggregator_setter.set_current_base_fee(option_params.strike_price - 100); // means there is no payout. TODO confirm this is correct that there will be no payout if settle_option_round price is less than strike price?
@@ -91,9 +92,10 @@ fn test_invalid_user_collection_of_payout_after_settle() {
 
     let bid_amount : u256 = option_amount * option_price;
     round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price); 
+    set_block_timestamp(option_params.auction_end_time + 1);
     round_dispatcher.settle_auction();
 
-    set_block_timestamp(option_params.option_expiry_time);
+    set_block_timestamp(option_params.option_expiry_time + 1);
     // following makes sure the market aggregator returns the mocked current price
     let mock_maket_aggregator_setter: IMarketAggregatorSetterDispatcher = IMarketAggregatorSetterDispatcher{contract_address:round_dispatcher.get_market_aggregator().contract_address};
     mock_maket_aggregator_setter.set_current_base_fee(option_params.strike_price + 5);    
@@ -122,9 +124,10 @@ fn test_collection_of_premium_after_settle() {
 
     let bid_amount : u256 = option_amount * option_price;
     round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price); 
+    set_block_timestamp(option_params.auction_end_time + 1);
     round_dispatcher.settle_auction();
 
-    set_block_timestamp(option_params.option_expiry_time);
+    set_block_timestamp(option_params.option_expiry_time + 1);
     // following makes sure the market aggregator returns the mocked current price
     let mock_maket_aggregator_setter: IMarketAggregatorSetterDispatcher = IMarketAggregatorSetterDispatcher{contract_address:round_dispatcher.get_market_aggregator().contract_address};
     mock_maket_aggregator_setter.set_current_base_fee(option_params.strike_price - 100);    // means there is no payout. TODO confirm this is correct that there will be no payout if settle_option_round price is less than strike price?
@@ -161,9 +164,10 @@ fn test_failure_collection_of_multiple_premium_after_settle() {
 
     let bid_amount : u256 = option_amount * option_params.reserve_price;
     round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price); 
+    set_block_timestamp(option_params.auction_end_time + 1);
     round_dispatcher.settle_auction();
 
-    set_block_timestamp(option_params.option_expiry_time);
+    set_block_timestamp(option_params.option_expiry_time + 1);
     // following makes sure the market aggregator returns the mocked current price
     let mock_maket_aggregator_setter: IMarketAggregatorSetterDispatcher = IMarketAggregatorSetterDispatcher{contract_address:round_dispatcher.get_market_aggregator().contract_address};
     mock_maket_aggregator_setter.set_current_base_fee(option_params.strike_price - 100);    // means there is no payout. TODO confirm this is correct that there will be no payout if settle_option_round price is less than strike price?
@@ -192,10 +196,11 @@ fn test_option_payout_1() {
     let bid_amount : u256 = bid_count * option_params.reserve_price;
     set_contract_address(option_bidder_buyer_1());
     round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
+    set_block_timestamp(option_params.auction_end_time + 1);
     round_dispatcher.settle_auction();
 
     let settlement_price :u256 =  option_params.strike_price + 10;
-    set_block_timestamp(option_params.option_expiry_time);
+    set_block_timestamp(option_params.option_expiry_time + 1);
     // following makes sure the market aggregator returns the mocked current price
     let mock_maket_aggregator_setter: IMarketAggregatorSetterDispatcher = IMarketAggregatorSetterDispatcher{contract_address:round_dispatcher.get_market_aggregator().contract_address};
     mock_maket_aggregator_setter.set_current_base_fee(settlement_price);  
@@ -221,10 +226,11 @@ fn test_option_payout_2() {
     let bid_amount : u256 = bid_count * option_params.reserve_price;
     set_contract_address(option_bidder_buyer_1());
     round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
+    set_block_timestamp(option_params.auction_end_time + 1);
     round_dispatcher.settle_auction();
 
     let settlement_price :u256 =  option_params.strike_price - 10;
-    set_block_timestamp(option_params.option_expiry_time);
+    set_block_timestamp(option_params.option_expiry_time + 1);
     // following makes sure the market aggregator returns the mocked current price
     let mock_maket_aggregator_setter: IMarketAggregatorSetterDispatcher = IMarketAggregatorSetterDispatcher{contract_address:round_dispatcher.get_market_aggregator().contract_address};
     mock_maket_aggregator_setter.set_current_base_fee(settlement_price);    
@@ -251,10 +257,11 @@ fn test_option_post_payout_collaterized_count_1() {
     let bid_amount : u256 = bid_count * option_params.reserve_price;
     set_contract_address(option_bidder_buyer_1());
     round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
+    set_block_timestamp(option_params.auction_end_time + 1);
     round_dispatcher.settle_auction();
 
     let settlement_price :u256 =  option_params.cap_level;
-    set_block_timestamp(option_params.option_expiry_time);
+    set_block_timestamp(option_params.option_expiry_time + 1);
     // following makes sure the market aggregator returns the mocked current price
     let mock_maket_aggregator_setter: IMarketAggregatorSetterDispatcher = IMarketAggregatorSetterDispatcher{contract_address:round_dispatcher.get_market_aggregator().contract_address};
     mock_maket_aggregator_setter.set_current_base_fee(settlement_price);    
@@ -285,10 +292,11 @@ fn test_option_post_payout_collaterized_count_2() {
     let bid_amount : u256 = bid_count * option_params.reserve_price;
     set_contract_address(option_bidder_buyer_1());
     round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
+    set_block_timestamp(option_params.auction_end_time + 1);
     round_dispatcher.settle_auction();
 
     let settlement_price :u256 =  option_params.cap_level;
-    set_block_timestamp(option_params.option_expiry_time);
+    set_block_timestamp(option_params.option_expiry_time + 1);
 
     let mock_maket_aggregator_setter: IMarketAggregatorSetterDispatcher = IMarketAggregatorSetterDispatcher{contract_address:round_dispatcher.get_market_aggregator().contract_address};
     mock_maket_aggregator_setter.set_current_base_fee(settlement_price);    
@@ -318,10 +326,11 @@ fn test_option_post_payout_collaterized_count_3() {
     let bid_amount : u256 = bid_count * option_params.reserve_price;
     set_contract_address(option_bidder_buyer_1());
     round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
+    set_block_timestamp(option_params.auction_end_time + 1);
     round_dispatcher.settle_auction();
 
     let settlement_price :u256 =  option_params.strike_price + 10;
-    set_block_timestamp(option_params.option_expiry_time);
+    set_block_timestamp(option_params.option_expiry_time + 1);
 
     let mock_maket_aggregator_setter: IMarketAggregatorSetterDispatcher = IMarketAggregatorSetterDispatcher{contract_address:round_dispatcher.get_market_aggregator().contract_address};
     mock_maket_aggregator_setter.set_current_base_fee(settlement_price);    
@@ -359,10 +368,11 @@ fn test_option_payout_buyer_eth_balance() {
     let bid_amount : u256 = bid_count * option_params.reserve_price;
     set_contract_address(option_bidder_buyer_1());
     round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
+    set_block_timestamp(option_params.auction_end_time + 1);
     round_dispatcher.settle_auction();
 
     let settlement_price :u256 =  option_params.strike_price + 10;
-    set_block_timestamp(option_params.option_expiry_time);
+    set_block_timestamp(option_params.option_expiry_time + 1);
     
     let mock_maket_aggregator_setter: IMarketAggregatorSetterDispatcher = IMarketAggregatorSetterDispatcher{contract_address:round_dispatcher.get_market_aggregator().contract_address};
     mock_maket_aggregator_setter.set_current_base_fee(settlement_price);    

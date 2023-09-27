@@ -53,6 +53,8 @@ fn test_clearing_price_1() {
     let bid_amount: u256 = bid_count * option_params.reserve_price * vault_dispatcher.decimals().into();
     set_contract_address(option_bidder_buyer_1());
     round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
+
+    set_block_timestamp(option_params.auction_end_time + 1);
     round_dispatcher.settle_auction();
  
     let clearing_price: u256 = round_dispatcher.get_auction_clearing_price();
@@ -83,6 +85,7 @@ fn test_clearing_price_2() {
     set_contract_address(option_bidder_buyer_2());
     round_dispatcher.auction_place_bid(bid_amount_user_2,  bid_price_user_2);
 
+    set_block_timestamp(option_params.auction_end_time + 1);
     round_dispatcher.settle_auction();
  
     let clearing_price: u256 = round_dispatcher.get_auction_clearing_price();
@@ -117,6 +120,7 @@ fn test_clearing_price_3() {
     set_contract_address(option_bidder_buyer_2());
     round_dispatcher.auction_place_bid(bid_amount_user_2,  bid_price_user_2);
 
+    set_block_timestamp(option_params.auction_end_time + 1);
     round_dispatcher.settle_auction();
  
     let clearing_price: u256 = round_dispatcher.get_auction_clearing_price();
@@ -158,6 +162,7 @@ fn test_clearing_price_4() {
     set_contract_address(option_bidder_buyer_3());
     round_dispatcher.auction_place_bid(bid_amount_user_3,  bid_price_user_3);
 
+    set_block_timestamp(option_params.auction_end_time + 1);
     round_dispatcher.settle_auction();
  
     let clearing_price: u256 = round_dispatcher.get_auction_clearing_price();
@@ -199,6 +204,7 @@ fn test_clearing_price_5() {
     set_contract_address(option_bidder_buyer_3());
     round_dispatcher.auction_place_bid(bid_amount_user_3,  bid_price_user_3);
 
+    set_block_timestamp(option_params.auction_end_time + 1);
     round_dispatcher.settle_auction();
     
     let clearing_price: u256 = round_dispatcher.get_auction_clearing_price();
@@ -328,6 +334,7 @@ fn test_eth_lockup_for_unused_bids() { // accepted but still unused bids
     let wei_balance_before_bid :u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
     round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
 
+    set_block_timestamp(option_params.auction_end_time + 1);
     round_dispatcher.settle_auction();
     set_contract_address(option_bidder_buyer_1());
     let wei_balance_after_auction :u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
@@ -352,8 +359,8 @@ fn test_eth_transfer_for_unused_bids_after_claim() {
     let wei_balance_before_bid :u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
     round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
 
+    set_block_timestamp(option_params.auction_end_time + 1);
     round_dispatcher.settle_auction();
-    set_contract_address(option_bidder_buyer_1());
 
     let wei_balance_before_claim :u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
     let amount_transferred :u256 = round_dispatcher.claim_unused_bid_deposit(option_bidder_buyer_1());
@@ -385,6 +392,7 @@ fn test_total_options_after_auction_1() {
 
     set_contract_address(option_bidder_buyer_2());
     round_dispatcher.auction_place_bid(bid_amount_2, option_params.reserve_price); 
+    set_block_timestamp(option_params.auction_end_time + 1);
     round_dispatcher.settle_auction();
 
     let options_created_count = round_dispatcher.total_options_sold();
@@ -413,6 +421,7 @@ fn test_total_options_after_auction_2() {
 
     set_contract_address(option_bidder_buyer_2());
     round_dispatcher.auction_place_bid(bid_amount_user_2, option_params.reserve_price - 10); 
+    set_block_timestamp(option_params.auction_end_time + 1);
     round_dispatcher.settle_auction();
 
     let options_created_count = round_dispatcher.total_options_sold();
@@ -436,6 +445,7 @@ fn test_total_options_after_auction_3() {
 
     set_contract_address(option_bidder_buyer_1());
     round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
+    set_block_timestamp(option_params.auction_end_time + 1);
     round_dispatcher.settle_auction();
  
     let options_created = round_dispatcher.total_options_sold();
@@ -457,6 +467,7 @@ fn test_total_options_after_auction_4() {
     let bid_amount: u256 = bid_count * (option_params.reserve_price -1 ) * vault_dispatcher.decimals().into();
     set_contract_address(option_bidder_buyer_1());
     round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price - 1);
+    set_block_timestamp(option_params.auction_end_time + 1);
     round_dispatcher.settle_auction();
  
     let options_created = round_dispatcher.total_options_sold();
@@ -478,6 +489,7 @@ fn test_total_options_after_auction_5() {
     let bid_amount: u256 = bid_count * option_params.reserve_price * vault_dispatcher.decimals().into();
     set_contract_address(option_bidder_buyer_1());
     round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
+    set_block_timestamp(option_params.auction_end_time + 1);
     round_dispatcher.settle_auction();
  
     let options_created = round_dispatcher.total_options_sold();
@@ -526,6 +538,7 @@ fn test_option_balance_per_bidder_after_auction_1() {
     set_contract_address(option_bidder_buyer_4());
     round_dispatcher.auction_place_bid(bid_amount_user_4, bid_price_per_unit_user_4);
 
+    set_block_timestamp(option_params.auction_end_time + 1);
     round_dispatcher.settle_auction();
 
 
@@ -597,6 +610,7 @@ fn test_option_balance_per_bidder_after_auction_2() {
     set_contract_address(option_bidder_buyer_6());
     round_dispatcher.auction_place_bid(bid_option_amount_user_6, bid_price_per_unit_user_6);
 
+    set_block_timestamp(option_params.auction_end_time + 1);
     round_dispatcher.settle_auction();
 
     let total_options_created_count: u256 = round_dispatcher.total_options_sold();
@@ -671,6 +685,7 @@ fn test_option_balance_per_bidder_after_auction_3() {
     set_contract_address(option_bidder_buyer_6());
     round_dispatcher.auction_place_bid(bid_option_amount_user_6, bid_price_per_unit_user_6);
 
+    set_block_timestamp(option_params.auction_end_time + 1);
     round_dispatcher.settle_auction();
 
     let total_options_created_count: u256 = round_dispatcher.total_options_sold();

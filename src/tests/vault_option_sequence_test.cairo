@@ -140,8 +140,9 @@ fn test_settled_and_new_round_sets_prev_round() {
     set_contract_address(option_bidder_buyer_1());
     round_dispatcher.auction_place_bid(bid_amount, bid_price_user_1 );
 
+    set_block_timestamp(option_params.auction_end_time + 1);
     round_dispatcher.settle_auction();
-    set_block_timestamp(option_params.option_expiry_time);
+    set_block_timestamp(option_params.option_expiry_time + 1);
 
     let mock_maket_aggregator_setter: IMarketAggregatorSetterDispatcher = IMarketAggregatorSetterDispatcher{contract_address:round_dispatcher.get_market_aggregator().contract_address};
     mock_maket_aggregator_setter.set_current_base_fee(option_params.reserve_price + 10);    
@@ -178,8 +179,9 @@ fn test_new_round_after_settle() {
     set_contract_address(option_bidder_buyer_1());
     round_dispatcher.auction_place_bid(bid_amount, bid_price_user_1 );
 
+    set_block_timestamp(option_params.auction_end_time + 1);
     round_dispatcher.settle_auction();
-    set_block_timestamp(option_params.option_expiry_time);
+    set_block_timestamp(option_params.option_expiry_time + 1);
 
     let mock_maket_aggregator_setter: IMarketAggregatorSetterDispatcher = IMarketAggregatorSetterDispatcher{contract_address:round_dispatcher.get_market_aggregator().contract_address};
     mock_maket_aggregator_setter.set_current_base_fee(option_params.reserve_price + 10);    
@@ -213,6 +215,7 @@ fn test_settle_before_expiry() {
 
     set_contract_address(option_bidder_buyer_1());
     round_dispatcher.auction_place_bid(bid_amount, option_price);
+    set_block_timestamp(option_params.auction_end_time + 1);
     round_dispatcher.settle_auction();
 
     set_block_timestamp(option_params.option_expiry_time - 10000);

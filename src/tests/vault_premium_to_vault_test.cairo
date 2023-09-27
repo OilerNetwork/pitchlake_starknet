@@ -54,6 +54,7 @@ fn test_paid_premium_withdrawal_to_liquidity_provider() {
     
     set_contract_address(option_bidder_buyer_1());
     round_dispatcher.auction_place_bid(bid_amount_user_1, option_params.reserve_price); 
+    set_block_timestamp(option_params.auction_end_time + 1);
     round_dispatcher.settle_auction();
 
     round_dispatcher.transfer_premium_collected_to_vault(liquidity_provider_1());
@@ -82,6 +83,7 @@ fn test_paid_premium_withdrawal_to_invalid_provider() {
     
     set_contract_address(option_bidder_buyer_1());
     round_dispatcher.auction_place_bid(bid_amount_user_1, option_params.reserve_price); 
+    set_block_timestamp(option_params.auction_end_time + 1);
     round_dispatcher.settle_auction();
 
     round_dispatcher.transfer_premium_collected_to_vault(liquidity_provider_1());
@@ -115,6 +117,7 @@ fn test_premium_collection_ratio_conversion_unallocated_pool_1 () {
     set_contract_address(option_bidder_buyer_1());
     round_dispatcher.auction_place_bid(bid_amount_user_1, option_params.reserve_price); 
    
+    set_block_timestamp(option_params.auction_end_time + 1);
     round_dispatcher.settle_auction();
 
     //premium paid will be converted into unallocated.
@@ -164,6 +167,7 @@ fn test_premium_collection_ratio_conversion_unallocated_pool_2 () {
 
     set_contract_address(option_bidder_buyer_2());
     round_dispatcher.auction_place_bid(bid_amount_user_2, option_params.reserve_price); 
+    set_block_timestamp(option_params.auction_end_time + 1);
     round_dispatcher.settle_auction();
 
     let premium_balance_of_liquidity_provider_1 : u256 = round_dispatcher.premium_balance_of(liquidity_provider_1());
