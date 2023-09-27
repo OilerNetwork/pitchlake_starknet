@@ -81,6 +81,25 @@ fn test_bid_after_expiry() {
 
 #[test]
 #[available_gas(10000000)]
+#[should_panic(expected: ('Some error', 'auction cannot settle before due time',))]
+fn test_settle_auction_before_due_time() {
+
+    let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
+    let deposit_amount_wei:u256 = 50 * vault_dispatcher.decimals().into();
+    
+    set_contract_address(liquidity_provider_1());
+    vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1() );
+    // start_new_option_round will also starts the auction
+    let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params( timestamp_end_month());
+    let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
+
+    set_block_timestamp(option_params.auction_end_time - 10);
+    round_dispatcher.settle_auction();
+}
+
+
+#[test]
+#[available_gas(10000000)]
 #[should_panic(expected: ('Some error', 'multiple parallel rounds not allowed'))]
 fn test_multiple_parallel_rounds_failure() {
 
