@@ -17,23 +17,24 @@ enum VaultType {
 #[event]
 #[derive(Drop, starknet::Event)]
 enum Event {
-    Deposit: Transfer,
-    Withdrawal: Transfer,
+    Deposit: VaultTransfer,
+    Withdrawal: VaultTransfer,
     OptionRoundCreated: OptionRoundCreated,
 }
 
 #[derive(Drop, starknet::Event)]
-struct Transfer {
+struct VaultTransfer {
     from: ContractAddress,
     to: ContractAddress,
-    value: u256
+    amount: u256
 }
 
 #[derive(Drop, starknet::Event)]
 struct OptionRoundCreated {
     prev_round: ContractAddress,
     new_round: ContractAddress,
-    collaterized: u256
+    collaterized_amount: u256,
+    option_round_params:OptionRoundParams
 }
 
 
@@ -179,7 +180,7 @@ mod Vault  {
             let (address, _) = deploy_syscall(
                 self.option_round_class_hash.read().try_into().unwrap(), 0, calldata.span(), true
                 )
-            .expect('DEPLOY_AD_FAILED');
+            .expect('DEPLOY_NEW_OPTION_ROUND_FAILED');
             let round_dispatcher : IOptionRoundDispatcher = IOptionRoundDispatcher{contract_address: address};
 
             return round_dispatcher;

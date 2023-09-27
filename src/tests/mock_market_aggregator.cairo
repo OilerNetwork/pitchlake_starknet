@@ -1,17 +1,15 @@
 use pitch_lake_starknet::market_aggregator::{IMarketAggregator, IMarketAggregatorDispatcher};
 
+// NOTE ONLY USED IN TESTS FOR MOCKING PURPOSES
 #[starknet::interface]
 trait IMarketAggregatorSetter<TContractState> {
 
-    // this is the average base fee for the previous round, returns in wei
     #[external]
     fn set_average_base_fee(ref self: TContractState, base_fee:u256) ; 
 
-    // this is the standard deviation of the base fee for the previous round, returns in wei
     #[external]
     fn set_standard_deviation_base_fee(ref self: TContractState, base_fee:u256) ;  
 
-    // this is the current base fee, returns in wei
     #[external]
     fn set_current_base_fee(ref self: TContractState, base_fee:u256) ;
 }

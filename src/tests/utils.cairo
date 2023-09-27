@@ -69,9 +69,6 @@ fn deploy_option_round(owner:ContractAddress) ->  IOptionRoundDispatcher {
 fn deploy_market_aggregator() ->  IMarketAggregatorDispatcher {
     let mut calldata = array![];
 
-    // calldata.append_serde(OptionRound::TEST_CLASS_HASH);
-    // calldata.append_serde(vault_type);
-
     let (address, _) = deploy_syscall(
         MockMarketAggregator::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
     )
@@ -129,6 +126,8 @@ fn setup() -> (IVaultDispatcher, IERC20Dispatcher){
 
     eth_dispatcher.transfer(option_bidder_buyer_1(),deposit_amount_wei);
     eth_dispatcher.transfer(option_bidder_buyer_2(),deposit_amount_wei);
+
+    drop_event(zero_address());
 
     return (vault_dispatcher, eth_dispatcher);
 }
@@ -251,15 +250,15 @@ fn month_duration() -> u64 {
 }
 
 fn SPENDER() -> ContractAddress {
-    contract_address_const::<20>()
+    contract_address_const::<'SPENDER'>()
 }
 
 fn RECIPIENT() -> ContractAddress {
-    contract_address_const::<30>()
+    contract_address_const::<'RECIPIENT'>()
 }
 
 fn OPERATOR() -> ContractAddress {
-    contract_address_const::<40>()
+    contract_address_const::<'OPERATOR'>()
 }
 
 fn user() -> ContractAddress {
@@ -282,8 +281,6 @@ fn pop_log<T, impl TDrop: Drop<T>, impl TEvent: starknet::Event<T>>(
     ret
 }
 
-
-
 fn assert_no_events_left(address: ContractAddress) {
     assert(testing::pop_log_raw(address).is_none(), 'Events remaining on queue');
 }
@@ -291,3 +288,12 @@ fn assert_no_events_left(address: ContractAddress) {
 fn drop_event(address: ContractAddress) {
     testing::pop_log_raw(address);
 }
+
+
+// fn assert_event_transfer(from: ContractAddress, to: ContractAddress, token_id: u256) {
+//     let event = utils::pop_log::<Transfer>(ZERO()).unwrap();
+//     assert(event.from == from, 'Invalid `from`');
+//     assert(event.to == to, 'Invalid `to`');
+//     assert(event.token_id == token_id, 'Invalid `token_id`');
+//     utils::assert_no_events_left(ZERO());
+// }

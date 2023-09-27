@@ -114,7 +114,7 @@ fn test_collection_of_premium_after_settle() {
     set_contract_address(liquidity_provider_1());
     let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
     
-    let unallocated_wei_before_premium = vault_dispatcher.total_unallocated_liquidity();
+    let unallocated_wei_before_premium: u256 = vault_dispatcher.total_unallocated_liquidity();
     // start_new_option_round will also starts the auction
     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params( timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);

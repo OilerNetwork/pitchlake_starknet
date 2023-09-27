@@ -9,7 +9,7 @@ use openzeppelin::token::erc20::interface::{
     IERC20SafeDispatcherTrait,
 };
 
-use pitch_lake_starknet::vault::{IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait, Transfer};
+use pitch_lake_starknet::vault::{IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait, VaultTransfer, OptionRoundCreated};
 use pitch_lake_starknet::option_round::{IOptionRound, IOptionRoundDispatcher, IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait, OptionRoundParams};
 
 use result::ResultTrait;
@@ -33,9 +33,19 @@ use pitch_lake_starknet::tests::utils;
 use pitch_lake_starknet::tests::utils::{setup, deploy_vault, allocated_pool_address, unallocated_pool_address
                                         , timestamp_start_month, timestamp_end_month, liquidity_provider_1, 
                                         liquidity_provider_2, option_bidder_buyer_1, option_bidder_buyer_2,
-                                         option_bidder_buyer_3, option_bidder_buyer_4, vault_manager, weth_owner,
+                                         option_bidder_buyer_3, option_bidder_buyer_4, zero_address, vault_manager, weth_owner,
                                          option_round_contract_address, mock_option_params, pop_log, assert_no_events_left};
+///helpers
 
+fn assert_event_transfer(from: ContractAddress, to: ContractAddress, amount: u256) {
+    let event = pop_log::<VaultTransfer>(zero_address()).unwrap();
+    assert(event.from == from, 'Invalid `from`');
+    assert(event.to == to, 'Invalid `to`');
+    assert(event.amount == amount, 'Invalid `amount`');
+    assert_no_events_left(zero_address());
+}
+
+///tests
 
 #[test]
 #[available_gas(10000000)]
@@ -66,6 +76,8 @@ fn test_deposit_withdraw_liquidity_zero() {
     let balance_after_transfer: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
 
     assert(balance_before_transfer == balance_after_transfer, 'zero deposit should not effect');
+    assert_event_transfer(vault_dispatcher.contract_address, liquidity_provider_1() , deposit_amount_wei);
+
 }
 
 #[test]#[available_gas(10000000)]
@@ -75,7 +87,9 @@ fn test_deposit_liquidity() {
     let deposit_amount_wei:u256 = 50 * vault_dispatcher.decimals().into();
     set_contract_address(liquidity_provider_1());
     let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
+
     assert(success == true, 'cannot deposit');
+    assert_event_transfer(liquidity_provider_1(), vault_dispatcher.contract_address, deposit_amount_wei);
 
 }
 
@@ -89,7 +103,9 @@ fn test_deposit_liquidity_count_increase() {
     set_contract_address(liquidity_provider_1());
     let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
     let wei_after_before_deposit:u256 = vault_dispatcher.unallocated_liquidity_balance_of(liquidity_provider_1());
+
     assert(wei_after_before_deposit == wei_balance_before_deposit + deposit_amount_wei, 'deposit should add up');
+    assert_event_transfer(liquidity_provider_1(), vault_dispatcher.contract_address, deposit_amount_wei);
 
 }
 
@@ -103,7 +119,10 @@ fn test_eth_has_decreased_after_deposit() {
     set_contract_address(liquidity_provider_1());
     let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
     let wei_amount_after_transfer: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
+    
     assert(wei_amount_after_transfer == wei_amount_before_transfer - deposit_amount_wei  , 'deposit is not decremented');
+    assert_event_transfer(liquidity_provider_1(), vault_dispatcher.contract_address, deposit_amount_wei);
+
 }
 
 #[test]
@@ -120,6 +139,10 @@ fn test_eth_has_increased_after_withdrawal() {
     let unallocated_wei:u256 = vault_dispatcher.total_unallocated_liquidity();    
     assert(wei_amount_before_withdrawal == wei_amount_after_withdrawal + deposit_amount_wei, 'withdrawal is not incremented');
     assert(unallocated_wei == 0, 'unalloc after withdrawal,0');
+
+    assert_event_transfer(liquidity_provider_1(), vault_dispatcher.contract_address, deposit_amount_wei);
+    assert_event_transfer(vault_dispatcher.contract_address, liquidity_provider_1(), deposit_amount_wei);
+
 }
 
 #[test]
@@ -242,15 +265,6 @@ fn test_withdraw_liquidity_for_registered_user() {
     let success:bool  = vault_dispatcher.withdraw_liquidity_to(deposit_amount_wei, liquidity_provider_2());
     assert(success == true, 'should be able to withdraw'); // liquidity_provider_2 should be able to withdraw since depositer registered it for another user
 }
-
-fn assert_event_transfer(from: ContractAddress, to: ContractAddress, token_id: u256) {
-    // let event = pop_log::<Transfer>(ZERO()).unwrap();
-    // assert(event.from == from, 'Invalid `from`');
-    // assert(event.to == to, 'Invalid `to`');
-    // assert(event.token_id == token_id, 'Invalid `token_id`');
-    // utils::assert_no_events_left(ZERO());
-}
-
 
 
 // #[test]

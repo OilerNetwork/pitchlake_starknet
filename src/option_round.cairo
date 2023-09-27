@@ -31,6 +31,56 @@ enum OptionRoundState {
     Settled,
 }
 
+
+#[event]
+#[derive(Drop, starknet::Event)]
+enum Event {
+    AuctionStart: AuctionStart,
+    AuctionBid: AuctionBid,
+    AuctionSettle: AuctionSettle,
+    OptionSettle: OptionSettle,
+    WithdrawPremium: OptionTransferEvent,
+    WithdrawUnusedDeposit: OptionTransferEvent,
+    WithdrawPayout: OptionTransferEvent,
+    WithdrawCollateral: OptionTransferEvent, // from option round back to vault
+}
+
+#[derive(Drop, starknet::Event)]
+struct AuctionStart {
+}
+
+#[derive(Drop, starknet::Event)]
+struct AuctionBid {
+    amount: u256,
+    price: u256
+}
+
+#[derive(Drop, starknet::Event)]
+struct AuctionSettle {
+    clearing_price: u256
+}
+
+#[derive(Drop, starknet::Event)]
+struct OptionSettle {
+    settlement_price: u256
+}
+
+#[derive(Drop, starknet::Event)]
+struct OptionTransferEvent {
+    from: ContractAddress,
+    to: ContractAddress,
+    value: u256
+}
+
+// #[derive(Drop, starknet::Event)]
+// struct OptionRoundCreated {
+//     prev_round: ContractAddress,
+//     new_round: ContractAddress,
+//     collaterized: u256,
+//     option_round_params:OptionRoundParams
+// }
+
+
 #[starknet::interface]
 trait IOptionRound<TContractState> {
 
@@ -113,6 +163,7 @@ trait IOptionRound<TContractState> {
     #[view]
     fn total_options_sold(self: @TContractState) -> u256;
 
+    // market aggregator is a sort of oracle and provides market data(both historic averages and current prices)
     #[view]
     fn get_market_aggregator(self: @TContractState) -> IMarketAggregatorDispatcher;
 

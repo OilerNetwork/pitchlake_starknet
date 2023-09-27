@@ -9,7 +9,7 @@ use openzeppelin::token::erc20::interface::{
     IERC20SafeDispatcherTrait,
 };
 
-use pitch_lake_starknet::vault::{IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait};
+use pitch_lake_starknet::vault::{IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait, OptionRoundCreated};
 use pitch_lake_starknet::option_round::{IOptionRound, IOptionRoundDispatcher, IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait, OptionRoundParams};
 
 use result::ResultTrait;
@@ -32,11 +32,29 @@ use pitch_lake_starknet::eth::Eth;
 use pitch_lake_starknet::tests::utils::{setup, deploy_vault, allocated_pool_address, unallocated_pool_address
                                         , timestamp_start_month, timestamp_end_month, liquidity_provider_1, 
                                         liquidity_provider_2, option_bidder_buyer_1, option_bidder_buyer_2,
-                                         option_bidder_buyer_3, option_bidder_buyer_4, vault_manager, weth_owner, 
-                                         mock_option_params, month_duration};
+                                         option_bidder_buyer_3, option_bidder_buyer_4, zero_address, vault_manager, weth_owner,
+                                         option_round_contract_address, mock_option_params, pop_log, assert_no_events_left, month_duration
+                                         };
 use pitch_lake_starknet::tests::mock_market_aggregator::{MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher, IMarketAggregatorSetterDispatcherTrait};
 
 
+
+/// helpers
+fn assert_event_option_created( prev_round: ContractAddress,
+                                new_round: ContractAddress, 
+                                collaterized_amount: u256,
+                                option_round_params:OptionRoundParams) 
+                                {
+    let event = pop_log::<OptionRoundCreated>(zero_address()).unwrap();
+    assert(event.prev_round == prev_round, 'Invalid prev_round');
+    assert(event.new_round == new_round, 'Invalid new_round');
+    assert(event.collaterized_amount == collaterized_amount, 'Invalid collaterized_amount');
+    assert(event.option_round_params == option_round_params, 'Invalid option_round_params');
+    assert_no_events_left(zero_address());
+}
+
+
+/// tests
 #[test]
 #[available_gas(10000000)]
 #[should_panic(expected: ('Some error', 'auction expired, cannot auction_place_bid',))]
@@ -98,6 +116,7 @@ fn test_current_round_round_is_new_round() {
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
     let (curr_option_params, curr_round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.current_option_round();
     assert (option_params == curr_option_params, 'current round is new round');
+    assert_event_option_created(zero_address(), curr_round_dispatcher.contract_address, deposit_amount_wei, option_params); // there was no previous option round
 
 }
 
@@ -130,9 +149,12 @@ fn test_settled_and_new_round_sets_prev_round() {
     round_dispatcher.settle_option_round(); 
 
     let new_option_params : OptionRoundParams = vault_dispatcher.generate_option_round_params( timestamp_end_month() +  month_duration()  );
+    let unallocated_amount_before_second_round_start: u256 = vault_dispatcher.total_unallocated_liquidity();
     let new_round_dispatcher: IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(new_option_params);
     let (previous_option_params, previous_round_dispatcher): (OptionRoundParams, IOptionRoundDispatcher) = vault_dispatcher.previous_option_round();
+    
     assert(previous_option_params == option_params, 'curr round = prev round ');
+    assert_event_option_created(round_dispatcher.contract_address, new_round_dispatcher.contract_address, unallocated_amount_before_second_round_start, new_option_params);
 }
 
 
@@ -165,9 +187,11 @@ fn test_new_round_after_settle() {
     round_dispatcher.settle_option_round(); 
 
     let new_option_params : OptionRoundParams = vault_dispatcher.generate_option_round_params(timestamp_end_month() +  month_duration()  );
-    let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(new_option_params);
-    // should not throw an exception, TODO better way to check round_dispatcher is valid
+    let unallocated_amount_before_second_round_start: u256 = vault_dispatcher.total_unallocated_liquidity();
+    let new_round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(new_option_params);
 
+    // should not throw an exception, TODO better way to check round_dispatcher is valid
+    assert_event_option_created(round_dispatcher.contract_address, new_round_dispatcher.contract_address, unallocated_amount_before_second_round_start, new_option_params);
 }
 
 
