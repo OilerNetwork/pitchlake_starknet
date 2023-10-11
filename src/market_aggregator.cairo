@@ -28,6 +28,7 @@ mod MarketAggregator {
             current_base_fee: u256,
         }
 
+        // TODO add time period. 
         // this is the average base fee for the previous round, returns in wei
         #[view]
         fn get_average_base_fee(ref self: ContractState) -> u256 {

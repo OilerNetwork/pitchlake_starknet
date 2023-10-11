@@ -375,7 +375,7 @@ fn test_option_payout_buyer_eth_balance() {
     set_block_timestamp(option_params.option_expiry_time + 1);
     
     let mock_maket_aggregator_setter: IMarketAggregatorSetterDispatcher = IMarketAggregatorSetterDispatcher{contract_address:round_dispatcher.get_market_aggregator().contract_address};
-    mock_maket_aggregator_setter.set_current_base_fee(settlement_price);    
+    mock_maket_aggregator_setter.set_current_base_fee(settlement_price);    //TODO based on averages, TWAP
 
     round_dispatcher.settle_option_round();
 

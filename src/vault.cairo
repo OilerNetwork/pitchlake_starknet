@@ -37,48 +37,102 @@ struct OptionRoundCreated {
     option_round_params:OptionRoundParams
 }
 
+//IVault, Vault will be the main contract that the liquidity_providers and option_buyers will interact with.
 
 #[starknet::interface]
-trait IVault<TContractState> {
+trait IVault<TContractState> {// erc721
 
-    // add liquidity to the unallocated/uncollaterized pool in eth(wei). sender and registered_for should be the same for most cases, 
-    // but option_round can deposit liquidity back after an option round has completed on behalf of the orginal liquidity provider
+    // @notice add liquidity to the next option round. This will create a new liquidity position
+    // @param amount: amount of liquidity to add
+    // @return liquidity position id
     #[external]
-    fn deposit_liquidity(ref self: TContractState, amount: u256, sender:ContractAddress, registered_for:ContractAddress) -> bool;
+    fn deposit_liquidity(ref self: TContractState, amount: u256 ) -> u256;
 
-    // withdraw liquidity from the unallocated/uncollaterized pool to the recicpient.
+
+    // @notice add liquidity to the next option round. This will update the liquidity position
+    // @param lp_id: liquidity position id
+    // @param amount: amount of liquidity to add
+    // @return bool: true if the liquidity was added successfully 
     #[external]
-    fn withdraw_liquidity_to(ref self: TContractState, amount: u256, recipient:ContractAddress ) -> bool;
+    fn add_liquidity_to(ref self: TContractState, lp_id:u256,  amount: u256 ) -> bool;
+
+
+    // @notice withdraw liquidity from the position
+    // @dev this can only be withdrawn from amound deposited for the next option round or if the current option round has settled and is not collaterized anymore
+    // @param lp_id: liquidity position id
+    // @return bool: true if teh liquidity was withdrawn successfully
+    #[external]
+    fn withdraw_liquidity(ref self: TContractState, lp_id: u256, amount:u256 ) -> bool;
 
     #[view]
     fn generate_option_round_params(ref self: TContractState, option_expiry_time_:u64)-> OptionRoundParams;
 
-    // generate the option parameters and also deploy the option contract and move the liquidity over to the new option contract, also start the auction on the new option contract. 
-    // after a new round is started, both total_unallocated_liquidity and unallocated_liquidity_balance_of will return zero, unless a new liquidity is deposited via deposit_liquidity function.
-    // after the call previos_option_round will return the previous round and current_option_round will return the new round
+    // @notice start a new option round, this also collaterizes amount from the previous option round and current option round. This also starts the auction for the options
+    // @dev there should be checks to make sure that the previous option round has settled and is not collaterized anymore and certain time has elapsed.
+    // @param params: option round params
+    // @return option round id
     #[external]
-    fn start_new_option_round(ref self: TContractState, params:OptionRoundParams ) -> IOptionRoundDispatcher;
+    fn start_new_option_round(ref self: TContractState, params:OptionRoundParams ) -> u256;
+
+    // @notice place a bid in the auction.
+    // @param opton_round_id: option round id
+    // @param amount: max amount in auction_place_bid token to be used for bidding in the auction
+    // @param price: max price in auction_place_bid token(eth) per option. if the auction ends with a price higher than this then the auction_place_bid is not accepted
+    // @returns true if auction_place_bid if deposit has been locked up in the auction. false if auction not running or auction_place_bid below reserve price
+    #[external]
+    fn auction_place_bid(ref self: TContractState, option_round_id: u256, amount : u256, price :u256) -> bool;
+
+    // @notice successfully ended an auction, false if there was no auction in process
+    // @param option_round_id: option round id
+    // @return u256: the auction clearing price
+    #[external]
+    fn settle_auction(ref self: TContractState, option_round_id: u256) -> u256;
+
+    // @notice if the option is past the expiry date then using the market_aggregator we can settle the option round
+    // @param option_round_id: option round id
+    // @return bool: true if the option round was settled successfully
+    #[external]
+    fn settle_option_round(ref self: TContractState, option_round_id: u256) -> bool;
+
+    // @param option_round_id: option round id
+    // @return OptionRoundState: the current state of the option round
+    #[view]
+    fn get_option_round_state(ref self: TContractState, option_round_id: u256) -> OptionRoundState;
+
+    // @notice gets the most auction price for the option, if the auction has ended
+    // @param option_round_id: option round id
+    #[view]
+    fn get_option_round_params(ref self: TContractState, option_round_id: u256) -> OptionRoundParams;
+
+    // gets the most auction price for the option, if the auction has ended
+    #[view]
+    fn get_auction_clearing_price(ref self: TContractState, option_round_id: u256) -> u256;
+
+    // moves/transfers the unused premium deposit back to the bidder, return value is the amount of the transfer
+    // this is per option buyer. every option buyer will have to individually call claim_unused_bid_deposit to transfer any used deposits
+    #[external]
+    fn claim_unused_bid_deposit(ref self: TContractState, option_round_id: u256,  recipient:ContractAddress ) -> u256;
+
+    // transfers any payout due to the option buyer, return value is the amount of the transfer
+    // this is per option buyer. every option buyer will have to individually call claim_payout.
+    #[external]
+    fn claim_option_payout(ref self: TContractState, option_round_id: u256, for_option_buyer:ContractAddress ) -> u256;
 
     #[view]
     fn vault_type(self: @TContractState) -> VaultType;
 
-    // returns the latest option round
+    // @return current option round params and the option round id
     #[view]
-    fn current_option_round(ref self: TContractState ) -> (OptionRoundParams, IOptionRoundDispatcher);
+    fn current_option_round(ref self: TContractState ) -> (OptionRoundParams, u256);
 
+    // @return previous option round params and the option round id
     #[view]
-    fn previous_option_round(ref self: TContractState ) -> (OptionRoundParams, IOptionRoundDispatcher);
+    fn previous_option_round(ref self: TContractState ) -> (OptionRoundParams, u256);
 
     #[view]
     fn decimals(ref self: TContractState)->u8;
 
-    #[view]
-    fn total_unallocated_liquidity(self: @TContractState) -> u256 ;
-
-    #[view] 
-    fn unallocated_liquidity_balance_of(self: @TContractState, liquidity_provider: ContractAddress) -> u256 ;
-
-    #[view]
+   #[view]
     fn get_market_aggregator(self: @TContractState) -> IMarketAggregatorDispatcher;
 
 }
