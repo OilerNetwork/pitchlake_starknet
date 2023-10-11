@@ -46,58 +46,56 @@ trait IVault<TContractState> {// erc721
     // @param amount: amount of liquidity to add
     // @return liquidity position id
     #[external]
-    fn deposit_liquidity(ref self: TContractState, amount: u256 ) -> u256;
-
+    fn open_liquidity_position(ref self: TContractState, amount: u256 ) -> u256;
 
     // @notice add liquidity to the next option round. This will update the liquidity position
     // @param lp_id: liquidity position id
     // @param amount: amount of liquidity to add
     // @return bool: true if the liquidity was added successfully 
     #[external]
-    fn add_liquidity_to(ref self: TContractState, lp_id:u256,  amount: u256 ) -> bool;
-
+    fn deposit_liquidity_to(ref self: TContractState, lp_id:u256,  amount: u256 ) -> bool;
 
     // @notice withdraw liquidity from the position
     // @dev this can only be withdrawn from amound deposited for the next option round or if the current option round has settled and is not collaterized anymore
     // @param lp_id: liquidity position id
-    // @return bool: true if teh liquidity was withdrawn successfully
+    // @return bool: true if the liquidity was withdrawn successfully
     #[external]
     fn withdraw_liquidity(ref self: TContractState, lp_id: u256, amount:u256 ) -> bool;
 
-    #[view]
-    fn generate_option_round_params(ref self: TContractState, option_expiry_time_:u64)-> OptionRoundParams;
+    // #[view]
+    // fn generate_option_round_params(ref self: TContractState, option_expiry_time_:u64)-> OptionRoundParams;
 
     // @notice start a new option round, this also collaterizes amount from the previous option round and current option round. This also starts the auction for the options
     // @dev there should be checks to make sure that the previous option round has settled and is not collaterized anymore and certain time has elapsed.
     // @param params: option round params
     // @return option round id
     #[external]
-    fn start_new_option_round(ref self: TContractState, params:OptionRoundParams ) -> u256;
+    fn start_new_option_round(ref self: TContractState) -> (u256, OptionRoundParams) ; 
 
     // @notice place a bid in the auction.
-    // @param opton_round_id: option round id
+    // @param option_round_id: option round id
     // @param amount: max amount in auction_place_bid token to be used for bidding in the auction
     // @param price: max price in auction_place_bid token(eth) per option. if the auction ends with a price higher than this then the auction_place_bid is not accepted
     // @returns true if auction_place_bid if deposit has been locked up in the auction. false if auction not running or auction_place_bid below reserve price
     #[external]
-    fn auction_place_bid(ref self: TContractState, option_round_id: u256, amount : u256, price :u256) -> bool;
+    fn auction_place_bid(ref self: TContractState, amount : u256, price :u256) -> bool;
 
     // @notice successfully ended an auction, false if there was no auction in process
     // @param option_round_id: option round id
-    // @return u256: the auction clearing price
+    // @return : the auction clearing price
     #[external]
-    fn settle_auction(ref self: TContractState, option_round_id: u256) -> u256;
+    fn settle_auction(ref self: TContractState) -> u256;
 
     // @notice if the option is past the expiry date then using the market_aggregator we can settle the option round
     // @param option_round_id: option round id
     // @return bool: true if the option round was settled successfully
     #[external]
-    fn settle_option_round(ref self: TContractState, option_round_id: u256) -> bool;
+    fn settle_option_round(ref self: TContractState) -> bool;
 
     // @param option_round_id: option round id
     // @return OptionRoundState: the current state of the option round
     #[view]
-    fn get_option_round_state(ref self: TContractState, option_round_id: u256) -> OptionRoundState;
+    fn get_option_round_state(ref self: TContractState) -> OptionRoundState;
 
     // @notice gets the most auction price for the option, if the auction has ended
     // @param option_round_id: option round id
@@ -109,12 +107,12 @@ trait IVault<TContractState> {// erc721
     fn get_auction_clearing_price(ref self: TContractState, option_round_id: u256) -> u256;
 
     // moves/transfers the unused premium deposit back to the bidder, return value is the amount of the transfer
-    // this is per option buyer. every option buyer will have to individually call claim_unused_bid_deposit to transfer any used deposits
+    // this is per option buyer. every option buyer will have to individually call refund_unused_bid_deposit to transfer any unused deposits
     #[external]
-    fn claim_unused_bid_deposit(ref self: TContractState, option_round_id: u256,  recipient:ContractAddress ) -> u256;
+    fn refund_unused_bid_deposit(ref self: TContractState, option_round_id: u256,  recipient:ContractAddress ) -> u256;
 
     // transfers any payout due to the option buyer, return value is the amount of the transfer
-    // this is per option buyer. every option buyer will have to individually call claim_payout.
+    // this is per option buyer. every option buyer will have to individually call claim_option_payout.
     #[external]
     fn claim_option_payout(ref self: TContractState, option_round_id: u256, for_option_buyer:ContractAddress ) -> u256;
 
@@ -125,9 +123,9 @@ trait IVault<TContractState> {// erc721
     #[view]
     fn current_option_round(ref self: TContractState ) -> (OptionRoundParams, u256);
 
-    // @return previous option round params and the option round id
+    // @return next option round params and the option round id
     #[view]
-    fn previous_option_round(ref self: TContractState ) -> (OptionRoundParams, u256);
+    fn next_option_round(ref self: TContractState ) -> (OptionRoundParams, u256);
 
     #[view]
     fn decimals(ref self: TContractState)->u8;
