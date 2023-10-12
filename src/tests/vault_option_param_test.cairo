@@ -10,7 +10,7 @@ use openzeppelin::token::erc20::interface::{
 };
 
 use pitch_lake_starknet::vault::{IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait, VaultType};
-use pitch_lake_starknet::option_round::{IOptionRound, IOptionRoundDispatcher, IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait, OptionRoundParams};
+use pitch_lake_starknet::option_round::{OptionRoundParams};
 use pitch_lake_starknet::pitch_lake::{IPitchLakeDispatcher, IPitchLakeSafeDispatcher, IPitchLakeDispatcherTrait, PitchLake, IPitchLakeSafeDispatcherTrait};
 
 use result::ResultTrait;

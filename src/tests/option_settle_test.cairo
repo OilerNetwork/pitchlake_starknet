@@ -10,7 +10,7 @@ use openzeppelin::token::erc20::interface::{
 };
 
 use pitch_lake_starknet::vault::{IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait};
-use pitch_lake_starknet::option_round::{IOptionRound, IOptionRoundDispatcher, IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait, OptionRoundParams};
+use pitch_lake_starknet::option_round::{OptionRoundParams};
 
 use result::ResultTrait;
 use starknet::{
@@ -375,7 +375,7 @@ fn test_option_payout_buyer_eth_balance() {
     set_block_timestamp(option_params.option_expiry_time + 1);
     
     let mock_maket_aggregator_setter: IMarketAggregatorSetterDispatcher = IMarketAggregatorSetterDispatcher{contract_address:round_dispatcher.get_market_aggregator().contract_address};
-    mock_maket_aggregator_setter.set_current_base_fee(settlement_price);    //TODO based on averages, TWAP
+    mock_maket_aggregator_setter.set_current_base_fee(settlement_price);    //TODO based on averages, TWAP an also pass in time.
 
     round_dispatcher.settle_option_round();
 

@@ -14,7 +14,7 @@ use openzeppelin::token::erc20::interface::{
 };
 
 use pitch_lake_starknet::vault::{IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait};
-use pitch_lake_starknet::option_round::{IOptionRound, IOptionRoundDispatcher, IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait, OptionRoundParams};
+use pitch_lake_starknet::option_round::{OptionRoundParams};
 use pitch_lake_starknet::eth::Eth;
 use pitch_lake_starknet::tests::utils::{setup, deploy_vault, allocated_pool_address, unallocated_pool_address
                                         , timestamp_start_month, timestamp_end_month, liquidity_provider_1, 

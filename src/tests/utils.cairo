@@ -26,7 +26,7 @@ use pitch_lake_starknet::vault::{IVaultDispatcher, IVaultSafeDispatcher, IVaultD
 use pitch_lake_starknet::pitch_lake::{IPitchLakeDispatcher, IPitchLakeSafeDispatcher, IPitchLakeDispatcherTrait, PitchLake, IPitchLakeSafeDispatcherTrait};
 
 use pitch_lake_starknet::option_round;
-use pitch_lake_starknet::option_round::{IOptionRound, IOptionRoundDispatcher, IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait, OptionRoundParams, OptionRound};
+use pitch_lake_starknet::option_round::{OptionRoundParams};
 use pitch_lake_starknet::market_aggregator::{IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait, IMarketAggregatorSafeDispatcher, IMarketAggregatorSafeDispatcherTrait};
 use pitch_lake_starknet::tests::mock_market_aggregator::{MockMarketAggregator };
 
@@ -36,8 +36,6 @@ const DECIMALS: u8 = 18_u8;
 const SUPPLY: u256 = 99999999999999999999999999999; 
 
 fn deploy_eth() ->  IERC20Dispatcher {
-
-    
     let mut calldata = array![];
 
     calldata.append_serde(NAME);
@@ -52,20 +50,20 @@ fn deploy_eth() ->  IERC20Dispatcher {
     return IERC20Dispatcher{contract_address: address};
 }
 
-fn deploy_option_round(owner:ContractAddress) ->  IOptionRoundDispatcher {
-    let mut calldata = array![];
+// fn deploy_option_round(owner:ContractAddress) ->  IOptionRoundDispatcher {
+//     let mut calldata = array![];
 
-    calldata.append_serde(owner);
-    calldata.append_serde(owner); // TODO update it to the erco 20 collaterized pool
-    calldata.append_serde(mock_option_params());
-    calldata.append_serde(deploy_market_aggregator());
+//     calldata.append_serde(owner);
+//     calldata.append_serde(owner); // TODO update it to the erco 20 collaterized pool
+//     calldata.append_serde(mock_option_params());
+//     calldata.append_serde(deploy_market_aggregator());
 
-    let (address, _) = deploy_syscall(
-        OptionRound::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
-    )
-        .expect('DEPLOY_OPTION_ROUND_FAILED');
-    return IOptionRoundDispatcher{contract_address: address};
-}
+//     let (address, _) = deploy_syscall(
+//         OptionRound::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
+//     )
+//         .expect('DEPLOY_OPTION_ROUND_FAILED');
+//     return IOptionRoundDispatcher{contract_address: address};
+// }
 
 fn deploy_market_aggregator() ->  IMarketAggregatorDispatcher {
     let mut calldata = array![];
@@ -80,7 +78,7 @@ fn deploy_market_aggregator() ->  IMarketAggregatorDispatcher {
 fn deploy_vault(vault_type: VaultType) ->  IVaultDispatcher {
     let mut calldata = array![];
 
-    calldata.append_serde(OptionRound::TEST_CLASS_HASH);
+    // calldata.append_serde(OptionRound::TEST_CLASS_HASH);
     calldata.append_serde(vault_type);
     calldata.append_serde(deploy_market_aggregator());
 
@@ -198,10 +196,10 @@ fn mock_option_params()-> OptionRoundParams{
     let at_the_money_strike_price: u256 = average_basefee ;
     let out_the_money_strike_price: u256 = average_basefee - standard_deviation;
 
-    let collateral_level = cap_level - in_the_money_strike_price; // per notes from tomasz
-    let total_options_available = total_unallocated_liquidity/ collateral_level;
+    let collateral_level : u256 = cap_level - in_the_money_strike_price; // per notes from tomasz
+    let total_options_available: u256 = total_unallocated_liquidity/ collateral_level;
 
-    let option_reserve_price = option_reserve_price_;// just an assumption
+    let option_reserve_price: u256 = option_reserve_price_;// just an assumption
 
     // option_expiry_time:u64, // OptionRound cannot settle before this time
     // auction_end_time:u64, // auction cannot settle before this time

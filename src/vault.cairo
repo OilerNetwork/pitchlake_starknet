@@ -4,7 +4,7 @@ use traits::{Into, TryInto};
 use openzeppelin::token::erc20::interface::IERC20Dispatcher;
 use openzeppelin::utils::serde::SerializedAppend;
 
-use pitch_lake_starknet::option_round::{IOptionRound, IOptionRoundDispatcher, IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait, OptionRoundParams, OptionRoundState};
+use pitch_lake_starknet::option_round::{OptionRoundParams, OptionRoundState};
 use pitch_lake_starknet::market_aggregator::{IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait};
 
 #[derive(Copy, Drop, Serde, PartialEq)]
@@ -48,7 +48,7 @@ trait IVault<TContractState> {// erc721
     #[external]
     fn open_liquidity_position(ref self: TContractState, amount: u256 ) -> u256;
 
-    // @notice add liquidity to the next option round. This will update the liquidity position
+    // @notice add liquidity to the next option round. This will update the liquidity position for lp_id
     // @param lp_id: liquidity position id
     // @param amount: amount of liquidity to add
     // @return bool: true if the liquidity was added successfully 
@@ -86,7 +86,7 @@ trait IVault<TContractState> {// erc721
     fn settle_auction(ref self: TContractState) -> u256;
 
     // @notice if the option is past the expiry date then using the market_aggregator we can settle the option round
-    // @return bool: true if the option round was settled successfully
+    // @return : true if the option round was settled successfully
     #[external]
     fn settle_option_round(ref self: TContractState) -> bool;
 
@@ -100,7 +100,7 @@ trait IVault<TContractState> {// erc721
     #[view]
     fn get_option_round_params(ref self: TContractState, option_round_id: u256) -> OptionRoundParams;
 
-    // gets the most auction price for the option, if the auction has ended
+    // @notice gets the auction clearing price for the option round, if the auction has ended
     #[view]
     fn get_auction_clearing_price(ref self: TContractState, option_round_id: u256) -> u256;
 
@@ -109,8 +109,8 @@ trait IVault<TContractState> {// erc721
     #[external]
     fn refund_unused_bid_deposit(ref self: TContractState, option_round_id: u256, recipient:ContractAddress ) -> u256;
 
-    // transfers any payout due to the option buyer, return value is the amount of the transfer
-    // this is per option buyer. every option buyer will have to individually call claim_option_payout.
+    // @notice transfers any payout due to the option buyer, return value is the amount of the transfer
+    // @dev this is per option buyer. every option buyer will have to individually call claim_option_payout.
     #[external]
     fn claim_option_payout(ref self: TContractState, option_round_id: u256, for_option_buyer:ContractAddress ) -> u256;
 
@@ -125,7 +125,7 @@ trait IVault<TContractState> {// erc721
     #[view]
     fn next_option_round(ref self: TContractState ) -> (OptionRoundParams, u256);
 
-   #[view]
+    #[view]
     fn get_market_aggregator(self: @TContractState) -> IMarketAggregatorDispatcher;
 
     // total amount deposited as part of bidding by an option buyer, if the auction has not ended this represents the total amount locked up for auction and cannot be claimed back,
@@ -157,6 +157,8 @@ trait IVault<TContractState> {// erc721
     #[view]
     fn total_options_sold(self: @TContractState) -> u256;
 
+    #[view]
+    fn decimals(self: @TContractState) -> u8;
 
 }
 
@@ -173,7 +175,7 @@ mod Vault  {
     use pitch_lake_starknet::pool::IPoolDispatcher;
     use openzeppelin::token::erc20::interface::IERC20Dispatcher;
     use openzeppelin::utils::serde::SerializedAppend;
-    use pitch_lake_starknet::option_round::{IOptionRound, IOptionRoundDispatcher, IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait, OptionRoundParams, OptionRoundState};
+    use pitch_lake_starknet::option_round::{OptionRoundParams, OptionRoundState};
     use pitch_lake_starknet::market_aggregator::{IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait};
 
 
@@ -304,11 +306,6 @@ mod Vault  {
             return (params, 0);
         }
 
-        fn decimals(ref self: ContractState)->u8{
-            18
-        }
-
-
         fn vault_type(self: @ContractState) -> VaultType  {
             // TODO fix later, random value
             VaultType::AtTheMoney
@@ -354,6 +351,8 @@ mod Vault  {
             100
         }
 
-        
+        fn decimals(self: @ContractState) -> u8 {
+            18
+        }
     }
 }
