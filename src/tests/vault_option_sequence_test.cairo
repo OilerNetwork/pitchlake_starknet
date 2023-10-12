@@ -227,7 +227,7 @@ fn test_settle_before_expiry() {
     let bid_amount: u256 = option_amount * option_price;
     
     set_contract_address(liquidity_provider_1());
-    let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
+    let lp_id:u256  = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params( timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
@@ -253,7 +253,7 @@ fn test_settle_before_end_auction() {
     let deposit_amount_wei:u256 = 50 * vault_dispatcher.decimals().into();
     
     set_contract_address(liquidity_provider_1());
-    let success:bool  = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
+    let lp_id:u256  = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params( timestamp_end_month());
     let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
