@@ -91,7 +91,6 @@ fn test_deposit_liquidity() {
     set_contract_address(liquidity_provider_1());
     let lp_id:u256  = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
 
-    assert(success == true, 'cannot deposit');
     assert_event_transfer(liquidity_provider_1(), vault_dispatcher.contract_address, deposit_amount_wei);
 
 }
@@ -215,7 +214,7 @@ fn test_withdraw_liquidity_to() {
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
     let deposit_amount_wei:u256 = 50 * vault_dispatcher.decimals().into();
     set_contract_address(liquidity_provider_1());
-    let lp_id: u256 = vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
+    let lp_id: u256 = let lp_id : u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     let success:bool  = vault_dispatcher.withdraw_liquidity_to(deposit_amount_wei, liquidity_provider_1());
     assert(success == true, 'should be able to withdraw');
 
@@ -229,7 +228,7 @@ fn test_withdraw_liquidity_to_invalid_user_1() {
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
     let deposit_amount_wei:u256 = 50 * vault_dispatcher.decimals().into();
     set_contract_address(liquidity_provider_1());
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
+    let lp_id : u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     set_contract_address(liquidity_provider_2());
     vault_dispatcher.withdraw_liquidity_to(deposit_amount_wei, liquidity_provider_2());
 }
@@ -280,13 +279,13 @@ fn test_withdraw_liquidity_for_registered_user() {
 //     let lp_id:u256  = vault_dispatcher.open_liquidity_position(deposit_amount_wei);  
 //     // start_new_option_round will also starts the auction
 //     let option_params : OptionRoundParams =  vault_dispatcher.generate_option_round_params( timestamp_end_month());
- //       let round_dispatcher : IOptionRoundDispatcher = vault_dispatcher.start_new_option_round(option_params);
+ //       let (option_round_id, option_params) : (u256, OptionRoundParams) = vault_dispatcher.start_new_option_round();
 //     let bid_amount_user_1 :u256 =  (option_params.total_options_available) ;
     
 //     set_contract_address(option_bidder_buyer_1());
-//     round_dispatcher.auction_place_bid(bid_amount_user_1, option_params.reserve_price);
+//     vault_dispatcher.auction_place_bid(bid_amount_user_1, option_params.reserve_price);
 
-//     let options_created_count = round_dispatcher.total_options_sold();
+//     let options_created_count = vault_dispatcher.total_options_sold();
 //     assert( options_created_count == bid_amount_user_1, 'options shd match');
 // }
 

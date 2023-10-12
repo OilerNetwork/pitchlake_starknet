@@ -57,7 +57,7 @@ fn test_start_option_zero_liquidity() {
 //     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
 //     let deposit_amount_wei:u256 = 100 * vault_dispatcher.decimals().into();
 //     set_contract_address(liquidity_provider_1());
-//     vault_dispatcher.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
+//     let lp_id : u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
 //     let params : OptionRoundParams = vault_dispatcher.generate_option_round_params(timestamp_end_month(), timestamp_start_month() );
 // }
 

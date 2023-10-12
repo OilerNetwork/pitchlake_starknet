@@ -73,7 +73,6 @@ trait IVault<TContractState> {// erc721
     fn start_new_option_round(ref self: TContractState) -> (u256, OptionRoundParams) ; 
 
     // @notice place a bid in the auction.
-    // @param option_round_id: option round id
     // @param amount: max amount in weth/wei token to be used for bidding in the auction
     // @param price: max price in weth/wei token per option. if the auction ends with a price higher than this then the auction_place_bid is not accepted and can be refunded via refund_unused_bid_deposit
     // @returns true if auction_place_bid if deposit has been locked up in the auction. false if auction not running or auction_place_bid below reserve price
@@ -182,7 +181,7 @@ mod Vault  {
     #[storage]
     struct Storage {
         current_option_round_params: OptionRoundParams,
-        current_option_round_dispatcher: IOptionRoundDispatcher,
+        current_option_vault_dispatcher: IOptionRoundDispatcher,
         option_round_class_hash: felt252,
         market_aggregator: IMarketAggregatorDispatcher
     }
