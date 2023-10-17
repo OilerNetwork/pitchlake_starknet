@@ -48,7 +48,7 @@ fn test_withdraw_liquidity_to_after_collaterization() {
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params) : (u256, OptionRoundParams) = vault_dispatcher.start_new_option_round();
 
-    let success : bool = vault_dispatcher.withdraw_liquidity_to(deposit_amount_wei, liquidity_provider_1());
+    let success : bool = vault_dispatcher.withdraw_liquidity(lp_id, deposit_amount_wei);
     assert(success == false, 'cannot withdraw');
     //should not be able to withdraw because the liquidity has been moves to the collaterizedpool
 }
@@ -78,9 +78,9 @@ fn test_total_collaterized_wei_2() {
     let deposit_amount_wei_2 = 10000 * vault_dispatcher.decimals().into();
 
     set_contract_address(liquidity_provider_1());
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei_1, liquidity_provider_1(), liquidity_provider_1());  
+    let lp_id_1:u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei_1);  
     set_contract_address(liquidity_provider_2());
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei_2, liquidity_provider_2(), liquidity_provider_2());  
+    let lp_id_2:u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei_2);  
 
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params) : (u256, OptionRoundParams) = vault_dispatcher.start_new_option_round();

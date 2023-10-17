@@ -45,7 +45,7 @@ use pitch_lake_starknet::tests::utils::{setup, deploy_vault, allocated_pool_addr
 fn test_start_option_zero_liquidity() {
 
     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
-    let params : OptionRoundParams = vault_dispatcher.generate_option_round_params( timestamp_end_month() );
+    let (option_round_id, params) : (u256, OptionRoundParams) = vault_dispatcher.start_new_option_round();
 }
 
 
@@ -73,21 +73,17 @@ fn test_strike_price_based_on_vault_types() {
 
     let deposit_amount_wei:u256 = 100 * vault_dispatcher_at_the_money.decimals().into();
     set_contract_address(liquidity_provider_1());
-    vault_dispatcher_at_the_money.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
-    vault_dispatcher_in_the_money.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
-    vault_dispatcher_out_the_money.deposit_liquidity(deposit_amount_wei, liquidity_provider_1(), liquidity_provider_1());
+    let lp_id_1 :u256 = vault_dispatcher_at_the_money.open_liquidity_position(deposit_amount_wei);
+    let lp_id_2 :u256 = vault_dispatcher_in_the_money.open_liquidity_position(deposit_amount_wei);
+    let lp_id_3 :u256 = vault_dispatcher_out_the_money.open_liquidity_position(deposit_amount_wei);
 
-    let params : OptionRoundParams = vault_dispatcher_in_the_money.generate_option_round_params( timestamp_end_month() );
+    let (option_round_id, params) : (u256, OptionRoundParams) = vault_dispatcher_in_the_money.start_new_option_round();
     assert(params.strike_price >  params.current_average_basefee, ' ITM strike > average basefee');
 
-    let params : OptionRoundParams = vault_dispatcher_at_the_money.generate_option_round_params( timestamp_end_month() );
+    let (option_round_id, params) : (u256, OptionRoundParams) = vault_dispatcher_at_the_money.start_new_option_round();
     assert(params.strike_price ==  params.current_average_basefee, ' ITM strike == average basefee');
 
-    let params : OptionRoundParams = vault_dispatcher_out_the_money.generate_option_round_params( timestamp_end_month() );
+    let (option_round_id, params) : (u256, OptionRoundParams) = vault_dispatcher_out_the_money.start_new_option_round();
     assert(params.strike_price <  params.current_average_basefee, ' ITM strike < average basefee');
 
 }
-
-
-
-

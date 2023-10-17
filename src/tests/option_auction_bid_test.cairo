@@ -351,11 +351,11 @@ fn test_eth_transfer_for_unused_bids_after_claim() {
     vault_dispatcher.settle_auction();
 
     let wei_balance_before_claim :u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
-    let amount_transferred :u256 = vault_dispatcher.refund_unused_bid_deposit(option_bidder_buyer_1());
+    let amount_transferred :u256 = vault_dispatcher.refund_unused_bid_deposit(option_round_id, option_bidder_buyer_1());
     let wei_balance_after_claim :u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
 
     assert(wei_balance_after_claim == wei_balance_before_claim + amount_transferred, 'bid amounts should be locked up');
-    assert(amount_transferred == (bid_count - option_params.total_options_available) * vault_dispatcher.get_auction_clearing_price(), 'amount transfered shd match');
+    assert(amount_transferred == (bid_count - option_params.total_options_available) * vault_dispatcher.get_auction_clearing_price(option_round_id), 'amount transfered shd match');
 }
 
 #[test]
@@ -522,7 +522,6 @@ fn test_option_balance_per_bidder_after_auction_1() {
 
     set_block_timestamp(option_params.auction_end_time + 1);
     vault_dispatcher.settle_auction();
-
 
     let total_options_created_count: u256 = vault_dispatcher.total_options_sold();
     let options_created_user_1_count: u256 = vault_dispatcher.option_balance_of(option_bidder_buyer_1());

@@ -109,7 +109,7 @@ trait IVault<TContractState> {// erc721
     fn refund_unused_bid_deposit(ref self: TContractState, option_round_id: u256, recipient:ContractAddress ) -> u256;
 
     // @notice transfers any payout due to the option buyer, return value is the amount of the transfer
-    // @dev this is per option buyer. every option buyer will have to individually call claim_option_payout.
+    // @dev this is per option buyer. claim_option_payout will have to be called for every option buyer.
     #[external]
     fn claim_option_payout(ref self: TContractState, option_round_id: u256, for_option_buyer:ContractAddress ) -> u256;
 
@@ -118,11 +118,11 @@ trait IVault<TContractState> {// erc721
 
     // @return current option round params and the option round id
     #[view]
-    fn current_option_round(ref self: TContractState ) -> (OptionRoundParams, u256);
+    fn current_option_round(ref self: TContractState ) -> (u256, OptionRoundParams);
 
     // @return next option round params and the option round id
     #[view]
-    fn next_option_round(ref self: TContractState ) -> (OptionRoundParams, u256);
+    fn next_option_round(ref self: TContractState ) -> (u256, OptionRoundParams);
 
     #[view]
     fn get_market_aggregator(self: @TContractState) -> IMarketAggregatorDispatcher;
@@ -140,17 +140,25 @@ trait IVault<TContractState> {// erc721
     #[view]
     fn option_balance_of(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
-    // premium balance of liquidity_provider
+    // premium balance of liquidity position
     #[view]
-    fn premium_balance_of(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
+    fn premium_balance_of(self: @TContractState, lp_id: u256) -> u256;
 
-    // locked collateral balance of liquidity_provider
+    // locked collateral balance of a liquidity position
     #[view]
-    fn collateral_balance_of(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
+    fn collateral_balance_of(self: @TContractState, lp_id: u256) -> u256;
 
-    // total collateral available in the round
+    // unallocated balance of balance of a liquidity position
+    #[view]
+    fn unallocated_liquidity_balance_of(self: @TContractState, lp_id: u256) -> u256;
+
+    // total collateral locked up in the vault
     #[view]
     fn total_collateral(self: @TContractState) -> u256;
+
+    // total liquidity unallocated/uncollaterized
+    #[view]
+    fn total_unallocated_liquidity(self: @TContractState) -> u256;
 
     // total options sold
     #[view]
@@ -181,19 +189,16 @@ mod Vault  {
     #[storage]
     struct Storage {
         current_option_round_params: OptionRoundParams,
-        current_option_vault_dispatcher: IOptionRoundDispatcher,
-        option_round_class_hash: felt252,
+        current_option_round_id: u256,
         market_aggregator: IMarketAggregatorDispatcher
     }
 
     #[constructor]
     fn constructor(
         ref self: ContractState,
-        option_round_class_hash_: felt252,
         vault_type: VaultType,
         market_aggregator: IMarketAggregatorDispatcher
     ) {
-        self.option_round_class_hash.write( option_round_class_hash_);
         self.market_aggregator.write(market_aggregator);
     }
 
@@ -269,7 +274,7 @@ mod Vault  {
             100
         }
 
-        fn current_option_round(ref self: ContractState ) -> (OptionRoundParams, u256){
+        fn current_option_round(ref self: ContractState ) -> (u256, OptionRoundParams){
             let params = OptionRoundParams{
                     current_average_basefee: 100,
                     strike_price: 1000,
@@ -284,10 +289,10 @@ mod Vault  {
                     minimum_bid_amount: 100,
                     minimum_collateral_required:100
                 };
-            return (params, 0);
+            return (0, params);
         }
 
-        fn next_option_round(ref self: ContractState ) -> (OptionRoundParams, u256){
+        fn next_option_round(ref self: ContractState ) -> (u256, OptionRoundParams){
             let params = OptionRoundParams{
                     current_average_basefee: 100,
                     strike_price: 1000,
@@ -302,7 +307,7 @@ mod Vault  {
                     minimum_bid_amount: 100,
                     minimum_collateral_required:100
                 };
-            return (params, 0);
+            return (0, params);
         }
 
         fn vault_type(self: @ContractState) -> VaultType  {
@@ -334,11 +339,11 @@ mod Vault  {
             100
         }
 
-        fn premium_balance_of(self: @ContractState, liquidity_provider: ContractAddress) -> u256{
+        fn premium_balance_of(self: @ContractState, lp_id: u256) -> u256{
             100
         }
 
-        fn collateral_balance_of(self: @ContractState, liquidity_provider: ContractAddress) -> u256{
+        fn collateral_balance_of(self: @ContractState, lp_id: u256) -> u256{
             100
         }
 
@@ -352,6 +357,14 @@ mod Vault  {
 
         fn decimals(self: @ContractState) -> u8 {
             18
+        }
+
+        fn total_unallocated_liquidity(self: @ContractState) -> u256 {
+            100
+        }
+
+        fn unallocated_liquidity_balance_of(self: @ContractState, lp_id: u256) -> u256 {
+            100
         }
     }
 }

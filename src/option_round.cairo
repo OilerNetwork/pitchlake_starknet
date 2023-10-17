@@ -115,9 +115,9 @@ struct OptionTransferEvent {
 //     fn refund_unused_bid_deposit(ref self: TContractState, recipient:ContractAddress ) -> u256;
 
 //     // transfers any payout due to the option buyer, return value is the amount of the transfer
-//     // this is per option buyer. every option buyer will have to individually call claim_payout.
+//     // this is per option buyer. every option buyer will have to individually call claim_option_payout.
 //     #[external]
-//     fn claim_payout(ref self: TContractState, for_option_buyer:ContractAddress ) -> u256;
+//     fn claim_option_payout(ref self: TContractState, for_option_buyer:ContractAddress ) -> u256;
 
 //     // if the options are past the expiry date then we can move the collateral (after the payout) back to the vault(unallocated pool), returns the collateral moved
 //     // this is per liquidity provider, every option buyer will have to individually call transfer_collateral_to_vault
@@ -247,7 +247,7 @@ struct OptionTransferEvent {
 //             100
 //         }
 
-//         fn claim_payout(ref self: ContractState, for_option_buyer:ContractAddress ) -> u256{
+//         fn claim_option_payout(ref self: ContractState, for_option_buyer:ContractAddress ) -> u256{
 //             100
 //         }
 
