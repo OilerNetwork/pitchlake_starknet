@@ -164,7 +164,7 @@ fn test_clearing_price_4() {
     let clearing_price: u256 = vault_dispatcher.get_auction_clearing_price(option_round_id);
     assert(clearing_price == bid_price_user_3, 'clear price equal reserve price');
     assert_event_auction_bid(option_bidder_buyer_1(), bid_amount_user_1, bid_price_user_1);
-    assert_event_auction_bid(option_bidder_buyer_1(), bid_amount_user_2, bid_price_user_2);
+    assert_event_auction_bid(option_bidder_buyer_2(), bid_amount_user_2, bid_price_user_2);
     assert_event_auction_bid(option_bidder_buyer_3(), bid_amount_user_3, bid_price_user_3);
 }
 

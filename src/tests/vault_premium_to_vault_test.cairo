@@ -56,7 +56,6 @@ fn test_paid_premium_withdrawal_to_liquidity_provider() {
     set_block_timestamp(option_params.auction_end_time + 1);
     vault_dispatcher.settle_auction();
 
-
     let expected_unallocated_wei:u256 = vault_dispatcher.get_auction_clearing_price(option_round_id) * vault_dispatcher.total_options_sold();
     let success: bool = vault_dispatcher.withdraw_liquidity(lp_id, expected_unallocated_wei);
     assert( success == true, 'should be able withdraw premium');

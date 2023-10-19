@@ -189,7 +189,7 @@ fn test_unallocated_wei_count_user_2() {
     let success:bool  = vault_dispatcher.deposit_liquidity_to(lp_id, deposit_amount_wei);
 
     let user_balance:u256 = vault_dispatcher.unallocated_liquidity_balance_of(lp_id);
-    assert(user_balance == deposit_amount_wei * 2, 'should equal to deposited'); // since both users deposited for liquidity_provider_1()
+    assert(user_balance == deposit_amount_wei * 2, 'should equal to deposited'); // since both users deposited for lp_id
 
 }
 
