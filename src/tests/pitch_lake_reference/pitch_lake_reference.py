@@ -111,7 +111,9 @@ class OptionRoundParams:
                  option_expiry_time: int, 
                  auction_end_time: int, 
                  minimum_bid_amount: int, 
-                 minimum_collateral_required: int):
+                 minimum_collateral_required: int,
+                    total_collateral: int
+                 ):
         self.current_average_basefee = current_average_basefee  # in wei
         self.standard_deviation = standard_deviation
         self.strike_price = strike_price  # in wei
@@ -125,6 +127,7 @@ class OptionRoundParams:
         self.auction_end_time = auction_end_time  # auction can't settle before this time
         self.minimum_bid_amount = minimum_bid_amount  # to prevent a DoS vector
         self.minimum_collateral_required = minimum_collateral_required  # round won't start until this much collateral
+        self.total_collateral = total_collateral  # total collateral in the round
         
 
 class OptionRoundState:
@@ -254,6 +257,7 @@ class Round:
         self.market_aggregator = market_aggregator
         self.strike_price_strategy = strike_price_strategy  # "in_the_money", "at_the_money", or "out_the_money"
         self.total_collateral = 0  # Initialize total collateral for the round.
+        self.total_payout = 0  # Initialize total payout for the round.
         
         # Timing parameters
         self.round_start_time: Optional[datetime] = None
@@ -270,7 +274,7 @@ class Round:
         self.reserve_price = None
         self.max_payout_per_option = None
         self.bids: List[Dict[str, int]] = []  # List of bids. Each bid is a dictionary.
-        self.options_distribution = {}  # Records the number of options each bidder receives
+        self.option_allocations = {}  # Records the number of options each bidder receives
         self.refunds = {}  # Records the refund amounts in wei
 
 
@@ -281,10 +285,6 @@ class Vault(IVault):
         self.config = config if config else VaultConfig()
         self.blockchain = blockchain
         self.market_aggregator = market_aggregator
-        self.round_start_time: Optional[datetime] = None
-        self.auction_start_time: Optional[datetime] = None
-        self.auction_end_time: Optional[datetime] = None
-        self.option_settlement_time: Optional[datetime] = None
         self.strike_price_strategy = strike_price_strategy
         self.position_id = 0  # New attribute to keep track of the latest position ID
         self.round_positions = {}  # Key: (round_id, position_id), Value: RoundPositionEntry
@@ -431,7 +431,8 @@ class Vault(IVault):
             option_expiry_time=option_expiry_time,
             auction_end_time=auction_end_time,
             minimum_bid_amount=minimum_bid_amount,
-            minimum_collateral_required=minimum_collateral_required
+            minimum_collateral_required=minimum_collateral_required,
+            total_collateral=total_collateral
         )
 
         return self.current_round_id, option_round_params
@@ -511,6 +512,17 @@ class Vault(IVault):
         else:
             raise ValueError("No active auction round found.")
 
+    def fetch_next_round(self):
+        """
+        Fetch the current round based on the current round ID.
+
+        :return: The current round object.
+        """
+        if self.next_round_id in self.rounds:
+            return self.rounds[self.next_round_id]
+        else:
+            raise ValueError("No active auction round found.")
+
     def auction_place_bid(self, bid_amount, bid_price):
         """
         Place a new bid in the auction if it meets the reserve price.
@@ -563,7 +575,7 @@ class Vault(IVault):
         if not current_round.bids:
             raise ValueError("No bids in this auction round.")
 
-        sorted_bids = sorted(current_round.bids, key=lambda x: (-x['price'], x['size']))  # Assuming you want to sort by price then size
+        # sorted_bids = sorted(current_round.bids, key=lambda x: (-x['price'], x['size']))  # Assuming you want to sort by price then size
 
         # Calculate the clearing price
         clearing_price = self._calculate_clearing_price(current_round)
@@ -646,7 +658,71 @@ class Vault(IVault):
             print(f"\n{options_left} options remain undistributed after the auction.")
 
         print("\nOption distribution completed.\n")
-        
+
+    def settle_option_round(self) -> None:
+        """
+        Settles the options for a given round.
+
+        :param current_round_id: ID of the current round to settle.
+        :param market_aggregator: Market aggregator to get the current month's average base fee.
+        """
+        # Retrieve the current round using its ID.
+        current_round = self.fetch_current_round()
+
+        # Ensure the round is not already settled.
+        if current_round.state == RoundState.OPTION_SETTLED:
+            raise ValueError(f"Round {self.current_round_id} is already settled.")
+
+        # Get the settlement price from the market aggregator and convert to gwei.
+        settlement_price_wei = self.market_aggregator.get_current_month_avg_basefee()
+        settlement_price_gwei = settlement_price_wei / 1e9  # Convert wei to gwei
+
+        # Convert strike price to gwei.
+        strike_price_gwei = current_round.strike_price / 1e9
+
+        print(f"\nSettling options for round {self.current_round_id} at settlement price: {settlement_price_gwei} gwei")
+
+        # Check if the settlement price is greater than the strike price.
+        if settlement_price_gwei > strike_price_gwei:
+            # Calculate the payout amount per option in ETH (gwei difference converted to ETH).
+            payout_amount_eth = settlement_price_gwei - strike_price_gwei
+            payout_amount_wei = payout_amount_eth * 1e18  # Convert back to wei
+
+            # Calculate total payout required based on the options allocated.
+            total_options = sum(current_round.option_allocations.values())
+            total_payout = total_options * payout_amount_wei
+
+            print(f"Total options to settle: {total_options:.0f}")
+            print(f"Total payout required wei: {total_payout:.0f} ")
+
+            # Ensure the vault has enough collateral for the payout.
+            if total_payout > current_round.total_collateral:
+                raise ValueError("Not enough collateral in the vault for the required payout.")
+
+            # Deduct the payout from the vault's total collateral.
+            current_round.total_collateral -= total_payout
+
+            # Record the payout for the round.
+            current_round.total_payout = total_payout
+
+            print(f"Round {self.current_round_id} settled. Remaining collateral wei: {current_round.total_collateral:.0f} ")
+        else:
+            print(f"The settlement price is not greater than the strike price. No payout necessary for round {self.current_round_id}.")
+
+        #print remaining collateral and payout
+        print(f"Remaining collateral wei: {current_round.total_collateral:.0f} ")
+        print(f"Total payout wei: {current_round.total_payout:.0f} ")
+
+        # Mark the round as settled.
+        current_round.rouns_state = RoundState.OPTION_SETTLED
+
+        # Prepare collateral for the next round by adding the remaining amount.
+        next_round = self.fetch_next_round()
+        next_round.total_collateral += current_round.total_collateral
+
+        print(f"Prepared {next_round.total_collateral:.0f} collateral for round {self.next_round_id}.")
+
+    # ... [Other methods continue below]
 
 
             
@@ -696,18 +772,19 @@ print(f"Opened new liquidity position with ID: {new_position_id_2}")
 round_id, option_round_params = vault.start_new_option_round()
 #print all the option_round_params
 print(f"Started new option round with ID: {round_id}")
-print(f"Current average basefee: {option_round_params.current_average_basefee}")
-print(f"Standard deviation: {option_round_params.standard_deviation}")
-print(f"Strike price: {option_round_params.strike_price}")
-print(f"Cap level: {option_round_params.cap_level}")
-print(f"Collateral level: {option_round_params.collateral_level}")
-print(f"Max payout per option: {option_round_params.max_payout_per_option}")
-print(f"Reserve price: {option_round_params.reserve_price}")
+print(f"Current average basefee: {option_round_params.current_average_basefee:.0f}")
+print(f"Standard deviation: {option_round_params.standard_deviation:.0f}")
+print(f"Strike price: {option_round_params.strike_price:.0f}")
+print(f"Cap level: {option_round_params.cap_level:.0f}")
+print(f"Collateral level: {option_round_params.collateral_level:.0f}")
+print(f"Max payout per option: {option_round_params.max_payout_per_option:.0f}")
+print(f"Reserve price: {option_round_params.reserve_price:.0f}")
 print(f"Total options for sale: {option_round_params.total_options_forsale}")
 print(f"Option expiry time: {option_round_params.option_expiry_time}")
 print(f"Auction end time: {option_round_params.auction_end_time}")
 print(f"Minimum bid amount: {option_round_params.minimum_bid_amount}")
-print(f"Minimum collateral required: {option_round_params.minimum_collateral_required}")
+print(f"Minimum collateral required: {option_round_params.minimum_collateral_required:.0f}")
+print(f"Total collateral in the round: {option_round_params.total_collateral:.0f}")
 
 blockchain.set_current_sender("0x456d22")
 
@@ -732,3 +809,6 @@ vault.auction_place_bid( size , price)
 
 blockchain.set_current_time(option_round_params.auction_end_time + timedelta(days=1))
 vault.settle_auction()
+
+market_aggregator.set_current_month_avg_basefee(30 * 1e9)  # Simulating current month's average base fee
+vault.settle_option_round()
