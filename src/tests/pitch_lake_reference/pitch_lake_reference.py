@@ -3,6 +3,8 @@ import threading
 from eth_typing import Address
 from datetime import timedelta, datetime
 from typing import Dict, List, Optional, Any, Protocol, Tuple
+import math
+from scipy.stats import norm
 
 
 class Blockchain:
@@ -103,6 +105,7 @@ class OptionRoundParams:
                  strike_price: int, 
                  cap_level: int, 
                  collateral_level: int, 
+                 max_payout_per_option: int,
                  reserve_price: int, 
                  total_options_available: int,
                  option_expiry_time: int, 
@@ -114,6 +117,7 @@ class OptionRoundParams:
         self.strike_price = strike_price  # in wei
         self.cap_level = cap_level  # in wei
         self.collateral_level = collateral_level
+        self.max_payout_per_option = max_payout_per_option
         self.reserve_price = reserve_price  # in wei
         self.total_options_available = total_options_available
         # self.start_time = start_time  # this line is commented out because it's not present in the struct provided
@@ -121,6 +125,7 @@ class OptionRoundParams:
         self.auction_end_time = auction_end_time  # auction can't settle before this time
         self.minimum_bid_amount = minimum_bid_amount  # to prevent a DoS vector
         self.minimum_collateral_required = minimum_collateral_required  # round won't start until this much collateral
+        
 
 class OptionRoundState:
     pass
@@ -229,34 +234,6 @@ class RoundPositionEntry:
         self.amount = amount
         self.next_round_id = next_round_id  # Initially, this will be the same as the round it was created for.
 
-class RoundPositions:
-    def __init__(self):
-        self.positions = {}  # Key: (round_id, position_id), Value: RoundPositionEntry
-
-    def add_position(self, round_id, position_id, amount):
-        # The initial next_round_id is the same as the round_id during creation.
-        entry = RoundPositionEntry(amount=amount, next_round_id=round_id)
-        self.positions[(round_id, position_id)] = entry
-
-    def deposit_liquidity_to(self, round_id, position_id, additional_amount):
-        entry_key = (round_id, position_id)
-
-        if entry_key in self.positions:
-            current_entry = self.positions[entry_key]
-            
-            if round_id == current_entry.next_round_id:
-                # Update the amount for the current round
-                current_entry.amount += additional_amount
-            else:
-                # Linking to a new round, creating a new entry in the process
-                new_entry = RoundPositionEntry(amount=additional_amount, next_round_id=round_id)
-                self.positions[(current_entry.next_round_id, position_id)] = new_entry
-                
-                # Update the link for the previous entry
-                current_entry.next_round_id = round_id
-        else:
-            # Handle the case where the position entry does not exist (e.g., error handling or creation)
-            pass    
 
 class LiquidityPosition:
     def __init__(self, position_id, depositor, round_id):
@@ -289,7 +266,7 @@ class Round:
         self.collateral_level = None
         self.total_options = None
         self.reserve_price = None
-
+        self.max_payout_per_option = None
 
 
 # The Vault implementation maintains a record of all open liquidity positions/tokens.
@@ -312,7 +289,36 @@ class Vault(IVault):
         self.current_round_id: Optional[int] = None  # The ID of the current round.
         self.next_round_id: Optional[int] = 0  # The ID of the next round.
         self.rounds[self.next_round_id] = self._create_new_round(self.next_round_id)
+        
+    def calculate_option_payout(self, round: Round, settlement_price: int) -> int:
+        """
+        Calculate the payout for an option position based on the settlement price.
 
+        :param round: The round instance containing details like strike price and cap level.
+        :param settlement_price: The settlement price of the underlying asset in wei.
+        :return: The payout amount in wei.
+        """
+        # Convert settlement price and strike price from wei to Gwei for the calculations.
+        settlement_price_gwei = settlement_price // 1e9  # Convert from wei to Gwei
+        strike_price_gwei = round.strike_price // 1e9  # Convert from wei to Gwei
+        cap_level_gwei = round.cap_level // 1e9  # Convert from wei to Gwei
+
+        # Determine the difference in price, ensuring it's not negative.
+        price_difference_gwei = max(settlement_price_gwei - strike_price_gwei, 0)
+
+        # If the settlement price is greater than the strike price, calculate the payout.
+        if price_difference_gwei > 0:
+            # Payout is 1 ETH per Gwei of price difference.
+            # However, the payout is capped at the cap level.
+            payout_gwei = min(price_difference_gwei, cap_level_gwei)
+
+            # The payout is in ETH, equivalent to the price difference in Gwei.
+            payout = payout_gwei * round.collateral_level  # 1 ETH = 1e18 wei
+        else:
+            # If the settlement price is below or equal to the strike price, there's no payout.
+            payout = 0
+
+        return payout
 
     def open_liquidity_position(self, amount: int) -> int:
         # Ensure the amount meets the minimum deposit requirement
@@ -328,7 +334,6 @@ class Vault(IVault):
         # Record this liquidity position
         self.liquidity_positions[self.position_id] = self.next_round_id  # Save the round ID against the position ID
         
-
         new_entry = RoundPositionEntry(amount, self.next_round_id)
         # Create an entry in RoundPositions
         self.round_positions[(self.next_round_id, self.position_id)] = new_entry
@@ -359,8 +364,31 @@ class Vault(IVault):
         next_round.state = RoundState.AUCTION_STARTED
 
         # Set auction_end_time based on auction duration from config
+
         next_round.auction_end_time = next_round.auction_start_time + self.config.AUCTION_DURATION
         next_round.option_settlement_time = next_round.auction_start_time + self.config.ROUND_DURATION
+        next_round.strike_price = self.strike_price_strategy.calculate()
+        next_round.cap_level = self.market_aggregator.get_prev_month_avg_basefee() + (3 * self.market_aggregator.get_prev_month_std_dev()) 
+        # Convert the cap_level and strike_price from wei to Gwei for the calculations.
+        cap_level_gwei = next_round.cap_level // 1e9  # Convert from wei to Gwei
+        strike_price_gwei = next_round.strike_price // 1e9  # Convert from wei to Gwei
+        # The collateral_level represents the maximum payout per option in wei.
+        next_round.collateral_level = 1e18  # 1 ETH in wei, since the payout is 1 ETH per Gwei difference
+
+        # Calculate the price difference limit in Gwei.
+        price_difference_limit = cap_level_gwei - strike_price_gwei
+
+        # Calculate the maximum payout in wei for one option.
+        # This is the payout per Gwei difference times the maximum Gwei difference.
+        next_round.max_payout_per_option = next_round.collateral_level * price_difference_limit
+
+        # Calculate the total number of options that the total collateral can support.
+        # This is the total collateral divided by the maximum payout for one option.
+        next_round.total_options = next_round.total_collateral // next_round.max_payout_per_option  # Floor division for whole options
+
+        next_round.collateral_level = next_round.cap_level - next_round.strike_price # collateral level is also max payout for the option
+        next_round.total_options = next_round.total_collateral / next_round.collateral_level
+        next_round.reserve_price = self.market_aggregator.get_prev_month_std_dev() * 2 # just an assumption
 
         self.current_round_id = self.next_round_id
         self.next_round_id += 1
@@ -368,25 +396,37 @@ class Vault(IVault):
         # Prepare the next round
         self.rounds[self.next_round_id] = self._create_new_round(self.next_round_id)
 
-        # # Creating the OptionRoundParams instance with the gathered data.
-        # option_round_params = OptionRoundParams(
-        #     current_average_basefee=current_average_basefee,
-        #     standard_deviation=standard_deviation,
-        #     strike_price=strike_price,
-        #     cap_level=cap_level,
-        #     collateral_level=collateral_level,
-        #     reserve_price=reserve_price,
-        #     total_options_available=total_options_available,
-        #     option_expiry_time=option_expiry_time,
-        #     auction_end_time=auction_end_time,
-        #     minimum_bid_amount=minimum_bid_amount,
-        #     minimum_collateral_required=minimum_collateral_required
-        # )
+        # Gather the necessary data to return to the caller.
+        current_average_basefee = self.market_aggregator.get_current_month_avg_basefee()
+        standard_deviation = self.market_aggregator.get_prev_month_std_dev()
+        strike_price = next_round.strike_price
+        cap_level = next_round.cap_level
+        collateral_level = next_round.collateral_level
+        max_payout_per_option = next_round.max_payout_per_option
+        reserve_price = next_round.reserve_price
+        total_options_available = next_round.total_options
+        option_expiry_time = next_round.option_settlement_time
+        auction_end_time = next_round.auction_end_time
+        minimum_bid_amount = self.config.MIN_BID_AMOUNT
+        minimum_collateral_required = self.config.MIN_COLLATERAL
 
+        option_round_params = OptionRoundParams(
+            current_average_basefee=current_average_basefee,
+            standard_deviation=standard_deviation,
+            strike_price=strike_price,
+            cap_level=cap_level,
+            collateral_level=collateral_level,
+            max_payout_per_option=max_payout_per_option,
+            reserve_price=reserve_price,
+            total_options_available=total_options_available,
+            option_expiry_time=option_expiry_time,
+            auction_end_time=auction_end_time,
+            minimum_bid_amount=minimum_bid_amount,
+            minimum_collateral_required=minimum_collateral_required
+        )
 
-        return self.current_round_id, OptionRoundParams(
+        return self.current_round_id, option_round_params
 
-        
     def deposit_liquidity_to(self, position_id, amount):
         """
         Deposit additional liquidity to an existing position.
@@ -436,12 +476,12 @@ class Vault(IVault):
         """
 
         # Define the start time for the new round. This could be 'now' or a specific start time if rounds are scheduled.
-        start_time = datetime.datetime.now()  # Or specific scheduling based on your application logic.
+        start_time = datetime.now()  # Or specific scheduling based on your application logic.
 
         # Create a new Round instance with the necessary parameters.
         new_round = Round(
             round_id=new_round_id,
-            start_time=start_time,
+            # start_time=start_time,
             strike_price_strategy=self.strike_price_strategy,
             blockchain=self.blockchain,
             market_aggregator=self.market_aggregator,
@@ -473,5 +513,17 @@ vault = Vault(out_of_the_money_strategy, blockchain, market_aggregator)
 blockchain.set_current_sender("0x123abc")
 blockchain.set_current_time(datetime.utcnow())
 
-new_position_id = vault.open_liquidity_position( int(1000))
-print(f"Opened new liquidity position with ID: {new_position_id}")    
+new_position_id_1 = vault.open_liquidity_position( int(1000) * 10**18)
+print(f"Opened new liquidity position with ID: {new_position_id_1}")    
+
+#simulate another transaction with a different sender and time
+
+blockchain.set_current_sender("0x456def")
+blockchain.set_current_time(datetime.utcnow())
+
+new_position_id_2 = vault.open_liquidity_position( int(2000) * 10**18)
+print(f"Opened new liquidity position with ID: {new_position_id_2}")
+
+
+# start a new option round
+round_id, option_round_params = vault.start_new_option_round()
