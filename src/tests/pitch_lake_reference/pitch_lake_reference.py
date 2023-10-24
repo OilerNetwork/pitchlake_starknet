@@ -257,7 +257,7 @@ class Round:
         self.market_aggregator = market_aggregator
         self.strike_price_strategy = strike_price_strategy  # "in_the_money", "at_the_money", or "out_the_money"
         self.total_collateral_at_initialization = 0  # Initialize total collateral for the round.
-        self.total_collateral_
+        self.total_collateral_at_settlement = 0  # Initialize total collateral for the round.
         self.total_payout = 0  # Initialize total payout for the round.
 
         
@@ -341,16 +341,13 @@ class Vault(IVault):
         # Create a new liquidity position with a unique ID
         new_position = LiquidityPosition(depositor=sender, position_id=self.position_id, round_id=self.next_round_id)
         self.liquidity_positions[self.position_id] = new_position
-
-        # Record this liquidity position
-        self.liquidity_positions[self.position_id] = self.next_round_id  # Save the round ID against the position ID
         
         new_entry = RoundPositionEntry(amount, self.next_round_id)
         # Create an entry in RoundPositions
         self.round_positions[(self.next_round_id, self.position_id)] = new_entry
 
         # Update the total collateral for the next round.
-        self.rounds[self.next_round_id].total_collateral += amount
+        self.rounds[self.next_round_id].total_collateral_at_initialization += amount
 
         # Update the position ID for future positions
         self.position_id += 1
@@ -366,7 +363,7 @@ class Vault(IVault):
         next_round = self.rounds[self.next_round_id]
 
         # Check if the round has the minimum required collateral.
-        total_collateral = next_round.total_collateral
+        total_collateral = next_round.total_collateral_at_initialization
 
         if total_collateral < self.config.MIN_COLLATERAL:
             raise Exception("Minimum collateral required to start a new option round not met.")
@@ -398,7 +395,7 @@ class Vault(IVault):
 
         # Calculate the total number of options that the total collateral can support.
         # This is the total collateral divided by the maximum payout for one option.
-        next_round.total_options_forsale = next_round.total_collateral // next_round.max_payout_per_option  # Floor division for whole options
+        next_round.total_options_forsale = next_round.total_collateral_at_initialization // next_round.max_payout_per_option  # Floor division for whole options
         next_round.reserve_price = self.market_aggregator.get_prev_month_std_dev() * 2 # just an assumption
 
         self.current_round_id = self.next_round_id
@@ -698,21 +695,21 @@ class Vault(IVault):
             print(f"Total payout required wei: {total_payout:.0f} ")
 
             # Ensure the vault has enough collateral for the payout.
-            if total_payout > current_round.total_collateral:
+            if total_payout > current_round.total_collateral_at_initialization:
                 raise ValueError("Not enough collateral in the vault for the required payout.")
 
             # Deduct the payout from the vault's total collateral.
-            current_round.total_collateral -= total_payout
+            current_round.total_collateral_at_settlement = current_round.total_collateral_at_initialization -  total_payout
 
             # Record the payout for the round.
             current_round.total_payout = total_payout
 
-            print(f"Round {self.current_round_id} settled. Remaining collateral wei: {current_round.total_collateral:.0f} ")
+            print(f"Round {self.current_round_id} settled. Remaining collateral wei: {current_round.total_collateral_at_settlement:.0f} ")
         else:
             print(f"The settlement price is not greater than the strike price. No payout necessary for round {self.current_round_id}.")
 
         #print remaining collateral and payout
-        print(f"Remaining collateral wei: {current_round.total_collateral:.0f} ")
+        print(f"Remaining collateral wei: {current_round.total_collateral_at_settlement:.0f} ")
         print(f"Total payout wei: {current_round.total_payout:.0f} ")
 
         # Mark the round as settled.
@@ -720,9 +717,9 @@ class Vault(IVault):
 
         # Prepare collateral for the next round by adding the remaining amount.
         next_round = self.fetch_next_round()
-        next_round.total_collateral += current_round.total_collateral
+        next_round.total_collateral_at_initialization += current_round.total_collateral_at_settlement
 
-        print(f"Prepared {next_round.total_collateral:.0f} collateral for round {self.next_round_id}.")
+        print(f"Prepared {next_round.total_collateral_at_initialization:.0f} collateral for round {self.next_round_id}.")
 
     def withdraw_liquidity(self, position_id: int, amount: int) -> bool:
         # Check if the position_id is valid
@@ -732,6 +729,7 @@ class Vault(IVault):
         
         outer_round_id = self.liquidity_positions[position_id].round_id
         # Initial tracking of collateral parts
+        round_position_entry = self.round_positions[(outer_round_id, position_id)]
         collateral_parts = round_position_entry.amount
 
         # Loop through the liquidity positions and process rounds
