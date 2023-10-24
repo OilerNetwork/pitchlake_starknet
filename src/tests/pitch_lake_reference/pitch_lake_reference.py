@@ -256,8 +256,10 @@ class Round:
         self.blockchain = blockchain
         self.market_aggregator = market_aggregator
         self.strike_price_strategy = strike_price_strategy  # "in_the_money", "at_the_money", or "out_the_money"
-        self.total_collateral = 0  # Initialize total collateral for the round.
+        self.total_collateral_at_initialization = 0  # Initialize total collateral for the round.
+        self.total_collateral_
         self.total_payout = 0  # Initialize total payout for the round.
+
         
         # Timing parameters
         self.round_start_time: Optional[datetime] = None
@@ -722,7 +724,70 @@ class Vault(IVault):
 
         print(f"Prepared {next_round.total_collateral:.0f} collateral for round {self.next_round_id}.")
 
-    # ... [Other methods continue below]
+    def withdraw_liquidity(self, position_id: int, amount: int) -> bool:
+        # Check if the position_id is valid
+        if position_id not in self.liquidity_positions:
+            print("Invalid position ID")
+            return False
+        
+        outer_round_id = self.liquidity_positions[position_id].round_id
+        # Initial tracking of collateral parts
+        collateral_parts = round_position_entry.amount
+
+        # Loop through the liquidity positions and process rounds
+        while True:  
+            round_position_entry = self.round_positions[(outer_round_id, position_id)]
+
+            if outer_round_id not in self.rounds:
+                print(f"Round data missing for round ID {round_id}")
+                return False  # Return failure due to missing round data
+            
+            inner_round_id = outer_round_id
+            collateral_position_id = round_position_entry.amount
+            # Now, we process the rounds and calculate collateral for each round
+            while True:  # Nested loop to process each round until a non-settled round is reached
+                current_round = self.rounds[inner_round_id]
+
+                if current_round.state != RoundState.OPTION_SETTLED:
+                    # Skip the settled round
+                    break
+                
+                # Step 3 - Calculate the ratio
+                total_collateral_initial = current_round.total_collateral_at_initialization
+                ratio = collateral_position_id / total_collateral_initial
+
+                # Step 4 - Calculate total collateral at settlement
+                total_collateral_settlement = (
+                    total_collateral_initial - current_round.total_payout + current_round.total_premiums_collected
+                )
+
+                # Step 5 - Update the collateral position based on the settlement ratio
+                collateral_position_id = ratio * total_collateral_settlement
+
+                # Step 6 - Proceed to the next round if available
+                inner_round_id += 1  # Assuming round IDs are consecutive integers
+                
+                if inner_round_id not in self.rounds or self.rounds[inner_round_id].state != RoundState.OPTION_SETTLED:
+                    # If the next round doesn't exist or is settled, we break out of this inner loop
+                    collateral_parts += collateral_position_id  # Accumulating the parts
+                    break
+
+            # Check if we've reached the end of the rounds for this position
+            if outer_round_id == round_position_entry.next_round_id:
+                # We are at the end, so we create/update the round position entry with the accumulated collateral
+                self.round_positions[(round_id, position_id)] = RoundPositionEntry(collateral_parts, inner_round_id)
+                self.liquidity_positions[position_id].round_id = inner_round_id  # Update the round ID for the position
+                break  
+
+        if collateral_parts < amount:
+            print(f"Insufficient collateral. Available: {collateral_parts}, requested: {amount}")
+            return False
+        else:
+            # Update the position with the new amount
+            round_position_entry.amount = collateral_parts - amount
+
+        print(f"Withdrew {amount} successfully.")
+        return True
 
 
             
@@ -812,3 +877,6 @@ vault.settle_auction()
 
 market_aggregator.set_current_month_avg_basefee(30 * 1e9)  # Simulating current month's average base fee
 vault.settle_option_round()
+
+
+vault.withdraw_liquidity(0, 10)
