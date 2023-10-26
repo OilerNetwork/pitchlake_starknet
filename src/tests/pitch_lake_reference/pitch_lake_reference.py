@@ -234,9 +234,8 @@ class VaultConfig:
     MIN_COLLATERAL: int = 10 ** 18  # 1 ETH in Wei
 
 class RoundPositionEntry:
-    def __init__(self, amount, next_round_id):
+    def __init__(self, amount):
         self.amount = amount
-        self.next_round_id = next_round_id  # Initially, this will be the same as the round it was created for.
 
 
 class LiquidityPosition:
@@ -343,7 +342,7 @@ class Vault(IVault):
         new_position = LiquidityPosition(depositor=sender, position_id=self.position_id, round_id=self.next_round_id)
         self.liquidity_positions[self.position_id] = new_position
         
-        new_entry = RoundPositionEntry(amount, self.next_round_id)
+        new_entry = RoundPositionEntry(amount)
         # Create an entry in RoundPositions
         self.round_positions[(self.next_round_id, self.position_id)] = new_entry
 
@@ -444,36 +443,14 @@ class Vault(IVault):
         if position_id not in self.liquidity_positions:
             raise Exception("No liquidity position found with the provided ID.")
 
-        position = self.liquidity_positions[position_id]
-        round_id = position.round_id  # retrieve the round_id from the position instance
-
-        # We need to find the correct round to deposit to, and potentially create a new entry if rounds have advanced.
-        while True:
-            round_position_key = (round_id, position_id)
-            
-            if round_position_key not in self.round_positions:
-                raise Exception(f"No entry in round_positions for round_id {round_id} and position_id {position_id}")
-
-            round_position_entry = self.round_positions[round_position_key]
-            
-            if round_position_entry.next_round_id == round_id and self.next_round_id != round_id:
-                # We're at the end of the linked list for this position, but the Vault has moved on to a new round.
-                # So, we need to create a new entry and link it.
-                
-                new_round_position_entry = RoundPositionEntry(amount, self.next_round_id)
-                self.round_positions[(self.next_round_id, position_id)] = new_round_position_entry  # Create new entry
-                round_position_entry.next_round_id = self.next_round_id  # Update link of the old entry
-                break
-            elif round_position_entry.next_round_id == round_id:
-                # We are in the correct round, so we update
-                round_position_entry.amount += amount
-                break
-            else:
-                # The position is in a newer round, so we update the round_id and continue the loop
-                round_id = round_position_entry.next_round_id
-
-        # Update any necessary state in the position, if required
-        position.amount += amount  # Assuming the position also tracks its total amount
+        liquidity_position = self.liquidity_positions[position_id]
+        round_id = liquidity_position.round_id  # retrieve the round_id from the position instance
+        
+        if round_position := self.round_positions.get((round_id, position_id)):
+            round_position.amount += amount
+        else:
+            round_position = RoundPositionEntry(amount)
+            self.round_positions[(round_id, position_id)] = round_position
 
         # Update the total collateral for the next round.
         self.rounds[self.next_round_id].total_collateral += amount
@@ -765,7 +742,7 @@ class Vault(IVault):
                 print(f"Insufficient collateral. Available: {collateral_for_position_id}, requested: {amount}")
                 return False
 
-            self.round_positions[(round_id, position_id)] = RoundPositionEntry(collateral_for_position_id - amount, round_id)
+            self.round_positions[(round_id, position_id)] = RoundPositionEntry(collateral_for_position_id - amount)
             self.liquidity_positions[position_id].round_id = round_id  # Update the round ID for the position
 
         print(f"Withdrew {amount} successfully.")
