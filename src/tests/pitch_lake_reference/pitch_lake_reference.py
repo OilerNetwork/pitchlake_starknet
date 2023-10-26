@@ -259,6 +259,7 @@ class Round:
         self.total_collateral_at_initialization = 0  # Initialize total collateral for the round.
         self.total_collateral_at_settlement = 0  # Initialize total collateral for the round.
         self.total_payout = 0  # Initialize total payout for the round.
+        self.total_premiums_collected = 0  # Initialize total premium collected for the round.
 
         
         # Timing parameters
@@ -727,68 +728,50 @@ class Vault(IVault):
             print("Invalid position ID")
             return False
         
-        outer_round_id = self.liquidity_positions[position_id].round_id
-        # Initial tracking of collateral parts
-        round_position_entry = self.round_positions[(outer_round_id, position_id)]
-        collateral_parts = round_position_entry.amount
+        round_id = self.liquidity_positions[position_id].round_id
 
-        # Loop through the liquidity positions and process rounds
-        while True:  
-            round_position_entry = self.round_positions[(outer_round_id, position_id)]
+        # Now, we process the rounds and calculate collateral for each round
+        while True:  # Nested loop to process each round until a non-settled round is reached
+            if (round_id, position_id) in self.round_positions:
+                round_position_entry = self.round_positions[(round_id, position_id)]
+                collateral_for_position_id += round_position_entry.amount
 
-            if outer_round_id not in self.rounds:
-                print(f"Round data missing for round ID {round_id}")
-                return False  # Return failure due to missing round data
+            current_round = self.rounds[round_id]
+
+            if current_round.state != RoundState.OPTION_SETTLED:
+                # Skip the settled round
+                break
             
-            inner_round_id = outer_round_id
-            collateral_position_id = round_position_entry.amount
-            # Now, we process the rounds and calculate collateral for each round
-            while True:  # Nested loop to process each round until a non-settled round is reached
-                current_round = self.rounds[inner_round_id]
+            # Step 3 - Calculate the ratio
+            total_collateral_initial = current_round.total_collateral_at_initialization
+            ratio = collateral_for_position_id / total_collateral_initial
 
-                if current_round.state != RoundState.OPTION_SETTLED:
-                    # Skip the settled round
-                    break
-                
-                # Step 3 - Calculate the ratio
-                total_collateral_initial = current_round.total_collateral_at_initialization
-                ratio = collateral_position_id / total_collateral_initial
+            # Step 4 - Calculate total collateral at settlement
+            total_collateral_settlement = (
+                total_collateral_initial - current_round.total_payout + current_round.total_premiums_collected
+            )
 
-                # Step 4 - Calculate total collateral at settlement
-                total_collateral_settlement = (
-                    total_collateral_initial - current_round.total_payout + current_round.total_premiums_collected
-                )
+            # Step 5 - Update the collateral position based on the settlement ratio
+            collateral_for_position_id = ratio * total_collateral_settlement
 
-                # Step 5 - Update the collateral position based on the settlement ratio
-                collateral_position_id = ratio * total_collateral_settlement
-
-                # Step 6 - Proceed to the next round if available
-                inner_round_id += 1  # Assuming round IDs are consecutive integers
-                
-                if inner_round_id not in self.rounds or self.rounds[inner_round_id].state != RoundState.OPTION_SETTLED:
-                    # If the next round doesn't exist or is settled, we break out of this inner loop
-                    collateral_parts += collateral_position_id  # Accumulating the parts
-                    break
+            # Step 6 - Proceed to the next round if available
+            round_id += 1  # Assuming round IDs are consecutive integers
 
             # Check if we've reached the end of the rounds for this position
-            if outer_round_id == round_position_entry.next_round_id:
-                # We are at the end, so we create/update the round position entry with the accumulated collateral
-                self.round_positions[(round_id, position_id)] = RoundPositionEntry(collateral_parts, inner_round_id)
-                self.liquidity_positions[position_id].round_id = inner_round_id  # Update the round ID for the position
+            if (round_id == self.fetch_current_round().round_id and self.fetch_current_round().state == RoundState.INITIALIZED) or round_id == self.next_round_id :
                 break  
 
-        if collateral_parts < amount:
-            print(f"Insufficient collateral. Available: {collateral_parts}, requested: {amount}")
-            return False
-        else:
-            # Update the position with the new amount
-            round_position_entry.amount = collateral_parts - amount
+            if collateral_for_position_id < amount:
+                print(f"Insufficient collateral. Available: {collateral_for_position_id}, requested: {amount}")
+                return False
+
+            self.round_positions[(round_id, position_id)] = RoundPositionEntry(collateral_for_position_id - amount, round_id)
+            self.liquidity_positions[position_id].round_id = round_id  # Update the round ID for the position
 
         print(f"Withdrew {amount} successfully.")
         return True
 
 
-            
     # Implement the other IVault methods...
 
 
