@@ -278,6 +278,8 @@ class Round:
         self.bids: List[Dict[str, int]] = []  # List of bids. Each bid is a dictionary.
         self.option_allocations = {}  # Records the number of options each bidder receives
         self.refunds = {}  # Records the refund amounts in wei
+        self.auction_clearing_price = None
+        self.option_round_params : OptionRoundParams =  None
 
 
 
@@ -418,7 +420,7 @@ class Vault(IVault):
         minimum_bid_amount = self.config.MIN_BID_AMOUNT
         minimum_collateral_required = self.config.MIN_COLLATERAL
 
-        option_round_params = OptionRoundParams(
+        self.rounds[self.current_round_id].option_round_params = OptionRoundParams(
             current_average_basefee=current_average_basefee,
             standard_deviation=standard_deviation,
             strike_price=strike_price,
@@ -434,7 +436,7 @@ class Vault(IVault):
             total_collateral=total_collateral
         )
 
-        return self.current_round_id, option_round_params
+        return self.current_round_id, self.rounds[self.current_round_id].option_round_params
 
     def deposit_liquidity_to(self, position_id, amount):
         """
@@ -453,7 +455,7 @@ class Vault(IVault):
             self.round_positions[(round_id, position_id)] = round_position
 
         # Update the total collateral for the next round.
-        self.rounds[self.next_round_id].total_collateral += amount
+        self.rounds[self.next_round_id].total_collateral_at_initialization += amount
 
         return f"Liquidity position {position_id} updated with an additional {amount}."
     
@@ -555,14 +557,14 @@ class Vault(IVault):
         # sorted_bids = sorted(current_round.bids, key=lambda x: (-x['price'], x['size']))  # Assuming you want to sort by price then size
 
         # Calculate the clearing price
-        clearing_price = self._calculate_clearing_price(current_round)
-        print(f"Clearing price: {clearing_price} ")
+        current_round.auction_clearing_price = self._calculate_clearing_price(current_round)
+        print(f"Clearing price: {current_round.auction_clearing_price} ")
 
-        if clearing_price == 0:
+        if current_round.auction_clearing_price == 0:
             raise ValueError("Auction could not clear any options. No sale occurred.")
 
         # Distribute options and handle transactions
-        self._distribute_options_based_on_clearing_price(current_round, clearing_price )
+        self._distribute_options_based_on_clearing_price(current_round )
 
         # Auction has ended
         current_round.state = RoundState.AUCTION_SETTLED
@@ -599,7 +601,8 @@ class Vault(IVault):
 
         return clearing_price
     
-    def _distribute_options_based_on_clearing_price(self, current_round: Round, clearing_price: int):
+    def _distribute_options_based_on_clearing_price(self, current_round: Round):
+        clearing_price = current_round.auction_clearing_price
         options_left = current_round.total_options_forsale
         allocations = {}  # Temporary storage for option allocations
         refunds = {}  # Temporary storage for refunds
@@ -750,6 +753,67 @@ class Vault(IVault):
         print(f"Withdrew {amount} successfully.")
         return True
 
+    def get_option_round_state(self) -> OptionRoundState:
+        return self.current_option_round().state
+
+    def get_option_round_params(self, option_round_id: int) -> OptionRoundParams:
+        return self.rounds[option_round_id].option_round_params
+
+    def get_auction_clearing_price(self, option_round_id: int) -> int:
+        return self.rounds[option_round_id].auction_clearing_price
+
+    def refund_unused_bid_deposit(self, option_round_id: int, recipient: ContractAddress) -> int:
+        if option_round_id < 0 or option_round_id >= self.next_round_id:
+            raise ValueError("Invalid option round ID")
+        round = self.rounds[option_round_id]
+        if recipient not in round.refunds:
+            raise ValueError("Recipient has no unused bid deposit to refund")
+        refund_amount = round.refunds[recipient]
+        round.refunds[recipient] = 0
+        return refund_amount
+
+    def claim_option_payout(self, option_round_id: int, for_option_buyer: ContractAddress) -> int:
+        ...
+
+    def vault_type(self) -> VaultType:
+        ...
+
+    def current_option_round(self) -> Tuple[int, OptionRoundParams]:
+        ...
+
+    def next_option_round(self) -> Tuple[int, OptionRoundParams]:
+        ...
+
+    def get_market_aggregator(self) -> IMarketAggregatorDispatcher:
+        ...
+
+    def unused_bid_deposit_balance_of(self, option_buyer: ContractAddress) -> int:
+        ...
+
+    def payout_balance_of(self, option_buyer: ContractAddress) -> int:
+        ...
+
+    def option_balance_of(self, option_buyer: ContractAddress) -> int:
+        ...
+
+    def premium_balance_of(self, lp_id: int) -> int:
+        ...
+
+    def collateral_balance_of(self, lp_id: int) -> int:
+        ...
+
+    def unallocated_liquidity_balance_of(self, lp_id: int) -> int:
+        ...
+
+    def total_collateral(self) -> int:
+        ...
+
+    def total_unallocated_liquidity(self) -> int:
+        ...
+
+    def total_options_sold(self) -> int:
+        ...
+
 
     # Implement the other IVault methods...
 
@@ -799,7 +863,7 @@ print(f"Opened new liquidity position with ID: {new_position_id_2}")
 round_id, option_round_params = vault.start_new_option_round()
 #print all the option_round_params
 print(f"Started new option round with ID: {round_id}")
-print(f"Current average basefee: {option_round_params.current_average_basefee:.0f}")
+print(f"Current average basefee: {option_round_params.current_average_basefee:.0f}") 
 print(f"Standard deviation: {option_round_params.standard_deviation:.0f}")
 print(f"Strike price: {option_round_params.strike_price:.0f}")
 print(f"Cap level: {option_round_params.cap_level:.0f}")
@@ -841,9 +905,4 @@ vault.settle_auction()
 market_aggregator.set_current_month_avg_basefee(30 * 1e9)  # Simulating current month's average base fee
 vault.settle_option_round()
 
-# 516000000000000000000
-# 100000000000000000000000
 vault.withdraw_liquidity(0,100000000000000000000000 )
-
-100000000000000000000
-100000000000000000000000
