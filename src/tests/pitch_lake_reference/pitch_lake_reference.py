@@ -706,7 +706,7 @@ class Vault(IVault):
             return False
         
         round_id = self.liquidity_positions[position_id].round_id
-
+        collateral_for_position_id = 0
         # Now, we process the rounds and calculate collateral for each round
         while True:  # Nested loop to process each round until a non-settled round is reached
             if (round_id, position_id) in self.round_positions:
@@ -738,12 +738,14 @@ class Vault(IVault):
             if (round_id == self.fetch_current_round().round_id and self.fetch_current_round().state == RoundState.INITIALIZED) or round_id == self.next_round_id :
                 break  
 
-            if collateral_for_position_id < amount:
-                print(f"Insufficient collateral. Available: {collateral_for_position_id}, requested: {amount}")
-                return False
+        #print total position
+        print(f"Total collateral for position {position_id} is {collateral_for_position_id:.0f}.")
+        if collateral_for_position_id < amount:
+            print(f"Insufficient collateral. Available: {collateral_for_position_id}, requested: {amount}")
+            return False
 
-            self.round_positions[(round_id, position_id)] = RoundPositionEntry(collateral_for_position_id - amount)
-            self.liquidity_positions[position_id].round_id = round_id  # Update the round ID for the position
+        self.round_positions[(round_id, position_id)] = RoundPositionEntry(collateral_for_position_id - amount)
+        self.liquidity_positions[position_id].round_id = round_id  # Update the round ID for the position
 
         print(f"Withdrew {amount} successfully.")
         return True
@@ -777,6 +779,7 @@ blockchain.set_current_time(datetime.utcnow())
 new_position_id_1 = vault.open_liquidity_position( int(100) * 10**18)
 print(f"Opened new liquidity position with ID: {new_position_id_1}")    
 
+
 #simulate another transaction with a different sender and time
 
 blockchain.set_current_sender("0x456def")
@@ -784,6 +787,7 @@ blockchain.set_current_time(datetime.utcnow())
 
 new_position_id_2 = vault.open_liquidity_position( int(200) * 10**18)
 print(f"Opened new liquidity position with ID: {new_position_id_2}")
+
 
 blockchain.set_current_sender("0x456d11")
 blockchain.set_current_time(datetime.utcnow())
@@ -808,6 +812,7 @@ print(f"Auction end time: {option_round_params.auction_end_time}")
 print(f"Minimum bid amount: {option_round_params.minimum_bid_amount}")
 print(f"Minimum collateral required: {option_round_params.minimum_collateral_required:.0f}")
 print(f"Total collateral in the round: {option_round_params.total_collateral:.0f}")
+
 
 blockchain.set_current_sender("0x456d22")
 
@@ -836,5 +841,9 @@ vault.settle_auction()
 market_aggregator.set_current_month_avg_basefee(30 * 1e9)  # Simulating current month's average base fee
 vault.settle_option_round()
 
+# 516000000000000000000
+# 100000000000000000000000
+vault.withdraw_liquidity(0,100000000000000000000000 )
 
-vault.withdraw_liquidity(0, 10)
+100000000000000000000
+100000000000000000000000
