@@ -130,8 +130,6 @@ class OptionRoundParams:
         self.total_collateral = total_collateral  # total collateral in the round
         
 
-class OptionRoundState:
-    pass
 
 class VaultType:
     pass
@@ -167,7 +165,7 @@ class IVault(Protocol):
     def settle_option_round(self) -> bool:
         ...
 
-    def get_option_round_state(self) -> OptionRoundState:
+    def get_option_round_state(self) -> RoundState:
         ...
 
     def get_option_round_params(self, option_round_id: int) -> OptionRoundParams:
@@ -259,7 +257,8 @@ class Round:
         self.total_collateral_at_settlement = 0  # Initialize total collateral for the round.
         self.total_payout = 0  # Initialize total payout for the round.
         self.total_premiums_collected = 0  # Initialize total premium collected for the round.
-
+        self.settlement_price = 0  # Initialize the settlement price for the round.
+        self.payout_amount_per_option = 0
         
         # Timing parameters
         self.round_start_time: Optional[datetime] = None
@@ -656,6 +655,7 @@ class Vault(IVault):
         # Get the settlement price from the market aggregator and convert to gwei.
         settlement_price_wei = self.market_aggregator.get_current_month_avg_basefee()
         settlement_price_gwei = settlement_price_wei / 1e9  # Convert wei to gwei
+        current_round.settlement_price = settlement_price_wei
 
         # Convert strike price to gwei.
         strike_price_gwei = current_round.strike_price / 1e9
@@ -667,6 +667,9 @@ class Vault(IVault):
             # Calculate the payout amount per option in ETH (gwei difference converted to ETH).
             payout_amount_eth = settlement_price_gwei - strike_price_gwei
             payout_amount_wei = payout_amount_eth * 1e18  # Convert back to wei
+            if payout_amount_wei > current_round.max_payout_per_option :
+                payout_amount_wei = current_round.max_payout_per_option
+                current_round.payout_amount_per_option = payout_amount_wei
 
             # Calculate total payout required based on the options allocated.
             total_options = sum(current_round.option_allocations.values())
@@ -753,7 +756,7 @@ class Vault(IVault):
         print(f"Withdrew {amount} successfully.")
         return True
 
-    def get_option_round_state(self) -> OptionRoundState:
+    def get_option_round_state(self) -> RoundState:
         return self.current_option_round().state
 
     def get_option_round_params(self, option_round_id: int) -> OptionRoundParams:
@@ -773,19 +776,30 @@ class Vault(IVault):
         return refund_amount
 
     def claim_option_payout(self, option_round_id: int, for_option_buyer: ContractAddress) -> int:
-        ...
+        round = self.rounds[option_round_id]
+        if round.state != RoundState.OPTION_SETTLED:
+            raise ValueError("Option round has not been settled yet")
+        if for_option_buyer not in round.option_allocations:
+            raise ValueError("Option buyer has no option allocations in this round")
+        option_allocation = round.option_allocations[for_option_buyer]
+        payout = round.payout_amount_per_option * option_allocation
+
+        if payout < 0:
+            payout = 0
+        round.option_allocations[for_option_buyer] = 0
+        return payout
 
     def vault_type(self) -> VaultType:
         ...
 
     def current_option_round(self) -> Tuple[int, OptionRoundParams]:
-        ...
+        return self.current_round_id, self.rounds[self.current_round_id].option_round_params
 
     def next_option_round(self) -> Tuple[int, OptionRoundParams]:
-        ...
+        return self.next_round_id, self.rounds[self.next_round_id].option_round_params
 
     def get_market_aggregator(self) -> IMarketAggregatorDispatcher:
-        ...
+        return self.market_aggregator
 
     def unused_bid_deposit_balance_of(self, option_buyer: ContractAddress) -> int:
         ...
