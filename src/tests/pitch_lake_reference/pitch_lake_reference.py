@@ -192,13 +192,13 @@ class IVault(Protocol):
     def get_market_aggregator(self) -> IMarketAggregatorDispatcher:
         ...
 
-    def unused_bid_deposit_balance_of(self, option_buyer: ContractAddress) -> int:
+    def unused_bid_deposit_balance_of(self, option_round_id:int, option_buyer: ContractAddress) -> int:
         ...
 
-    def payout_balance_of(self, option_buyer: ContractAddress) -> int:
+    def payout_balance_of(self, option_round_id:int, option_buyer: ContractAddress) -> int:
         ...
 
-    def option_balance_of(self, option_buyer: ContractAddress) -> int:
+    def option_balance_of(self, option_round_id:int, option_buyer: ContractAddress) -> int:
         ...
 
     def premium_balance_of(self, lp_id: int) -> int:
@@ -711,38 +711,7 @@ class Vault(IVault):
             print("Invalid position ID")
             return False
         
-        round_id = self.liquidity_positions[position_id].round_id
-        collateral_for_position_id = 0
-        # Now, we process the rounds and calculate collateral for each round
-        while True:  # Nested loop to process each round until a non-settled round is reached
-            if (round_id, position_id) in self.round_positions:
-                round_position_entry = self.round_positions[(round_id, position_id)]
-                collateral_for_position_id += round_position_entry.amount
-
-            current_round = self.rounds[round_id]
-
-            if current_round.state != RoundState.OPTION_SETTLED:
-                # Skip the settled round
-                break
-            
-            # Step 3 - Calculate the ratio
-            total_collateral_initial = current_round.total_collateral_at_initialization
-            ratio = collateral_for_position_id / total_collateral_initial
-
-            # Step 4 - Calculate total collateral at settlement
-            total_collateral_settlement = (
-                total_collateral_initial - current_round.total_payout + current_round.total_premiums_collected
-            )
-
-            # Step 5 - Update the collateral position based on the settlement ratio
-            collateral_for_position_id = ratio * total_collateral_settlement
-
-            # Step 6 - Proceed to the next round if available
-            round_id += 1  # Assuming round IDs are consecutive integers
-
-            # Check if we've reached the end of the rounds for this position
-            if (round_id == self.fetch_current_round().round_id and self.fetch_current_round().state == RoundState.INITIALIZED) or round_id == self.next_round_id :
-                break  
+        collateral_for_position_id = self.collateral_balance_of(position_id)
 
         #print total position
         print(f"Total collateral for position {position_id} is {collateral_for_position_id:.0f}.")
@@ -790,7 +759,12 @@ class Vault(IVault):
         return payout
 
     def vault_type(self) -> VaultType:
-        ...
+        if self.strike_price_strategy == StrikePriceStrategy.OUT_OF_THE_MONEY:
+            return VaultType.OUT_OF_THE_MONEY
+        elif self.strike_price_strategy == StrikePriceStrategy.AT_THE_MONEY:
+            return VaultType.AT_THE_MONEY
+        elif self.strike_price_strategy == StrikePriceStrategy.IN_THE_MONEY:
+            return VaultType.IN_THE_MONEY
 
     def current_option_round(self) -> Tuple[int, OptionRoundParams]:
         return self.current_round_id, self.rounds[self.current_round_id].option_round_params
@@ -801,20 +775,75 @@ class Vault(IVault):
     def get_market_aggregator(self) -> IMarketAggregatorDispatcher:
         return self.market_aggregator
 
-    def unused_bid_deposit_balance_of(self, option_buyer: ContractAddress) -> int:
-        ...
+    def unused_bid_deposit_balance_of(self, option_round_id: int, option_buyer: ContractAddress) -> int:
+        if option_round_id < 0 or option_round_id >= self.next_round_id:
+            raise ValueError("Invalid option round ID")
+        refunds = self.rounds[option_round_id].refunds
+        if option_buyer not in refunds:
+            return 0
+        return refunds[option_buyer]
 
-    def payout_balance_of(self, option_buyer: ContractAddress) -> int:
-        ...
+    def payout_balance_of(self, option_round_id:int, option_buyer: ContractAddress) -> int:
+        if option_round_id < 0 or option_round_id >= self.next_round_id:
+            raise ValueError("Invalid option round ID")
+        allocations = self.rounds[option_round_id].option_allocations
+        if option_buyer not in allocations:
+            return 0
+        return allocations[option_buyer] * self.rounds[option_round_id].payout_amount_per_option
 
-    def option_balance_of(self, option_buyer: ContractAddress) -> int:
-        ...
+    def option_balance_of(self,option_round_id:int , option_buyer: ContractAddress) -> int:
+        if option_round_id < 0 or option_round_id >= self.next_round_id:
+            raise ValueError("Invalid option round ID")
+        allocations = self.rounds[option_round_id].option_allocations
+        if option_buyer not in allocations:
+            return 0
+        return allocations[option_buyer]
 
     def premium_balance_of(self, lp_id: int) -> int:
-        ...
+        raise NotImplementedError
 
+    # only return the amount which is collateralized
     def collateral_balance_of(self, lp_id: int) -> int:
-        ...
+        start_round_id = self.liquidity_positions[lp_id].round_id
+        if start_round_id <= self.current_round_id:
+            if start_round_id == self.current_round_id:
+                return self.round_positions[(start_round_id, lp_id)].amount
+            else:
+                round_id = self.liquidity_positions[lp_id].round_id
+                collateral_for_position_id = 0
+                # Now, we process the rounds and calculate collateral for each round
+                while True:  # Nested loop to process each round until a non-settled round is reached
+                    if (round_id, lp_id) in self.round_positions:
+                        round_position_entry = self.round_positions[(round_id, lp_id)]
+                        collateral_for_position_id += round_position_entry.amount
+
+                    current_round = self.rounds[round_id]
+
+                    if current_round.state != RoundState.OPTION_SETTLED:
+                        # Skip the settled round
+                        break
+                    
+                    # Step 3 - Calculate the ratio
+                    total_collateral_initial = current_round.total_collateral_at_initialization
+                    ratio = collateral_for_position_id / total_collateral_initial
+
+                    # Step 4 - Calculate total collateral at settlement
+                    total_collateral_settlement = (
+                        total_collateral_initial - current_round.total_payout + current_round.total_premiums_collected
+                    )
+
+                    # Step 5 - Update the collateral position based on the settlement ratio
+                    collateral_for_position_id = ratio * total_collateral_settlement
+
+                    # Step 6 - Proceed to the next round if available
+                    round_id += 1  # Assuming round IDs are consecutive integers
+
+                    # Check if we've reached the end of the rounds for this position
+                    if (round_id == self.fetch_current_round().round_id and self.fetch_current_round().state == RoundState.INITIALIZED) or round_id == self.next_round_id :
+                        return collateral_for_position_id  
+
+        else:
+            return 0                   
 
     def unallocated_liquidity_balance_of(self, lp_id: int) -> int:
         ...
@@ -825,7 +854,7 @@ class Vault(IVault):
     def total_unallocated_liquidity(self) -> int:
         ...
 
-    def total_options_sold(self) -> int:
+    def total_options_sold(self, option_round_id:int) -> int:
         ...
 
 
