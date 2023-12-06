@@ -45,14 +45,12 @@ trait IVault<TContractState> {// erc721
     // @notice add liquidity to the next option round. This will create a new liquidity position
     // @param amount: amount of liquidity to add
     // @return liquidity position id
-    #[external]
     fn open_liquidity_position(ref self: TContractState, amount: u256 ) -> u256;
 
     // @notice add liquidity to the next option round. This will update the liquidity position for lp_id
     // @param lp_id: liquidity position id
     // @param amount: amount of liquidity to add
     // @return bool: true if the liquidity was added successfully 
-    #[external]
     fn deposit_liquidity_to(ref self: TContractState, lp_id:u256,  amount: u256 ) -> bool;
 
     // @notice withdraw liquidity from the position
@@ -60,7 +58,6 @@ trait IVault<TContractState> {// erc721
     // @param lp_id: liquidity position id
     // @param amount: amount of liquidity to withdraw in wei
     // @return bool: true if the liquidity was withdrawn successfully
-    #[external]
     fn withdraw_liquidity(ref self: TContractState, lp_id: u256, amount:u256 ) -> bool;
 
     // #[view]
@@ -69,102 +66,79 @@ trait IVault<TContractState> {// erc721
     // @notice start a new option round, this also collaterizes amount from the previous option round and current option round. This also starts the auction for the options
     // @dev there should be checks to make sure that the previous option round has settled and is not collaterized anymore and certain time has elapsed.
     // @return option round id and option round params
-    #[external]
     fn start_new_option_round(ref self: TContractState) -> (u256, OptionRoundParams) ; 
 
     // @notice place a bid in the auction.
     // @param amount: max amount in weth/wei token to be used for bidding in the auction
     // @param price: max price in weth/wei token per option. if the auction ends with a price higher than this then the auction_place_bid is not accepted and can be refunded via refund_unused_bid_deposit
     // @returns true if auction_place_bid if deposit has been locked up in the auction. false if auction not running or auction_place_bid below reserve price
-    #[external]
     fn auction_place_bid(ref self: TContractState, amount : u256, price :u256) -> bool;
 
     // @notice successfully ended an auction, false if there was no auction in process
     // @return : the auction clearing price
-    #[external]
     fn settle_auction(ref self: TContractState) -> u256;
 
     // @notice if the option is past the expiry date then using the market_aggregator we can settle the option round
     // @return : true if the option round was settled successfully
-    #[external]
     fn settle_option_round(ref self: TContractState) -> bool;
 
     // @param option_round_id: option round id
     // @return OptionRoundState: the current state of the option round
-    #[view]
-    fn get_option_round_state(ref self: TContractState) -> OptionRoundState;
+    fn get_option_round_state(self: @TContractState) -> OptionRoundState;
 
     // @notice gets the option round params for the option round
     // @param option_round_id: option round id
-    #[view]
-    fn get_option_round_params(ref self: TContractState, option_round_id: u256) -> OptionRoundParams;
+    fn get_option_round_params(self: @TContractState, option_round_id: u256) -> OptionRoundParams;
 
     // @notice gets the auction clearing price for the option round, if the auction has ended
-    #[view]
-    fn get_auction_clearing_price(ref self: TContractState, option_round_id: u256) -> u256;
+    fn get_auction_clearing_price(self: @TContractState, option_round_id: u256) -> u256;
 
     // moves/transfers the unused premium deposit back to the bidder, return value is the amount of the transfer
     // this is per option buyer. every option buyer will have to individually call refund_unused_bid_deposit to transfer any unused deposits
-    #[external]
     fn refund_unused_bid_deposit(ref self: TContractState, option_round_id: u256, recipient:ContractAddress ) -> u256;
 
     // @notice transfers any payout due to the option buyer, return value is the amount of the transfer
     // @dev this is per option buyer. claim_option_payout will have to be called for every option buyer.
-    #[external]
     fn claim_option_payout(ref self: TContractState, option_round_id: u256, for_option_buyer:ContractAddress ) -> u256;
 
-    #[view]
     fn vault_type(self: @TContractState) -> VaultType;
 
     // @return current option round params and the option round id
-    #[view]
-    fn current_option_round(ref self: TContractState ) -> (u256, OptionRoundParams);
+    fn current_option_round(self: @TContractState) -> (u256, OptionRoundParams);
 
     // @return next option round params and the option round id
-    #[view]
-    fn next_option_round(ref self: TContractState ) -> (u256, OptionRoundParams);
+    fn next_option_round(self: @TContractState ) -> (u256, OptionRoundParams);
 
-    #[view]
     fn get_market_aggregator(self: @TContractState) -> IMarketAggregatorDispatcher;
 
     // total amount deposited as part of bidding by an option buyer, if the auction has not ended this represents the total amount locked up for auction and cannot be claimed back,
     // if the auction has ended this the amount which was not converted into an option and can be claimed back.
-    #[view]
     fn unused_bid_deposit_balance_of(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
     // payout due to an option buyer
-    #[view]
     fn payout_balance_of(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
     // no of options bought by a user
-    #[view]
     fn option_balance_of(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
     // premium balance of liquidity position
-    #[view]
     fn premium_balance_of(self: @TContractState, lp_id: u256) -> u256;
 
     // locked collateral balance of a liquidity position
-    #[view]
     fn collateral_balance_of(self: @TContractState, lp_id: u256) -> u256;
 
     // unallocated balance of balance of a liquidity position
-    #[view]
     fn unallocated_liquidity_balance_of(self: @TContractState, lp_id: u256) -> u256;
 
     // total collateral locked up in the vault
-    #[view]
     fn total_collateral(self: @TContractState) -> u256;
 
     // total liquidity unallocated/uncollaterized
-    #[view]
     fn total_unallocated_liquidity(self: @TContractState) -> u256;
 
     // total options sold
-    #[view]
     fn total_options_sold(self: @TContractState) -> u256;
 
-    #[view]
     fn decimals(self: @TContractState) -> u8;
 
 }
@@ -247,11 +221,11 @@ mod Vault  {
             true
         }
 
-        fn get_option_round_state(ref self: ContractState) -> OptionRoundState{
+        fn get_option_round_state(self: @ContractState) -> OptionRoundState{
             OptionRoundState::Initialized
         }
 
-        fn get_option_round_params(ref self: ContractState, option_round_id: u256) -> OptionRoundParams{
+        fn get_option_round_params(self: @ContractState, option_round_id: u256) -> OptionRoundParams{
             let params = OptionRoundParams{
                     current_average_basefee: 100,
                     strike_price: 1000,
@@ -270,11 +244,11 @@ mod Vault  {
             return params;
         }
 
-        fn get_auction_clearing_price(ref self: ContractState, option_round_id: u256) -> u256{
+        fn get_auction_clearing_price(self: @ContractState, option_round_id: u256) -> u256{
             100
         }
 
-        fn current_option_round(ref self: ContractState ) -> (u256, OptionRoundParams){
+        fn current_option_round(self: @ContractState ) -> (u256, OptionRoundParams){
             let params = OptionRoundParams{
                     current_average_basefee: 100,
                     strike_price: 1000,
@@ -292,7 +266,7 @@ mod Vault  {
             return (0, params);
         }
 
-        fn next_option_round(ref self: ContractState ) -> (u256, OptionRoundParams){
+        fn next_option_round(self: @ContractState) -> (u256, OptionRoundParams){
             let params = OptionRoundParams{
                     current_average_basefee: 100,
                     strike_price: 1000,

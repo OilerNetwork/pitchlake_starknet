@@ -22,17 +22,11 @@ use traits::{Into, TryInto};
 use pitch_lake_starknet::vault::{Vault, IVault, IVaultDispatcher};
 
 
-
-
 #[starknet::interface]
 trait IPitchLake<TContractState> {
-
-    #[view]
-    fn in_the_money_vault(ref self: TContractState) -> IVaultDispatcher;
-    #[view]
-    fn out_the_money_vault(ref self: TContractState) -> IVaultDispatcher;
-    #[view]
-    fn at_the_money_vault(ref self: TContractState) -> IVaultDispatcher;
+    fn in_the_money_vault(self: @TContractState) -> IVaultDispatcher;
+    fn out_the_money_vault(self: @TContractState) -> IVaultDispatcher;
+    fn at_the_money_vault(self: @TContractState) -> IVaultDispatcher;
 }
 
 #[starknet::contract]
@@ -64,16 +58,13 @@ mod PitchLake {
     #[external(v0)]
     impl PitchLakeImpl of super::IPitchLake<ContractState> {
 
-        #[view]
-        fn in_the_money_vault(ref self: ContractState) -> IVaultDispatcher{
+        fn in_the_money_vault(self: @ContractState) -> IVaultDispatcher{
             IVaultDispatcher{ contract_address:ContractAddressZeroable::zero()}
         }
-        #[view]
-        fn out_the_money_vault(ref self: ContractState) -> IVaultDispatcher{
+        fn out_the_money_vault(self: @ContractState) -> IVaultDispatcher{
             IVaultDispatcher{ contract_address:ContractAddressZeroable::zero()}
         }
-        #[view]
-        fn at_the_money_vault(ref self: ContractState) -> IVaultDispatcher{
+        fn at_the_money_vault(self: @ContractState) -> IVaultDispatcher{
             IVaultDispatcher{ contract_address:ContractAddressZeroable::zero()}
         }
 

@@ -4,13 +4,10 @@ use pitch_lake_starknet::market_aggregator::{IMarketAggregator, IMarketAggregato
 #[starknet::interface]
 trait IMarketAggregatorSetter<TContractState> {
 
-    #[external]
     fn set_average_base_fee(ref self: TContractState, base_fee:u256) ; 
 
-    #[external]
     fn set_standard_deviation_base_fee(ref self: TContractState, base_fee:u256) ;  
 
-    #[external]
     fn set_current_base_fee(ref self: TContractState, base_fee:u256) ;
 }
 
@@ -46,20 +43,17 @@ mod MockMarketAggregator {
         impl MockMarketAggregatorImpl of super::IMarketAggregator<ContractState> {
 
             // this is the average base fee for the previous round, returns in wei
-            #[view]
-            fn get_average_base_fee(ref self: ContractState) -> u256 {
+            fn get_average_base_fee(self: @ContractState) -> u256 {
                 self.average_base_fee.read()
             }
         
             // this is the standard deviation of the base fee for the previous round, returns in wei
-            #[view]
-            fn get_standard_deviation_base_fee(ref self: ContractState) -> u256 {
+            fn get_standard_deviation_base_fee(self: @ContractState) -> u256 {
                 self.standard_deviation_base_fee.read()
             }
         
             // this is the current base fee, returns in wei
-            #[view]
-            fn get_current_base_fee(ref self: ContractState) -> u256 {
+            fn get_current_base_fee(self: @ContractState) -> u256 {
                 self.current_base_fee.read()
             }
         }
