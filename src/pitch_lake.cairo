@@ -50,23 +50,20 @@ mod PitchLake {
         in_the_money_vault_: IVaultDispatcher,
         out_the_money_vault_: IVaultDispatcher,
         at_the_money_vault_: IVaultDispatcher,
-         market_aggregator_: IMarketAggregatorDispatcher
-    ) {
-        // self.option_round_class_hash.write( option_round_class_hash_);
+        market_aggregator_: IMarketAggregatorDispatcher
+    ) {// self.option_round_class_hash.write( option_round_class_hash_);
     }
 
     #[external(v0)]
     impl PitchLakeImpl of super::IPitchLake<ContractState> {
-
-        fn in_the_money_vault(self: @ContractState) -> IVaultDispatcher{
-            IVaultDispatcher{ contract_address:ContractAddressZeroable::zero()}
+        fn in_the_money_vault(self: @ContractState) -> IVaultDispatcher {
+            IVaultDispatcher { contract_address: ContractAddressZeroable::zero() }
         }
-        fn out_the_money_vault(self: @ContractState) -> IVaultDispatcher{
-            IVaultDispatcher{ contract_address:ContractAddressZeroable::zero()}
+        fn out_the_money_vault(self: @ContractState) -> IVaultDispatcher {
+            IVaultDispatcher { contract_address: ContractAddressZeroable::zero() }
         }
-        fn at_the_money_vault(self: @ContractState) -> IVaultDispatcher{
-            IVaultDispatcher{ contract_address:ContractAddressZeroable::zero()}
+        fn at_the_money_vault(self: @ContractState) -> IVaultDispatcher {
+            IVaultDispatcher { contract_address: ContractAddressZeroable::zero() }
         }
-
     }
 }

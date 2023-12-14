@@ -2,18 +2,12 @@ use array::ArrayTrait;
 use debug::PrintTrait;
 use option::OptionTrait;
 use openzeppelin::token::erc20::interface::{
-    IERC20,
-    IERC20SafeDispatcher,
-    IERC20SafeDispatcherTrait,
+    IERC20, IERC20SafeDispatcher, IERC20SafeDispatcherTrait,
 };
 use result::ResultTrait;
 use starknet::{
-    ClassHash,
-    ContractAddress,
-    contract_address_const,
-    deploy_syscall,
-    Felt252TryIntoContractAddress,
-    get_contract_address,
+    ClassHash, ContractAddress, contract_address_const, deploy_syscall,
+    Felt252TryIntoContractAddress, get_contract_address,
 };
 
 use starknet::contract_address::ContractAddressZeroable;
@@ -116,9 +110,9 @@ fn test_transfer_insufficient_balance() {
     let safe_dispatcher = deploy();
     let recipient: ContractAddress = ContractAddressZeroable::zero();
     let amount: u256 = 1;
-    let result : starknet::SyscallResult<bool> = safe_dispatcher.transfer(recipient, amount);
+    let result: starknet::SyscallResult<bool> = safe_dispatcher.transfer(recipient, amount);
     //  result.unwrap()
-    let result : bool = result.unwrap();
+    let result: bool = result.unwrap();
 }
 
 #[test]

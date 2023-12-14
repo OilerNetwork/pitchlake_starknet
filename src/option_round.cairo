@@ -2,25 +2,26 @@ use starknet::{ContractAddress, StorePacking};
 use array::{Array};
 use traits::{Into, TryInto};
 use openzeppelin::token::erc20::interface::IERC20Dispatcher;
-use pitch_lake_starknet::market_aggregator::{IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait};
-
+use pitch_lake_starknet::market_aggregator::{
+    IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
+};
 
 
 // unit of account is in wei
 #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
 struct OptionRoundParams {
     current_average_basefee: u256, // wei
-    standard_deviation:u256,
+    standard_deviation: u256,
     strike_price: u256, // wei
-    cap_level :u256,  //wei 
+    cap_level: u256, //wei 
     collateral_level: u256,
     reserve_price: u256, //wei
     total_options_available: u256,
     // start_time:u64,
-    option_expiry_time:u64, // OptionRound cannot settle before this time
-    auction_end_time:u64, // auction cannot settle before this time
-    minimum_bid_amount:u256,  // to prevent a dos vector
-    minimum_collateral_required:u256 // the option round will not start until this much collateral is deposited
+    option_expiry_time: u64, // OptionRound cannot settle before this time
+    auction_end_time: u64, // auction cannot settle before this time
+    minimum_bid_amount: u256, // to prevent a dos vector
+    minimum_collateral_required: u256 // the option round will not start until this much collateral is deposited
 }
 
 #[derive(Copy, Drop, Serde, PartialEq, starknet::Store)]
@@ -74,8 +75,6 @@ struct OptionTransferEvent {
     to: ContractAddress,
     amount: u256
 }
-
-
 // #[starknet::interface]
 // trait IOptionRound<TContractState> {
 
@@ -237,7 +236,6 @@ struct OptionTransferEvent {
 //             }   
 //         }
 
-
 //         fn get_auction_clearing_price(ref self: ContractState) -> u256{
 //             // final clearing price
 //             100
@@ -254,7 +252,6 @@ struct OptionTransferEvent {
 //         fn transfer_collateral_to_vault(ref self: ContractState, for_liquidity_provider: ContractAddress) -> u256{
 //             100
 //         }
-
 
 //         fn transfer_premium_collected_to_vault(ref self: ContractState, for_liquidity_provider: ContractAddress) -> u256{
 //             100
@@ -295,3 +292,4 @@ struct OptionTransferEvent {
 
 //     }
 // }
+

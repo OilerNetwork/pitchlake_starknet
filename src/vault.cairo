@@ -5,7 +5,9 @@ use openzeppelin::token::erc20::interface::IERC20Dispatcher;
 use openzeppelin::utils::serde::SerializedAppend;
 
 use pitch_lake_starknet::option_round::{OptionRoundParams, OptionRoundState};
-use pitch_lake_starknet::market_aggregator::{IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait};
+use pitch_lake_starknet::market_aggregator::{
+    IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
+};
 
 #[derive(Copy, Drop, Serde, PartialEq)]
 enum VaultType {
@@ -34,31 +36,30 @@ struct OptionRoundCreated {
     prev_round: ContractAddress,
     new_round: ContractAddress,
     collaterized_amount: u256,
-    option_round_params:OptionRoundParams
+    option_round_params: OptionRoundParams
 }
 
 //IVault, Vault will be the main contract that the liquidity_providers and option_buyers will interact with.
 
 #[starknet::interface]
-trait IVault<TContractState> {// erc721
-
+trait IVault<TContractState> { // erc721
     // @notice add liquidity to the next option round. This will create a new liquidity position
     // @param amount: amount of liquidity to add
     // @return liquidity position id
-    fn open_liquidity_position(ref self: TContractState, amount: u256 ) -> u256;
+    fn open_liquidity_position(ref self: TContractState, amount: u256) -> u256;
 
     // @notice add liquidity to the next option round. This will update the liquidity position for lp_id
     // @param lp_id: liquidity position id
     // @param amount: amount of liquidity to add
     // @return bool: true if the liquidity was added successfully 
-    fn deposit_liquidity_to(ref self: TContractState, lp_id:u256,  amount: u256 ) -> bool;
+    fn deposit_liquidity_to(ref self: TContractState, lp_id: u256, amount: u256) -> bool;
 
     // @notice withdraw liquidity from the position
     // @dev this can only be withdrawn from amound deposited for the next option round or if the current option round has settled and is not collaterized anymore
     // @param lp_id: liquidity position id
     // @param amount: amount of liquidity to withdraw in wei
     // @return bool: true if the liquidity was withdrawn successfully
-    fn withdraw_liquidity(ref self: TContractState, lp_id: u256, amount:u256 ) -> bool;
+    fn withdraw_liquidity(ref self: TContractState, lp_id: u256, amount: u256) -> bool;
 
     // #[view]
     // fn generate_option_round_params(ref self: TContractState, option_expiry_time_:u64)-> OptionRoundParams;
@@ -66,13 +67,13 @@ trait IVault<TContractState> {// erc721
     // @notice start a new option round, this also collaterizes amount from the previous option round and current option round. This also starts the auction for the options
     // @dev there should be checks to make sure that the previous option round has settled and is not collaterized anymore and certain time has elapsed.
     // @return option round id and option round params
-    fn start_new_option_round(ref self: TContractState) -> (u256, OptionRoundParams) ; 
+    fn start_new_option_round(ref self: TContractState) -> (u256, OptionRoundParams);
 
     // @notice place a bid in the auction.
     // @param amount: max amount in weth/wei token to be used for bidding in the auction
     // @param price: max price in weth/wei token per option. if the auction ends with a price higher than this then the auction_place_bid is not accepted and can be refunded via refund_unused_bid_deposit
     // @returns true if auction_place_bid if deposit has been locked up in the auction. false if auction not running or auction_place_bid below reserve price
-    fn auction_place_bid(ref self: TContractState, amount : u256, price :u256) -> bool;
+    fn auction_place_bid(ref self: TContractState, amount: u256, price: u256) -> bool;
 
     // @notice successfully ended an auction, false if there was no auction in process
     // @return : the auction clearing price
@@ -95,11 +96,15 @@ trait IVault<TContractState> {// erc721
 
     // moves/transfers the unused premium deposit back to the bidder, return value is the amount of the transfer
     // this is per option buyer. every option buyer will have to individually call refund_unused_bid_deposit to transfer any unused deposits
-    fn refund_unused_bid_deposit(ref self: TContractState, option_round_id: u256, recipient:ContractAddress ) -> u256;
+    fn refund_unused_bid_deposit(
+        ref self: TContractState, option_round_id: u256, recipient: ContractAddress
+    ) -> u256;
 
     // @notice transfers any payout due to the option buyer, return value is the amount of the transfer
     // @dev this is per option buyer. claim_option_payout will have to be called for every option buyer.
-    fn claim_option_payout(ref self: TContractState, option_round_id: u256, for_option_buyer:ContractAddress ) -> u256;
+    fn claim_option_payout(
+        ref self: TContractState, option_round_id: u256, for_option_buyer: ContractAddress
+    ) -> u256;
 
     fn vault_type(self: @TContractState) -> VaultType;
 
@@ -107,7 +112,7 @@ trait IVault<TContractState> {// erc721
     fn current_option_round(self: @TContractState) -> (u256, OptionRoundParams);
 
     // @return next option round params and the option round id
-    fn next_option_round(self: @TContractState ) -> (u256, OptionRoundParams);
+    fn next_option_round(self: @TContractState) -> (u256, OptionRoundParams);
 
     fn get_market_aggregator(self: @TContractState) -> IMarketAggregatorDispatcher;
 
@@ -140,11 +145,10 @@ trait IVault<TContractState> {// erc721
     fn total_options_sold(self: @TContractState) -> u256;
 
     fn decimals(self: @TContractState) -> u8;
-
 }
 
 #[starknet::contract]
-mod Vault  {
+mod Vault {
     use core::option::OptionTrait;
     use core::traits::TryInto;
     use core::traits::Into;
@@ -157,7 +161,9 @@ mod Vault  {
     use openzeppelin::token::erc20::interface::IERC20Dispatcher;
     use openzeppelin::utils::serde::SerializedAppend;
     use pitch_lake_starknet::option_round::{OptionRoundParams, OptionRoundState};
-    use pitch_lake_starknet::market_aggregator::{IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait};
+    use pitch_lake_starknet::market_aggregator::{
+        IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
+    };
 
 
     #[storage]
@@ -178,113 +184,115 @@ mod Vault  {
 
     #[external(v0)]
     impl VaultImpl of super::IVault<ContractState> {
-        fn open_liquidity_position(ref self: ContractState, amount: u256 ) -> u256{
+        fn open_liquidity_position(ref self: ContractState, amount: u256) -> u256 {
             10
         }
 
-        fn deposit_liquidity_to(ref self: ContractState, lp_id:u256,  amount: u256 ) -> bool{
+        fn deposit_liquidity_to(ref self: ContractState, lp_id: u256, amount: u256) -> bool {
             true
         }
 
-        fn withdraw_liquidity(ref self: ContractState, lp_id: u256, amount:u256 ) -> bool{
+        fn withdraw_liquidity(ref self: ContractState, lp_id: u256, amount: u256) -> bool {
             true
         }
 
         fn start_new_option_round(ref self: ContractState) -> (u256, OptionRoundParams) {
-            let params = OptionRoundParams{
-                    current_average_basefee: 100,
-                    strike_price: 1000,
-                    standard_deviation: 50,
-                    cap_level :100,  
-                    collateral_level: 100,
-                    reserve_price: 10,
-                    total_options_available:1000,
-                    // start_time:start_time_,
-                    option_expiry_time:1000,
-                    auction_end_time: 1000,
-                    minimum_bid_amount: 100,
-                    minimum_collateral_required:100
-                };
+            let params = OptionRoundParams {
+                current_average_basefee: 100,
+                strike_price: 1000,
+                standard_deviation: 50,
+                cap_level: 100,
+                collateral_level: 100,
+                reserve_price: 10,
+                total_options_available: 1000,
+                // start_time:start_time_,
+                option_expiry_time: 1000,
+                auction_end_time: 1000,
+                minimum_bid_amount: 100,
+                minimum_collateral_required: 100
+            };
 
             return (0, params);
         }
 
-        fn auction_place_bid(ref self: ContractState, amount : u256, price :u256) -> bool{
+        fn auction_place_bid(ref self: ContractState, amount: u256, price: u256) -> bool {
             true
         }
 
-        fn settle_auction(ref self: ContractState) -> u256{
+        fn settle_auction(ref self: ContractState) -> u256 {
             100
         }
 
-        fn settle_option_round(ref self: ContractState) -> bool{
+        fn settle_option_round(ref self: ContractState) -> bool {
             true
         }
 
-        fn get_option_round_state(self: @ContractState) -> OptionRoundState{
+        fn get_option_round_state(self: @ContractState) -> OptionRoundState {
             OptionRoundState::Initialized
         }
 
-        fn get_option_round_params(self: @ContractState, option_round_id: u256) -> OptionRoundParams{
-            let params = OptionRoundParams{
-                    current_average_basefee: 100,
-                    strike_price: 1000,
-                    standard_deviation: 50,
-                    cap_level :100,  
-                    collateral_level: 100,
-                    reserve_price: 10,
-                    total_options_available:1000,
-                    // start_time:start_time_,
-                    option_expiry_time:1000,
-                    auction_end_time: 1000,
-                    minimum_bid_amount: 100,
-                    minimum_collateral_required:100
-                };
+        fn get_option_round_params(
+            self: @ContractState, option_round_id: u256
+        ) -> OptionRoundParams {
+            let params = OptionRoundParams {
+                current_average_basefee: 100,
+                strike_price: 1000,
+                standard_deviation: 50,
+                cap_level: 100,
+                collateral_level: 100,
+                reserve_price: 10,
+                total_options_available: 1000,
+                // start_time:start_time_,
+                option_expiry_time: 1000,
+                auction_end_time: 1000,
+                minimum_bid_amount: 100,
+                minimum_collateral_required: 100
+            };
 
             return params;
         }
 
-        fn get_auction_clearing_price(self: @ContractState, option_round_id: u256) -> u256{
+        fn get_auction_clearing_price(self: @ContractState, option_round_id: u256) -> u256 {
             100
         }
 
-        fn current_option_round(self: @ContractState ) -> (u256, OptionRoundParams){
-            let params = OptionRoundParams{
-                    current_average_basefee: 100,
-                    strike_price: 1000,
-                    standard_deviation: 50,
-                    cap_level :100,  
-                    collateral_level: 100,
-                    reserve_price: 10,
-                    total_options_available:1000,
-                    // start_time:start_time_,
-                    option_expiry_time:1000,
-                    auction_end_time: 1000,
-                    minimum_bid_amount: 100,
-                    minimum_collateral_required:100
-                };
+        fn current_option_round(self: @ContractState) -> (u256, OptionRoundParams) {
+            let params = OptionRoundParams {
+                current_average_basefee: 100,
+                strike_price: 1000,
+                standard_deviation: 50,
+                cap_level: 100,
+                collateral_level: 100,
+                reserve_price: 10,
+                total_options_available: 1000,
+                // start_time:start_time_,
+                option_expiry_time: 1000,
+                auction_end_time: 1000,
+                minimum_bid_amount: 100,
+                minimum_collateral_required: 100
+            };
             return (0, params);
         }
 
-        fn next_option_round(self: @ContractState) -> (u256, OptionRoundParams){
-            let params = OptionRoundParams{
-                    current_average_basefee: 100,
-                    strike_price: 1000,
-                    standard_deviation: 50,
-                    cap_level :100,  
-                    collateral_level: 100,
-                    reserve_price: 10,
-                    total_options_available:1000,
-                    // start_time:start_time_,
-                    option_expiry_time:1000,
-                    auction_end_time: 1000,
-                    minimum_bid_amount: 100,
-                    minimum_collateral_required:100
-                };
+        fn next_option_round(self: @ContractState) -> (u256, OptionRoundParams) {
+            let params = OptionRoundParams {
+                current_average_basefee: 100,
+                strike_price: 1000,
+                standard_deviation: 50,
+                cap_level: 100,
+                collateral_level: 100,
+                reserve_price: 10,
+                total_options_available: 1000,
+                // start_time:start_time_,
+                option_expiry_time: 1000,
+                auction_end_time: 1000,
+                minimum_bid_amount: 100,
+                minimum_collateral_required: 100
+            };
             return (0, params);
         }
 
-        fn vault_type(self: @ContractState) -> VaultType  {
+        fn vault_type(self: @ContractState) -> VaultType {
             // TODO fix later, random value
             VaultType::AtTheMoney
         }
@@ -293,39 +301,45 @@ mod Vault  {
             return self.market_aggregator.read();
         }
 
-        fn refund_unused_bid_deposit(ref self: ContractState, option_round_id: u256, recipient:ContractAddress ) -> u256{
+        fn refund_unused_bid_deposit(
+            ref self: ContractState, option_round_id: u256, recipient: ContractAddress
+        ) -> u256 {
             100
         }
 
-        fn claim_option_payout(ref self: ContractState, option_round_id: u256, for_option_buyer:ContractAddress ) -> u256{
+        fn claim_option_payout(
+            ref self: ContractState, option_round_id: u256, for_option_buyer: ContractAddress
+        ) -> u256 {
             100
         }
 
-        fn unused_bid_deposit_balance_of(self: @ContractState, option_buyer: ContractAddress) -> u256{
+        fn unused_bid_deposit_balance_of(
+            self: @ContractState, option_buyer: ContractAddress
+        ) -> u256 {
             100
         }
 
-        fn payout_balance_of(self: @ContractState, option_buyer: ContractAddress) -> u256{
+        fn payout_balance_of(self: @ContractState, option_buyer: ContractAddress) -> u256 {
             100
         }
 
-        fn option_balance_of(self: @ContractState, option_buyer: ContractAddress) -> u256{
+        fn option_balance_of(self: @ContractState, option_buyer: ContractAddress) -> u256 {
             100
         }
 
-        fn premium_balance_of(self: @ContractState, lp_id: u256) -> u256{
+        fn premium_balance_of(self: @ContractState, lp_id: u256) -> u256 {
             100
         }
 
-        fn collateral_balance_of(self: @ContractState, lp_id: u256) -> u256{
+        fn collateral_balance_of(self: @ContractState, lp_id: u256) -> u256 {
             100
         }
 
-        fn total_collateral(self: @ContractState) -> u256{
+        fn total_collateral(self: @ContractState) -> u256 {
             100
         }
 
-        fn total_options_sold(self: @ContractState) -> u256{
+        fn total_options_sold(self: @ContractState) -> u256 {
             100
         }
 

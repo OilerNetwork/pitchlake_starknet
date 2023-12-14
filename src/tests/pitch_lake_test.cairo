@@ -68,31 +68,18 @@
 use array::ArrayTrait;
 use option::OptionTrait;
 use pitch_lake_starknet::pitch_lake::{
-    IPitchLake,
-    IPitchLakeDispatcher,
-    IPitchLakeDispatcherTrait,
-    IPitchLakeSafeDispatcher,
-    IPitchLakeSafeDispatcherTrait,
-    PitchLake,
+    IPitchLake, IPitchLakeDispatcher, IPitchLakeDispatcherTrait, IPitchLakeSafeDispatcher,
+    IPitchLakeSafeDispatcherTrait, PitchLake,
 };
 
 use pitch_lake_starknet::vault::{
-    IVault,
-    IVaultDispatcher,
-    IVaultDispatcherTrait,
-    IVaultSafeDispatcher,
-    IVaultSafeDispatcherTrait,
-    Vault,
-    VaultType
+    IVault, IVaultDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcher,
+    IVaultSafeDispatcherTrait, Vault, VaultType
 };
 use result::ResultTrait;
 use starknet::{
-    ClassHash,
-    ContractAddress,
-    contract_address_const,
-    deploy_syscall,
-    Felt252TryIntoContractAddress,
-    get_contract_address,
+    ClassHash, ContractAddress, contract_address_const, deploy_syscall,
+    Felt252TryIntoContractAddress, get_contract_address,
 };
 use traits::TryInto;
 use openzeppelin::utils::serde::SerializedAppend;
@@ -105,7 +92,7 @@ fn deploy() -> IPitchLakeDispatcher {
     calldata.append_serde(ContractAddressZeroable::zero());
 
     calldata.append_serde(ContractAddressZeroable::zero()); // vaults address, update later
-    calldata.append_serde(ContractAddressZeroable::zero()); 
+    calldata.append_serde(ContractAddressZeroable::zero());
     calldata.append_serde(ContractAddressZeroable::zero());
     let (address, _) = deploy_syscall(
         PitchLake::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
@@ -118,13 +105,12 @@ fn deploy() -> IPitchLakeDispatcher {
 #[available_gas(10000000)]
 fn test_vault_type() {
     let pitch_lake_dispatcher: IPitchLakeDispatcher = deploy();
-    let in_the_money_vault: IVaultDispatcher =  pitch_lake_dispatcher.in_the_money_vault();
-    let out_the_money_vault: IVaultDispatcher =  pitch_lake_dispatcher.out_the_money_vault();
-    let at_the_money_vault: IVaultDispatcher =  pitch_lake_dispatcher.at_the_money_vault();
+    let in_the_money_vault: IVaultDispatcher = pitch_lake_dispatcher.in_the_money_vault();
+    let out_the_money_vault: IVaultDispatcher = pitch_lake_dispatcher.out_the_money_vault();
+    let at_the_money_vault: IVaultDispatcher = pitch_lake_dispatcher.at_the_money_vault();
 
     assert(in_the_money_vault.vault_type() == VaultType::InTheMoney, '');
     assert(out_the_money_vault.vault_type() == VaultType::OutOfMoney, '');
     assert(at_the_money_vault.vault_type() == VaultType::AtTheMoney, '');
-
 }
 

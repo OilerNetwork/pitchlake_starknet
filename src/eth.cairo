@@ -5,9 +5,8 @@
 // can experiment next with the cross-contract call testing
 // deploy contracts at different addresses like in governance
 
-
 #[starknet::contract]
-mod Eth {   
+mod Eth {
     use openzeppelin::token::erc20::ERC20;
     use starknet::ContractAddress;
 
@@ -85,5 +84,4 @@ mod Eth {
         let mut unsafe_state = ERC20::unsafe_new_contract_state();
         ERC20::ERC20Impl::approve(ref unsafe_state, spender, amount)
     }
-
 }

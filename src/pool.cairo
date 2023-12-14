@@ -9,14 +9,12 @@ enum PoolType {
 }
 
 #[starknet::interface]
-trait IPool<TContractState> {
-
-}
+trait IPool<TContractState> {}
 
 #[starknet::contract]
-mod pool  {
+mod pool {
     use core::traits::Into;
-use openzeppelin::token::erc20::ERC20;
+    use openzeppelin::token::erc20::ERC20;
     use openzeppelin::token::erc20::interface::IERC20;
     use starknet::ContractAddress;
     use pitch_lake_starknet::vault::VaultType;
@@ -33,7 +31,7 @@ use openzeppelin::token::erc20::ERC20;
         name: felt252,
         symbol: felt252,
         initial_supply: u256,
-        pool_type_:PoolType,
+        pool_type_: PoolType,
         recipient: ContractAddress
     ) {
         let name = 'VAULT';
@@ -103,9 +101,6 @@ use openzeppelin::token::erc20::ERC20;
         ERC20::ERC20Impl::approve(ref unsafe_state, spender, amount)
     }
 
-     #[external(v0)]
-     impl PoolImpl of super::IPool<ContractState> {
-
-
-    }
+    #[external(v0)]
+    impl PoolImpl of super::IPool<ContractState> {}
 }
