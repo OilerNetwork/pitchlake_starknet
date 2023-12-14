@@ -1,22 +1,3 @@
-use array::ArrayTrait;
-use option::OptionTrait;
-use pitch_lake_starknet::pitch_lake::{
-    IPitchLake,
-    IPitchLakeSafeDispatcher,
-    IPitchLakeSafeDispatcherTrait,
-    PitchLake,
-};
-use result::ResultTrait;
-use starknet::{
-    ClassHash,
-    ContractAddress,
-    contract_address_const,
-    deploy_syscall,
-    Felt252TryIntoContractAddress,
-    get_contract_address,
-};
-use traits::TryInto;
-
 // TODO:
 // underlying
 // setting expiry
@@ -84,41 +65,52 @@ use traits::TryInto;
 // events: liq deployed addr round amount
 // events: liq redeemed addr round amount (base, reward)
 
-fn deploy() -> IPitchLakeSafeDispatcher {
-    let mut constructor_args: Array<felt252> = ArrayTrait::new();
+use array::ArrayTrait;
+use option::OptionTrait;
+use pitch_lake_starknet::pitch_lake::{
+    IPitchLake, IPitchLakeDispatcher, IPitchLakeDispatcherTrait, IPitchLakeSafeDispatcher,
+    IPitchLakeSafeDispatcherTrait, PitchLake,
+};
+
+use pitch_lake_starknet::vault::{
+    IVault, IVaultDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcher,
+    IVaultSafeDispatcherTrait, Vault, VaultType
+};
+use result::ResultTrait;
+use starknet::{
+    ClassHash, ContractAddress, contract_address_const, deploy_syscall,
+    Felt252TryIntoContractAddress, get_contract_address,
+};
+use traits::TryInto;
+use openzeppelin::utils::serde::SerializedAppend;
+use starknet::contract_address::ContractAddressZeroable;
+
+
+fn deploy() -> IPitchLakeDispatcher {
+    let mut calldata = array![];
+
+    calldata.append_serde(ContractAddressZeroable::zero());
+
+    calldata.append_serde(ContractAddressZeroable::zero()); // vaults address, update later
+    calldata.append_serde(ContractAddressZeroable::zero());
+    calldata.append_serde(ContractAddressZeroable::zero());
     let (address, _) = deploy_syscall(
-        PitchLake::TEST_CLASS_HASH.try_into().unwrap(), 0, constructor_args.span(), true
+        PitchLake::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
     )
         .expect('DEPLOY_AD_FAILED');
-    return IPitchLakeSafeDispatcher { contract_address: address };
+    return IPitchLakeDispatcher { contract_address: address };
 }
 
 #[test]
-#[available_gas(1000000)]
-fn test_increase_balance() {
-    let safe_dispatcher = deploy();
+#[available_gas(10000000)]
+fn test_vault_type() {
+    let pitch_lake_dispatcher: IPitchLakeDispatcher = deploy();
+    let in_the_money_vault: IVaultDispatcher = pitch_lake_dispatcher.in_the_money_vault();
+    let out_the_money_vault: IVaultDispatcher = pitch_lake_dispatcher.out_the_money_vault();
+    let at_the_money_vault: IVaultDispatcher = pitch_lake_dispatcher.at_the_money_vault();
 
-    let balance_before = safe_dispatcher.get_balance().unwrap();
-    assert(balance_before == 0, 'Invalid balance');
-
-    safe_dispatcher.increase_balance(42).unwrap();
-
-    let balance_after = safe_dispatcher.get_balance().unwrap();
-    assert(balance_after == 42, 'Invalid balance');
+    assert(in_the_money_vault.vault_type() == VaultType::InTheMoney, '');
+    assert(out_the_money_vault.vault_type() == VaultType::OutOfMoney, '');
+    assert(at_the_money_vault.vault_type() == VaultType::AtTheMoney, '');
 }
 
-#[test]
-#[available_gas(1000000)]
-fn test_cannot_increase_balance_with_zero_value() {
-    let safe_dispatcher = deploy();
-
-    let balance_before = safe_dispatcher.get_balance().unwrap();
-    assert(balance_before == 0, 'Invalid balance');
-
-    match safe_dispatcher.increase_balance(0) {
-        Result::Ok(_) => panic_with_felt252('Should have panicked'),
-        Result::Err(panic_data) => {
-            assert(*panic_data.at(0) == 'Amount cannot be 0', *panic_data.at(0));
-        }
-    };
-}
