@@ -14,7 +14,7 @@ use pitch_lake_starknet::vault::{
 use pitch_lake_starknet::option_round::{OptionRoundParams};
 use pitch_lake_starknet::eth::Eth;
 use pitch_lake_starknet::tests::utils::{
-    setup, deploy_vault, allocated_pool_address, unallocated_pool_address, timestamp_start_month,
+    setup, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address, timestamp_start_month,
     timestamp_end_month, liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
     option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4, option_bidder_buyer_5,
     option_bidder_buyer_6, vault_manager, weth_owner, mock_option_params, month_duration,
@@ -38,7 +38,7 @@ use traits::TryInto;
 fn test_clearing_price_1() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
     set_contract_address(liquidity_provider_1());
-    let deposit_amount_wei: u256 = 10000 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei: u256 = 10000 * decimals();
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
@@ -47,7 +47,7 @@ fn test_clearing_price_1() {
     let bid_count: u256 = 2;
     let bid_amount: u256 = bid_count
         * option_params.reserve_price
-        * vault_dispatcher.decimals().into();
+        * decimals();
     set_contract_address(option_bidder_buyer_1());
     vault_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
 
@@ -64,7 +64,7 @@ fn test_clearing_price_1() {
 fn test_clearing_price_2() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
     set_contract_address(liquidity_provider_1());
-    let deposit_amount_wei: u256 = 10000 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei: u256 = 10000 * decimals();
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
@@ -74,8 +74,8 @@ fn test_clearing_price_2() {
     let bid_price_user_1: u256 = option_params.reserve_price;
     let bid_price_user_2: u256 = option_params.reserve_price + 10;
 
-    let bid_amount_user_1: u256 = bid_count * bid_price_user_1 * vault_dispatcher.decimals().into();
-    let bid_amount_user_2: u256 = bid_count * bid_price_user_2 * vault_dispatcher.decimals().into();
+    let bid_amount_user_1: u256 = bid_count * bid_price_user_1 * decimals();
+    let bid_amount_user_2: u256 = bid_count * bid_price_user_2 * decimals();
 
     set_contract_address(option_bidder_buyer_1());
     vault_dispatcher.auction_place_bid(bid_amount_user_1, bid_price_user_1);
@@ -86,7 +86,7 @@ fn test_clearing_price_2() {
     vault_dispatcher.settle_auction();
 
     let clearing_price: u256 = vault_dispatcher.get_auction_clearing_price(option_round_id);
-    assert(clearing_price == bid_price_user_2, 'clear price equal reserve price');
+    assert(clearing_price == bid_price_user_2, 'clear price equal reserve price'); 
     assert_event_auction_bid(option_bidder_buyer_1(), bid_amount_user_1, bid_price_user_1);
     assert_event_auction_bid(option_bidder_buyer_2(), bid_amount_user_2, bid_price_user_2);
 }
@@ -96,7 +96,7 @@ fn test_clearing_price_2() {
 fn test_clearing_price_3() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
     set_contract_address(liquidity_provider_1());
-    let deposit_amount_wei: u256 = 10000 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei: u256 = 10000 * decimals();
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
@@ -110,10 +110,10 @@ fn test_clearing_price_3() {
 
     let bid_amount_user_1: u256 = bid_count_user_1
         * bid_price_user_1
-        * vault_dispatcher.decimals().into();
+        * decimals();
     let bid_amount_user_2: u256 = bid_count_user_2
         * bid_price_user_2
-        * vault_dispatcher.decimals().into();
+        * decimals();
 
     set_contract_address(option_bidder_buyer_1());
     vault_dispatcher.auction_place_bid(bid_amount_user_1, bid_price_user_1);
@@ -125,7 +125,7 @@ fn test_clearing_price_3() {
     vault_dispatcher.settle_auction();
 
     let clearing_price: u256 = vault_dispatcher.get_auction_clearing_price(option_round_id);
-    assert(clearing_price == bid_price_user_2, 'clear price equal reserve price');
+    assert(clearing_price == bid_price_user_2, 'clear price equal reserve price'); 
     assert_event_auction_bid(option_bidder_buyer_1(), bid_amount_user_1, bid_price_user_1);
     assert_event_auction_bid(option_bidder_buyer_2(), bid_amount_user_2, bid_price_user_2);
 }
@@ -135,7 +135,7 @@ fn test_clearing_price_3() {
 fn test_clearing_price_4() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
     set_contract_address(liquidity_provider_1());
-    let deposit_amount_wei: u256 = 10000 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei: u256 = 10000 * decimals();
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
@@ -151,13 +151,13 @@ fn test_clearing_price_4() {
 
     let bid_amount_user_1: u256 = bid_count_user_1
         * bid_price_user_1
-        * vault_dispatcher.decimals().into();
+        * decimals();
     let bid_amount_user_2: u256 = bid_count_user_2
         * bid_price_user_2
-        * vault_dispatcher.decimals().into();
+        * decimals();
     let bid_amount_user_3: u256 = bid_count_user_3
         * bid_price_user_3
-        * vault_dispatcher.decimals().into();
+        * decimals();
 
     set_contract_address(option_bidder_buyer_1());
     vault_dispatcher.auction_place_bid(bid_amount_user_1, bid_price_user_1);
@@ -183,7 +183,7 @@ fn test_clearing_price_4() {
 fn test_clearing_price_5() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
     set_contract_address(liquidity_provider_1());
-    let deposit_amount_wei: u256 = 10000 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei: u256 = 10000 * decimals();
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
@@ -199,13 +199,13 @@ fn test_clearing_price_5() {
 
     let bid_amount_user_1: u256 = bid_count_user_1
         * bid_price_user_1
-        * vault_dispatcher.decimals().into();
+        * decimals();
     let bid_amount_user_2: u256 = bid_count_user_2
         * bid_price_user_2
-        * vault_dispatcher.decimals().into();
+        * decimals();
     let bid_amount_user_3: u256 = bid_count_user_3
         * bid_price_user_3
-        * vault_dispatcher.decimals().into();
+        * decimals();
 
     set_contract_address(option_bidder_buyer_1());
     vault_dispatcher.auction_place_bid(bid_amount_user_1, bid_price_user_1);
@@ -228,7 +228,7 @@ fn test_clearing_price_5() {
 #[available_gas(10000000)]
 fn test_bid_below_reserve_price() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_amount_wei: u256 = 50 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei: u256 = 50 * decimals();
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
 
@@ -240,7 +240,7 @@ fn test_bid_below_reserve_price() {
 
     set_contract_address(option_bidder_buyer_1());
     let success = vault_dispatcher
-        .auction_place_bid(10 * vault_dispatcher.decimals().into(), bid_below_reserve);
+        .auction_place_bid(10 * decimals(), bid_below_reserve);
     assert(success == false, 'should not be able to bid');
 }
 
@@ -250,7 +250,7 @@ fn test_bid_below_reserve_price() {
 fn test_lock_of_bid_funds() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
     set_contract_address(liquidity_provider_1());
-    let deposit_amount_wei: u256 = 10000 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei: u256 = 10000 * decimals();
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
@@ -259,7 +259,7 @@ fn test_lock_of_bid_funds() {
     let bid_count: u256 = 2;
     let bid_amount: u256 = bid_count
         * option_params.reserve_price
-        * vault_dispatcher.decimals().into();
+        * decimals();
     set_contract_address(option_bidder_buyer_1());
     let wei_balance_before_bid: u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
     vault_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
@@ -277,7 +277,7 @@ fn test_lock_of_bid_funds() {
 fn test_zero_bid_count() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
     set_contract_address(liquidity_provider_1());
-    let deposit_amount_wei: u256 = 10000 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei: u256 = 10000 * decimals();
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
@@ -296,7 +296,7 @@ fn test_zero_bid_count() {
 fn test_zero_bid_price() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
     set_contract_address(liquidity_provider_1());
-    let deposit_amount_wei: u256 = 10000 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei: u256 = 10000 * decimals();
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
@@ -305,7 +305,7 @@ fn test_zero_bid_price() {
     let bid_count: u256 = 2;
     let bid_amount: u256 = bid_count
         * option_params.reserve_price
-        * vault_dispatcher.decimals().into();
+        * decimals();
     set_contract_address(option_bidder_buyer_1());
     let wei_balance_before_bid: u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
     vault_dispatcher.auction_place_bid(bid_amount, 0);
@@ -319,7 +319,7 @@ fn test_zero_bid_price() {
 fn test_eth_unused_for_rejected_bids() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
     set_contract_address(liquidity_provider_1());
-    let deposit_amount_wei: u256 = 10000 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei: u256 = 10000 * decimals();
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
@@ -328,7 +328,7 @@ fn test_eth_unused_for_rejected_bids() {
     let bid_count: u256 = 2;
     let bid_amount: u256 = bid_count
         * option_params.reserve_price
-        * vault_dispatcher.decimals().into();
+        * decimals();
     set_contract_address(option_bidder_buyer_1());
 
     let wei_balance_before_bid: u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
@@ -343,16 +343,16 @@ fn test_eth_unused_for_rejected_bids() {
 fn test_eth_lockup_for_unused_bids() { // accepted but still unused bids
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
     set_contract_address(liquidity_provider_1());
-    let deposit_amount_wei: u256 = 10000 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei: u256 = 10000 * decimals();
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
         .start_new_option_round();
 
-    let bid_count: u256 = option_params.total_options_available + 10;
+    let bid_count: u256 = option_params.total_options_available + 10; 
     let bid_amount: u256 = bid_count
         * option_params.reserve_price
-        * vault_dispatcher.decimals().into();
+        * decimals();
     set_contract_address(option_bidder_buyer_1());
     let wei_balance_before_bid: u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
     vault_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
@@ -365,7 +365,7 @@ fn test_eth_lockup_for_unused_bids() { // accepted but still unused bids
         wei_balance_before_bid == wei_balance_after_auction + bid_amount,
         'bid amounts should be locked up'
     );
-    assert(bid_count > option_params.total_options_available, 'bid count cannot be > total opt');
+    assert(bid_count > option_params.total_options_available, 'bid count cannot be > total opt'); 
 }
 
 #[test]
@@ -373,7 +373,7 @@ fn test_eth_lockup_for_unused_bids() { // accepted but still unused bids
 fn test_eth_transfer_for_unused_bids_after_claim() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
     set_contract_address(liquidity_provider_1());
-    let deposit_amount_wei: u256 = 10000 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei: u256 = 10000 * decimals();
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
@@ -382,7 +382,7 @@ fn test_eth_transfer_for_unused_bids_after_claim() {
     let bid_count: u256 = option_params.total_options_available + 10;
     let bid_amount: u256 = bid_count
         * option_params.reserve_price
-        * vault_dispatcher.decimals().into();
+        * decimals();
     set_contract_address(option_bidder_buyer_1());
     let wei_balance_before_bid: u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
     vault_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
@@ -412,7 +412,7 @@ fn test_total_options_after_auction_1() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
 
     set_contract_address(liquidity_provider_1());
-    let deposit_amount_wei = 10000 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei = 10000 * decimals();
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
@@ -422,10 +422,10 @@ fn test_total_options_after_auction_1() {
     let bid_count_2: u256 = option_params.total_options_available / 2;
     let bid_amount_1: u256 = bid_count_1
         * option_params.reserve_price
-        * vault_dispatcher.decimals().into();
+        * decimals();
     let bid_amount_2: u256 = bid_count_2
         * option_params.reserve_price
-        * vault_dispatcher.decimals().into();
+        * decimals();
 
     set_contract_address(option_bidder_buyer_1());
     vault_dispatcher.auction_place_bid(bid_amount_1, option_params.reserve_price);
@@ -444,7 +444,7 @@ fn test_total_options_after_auction_1() {
 fn test_total_options_after_auction_2() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
 
-    let deposit_amount_wei = 10000 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei = 10000 * decimals();
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
@@ -455,10 +455,10 @@ fn test_total_options_after_auction_2() {
 
     let bid_amount_user_1: u256 = bid_option_count_user_1
         * option_params.reserve_price
-        * vault_dispatcher.decimals().into();
+        * decimals();
     let bid_amount_user_2: u256 = bid_option_count_user_2
         * (option_params.reserve_price - 10)
-        * vault_dispatcher.decimals().into();
+        * decimals();
 
     set_contract_address(option_bidder_buyer_1());
     vault_dispatcher.auction_place_bid(bid_amount_user_1, option_params.reserve_price);
@@ -472,12 +472,11 @@ fn test_total_options_after_auction_2() {
     assert(options_created_count == bid_option_count_user_1, 'options shd match');
 }
 
-
 #[test]
 #[available_gas(10000000)]
 fn test_total_options_after_auction_3() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_amount_wei: u256 = 10000 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei: u256 = 10000 * decimals();
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
@@ -487,7 +486,7 @@ fn test_total_options_after_auction_3() {
     let bid_count: u256 = 2;
     let bid_amount: u256 = bid_count
         * option_params.reserve_price
-        * vault_dispatcher.decimals().into();
+        * decimals();
 
     set_contract_address(option_bidder_buyer_1());
     vault_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
@@ -502,7 +501,7 @@ fn test_total_options_after_auction_3() {
 #[available_gas(10000000)]
 fn test_total_options_after_auction_4() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_amount_wei: u256 = 10000 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei: u256 = 10000 * decimals();
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
@@ -512,7 +511,7 @@ fn test_total_options_after_auction_4() {
     let bid_count: u256 = 2;
     let bid_amount: u256 = bid_count
         * (option_params.reserve_price - 1)
-        * vault_dispatcher.decimals().into();
+        * decimals();
     set_contract_address(option_bidder_buyer_1());
     vault_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price - 1);
     set_block_timestamp(option_params.auction_end_time + 1);
@@ -526,7 +525,7 @@ fn test_total_options_after_auction_4() {
 #[available_gas(10000000)]
 fn test_total_options_after_auction_5() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_amount_wei: u256 = 10000 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei: u256 = 10000 * decimals();
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
@@ -536,7 +535,7 @@ fn test_total_options_after_auction_5() {
     let bid_count: u256 = option_params.total_options_available + 10;
     let bid_amount: u256 = bid_count
         * option_params.reserve_price
-        * vault_dispatcher.decimals().into();
+        * decimals();
     set_contract_address(option_bidder_buyer_1());
     vault_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
     set_block_timestamp(option_params.auction_end_time + 1);
@@ -548,6 +547,42 @@ fn test_total_options_after_auction_5() {
     );
 }
 
+/// matt: added this test to test options sold count when 2 users bid for all >options
+
+#[test]
+#[available_gas(10000000)]
+fn test_total_options_after_auction_6() {
+    let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
+
+    let deposit_amount_wei = 10000 * decimals();
+    set_contract_address(liquidity_provider_1());
+    let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
+    // start_new_option_round will also starts the auction
+    let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
+        .start_new_option_round();
+    let bid_option_count_user_1: u256 = (option_params.total_options_available / 2) + 1;
+    let bid_option_count_user_2: u256 = (option_params.total_options_available / 2);
+
+    let bid_amount_user_1: u256 = bid_option_count_user_1
+        * option_params.reserve_price
+        * decimals();
+    let bid_amount_user_2: u256 = bid_option_count_user_2
+        * (option_params.reserve_price + 10)
+        * decimals();
+
+    set_contract_address(option_bidder_buyer_1());
+    vault_dispatcher.auction_place_bid(bid_amount_user_1, option_params.reserve_price);
+
+    set_contract_address(option_bidder_buyer_2());
+    vault_dispatcher.auction_place_bid(bid_amount_user_2, option_params.reserve_price + 10);
+    set_block_timestamp(option_params.auction_end_time + 1);
+    vault_dispatcher.settle_auction();
+
+    let options_created_count: u256 = vault_dispatcher.total_options_sold();
+    assert(options_created_count == option_params.total_options_available, 'options shd match');
+    // todo matt: test refunded bids? (== 1 for user 1)
+}
+
 ///////////////////// tests below are based on auction_reference_size_is_max_amount.py results/////////////////////////
 
 #[test]
@@ -555,7 +590,7 @@ fn test_total_options_after_auction_5() {
 fn test_option_balance_per_bidder_after_auction_1() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
 
-    let deposit_amount_wei = 10000 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei = 10000 * decimals();
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
@@ -566,25 +601,25 @@ fn test_option_balance_per_bidder_after_auction_1() {
     let bid_price_per_unit_user_1: u256 = option_params.reserve_price + 1;
     let bid_amount_user_1: u256 = bid_option_count_user_1
         * bid_price_per_unit_user_1
-        * vault_dispatcher.decimals().into();
+        * decimals();
 
     let bid_option_count_user_2: u256 = (option_params.total_options_available / 3);
     let bid_price_per_unit_user_2: u256 = option_params.reserve_price + 2;
     let bid_amount_user_2: u256 = bid_option_count_user_2
         * bid_price_per_unit_user_2
-        * vault_dispatcher.decimals().into();
+        * decimals();
 
     let bid_option_count_user_3: u256 = (option_params.total_options_available / 3);
     let bid_price_per_unit_user_3: u256 = option_params.reserve_price + 3;
     let bid_amount_user_3: u256 = bid_option_count_user_3
         * bid_price_per_unit_user_3
-        * vault_dispatcher.decimals().into();
+        * decimals();
 
     let bid_option_count_user_4: u256 = (option_params.total_options_available / 3);
     let bid_price_per_unit_user_4: u256 = option_params.reserve_price + 4;
     let bid_amount_user_4: u256 = bid_option_count_user_4
         * bid_price_per_unit_user_4
-        * vault_dispatcher.decimals().into();
+        * decimals();
 
     set_contract_address(option_bidder_buyer_1());
     vault_dispatcher.auction_place_bid(bid_amount_user_1, bid_price_per_unit_user_1);
@@ -622,6 +657,8 @@ fn test_option_balance_per_bidder_after_auction_1() {
             - (bid_price_per_unit_user_1 + bid_option_count_user_2 + bid_option_count_user_3),
         'options shd match'
     );
+
+    // matt: shouldnt it be 0, 1/3, 1/3, 1/3 ? and also the above is using a per_unit + count + count
 }
 
 
@@ -631,7 +668,7 @@ fn test_option_balance_per_bidder_after_auction_1() {
 fn test_option_balance_per_bidder_after_auction_2() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
 
-    let deposit_amount_wei = 100000 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei = 100000 * decimals();
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
@@ -639,25 +676,25 @@ fn test_option_balance_per_bidder_after_auction_2() {
     let (option_round_id, mut option_params): (u256, OptionRoundParams) = vault_dispatcher
         .start_new_option_round();
     option_params.total_options_available = 300; //TODO  need a better to mock this
-    option_params.reserve_price = 2 * vault_dispatcher.decimals().into();
+    option_params.reserve_price = 2 * decimals();
 
-    let bid_option_amount_user_1: u256 = 50 * vault_dispatcher.decimals().into();
-    let bid_price_per_unit_user_1: u256 = 20 * vault_dispatcher.decimals().into();
+    let bid_option_amount_user_1: u256 = 50 * decimals();
+    let bid_price_per_unit_user_1: u256 = 20 * decimals();
 
-    let bid_option_amount_user_2: u256 = 142 * vault_dispatcher.decimals().into();
-    let bid_price_per_unit_user_2: u256 = 11 * vault_dispatcher.decimals().into();
+    let bid_option_amount_user_2: u256 = 142 * decimals();
+    let bid_price_per_unit_user_2: u256 = 11 * decimals();
 
-    let bid_option_amount_user_3: u256 = 235 * vault_dispatcher.decimals().into();
-    let bid_price_per_unit_user_3: u256 = 11 * vault_dispatcher.decimals().into();
+    let bid_option_amount_user_3: u256 = 235 * decimals();
+    let bid_price_per_unit_user_3: u256 = 11 * decimals();
 
-    let bid_option_amount_user_4: u256 = 222 * vault_dispatcher.decimals().into();
-    let bid_price_per_unit_user_4: u256 = 2 * vault_dispatcher.decimals().into();
+    let bid_option_amount_user_4: u256 = 222 * decimals();
+    let bid_price_per_unit_user_4: u256 = 2 * decimals();
 
-    let bid_option_amount_user_5: u256 = 75 * vault_dispatcher.decimals().into();
-    let bid_price_per_unit_user_5: u256 = 1 * vault_dispatcher.decimals().into();
+    let bid_option_amount_user_5: u256 = 75 * decimals();
+    let bid_price_per_unit_user_5: u256 = 1 * decimals();
 
-    let bid_option_amount_user_6: u256 = 35 * vault_dispatcher.decimals().into();
-    let bid_price_per_unit_user_6: u256 = 1 * vault_dispatcher.decimals().into();
+    let bid_option_amount_user_6: u256 = 35 * decimals();
+    let bid_price_per_unit_user_6: u256 = 1 * decimals();
 
     set_contract_address(option_bidder_buyer_1());
     vault_dispatcher.auction_place_bid(bid_option_amount_user_1, bid_price_per_unit_user_1);
@@ -701,6 +738,9 @@ fn test_option_balance_per_bidder_after_auction_2() {
     assert(options_created_user_4_count == 86, 'options shd match');
     assert(options_created_user_5_count == 0, 'options shd match');
     assert(options_created_user_6_count == 0, 'options shd match');
+
+    /// matt: i see where the 0s come from but where are the rest of these numbers coming from ? does the auction dictate 
+    /// how the options are split if the bidders bid > the total ? 
 }
 
 
@@ -710,32 +750,32 @@ fn test_option_balance_per_bidder_after_auction_2() {
 fn test_option_balance_per_bidder_after_auction_3() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
 
-    let deposit_amount_wei = 100000 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei = 100000 * decimals();
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, mut option_params): (u256, OptionRoundParams) = vault_dispatcher
         .start_new_option_round();
     option_params.total_options_available = 200; //TODO  need a better to mock this
-    option_params.reserve_price = 2 * vault_dispatcher.decimals().into();
+    option_params.reserve_price = 2 * decimals();
 
-    let bid_option_amount_user_1: u256 = 50 * vault_dispatcher.decimals().into();
-    let bid_price_per_unit_user_1: u256 = 20 * vault_dispatcher.decimals().into();
+    let bid_option_amount_user_1: u256 = 50 * decimals();
+    let bid_price_per_unit_user_1: u256 = 20 * decimals();
 
-    let bid_option_amount_user_2: u256 = 142 * vault_dispatcher.decimals().into();
-    let bid_price_per_unit_user_2: u256 = 11 * vault_dispatcher.decimals().into();
+    let bid_option_amount_user_2: u256 = 142 * decimals();
+    let bid_price_per_unit_user_2: u256 = 11 * decimals();
 
-    let bid_option_amount_user_3: u256 = 235 * vault_dispatcher.decimals().into();
-    let bid_price_per_unit_user_3: u256 = 11 * vault_dispatcher.decimals().into();
+    let bid_option_amount_user_3: u256 = 235 * decimals();
+    let bid_price_per_unit_user_3: u256 = 11 * decimals();
 
-    let bid_option_amount_user_4: u256 = 422 * vault_dispatcher.decimals().into();
-    let bid_price_per_unit_user_4: u256 = 2 * vault_dispatcher.decimals().into();
+    let bid_option_amount_user_4: u256 = 422 * decimals(); 
+    let bid_price_per_unit_user_4: u256 = 2 * decimals();
 
-    let bid_option_amount_user_5: u256 = 75 * vault_dispatcher.decimals().into();
-    let bid_price_per_unit_user_5: u256 = 1 * vault_dispatcher.decimals().into();
+    let bid_option_amount_user_5: u256 = 75 * decimals();
+    let bid_price_per_unit_user_5: u256 = 1 * decimals();
 
-    let bid_option_amount_user_6: u256 = 35 * vault_dispatcher.decimals().into();
-    let bid_price_per_unit_user_6: u256 = 1 * vault_dispatcher.decimals().into();
+    let bid_option_amount_user_6: u256 = 35 * decimals();
+    let bid_price_per_unit_user_6: u256 = 1 * decimals();
 
     set_contract_address(option_bidder_buyer_1());
     vault_dispatcher.auction_place_bid(bid_option_amount_user_1, bid_price_per_unit_user_1);
@@ -785,7 +825,10 @@ fn test_option_balance_per_bidder_after_auction_3() {
     assert(options_created_user_5_count == 0, 'options shd match');
     assert(options_created_user_6_count == 0, 'options shd match');
     assert(
-        unused_bid_amount_user_3 == 27 * vault_dispatcher.decimals().into(),
+        unused_bid_amount_user_3 == 27 * decimals(),
         'unused bid amount shd match'
     );
+
+    /// matt: yea confused on where the #s are coming from, i see where 0s come from, and that the total is 200, and the bids 
+    // are proportional to the init bids, but how does 50 -> 25, 142 -> 71, 235 -> 104 ? 
 }

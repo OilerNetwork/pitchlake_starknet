@@ -114,13 +114,13 @@ fn setup() -> (IVaultDispatcher, IERC20Dispatcher) {
     let vault_dispatcher: IVaultDispatcher = deploy_vault(VaultType::InTheMoney);
     set_contract_address(weth_owner());
     let deposit_amount_ether: u256 = 1000000;
-    let deposit_amount_wei: u256 = deposit_amount_ether * eth_dispatcher.decimals().into();
+    let deposit_amount_wei: u256 = deposit_amount_ether * decimals();
 
     eth_dispatcher.transfer(liquidity_provider_1(), deposit_amount_wei);
     eth_dispatcher.transfer(liquidity_provider_2(), deposit_amount_wei);
 
     let deposit_amount_ether: u256 = 100000;
-    let deposit_amount_wei: u256 = deposit_amount_ether * eth_dispatcher.decimals().into();
+    let deposit_amount_wei: u256 = deposit_amount_ether * decimals(); 
 
     eth_dispatcher.transfer(option_bidder_buyer_1(), deposit_amount_wei);
     eth_dispatcher.transfer(option_bidder_buyer_2(), deposit_amount_wei);
@@ -185,13 +185,13 @@ fn decimals() -> u256 {
 }
 
 fn mock_option_params() -> OptionRoundParams {
-    let total_unallocated_liquidity: u256 = 10000 * decimals();
-    let option_reserve_price_: u256 = 6 * decimals();
-    let average_basefee: u256 = 20;
-    let standard_deviation: u256 = 30;
+    let total_unallocated_liquidity: u256 = 10000 * decimals(); // from LPs ?
+    let option_reserve_price_: u256 = 6 * decimals();           // from market aggregator (fossil) ?
+    let average_basefee: u256 = 20;                             // from market aggregator (fossil) ?              
+    let standard_deviation: u256 = 30;                          // from market aggregator (fossil) ?
     let cap_level: u256 = average_basefee
         + (3
-            * standard_deviation); //per notes from tomasz, we set cap level at 3 standard deviation
+            * standard_deviation); //per notes from tomasz, we set cap level at 3 standard deviation (captures 99.7% of the data points)
 
     let in_the_money_strike_price: u256 = average_basefee + standard_deviation;
     let at_the_money_strike_price: u256 = average_basefee;

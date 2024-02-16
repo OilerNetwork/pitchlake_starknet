@@ -25,7 +25,7 @@ use traits::Into;
 use traits::TryInto;
 use pitch_lake_starknet::eth::Eth;
 use pitch_lake_starknet::tests::utils::{
-    setup, deploy_vault, allocated_pool_address, unallocated_pool_address, timestamp_start_month,
+    setup, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address, timestamp_start_month,
     timestamp_end_month, liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
     option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4, vault_manager, weth_owner,
     mock_option_params
@@ -35,14 +35,15 @@ use pitch_lake_starknet::tests::mock_market_aggregator::{
     IMarketAggregatorSetterDispatcherTrait
 };
 
+/// matt: why is this commented out ? 
 // #[test]
 // #[available_gas(10000000)]
 // fn test_invalid_user_collection_of_premium_after_settle() {
 
 //     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
-//     let deposit_amount_wei:u256 = 50 * vault_dispatcher.decimals().into();
+//     let deposit_amount_wei:u256 = 50 * decimals();
 //     let option_amount : u256 = 50;
-//     let option_price : u256 = 2 * vault_dispatcher.decimals().into();
+//     let option_price : u256 = 2 * decimals();
 
 //     set_contract_address(liquidity_provider_1());
 //     let lp_id:u256  = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
@@ -73,9 +74,9 @@ use pitch_lake_starknet::tests::mock_market_aggregator::{
 #[available_gas(10000000)]
 fn test_invalid_user_collection_of_payout_after_settle() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_amount_wei: u256 = 50 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei: u256 = 50 * decimals(); // matt changes all the vault_dispatcher.decimals().into() to decimals()
     let option_amount: u256 = 50;
-    let option_price: u256 = 2 * vault_dispatcher.decimals().into();
+    let option_price: u256 = 2 * decimals();
 
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
@@ -111,9 +112,9 @@ fn test_invalid_user_collection_of_payout_after_settle() {
 #[available_gas(10000000)]
 fn test_collection_of_premium_after_settle() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_amount_wei: u256 = 50 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei: u256 = 50 * decimals();
     let option_amount: u256 = 50;
-    let option_price: u256 = 2 * vault_dispatcher.decimals().into();
+    let option_price: u256 = 2 * decimals();
 
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
@@ -163,13 +164,13 @@ fn test_collection_of_premium_after_settle() {
     );
 }
 
-
+/// matt: why is this commented out ? 
 #[test]
 #[available_gas(10000000)]
 // fn test_failure_collection_of_multiple_premium_after_settle() {
 
 //     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
-//     let deposit_amount_wei:u256 = 50 * vault_dispatcher.decimals().into();
+//     let deposit_amount_wei:u256 = 50 * decimals();
 //     let option_amount : u256 = 50;
 
 //     set_contract_address(liquidity_provider_1());
@@ -203,7 +204,7 @@ fn test_collection_of_premium_after_settle() {
 #[available_gas(10000000)]
 fn test_option_payout_1() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_amount_wei: u256 = 10000 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei: u256 = 10000 * decimals();
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
@@ -238,7 +239,7 @@ fn test_option_payout_1() {
 #[available_gas(10000000)]
 fn test_option_payout_2() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_amount_wei: u256 = 10000 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei: u256 = 10000 * decimals();
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
@@ -273,7 +274,7 @@ fn test_option_payout_2() {
 #[available_gas(10000000)]
 fn test_option_post_payout_collaterized_count_1() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_amount_wei: u256 = 10000 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei: u256 = 10000 * decimals();
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
@@ -307,6 +308,7 @@ fn test_option_post_payout_collaterized_count_1() {
         total_collaterized_count_after_payout_claimed == deposit_amount_wei - claimed_payout,
         'collaterized should match'
     )
+    /// matt: total_collatoral is the the total liquidity in the vault including the option payouts ? 
 }
 
 
@@ -314,7 +316,7 @@ fn test_option_post_payout_collaterized_count_1() {
 #[available_gas(10000000)]
 fn test_option_post_payout_collaterized_count_2() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_amount_wei: u256 = 10000 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei: u256 = 10000 * decimals();
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
@@ -345,13 +347,14 @@ fn test_option_post_payout_collaterized_count_2() {
 
     let total_collaterized_count_post_transfer: u256 = vault_dispatcher.total_collateral();
     assert(total_collaterized_count_post_transfer == 0, 'collaterized should be zero')
+    // matt: because strike price = settlement price? what exactly is the collateral ? where is it from Lp or bids ? 
 }
 
 #[test]
 #[available_gas(10000000)]
 fn test_option_post_payout_collaterized_count_3() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_amount_wei: u256 = 10000 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei: u256 = 10000 * decimals();
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
@@ -396,6 +399,8 @@ fn test_option_post_payout_collaterized_count_3() {
             + premium_paid,
         'expec collaterized doesnt match'
     );
+
+    // matt: yea, confused what collateral really means 
 }
 
 
@@ -403,7 +408,7 @@ fn test_option_post_payout_collaterized_count_3() {
 #[available_gas(10000000)]
 fn test_option_payout_buyer_eth_balance() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_amount_wei: u256 = 10000 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei: u256 = 10000 * decimals();
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
