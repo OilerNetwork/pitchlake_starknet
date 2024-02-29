@@ -26,7 +26,7 @@ use traits::Into;
 use traits::TryInto;
 use pitch_lake_starknet::eth::Eth;
 use pitch_lake_starknet::tests::utils::{
-    setup, deploy_vault, allocated_pool_address, unallocated_pool_address, timestamp_start_month,
+    setup, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address, timestamp_start_month,
     timestamp_end_month, liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
     option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4, zero_address,
     vault_manager, weth_owner, option_round_contract_address, mock_option_params, pop_log,
@@ -60,9 +60,9 @@ fn assert_event_option_created(
 #[should_panic(expected: ('Some error', 'auction expired, cannot auction_place_bid',))]
 fn test_bid_after_expiry() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_amount_wei: u256 = 50 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei: u256 = 50 * decimals();
     let option_amount: u256 = 50;
-    let option_price: u256 = 2 * vault_dispatcher.decimals().into();
+    let option_price: u256 = 2 * decimals();
     let bid_amount: u256 = option_amount * option_price;
 
     set_contract_address(liquidity_provider_1());
@@ -82,7 +82,7 @@ fn test_bid_after_expiry() {
 #[should_panic(expected: ('Some error', 'auction cannot settle before due time',))]
 fn test_settle_auction_before_due_time() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_amount_wei: u256 = 50 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei: u256 = 50 * decimals();
 
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
@@ -100,9 +100,9 @@ fn test_settle_auction_before_due_time() {
 #[should_panic(expected: ('Some error', 'multiple parallel rounds not allowed'))]
 fn test_multiple_parallel_rounds_failure() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_amount_wei: u256 = 50 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei: u256 = 50 * decimals();
     let option_amount: u256 = 50;
-    let option_price: u256 = 2 * vault_dispatcher.decimals().into();
+    let option_price: u256 = 2 * decimals();
 
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
@@ -119,9 +119,9 @@ fn test_multiple_parallel_rounds_failure() {
 #[available_gas(10000000)]
 fn test_current_round_round_is_new_round() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_amount_wei: u256 = 50 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei: u256 = 50 * decimals();
     let option_amount: u256 = 50;
-    let option_price: u256 = 2 * vault_dispatcher.decimals().into();
+    let option_price: u256 = 2 * decimals();
 
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
@@ -138,7 +138,7 @@ fn test_current_round_round_is_new_round() {
 // fn test_settled_and_new_round_sets_prev_round() {
 
 //     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
-//     let deposit_amount_wei:u256 = 50 * vault_dispatcher.decimals().into();
+//     let deposit_amount_wei:u256 = 50 * decimals();
 
 //     set_contract_address(liquidity_provider_1());
 //     let lp_id : u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
@@ -174,7 +174,7 @@ fn test_current_round_round_is_new_round() {
 #[available_gas(10000000)]
 fn test_new_round_after_settle() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_amount_wei: u256 = 50 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei: u256 = 50 * decimals();
 
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
@@ -212,9 +212,9 @@ fn test_new_round_after_settle() {
 #[available_gas(10000000)]
 fn test_settle_before_expiry() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_amount_wei: u256 = 50 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei: u256 = 50 * decimals();
     let option_amount: u256 = 50;
-    let option_price: u256 = 2 * vault_dispatcher.decimals().into();
+    let option_price: u256 = 2 * decimals();
     let bid_amount: u256 = option_amount * option_price;
 
     set_contract_address(liquidity_provider_1());
@@ -240,7 +240,7 @@ fn test_settle_before_expiry() {
 #[should_panic(expected: ('some error', 'no settle before auction end'))]
 fn test_settle_before_end_auction() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_amount_wei: u256 = 50 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei: u256 = 50 * decimals();
 
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);

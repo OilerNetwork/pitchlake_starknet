@@ -25,7 +25,7 @@ use traits::Into;
 use traits::TryInto;
 use pitch_lake_starknet::eth::Eth;
 use pitch_lake_starknet::tests::utils::{
-    setup, deploy_vault, allocated_pool_address, unallocated_pool_address, timestamp_start_month,
+    setup, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address, timestamp_start_month,
     timestamp_end_month, liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
     option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4, vault_manager, weth_owner,
     mock_option_params, assert_event_option_amount_transfer
@@ -36,7 +36,7 @@ use pitch_lake_starknet::tests::utils::{
 #[available_gas(10000000)]
 fn test_paid_premium_withdrawal_to_liquidity_provider() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_amount_wei: u256 = 100000 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei: u256 = 100000 * decimals();
 
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
@@ -70,7 +70,7 @@ fn test_paid_premium_withdrawal_to_liquidity_provider() {
 #[available_gas(10000000)]
 fn test_paid_premium_withdrawal_to_invalid_provider() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_amount_wei: u256 = 100000 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei: u256 = 100000 * decimals();
 
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
@@ -104,8 +104,8 @@ fn test_paid_premium_withdrawal_to_invalid_provider() {
 fn test_premium_collection_ratio_conversion_unallocated_pool_1() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
 
-    let deposit_amount_wei_1: u256 = 1000 * vault_dispatcher.decimals().into();
-    let deposit_amount_wei_2: u256 = 10000 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei_1: u256 = 1000 * decimals();
+    let deposit_amount_wei_2: u256 = 10000 * decimals();
 
     set_contract_address(liquidity_provider_1());
     let lp_id_1: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei_1);
@@ -166,7 +166,7 @@ fn test_premium_collection_ratio_conversion_unallocated_pool_1() {
 fn test_premium_collection_ratio_conversion_unallocated_pool_2() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
 
-    let deposit_amount_wei: u256 = 10000 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei: u256 = 10000 * decimals();
 
     set_contract_address(liquidity_provider_1());
     let lp_id_1: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
@@ -205,6 +205,7 @@ fn test_premium_collection_ratio_conversion_unallocated_pool_2() {
         .get_auction_clearing_price(option_round_id)
         * option_params.total_options_available;
     assert(unallocated_wei_count == expected_unallocated_wei, 'paid premiums should translate');
+    // matt: check what this event tester is doing
     assert_event_option_amount_transfer(
         vault_dispatcher.contract_address,
         vault_dispatcher.contract_address,

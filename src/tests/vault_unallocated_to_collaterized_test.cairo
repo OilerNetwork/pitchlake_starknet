@@ -25,7 +25,7 @@ use traits::Into;
 use traits::TryInto;
 use pitch_lake_starknet::eth::Eth;
 use pitch_lake_starknet::tests::utils::{
-    setup, deploy_vault, allocated_pool_address, unallocated_pool_address, timestamp_start_month,
+    setup, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address, timestamp_start_month,
     timestamp_end_month, liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
     option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4, vault_manager, weth_owner,
     mock_option_params
@@ -35,9 +35,9 @@ use pitch_lake_starknet::tests::utils::{
 #[available_gas(10000000)]
 fn test_withdraw_liquidity_to_after_collaterization() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_amount_wei: u256 = 50 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei: u256 = 50 * decimals();
     let option_amount: u256 = 50;
-    let option_price: u256 = 2 * vault_dispatcher.decimals().into();
+    let option_price: u256 = 2 * decimals();
 
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
@@ -57,7 +57,7 @@ fn test_total_collaterized_wei_1() {
 
     set_contract_address(liquidity_provider_1());
 
-    let deposit_amount_wei = 10000 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei = 10000 * decimals();
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
@@ -72,8 +72,8 @@ fn test_total_collaterized_wei_1() {
 #[available_gas(10000000)]
 fn test_total_collaterized_wei_2() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_amount_wei_1 = 10000 * vault_dispatcher.decimals().into();
-    let deposit_amount_wei_2 = 10000 * vault_dispatcher.decimals().into();
+    let deposit_amount_wei_1 = 10000 * decimals();
+    let deposit_amount_wei_2 = 10000 * decimals();
 
     set_contract_address(liquidity_provider_1());
     let lp_id_1: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei_1);
