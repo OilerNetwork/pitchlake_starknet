@@ -66,8 +66,10 @@ trait IVault<TContractState> { // erc721
 
     // @notice start a new option round, this also collaterizes amount from the previous option round and current option round. This also starts the auction for the options
     // @dev there should be checks to make sure that the previous option round has settled and is not collaterized anymore and certain time has elapsed.
-    // @return option round id and option round params
-    fn start_new_option_round(ref self: TContractState) -> (u256, OptionRoundParams);
+    // @return option round id and option round params, and now also the address of the deployed option round contract
+    fn start_new_option_round(
+        ref self: TContractState
+    ) -> (u256, OptionRoundParams, ContractAddress);
 
     // @notice place a bid in the auction.
     // @param amount: max amount in weth/wei token to be used for bidding in the auction
@@ -124,7 +126,7 @@ trait IVault<TContractState> { // erc721
 
     // @return an option round id's contract address
     fn option_round_address(self: @TContractState, option_round_id: u256) -> ContractAddress;
-
+    // end new:
 
     fn get_market_aggregator(self: @TContractState) -> IMarketAggregatorDispatcher;
 
@@ -211,7 +213,9 @@ mod Vault {
             true
         }
 
-        fn start_new_option_round(ref self: ContractState) -> (u256, OptionRoundParams) {
+        fn start_new_option_round(
+            ref self: ContractState
+        ) -> (u256, OptionRoundParams, ContractAddress) {
             let params = OptionRoundParams {
                 current_average_basefee: 100,
                 strike_price: 1000,
@@ -226,8 +230,10 @@ mod Vault {
                 minimum_bid_amount: 100,
                 minimum_collateral_required: 100
             };
+            // deploy new option round
+            let option_round_address: ContractAddress = contract_address_const::<'TODO'>();
 
-            return (0, params);
+            return (0, params, option_round_address);
         }
 
         fn auction_place_bid(ref self: ContractState, amount: u256, price: u256) -> bool {
