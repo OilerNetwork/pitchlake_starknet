@@ -25,10 +25,10 @@ use traits::Into;
 use traits::TryInto;
 use pitch_lake_starknet::eth::Eth;
 use pitch_lake_starknet::tests::utils::{
-    setup, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address, timestamp_start_month,
-    timestamp_end_month, liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
-    option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4, vault_manager, weth_owner,
-    mock_option_params
+    setup, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
+    timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
+    option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
+    vault_manager, weth_owner, mock_option_params
 };
 use pitch_lake_starknet::tests::mock_market_aggregator::{
     MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
@@ -74,7 +74,8 @@ use pitch_lake_starknet::tests::mock_market_aggregator::{
 #[available_gas(10000000)]
 fn test_invalid_user_collection_of_payout_after_settle() {
     let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_amount_wei: u256 = 50 * decimals(); // matt changes all the vault_dispatcher.decimals().into() to decimals()
+    let deposit_amount_wei: u256 = 50
+        * decimals(); // matt changes all the vault_dispatcher.decimals().into() to decimals()
     let option_amount: u256 = 50;
     let option_price: u256 = 2 * decimals();
 
@@ -83,7 +84,8 @@ fn test_invalid_user_collection_of_payout_after_settle() {
 
     let unallocated_wei_before_premium: u256 = vault_dispatcher.total_unallocated_liquidity();
     // start_new_option_round will also starts the auction
-    let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
+    let (option_round_id, option_params, _): (u256, OptionRoundParams, ContractAddress) =
+        vault_dispatcher
         .start_new_option_round();
     set_contract_address(option_bidder_buyer_1());
 
@@ -121,7 +123,8 @@ fn test_collection_of_premium_after_settle() {
 
     let unallocated_wei_before_premium: u256 = vault_dispatcher.total_unallocated_liquidity();
     // start_new_option_round will also starts the auction
-    let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
+    let (option_round_id, option_params, _): (u256, OptionRoundParams, ContractAddress) =
+        vault_dispatcher
         .start_new_option_round();
     set_contract_address(option_bidder_buyer_1());
 
@@ -208,7 +211,8 @@ fn test_option_payout_1() {
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
-    let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
+    let (option_round_id, option_params, _): (u256, OptionRoundParams, ContractAddress) =
+        vault_dispatcher
         .start_new_option_round();
 
     let bid_count: u256 = 2;
@@ -243,7 +247,8 @@ fn test_option_payout_2() {
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
-    let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
+    let (option_round_id, option_params, _): (u256, OptionRoundParams, ContractAddress) =
+        vault_dispatcher
         .start_new_option_round();
 
     let bid_count: u256 = 2;
@@ -278,7 +283,8 @@ fn test_option_post_payout_collaterized_count_1() {
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
-    let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
+    let (option_round_id, option_params, _): (u256, OptionRoundParams, ContractAddress) =
+        vault_dispatcher
         .start_new_option_round();
 
     let bid_count: u256 = 2;
@@ -308,7 +314,7 @@ fn test_option_post_payout_collaterized_count_1() {
         total_collaterized_count_after_payout_claimed == deposit_amount_wei - claimed_payout,
         'collaterized should match'
     )
-    /// matt: total_collatoral is the the total liquidity in the vault including the option payouts ? 
+/// matt: total_collatoral is the the total liquidity in the vault including the option payouts ? 
 }
 
 
@@ -320,7 +326,8 @@ fn test_option_post_payout_collaterized_count_2() {
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
-    let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
+    let (option_round_id, option_params, _): (u256, OptionRoundParams, ContractAddress) =
+        vault_dispatcher
         .start_new_option_round();
 
     let bid_count: u256 = 2;
@@ -347,7 +354,7 @@ fn test_option_post_payout_collaterized_count_2() {
 
     let total_collaterized_count_post_transfer: u256 = vault_dispatcher.total_collateral();
     assert(total_collaterized_count_post_transfer == 0, 'collaterized should be zero')
-    // matt: because strike price = settlement price? what exactly is the collateral ? where is it from Lp or bids ? 
+// matt: because strike price = settlement price? what exactly is the collateral ? where is it from Lp or bids ? 
 }
 
 #[test]
@@ -358,7 +365,8 @@ fn test_option_post_payout_collaterized_count_3() {
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
-    let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
+    let (option_round_id, option_params, _): (u256, OptionRoundParams, ContractAddress) =
+        vault_dispatcher
         .start_new_option_round();
     let total_collaterized_count_before_auction: u256 = vault_dispatcher.total_collateral();
 
@@ -399,8 +407,7 @@ fn test_option_post_payout_collaterized_count_3() {
             + premium_paid,
         'expec collaterized doesnt match'
     );
-
-    // matt: yea, confused what collateral really means 
+// matt: yea, confused what collateral really means 
 }
 
 
@@ -412,7 +419,8 @@ fn test_option_payout_buyer_eth_balance() {
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
-    let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
+    let (option_round_id, option_params, _): (u256, OptionRoundParams, ContractAddress) =
+        vault_dispatcher
         .start_new_option_round();
 
     let bid_count: u256 = 2;

@@ -25,10 +25,10 @@ use traits::Into;
 use traits::TryInto;
 use pitch_lake_starknet::eth::Eth;
 use pitch_lake_starknet::tests::utils::{
-    setup, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address, timestamp_start_month,
-    timestamp_end_month, liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
-    option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4, vault_manager, weth_owner,
-    mock_option_params
+    setup, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
+    timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
+    option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
+    vault_manager, weth_owner, mock_option_params
 };
 
 #[test]
@@ -42,7 +42,8 @@ fn test_withdraw_liquidity_to_after_collaterization() {
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
-    let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
+    let (option_round_id, option_params, _): (u256, OptionRoundParams, ContractAddress) =
+        vault_dispatcher
         .start_new_option_round();
 
     let success: bool = vault_dispatcher.withdraw_liquidity(lp_id, deposit_amount_wei);
@@ -60,7 +61,8 @@ fn test_total_collaterized_wei_1() {
     let deposit_amount_wei = 10000 * decimals();
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
-    let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
+    let (option_round_id, option_params, _): (u256, OptionRoundParams, ContractAddress) =
+        vault_dispatcher
         .start_new_option_round();
 
     // start auction will move the tokens from unallocated pool to collaterized pool within the option_round
@@ -81,7 +83,8 @@ fn test_total_collaterized_wei_2() {
     let lp_id_2: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei_2);
 
     // start_new_option_round will also starts the auction
-    let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
+    let (option_round_id, option_params, _): (u256, OptionRoundParams, ContractAddress) =
+        vault_dispatcher
         .start_new_option_round();
 
     // start auction will move the tokens from unallocated pool to collaterized pool within the option_round

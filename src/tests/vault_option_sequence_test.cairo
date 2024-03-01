@@ -26,11 +26,11 @@ use traits::Into;
 use traits::TryInto;
 use pitch_lake_starknet::eth::Eth;
 use pitch_lake_starknet::tests::utils::{
-    setup, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address, timestamp_start_month,
-    timestamp_end_month, liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
-    option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4, zero_address,
-    vault_manager, weth_owner, option_round_contract_address, mock_option_params, pop_log,
-    assert_no_events_left, month_duration
+    setup, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
+    timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
+    option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
+    zero_address, vault_manager, weth_owner, option_round_contract_address, mock_option_params,
+    pop_log, assert_no_events_left, month_duration
 };
 use pitch_lake_starknet::tests::mock_market_aggregator::{
     MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
@@ -68,7 +68,8 @@ fn test_bid_after_expiry() {
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
-    let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
+    let (option_round_id, option_params, _): (u256, OptionRoundParams, ContractAddress) =
+        vault_dispatcher
         .start_new_option_round();
 
     set_contract_address(option_bidder_buyer_1());
@@ -87,7 +88,8 @@ fn test_settle_auction_before_due_time() {
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
-    let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
+    let (option_round_id, option_params, _): (u256, OptionRoundParams, ContractAddress) =
+        vault_dispatcher
         .start_new_option_round();
 
     set_block_timestamp(option_params.auction_end_time - 10);
@@ -107,10 +109,12 @@ fn test_multiple_parallel_rounds_failure() {
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
-    let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
+    let (option_round_id, option_params, _): (u256, OptionRoundParams, ContractAddress) =
+        vault_dispatcher
         .start_new_option_round();
     // following line should generate an exception
-    let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
+    let (option_round_id, option_params, _): (u256, OptionRoundParams, ContractAddress) =
+        vault_dispatcher
         .start_new_option_round();
 }
 
@@ -126,7 +130,8 @@ fn test_current_round_round_is_new_round() {
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
-    let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
+    let (option_round_id, option_params, _): (u256, OptionRoundParams, ContractAddress) =
+        vault_dispatcher
         .start_new_option_round();
     let (curr_option_id, curr_option_params): (u256, OptionRoundParams) = vault_dispatcher
         .current_option_round();
@@ -179,7 +184,8 @@ fn test_new_round_after_settle() {
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
-    let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
+    let (option_round_id, option_params, _): (u256, OptionRoundParams, ContractAddress) =
+        vault_dispatcher
         .start_new_option_round();
 
     let bid_count: u256 = option_params.total_options_available;
@@ -220,7 +226,8 @@ fn test_settle_before_expiry() {
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
-    let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
+    let (option_round_id, option_params, _): (u256, OptionRoundParams, ContractAddress) =
+        vault_dispatcher
         .start_new_option_round();
 
     set_contract_address(option_bidder_buyer_1());
@@ -245,7 +252,8 @@ fn test_settle_before_end_auction() {
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
-    let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
+    let (option_round_id, option_params, _): (u256, OptionRoundParams, ContractAddress) =
+        vault_dispatcher
         .start_new_option_round();
 
     set_contract_address(option_bidder_buyer_1());

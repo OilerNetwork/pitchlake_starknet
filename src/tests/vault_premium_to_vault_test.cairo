@@ -25,10 +25,10 @@ use traits::Into;
 use traits::TryInto;
 use pitch_lake_starknet::eth::Eth;
 use pitch_lake_starknet::tests::utils::{
-    setup, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address, timestamp_start_month,
-    timestamp_end_month, liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
-    option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4, vault_manager, weth_owner,
-    mock_option_params, assert_event_option_amount_transfer
+    setup, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
+    timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
+    option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
+    vault_manager, weth_owner, mock_option_params, assert_event_option_amount_transfer
 };
 
 
@@ -42,7 +42,8 @@ fn test_paid_premium_withdrawal_to_liquidity_provider() {
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
 
     // start_new_option_round will also starts the auction
-    let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
+    let (option_round_id, option_params, _): (u256, OptionRoundParams, ContractAddress) =
+        vault_dispatcher
         .start_new_option_round();
 
     let bid_amount_user_1: u256 = (option_params.total_options_available / 2)
@@ -76,7 +77,8 @@ fn test_paid_premium_withdrawal_to_invalid_provider() {
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
 
     // start_new_option_round will also starts the auction
-    let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
+    let (option_round_id, option_params, _): (u256, OptionRoundParams, ContractAddress) =
+        vault_dispatcher
         .start_new_option_round();
 
     let bid_amount_user_1: u256 = (option_params.total_options_available / 2)
@@ -114,7 +116,8 @@ fn test_premium_collection_ratio_conversion_unallocated_pool_1() {
     let lp_id_2: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei_2);
 
     // start_new_option_round will also starts the auction
-    let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
+    let (option_round_id, option_params, _): (u256, OptionRoundParams, ContractAddress) =
+        vault_dispatcher
         .start_new_option_round();
 
     let bid_amount_user_1: u256 = (option_params.total_options_available)
@@ -175,7 +178,8 @@ fn test_premium_collection_ratio_conversion_unallocated_pool_2() {
     let lp_id_2: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
 
     // start_new_option_round will also starts the auction
-    let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
+    let (option_round_id, option_params, _): (u256, OptionRoundParams, ContractAddress) =
+        vault_dispatcher
         .start_new_option_round();
 
     let bid_amount_user_1: u256 = ((option_params.total_options_available / 2) + 1)
