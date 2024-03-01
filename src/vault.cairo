@@ -84,7 +84,7 @@ trait IVault<TContractState> { // erc721
     fn settle_option_round(ref self: TContractState) -> bool;
 
     // @param option_round_id: option round id
-    // @return OptionRoundState: the current state of the option round
+    // @return OptionRoundState: the current state of the option round // missing option round id ? 
     fn get_option_round_state(self: @TContractState) -> OptionRoundState;
 
     // @notice gets the option round params for the option round
@@ -113,6 +113,18 @@ trait IVault<TContractState> { // erc721
 
     // @return next option round params and the option round id
     fn next_option_round(self: @TContractState) -> (u256, OptionRoundParams);
+
+
+    // new: 
+    // @return current option round contract address 
+    fn current_option_round_address(self: @TContractState) -> ContractAddress;
+
+    // @return next option round contract address
+    fn next_option_round_address(self: @TContractState) -> ContractAddress;
+
+    // @return an option round id's contract address
+    fn option_round_address(self: @TContractState, option_round_id: u256) -> ContractAddress;
+
 
     fn get_market_aggregator(self: @TContractState) -> IMarketAggregatorDispatcher;
 
@@ -170,7 +182,10 @@ mod Vault {
     struct Storage {
         current_option_round_params: OptionRoundParams,
         current_option_round_id: u256,
-        market_aggregator: IMarketAggregatorDispatcher
+        market_aggregator: IMarketAggregatorDispatcher,
+    /// matt: 
+
+    // liquidity_positions: Array<(u256, u256)>,
     }
 
     #[constructor]
@@ -291,6 +306,23 @@ mod Vault {
             };
             return (0, params);
         }
+
+        // new 
+        fn current_option_round_address(self: @ContractState) -> ContractAddress {
+            // add storage map for option_round_id -> ContractAddress
+            // OptionRoundParams will be used in the constructor of the OptionRound contract,
+            // do we want to store them in this one as well or just in the OptionRound contract?
+            get_contract_address()
+        }
+
+        fn next_option_round_address(self: @ContractState) -> ContractAddress {
+            get_contract_address()
+        }
+
+        fn option_round_address(self: @ContractState, option_round_id: u256) -> ContractAddress {
+            get_contract_address()
+        }
+
 
         fn vault_type(self: @ContractState) -> VaultType {
             // TODO fix later, random value
