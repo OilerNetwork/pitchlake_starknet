@@ -3,8 +3,8 @@ version = 1
 
 [[package]]
 name = "openzeppelin"
-version = "0.7.0-rc.0"
-source = "git+https://github.com/OpenZeppelin/cairo-contracts.git?tag=v0.7.0-rc.0#fbdd7593681a1515dabcbf722fb99c88edf200fe"
+version = "0.9.0"
+source = "git+https://github.com/OpenZeppelin/cairo-contracts.git?tag=v0.9.0#364db5b1aecc1335d2e65db887291d19aa28937d"
 
 [[package]]
 name = "pitch_lake_starknet"
