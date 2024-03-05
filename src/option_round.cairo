@@ -127,7 +127,7 @@ trait IOptionRound<TContractState> {
     // after the auction ends, liquidity_providers can transfer the premiums paid to them back to the vault from where they can be immediately withdrawn.
     // this is per liquidity provider, every liquidity provider will have to individually call transfer_premium_collected_to_vault
 
-    // matt: this is changing: the premium is not immediately available for withdrawal, it is locked until the option is settled
+    // matt: this is changing: the premium is not immediately available for withdrawal, it is locked until the option is settled ?
     // then the premium + LP is either rolled to next round or sent to the user. If claim submitted before options expire, premiums are returned
     #[external]
     fn transfer_premium_collected_to_vault(

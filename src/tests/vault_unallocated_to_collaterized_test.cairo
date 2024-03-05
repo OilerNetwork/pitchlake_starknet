@@ -33,6 +33,8 @@ use pitch_lake_starknet::tests::utils::{
     vault_manager, weth_owner, mock_option_params
 };
 
+// note: should collaterized_liquidity be on the vault or round, and what is it actually asking ? total funds in the round, and if it is open/closed ? 
+
 #[test]
 #[available_gas(10000000)]
 fn test_withdraw_liquidity_to_after_collaterization() {
