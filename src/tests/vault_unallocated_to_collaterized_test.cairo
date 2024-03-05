@@ -9,7 +9,9 @@ use openzeppelin::token::erc20::interface::{
 use pitch_lake_starknet::vault::{
     IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait
 };
-use pitch_lake_starknet::option_round::{OptionRoundParams};
+use pitch_lake_starknet::option_round::{
+    OptionRoundParams, IOptionRoundDispatcher, IOptionRoundDispatcherTrait
+};
 
 use result::ResultTrait;
 use starknet::{
@@ -42,9 +44,8 @@ fn test_withdraw_liquidity_to_after_collaterization() {
     set_contract_address(liquidity_provider_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
-    let (option_round_id, option_params, _): (u256, OptionRoundParams, ContractAddress) =
-        vault_dispatcher
-        .start_new_option_round();
+    let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
+        .start_new_option_round_new();
 
     let success: bool = vault_dispatcher.withdraw_liquidity(lp_id, deposit_amount_wei);
     assert(success == false, 'cannot withdraw');
@@ -61,12 +62,17 @@ fn test_total_collaterized_wei_1() {
     let deposit_amount_wei = 10000 * decimals();
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
-    let (option_round_id, option_params, _): (u256, OptionRoundParams, ContractAddress) =
-        vault_dispatcher
-        .start_new_option_round();
+    let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
+        .start_new_option_round_new();
+
+    // OptionRoundDispatcher
+    let (round_id, option_params) = vault_dispatcher.current_option_round();
+    let round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
+        contract_address: vault_dispatcher.option_round_addresses(round_id)
+    };
 
     // start auction will move the tokens from unallocated pool to collaterized pool within the option_round
-    let allocated_wei = vault_dispatcher.total_collateral();
+    let allocated_wei = round_dispatcher.total_collateral();
     assert(allocated_wei == deposit_amount_wei, 'all tokens shld be collaterized');
 }
 
@@ -82,13 +88,18 @@ fn test_total_collaterized_wei_2() {
     set_contract_address(liquidity_provider_2());
     let lp_id_2: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei_2);
 
-    // start_new_option_round will also starts the auction
-    let (option_round_id, option_params, _): (u256, OptionRoundParams, ContractAddress) =
-        vault_dispatcher
-        .start_new_option_round();
+    let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
+        .start_new_option_round_new();
+
+    // OptionRoundDispatcher
+    let (round_id, option_params) = vault_dispatcher.current_option_round();
+    let round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
+        contract_address: vault_dispatcher.option_round_addresses(round_id)
+    };
 
     // start auction will move the tokens from unallocated pool to collaterized pool within the option_round
-    let collaterized_wei_count: u256 = vault_dispatcher.total_collateral();
+    let collaterized_wei_count: u256 = round_dispatcher.total_collateral();
+    // todo: is this still needed with new logic ? unallocated is always 0 ?
     let unallocated_wei_count: u256 = vault_dispatcher.total_unallocated_liquidity();
     assert(
         collaterized_wei_count == deposit_amount_wei_1 + deposit_amount_wei_2,

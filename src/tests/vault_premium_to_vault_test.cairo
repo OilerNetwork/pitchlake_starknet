@@ -237,7 +237,7 @@ fn test_premium_collection_ratio_conversion_unallocated_pool_2() {
     let expected_unallocated_wei: u256 = round_dispatcher.get_auction_clearing_price()
         * option_params.total_options_available;
     assert(unallocated_wei_count == expected_unallocated_wei, 'paid premiums should translate');
-    // matt: check what this event tester is doing
+    // matt: check these asserts
     assert_event_option_amount_transfer(
         vault_dispatcher.contract_address,
         vault_dispatcher.contract_address,
