@@ -64,12 +64,21 @@ trait IVault<TContractState> { // erc721
     // #[view]
     // fn generate_option_round_params(ref self: TContractState, option_expiry_time_:u64)-> OptionRoundParams;
 
+    // new 
+
+    // @notice Deploy a new option round, this also collaterizes amount from the previous option round into current option round. This also starts the auction for the options in the current round.
+    // @dev there should be checks to make sure that the current option round has settled and is not collaterized anymore and certain time has elapsed.
+    // @return option round params, and the next option round id and contract address
+    fn start_new_option_round_new(ref self: TContractState) -> (u256, OptionRoundParams);
+
     // @notice start a new option round, this also collaterizes amount from the previous option round and current option round. This also starts the auction for the options
     // @dev there should be checks to make sure that the previous option round has settled and is not collaterized anymore and certain time has elapsed.
     // @return option round id and option round params, and now also the address of the deployed option round contract
     fn start_new_option_round(
         ref self: TContractState
     ) -> (u256, OptionRoundParams, ContractAddress);
+
+    /// remove these until...
 
     // @notice place a bid in the auction.
     // @param amount: max amount in weth/wei token to be used for bidding in the auction
@@ -108,6 +117,9 @@ trait IVault<TContractState> { // erc721
         ref self: TContractState, option_round_id: u256, for_option_buyer: ContractAddress
     ) -> u256;
 
+
+    /// here. should only be in the option_round contract 
+
     fn vault_type(self: @TContractState) -> VaultType;
 
     // @return current option round params and the option round id
@@ -116,19 +128,13 @@ trait IVault<TContractState> { // erc721
     // @return next option round params and the option round id
     fn next_option_round(self: @TContractState) -> (u256, OptionRoundParams);
 
-
     // new: 
-    // @return current option round contract address 
-    fn current_option_round_address(self: @TContractState) -> ContractAddress;
-
-    // @return next option round contract address
-    fn next_option_round_address(self: @TContractState) -> ContractAddress;
-
     // @return an option round id's contract address
-    fn option_round_address(self: @TContractState, option_round_id: u256) -> ContractAddress;
-    // end new:
+    fn option_round_addresses(self: @TContractState, option_round_id: u256) -> ContractAddress;
 
     fn get_market_aggregator(self: @TContractState) -> IMarketAggregatorDispatcher;
+
+    /// remove these until...
 
     // total amount deposited as part of bidding by an option buyer, if the auction has not ended this represents the total amount locked up for auction and cannot be claimed back,
     // if the auction has ended this the amount which was not converted into an option and can be claimed back.
@@ -157,6 +163,8 @@ trait IVault<TContractState> { // erc721
 
     // total options sold
     fn total_options_sold(self: @TContractState) -> u256;
+
+    /// here ? should be only in option_round
 
     fn decimals(self: @TContractState) -> u8;
 }
@@ -211,6 +219,29 @@ mod Vault {
 
         fn withdraw_liquidity(ref self: ContractState, lp_id: u256, amount: u256) -> bool {
             true
+        }
+
+        // new 
+        fn start_new_option_round_new(ref self: ContractState) -> (u256, OptionRoundParams) {
+            let params = OptionRoundParams {
+                current_average_basefee: 100,
+                strike_price: 1000,
+                standard_deviation: 50,
+                cap_level: 100,
+                collateral_level: 100,
+                reserve_price: 10,
+                total_options_available: 1000,
+                // start_time:start_time_,
+                option_expiry_time: 1000,
+                auction_end_time: 1000,
+                minimum_bid_amount: 100,
+                minimum_collateral_required: 100
+            };
+            // assert current round is settled, and next one is initialized
+            // start next round's auction
+            // deploy new next round contract 
+            // update current/next round ids (current += 1, next += 1)
+            return (0, params);
         }
 
         fn start_new_option_round(
@@ -313,19 +344,9 @@ mod Vault {
             return (0, params);
         }
 
-        // new 
-        fn current_option_round_address(self: @ContractState) -> ContractAddress {
-            // add storage map for option_round_id -> ContractAddress
-            // OptionRoundParams will be used in the constructor of the OptionRound contract,
-            // do we want to store them in this one as well or just in the OptionRound contract?
-            get_contract_address()
-        }
 
-        fn next_option_round_address(self: @ContractState) -> ContractAddress {
-            get_contract_address()
-        }
-
-        fn option_round_address(self: @ContractState, option_round_id: u256) -> ContractAddress {
+        // new
+        fn option_round_addresses(self: @ContractState, option_round_id: u256) -> ContractAddress {
             get_contract_address()
         }
 
