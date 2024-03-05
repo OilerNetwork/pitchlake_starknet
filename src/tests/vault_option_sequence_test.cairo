@@ -32,6 +32,7 @@ use pitch_lake_starknet::tests::utils::{
     zero_address, vault_manager, weth_owner, option_round_contract_address, mock_option_params,
     pop_log, assert_no_events_left, month_duration
 };
+use pitch_lake_starknet::option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait};
 use pitch_lake_starknet::tests::mock_market_aggregator::{
     MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
     IMarketAggregatorSetterDispatcherTrait
@@ -59,85 +60,94 @@ fn assert_event_option_created(
 #[available_gas(10000000)]
 #[should_panic(expected: ('Some error', 'auction expired, cannot auction_place_bid',))]
 fn test_bid_after_expiry() {
-    let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_amount_wei: u256 = 50 * decimals();
-    let option_amount: u256 = 50;
-    let option_price: u256 = 2 * decimals();
-    let bid_amount: u256 = option_amount * option_price;
+    let (vault_dispatcher, _): (IVaultDispatcher, IERC20Dispatcher) = setup();
 
-    set_contract_address(liquidity_provider_1());
-    let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
-    // start_new_option_round will also starts the auction
-    let (option_round_id, option_params, _): (u256, OptionRoundParams, ContractAddress) =
-        vault_dispatcher
-        .start_new_option_round();
-
+    // Add liq. to current round
+    let deposit_amount_wei = 50 * decimals();
     set_contract_address(option_bidder_buyer_1());
-    set_block_timestamp(option_params.option_expiry_time + 10);
-    vault_dispatcher.auction_place_bid(bid_amount, option_price);
-}
+    let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
 
+    // Start the option round
+    let (round_id, params): (u256, OptionRoundParams) = vault_dispatcher
+        .start_new_option_round_new();
+
+    // OptionRoundDispatcher
+    let (round_id, option_params) = vault_dispatcher.current_option_round();
+    let round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
+        contract_address: vault_dispatcher.option_round_addresses(round_id)
+    };
+
+    // Place bid after auction expiry
+    let option_amount = 50;
+    let option_price = 2 * decimals();
+    let bid_amount = option_amount * option_price;
+    set_contract_address(option_bidder_buyer_1());
+    set_block_timestamp(params.option_expiry_time + 10);
+    round_dispatcher.auction_place_bid(bid_amount, option_price);
+}
 
 #[test]
 #[available_gas(10000000)]
 #[should_panic(expected: ('Some error', 'auction cannot settle before due time',))]
 fn test_settle_auction_before_due_time() {
-    let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_amount_wei: u256 = 50 * decimals();
+    let (vault_dispatcher, _): (IVaultDispatcher, IERC20Dispatcher) = setup();
 
-    set_contract_address(liquidity_provider_1());
+    // Add liq. to current round
+    let deposit_amount_wei = 50 * decimals();
+    set_contract_address(option_bidder_buyer_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
-    // start_new_option_round will also starts the auction
-    let (option_round_id, option_params, _): (u256, OptionRoundParams, ContractAddress) =
-        vault_dispatcher
-        .start_new_option_round();
 
-    set_block_timestamp(option_params.auction_end_time - 10);
+    // Start the option round
+    let (round_id, params): (u256, OptionRoundParams) = vault_dispatcher
+        .start_new_option_round_new();
+
+    set_block_timestamp(params.auction_end_time - 10);
     vault_dispatcher.settle_auction();
 }
-
 
 #[test]
 #[available_gas(10000000)]
 #[should_panic(expected: ('Some error', 'multiple parallel rounds not allowed'))]
 fn test_multiple_parallel_rounds_failure() {
-    let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_amount_wei: u256 = 50 * decimals();
-    let option_amount: u256 = 50;
-    let option_price: u256 = 2 * decimals();
+    let (vault_dispatcher, _): (IVaultDispatcher, IERC20Dispatcher) = setup();
 
-    set_contract_address(liquidity_provider_1());
+    // Add liq. to current round
+    let deposit_amount_wei = 50 * decimals();
+    set_contract_address(option_bidder_buyer_1());
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
-    // start_new_option_round will also starts the auction
-    let (option_round_id, option_params, _): (u256, OptionRoundParams, ContractAddress) =
-        vault_dispatcher
-        .start_new_option_round();
-    // following line should generate an exception
-    let (option_round_id, option_params, _): (u256, OptionRoundParams, ContractAddress) =
-        vault_dispatcher
-        .start_new_option_round();
+
+    // Start the option round
+    let (round_id, params): (u256, OptionRoundParams) = vault_dispatcher
+        .start_new_option_round_new();
+
+    // Try to again before current round is settled
+    let (round_id, params): (u256, OptionRoundParams) = vault_dispatcher
+        .start_new_option_round_new();
 }
 
 
 #[test]
 #[available_gas(10000000)]
 fn test_current_round_round_is_new_round() {
-    let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_amount_wei: u256 = 50 * decimals();
-    let option_amount: u256 = 50;
-    let option_price: u256 = 2 * decimals();
+    let (vault_dispatcher, _): (IVaultDispatcher, IERC20Dispatcher) = setup();
 
+    // Add liq. to current round
     set_contract_address(liquidity_provider_1());
+    let deposit_amount_wei = 10000 * decimals();
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
-    // start_new_option_round will also starts the auction
-    let (option_round_id, option_params, _): (u256, OptionRoundParams, ContractAddress) =
-        vault_dispatcher
-        .start_new_option_round();
-    let (curr_option_id, curr_option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .current_option_round();
-    assert(option_params == curr_option_params, 'current round is new round');
+
+    // Start the option round
+    let (option_round_id, option_round_params): (u256, OptionRoundParams) = vault_dispatcher
+        .start_new_option_round_new();
+
+    // OptionRoundDispatcher
+    let (curr_round_id, curr_option_params) = vault_dispatcher.current_option_round();
+
+    assert(option_round_id == option_round_id, 'current round is new round');
+    assert(option_round_params == curr_option_params, 'current round is new round');
 }
 
+// was already commented out, circle back once finished updating curr tests
 // #[test]
 // #[available_gas(10000000)]
 // fn test_settled_and_new_round_sets_prev_round() {
@@ -178,38 +188,50 @@ fn test_current_round_round_is_new_round() {
 #[test]
 #[available_gas(10000000)]
 fn test_new_round_after_settle() {
-    let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_amount_wei: u256 = 50 * decimals();
+    let (vault_dispatcher, _): (IVaultDispatcher, IERC20Dispatcher) = setup();
 
+    // Add liq. to current round
     set_contract_address(liquidity_provider_1());
+    let deposit_amount_wei = 50 * decimals();
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
-    // start_new_option_round will also starts the auction
-    let (option_round_id, option_params, _): (u256, OptionRoundParams, ContractAddress) =
-        vault_dispatcher
-        .start_new_option_round();
 
+    // Start the option round
+    let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
+        .start_new_option_round_new();
+
+    // OptionRoundDispatcher
+    let (round_id, option_params) = vault_dispatcher.current_option_round();
+    let round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
+        contract_address: vault_dispatcher.option_round_addresses(round_id)
+    };
+
+    // Place bid
     let bid_count: u256 = option_params.total_options_available;
     let bid_price_user_1: u256 = option_params.reserve_price;
     let bid_amount: u256 = bid_count * bid_price_user_1;
     set_contract_address(option_bidder_buyer_1());
-    vault_dispatcher.auction_place_bid(bid_amount, bid_price_user_1);
+    round_dispatcher.auction_place_bid(bid_amount, bid_price_user_1);
 
+    // Settle auction
     set_block_timestamp(option_params.auction_end_time + 1);
-    vault_dispatcher.settle_auction();
+    round_dispatcher.settle_auction();
     set_block_timestamp(option_params.option_expiry_time + 1);
 
     let mock_maket_aggregator_setter: IMarketAggregatorSetterDispatcher =
         IMarketAggregatorSetterDispatcher {
-        contract_address: vault_dispatcher.get_market_aggregator().contract_address
+        contract_address: round_dispatcher.get_market_aggregator().contract_address
     };
     mock_maket_aggregator_setter.set_current_base_fee(option_params.reserve_price + 10);
 
-    vault_dispatcher.settle_option_round();
+    // Start new option round should not throw an exception
+    round_dispatcher.settle_option_round();
 
     let unallocated_amount_before_second_round_start: u256 = vault_dispatcher
         .total_unallocated_liquidity();
-    vault_dispatcher.start_new_option_round();
+
+    vault_dispatcher.start_new_option_round_new();
 // should not throw an exception, TODO better way to check vault_dispatcher is valid
+// matt: should current/next round be updated here, or should we just check that liq/premiums roll over 
 // assert_event_option_created(vault_dispatcher.contract_address, new_vault_dispatcher.contract_address, unallocated_amount_before_second_round_start, new_option_params);
 }
 
@@ -217,28 +239,37 @@ fn test_new_round_after_settle() {
 #[test]
 #[available_gas(10000000)]
 fn test_settle_before_expiry() {
-    let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_amount_wei: u256 = 50 * decimals();
+    let (vault_dispatcher, _): (IVaultDispatcher, IERC20Dispatcher) = setup();
+
+    // Add liq. to current round
+    set_contract_address(liquidity_provider_1());
+    let deposit_amount_wei = 50 * decimals();
+    let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
+
+    // Start the option round
+    let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
+        .start_new_option_round_new();
+
+    // OptionRoundDispatcher
+    let (round_id, option_params) = vault_dispatcher.current_option_round();
+    let round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
+        contract_address: vault_dispatcher.option_round_addresses(round_id)
+    };
+
+    // Place bid
     let option_amount: u256 = 50;
     let option_price: u256 = 2 * decimals();
     let bid_amount: u256 = option_amount * option_price;
-
-    set_contract_address(liquidity_provider_1());
-    let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
-    // start_new_option_round will also starts the auction
-    let (option_round_id, option_params, _): (u256, OptionRoundParams, ContractAddress) =
-        vault_dispatcher
-        .start_new_option_round();
-
     set_contract_address(option_bidder_buyer_1());
-    vault_dispatcher.auction_place_bid(bid_amount, option_price);
+    round_dispatcher.auction_place_bid(bid_amount, option_price);
+
+    // Settle auction
     set_block_timestamp(option_params.auction_end_time + 1);
-    vault_dispatcher.settle_auction();
+    round_dispatcher.settle_auction();
 
+    // Settle option round before expiry
     set_block_timestamp(option_params.option_expiry_time - 10000);
-
-    let success = vault_dispatcher.settle_option_round();
-
+    let success = round_dispatcher.settle_option_round();
     assert(success == false, 'no settle before expiry');
 }
 
@@ -246,19 +277,36 @@ fn test_settle_before_expiry() {
 #[available_gas(10000000)]
 #[should_panic(expected: ('some error', 'no settle before auction end'))]
 fn test_settle_before_end_auction() {
-    let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let deposit_amount_wei: u256 = 50 * decimals();
+    let (vault_dispatcher, _): (IVaultDispatcher, IERC20Dispatcher) = setup();
 
+    // Add liq. to current round
     set_contract_address(liquidity_provider_1());
+    let deposit_amount_wei = 50 * decimals();
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
-    // start_new_option_round will also starts the auction
-    let (option_round_id, option_params, _): (u256, OptionRoundParams, ContractAddress) =
-        vault_dispatcher
-        .start_new_option_round();
 
+    // Start the option round
+    let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
+        .start_new_option_round_new();
+
+    // OptionRoundDispatcher
+    let (round_id, option_params) = vault_dispatcher.current_option_round();
+    let round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
+        contract_address: vault_dispatcher.option_round_addresses(round_id)
+    };
+
+    // Place bid
+    let option_amount: u256 = 50;
+    let option_price: u256 = 2 * decimals();
+    let bid_amount: u256 = option_amount * option_price;
     set_contract_address(option_bidder_buyer_1());
-    set_block_timestamp(option_params.option_expiry_time);
-    let success = vault_dispatcher.settle_option_round();
+    round_dispatcher.auction_place_bid(bid_amount, option_price);
 
-    assert(success == false, 'no settle before auction end');
+    // Settle auction
+    set_block_timestamp(option_params.auction_end_time + 1);
+    round_dispatcher.settle_auction();
+
+    // Settle option round before expiry
+    set_block_timestamp(option_params.option_expiry_time);
+    let success = round_dispatcher.settle_option_round();
+    assert(success == false, 'no settle before expiry');
 }
