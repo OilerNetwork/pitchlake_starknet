@@ -69,14 +69,14 @@ trait IVault<TContractState> { // erc721
     // @notice Deploy a new option round, this also collaterizes amount from the previous option round into current option round. This also starts the auction for the options in the current round.
     // @dev there should be checks to make sure that the current option round has settled and is not collaterized anymore and certain time has elapsed.
     // @return option round params, and the next option round id and contract address
-    fn start_new_option_round_new(ref self: TContractState) -> (u256, OptionRoundParams);
+    fn start_new_option_round(ref self: TContractState) -> (u256, OptionRoundParams);
 
     // @notice start a new option round, this also collaterizes amount from the previous option round and current option round. This also starts the auction for the options
     // @dev there should be checks to make sure that the previous option round has settled and is not collaterized anymore and certain time has elapsed.
     // @return option round id and option round params, and now also the address of the deployed option round contract
-    fn start_new_option_round(
-        ref self: TContractState
-    ) -> (u256, OptionRoundParams, ContractAddress);
+    // fn start_new_option_round(
+    //     ref self: TContractState
+    // ) -> (u256, OptionRoundParams, ContractAddress);
 
     /// remove these until...
 
@@ -222,7 +222,7 @@ mod Vault {
         }
 
         // new 
-        fn start_new_option_round_new(ref self: ContractState) -> (u256, OptionRoundParams) {
+        fn start_new_option_round(ref self: ContractState) -> (u256, OptionRoundParams) {
             let params = OptionRoundParams {
                 current_average_basefee: 100,
                 strike_price: 1000,
@@ -244,28 +244,28 @@ mod Vault {
             return (0, params);
         }
 
-        fn start_new_option_round(
-            ref self: ContractState
-        ) -> (u256, OptionRoundParams, ContractAddress) {
-            let params = OptionRoundParams {
-                current_average_basefee: 100,
-                strike_price: 1000,
-                standard_deviation: 50,
-                cap_level: 100,
-                collateral_level: 100,
-                reserve_price: 10,
-                total_options_available: 1000,
-                // start_time:start_time_,
-                option_expiry_time: 1000,
-                auction_end_time: 1000,
-                minimum_bid_amount: 100,
-                minimum_collateral_required: 100
-            };
-            // deploy new option round
-            let option_round_address: ContractAddress = contract_address_const::<'TODO'>();
+        // fn start_new_option_round(
+        //     ref self: ContractState
+        // ) -> (u256, OptionRoundParams, ContractAddress) {
+        //     let params = OptionRoundParams {
+        //         current_average_basefee: 100,
+        //         strike_price: 1000,
+        //         standard_deviation: 50,
+        //         cap_level: 100,
+        //         collateral_level: 100,
+        //         reserve_price: 10,
+        //         total_options_available: 1000,
+        //         // start_time:start_time_,
+        //         option_expiry_time: 1000,
+        //         auction_end_time: 1000,
+        //         minimum_bid_amount: 100,
+        //         minimum_collateral_required: 100
+        //     };
+        //     // deploy new option round
+        //     let option_round_address: ContractAddress = contract_address_const::<'TODO'>();
 
-            return (0, params, option_round_address);
-        }
+        //     return (0, params, option_round_address);
+        // }
 
         fn auction_place_bid(ref self: ContractState, amount: u256, price: u256) -> bool {
             true

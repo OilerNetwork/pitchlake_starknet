@@ -68,8 +68,7 @@ fn test_bid_after_expiry() {
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
 
     // Start the option round
-    let (round_id, params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+    let (round_id, params): (u256, OptionRoundParams) = vault_dispatcher.start_new_option_round();
 
     // OptionRoundDispatcher
     let (round_id, option_params) = vault_dispatcher.current_option_round();
@@ -98,8 +97,7 @@ fn test_settle_auction_before_due_time() {
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
 
     // Start the option round
-    let (round_id, params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+    let (round_id, params): (u256, OptionRoundParams) = vault_dispatcher.start_new_option_round();
 
     set_block_timestamp(params.auction_end_time - 10);
     vault_dispatcher.settle_auction();
@@ -117,12 +115,10 @@ fn test_multiple_parallel_rounds_failure() {
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
 
     // Start the option round
-    let (round_id, params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+    let (round_id, params): (u256, OptionRoundParams) = vault_dispatcher.start_new_option_round();
 
     // Try to again before current round is settled
-    let (round_id, params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+    let (round_id, params): (u256, OptionRoundParams) = vault_dispatcher.start_new_option_round();
 }
 
 
@@ -138,7 +134,7 @@ fn test_current_round_round_is_new_round() {
 
     // Start the option round
     let (option_round_id, option_round_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+        .start_new_option_round();
 
     // OptionRoundDispatcher
     let (curr_round_id, curr_option_params) = vault_dispatcher.current_option_round();
@@ -197,7 +193,7 @@ fn test_new_round_after_settle() {
 
     // Start the option round
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+        .start_new_option_round();
 
     // OptionRoundDispatcher
     let (round_id, option_params) = vault_dispatcher.current_option_round();
@@ -229,7 +225,7 @@ fn test_new_round_after_settle() {
     let unallocated_amount_before_second_round_start: u256 = vault_dispatcher
         .total_unallocated_liquidity();
 
-    vault_dispatcher.start_new_option_round_new();
+    vault_dispatcher.start_new_option_round();
 // should not throw an exception, TODO better way to check vault_dispatcher is valid
 // matt: should current/next round be updated here, or should we just check that liq/premiums roll over 
 // assert_event_option_created(vault_dispatcher.contract_address, new_vault_dispatcher.contract_address, unallocated_amount_before_second_round_start, new_option_params);
@@ -248,7 +244,7 @@ fn test_settle_before_expiry() {
 
     // Start the option round
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+        .start_new_option_round();
 
     // OptionRoundDispatcher
     let (round_id, option_params) = vault_dispatcher.current_option_round();
@@ -286,7 +282,7 @@ fn test_settle_before_end_auction() {
 
     // Start the option round
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+        .start_new_option_round();
 
     // OptionRoundDispatcher
     let (round_id, option_params) = vault_dispatcher.current_option_round();

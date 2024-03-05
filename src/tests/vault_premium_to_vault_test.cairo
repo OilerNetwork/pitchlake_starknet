@@ -44,8 +44,7 @@ fn test_paid_premium_withdrawal_to_liquidity_provider() {
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
 
     // Start the option round
-    let (option_round_id, _): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+    let (option_round_id, _): (u256, OptionRoundParams) = vault_dispatcher.start_new_option_round();
 
     // OptionRoundDispatcher
     let (round_id, option_params) = vault_dispatcher.current_option_round();
@@ -89,8 +88,7 @@ fn test_paid_premium_withdrawal_to_invalid_provider() {
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
 
     // Start the option round
-    let (option_round_id, _): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+    let (option_round_id, _): (u256, OptionRoundParams) = vault_dispatcher.start_new_option_round();
 
     // OptionRoundDispatcher
     let (round_id, option_params) = vault_dispatcher.current_option_round();
@@ -136,7 +134,7 @@ fn test_premium_collection_ratio_conversion_unallocated_pool_1() {
 
     // Start option round 
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+        .start_new_option_round();
 
     // OptionRoundDispatcher
     let (round_id, option_params) = vault_dispatcher.current_option_round();
@@ -201,7 +199,7 @@ fn test_premium_collection_ratio_conversion_unallocated_pool_2() {
     let lp_id_2: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
 
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+        .start_new_option_round();
 
     // OptionRoundDispatcher
     let (round_id, option_params) = vault_dispatcher.current_option_round();

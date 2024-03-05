@@ -47,7 +47,7 @@ fn test_withdraw_liquidity_to_after_collaterization() {
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+        .start_new_option_round();
 
     let success: bool = vault_dispatcher.withdraw_liquidity(lp_id, deposit_amount_wei);
     assert(success == false, 'cannot withdraw');
@@ -65,7 +65,7 @@ fn test_total_collaterized_wei_1() {
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+        .start_new_option_round();
 
     // OptionRoundDispatcher
     let (round_id, option_params) = vault_dispatcher.current_option_round();
@@ -91,7 +91,7 @@ fn test_total_collaterized_wei_2() {
     let lp_id_2: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei_2);
 
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+        .start_new_option_round();
 
     // OptionRoundDispatcher
     let (round_id, option_params) = vault_dispatcher.current_option_round();

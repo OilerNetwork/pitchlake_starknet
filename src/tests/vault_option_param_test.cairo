@@ -46,8 +46,7 @@ fn test_start_option_zero_liquidity() {
     let (vault_dispatcher, _): (IVaultDispatcher, IERC20Dispatcher) = setup();
 
     // Start the option round
-    let (option_round_id, _): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+    let (option_round_id, _): (u256, OptionRoundParams) = vault_dispatcher.start_new_option_round();
 }
 
 
@@ -83,12 +82,12 @@ fn test_strike_price_based_on_vault_types() {
     let lp_id_3: u256 = vault_dispatcher_out_the_money.open_liquidity_position(deposit_amount_wei);
 
     // Start the option rounds and compare the strike prices
-    let (round_id, params) = vault_dispatcher_in_the_money.start_new_option_round_new();
+    let (round_id, params) = vault_dispatcher_in_the_money.start_new_option_round();
     assert(params.strike_price > params.current_average_basefee, ' ITM strike > average basefee');
 
-    let (round_id, params) = vault_dispatcher_at_the_money.start_new_option_round_new();
+    let (round_id, params) = vault_dispatcher_at_the_money.start_new_option_round();
     assert(params.strike_price == params.current_average_basefee, ' ATM strike == average basefee');
 
-    let (round_id, params) = vault_dispatcher_out_the_money.start_new_option_round_new();
+    let (round_id, params) = vault_dispatcher_out_the_money.start_new_option_round();
     assert(params.strike_price < params.current_average_basefee, ' OTM strike < average basefee');
 }

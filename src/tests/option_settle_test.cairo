@@ -91,7 +91,7 @@ fn test_invalid_user_collection_of_payout_after_settle() {
     let unallocated_wei_before_premium: u256 = vault_dispatcher.total_unallocated_liquidity();
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+        .start_new_option_round();
 
     // OptionRoundDispatcher
     let (round_id, option_params) = vault_dispatcher.current_option_round();
@@ -136,7 +136,7 @@ fn test_collection_of_premium_after_settle() {
     let unallocated_wei_before_premium: u256 = vault_dispatcher.total_unallocated_liquidity();
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+        .start_new_option_round();
 
     // OptionRoundDispatcher
     let (round_id, option_params) = vault_dispatcher.current_option_round();
@@ -232,7 +232,7 @@ fn test_option_payout_1() {
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+        .start_new_option_round();
 
     // OptionRoundDispatcher
     let (round_id, option_params) = vault_dispatcher.current_option_round();
@@ -277,7 +277,7 @@ fn test_option_payout_2() {
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+        .start_new_option_round();
 
     // OptionRoundDispatcher
     let (round_id, option_params) = vault_dispatcher.current_option_round();
@@ -321,7 +321,7 @@ fn test_option_post_payout_collaterized_count_1() {
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+        .start_new_option_round();
 
     // OptionRoundDispatcher
     let (round_id, option_params) = vault_dispatcher.current_option_round();
@@ -369,7 +369,7 @@ fn test_option_post_payout_collaterized_count_2() {
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+        .start_new_option_round();
 
     // OptionRoundDispatcher
     let (round_id, option_params) = vault_dispatcher.current_option_round();
@@ -413,7 +413,7 @@ fn test_option_post_payout_collaterized_count_3() {
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+        .start_new_option_round();
 
     // OptionRoundDispatcher
     let (round_id, option_params) = vault_dispatcher.current_option_round();
@@ -475,7 +475,7 @@ fn test_option_payout_buyer_eth_balance() {
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+        .start_new_option_round();
 
     // OptionRoundDispatcher
     let (round_id, option_params) = vault_dispatcher.current_option_round();

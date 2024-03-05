@@ -43,7 +43,7 @@ fn test_clearing_price_1() {
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+        .start_new_option_round();
     // OptionRoundDispatcher
     let (round_id, option_params) = vault_dispatcher.current_option_round();
     let round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
@@ -72,7 +72,7 @@ fn test_clearing_price_2() {
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+        .start_new_option_round();
     // OptionRoundDispatcher
     let (round_id, option_params) = vault_dispatcher.current_option_round();
     let round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
@@ -109,7 +109,7 @@ fn test_clearing_price_3() {
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
 
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+        .start_new_option_round();
     // OptionRoundDispatcher
     let (round_id, option_params) = vault_dispatcher.current_option_round();
     let round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
@@ -149,7 +149,7 @@ fn test_clearing_price_4() {
 
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+        .start_new_option_round();
     // OptionRoundDispatcher
     let (round_id, option_params) = vault_dispatcher.current_option_round();
     let round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
@@ -195,7 +195,7 @@ fn test_clearing_price_5() {
     let deposit_amount_wei: u256 = 10000 * decimals();
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+        .start_new_option_round();
     // OptionRoundDispatcher
     let (round_id, option_params) = vault_dispatcher.current_option_round();
     let round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
@@ -240,7 +240,7 @@ fn test_bid_below_reserve_price() {
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
 
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+        .start_new_option_round();
     // OptionRoundDispatcher
     let (round_id, option_params) = vault_dispatcher.current_option_round();
     let round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
@@ -265,7 +265,7 @@ fn test_lock_of_bid_funds() {
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+        .start_new_option_round();
     // OptionRoundDispatcher
     let (round_id, option_params) = vault_dispatcher.current_option_round();
     let round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
@@ -295,7 +295,7 @@ fn test_zero_bid_count() {
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+        .start_new_option_round();
     // OptionRoundDispatcher
     let (round_id, option_params) = vault_dispatcher.current_option_round();
     let round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
@@ -319,7 +319,7 @@ fn test_zero_bid_price() {
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+        .start_new_option_round();
     // OptionRoundDispatcher
     let (round_id, option_params) = vault_dispatcher.current_option_round();
     let round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
@@ -345,7 +345,7 @@ fn test_eth_unused_for_rejected_bids() {
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+        .start_new_option_round();
     // OptionRoundDispatcher
     let (round_id, option_params) = vault_dispatcher.current_option_round();
     let round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
@@ -372,7 +372,7 @@ fn test_eth_lockup_for_unused_bids() { // accepted but still unused bids
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+        .start_new_option_round();
     // OptionRoundDispatcher
     let (round_id, option_params) = vault_dispatcher.current_option_round();
     let round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
@@ -405,7 +405,7 @@ fn test_eth_transfer_for_unused_bids_after_claim() {
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+        .start_new_option_round();
     // OptionRoundDispatcher
     let (round_id, option_params) = vault_dispatcher.current_option_round();
     let round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
@@ -447,7 +447,7 @@ fn test_total_options_after_auction_1() {
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+        .start_new_option_round();
     // OptionRoundDispatcher
     let (round_id, option_params) = vault_dispatcher.current_option_round();
     let round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
@@ -481,7 +481,7 @@ fn test_total_options_after_auction_2() {
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+        .start_new_option_round();
     // OptionRoundDispatcher
     let (round_id, option_params) = vault_dispatcher.current_option_round();
     let round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
@@ -519,7 +519,7 @@ fn test_total_options_after_auction_3() {
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+        .start_new_option_round();
     // OptionRoundDispatcher
     let (round_id, option_params) = vault_dispatcher.current_option_round();
     let round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
@@ -547,7 +547,7 @@ fn test_total_options_after_auction_4() {
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+        .start_new_option_round();
     // OptionRoundDispatcher
     let (round_id, option_params) = vault_dispatcher.current_option_round();
     let round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
@@ -574,7 +574,7 @@ fn test_total_options_after_auction_5() {
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+        .start_new_option_round();
     // OptionRoundDispatcher
     let (round_id, option_params) = vault_dispatcher.current_option_round();
     let round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
@@ -605,7 +605,7 @@ fn test_total_options_after_auction_6() {
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+        .start_new_option_round();
     // OptionRoundDispatcher
     let (round_id, option_params) = vault_dispatcher.current_option_round();
     let round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
@@ -647,7 +647,7 @@ fn test_option_balance_per_bidder_after_auction_1() {
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+        .start_new_option_round();
     // OptionRoundDispatcher
     let (round_id, option_params) = vault_dispatcher.current_option_round();
     let round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
@@ -720,7 +720,7 @@ fn test_option_balance_per_bidder_after_auction_2() {
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+        .start_new_option_round();
     // OptionRoundDispatcher
     let (round_id, mut option_params) = vault_dispatcher.current_option_round();
     let round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
@@ -804,7 +804,7 @@ fn test_option_balance_per_bidder_after_auction_3() {
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
     // start_new_option_round will also starts the auction
     let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round_new();
+        .start_new_option_round();
     // OptionRoundDispatcher
     let (round_id, mut option_params) = vault_dispatcher.current_option_round();
     let round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
