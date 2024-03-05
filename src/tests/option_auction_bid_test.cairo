@@ -710,12 +710,10 @@ fn test_option_balance_per_bidder_after_auction_2() {
     assert(options_created_user_4_count == 86, 'options shd match');
     assert(options_created_user_5_count == 0, 'options shd match');
     assert(options_created_user_6_count == 0, 'options shd match');
-/// matt: i see where the 0s come from but where are the rest of these numbers coming from ? does the auction dictate 
-/// how the options are split if the bidders bid > the total ? 
 }
 
-
 // test where the total options available have all been sold and there are unused bids which are locked up and can be claimed by the bidders
+
 #[test]
 #[available_gas(10000000)]
 fn test_option_balance_per_bidder_after_auction_3() {
@@ -797,6 +795,4 @@ fn test_option_balance_per_bidder_after_auction_3() {
     assert(options_created_user_5_count == 0, 'options shd match');
     assert(options_created_user_6_count == 0, 'options shd match');
     assert(unused_bid_amount_user_3 == 27 * decimals(), 'unused bid amount shd match');
-/// matt: yea confused on where the #s are coming from, i see where 0s come from, and that the total is 200, and the bids 
-// are proportional to the init bids, but how does 50 -> 25, 142 -> 71, 235 -> 104 ? 
 }
