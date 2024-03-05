@@ -102,9 +102,9 @@ fn test_invalid_user_collection_of_payout_after_settle() {
     // Make bid
     set_contract_address(option_bidder_buyer_1());
     let bid_amount: u256 = option_amount * option_price;
-    vault_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
+    round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
     set_block_timestamp(option_params.auction_end_time + 1);
-    vault_dispatcher.settle_auction();
+    round_dispatcher.settle_auction();
 
     // Settle option round
     set_block_timestamp(option_params.option_expiry_time + 1);
@@ -262,7 +262,7 @@ fn test_option_payout_1() {
 
     // Payout balance
     let payout_balance = round_dispatcher.payout_balance_of(option_bidder_buyer_1());
-    let payout_balance_expected = vault_dispatcher.option_balance_of(option_bidder_buyer_1())
+    let payout_balance_expected = round_dispatcher.option_balance_of(option_bidder_buyer_1())
         * (settlement_price
             - option_params.strike_price); // TODO convert this to gwei instead of wei
     assert(payout_balance == payout_balance_expected, 'expected payout doesnt match');

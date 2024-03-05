@@ -152,14 +152,16 @@ fn test_premium_collection_ratio_conversion_unallocated_pool_1() {
     round_dispatcher.settle_auction();
 
     //premium paid will be converted into unallocated.
-    let total_collateral: u256 = vault_dispatcher.total_collateral();
+    let total_collateral: u256 = round_dispatcher.total_collateral();
     let total_premium_to_be_paid: u256 = round_dispatcher.get_auction_clearing_price()
         * round_dispatcher.total_options_sold();
 
-    let ratio_of_liquidity_provider_1: u256 = (vault_dispatcher.collateral_balance_of(lp_id_1)
+    let ratio_of_liquidity_provider_1: u256 = (round_dispatcher
+        .collateral_balance_of(liquidity_provider_1())
         * 100)
         / total_collateral;
-    let ratio_of_liquidity_provider_2: u256 = (vault_dispatcher.collateral_balance_of(lp_id_2)
+    let ratio_of_liquidity_provider_2: u256 = (round_dispatcher
+        .collateral_balance_of(liquidity_provider_2())
         * 100)
         / total_collateral;
 

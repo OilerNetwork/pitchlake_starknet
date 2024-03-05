@@ -867,7 +867,7 @@ fn test_option_balance_per_bidder_after_auction_3() {
     let options_created_user_6_count: u256 = round_dispatcher
         .option_balance_of(option_bidder_buyer_6());
 
-    let unused_bid_amount_user_3: u256 = vault_dispatcher
+    let unused_bid_amount_user_3: u256 = round_dispatcher
         .unused_bid_deposit_balance_of(option_bidder_buyer_3());
 
     assert(

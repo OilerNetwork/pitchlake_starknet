@@ -137,7 +137,7 @@ trait IOptionRound<TContractState> {
     // total amount deposited as part of bidding by an option buyer, if the auction has not ended this represents the total amount locked up for auction and cannot be claimed back,
     // if the auction has ended this the amount which was not converted into an option and can be claimed back.
     #[view]
-    fn unusedbid_deposit_balance_of(self: @TContractState, option_buyer: ContractAddress) -> u256;
+    fn unused_bid_deposit_balance_of(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
     // payout due to an option buyer
     #[view]
@@ -270,7 +270,7 @@ mod OptionRound {
             100
         }
 
-        fn unusedbid_deposit_balance_of(
+        fn unused_bid_deposit_balance_of(
             self: @ContractState, option_buyer: ContractAddress
         ) -> u256 {
             100

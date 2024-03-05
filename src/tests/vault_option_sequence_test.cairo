@@ -97,10 +97,17 @@ fn test_settle_auction_before_due_time() {
     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
 
     // Start the option round
-    let (round_id, params): (u256, OptionRoundParams) = vault_dispatcher.start_new_option_round();
+    let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
+        .start_new_option_round();
+
+    // OptionRoundDispatcher
+    let (round_id, params) = vault_dispatcher.current_option_round();
+    let round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
+        contract_address: vault_dispatcher.option_round_addresses(round_id)
+    };
 
     set_block_timestamp(params.auction_end_time - 10);
-    vault_dispatcher.settle_auction();
+    round_dispatcher.settle_auction();
 }
 
 #[test]
