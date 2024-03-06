@@ -258,12 +258,14 @@ mod OptionRound {
             100
         }
 
+        // rm?
         fn transfer_collateral_to_vault(
             ref self: ContractState, for_liquidity_provider: ContractAddress
         ) -> u256 {
             100
         }
 
+        // rm ?
         fn transfer_premium_collected_to_vault(
             ref self: ContractState, for_liquidity_provider: ContractAddress
         ) -> u256 {

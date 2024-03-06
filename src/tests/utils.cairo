@@ -51,6 +51,8 @@ fn deploy_eth() -> IERC20Dispatcher {
     return IERC20Dispatcher { contract_address: address };
 }
 
+
+// either use this or have logic in vault::constructor to deploy 1st option round
 // fn deploy_option_round(owner:ContractAddress) ->  IOptionRoundDispatcher {
 //     let mut calldata = array![];
 
@@ -83,12 +85,15 @@ fn deploy_vault(vault_type: VaultType) -> IVaultDispatcher {
     calldata.append_serde(vault_type);
     calldata.append_serde(deploy_market_aggregator());
 
+    // for initial testing, we are manually deploying option round and setting in the vault
+
     let (address, _) = deploy_syscall(
         Vault::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
     )
         .expect('DEPLOY_VAULT_FAILED');
     return IVaultDispatcher { contract_address: address };
 }
+
 
 fn deploy_pitch_lake() -> IPitchLakeDispatcher {
     let vault_dispatcher_in_the_money: IVaultDispatcher = deploy_vault(VaultType::InTheMoney);
@@ -120,7 +125,7 @@ fn setup() -> (IVaultDispatcher, IERC20Dispatcher) {
     eth_dispatcher.transfer(liquidity_provider_2(), deposit_amount_wei);
 
     let deposit_amount_ether: u256 = 100000;
-    let deposit_amount_wei: u256 = deposit_amount_ether * decimals(); 
+    let deposit_amount_wei: u256 = deposit_amount_ether * decimals();
 
     eth_dispatcher.transfer(option_bidder_buyer_1(), deposit_amount_wei);
     eth_dispatcher.transfer(option_bidder_buyer_2(), deposit_amount_wei);
@@ -186,9 +191,9 @@ fn decimals() -> u256 {
 
 fn mock_option_params() -> OptionRoundParams {
     let total_unallocated_liquidity: u256 = 10000 * decimals(); // from LPs ?
-    let option_reserve_price_: u256 = 6 * decimals();           // from market aggregator (fossil) ?
-    let average_basefee: u256 = 20;                             // from market aggregator (fossil) ?              
-    let standard_deviation: u256 = 30;                          // from market aggregator (fossil) ?
+    let option_reserve_price_: u256 = 6 * decimals(); // from market aggregator (fossil) ?
+    let average_basefee: u256 = 20; // from market aggregator (fossil) ?              
+    let standard_deviation: u256 = 30; // from market aggregator (fossil) ?
     let cap_level: u256 = average_basefee
         + (3
             * standard_deviation); //per notes from tomasz, we set cap level at 3 standard deviation (captures 99.7% of the data points)
