@@ -43,6 +43,57 @@ struct OptionRoundCreated {
 
 #[starknet::interface]
 trait IVault<TContractState> { // erc721
+    /// new below ///
+
+    /// Reads ///
+
+    // @return the type of the vault (ITM | ATM | OTM)
+    fn vault_type(self: @TContractState) -> VaultType;
+
+    // @return the current option round id 
+    fn current_option_round_id(self: @TContractState) -> u256;
+
+    // @return the next option round id
+    fn next_option_round_id(self: @TContractState) -> u256;
+
+    // @return the contract address of the option round
+    fn get_option_round_address(self: @TContractState, option_round_id: u256) -> ContractAddress;
+
+    // @return an LP's liquidity at the start of the option round
+    fn get_lps_starting_liquidity_in_option_round(self: @TContractState, round_id: u256) -> u256;
+
+    // @return an LP's liquidity at the end of the option round (the remaining liquidity)
+    fn get_lps_final_liquidity_in_option_round(self: @TContractState, round_id: u256) -> u256;
+
+    // @return the premiums LP has earned in the option round
+    fn get_lps_premiums_earned_in_option_round(self: @TContractState, round_id: u256) -> u256;
+
+    /// Writes ///
+
+    // LP modifies their current position or creates a new one if they don't have one yet
+    // @return the lp_id of the liquidity position (erc721 token id)
+    fn deposit_liquidity(ref self: TContractState, amount: u256) -> u256;
+
+    // LP flags their entire position to be withdrawn at the end of the current running round
+    // @return if the claim was submitted successfully
+    fn submit_claim(ref self: TContractState) -> bool;
+
+    // LP withdraws their liquidity from the the current open option round 
+    // @return if the withdrawal was successful
+    fn withdraw_liquidity(ref self: TContractState, lp_id: u256) -> bool;
+
+    // Deploy the next option round contract as long as the current is state::Settled, and start 
+    // the auction on the new current option round (-> state::Auctioning)
+    // @note This function should only be callable by the pitchlake server, or the public with incentive.
+    // @dev The current/next_option_round_id both increment by 1.
+    // @dev The new next option round is deployed with state::Open.
+    // @note Once we start the auction we know how much liquidity we have, this is where 
+    // we fetch/consume/pass the values from fossil (strike, cl, etc.) to create our OptionRoundParams.
+    fn start_next_option_round(ref self: TContractState) -> bool;
+
+
+    /// old below
+
     // @notice add liquidity to the next option round. This will create a new liquidity position
     // @param amount: amount of liquidity to add
     // @return liquidity position id
@@ -59,31 +110,19 @@ trait IVault<TContractState> { // erc721
     // @param lp_id: liquidity position id
     // @param amount: amount of liquidity to withdraw in wei
     // @return bool: true if the liquidity was withdrawn successfully
-    fn withdraw_liquidity(ref self: TContractState, lp_id: u256, amount: u256) -> bool;
+    // fn withdraw_liquidity(ref self: TContractState, lp_id: u256, amount: u256) -> bool;
 
-    // #[view]
-    // fn generate_option_round_params(ref self: TContractState, option_expiry_time_:u64)-> OptionRoundParams;
-
-    // new 
-
-    // @notice Deploy a new option round, this also collaterizes amount from the previous option round into current option round. This also starts the auction for the options in the current round.
-    // @dev there should be checks to make sure that the current option round has settled and is not collaterized anymore and certain time has elapsed.
-    // @return option round params, and the next option round id and contract address
-    fn start_new_option_round(ref self: TContractState) -> (u256, OptionRoundParams);
-
-    fn vault_type(self: @TContractState) -> VaultType;
-
+    // read 
     // @return current option round params and the option round id
     fn current_option_round(self: @TContractState) -> (u256, OptionRoundParams);
 
     // @return next option round params and the option round id
     fn next_option_round(self: @TContractState) -> (u256, OptionRoundParams);
 
-    // this is new
-    // @return an option round id's contract address
-    fn option_round_addresses(self: @TContractState, option_round_id: u256) -> ContractAddress;
-
     fn get_market_aggregator(self: @TContractState) -> IMarketAggregatorDispatcher;
+
+    // @return the contract address of the option round
+    fn option_round_addresses(self: @TContractState, option_round_id: u256) -> ContractAddress;
 
     // unallocated balance of balance of a liquidity position
     fn unallocated_liquidity_balance_of(self: @TContractState, lp_id: u256) -> u256;
@@ -93,6 +132,15 @@ trait IVault<TContractState> { // erc721
 
     // decimals in the vault token ?
     fn decimals(self: @TContractState) -> u8;
+
+
+    // #[view]
+    // fn generate_option_round_params(ref self: TContractState, option_expiry_time_:u64)-> OptionRoundParams;
+
+    // @notice Deploy a new option round, this also collaterizes amount from the previous option round into current option round. This also starts the auction for the options in the current round.
+    // @dev there should be checks to make sure that the current option round has settled and is not collaterized anymore and certain time has elapsed.
+    // @return option round params, and the next option round id and contract address
+    fn start_new_option_round(ref self: TContractState) -> (u256, OptionRoundParams);
 }
 
 #[starknet::contract]
@@ -136,6 +184,58 @@ mod Vault {
 
     #[external(v0)]
     impl VaultImpl of super::IVault<ContractState> {
+        /// Reads ///
+        fn vault_type(self: @ContractState) -> VaultType {
+            VaultType::AtTheMoney
+        }
+
+        fn current_option_round_id(self: @ContractState) -> u256 {
+            0
+        }
+
+        fn next_option_round_id(self: @ContractState) -> u256 {
+            0
+        }
+
+        fn get_option_round_address(
+            self: @ContractState, option_round_id: u256
+        ) -> ContractAddress {
+            self.option_round_addresses(option_round_id)
+        }
+
+        fn get_lps_starting_liquidity_in_option_round(
+            self: @ContractState, round_id: u256
+        ) -> u256 {
+            100
+        }
+
+        fn get_lps_final_liquidity_in_option_round(self: @ContractState, round_id: u256) -> u256 {
+            100
+        }
+
+        fn get_lps_premiums_earned_in_option_round(self: @ContractState, round_id: u256) -> u256 {
+            100
+        }
+
+        /// Writes ///
+        fn deposit_liquidity(ref self: ContractState, amount: u256) -> u256 {
+            10
+        }
+
+        fn submit_claim(ref self: ContractState) -> bool {
+            true
+        }
+
+        fn withdraw_liquidity(ref self: ContractState, lp_id: u256) -> bool {
+            true
+        }
+
+        fn start_next_option_round(ref self: ContractState) -> bool {
+            true
+        }
+
+        /// old ///
+
         fn open_liquidity_position(ref self: ContractState, amount: u256) -> u256 {
             10
         }
@@ -144,9 +244,9 @@ mod Vault {
             true
         }
 
-        fn withdraw_liquidity(ref self: ContractState, lp_id: u256, amount: u256) -> bool {
-            true
-        }
+        // fn withdraw_liquidity(ref self: ContractState, lp_id: u256, amount: u256) -> bool {
+        //     true
+        // }
 
         fn start_new_option_round(ref self: ContractState) -> (u256, OptionRoundParams) {
             let params = OptionRoundParams {
@@ -168,21 +268,21 @@ mod Vault {
             // deploy new next round contract 
             // update current/next round ids (current += 1, next += 1)
 
-            // mock deploy to abvoid a ton of ENTRYPOINT_NOT_FOUND errors
-            //todo real vals
-            let mut call_data: Array<felt252> = array!['owner', 'collat. pool addr'];
-            // 
-            call_data.append_serde(params);
-            // should just use address and build dispatcher when needed ? 
-            call_data.append('mk agg dispatcher');
+            // // mock deploy to abvoid a ton of ENTRYPOINT_NOT_FOUND errors
+            // //todo real vals
+            // let mut call_data: Array<felt252> = array!['owner', 'collat. pool addr'];
+            // // 
+            // call_data.append_serde(params);
+            // // should just use address and build dispatcher when needed ? 
+            // call_data.append('mk agg dispatcher');
 
-            let (round_address, _) = deploy_syscall(
-                OptionRound::TEST_CLASS_HASH.try_into().unwrap(), 'salt', call_data.span(), false
-            )
-                .unwrap();
+            // let (round_address, _) = deploy_syscall(
+            //     OptionRound::TEST_CLASS_HASH.try_into().unwrap(), 'salt', call_data.span(), false
+            // )
+            //     .unwrap();
 
-            // mock set in storage 
-            self.round_addresses.write(1, round_address);
+            // // mock set in storage 
+            // self.round_addresses.write(1, round_address);
 
             return (1, params);
         }
@@ -230,11 +330,10 @@ mod Vault {
             self.round_addresses.read(option_round_id)
         }
 
-
-        fn vault_type(self: @ContractState) -> VaultType {
-            // TODO fix later, random value
-            VaultType::AtTheMoney
-        }
+        // fn vault_type(self: @ContractState) -> VaultType {
+        //     // TODO fix later, random value
+        //     VaultType::AtTheMoney
+        // }
 
         fn get_market_aggregator(self: @ContractState) -> IMarketAggregatorDispatcher {
             return self.market_aggregator.read();

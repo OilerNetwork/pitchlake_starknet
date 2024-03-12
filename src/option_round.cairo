@@ -26,10 +26,16 @@ struct OptionRoundParams {
 
 #[derive(Copy, Drop, Serde, PartialEq, starknet::Store)]
 enum OptionRoundState {
+    // old
     Initialized,
     AuctionStarted,
     AuctionSettled,
     OptionSettled,
+    // new 
+    Open,
+    Auctioning,
+    Running,
+    Settled,
 }
 
 
@@ -77,9 +83,119 @@ struct OptionTransferEvent {
 }
 #[starknet::interface]
 trait IOptionRound<TContractState> {
-    // starts the auction to determine the option premium clearing price, true if auction has never been started before otherwise false
-    #[external]
+    // new; following notion page: https://www.notion.so/nethermind/Crash-course-docs-aa05c787e89446a1aa5f72043f1bde42
+
+    /// Reads /// 
+
+    // Gets the current state of the option round
+    fn get_option_round_state(self: @TContractState) -> OptionRoundState;
+
+    // Gets the parameters for the option round
+    fn get_option_round_params(self: @TContractState) -> OptionRoundParams;
+
+    // The total liquidity at the start of the option round
+    fn total_deposits(self: @TContractState) -> u256;
+
+    // Gets the amount an option bidder has deposited for the auction
+    fn get_bids_of(self: @TContractState, option_bidder: ContractAddress) -> u256;
+
+    // Gets the clearing price for the auction
+    fn get_auction_clearing_price(self: @TContractState) -> u256;
+
+    // The total number of options sold in the option round
+    // @note Will be 0 until the auction is settled
+    fn total_options_sold(self: @TContractState) -> u256;
+
+    // Gets the amount of an option buyer's bids that were not used in the auction 
+    fn get_unused_bids_of(self: @TContractState, option_buyer: ContractAddress) -> u256;
+
+    // The total premium collected from the option round's auction
+    fn total_premiums(self: @TContractState) -> u256;
+
+    // Gets the amount that an option buyer can claim with their options
+    fn get_payout_balance_of(self: @TContractState, option_buyer: ContractAddress) -> u256;
+
+    // The total payouts of the option round
+    // @note Will be 0 until the option round is settled
+    // @note Can be 0 depending on the market conditions (exerciseable vs non-exerciseable)
+    fn total_payouts(self: @TContractState) -> u256;
+
+    // @dev `option_balance_of` is not needed, it will be included in the ERC20 component as `balance_of`
+
+    /// Writes ///
+
+    // Start the option round's auction (-> state::Auctioning)
+    // @return true if the auction was started, false if the auction was already started/cannot start yet
     fn start_auction(ref self: TContractState, option_params: OptionRoundParams) -> bool;
+
+    // Place a bid in the auction 
+    // @param amount: The max amount in place_bid_token to be used for bidding in the auction
+    // @param price: The max price in place_bid_token per option (if the clearing price is 
+    // higher than this, the entire bid is unused and can be claimed back by the bidder)
+    // @return if the bid was accepted or rejected
+    fn place_bid(ref self: TContractState, amount: u256, price: u256) -> bool;
+
+    // Settle the auction if the auction time has passed 
+    // @return if the auction was settled or not
+    // @note there was a note in the previous version that this should return the clearing price,
+    // not sure which makes more sense at this time.
+    fn settle_auction(ref self: TContractState) -> bool;
+
+    // Refund unused bids for an option bidder if the auction has ended
+    // @param option_bidder: The bidder to refund the unused bid back to
+    // @return the amount of the transfer
+    fn refund_unused_bids(ref self: TContractState, option_bidder: ContractAddress) -> u256;
+
+    // Settle the option round if past the expiry date and in state::Running
+    // @note This function should probably me limited to just the vault, and be wrapped
+    // in another entrypoint that will do the claim handling/transfer of funds
+    // @return if the option round settles or not 
+    fn settle_option_round(ref self: TContractState) -> bool;
+
+    // Claim the payout for an option buyer's options if the option round has settled 
+    // @note the value that each option pays out might be 0 if non-exercisable
+    // @param option_buyer: The option buyer to claim the payout for
+    // @return the amount of the transfer
+    fn exercise_options(ref self: TContractState, option_buyer: ContractAddress) -> u256;
+
+
+    ////////// old (some were moved to above, if name is the same) //////////
+
+    // total amount deposited as part of bidding by an option buyer, if the auction has not ended this represents the total amount locked up for auction and cannot be claimed back,
+    // if the auction has ended this the amount which was not converted into an option and can be claimed back.
+    #[view]
+    fn unused_bid_deposit_balance_of(self: @TContractState, option_buyer: ContractAddress) -> u256;
+
+    // payout due to an option buyer
+    #[view]
+    fn payout_balance_of(self: @TContractState, option_buyer: ContractAddress) -> u256;
+
+    // no of options bought by a user
+    // can drop, erc20::balance_of will suffice
+    #[view]
+    fn option_balance_of(self: @TContractState, option_buyer: ContractAddress) -> u256;
+
+    // premium balance of liquidity_provider
+    // moving this to vault
+    #[view]
+    fn premium_balance_of(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
+
+    // locked collateral balance of liquidity_provider
+    // moved to vault
+    #[view]
+    fn collateral_balance_of(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
+
+    // total collateral available in the round
+    // moved to vault
+    #[view]
+    fn total_collateral(self: @TContractState) -> u256;
+
+    #[view]
+    fn bid_deposit_balance_of(self: @TContractState, option_buyer: ContractAddress) -> u256;
+
+    // market aggregator is a sort of oracle and provides market data(both historic averages and current prices)
+    #[view]
+    fn get_market_aggregator(self: @TContractState) -> IMarketAggregatorDispatcher;
 
     // returns true if auction_place_bid if deposit has been locked up in the auction. false if auction not running or auction_place_bid below reserve price
     // amount: max amount in auction_place_bid token to be used for bidding in the auction
@@ -87,25 +203,6 @@ trait IOptionRound<TContractState> {
     #[external]
     fn auction_place_bid(ref self: TContractState, amount: u256, price: u256) -> bool;
 
-    // successfully ended an auction, false if there was no auction in process
-    #[external]
-    fn settle_auction(ref self: TContractState) -> bool;
-
-    // if the option is past the expiry date then using the market_aggregator we can settle the option round
-    #[external]
-    fn settle_option_round(ref self: TContractState) -> bool;
-
-    // returns the current state of the option round
-    #[view]
-    fn get_option_round_state(ref self: TContractState) -> OptionRoundState;
-
-    // gets the most auction price for the option, if the auction has ended
-    #[view]
-    fn get_option_round_params(ref self: TContractState) -> OptionRoundParams;
-
-    // gets the most auction price for the option, if the auction has ended
-    #[view]
-    fn get_auction_clearing_price(ref self: TContractState) -> u256;
 
     // moves/transfers the unused premium deposit back to the bidder, return value is the amount of the transfer
     // this is per option buyer. every option buyer will have to individually call refund_unused_bid_deposit to transfer any used deposits
@@ -133,42 +230,6 @@ trait IOptionRound<TContractState> {
     fn transfer_premium_collected_to_vault(
         ref self: TContractState, for_liquidity_provider: ContractAddress
     ) -> u256;
-
-    // total amount deposited as part of bidding by an option buyer, if the auction has not ended this represents the total amount locked up for auction and cannot be claimed back,
-    // if the auction has ended this the amount which was not converted into an option and can be claimed back.
-    #[view]
-    fn unused_bid_deposit_balance_of(self: @TContractState, option_buyer: ContractAddress) -> u256;
-
-    // payout due to an option buyer
-    #[view]
-    fn payout_balance_of(self: @TContractState, option_buyer: ContractAddress) -> u256;
-
-    // no of options bought by a user
-    #[view]
-    fn option_balance_of(self: @TContractState, option_buyer: ContractAddress) -> u256;
-
-    // premium balance of liquidity_provider
-    #[view]
-    fn premium_balance_of(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
-
-    // locked collateral balance of liquidity_provider
-    #[view]
-    fn collateral_balance_of(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
-
-    // total collateral available in the round
-    #[view]
-    fn total_collateral(self: @TContractState) -> u256;
-
-    // total options sold
-    #[view]
-    fn total_options_sold(self: @TContractState) -> u256;
-
-    #[view]
-    fn bid_deposit_balance_of(self: @TContractState, option_buyer: ContractAddress) -> u256;
-
-    // market aggregator is a sort of oracle and provides market data(both historic averages and current prices)
-    #[view]
-    fn get_market_aggregator(self: @TContractState) -> IMarketAggregatorDispatcher;
 }
 
 #[starknet::contract]
@@ -202,32 +263,12 @@ mod OptionRound {
 
     #[external(v0)]
     impl OptionRoundImpl of super::IOptionRound<ContractState> {
-        fn start_auction(ref self: ContractState, option_params: OptionRoundParams) -> bool {
-            true
+        /// Reads /// 
+        fn get_option_round_state(self: @ContractState) -> OptionRoundState {
+            OptionRoundState::Open
         }
 
-        fn auction_place_bid(ref self: ContractState, amount: u256, price: u256) -> bool {
-            true
-        }
-
-        // returns the clearing price for the auction
-        fn settle_auction(ref self: ContractState) -> bool {
-            // final clearing price
-            true
-        }
-
-        fn settle_option_round(ref self: ContractState) -> bool {
-            true
-        }
-
-        fn get_option_round_state(ref self: ContractState) -> OptionRoundState {
-            // final clearing price
-            // todo: return the actual state ?
-            OptionRoundState::AuctionStarted
-        }
-
-        #[view]
-        fn get_option_round_params(ref self: ContractState) -> OptionRoundParams {
+        fn get_option_round_params(self: @ContractState) -> OptionRoundParams {
             // dummy value
             OptionRoundParams {
                 current_average_basefee: 100,
@@ -245,10 +286,70 @@ mod OptionRound {
             }
         }
 
-        fn get_auction_clearing_price(ref self: ContractState) -> u256 {
-            // final clearing price
+        fn total_deposits(self: @ContractState) -> u256 {
             100
         }
+
+        fn get_bids_of(self: @ContractState, option_bidder: ContractAddress) -> u256 {
+            100
+        }
+
+        fn get_auction_clearing_price(self: @ContractState) -> u256 {
+            100
+        }
+
+        fn total_options_sold(self: @ContractState) -> u256 {
+            100
+        }
+
+        fn get_unused_bids_of(self: @ContractState, option_buyer: ContractAddress) -> u256 {
+            100
+        }
+
+        fn total_premiums(self: @ContractState) -> u256 {
+            100
+        }
+
+        fn get_payout_balance_of(self: @ContractState, option_buyer: ContractAddress) -> u256 {
+            100
+        }
+
+        fn total_payouts(self: @ContractState) -> u256 {
+            100
+        }
+
+        /// Writes /// 
+        fn start_auction(ref self: ContractState, option_params: OptionRoundParams) -> bool {
+            true
+        }
+
+        fn place_bid(ref self: ContractState, amount: u256, price: u256) -> bool {
+            true
+        }
+
+        fn settle_auction(ref self: ContractState) -> bool {
+            true
+        }
+
+        fn refund_unused_bids(ref self: ContractState, option_bidder: ContractAddress) -> u256 {
+            100
+        }
+
+        fn settle_option_round(ref self: ContractState) -> bool {
+            true
+        }
+
+        fn exercise_options(ref self: ContractState, option_buyer: ContractAddress) -> u256 {
+            100
+        }
+
+
+        /// old ///
+
+        fn auction_place_bid(ref self: ContractState, amount: u256, price: u256) -> bool {
+            true
+        }
+
 
         fn refund_unused_bid_deposit(ref self: ContractState, recipient: ContractAddress) -> u256 {
             100
@@ -298,10 +399,6 @@ mod OptionRound {
         }
 
         fn total_collateral(self: @ContractState) -> u256 {
-            100
-        }
-
-        fn total_options_sold(self: @ContractState) -> u256 {
             100
         }
 
