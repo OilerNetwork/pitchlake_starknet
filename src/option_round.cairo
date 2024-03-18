@@ -26,16 +26,15 @@ struct OptionRoundParams {
 
 #[derive(Copy, Drop, Serde, PartialEq, starknet::Store)]
 enum OptionRoundState {
+    Open,
+    Auctioning,
+    Running,
+    Settled,
     // old
     Initialized,
     AuctionStarted,
     AuctionSettled,
     OptionSettled,
-    // new 
-    Open,
-    Auctioning,
-    Running,
-    Settled,
 }
 
 
@@ -104,6 +103,7 @@ trait IOptionRound<TContractState> {
 
     // The total number of options sold in the option round
     // @note Will be 0 until the auction is settled
+    // @dev Could we just use the ERC20::total_supply() ?
     fn total_options_sold(self: @TContractState) -> u256;
 
     // Gets the amount of an option buyer's bids that were not used in the auction 
@@ -133,7 +133,7 @@ trait IOptionRound<TContractState> {
     // @param price: The max price in place_bid_token per option (if the clearing price is 
     // higher than this, the entire bid is unused and can be claimed back by the bidder)
     // @return if the bid was accepted or rejected
-    fn place_bid(ref self: TContractState, amount: u256, price: u256) -> bool;
+    fn place_bid(ref self: TContractState, amount: u256, price: u256) -> u256;
 
     // Settle the auction if the auction time has passed 
     // @return if the auction was settled or not
@@ -247,17 +247,21 @@ mod OptionRound {
 
     #[storage]
     struct Storage {
-        market_aggregator: IMarketAggregatorDispatcher
+        market_aggregator: IMarketAggregatorDispatcher,
+        // for testing 
+        state: OptionRoundState,
     }
 
     #[constructor]
     fn constructor(
         ref self: ContractState,
         owner: ContractAddress,
-        collaterized_pool: ContractAddress,
+        vault_address: ContractAddress,
+        // collaterized_pool: ContractAddress, // old
         option_round_params: OptionRoundParams,
-        market_aggregator: IMarketAggregatorDispatcher,
+        market_aggregator: IMarketAggregatorDispatcher, // should change to just address and build dispatcher when needed ? 
     ) {
+        self.state.write(OptionRoundState::Open);
         self.market_aggregator.write(market_aggregator);
     }
 
@@ -265,7 +269,7 @@ mod OptionRound {
     impl OptionRoundImpl of super::IOptionRound<ContractState> {
         /// Reads /// 
         fn get_option_round_state(self: @ContractState) -> OptionRoundState {
-            OptionRoundState::Open
+            self.state.read()
         }
 
         fn get_option_round_params(self: @ContractState) -> OptionRoundParams {
@@ -320,14 +324,16 @@ mod OptionRound {
 
         /// Writes /// 
         fn start_auction(ref self: ContractState, option_params: OptionRoundParams) -> bool {
+            self.state.write(OptionRoundState::Auctioning);
             true
         }
 
-        fn place_bid(ref self: ContractState, amount: u256, price: u256) -> bool {
-            true
+        fn place_bid(ref self: ContractState, amount: u256, price: u256) -> u256 {
+            100
         }
 
         fn settle_auction(ref self: ContractState) -> bool {
+            self.state.write(OptionRoundState::Running);
             true
         }
 
@@ -336,6 +342,7 @@ mod OptionRound {
         }
 
         fn settle_option_round(ref self: ContractState) -> bool {
+            self.state.write(OptionRoundState::Settled);
             true
         }
 

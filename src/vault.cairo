@@ -80,7 +80,7 @@ trait IVault<TContractState> { // erc721
 
     // LP withdraws their liquidity from the the current open option round 
     // @return if the withdrawal was successful
-    fn withdraw_liquidity(ref self: TContractState, lp_id: u256) -> bool;
+    fn withdraw_liquidity(ref self: TContractState, lp_id: u256, amount: u256) -> bool;
 
     // Deploy the next option round contract as long as the current is state::Settled, and start 
     // the auction on the new current option round (-> state::Auctioning)
@@ -156,7 +156,10 @@ mod Vault {
     use pitch_lake_starknet::pool::IPoolDispatcher;
     use openzeppelin::token::erc20::interface::IERC20Dispatcher;
     use openzeppelin::utils::serde::SerializedAppend;
-    use pitch_lake_starknet::option_round::{OptionRound, OptionRoundParams, OptionRoundState};
+    use pitch_lake_starknet::option_round::{
+        OptionRound, OptionRoundParams, OptionRoundState, IOptionRoundDispatcher,
+        IOptionRoundDispatcherTrait
+    };
     use pitch_lake_starknet::market_aggregator::{
         IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
     };
@@ -180,7 +183,62 @@ mod Vault {
         market_aggregator: IMarketAggregatorDispatcher
     ) {
         self.market_aggregator.write(market_aggregator);
+        // could deploy a 0th round, and automatically set it to Settled, 
+
+        // @dev Deploy a 0th round as current, and set it to Settled, then deploy the 1st round as next round
+        let zeroth_option_round_params: OptionRoundParams = OptionRoundParams {
+            current_average_basefee: 0,
+            strike_price: 0,
+            standard_deviation: 0,
+            cap_level: 0,
+            collateral_level: 0,
+            reserve_price: 0,
+            total_options_available: 0,
+            // start_time:start_time_,
+            option_expiry_time: 0,
+            auction_end_time: 0,
+            minimum_bid_amount: 0,
+            minimum_collateral_required: 0
+        };
+        let test_option_round_params: OptionRoundParams = OptionRoundParams {
+            current_average_basefee: 100,
+            strike_price: 1000,
+            standard_deviation: 50,
+            cap_level: 100,
+            collateral_level: 100,
+            reserve_price: 10,
+            total_options_available: 1000,
+            // start_time:start_time_,
+            option_expiry_time: 1000,
+            auction_end_time: 1000,
+            minimum_bid_amount: 100,
+            minimum_collateral_required: 100
+        };
+        // Deploy 0th round
+        let mut calldata: Array<felt252> = array!['owner'];
+        calldata.append_serde(starknet::get_contract_address());
+        calldata.append_serde(zeroth_option_round_params);
+        calldata.append_serde(market_aggregator);
+        let (option_round_0_address, _) = deploy_syscall(
+            OptionRound::TEST_CLASS_HASH.try_into().unwrap(), 'some salt', calldata.span(), false
+        )
+            .unwrap();
+
+        // Deploy 1st round
+        calldata = array!['owner'];
+        calldata.append_serde(starknet::get_contract_address());
+        calldata.append_serde(test_option_round_params);
+        calldata.append_serde(market_aggregator);
+        let (option_round_1_address, _) = deploy_syscall(
+            OptionRound::TEST_CLASS_HASH.try_into().unwrap(), 'some salt', calldata.span(), false
+        )
+            .unwrap();
+
+        self.round_addresses.write(0, option_round_0_address);
+        self.round_addresses.write(1, option_round_1_address);
+    // need to set 0th round to Settled 
     }
+
 
     #[external(v0)]
     impl VaultImpl of super::IVault<ContractState> {
@@ -190,11 +248,12 @@ mod Vault {
         }
 
         fn current_option_round_id(self: @ContractState) -> u256 {
+            // (for testing; need a deployed instance of round to avoid CONTRACT_NOT_DEPLOYED errors)
             0
         }
 
         fn next_option_round_id(self: @ContractState) -> u256 {
-            0
+            1
         }
 
         fn get_option_round_address(
@@ -226,7 +285,7 @@ mod Vault {
             true
         }
 
-        fn withdraw_liquidity(ref self: ContractState, lp_id: u256) -> bool {
+        fn withdraw_liquidity(ref self: ContractState, lp_id: u256, amount: u256) -> bool {
             true
         }
 

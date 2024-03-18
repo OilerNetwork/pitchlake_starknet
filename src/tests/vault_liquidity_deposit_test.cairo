@@ -47,6 +47,8 @@ fn assert_event_transfer(from: ContractAddress, to: ContractAddress, amount: u25
 
 ///tests
 
+// need to at least mock the first option round deployment in constructor or setup function
+
 #[test]
 #[available_gas(10000000)]
 fn test_deposit_liquidity() {

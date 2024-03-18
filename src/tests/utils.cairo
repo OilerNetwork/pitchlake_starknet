@@ -24,7 +24,10 @@ use pitch_lake_starknet::pitch_lake::{
 };
 
 use pitch_lake_starknet::option_round;
-use pitch_lake_starknet::option_round::{OptionRoundParams};
+use pitch_lake_starknet::option_round::{
+    OptionRound, OptionRoundParams, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,
+    IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait
+};
 use pitch_lake_starknet::market_aggregator::{
     IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait,
     IMarketAggregatorSafeDispatcher, IMarketAggregatorSafeDispatcherTrait
@@ -51,22 +54,22 @@ fn deploy_eth() -> IERC20Dispatcher {
     return IERC20Dispatcher { contract_address: address };
 }
 
+// deploys a mock option round contract, this one is not associated with any (valid/deployed) vault
+fn deploy_option_round(owner: ContractAddress) -> IOptionRoundDispatcher {
+    let mut calldata = array![];
 
-// either use this or have logic in vault::constructor to deploy 1st option round
-// fn deploy_option_round(owner:ContractAddress) ->  IOptionRoundDispatcher {
-//     let mut calldata = array![];
+    calldata.append_serde(owner);
+    calldata.append_serde(contract_address_const::<'vault address'>());
+    calldata.append_serde(mock_option_params());
+    calldata.append_serde(deploy_market_aggregator());
 
-//     calldata.append_serde(owner);
-//     calldata.append_serde(owner); // TODO update it to the erco 20 collaterized pool
-//     calldata.append_serde(mock_option_params());
-//     calldata.append_serde(deploy_market_aggregator());
+    let (address, _) = deploy_syscall(
+        OptionRound::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
+    )
+        .expect('DEPLOY_OPTION_ROUND_FAILED');
 
-//     let (address, _) = deploy_syscall(
-//         OptionRound::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
-//     )
-//         .expect('DEPLOY_OPTION_ROUND_FAILED');
-//     return IOptionRoundDispatcher{contract_address: address};
-// }
+    IOptionRoundDispatcher { contract_address: address }
+}
 
 fn deploy_market_aggregator() -> IMarketAggregatorDispatcher {
     let mut calldata = array![];
