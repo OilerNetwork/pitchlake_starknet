@@ -19,45 +19,51 @@
 use starknet::{ContractAddress, StorePacking};
 use array::{Array};
 use traits::{Into, TryInto};
+use pitch_lake_starknet::vault::{Vault, IVault, IVaultDispatcher};
 
 
 #[starknet::interface]
 trait IPitchLake<TContractState> {
-
-    //new members
-    /////////////////
-    #[view]
-    fn in_the_money_vault(ref self: TContractState) -> ContractAddress;
-    #[view]
-    fn out_the_money_vault(ref self: TContractState) -> ContractAddress;
-    #[view]
-    fn at_the_money_vault(ref self: TContractState) -> ContractAddress;
+    fn in_the_money_vault(self: @TContractState) -> IVaultDispatcher;
+    fn out_the_money_vault(self: @TContractState) -> IVaultDispatcher;
+    fn at_the_money_vault(self: @TContractState) -> IVaultDispatcher;
 }
 
 #[starknet::contract]
 mod PitchLake {
     use starknet::{ContractAddress, StorePacking};
     use starknet::contract_address::ContractAddressZeroable;
+    use pitch_lake_starknet::vault::{Vault, IVault, IVaultDispatcher};
+    use pitch_lake_starknet::market_aggregator::{IMarketAggregator, IMarketAggregatorDispatcher};
 
     #[storage]
     struct Storage {
+        in_the_money_vault: IVaultDispatcher,
+        out_the_money_vault: IVaultDispatcher,
+        at_the_money_vault: IVaultDispatcher,
+        market_aggregator: IMarketAggregatorDispatcher,
+    }
+
+    #[constructor]
+    fn constructor(
+        ref self: ContractState,
+        in_the_money_vault_: IVaultDispatcher,
+        out_the_money_vault_: IVaultDispatcher,
+        at_the_money_vault_: IVaultDispatcher,
+        market_aggregator_: IMarketAggregatorDispatcher
+    ) {// self.option_round_class_hash.write( option_round_class_hash_);
     }
 
     #[external(v0)]
     impl PitchLakeImpl of super::IPitchLake<ContractState> {
-
-        #[view]
-        fn in_the_money_vault(ref self: ContractState) -> ContractAddress{
-            ContractAddressZeroable::zero()
+        fn in_the_money_vault(self: @ContractState) -> IVaultDispatcher {
+            IVaultDispatcher { contract_address: ContractAddressZeroable::zero() }
         }
-        #[view]
-        fn out_the_money_vault(ref self: ContractState) -> ContractAddress{
-            ContractAddressZeroable::zero()
+        fn out_the_money_vault(self: @ContractState) -> IVaultDispatcher {
+            IVaultDispatcher { contract_address: ContractAddressZeroable::zero() }
         }
-        #[view]
-        fn at_the_money_vault(ref self: ContractState) -> ContractAddress{
-            ContractAddressZeroable::zero()
+        fn at_the_money_vault(self: @ContractState) -> IVaultDispatcher {
+            IVaultDispatcher { contract_address: ContractAddressZeroable::zero() }
         }
-
     }
 }

@@ -1,0 +1,1 @@
+(This is old, working version is on notion [here](https://www.notion.so/nethermind/Crash-course-docs-aa05c787e89446a1aa5f72043f1bde42))
