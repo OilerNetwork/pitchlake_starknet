@@ -95,8 +95,12 @@ trait IOptionRound<TContractState> {
     // The total liquidity at the start of the option round
     fn total_deposits(self: @TContractState) -> u256;
 
-    // Gets the amount an option bidder has deposited for the auction
-    fn get_bids_of(self: @TContractState, option_bidder: ContractAddress) -> u256;
+    // Gets the total amount deposited by an option buyer. If the auction has not 
+    // ended, this represents the total amount locked up for auction. If the auction has 
+    // ended, this is the amount not converted into an option and can be claimed back.
+    fn get_unused_bid_deposit_balance_of(
+        self: @TContractState, option_bidder: ContractAddress
+    ) -> u256;
 
     // Gets the clearing price for the auction
     fn get_auction_clearing_price(self: @TContractState) -> u256;
@@ -112,7 +116,7 @@ trait IOptionRound<TContractState> {
     // The total premium collected from the option round's auction
     fn total_premiums(self: @TContractState) -> u256;
 
-    // Gets the amount that an option buyer can claim with their options
+    // Gets the amount that an option buyer can claim with their options balance
     fn get_payout_balance_of(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
     // The total payouts of the option round
@@ -133,13 +137,13 @@ trait IOptionRound<TContractState> {
     // @param price: The max price in place_bid_token per option (if the clearing price is 
     // higher than this, the entire bid is unused and can be claimed back by the bidder)
     // @return if the bid was accepted or rejected
-    fn place_bid(ref self: TContractState, amount: u256, price: u256) -> u256;
+    fn place_bid(ref self: TContractState, amount: u256, price: u256) -> bool;
 
     // Settle the auction if the auction time has passed 
     // @return if the auction was settled or not
     // @note there was a note in the previous version that this should return the clearing price,
     // not sure which makes more sense at this time.
-    fn settle_auction(ref self: TContractState) -> bool;
+    fn settle_auction(ref self: TContractState) -> u256;
 
     // Refund unused bids for an option bidder if the auction has ended
     // @param option_bidder: The bidder to refund the unused bid back to
@@ -294,7 +298,9 @@ mod OptionRound {
             100
         }
 
-        fn get_bids_of(self: @ContractState, option_bidder: ContractAddress) -> u256 {
+        fn get_unused_bid_deposit_balance_of(
+            self: @ContractState, option_bidder: ContractAddress
+        ) -> u256 {
             100
         }
 
@@ -328,13 +334,13 @@ mod OptionRound {
             true
         }
 
-        fn place_bid(ref self: ContractState, amount: u256, price: u256) -> u256 {
-            100
+        fn place_bid(ref self: ContractState, amount: u256, price: u256) -> bool {
+            false
         }
 
-        fn settle_auction(ref self: ContractState) -> bool {
+        fn settle_auction(ref self: ContractState) -> u256 {
             self.state.write(OptionRoundState::Running);
-            true
+            100
         }
 
         fn refund_unused_bids(ref self: ContractState, option_bidder: ContractAddress) -> u256 {
