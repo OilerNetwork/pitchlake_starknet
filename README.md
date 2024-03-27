@@ -9,6 +9,8 @@
 
 
 
+
+
 ## Running Tests
 
 The original codebase uses [Scarb](https://docs.swmansion.com/scarb/) (0.7.0) to build and test the contracts. Be sure to setup [asdf](https://asdf-vm.com/) as well, to handle versioning. The codebase will upgrade to the latest version of Scarb as the interface is stripped/updated.
@@ -22,13 +24,15 @@ cairo: 2.2.0 (https://crates.io/crates/cairo-lang-compiler/2.2.0)
 sierra: 1.3.0
 ```
 
-Once Scarb is setup, you can run the full test suite via: 
+Once Scarb is setup, you can run the full test suite via:
+
 
 ```
 scarb test
 ```
 
-To run specific tests, use the -f (filter) flag, followed by the string to match for. You can supply the file name, or specifc test names. The following command will run all the tests in the   `vault_option_round_tests.cairo` file. 
+To run specific tests, use the -f (filter) flag, followed by the string to match for. You can supply the file name, or specifc test names. The following command will run all the tests in the `vault_option_round_tests.cairo` file.
+
 
 ```
 scarb test -f vault_option_round_tests
@@ -40,6 +44,7 @@ This command will run all tests that containing `auction` in their name:
 scarb test -f auction
 ```
 
-## Crash Course 
+## Crash Course
 
 The crash course is intended to catch devs up to speed on the technical aspects of the protocol, as well as help pre-prompt or train any LLMs for Pitchlake. This crash course can be found on Notion [here](https://www.notion.so/nethermind/Pitchlake-Crash-Course-aa05c787e89446a1aa5f72043f1bde42?pvs=4).
+

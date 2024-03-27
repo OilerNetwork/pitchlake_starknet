@@ -18,6 +18,8 @@ jobs:
 
       - name: Setup Scarb
         uses: software-mansion/setup-scarb@v1
+        with: 
+          tool-versions: .tool-versions
 
       - name: Test the code
         run: |
