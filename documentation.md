@@ -22,35 +22,34 @@ When an option round settles, if the average basefee for the round is > the stri
 
 ## Vault
 
-The vault acts as the central hub for liquidity providers (LPs) to deposit and withdraw their funds. When an LP deposits liquidity, the vault transfers these funds to the correct option round contract, updating the LP’s position in the vault (deposits will always go into the **next** round).
+The vault acts as the central hub for liquidity providers (LPs) to deposit and withdraw their funds. When an LP deposits liquidity, the vault updates the LP's position in storage, and transfers the funds to the correct option round contract. The vault contains pointers to the current and next rounds and any deposits to a vault will always go into the **next** round.
 
-Once the current round settles, all of the remaining liquidity is rolled over to the next round. After this settlement, there will be a period of time that must pass before the next round's auction can start; we can refer to this as the _round transition window_. During this round transition window, LPs can withdraw from their rolled over positions, and the next round is still accepting deposits (more on this round transition window further into the crash course).
+~Once the current round settles, the remaining liquidity is rolled over to the next round. After this settlement, there will be a period of time that must pass before the next round's auction can start; we can refer to this as the _round transition window_. During this round transition window, LPs can withdraw from their rolled over positions, and the next round is still accepting deposits (more on this round transition window further in the crash course).~
 
 ~~At any point, an LP may submit a claim to flag their current position for withdrawal. Once the option round settles, the submitted claims are kept inside the option round contract, and the remaining liquidity is sent to the next option round contract. LPs can go back and withdraw these claims at any point.~~
 
 ## Option Rounds
 
-Each option round is a distinct period of trading, contained within its own contract.
-These rounds allow for the auction, settlement, and exercising of Ethereum basefee options, with each contract managing its specific set of options. These contracts are modified ERC20 contracts, with the tokens representing the options themselves.
+Each option round is a distinct period of trading, contained within its own contract. These rounds allow for the auction, settlement, and exercising of Ethereum basefee options, with each contract managing its specific set of options. These contracts are modified ERC20 contracts, with the tokens representing the options themselves.
 
-**Option Round States**: An option round transitions through 4 states during its lifecycle: _Open_ | _Auctioning_ | _Running_ | _Settled_. A round is initially deployed with state _Open_. The state becomes _Auctioning_ once its auction begins, and _Running_ once the auction is settled. Once the option round has concluded, its state permanently becomes _Settled_. These option round states are detailed in the next section.
+**Option Round States**: An option round transitions through 4 states during its life cycle: _Open_ | _Auctioning_ | _Running_ | _Settled_. A round is initially deployed with state _Open_. The state becomes _Auctioning_ once its auction begins, and _Running_ once the auction is settled. Once the option round has concluded, its state permanently becomes _Settled_. These option round states are detailed in the next section.
 
 ## LP Tokens
 
 When an LP deposits liquidity, their positions are stored in the vault contract. The details of their positions remain within the vault’s storage from round to round, and when a user wishes to withdraw their funds, these details are used to calculate the value of their position in the current round.
 
-However, if an LP wishes to sell their position (maybe LP speculates there will be a payout and their position will decrease in value), they can convert their active position into LP tokens (ERC20), and sell them on the secondary market. At any point, these LP tokens can be converted back into an active position (@dev is this the case ?).
+However, if an LP wishes to sell their position (maybe LP speculates there will be a payout and their position will decrease in value), they can convert their active position into LP tokens (ERC20), and sell them on the secondary market. At any point, these LP tokens can be converted back into an active position.
 
-**_Simply:_** An LP’s position is handled through storage in the vault contract, and only becomes tokenized if the LP chooses to convert their active position to LP tokens. These positions are discussed in more detail later in the crash course.
+**_Simply:_** An LP’s position is handled through storage in the vault contract, and only becomes tokenized if the LP chooses to convert their active position to LP tokens. These positions and LP tokens are discussed in more detail later in the crash course.
 
 # Closer Look into the Contracts
 
 ## Vault Entry Points:
 
 - **Deposit**: LPs add liquidity to the next option round contract, updating their positions.
-- **Collect:** LPs can collect from their current premiums & unlocked liquidity in the current round (if they do not, the funds will be rolled over to the next round when the current round settles).
+- **Collect:** LPs can collect their premiums & unlocked liquidity from the current round (if they do not, the funds will be rolled over to the next round when the current round settles).
 - **Withdraw**: LPs withdraw from their liquidity in the _Open_ (next) round.
-- **\*Start Next Option Round**: Starts the next round’s auction, deploys the new next round, and updates the vault’s current & next pointers accordingly. This also locks all liquidity provided by LPs.
+- **\*Start Next Option Round**: Starts the next round’s auction, deploys the new next round, and updates the vault’s current & next pointers accordingly.
 - **Getters**: There should be read functions on the vault for the current & next option rounds, addresses for option rounds, an LP's position value in the current round, and the premiums/unlocked liquidity an LP can collect from the current round.
 
 **Note:** Anyone can start a new option round, as long as the current round is Settled and the round transition window has passed. The incentivisation scheme still needs to be designed.
