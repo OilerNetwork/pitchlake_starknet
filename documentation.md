@@ -259,6 +259,9 @@ tokenize_position(LP: ContractAddress){
   // Collect LP's premiums if they have not already
   collect_premiums_if_not_yet(LP);
 
+  // @dev This code is similar to the above code, with the difference being the
+  // bounds of the for loop
+
 	// The amount LP's position is worth at the end of the round
 	let mut ending_amount = 0;
 
@@ -277,8 +280,6 @@ tokenize_position(LP: ContractAddress){
 		let pool_percentage = starting_amount / this_round.total_deposits();
 
 		// LP ends the round with their share of the remaining liquidity
-    // @dev This code is similar to the above code, with the difference being the
-    // bounds of the for loop
 		ending_amount = pool_percentage * remaining_liquidity;
 
 		// @dev For simplicity, we are not including the calculation for how much
@@ -299,84 +300,67 @@ tokenize_position(LP: ContractAddress){
 	withdraw_checkpoints[LP] = current_round_id;
 
   // Mint this round's LP tokens to LP
-  let LP_token_dispatcher = RoundDispatcher{address_for_round(current_round_id)}
+  let LP_token_dispatcher = RoundDispatcher{address_for_round(current_round_id)};
   LP_token_dispatcher.mint(LP, ending_amount);
 }
 ```
 
-Once
+Notice that when an LP tokenizes their position, they also collect their premiums from the round. This means that when these tokens get converted back into a positions, the premiums from this round are not included in the calculation for their value. It is important to note that these tokens **due** accrue premiums, just not for the round they were created in.
 
-/// old below
+For example: Say the current round is 3 and LP1 speculates that gas prices will go up, resulting in a payout for the option round. Instead of accepting this loss, LP1 decides to tokenize their position, and sell it, hoping to get more than this expected potential loss.
 
-**Example**: LP deposits X ETH into round 1. This X ETH turns into Y ETH upon round 1 settlement, and is LP’s position value at the start of round 2. While round 2 is _Running_, LP thinks gas prices will go up, thus resulting in a potential_payout for the options, and lowering the value of their position (Y - potential_payout).
+If LP1 tokenizes their position, this collects their premiums from r3 (if they have not yet), updates their position & withdraw checkpoint, and then mints them r3 LP tokens. LP2 buys these tokens and sits on them for round 4, then wishes to convert them back into a position in the current round, 5.
 
-Instead of accepting this loss, LP decides to play the market by selling their active position on the secondary market, hoping to get more than (Y - potential_payout) for their position. To do this, we first calculate the value of LP’s position in round 2 to be Y, then we work backwards to convert Y into X, and mint X LP tokens.
+To do so, we use the r3 LP tokens to know the value of the position at the start of round 3. With round 3's total deposits, we can calculate the percentage of the r3 pool these tokens supplied. Since round 3 is settled, we know how much liquidity remained in the round. Using the r3 pool percentage we know the value of the tokens at the end of round 3. We subtract out the premiums earned from round 3 (since LP1 already collected them when they tokenized the position), and consider this the value of the tokens at the start of round 4. Since round 4 is settled we can do the same thing as before and calculate the value of the tokens at the end of round 4. This value (including the premiums earned this time) is the value of the tokens at the start of round 5. Once we know this value, we can burn the r3 LP tokens, and update LP2's round 5 position to their calculated value.
 
-### LP Tokens → Positions
-
-A buyer of these LP tokens can sit on them for multiple rounds, or convert them into an active position. LP tokens can only be converted into active positions during a specific window, and the holder should want to convert them as soon as the first window arises.
-
-@dev below here is still being updated to new architecture
-
-@dev what is this window ?
-
-@dev only on a round that is open | auctioning ?
-
-_Why ?_
-
-With a typical vault::position, an LP can collect their premiums as soon as the current auction ends, if they do not, it is rolled to the next round once the current one settles. This is fine because the contracts will track how much is collected, if any, and take it into account when calculating position values (detailed later); however, a problem arises if we were to allow an LP token holder to collect premiums instantly too.
-
-If a malicious user owns some LP tokens in wallet_A, after the current round’s auction ends they collect their premiums. They could then transfer the LP tokens to wallet_B, allowing wallet_B to also collect the same amount of premiums. This process could be used to drain the option round contract. We might think to simply burn some of the LP tokens when the user collects their premiums; however, this would be a fairly complex calculation, and would still not protect the protocol from attacks. Say the malicious user does not have any LP tokens yet, but has an active position. They could use this active position to collect their premiums, immediately tokenize their position, then transfer the tokens to wallet_B and double collect.
-
-To avoid these attacks, we will not allow LP token holders to collect their premiums from the current round, they will be rolled over to the next round as long as they are still LP tokens, and only once converted to an active position can they collect premiums when auctions settle.
-
-_What Window ?_
-
-To overcome more potential attacks and book keeping complications, we will only allow LP tokens to be converted to active positions during a specific window. This window starts once the current round settles, and ends when the next round’s auction ends. Or in other terms, LP tokens can only be converted during the round transition period (while current: _Settled_, next: _Open_), and the during the auction of the next round (while current: _Auctioning,_ next: _Open_). Or in simplest terms, the tokens can only be converted into positions if the current round is _Settled_ or _Auctioning_.
-
-If the current round is _Settled_, the LP tokens are converted into a position in the next round. If the current round is _Auctioning_, then the LP tokens are converted into a position in the current round.
-
-**Summary**: Positions can be converted to LP tokens at anypoint
-
-if the current round is _Settled_ or _Auctioning_. If the current round is _Running_, we introduce these double collecting and draining attack vectors, as well as add complexity to calculating position values since the _Running_ round will not have its total_payout calculated yet. This window of time starts right after the current round settles, and right before the next auction ends
-
-**Summary:** Convert asap to have the most liquid version of your assets
-
-LP tokens can only be converted to active positions if the current round is _Settled_ or _Auctioning_. If th
-
-This is because the current round is never _Open_.
-
-The current round will never be _Open_, and if the current round is _Running_ we do not want to introduce the possibility for double premium collection/contract draining. cannot calculate the position’s value since the payout has not been calculated yet, plus, if LP tokens were converted during
-
-directly in a round 1 position, but this could break future logic. If the user converting LP tokens to a position already has active positions & previous withdraw checkpoints, setting a round 1 position would not be reachable in the calculation for the positions value during withdraw.
-
-To overcome this, we convert LP tokens to a position in the next round. Some pseudo code for this:
+Some pseudo code for converting LP tokens into positions is below:
 
 ```rust
-deposit_lp_tokens(amount: uint){
-	let next_round_id = vault::next_round_id;
-	let next_round = RoundDispatcher{address_for_round(next_round_id)};
+// LP tokenizes their LP tokens into a position in the current round.
+// @param LP: The account converting their LP tokens into a position
+// @param LP_token_id: The id of the round the LP tokens come from (3 would the the id in the previous example)
+convert_LP_tokens_to_position(LP: ContractAddress, LP_token_id: uint, LP_token_amount){
+  // Get the current round id from the vault
+	let current_round_id = vault::current_round_id;
 
-	// Calculate value of tokens at the end of the current_
-	let mut ending_amount = 0;
-	for i in range(withdraw_checkpoints[LP] + 1, current_round_id {
-		// How much liquidity did LP supply in this round
-		let starting_amount = ending_amount + positions[LP, i];
-		// Get round i's contract address
+	// The amount LP's position is worth at the end of the round
+	let mut starting_amount = LP_token_amount;
+
+	// Iterate through each round from the LP token id to the previous round (both inclusive)
+	for i in range(LP_token_id, current_round_id - 1) {
+		// Get a round i dispatcher
 		let this_round = RoundDispatcher {address_for_round(i)};
+
+		// How much liquidity remained in this round
+		let remaining_liquidity = this_round.total_deposits() + this_round.total_premiums() - this_round.total_payouts();
+
 		// How much of this round's pool did LP own
-		let pool_percentage = starting_amount / this_round.total_deposits;
-		// How much liquidity remains in this round
-		let remaining_liquidity = this_round.total_deposits()
-																+ this_round.total_premiums()
-																	- this_round.total_payouts();
-		// Update LP's position value to their portion of this round's remaining liquidity
-		ending_amount = pool_percentage * remaining_liquidity;
+		let pool_percentage = starting_amount / this_round.total_deposits();
+
+		// LP ends the round with their share of the remaining liquidity
+		starting_amount = pool_percentage * remaining_liquidity;
+
+    // Remember that the LP tokens do not accrue premiums for the round that they come from
+    if (i == LP_token_id){
+      starting_amount -= pool_percentage * this_round.total_premiums();
+    }
 	}
 
+  // @dev At this point, starting_amount is the value of the LP tokens at the end of the previous round
+  // @dev This is the value at the start of the current round
 
+  // Update LP's position value in the current round
+	positions[LP, current_round_id] = starting_amount;
+
+	// @dev Note, we are not concerned with LP's withdraw checkpoint since this acts like a deposit into the current round
+
+  // Burn the LP tokens
+  let LP_token_dispatcher = RoundDispatcher{address_for_round(LP_token_id)};
+  LP_token_dispatcher.burn(LP, LP_token_amount);
 }
 ```
+
+/// old below
 
 (below is not updated to current architecture)
 
