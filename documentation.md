@@ -418,3 +418,4 @@ Pitchlake interacts with Fossil 2 times during the period of an option round.
 
 1. When we deploy a round, we use Fossil to calculate the strike price, cap values, and reserve price for the round.
 2. At the end of a round, we use Fossil to calculate the payout for the round.
+
