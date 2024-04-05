@@ -15,9 +15,10 @@ mod Eth {
         #[substorage(v0)]
         erc20: ERC20Component::Storage
     }
-    // ERC20Mixin
+    // Exposes snake_case & CamelCase entry points
     #[abi(embed_v0)]
     impl ERC20MixinImpl = ERC20Component::ERC20MixinImpl<ContractState>;
+    // Allows the contract access to internal functions
     impl InternalImpl = ERC20Component::InternalImpl<ContractState>;
     #[event]
     #[derive(Drop, starknet::Event)]

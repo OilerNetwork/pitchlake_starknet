@@ -54,7 +54,7 @@ mod PitchLake {
     ) { // self.option_round_class_hash.write( option_round_class_hash_);
     }
 
-    #[external(v0)]
+    #[abi(embed_v0)]
     impl PitchLakeImpl of super::IPitchLake<ContractState> {
         fn in_the_money_vault(self: @ContractState) -> IVaultDispatcher {
             IVaultDispatcher { contract_address: ContractAddressZeroable::zero() }

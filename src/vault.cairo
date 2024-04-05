@@ -40,12 +40,20 @@ struct OptionRoundCreated {
 }
 
 //IVault, Vault will be the main contract that the liquidity_providers and option_buyers will interact with.
+// Is this the case or wil OBs interact with the option rounds ? 
 
 #[starknet::interface]
 trait IVault<TContractState> { // erc721
     /// new below ///
 
     /// Reads ///
+
+    // matt 
+    // @return The LP's deposited balance at the start of the round_id (actual deposit value)
+    fn lp_deposit_balance(self: @TContractState, lp: ContractAddress, round_id: u256) -> u256;
+    // @return THe LP's position value at the start of the round_id
+    fn lp_position_balance(self: @TContractState, lp: ContractAddress, round_id: u256) -> u256;
+    // matt
 
     // @return the type of the vault (ITM | ATM | OTM)
     fn vault_type(self: @TContractState) -> VaultType;
@@ -59,6 +67,7 @@ trait IVault<TContractState> { // erc721
     // @return the contract address of the option round
     fn get_option_round_address(self: @TContractState, option_round_id: u256) -> ContractAddress;
 
+    // Don't need arbitrary lookups, just current 
     // @return an LP's liquidity at the start of the option round
     fn get_lps_starting_liquidity_in_option_round(self: @TContractState, round_id: u256) -> u256;
 
@@ -149,12 +158,11 @@ mod Vault {
     use core::traits::TryInto;
     use core::traits::Into;
     use pitch_lake_starknet::vault::IVault;
-    use openzeppelin::token::erc20::ERC20;
+    use openzeppelin::token::erc20::ERC20Component;
     use openzeppelin::token::erc20::interface::IERC20;
     use starknet::{ContractAddress, deploy_syscall, contract_address_const, get_contract_address};
     use pitch_lake_starknet::vault::VaultType;
     use pitch_lake_starknet::pool::IPoolDispatcher;
-    use openzeppelin::token::erc20::interface::IERC20Dispatcher;
     use openzeppelin::utils::serde::SerializedAppend;
     use pitch_lake_starknet::option_round::{
         OptionRound, OptionRoundParams, OptionRoundState, IOptionRoundDispatcher,
@@ -214,33 +222,34 @@ mod Vault {
             minimum_bid_amount: 100,
             minimum_collateral_required: 100
         };
-        // Deploy 0th round
-        let mut calldata: Array<felt252> = array!['owner'];
-        calldata.append_serde(starknet::get_contract_address());
-        calldata.append_serde(zeroth_option_round_params);
-        calldata.append_serde(market_aggregator);
-        let (option_round_0_address, _) = deploy_syscall(
-            OptionRound::TEST_CLASS_HASH.try_into().unwrap(), 'some salt', calldata.span(), false
-        )
-            .unwrap();
+    // Deploy 0th round
+    //let mut calldata: Array<felt252> = array!['owner'];
+    //calldata.append_serde(starknet::get_contract_address());
+    //calldata.append_serde(zeroth_option_round_params);
+    //calldata.append_serde(market_aggregator);
+    //let class_hash: starknet::ClassHash = OptionRound::TEST_CLASS_HASH;
+    //let (option_round_0_address, _) = deploy_syscall(
+    //class_hash, 'some salt', calldata.span(), false
+    //)
+    //.unwrap();
 
-        // Deploy 1st round
-        calldata = array!['owner'];
-        calldata.append_serde(starknet::get_contract_address());
-        calldata.append_serde(test_option_round_params);
-        calldata.append_serde(market_aggregator);
-        let (option_round_1_address, _) = deploy_syscall(
-            OptionRound::TEST_CLASS_HASH.try_into().unwrap(), 'some salt', calldata.span(), false
-        )
-            .unwrap();
+    // Deploy 1st round
+    //calldata = array!['owner'];
+    //calldata.append_serde(starknet::get_contract_address());
+    //calldata.append_serde(test_option_round_params);
+    //calldata.append_serde(market_aggregator);
+    //let (option_round_1_address, _) = deploy_syscall(
+    //OptionRound::TEST_CLASS_HASH.try_into().unwrap(), 'some salt', calldata.span(), false
+    //)
+    //.unwrap();
 
-        self.round_addresses.write(0, option_round_0_address);
-        self.round_addresses.write(1, option_round_1_address);
+    //self.round_addresses.write(0, option_round_0_address);
+    //self.round_addresses.write(1, option_round_1_address);
     // need to set 0th round to Settled 
     }
 
 
-    #[external(v0)]
+    #[abi(embed_v0)]
     impl VaultImpl of super::IVault<ContractState> {
         /// Reads ///
         fn vault_type(self: @ContractState) -> VaultType {
@@ -275,10 +284,18 @@ mod Vault {
         fn get_lps_premiums_earned_in_option_round(self: @ContractState, round_id: u256) -> u256 {
             100
         }
+        // matt 
+        fn lp_deposit_balance(self: @ContractState, lp: ContractAddress, round_id: u256) -> u256 {
+            100
+        }
+
+        fn lp_position_balance(self: @ContractState, lp: ContractAddress, round_id: u256) -> u256 {
+            100
+        }
 
         /// Writes ///
         fn deposit_liquidity(ref self: ContractState, amount: u256) -> u256 {
-            10
+            1
         }
 
         fn submit_claim(ref self: ContractState) -> bool {

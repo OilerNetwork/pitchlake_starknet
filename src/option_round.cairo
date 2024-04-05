@@ -117,7 +117,7 @@ trait IOptionRound<TContractState> {
 
     // Gets the amount that an option buyer can claim with their options balance
     fn get_payout_balance_of(self: @TContractState, option_buyer: ContractAddress) -> u256;
-                    
+
     // The total payouts of the option round
     // @note Will be 0 until the option round is settled
     // @note Can be 0 depending on the market conditions (exerciseable vs non-exerciseable)
@@ -255,7 +255,7 @@ mod OptionRound {
         self.market_aggregator.write(market_aggregator);
     }
 
-    #[external(v0)]
+    #[abi(embed_v0)]
     impl OptionRoundImpl of super::IOptionRound<ContractState> {
         /// Reads /// 
         fn get_option_round_state(self: @ContractState) -> OptionRoundState {

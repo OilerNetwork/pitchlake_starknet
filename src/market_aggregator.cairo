@@ -22,7 +22,7 @@ mod MarketAggregator {
         current_base_fee: u256,
     }
 
-    #[external(v0)]
+    #[abi(embed_v0)]
     impl IMarketAggregatorImpl of super::IMarketAggregator<ContractState> {
         // TODO add time period. 
         // this is the average base fee for the previous round, returns in wei
