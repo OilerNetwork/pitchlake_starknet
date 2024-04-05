@@ -9,15 +9,15 @@
 
 ## Running Tests
 
-The original codebase uses [Scarb](https://docs.swmansion.com/scarb/) (0.7.0) to build and test the contracts. Be sure to setup [asdf](https://asdf-vm.com/) as well, to handle versioning. The codebase will upgrade to the latest version of Scarb as the interface is stripped/updated.
+The original codebase uses [Scarb](https://docs.swmansion.com/scarb/) (2.6.4) to build and test the contracts. Be sure to setup [asdf](https://asdf-vm.com/) as well, to handle versioning.
 
 To ensure you are setup, run the following command from the root of this directory and check the output matches:
 
 ```
-➜ scarb --version
-scarb 0.7.0 (58cc88efb 2023-08-23)
-cairo: 2.2.0 (https://crates.io/crates/cairo-lang-compiler/2.2.0)
-sierra: 1.3.0
+❯ scarb --version
+scarb 2.6.4 (c4c7c0bac 2024-03-19)
+cairo: 2.6.3 (https://crates.io/crates/cairo-lang-compiler/2.6.3)
+sierra: 1.5.0
 ```
 
 Once Scarb is setup, you can run the full test suite via:
