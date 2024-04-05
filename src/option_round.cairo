@@ -82,8 +82,7 @@ struct OptionTransferEvent {
 }
 #[starknet::interface]
 trait IOptionRound<TContractState> {
-    // new; following notion page: https://www.notion.so/nethermind/Crash-course-docs-aa05c787e89446a1aa5f72043f1bde42
-
+    // new, folling crash course
     /// Reads /// 
 
     // Gets the current state of the option round
@@ -118,7 +117,7 @@ trait IOptionRound<TContractState> {
 
     // Gets the amount that an option buyer can claim with their options balance
     fn get_payout_balance_of(self: @TContractState, option_buyer: ContractAddress) -> u256;
-
+                    
     // The total payouts of the option round
     // @note Will be 0 until the option round is settled
     // @note Can be 0 depending on the market conditions (exerciseable vs non-exerciseable)
@@ -167,60 +166,48 @@ trait IOptionRound<TContractState> {
 
     // total amount deposited as part of bidding by an option buyer, if the auction has not ended this represents the total amount locked up for auction and cannot be claimed back,
     // if the auction has ended this the amount which was not converted into an option and can be claimed back.
-    #[view]
     fn unused_bid_deposit_balance_of(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
     // payout due to an option buyer
-    #[view]
     fn payout_balance_of(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
     // no of options bought by a user
     // can drop, erc20::balance_of will suffice
-    #[view]
     fn option_balance_of(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
     // premium balance of liquidity_provider
     // moving this to vault
-    #[view]
     fn premium_balance_of(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
 
     // locked collateral balance of liquidity_provider
     // moved to vault
-    #[view]
     fn collateral_balance_of(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
 
     // total collateral available in the round
     // moved to vault
-    #[view]
     fn total_collateral(self: @TContractState) -> u256;
 
-    #[view]
     fn bid_deposit_balance_of(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
     // market aggregator is a sort of oracle and provides market data(both historic averages and current prices)
-    #[view]
     fn get_market_aggregator(self: @TContractState) -> IMarketAggregatorDispatcher;
 
     // returns true if auction_place_bid if deposit has been locked up in the auction. false if auction not running or auction_place_bid below reserve price
     // amount: max amount in auction_place_bid token to be used for bidding in the auction
     // price: max price in auction_place_bid token(eth) per option. if the auction ends with a price higher than this then the auction_place_bid is not accepted
-    #[external]
     fn auction_place_bid(ref self: TContractState, amount: u256, price: u256) -> bool;
 
 
     // moves/transfers the unused premium deposit back to the bidder, return value is the amount of the transfer
     // this is per option buyer. every option buyer will have to individually call refund_unused_bid_deposit to transfer any used deposits
-    #[external]
     fn refund_unused_bid_deposit(ref self: TContractState, recipient: ContractAddress) -> u256;
 
     // transfers any payout due to the option buyer, return value is the amount of the transfer
     // this is per option buyer. every option buyer will have to individually call claim_option_payout.
-    #[external]
     fn claim_option_payout(ref self: TContractState, for_option_buyer: ContractAddress) -> u256;
 
     // if the options are past the expiry date then we can move the collateral (after the payout) back to the vault(unallocated pool), returns the collateral moved
     // this is per liquidity provider, every option buyer will have to individually call transfer_collateral_to_vault
-    #[external]
     fn transfer_collateral_to_vault(
         ref self: TContractState, for_liquidity_provider: ContractAddress
     ) -> u256;
@@ -230,7 +217,6 @@ trait IOptionRound<TContractState> {
 
     // matt: this is changing: the premium is not immediately available for withdrawal, it is locked until the option is settled ?
     // then the premium + LP is either rolled to next round or sent to the user. If claim submitted before options expire, premiums are returned
-    #[external]
     fn transfer_premium_collected_to_vault(
         ref self: TContractState, for_liquidity_provider: ContractAddress
     ) -> u256;
@@ -238,7 +224,7 @@ trait IOptionRound<TContractState> {
 
 #[starknet::contract]
 mod OptionRound {
-    use openzeppelin::token::erc20::ERC20;
+    use openzeppelin::token::erc20::{ERC20Component};
     use openzeppelin::token::erc20::interface::IERC20;
     use starknet::ContractAddress;
     use pitch_lake_starknet::vault::VaultType;
@@ -419,7 +405,6 @@ mod OptionRound {
             100
         }
 
-        #[view]
         fn get_market_aggregator(self: @ContractState) -> IMarketAggregatorDispatcher {
             self.market_aggregator.read()
         }
