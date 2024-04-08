@@ -14,93 +14,40 @@ trait IPool<TContractState> {}
 #[starknet::contract]
 mod pool {
     use core::traits::Into;
-    use openzeppelin::token::erc20::ERC20;
-    use openzeppelin::token::erc20::interface::IERC20;
     use starknet::ContractAddress;
+    use openzeppelin::token::erc20::ERC20Component;
     use pitch_lake_starknet::vault::VaultType;
     use pitch_lake_starknet::pool::PoolType;
 
+    component!(path: ERC20Component, storage: erc20, event: ERC20Event);
     #[storage]
     struct Storage {
-        pool_type: u128
+        pool_type: u128,
+        #[substorage(v0)]
+        erc20: ERC20Component::Storage
+    }
+
+    // Exposes snake_case & CamelCase entry points
+    #[abi(embed_v0)]
+    impl ERC20MixinImpl = ERC20Component::ERC20MixinImpl<ContractState>;
+    // Allows the contract access to internal functions
+    impl InternalImpl = ERC20Component::InternalImpl<ContractState>;
+
+    #[event]
+    #[derive(Drop, starknet::Event)]
+    enum Event {
+        #[flat]
+        ERC20Event: ERC20Component::Event
     }
 
     #[constructor]
-    fn constructor(
-        ref self: ContractState,
-        name: felt252,
-        symbol: felt252,
-        initial_supply: u256,
-        pool_type_: PoolType,
-        recipient: ContractAddress
-    ) {
-        let name = 'VAULT';
-        let symbol = 'VLT';
-
-        let mut unsafe_state = ERC20::unsafe_new_contract_state();
-        ERC20::InternalImpl::initializer(ref unsafe_state, name, symbol);
-        ERC20::InternalImpl::_mint(ref unsafe_state, recipient, initial_supply);
-
-        //TODO update with teh proper enum.
+    fn constructor(ref self: ContractState, initial_supply: u256, recipient: ContractAddress) {
+        self.erc20.initializer("VAULT", "VLT");
+        self.erc20._mint(recipient, initial_supply);
+        // todo: update to the proper enum
         self.pool_type.write(1);
     }
 
-    #[external(v0)]
-    fn name(self: @ContractState) -> felt252 {
-        let unsafe_state = ERC20::unsafe_new_contract_state();
-        ERC20::ERC20Impl::name(@unsafe_state)
-    }
-
-    #[external(v0)]
-    fn symbol(self: @ContractState) -> felt252 {
-        let unsafe_state = ERC20::unsafe_new_contract_state();
-        ERC20::ERC20Impl::symbol(@unsafe_state)
-    }
-
-    #[external(v0)]
-    fn decimals(self: @ContractState) -> u8 {
-        let unsafe_state = ERC20::unsafe_new_contract_state();
-        ERC20::ERC20Impl::decimals(@unsafe_state)
-    }
-
-    #[external(v0)]
-    fn total_supply(self: @ContractState) -> u256 {
-        let unsafe_state = ERC20::unsafe_new_contract_state();
-        ERC20::ERC20Impl::total_supply(@unsafe_state)
-    }
-
-    #[external(v0)]
-    fn balance_of(self: @ContractState, account: ContractAddress) -> u256 {
-        let unsafe_state = ERC20::unsafe_new_contract_state();
-        ERC20::ERC20Impl::balance_of(@unsafe_state, account)
-    }
-
-    #[external(v0)]
-    fn allowance(self: @ContractState, owner: ContractAddress, spender: ContractAddress) -> u256 {
-        let unsafe_state = ERC20::unsafe_new_contract_state();
-        ERC20::ERC20Impl::allowance(@unsafe_state, owner, spender)
-    }
-
-    #[external(v0)]
-    fn transfer(ref self: ContractState, recipient: ContractAddress, amount: u256) -> bool {
-        let mut unsafe_state = ERC20::unsafe_new_contract_state();
-        ERC20::ERC20Impl::transfer(ref unsafe_state, recipient, amount)
-    }
-
-    #[external(v0)]
-    fn transfer_from(
-        ref self: ContractState, sender: ContractAddress, recipient: ContractAddress, amount: u256
-    ) -> bool {
-        let mut unsafe_state = ERC20::unsafe_new_contract_state();
-        ERC20::ERC20Impl::transfer_from(ref unsafe_state, sender, recipient, amount)
-    }
-
-    #[external(v0)]
-    fn approve(ref self: ContractState, spender: ContractAddress, amount: u256) -> bool {
-        let mut unsafe_state = ERC20::unsafe_new_contract_state();
-        ERC20::ERC20Impl::approve(ref unsafe_state, spender, amount)
-    }
-
-    #[external(v0)]
+    #[abi(embed_v0)]
     impl PoolImpl of super::IPool<ContractState> {}
 }

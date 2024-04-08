@@ -12,7 +12,7 @@ casm = true
 
 [dependencies]
 starknet = "2.1.0"
-openzeppelin = { git = "https://github.com/OpenZeppelin/cairo-contracts.git", tag = "v0.7.0-rc.0" }
+openzeppelin = { git = "https://github.com/OpenZeppelin/cairo-contracts.git", tag = "v0.11.0" }
 
 [tool.snforge]
 # exit_first = true
