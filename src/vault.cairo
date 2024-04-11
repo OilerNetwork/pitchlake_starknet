@@ -191,7 +191,6 @@ mod Vault {
         market_aggregator: IMarketAggregatorDispatcher
     ) {
         self.market_aggregator.write(market_aggregator);
-        // could deploy a 0th round, and automatically set it to Settled, 
 
         // @dev Deploy a 0th round as current, and set it to Settled, then deploy the 1st round as next round
         let zeroth_option_round_params: OptionRoundParams = OptionRoundParams {
