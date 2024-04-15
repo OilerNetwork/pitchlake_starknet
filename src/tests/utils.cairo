@@ -78,12 +78,12 @@ fn deploy_market_aggregator() -> IMarketAggregatorDispatcher {
 }
 
 fn deploy_vault(vault_type: VaultType) -> IVaultDispatcher {
+    let round_class_hash: felt252 = OptionRound::TEST_CLASS_HASH;
     let mut calldata = array![];
 
-    // calldata.append_serde(OptionRound::TEST_CLASS_HASH);
     calldata.append_serde(vault_type);
-    calldata.append_serde(deploy_market_aggregator());
-calldata.append_serde(OptionRound::TEST_CLASS_HASH);
+    calldata.append_serde(deploy_market_aggregator()); // needed ? 
+    calldata.append_serde(round_class_hash);
 
     let (address, _) = deploy_syscall(
         Vault::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
