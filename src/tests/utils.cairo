@@ -34,24 +34,20 @@ use pitch_lake_starknet::market_aggregator::{
 };
 use pitch_lake_starknet::tests::mock_market_aggregator::{MockMarketAggregator};
 
-const NAME: felt252 = 'WETH';
-const SYMBOL: felt252 = 'WETH';
 const DECIMALS: u8 = 18_u8;
 const SUPPLY: u256 = 99999999999999999999999999999;
 
 fn deploy_eth() -> IERC20Dispatcher {
     let mut calldata = array![];
 
-    calldata.append_serde(NAME);
-    calldata.append_serde(SYMBOL);
     calldata.append_serde(SUPPLY);
     calldata.append_serde(weth_owner());
 
-    let (address, _) = deploy_syscall(
-        Eth::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
+    let (contract_address, _) = deploy_syscall(
+        Eth::TEST_CLASS_HASH.try_into().unwrap(), 'some salt', calldata.span(), false
     )
-        .expect('DEPLOY_AD_FAILED');
-    return IERC20Dispatcher { contract_address: address };
+        .unwrap();
+    return IERC20Dispatcher { contract_address };
 }
 
 // deploys a mock option round contract, this one is not associated with any (valid/deployed) vault
