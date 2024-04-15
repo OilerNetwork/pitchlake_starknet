@@ -193,6 +193,7 @@ mod Vault {
         self.market_aggregator.write(market_aggregator);
 
         // @dev Deploy a 0th round as current, and set it to Settled, then deploy the 1st round as next round
+        // @dev option round params needs to change structure, somep fields need to get set dring an initializer()
         let zeroth_option_round_params: OptionRoundParams = OptionRoundParams {
             current_average_basefee: 0,
             strike_price: 0,
@@ -221,29 +222,28 @@ mod Vault {
             minimum_bid_amount: 100,
             minimum_collateral_required: 100
         };
-    // Deploy 0th round
-    //let mut calldata: Array<felt252> = array!['owner'];
-    //calldata.append_serde(starknet::get_contract_address());
-    //calldata.append_serde(zeroth_option_round_params);
-    //calldata.append_serde(market_aggregator);
-    //let class_hash: starknet::ClassHash = OptionRound::TEST_CLASS_HASH;
-    //let (option_round_0_address, _) = deploy_syscall(
-    //class_hash, 'some salt', calldata.span(), false
-    //)
-    //.unwrap();
+        // Deploy 0th round
+        let mut calldata: Array<felt252> = array!['owner'];
+        calldata.append_serde(starknet::get_contract_address());
+        calldata.append_serde(zeroth_option_round_params);
+        calldata.append_serde(market_aggregator);
+        let class_hash: starknet::ClassHash = OptionRound::TEST_CLASS_HASH.try_into().unwrap();
+        let (option_round_0_address, _) = deploy_syscall(
+            class_hash, 'some salt', calldata.span(), false
+        )
+            .unwrap();
+        // Deploy 1st round
+        let mut calldata: Array<felt252> = array!['owner'];
+        calldata.append_serde(starknet::get_contract_address());
+        calldata.append_serde(test_option_round_params);
+        calldata.append_serde(market_aggregator);
+        let (option_round_1_address, _) = deploy_syscall(
+            class_hash, 'some salt', calldata.span(), false
+        )
+            .unwrap();
 
-    // Deploy 1st round
-    //calldata = array!['owner'];
-    //calldata.append_serde(starknet::get_contract_address());
-    //calldata.append_serde(test_option_round_params);
-    //calldata.append_serde(market_aggregator);
-    //let (option_round_1_address, _) = deploy_syscall(
-    //OptionRound::TEST_CLASS_HASH.try_into().unwrap(), 'some salt', calldata.span(), false
-    //)
-    //.unwrap();
-
-    //self.round_addresses.write(0, option_round_0_address);
-    //self.round_addresses.write(1, option_round_1_address);
+        self.round_addresses.write(0, option_round_0_address);
+        self.round_addresses.write(1, option_round_1_address);
     // need to set 0th round to Settled 
     }
 
