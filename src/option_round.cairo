@@ -106,6 +106,9 @@ trait IOptionRound<TContractState> {
     // new, folling crash course
     /// Reads /// 
 
+    // Get the address of round's deploying vault 
+    fn get_vault_address(self: @TContractState) -> ContractAddress;
+
     // Gets the current state of the option round
     fn get_option_round_state(self: @TContractState) -> OptionRoundState;
 
@@ -261,6 +264,7 @@ mod OptionRound {
 
     #[storage]
     struct Storage {
+        vault_address: ContractAddress,
         market_aggregator: IMarketAggregatorDispatcher,
         state: OptionRoundState,
         constructor_params: OptionRoundConstructorParams,
@@ -282,6 +286,8 @@ mod OptionRound {
 
     #[constructor]
     fn constructor(ref self: ContractState, constructor_params: OptionRoundConstructorParams) {
+        // Set the vault address 
+        self.vault_address.write(constructor_params.vault_address);
         // Set round state to open unless this is round 0
         if (constructor_params.round_id == 0_u256) {
             self.state.write(OptionRoundState::Settled);
@@ -293,6 +299,9 @@ mod OptionRound {
     #[abi(embed_v0)]
     impl OptionRoundImpl of super::IOptionRound<ContractState> {
         /// Reads /// 
+        fn get_vault_address(self: @ContractState) -> ContractAddress {
+            self.vault_address.read()
+        }
         fn get_option_round_state(self: @ContractState) -> OptionRoundState {
             self.state.read()
         }
