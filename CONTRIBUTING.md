@@ -5,12 +5,12 @@ possible.
 
 ## Prerequisites
 
-- [Scarb](https://docs.swmansion.com/scarb/) - v0.7.0
+- [Scarb](https://docs.swmansion.com/scarb/)
   ```
     ➜ scarb --version
-    scarb 0.7.0 (58cc88efb 2023-08-23)
-    cairo: 2.2.0 (https://crates.io/crates/cairo-lang-compiler/2.2.0)
-    sierra: 1.3.0
+    scarb 2.6.4 (c4c7c0bac 2024-03-19)
+    cairo: 2.6.3 (https://crates.io/crates/cairo-lang-compiler/2.6.3)
+    sierra: 1.5.0
   ```
 
 - Read the [documentation](./documentation.md).
