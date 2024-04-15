@@ -27,16 +27,8 @@ mod Eth {
         ERC20Event: ERC20Component::Event
     }
     #[constructor]
-    fn constructor(
-        ref self: ContractState,
-        symbol: ByteArray,
-        name: ByteArray,
-        initial_supply: u256,
-        recipient: ContractAddress
-    ) {
-        // let name = 'Ethereum';
-        // let symbol = 'WETH';
-        self.erc20.initializer(name, symbol);
+    fn constructor(ref self: ContractState, initial_supply: u256, recipient: ContractAddress) {
+        self.erc20.initializer("Ethereum", "WETH");
         self.erc20._mint(recipient, initial_supply);
     }
 }

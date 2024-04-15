@@ -64,12 +64,20 @@ fn test_intitial_rounds_after_vault_deployment() {
     let mut expected: OptionRoundState = OptionRoundState::Settled;
     assert(expected == state, 'round 0 should be Settled');
     assert(current_round_id == 0, 'current round should be 0');
+    assert(
+        current_round_dispatcher.get_vault_address() == vault_dispatcher.contract_address,
+        'vault address should be set'
+    );
 
     // Round 1 should be Open
     state = next_round_dispatcher.get_option_round_state();
     expected = OptionRoundState::Open;
     assert(expected == state, 'round 1 should be Open');
     assert(next_round_id == 1, 'next round should be 1');
+    assert(
+        next_round_dispatcher.get_vault_address() == vault_dispatcher.contract_address,
+        'vault address should be set'
+    );
 }
 
 // deposit_tests: test that right after deployment, LP can deposit into round 1

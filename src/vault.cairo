@@ -160,13 +160,15 @@ mod Vault {
     use pitch_lake_starknet::vault::IVault;
     use openzeppelin::token::erc20::ERC20Component;
     use openzeppelin::token::erc20::interface::IERC20;
-    use starknet::{ContractAddress, deploy_syscall, contract_address_const, get_contract_address};
+    use starknet::{
+        ContractAddress, ClassHash, deploy_syscall, contract_address_const, get_contract_address
+    };
     use pitch_lake_starknet::vault::VaultType;
     use pitch_lake_starknet::pool::IPoolDispatcher;
     use openzeppelin::utils::serde::SerializedAppend;
     use pitch_lake_starknet::option_round::{
-        OptionRound, OptionRoundParams, OptionRoundState, IOptionRoundDispatcher,
-        IOptionRoundDispatcherTrait
+        OptionRound, OptionRoundConstructorParams, OptionRoundInitializerParams, OptionRoundParams,
+        OptionRoundState, IOptionRoundDispatcher, IOptionRoundDispatcherTrait
     };
     use pitch_lake_starknet::market_aggregator::{
         IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
@@ -188,64 +190,34 @@ mod Vault {
     fn constructor(
         ref self: ContractState,
         vault_type: VaultType,
-        market_aggregator: IMarketAggregatorDispatcher
+        market_aggregator: IMarketAggregatorDispatcher,
+        option_round_class_hash: ClassHash,
     ) {
         self.market_aggregator.write(market_aggregator);
-        // could deploy a 0th round, and automatically set it to Settled, 
-
-        // @dev Deploy a 0th round as current, and set it to Settled, then deploy the 1st round as next round
-        let zeroth_option_round_params: OptionRoundParams = OptionRoundParams {
-            current_average_basefee: 0,
-            strike_price: 0,
-            standard_deviation: 0,
-            cap_level: 0,
-            collateral_level: 0,
-            reserve_price: 0,
-            total_options_available: 0,
-            // start_time:start_time_,
-            option_expiry_time: 0,
-            auction_end_time: 0,
-            minimum_bid_amount: 0,
-            minimum_collateral_required: 0
+        // @dev Deploy the 0th round as current (Settled) and deploy the 1st round (Open)
+        let z_constructor_args: OptionRoundConstructorParams = OptionRoundConstructorParams {
+            vault_address: starknet::get_contract_address(), round_id: 0
         };
-        let test_option_round_params: OptionRoundParams = OptionRoundParams {
-            current_average_basefee: 100,
-            strike_price: 1000,
-            standard_deviation: 50,
-            cap_level: 100,
-            collateral_level: 100,
-            reserve_price: 10,
-            total_options_available: 1000,
-            // start_time:start_time_,
-            option_expiry_time: 1000,
-            auction_end_time: 1000,
-            minimum_bid_amount: 100,
-            minimum_collateral_required: 100
+        let f_constructor_args: OptionRoundConstructorParams = OptionRoundConstructorParams {
+            vault_address: starknet::get_contract_address(), round_id: 1
         };
-    // Deploy 0th round
-    //let mut calldata: Array<felt252> = array!['owner'];
-    //calldata.append_serde(starknet::get_contract_address());
-    //calldata.append_serde(zeroth_option_round_params);
-    //calldata.append_serde(market_aggregator);
-    //let class_hash: starknet::ClassHash = OptionRound::TEST_CLASS_HASH;
-    //let (option_round_0_address, _) = deploy_syscall(
-    //class_hash, 'some salt', calldata.span(), false
-    //)
-    //.unwrap();
-
-    // Deploy 1st round
-    //calldata = array!['owner'];
-    //calldata.append_serde(starknet::get_contract_address());
-    //calldata.append_serde(test_option_round_params);
-    //calldata.append_serde(market_aggregator);
-    //let (option_round_1_address, _) = deploy_syscall(
-    //OptionRound::TEST_CLASS_HASH.try_into().unwrap(), 'some salt', calldata.span(), false
-    //)
-    //.unwrap();
-
-    //self.round_addresses.write(0, option_round_0_address);
-    //self.round_addresses.write(1, option_round_1_address);
-    // need to set 0th round to Settled 
+        // Deploy 0th round
+        let mut calldata: Array<felt252> = array![];
+        calldata.append_serde(z_constructor_args);
+        let (z_address, _) = deploy_syscall(
+            option_round_class_hash, 'some salt', calldata.span(), false
+        )
+            .unwrap();
+        // Deploy 1st round
+        calldata = array![];
+        calldata.append_serde(f_constructor_args);
+        let (f_address, _) = deploy_syscall(
+            option_round_class_hash, 'some salt', calldata.span(), false
+        )
+            .unwrap();
+        // Set round addressess
+        self.round_addresses.write(0, z_address);
+        self.round_addresses.write(1, f_address);
     }
 
 
