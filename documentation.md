@@ -482,3 +482,4 @@ Where `cl` is the cap level, `BF_T1_T2` is the TWAP of basefee over the round, a
 ## In Summary
 
 Fossil is used twice over the course of an option round's life cycle, at initialization and settlement. When we settle the current round, we initialize the next. This starts the round transition period, and once it is over, the next auction (for the initialized round) can start. Once the round's auction starts, it becomes the current round, and the next (uninitialized) round is deployed.
+

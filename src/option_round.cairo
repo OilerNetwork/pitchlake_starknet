@@ -292,6 +292,7 @@ mod OptionRound {
     ) {
         // Set market aggregator's address 
         self.market_aggregator.write(market_aggregator);
+
         // Set the vault address 
         self.vault_address.write(constructor_params.vault_address);
         // Set round state to open unless this is round 0
