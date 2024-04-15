@@ -191,107 +191,6 @@ withdraw_from_position(LP: ContractAddress, withdraw_amount: uint) {
 	// The amount LP's position is worth at the end of the current round
 	let mut ending_amount = 0;
 
-	// Iterate through each round position from the last withdraw checkpoint to the current round (both inclusive)
-	for i in range(withdraw_checkpoints[LP], current_round_id) {
-		// How much liquidity did LP supply in this round
-		let starting_amount = ending_amount + vault::positions[LP, i];
-
-		// Get a round i dispatcher
-		let this_round = RoundDispatcher {address_for_round(i)};
-
-    // How much liquidity remained in this round
-		let remaining_liquidity = this_round.total_deposits() + this_round.total_premiums() - this_round.total_payouts();
-
-		// How much of this round's pool did LP supply
-		let pool_percentage = starting_amount / this_round.total_deposits();
-
-		// LP ends the round with their share of the remaining liquidity
-		ending_amount = pool_percentage * remaining_liquidity;
-
-		// @dev For simplicity, we are not including the calculation for how much
-		// of the premiums/unlocked liquidity LP may have collected during this round,
-		// but it will need to be implemented, and look something like:
-		// `ending_amount -= lp_collections_in_round(LP, i)`,
-		// where `lp_collections_in_round()` retrieves how much premium and unlocked
-		// liquidity LP collected during this round if any (collected funds are not rolled over to the next round)
-	}
-
-	if (withdraw_amount > ending_amount)
-		revert_with_reason("Withdrawing more than position's value");
-
-	// Update LP's position value after the withdraw
-	positions[LP, next_round_id] = ending_amount - withdraw_amount;
-
-	// Update LPs withdraw checkpoint for future calculations
-	withdraw_checkpoints[LP] = next_round_id;
-
-	// Send ETH from the next round to LP (remember, funds move to the next round when the current settles)
-	ETH_DISPATCHER.transfer_from(next_round_id, LP, withdraw_amount);
-}
-```
-
-## `Vault::Positions` as LP Tokens
-
-### Positions → LP Tokens
-
-The above architecture works fine for LPs to withdraw from their positions upon round settlements, but not if they wish to sell their active positions on a secondary market. To do this, they will need to tokenize their position by converting it from the vault's storage to LP tokens (ERC20), and selling them as such.
-
-LP tokens represent a position's value at the start of a round net of any premiums collected from the round. By knowing the value of a position at the start of a round, we can calculate its value at the end of the round (once it settles), and there by also knowing the value going into the next round (by rolling over). There will be an LP token contract (ERC20) associated with each round. Meaning if an LP tokenizes their position during round 3 (r3), they are minted round 3 LP tokens.
-
-When an LP tokenizes their position, they are converting the value of their position at the start of the **current** round to LP tokens. They can only do so once the round's auction has ended, and before the option round settles. Simply, LPs can only tokenize their position in the **current** round if the **current** round's state is _Running_. The **current** round could not be _Auctioning_ because the premiums would not be calculated yet, and it could not be _Settled_ because the funds would have already been rolled over to the **next** round.
-
-Some pseudo code for an LP tokenizing their current position is below:
-
-```rust
-// LP tokenizes their current position.
-// @dev The current round's auction must be settled, and the option round must not be settled yet
-// @param LP: The account converting their position into LP tokens
-tokenize_position(LP: ContractAddress){
-  // Get the current and next round ids from the vault
-	let current_round_id = vault::current_round_id;
-	let next_round_id = vault::next_round_id;
-
-  // Assert the current round is not auctioning and is not settled yet
-  assert_round_is_running(current_round_id);
-
-  // Collect LP's premiums if they have not already
-  collect_premiums_if_not_yet(LP);
-
-  // @dev This code is similar to the above code, with the difference being the
-  // bounds of the for loop
-
-	// The amount LP's position is worth at the end of the round
-	let mut ending_amount = 0;
-
-	// Iterate through each position from the last checkpoint to the previous round (both inclusive)
-	for i in range(withdraw_checkpoints[LP], current_round_id - 1) {
-		// How much liquidity did LP supply in this round
-		let starting_amount = ending_amount + vault::positions[LP, i];
-
-		// Get a round i dispatcher
-		let this_round = RoundDispatcher {address_for_round(i)};
-
-		// How much liquidity remained in this round
-		let remaining_liquidity = this_round.total_deposits() + this_round.total_premiums() - this_round.total_payouts();
-
-		// How much of this round's pool did LP own
-		let pool_percentage = starting_amount / this_round.total_deposits();
-
-		// LP ends the round with their share of the remaining liquidity
-		ending_amount = pool_percentage * remaining_liquidity;
-
-		// @dev For simplicity, we are not including the calculation for how much
-		// of the premiums/unlocked liquidity LP may have collected during this round,
-		// but it will need to be implemented, and look something like:
-		// `ending_amount = ending_amount - lp_collections_in_round(LP, i)`,
-		// where `lp_collections_in_round()` retrieves how much premiums and unlocked
-		// liquidity LP collected during this round (as in, not rolled over to the next round)
-	}
-
-  // @dev At this point, ending_amount is the amount of liquidity LP ended the previous round with
-  // @dev This is the amount they started the current round with
-
-  // Update LP's position value after the exit
 	positions[LP, current_round_id] = 0;
 
 	// Update LPs withdraw checkpoint for future calculations
@@ -386,36 +285,62 @@ OBs submit their bids using the `OptionRound::place_bid(amount, price)` entry po
 
 # Fossil Integration
 
-Fossil is what we call a zk co-processor (storage proofs + provable computation), and is the back bone to the Pitchlake protocol. With Fossil, we can read values from Ethereum blocks, do some computing on them, and using some proofs, we can trustlessly accept these values on Starknet.
+Fossil is what we call a zk co-processor (storage proofs + provable computation), and is the back bone to the Pitchlake protocol. With Fossil, we can read values from Ethereum block headers and storage slots, do some computing on them, and using some proofs, we can trustlessly accept these values on Starknet.
 
-## An Option Round Deploys
+Fossil is used to **settle the current option round** and **initialize the next option round** (at the same time).
 
-When an option round is first deployed, we fetch the TWAP and volatility of Ethereum basefee over the last few months, maybe 3 or something in this range, from Fossil. Using these values, we calculate the strike price for the round, the cap values, and the reserve price.
+## Settling the current round
 
-## An Option Round's Auction Starts
+When a round settles, we fetch the TWAP of basefee over the round's period from Fossil to determine the payout of the options. If the TWAP of basefee during the round is > the strike price of the options, they become exercisable. If the options become exercisable, we use this value, the strike price, and the cap values to calculate the total payout of the round. This payout is what OBs can claim by burning their options.
 
-We do not directly interact with Fossil at the step. When an option round's auction starts, the liquidity becomes locked. This amount, along with the cap level for the possible payout get used to calculate the max number of options that can be auctioned off.
+## The next option round is initialized
 
-While the auction is ongoing, OBs submit their bids in the form of (amount, price). The **price** is the max price per individual option that an OB is willing to spend, and must be >= the reserve price. The **amount** is the max amount of funds OB is willing to spend.
+When the current option round settles, the next option round (that has been _Open_ and accepting deposits) gets initialized, this is the start of the _round transition period_. While in this transition period, the parameters of the next option round are known (initialized), and LPs can decide to withdraw their rolled over liquidity (and still deposit during this period).
 
-**Example:** OB places a bid of (10, 1). This means they are willing to spend up to 10 ETH for options, but are only willing to pay up to 1 ETH per option. If the clearing price comes out to be 0.5 ETH, they could get up to 20 options (depending on how many options there are to sell), but if the clearing price were instead 1.01 ETH, they would not get any options.
+The values used in the initializer that stem from Fossil are the strike price, cap level, and reserve price.
 
-At this time, the next option round is deployed and starts accepting deposits.
+- Strike Price (K)
 
-## An Option Round's Auction Ends
+The strike price determines a price for which the options become exercisable. It is calculated from the TWAP and volatility of basefee over the last few months (from 0 -> T0). Depending on the type of vault (ITM, ATM, OTM), the strike price will be either greater than, less than, or equal to the TWAP of basefee over the last few months. It is defined as:
 
-We also do not directly interact with Fossil at this step. Once the auction ends, the clearing price is calculated. This is the price per individual option that will be used to determine the distribution of options and premiums. These premiums become collectable by the LPs at this time, and if any of the available options do not sell, the portion of the locked liquidity that was being reserved for the potential payout also becomes collectable at this time. If the premiums or unlocked liquidity do not get collected by LPs, they are automatically added to their positions in the next step.
+```rust
+  K = BF_0_T0 * (1 + k)
+```
 
-## An Option Round Settles
+Where `BF_0_T0` is the TWAP of basefee over the last few months, and the percentage level, k, is suggested to be -σ (ITM), +σ ̄(OTM), or 0 (ATM) by the [official Pitchlake paper](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4123018).
 
-When an option round settles, we fetch the TWAP for the basefee over the course of the round from Fossil. If this value is > the strike price, the options become exercisable. If the options become exercisable, we use this value, the strike price, and the cap values to calculate the total payout of the round. This payout is what OBs can claim by burning their options. The remaining liquidity (deposits + premiums - payout) is transferred to the **next** round.
+- Cap Values
 
-Once this happens, we enter the round transition period. During this time, LPs can withdraw from their positions, until the next round's auction starts.
+The collateral level (CL) of the contract is calculated based on a cap level (cl > 0). The cl is defined as a percentage level of the strike price, and sets the max payout for the options.
+
+```rust
+  CL = cl * (1 + k) * BF_0_T0
+
+  CL = cl * K
+```
+
+There is discussion of an alternate design where the cap level is not fixed at initialization, but is instead calculated once the auction settles. This caps the option's payout based on the implied volatility realized in the market, and can be found using:
+
+```rust
+  P = C(K, t) - C(K(1+cl), t)
+```
+
+Where `P` is the clearing price of the auction, and C(K, t) represents the price of an uncapped call option with strike K at time t (Black-Scholes). This cl can then be used in the above CL formula.
+
+- Reserve Price
+
+The reserve price refers to the minimum price at which an option can be sold during the auction (and thus, is the minimum bid price). The reserve price is typically set as a fixed percentage of the theoretical value of the option, based on the Black-Scholes option pricing model. This model takes into account factors such as the riskless interest rate and the volatility of the index. The [official Pitchlake paper](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4123018) outlines the reserve price calculation in detail.
+
+## Calculating the payout
+
+As stated, once the option round settles, the payout is calculated based on the round's TWAP of basefee, the strike price, and cap levels. The payout is calculated as:
+
+```rust
+  Payout = max(0, min((1+cl)K, BF_T1_T2) - K)
+```
+
+Where `cl` is the cap level, `BF_T1_T2` is the TWAP of basefee over the round, and `K` is the strike price. The payout is the total amount of funds that OBs can claim per option they own. The equation simply says, if the TWAP is <= K, the payout is 0, and if the TWAP is > K, then the payout is BF - K, but capped to be <= (1+cl)K.
 
 ## In Summary
 
-Pitchlake interacts with Fossil 2 times during the period of an option round.
-
-1. When we deploy a round, we use Fossil to calculate the strike price, cap values, and reserve price for the round.
-2. At the end of a round, we use Fossil to calculate the payout for the round.
-
+Fossil is used twice over the course of an option round's life cycle, at initialization and settlement. When we settle the current round, we initialize the next. This starts the round transition period, and the next auction (for the initialized round) will begin once it passes. The round being initialized will have already been deployed (this occurred when the current round's auction started). Once the next round's auction starts, it becomes the current round, and the next, uninitialized round is deployed.
