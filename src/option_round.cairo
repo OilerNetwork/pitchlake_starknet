@@ -6,7 +6,25 @@ use pitch_lake_starknet::market_aggregator::{
     IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
 };
 
+#[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
+struct OptionRoundConstructorParams {
+    vault_address: ContractAddress,
+    round_id: u256,
+}
 
+#[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
+struct OptionRoundInitializerParams {
+    standard_deviation: u256, // used to calculate k (-σ or 0 or σ if vault is: ITM | ATM | OTM)
+    strike_price: u256, // K = BF_last_few_months * (1 + k)
+    cap_level: u256, // cl, percentage points of K that the options will pay out at most. Payout = min(cl*K, BF-K). Might not be set until auction settles if we use alternate cap design (see DOCUMENTATION.md)
+    collateral_level: u256, // total deposits now locked in the round 
+    reserve_price: u256, // minimum price per option in the auction
+    minimum_collateral_required: u256, // the auction will not start unless this much collateral is deposited, needed ? 
+    auction_end_time: u64, // when the auction can be ended
+    option_expiry_time: u64, // when the options can be settled  
+}
+
+// old (all together)
 // unit of account is in wei
 #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
 struct OptionRoundParams {
@@ -23,6 +41,7 @@ struct OptionRoundParams {
     minimum_bid_amount: u256, // to prevent a dos vector
     minimum_collateral_required: u256 // the option round will not start until this much collateral is deposited
 }
+
 
 #[derive(Copy, Drop, Serde, PartialEq, starknet::Store)]
 enum OptionRoundState {
@@ -47,14 +66,14 @@ enum Event {
     AuctionSettle: AuctionSettle,
     OptionSettle: OptionSettle,
     WithdrawPremium: OptionTransferEvent,
-    WithdrawUnusedDeposit: OptionTransferEvent,
-    WithdrawPayout: OptionTransferEvent,
+    WithdrawUnusedDeposit: OptionTransferEvent, // LP collects liquidity if not all options sell, or is this when OB collects unused bid deposit?
+    WithdrawPayout: OptionTransferEvent, // OBs collect payouts
     WithdrawCollateral: OptionTransferEvent, // from option round back to vault
 }
 
 #[derive(Drop, starknet::Event)]
 struct AuctionStart {
-    total_options_available: u256
+    total_options_available: u256 // total_deposits / max_payout
 }
 
 #[derive(Drop, starknet::Event)]
@@ -67,6 +86,7 @@ struct AuctionBid {
 #[derive(Drop, starknet::Event)]
 struct AuctionSettle {
     clearing_price: u256
+// total options sold ? 
 }
 
 #[derive(Drop, starknet::Event)]
@@ -80,6 +100,7 @@ struct OptionTransferEvent {
     to: ContractAddress,
     amount: u256
 }
+
 #[starknet::interface]
 trait IOptionRound<TContractState> {
     // new, folling crash course
@@ -230,7 +251,10 @@ mod OptionRound {
     use pitch_lake_starknet::vault::VaultType;
     use pitch_lake_starknet::pool::IPoolDispatcher;
     use openzeppelin::token::erc20::interface::IERC20Dispatcher;
-    use super::{OptionRoundParams, OptionRoundState};
+    use super::{
+        OptionRoundConstructorParams, OptionRoundInitializerParams, OptionRoundParams,
+        OptionRoundState
+    };
     use pitch_lake_starknet::market_aggregator::{
         IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
     };
@@ -238,21 +262,32 @@ mod OptionRound {
     #[storage]
     struct Storage {
         market_aggregator: IMarketAggregatorDispatcher,
-        // for testing 
         state: OptionRoundState,
+        constructor_params: OptionRoundConstructorParams,
     }
 
+    // old
+    //#[constructor]
+    //fn constructor(
+    //    ref self: ContractState,
+    //    owner: ContractAddress,
+    //    vault_address: ContractAddress,
+    //    // collaterized_pool: ContractAddress, // old
+    //    option_round_params: OptionRoundParams,
+    //    market_aggregator: IMarketAggregatorDispatcher, // should change to just address and build dispatcher when needed ? 
+    //) {
+    //    self.state.write(OptionRoundState::Open);
+    //    self.market_aggregator.write(market_aggregator);
+    //}
+
     #[constructor]
-    fn constructor(
-        ref self: ContractState,
-        owner: ContractAddress,
-        vault_address: ContractAddress,
-        // collaterized_pool: ContractAddress, // old
-        option_round_params: OptionRoundParams,
-        market_aggregator: IMarketAggregatorDispatcher, // should change to just address and build dispatcher when needed ? 
-    ) {
-        self.state.write(OptionRoundState::Open);
-        self.market_aggregator.write(market_aggregator);
+    fn constructor(ref self: ContractState, constructor_params: OptionRoundConstructorParams) {
+        // Set round state to open unless this is round 0
+        if (constructor_params.round_id == 0_u256) {
+            self.state.write(OptionRoundState::Settled);
+        } else {
+            self.state.write(OptionRoundState::Open);
+        }
     }
 
     #[abi(embed_v0)]

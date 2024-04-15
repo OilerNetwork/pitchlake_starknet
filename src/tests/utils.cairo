@@ -83,8 +83,7 @@ fn deploy_vault(vault_type: VaultType) -> IVaultDispatcher {
     // calldata.append_serde(OptionRound::TEST_CLASS_HASH);
     calldata.append_serde(vault_type);
     calldata.append_serde(deploy_market_aggregator());
-
-    // for initial testing, we are manually deploying option round and setting in the vault
+calldata.append_serde(OptionRound::TEST_CLASS_HASH);
 
     let (address, _) = deploy_syscall(
         Vault::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
