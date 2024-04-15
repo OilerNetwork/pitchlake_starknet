@@ -265,7 +265,7 @@ mod OptionRound {
     #[storage]
     struct Storage {
         vault_address: ContractAddress,
-        market_aggregator: IMarketAggregatorDispatcher,
+        market_aggregator: ContractAddress,
         state: OptionRoundState,
         constructor_params: OptionRoundConstructorParams,
     }
@@ -285,7 +285,13 @@ mod OptionRound {
     //}
 
     #[constructor]
-    fn constructor(ref self: ContractState, constructor_params: OptionRoundConstructorParams) {
+    fn constructor(
+        ref self: ContractState,
+        market_aggregator: ContractAddress,
+        constructor_params: OptionRoundConstructorParams
+    ) {
+        // Set market aggregator's address 
+        self.market_aggregator.write(market_aggregator);
         // Set the vault address 
         self.vault_address.write(constructor_params.vault_address);
         // Set round state to open unless this is round 0
@@ -450,7 +456,7 @@ mod OptionRound {
         }
 
         fn get_market_aggregator(self: @ContractState) -> IMarketAggregatorDispatcher {
-            self.market_aggregator.read()
+            IMarketAggregatorDispatcher { contract_address: self.market_aggregator.read() }
         }
     }
 }

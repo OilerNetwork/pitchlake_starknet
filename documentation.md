@@ -45,10 +45,12 @@ However, if an LP wishes to sell their current position (maybe LP speculates the
 - **Deposit**: LP adds liquidity to the **next** option round, updating their position.
 - **Collect:** LP collects their premiums & unlocked liquidity from the **current** round (if they do not, the funds will be rolled over to the **next** round when the **current** round settles). The **current** round's state must be _Running_ for this entry point to be called. If it were _Auctioning_, the premiums would not be calculated yet, and if it were _Settled_, the funds would have already been rolled over to the **next** round.
 - **Withdraw**: LP withdraws from their liquidity in the **next** round. The **current** round's state must be _Settled_ for this entry point to be called. The option round must be _Settled_ so that we know the value of the payout, and can calculate the value of LP's position when it was rolled over to the **next round**. If the round were _Auctioning_ | _Running_, the funds would still be locked in the round.
-- (1\*) Start Next Option Round\*\*: Starts the **next** round’s auction and deploys the **new next** round. Updates the vault’s **current** & **next** pointers accordingly.
+- (1\*) Settle Current Option Round: Settles the **current** round, rolls over remaining liquidity to the **next** round, and starts the **round transition** period.
+- (2\*) Start Next Option Round: Starts the **next** round’s auction and deploys the **new next** round. Updates the vault’s **current** & **next** pointers accordingly.
 - **Getters**: There should be read functions on the vault for the **current** & **next** option round ids, the addresses for option rounds, an LP position's value in the **current** round, and the premiums/unlocked liquidity an LP can collect from the **current** round.
 
-> 1.  Anyone can start a new option round, as long as the current round is Settled and the round transition window has passed. The incentivisation scheme still needs to be designed.
+> 1.  Anyone can settle an option round, as long as the option expiry date is passed. The incentivisation scheme still needs to be designed.
+> 2.  Anyone can start a new option round, as long as the current round is Settled and the round transition window has passed. The incentivisation scheme still needs to be designed.
 
 ## An Option Round:
 
@@ -57,15 +59,15 @@ However, if an LP wishes to sell their current position (maybe LP speculates the
 - (2\*) **Settle Auction**: Concludes the auction, determining the final distribution of options and premiums and mints the option (ERC20) tokens to the OBs. If any of the available options do not sell, a portion of the LP locked liquidity becomes unlocked. (LPs can withdraw these premiums and unlocked liquidity once the auction settles. If they ignore them, they will be included in LP's rolled over liquidity to the next round).
 - **Refund Unused Bids**: OB collects any of their bids that were not fully utilized (converted to premium).
   > _i.e._ If OB bids 10 ETH for 10 options and only receives 5 options (@1 ETH / option), they can collect their unused 5 ETH at any time after the auction settles.
-- (3\*) **Settle Option Round**: Settles the option round and calculates the total payout of the option round. At this time, the remaining liquidity (deposits + premiums - payout) are transferred to the **next** option round. Note, the _Settled_ round is still the **current** round in the vault, this changes once the **next** round's auction starts.
+- (3\*) **Settle Option Round**: Settles the option round and calculates the total payout of the option round. At this time, the remaining liquidity (deposits + premiums - payout) are transferred to the **next** option round. Note, the _Settled_ round is still the **current** round in the vault, this changes once the **round transition period** has ended and the **next** round's auction starts.
 - **Exercise Options**: OB exercises their options to claim their individual payout, corresponding to the number of options they own. This burns OB's option tokens.
 - **Getters**: There should be read functions on an option round to return: the option round's state, the option round's params (strike price, settlement date, etc.), the initial liquidity in the round, the auction's clearing price, the total premiums collected, the total payout upon settlement, the amount of used/unused bids for an OB, and the payout amount for an OB.
 
 > 1. An auction can only start once the previous round settles and the **round transition window** passes.
 
-> 2. An auction can only settle if the option bidding period has ended (defined in the option round's params).
+> 2. An auction can only end if the option bidding period has ended (defined in the option round's params).
 
-> 3. An option round can only settle if option settlement date has been reached (also defined in the option round's params).
+> 3. An option round can only settle if the option settlement date has been reached (also defined in the option round's params).
 
 > **Note:** These functions can be called by anyone (and/or may have a wrapping entry point through the vault). The incentivisation scheme still needs to be designed.
 

@@ -44,9 +44,14 @@ struct OptionRoundCreated {
 
 #[starknet::interface]
 trait IVault<TContractState> { // erc721
-    /// new below ///
-
     /// Reads ///
+
+    // Get the vault's  manaager address 
+    // @dev Better access control ? (oz permits ?)
+    fn vault_manager(self: @TContractState) -> ContractAddress;
+
+    // @return the type of the vault (ITM | ATM | OTM)
+    fn vault_type(self: @TContractState) -> VaultType;
 
     // matt 
     // @return The LP's deposited balance at the start of the round_id (actual deposit value)
@@ -55,14 +60,8 @@ trait IVault<TContractState> { // erc721
     fn lp_position_balance(self: @TContractState, lp: ContractAddress, round_id: u256) -> u256;
     // matt
 
-    // @return the type of the vault (ITM | ATM | OTM)
-    fn vault_type(self: @TContractState) -> VaultType;
-
     // @return the current option round id 
     fn current_option_round_id(self: @TContractState) -> u256;
-
-    // @return the next option round id
-    fn next_option_round_id(self: @TContractState) -> u256;
 
     // @return the contract address of the option round
     fn get_option_round_address(self: @TContractState, option_round_id: u256) -> ContractAddress;
@@ -83,6 +82,7 @@ trait IVault<TContractState> { // erc721
     // @return the lp_id of the liquidity position (erc721 token id)
     fn deposit_liquidity(ref self: TContractState, amount: u256) -> u256;
 
+    // @dev remove this
     // LP flags their entire position to be withdrawn at the end of the current running round
     // @return if the claim was submitted successfully
     fn submit_claim(ref self: TContractState) -> bool;
@@ -91,6 +91,7 @@ trait IVault<TContractState> { // erc721
     // @return if the withdrawal was successful
     fn withdraw_liquidity(ref self: TContractState, lp_id: u256, amount: u256) -> bool;
 
+    // @dev remove this function in place of start_auction
     // Deploy the next option round contract as long as the current is state::Settled, and start 
     // the auction on the new current option round (-> state::Auctioning)
     // @note This function should only be callable by the pitchlake server, or the public with incentive.
@@ -100,7 +101,16 @@ trait IVault<TContractState> { // erc721
     // we fetch/consume/pass the values from fossil (strike, cl, etc.) to create our OptionRoundParams.
     fn start_next_option_round(ref self: TContractState) -> bool;
 
+    // Settle the current option round as long as the current round is Running and the option expiry time has passed.
+    fn settle_option_round(ref self: TContractState) -> bool;
 
+    // Start the auction on the next round as long as the current round is Settled and the
+    // round transition period has passed. Deploys the next next round and updates the current/next pointers.
+    fn start_auction(ref self: TContractState) -> bool;
+
+    // End the auction in the current round as long as the current round is Auctioning and the auction
+    // bidding period has ended.
+    fn end_auction(ref self: TContractState) -> u256;
     /// old below
 
     // @notice add liquidity to the next option round. This will create a new liquidity position
@@ -161,7 +171,8 @@ mod Vault {
     use openzeppelin::token::erc20::ERC20Component;
     use openzeppelin::token::erc20::interface::IERC20;
     use starknet::{
-        ContractAddress, ClassHash, deploy_syscall, contract_address_const, get_contract_address
+        ContractAddress, ClassHash, deploy_syscall, get_caller_address, contract_address_const,
+        get_contract_address
     };
     use pitch_lake_starknet::vault::VaultType;
     use pitch_lake_starknet::pool::IPoolDispatcher;
@@ -173,15 +184,15 @@ mod Vault {
     use pitch_lake_starknet::market_aggregator::{
         IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
     };
+    use debug::{PrintTrait};
 
 
     #[storage]
     struct Storage {
+        vault_manager: ContractAddress,
         current_option_round_params: OptionRoundParams,
         current_option_round_id: u256,
-        market_aggregator: IMarketAggregatorDispatcher,
-        /// matt: 
-
+        market_aggregator: ContractAddress,
         round_addresses: LegacyMap<u256, ContractAddress>,
     // liquidity_positions: Array<(u256, u256)>,
     }
@@ -189,10 +200,13 @@ mod Vault {
     #[constructor]
     fn constructor(
         ref self: ContractState,
+        vault_manager: ContractAddress,
         vault_type: VaultType,
-        market_aggregator: IMarketAggregatorDispatcher,
+        market_aggregator: ContractAddress,
+        //market_aggregator: IMarketAggregatorDispatcher,
         option_round_class_hash: ClassHash,
     ) {
+        self.vault_manager.write(vault_manager);
         self.market_aggregator.write(market_aggregator);
         // @dev Deploy the 0th round as current (Settled) and deploy the 1st round (Open)
         let z_constructor_args: OptionRoundConstructorParams = OptionRoundConstructorParams {
@@ -202,14 +216,14 @@ mod Vault {
             vault_address: starknet::get_contract_address(), round_id: 1
         };
         // Deploy 0th round
-        let mut calldata: Array<felt252> = array![];
+        let mut calldata = array![market_aggregator.into()];
         calldata.append_serde(z_constructor_args);
         let (z_address, _) = deploy_syscall(
             option_round_class_hash, 'some salt', calldata.span(), false
         )
             .unwrap();
         // Deploy 1st round
-        calldata = array![];
+        let mut calldata = array![market_aggregator.into()];
         calldata.append_serde(f_constructor_args);
         let (f_address, _) = deploy_syscall(
             option_round_class_hash, 'some salt', calldata.span(), false
@@ -224,6 +238,10 @@ mod Vault {
     #[abi(embed_v0)]
     impl VaultImpl of super::IVault<ContractState> {
         /// Reads ///
+        fn vault_manager(self: @ContractState) -> ContractAddress {
+            self.vault_manager.read()
+        }
+
         fn vault_type(self: @ContractState) -> VaultType {
             VaultType::AtTheMoney
         }
@@ -231,10 +249,6 @@ mod Vault {
         fn current_option_round_id(self: @ContractState) -> u256 {
             // (for testing; need a deployed instance of round to avoid CONTRACT_NOT_DEPLOYED errors)
             0
-        }
-
-        fn next_option_round_id(self: @ContractState) -> u256 {
-            1
         }
 
         fn get_option_round_address(
@@ -278,10 +292,21 @@ mod Vault {
             true
         }
 
+        fn settle_option_round(ref self: ContractState) -> bool {
+            true
+        }
+        // replace with function underneath this one
         fn start_next_option_round(ref self: ContractState) -> bool {
             true
         }
 
+        fn start_auction(ref self: ContractState) -> bool {
+            true
+        }
+
+        fn end_auction(ref self: ContractState) -> u256 {
+            100
+        }
         /// old ///
 
         fn open_liquidity_position(ref self: ContractState, amount: u256) -> u256 {
@@ -315,14 +340,6 @@ mod Vault {
             // start next round's auction
             // deploy new next round contract 
             // update current/next round ids (current += 1, next += 1)
-
-            // // mock deploy to abvoid a ton of ENTRYPOINT_NOT_FOUND errors
-            // //todo real vals
-            // let mut call_data: Array<felt252> = array!['owner', 'collat. pool addr'];
-            // // 
-            // call_data.append_serde(params);
-            // // should just use address and build dispatcher when needed ? 
-            // call_data.append('mk agg dispatcher');
 
             // let (round_address, _) = deploy_syscall(
             //     OptionRound::TEST_CLASS_HASH.try_into().unwrap(), 'salt', call_data.span(), false
@@ -384,7 +401,7 @@ mod Vault {
         // }
 
         fn get_market_aggregator(self: @ContractState) -> IMarketAggregatorDispatcher {
-            return self.market_aggregator.read();
+            IMarketAggregatorDispatcher { contract_address: self.market_aggregator.read() }
         }
 
         fn decimals(self: @ContractState) -> u8 {
