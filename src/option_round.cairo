@@ -13,12 +13,14 @@ struct OptionRoundConstructorParams {
 }
 
 #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
-struct OptionRoundInitializerParams {
+struct OptionRoundParams {
+    current_average_basefee: u256, // average basefee the last few months, used to calculate the strike
     standard_deviation: u256, // used to calculate k (-σ or 0 or σ if vault is: ITM | ATM | OTM)
-    strike_price: u256, // K = BF_last_few_months * (1 + k)
+    strike_price: u256, // K = current_average_basefee * (1 + k)
     cap_level: u256, // cl, percentage points of K that the options will pay out at most. Payout = min(cl*K, BF-K). Might not be set until auction settles if we use alternate cap design (see DOCUMENTATION.md)
     collateral_level: u256, // total deposits now locked in the round 
     reserve_price: u256, // minimum price per option in the auction
+    total_options_available: u256,
     minimum_collateral_required: u256, // the auction will not start unless this much collateral is deposited, needed ? 
     auction_end_time: u64, // when the auction can be ended
     option_expiry_time: u64, // when the options can be settled  
@@ -27,7 +29,7 @@ struct OptionRoundInitializerParams {
 // old (all together)
 // unit of account is in wei
 #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
-struct OptionRoundParams {
+struct OptionRoundParamsOld {
     current_average_basefee: u256, // wei
     standard_deviation: u256,
     strike_price: u256, // wei
@@ -254,10 +256,7 @@ mod OptionRound {
     use pitch_lake_starknet::vault::VaultType;
     use pitch_lake_starknet::pool::IPoolDispatcher;
     use openzeppelin::token::erc20::interface::IERC20Dispatcher;
-    use super::{
-        OptionRoundConstructorParams, OptionRoundInitializerParams, OptionRoundParams,
-        OptionRoundState
-    };
+    use super::{OptionRoundConstructorParams, OptionRoundParams, OptionRoundState};
     use pitch_lake_starknet::market_aggregator::{
         IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
     };
@@ -325,7 +324,6 @@ mod OptionRound {
                 // start_time: 100,
                 option_expiry_time: 100,
                 auction_end_time: 100,
-                minimum_bid_amount: 100,
                 minimum_collateral_required: 100,
             }
         }
