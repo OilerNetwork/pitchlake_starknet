@@ -64,9 +64,9 @@ fn test_bid_before_auction_starts_failure() {
     // OptionRoundDispatcher
     let next_round: IOptionRoundDispatcher = IOptionRoundDispatcher {
         contract_address: vault_dispatcher
-            .get_option_round_address(vault_dispatcher.current_option_round_id()+1)
+            .get_option_round_address(vault_dispatcher.current_option_round_id() + 1)
     };
-    let params = next_round.get_option_round_params();
+    let params = next_round.get_params();
 
     // Add liq. to next round
     set_contract_address(liquidity_provider_1());
@@ -101,7 +101,7 @@ fn test_bid_after_auction_ends_failure() {
         contract_address: vault_dispatcher
             .get_option_round_address(vault_dispatcher.current_option_round_id())
     };
-    let params: OptionRoundParams = current_round.get_option_round_params();
+    let params: OptionRoundParams = current_round.get_params();
 
     // Place bid after auction end
     set_contract_address(option_bidder_buyer_1());
@@ -122,9 +122,9 @@ fn test_auction_end_before_it_starts_failure() {
     // OptionRoundDispatcher
     let next_round: IOptionRoundDispatcher = IOptionRoundDispatcher {
         contract_address: vault_dispatcher
-            .get_option_round_address(vault_dispatcher.current_option_round_id()+1)
+            .get_option_round_address(vault_dispatcher.current_option_round_id() + 1)
     };
-    let params = next_round.get_option_round_params();
+    let params = next_round.get_params();
 
     // Add liq. to next round
     set_contract_address(liquidity_provider_1());
@@ -133,7 +133,7 @@ fn test_auction_end_before_it_starts_failure() {
 
     // Try to end auction before it starts 
     set_block_timestamp(params.option_expiry_time + 1);
-    next_round.settle_option_round();
+    vault_dispatcher.settle_option_round();
 }
 
 // Test auction cannot end before the auction end date 
@@ -155,7 +155,7 @@ fn test_auction_end_before_end_date_failure() {
         contract_address: vault_dispatcher
             .get_option_round_address(vault_dispatcher.current_option_round_id())
     };
-    let params: OptionRoundParams = current_round.get_option_round_params();
+    let params: OptionRoundParams = current_round.get_params();
 
     // Try to end auction before the end time
     set_block_timestamp(params.auction_end_time - 1);
@@ -182,7 +182,7 @@ fn test_options_settle_before_expiry_date_failure() {
         contract_address: vault_dispatcher
             .get_option_round_address(vault_dispatcher.current_option_round_id())
     };
-    let params = current_round.get_option_round_params();
+    let params = current_round.get_params();
 
     // Place bid
     set_contract_address(option_bidder_buyer_1());
@@ -197,6 +197,5 @@ fn test_options_settle_before_expiry_date_failure() {
 
     // Settle option round before expiry
     set_block_timestamp(params.option_expiry_time - 1);
-    let success = current_round.settle_option_round();
-    assert(success == false, 'no settle before expiry');
+    vault_dispatcher.settle_option_round();
 }

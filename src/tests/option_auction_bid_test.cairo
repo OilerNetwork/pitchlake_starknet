@@ -53,10 +53,10 @@ fn test_clearing_price_1() {
     let bid_count: u256 = 2;
     let bid_amount: u256 = bid_count * option_params.reserve_price * decimals();
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
+    round_dispatcher.place_bid(bid_amount, option_params.reserve_price);
 
     set_block_timestamp(option_params.auction_end_time + 1);
-    round_dispatcher.settle_auction();
+    round_dispatcher.end_auction();
 
     let clearing_price: u256 = round_dispatcher.get_auction_clearing_price();
     assert(clearing_price == option_params.reserve_price, 'clear price equal reserve price');
@@ -87,12 +87,12 @@ fn test_clearing_price_2() {
     let bid_amount_user_2: u256 = bid_count * bid_price_user_2 * decimals();
 
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_amount_user_1, bid_price_user_1);
+    round_dispatcher.place_bid(bid_amount_user_1, bid_price_user_1);
     set_contract_address(option_bidder_buyer_2());
-    round_dispatcher.auction_place_bid(bid_amount_user_2, bid_price_user_2);
+    round_dispatcher.place_bid(bid_amount_user_2, bid_price_user_2);
 
     set_block_timestamp(option_params.auction_end_time + 1);
-    round_dispatcher.settle_auction();
+    round_dispatcher.end_auction();
 
     let clearing_price: u256 = round_dispatcher.get_auction_clearing_price();
     assert(clearing_price == bid_price_user_2, 'clear price equal reserve price');
@@ -126,13 +126,13 @@ fn test_clearing_price_3() {
     let bid_amount_user_2: u256 = bid_count_user_2 * bid_price_user_2 * decimals();
 
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_amount_user_1, bid_price_user_1);
+    round_dispatcher.place_bid(bid_amount_user_1, bid_price_user_1);
 
     set_contract_address(option_bidder_buyer_2());
-    round_dispatcher.auction_place_bid(bid_amount_user_2, bid_price_user_2);
+    round_dispatcher.place_bid(bid_amount_user_2, bid_price_user_2);
 
     set_block_timestamp(option_params.auction_end_time + 1);
-    round_dispatcher.settle_auction();
+    round_dispatcher.end_auction();
 
     let clearing_price: u256 = round_dispatcher.get_auction_clearing_price();
     assert(clearing_price == bid_price_user_2, 'clear price equal reserve price');
@@ -169,16 +169,16 @@ fn test_clearing_price_4() {
     let bid_amount_user_3: u256 = bid_count_user_3 * bid_price_user_3 * decimals();
 
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_amount_user_1, bid_price_user_1);
+    round_dispatcher.place_bid(bid_amount_user_1, bid_price_user_1);
 
     set_contract_address(option_bidder_buyer_2());
-    round_dispatcher.auction_place_bid(bid_amount_user_2, bid_price_user_2);
+    round_dispatcher.place_bid(bid_amount_user_2, bid_price_user_2);
 
     set_contract_address(option_bidder_buyer_3());
-    round_dispatcher.auction_place_bid(bid_amount_user_3, bid_price_user_3);
+    round_dispatcher.place_bid(bid_amount_user_3, bid_price_user_3);
 
     set_block_timestamp(option_params.auction_end_time + 1);
-    round_dispatcher.settle_auction();
+    round_dispatcher.end_auction();
 
     let clearing_price: u256 = round_dispatcher.get_auction_clearing_price();
     assert(clearing_price == bid_price_user_3, 'clear price equal reserve price');
@@ -215,16 +215,16 @@ fn test_clearing_price_5() {
     let bid_amount_user_3: u256 = bid_count_user_3 * bid_price_user_3 * decimals();
 
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_amount_user_1, bid_price_user_1);
+    round_dispatcher.place_bid(bid_amount_user_1, bid_price_user_1);
 
     set_contract_address(option_bidder_buyer_2());
-    round_dispatcher.auction_place_bid(bid_amount_user_2, bid_price_user_2);
+    round_dispatcher.place_bid(bid_amount_user_2, bid_price_user_2);
 
     set_contract_address(option_bidder_buyer_3());
-    round_dispatcher.auction_place_bid(bid_amount_user_3, bid_price_user_3);
+    round_dispatcher.place_bid(bid_amount_user_3, bid_price_user_3);
 
     set_block_timestamp(option_params.auction_end_time + 1);
-    round_dispatcher.settle_auction();
+    round_dispatcher.end_auction();
 
     let clearing_price: u256 = round_dispatcher.get_auction_clearing_price();
     assert(clearing_price == bid_price_user_2, 'clear price equal reserve price');
@@ -251,7 +251,7 @@ fn test_bid_below_reserve_price() {
     let bid_below_reserve: u256 = option_params.reserve_price - 1;
 
     set_contract_address(option_bidder_buyer_1());
-    let success = round_dispatcher.auction_place_bid(10 * decimals(), bid_below_reserve);
+    let success = round_dispatcher.place_bid(10 * decimals(), bid_below_reserve);
     assert(success == false, 'should not be able to bid');
 }
 
@@ -276,7 +276,7 @@ fn test_lock_of_bid_funds() {
     let bid_amount: u256 = bid_count * option_params.reserve_price * decimals();
     set_contract_address(option_bidder_buyer_1());
     let wei_balance_before_bid: u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
+    round_dispatcher.place_bid(bid_amount, option_params.reserve_price);
     let wei_balance_after_bid: u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
 
     assert(
@@ -304,7 +304,7 @@ fn test_zero_bid_count() {
 
     set_contract_address(option_bidder_buyer_1());
     let wei_balance_before_bid: u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(0, option_params.reserve_price);
+    round_dispatcher.place_bid(0, option_params.reserve_price);
     let wei_balance_after_bid: u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
 
     assert(wei_balance_before_bid == wei_balance_after_bid, 'balance should match');
@@ -330,7 +330,7 @@ fn test_zero_bid_price() {
     let bid_amount: u256 = bid_count * option_params.reserve_price * decimals();
     set_contract_address(option_bidder_buyer_1());
     let wei_balance_before_bid: u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_amount, 0);
+    round_dispatcher.place_bid(bid_amount, 0);
     let wei_balance_after_bid: u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
 
     assert(wei_balance_before_bid == wei_balance_after_bid, 'balance should match');
@@ -357,7 +357,7 @@ fn test_eth_unused_for_rejected_bids() {
     set_contract_address(option_bidder_buyer_1());
 
     let wei_balance_before_bid: u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price - 100);
+    round_dispatcher.place_bid(bid_amount, option_params.reserve_price - 100);
     let wei_balance_after_bid: u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
 
     assert(wei_balance_before_bid == wei_balance_after_bid, 'bid should not be locked up');
@@ -383,10 +383,10 @@ fn test_eth_lockup_for_unused_bids() { // accepted but still unused bids
     let bid_amount: u256 = bid_count * option_params.reserve_price * decimals();
     set_contract_address(option_bidder_buyer_1());
     let wei_balance_before_bid: u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
+    round_dispatcher.place_bid(bid_amount, option_params.reserve_price);
 
     set_block_timestamp(option_params.auction_end_time + 1);
-    round_dispatcher.settle_auction();
+    round_dispatcher.end_auction();
     set_contract_address(option_bidder_buyer_1());
     let wei_balance_after_auction: u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
     assert(
@@ -416,14 +416,13 @@ fn test_eth_transfer_for_unused_bids_after_claim() {
     let bid_amount: u256 = bid_count * option_params.reserve_price * decimals();
     set_contract_address(option_bidder_buyer_1());
     let wei_balance_before_bid: u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
+    round_dispatcher.place_bid(bid_amount, option_params.reserve_price);
 
     set_block_timestamp(option_params.auction_end_time + 1);
-    round_dispatcher.settle_auction();
+    round_dispatcher.end_auction();
 
     let wei_balance_before_claim: u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
-    let amount_transferred: u256 = round_dispatcher
-        .refund_unused_bid_deposit(option_bidder_buyer_1());
+    let amount_transferred: u256 = round_dispatcher.refund_unused_bids(option_bidder_buyer_1());
     let wei_balance_after_claim: u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
 
     assert(
@@ -460,12 +459,12 @@ fn test_total_options_after_auction_1() {
     let bid_amount_2: u256 = bid_count_2 * option_params.reserve_price * decimals();
 
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_amount_1, option_params.reserve_price);
+    round_dispatcher.place_bid(bid_amount_1, option_params.reserve_price);
 
     set_contract_address(option_bidder_buyer_2());
-    round_dispatcher.auction_place_bid(bid_amount_2, option_params.reserve_price);
+    round_dispatcher.place_bid(bid_amount_2, option_params.reserve_price);
     set_block_timestamp(option_params.auction_end_time + 1);
-    round_dispatcher.settle_auction();
+    round_dispatcher.end_auction();
 
     let options_created_count = round_dispatcher.total_options_sold();
     assert(options_created_count == option_params.total_options_available, 'option shd match up');
@@ -499,12 +498,12 @@ fn test_total_options_after_auction_2() {
         * decimals();
 
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_amount_user_1, option_params.reserve_price);
+    round_dispatcher.place_bid(bid_amount_user_1, option_params.reserve_price);
 
     set_contract_address(option_bidder_buyer_2());
-    round_dispatcher.auction_place_bid(bid_amount_user_2, option_params.reserve_price - 10);
+    round_dispatcher.place_bid(bid_amount_user_2, option_params.reserve_price - 10);
     set_block_timestamp(option_params.auction_end_time + 1);
-    round_dispatcher.settle_auction();
+    round_dispatcher.end_auction();
 
     let options_created_count = round_dispatcher.total_options_sold();
     assert(options_created_count == bid_option_count_user_1, 'options shd match');
@@ -530,9 +529,9 @@ fn test_total_options_after_auction_3() {
     let bid_amount: u256 = bid_count * option_params.reserve_price * decimals();
 
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
+    round_dispatcher.place_bid(bid_amount, option_params.reserve_price);
     set_block_timestamp(option_params.auction_end_time + 1);
-    round_dispatcher.settle_auction();
+    round_dispatcher.end_auction();
 
     let options_created = round_dispatcher.total_options_sold();
     assert(options_created == bid_count, 'options equal successful bids');
@@ -557,9 +556,9 @@ fn test_total_options_after_auction_4() {
     let bid_count: u256 = 2;
     let bid_amount: u256 = bid_count * (option_params.reserve_price - 1) * decimals();
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price - 1);
+    round_dispatcher.place_bid(bid_amount, option_params.reserve_price - 1);
     set_block_timestamp(option_params.auction_end_time + 1);
-    round_dispatcher.settle_auction();
+    round_dispatcher.end_auction();
 
     let options_created = round_dispatcher.total_options_sold();
     assert(options_created == 0, 'options equal successful bids');
@@ -584,9 +583,9 @@ fn test_total_options_after_auction_5() {
     let bid_count: u256 = option_params.total_options_available + 10;
     let bid_amount: u256 = bid_count * option_params.reserve_price * decimals();
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
+    round_dispatcher.place_bid(bid_amount, option_params.reserve_price);
     set_block_timestamp(option_params.auction_end_time + 1);
-    round_dispatcher.settle_auction();
+    round_dispatcher.end_auction();
 
     let options_created = round_dispatcher.total_options_sold();
     assert(
@@ -623,12 +622,12 @@ fn test_total_options_after_auction_6() {
         * decimals();
 
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_amount_user_1, option_params.reserve_price);
+    round_dispatcher.place_bid(bid_amount_user_1, option_params.reserve_price);
 
     set_contract_address(option_bidder_buyer_2());
-    round_dispatcher.auction_place_bid(bid_amount_user_2, option_params.reserve_price + 10);
+    round_dispatcher.place_bid(bid_amount_user_2, option_params.reserve_price + 10);
     set_block_timestamp(option_params.auction_end_time + 1);
-    round_dispatcher.settle_auction();
+    round_dispatcher.end_auction();
 
     let options_created_count: u256 = round_dispatcher.total_options_sold();
     assert(options_created_count == option_params.total_options_available, 'options shd match');
@@ -671,29 +670,32 @@ fn test_option_balance_per_bidder_after_auction_1() {
     let bid_amount_user_4: u256 = bid_option_count_user_4 * bid_price_per_unit_user_4 * decimals();
 
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_amount_user_1, bid_price_per_unit_user_1);
+    round_dispatcher.place_bid(bid_amount_user_1, bid_price_per_unit_user_1);
 
     set_contract_address(option_bidder_buyer_2());
-    round_dispatcher.auction_place_bid(bid_amount_user_2, bid_price_per_unit_user_2);
+    round_dispatcher.place_bid(bid_amount_user_2, bid_price_per_unit_user_2);
 
     set_contract_address(option_bidder_buyer_3());
-    round_dispatcher.auction_place_bid(bid_amount_user_3, bid_price_per_unit_user_3);
+    round_dispatcher.place_bid(bid_amount_user_3, bid_price_per_unit_user_3);
 
     set_contract_address(option_bidder_buyer_4());
-    round_dispatcher.auction_place_bid(bid_amount_user_4, bid_price_per_unit_user_4);
+    round_dispatcher.place_bid(bid_amount_user_4, bid_price_per_unit_user_4);
 
     set_block_timestamp(option_params.auction_end_time + 1);
-    round_dispatcher.settle_auction();
+    round_dispatcher.end_auction();
 
+    let round_dispatcher_erc20 = IERC20Dispatcher {
+        contract_address: round_dispatcher.contract_address
+    };
     let total_options_created_count: u256 = round_dispatcher.total_options_sold();
-    let options_created_user_1_count: u256 = round_dispatcher
-        .option_balance_of(option_bidder_buyer_1());
-    let options_created_user_2_count: u256 = round_dispatcher
-        .option_balance_of(option_bidder_buyer_2());
-    let options_created_user_3_count: u256 = round_dispatcher
-        .option_balance_of(option_bidder_buyer_3());
-    let options_created_user_4_count: u256 = round_dispatcher
-        .option_balance_of(option_bidder_buyer_4());
+    let options_created_user_1_count: u256 = round_dispatcher_erc20
+        .balance_of(option_bidder_buyer_1());
+    let options_created_user_2_count: u256 = round_dispatcher_erc20
+        .balance_of(option_bidder_buyer_2());
+    let options_created_user_3_count: u256 = round_dispatcher_erc20
+        .balance_of(option_bidder_buyer_3());
+    let options_created_user_4_count: u256 = round_dispatcher_erc20
+        .balance_of(option_bidder_buyer_4());
 
     assert(
         total_options_created_count == option_params.total_options_available, 'options shd match'
@@ -749,39 +751,42 @@ fn test_option_balance_per_bidder_after_auction_2() {
     let bid_price_per_unit_user_6: u256 = 1 * decimals();
 
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_option_amount_user_1, bid_price_per_unit_user_1);
+    round_dispatcher.place_bid(bid_option_amount_user_1, bid_price_per_unit_user_1);
 
     set_contract_address(option_bidder_buyer_2());
-    round_dispatcher.auction_place_bid(bid_option_amount_user_2, bid_price_per_unit_user_2);
+    round_dispatcher.place_bid(bid_option_amount_user_2, bid_price_per_unit_user_2);
 
     set_contract_address(option_bidder_buyer_3());
-    round_dispatcher.auction_place_bid(bid_option_amount_user_3, bid_price_per_unit_user_3);
+    round_dispatcher.place_bid(bid_option_amount_user_3, bid_price_per_unit_user_3);
 
     set_contract_address(option_bidder_buyer_4());
-    round_dispatcher.auction_place_bid(bid_option_amount_user_4, bid_price_per_unit_user_4);
+    round_dispatcher.place_bid(bid_option_amount_user_4, bid_price_per_unit_user_4);
 
     set_contract_address(option_bidder_buyer_5());
-    round_dispatcher.auction_place_bid(bid_option_amount_user_5, bid_price_per_unit_user_5);
+    round_dispatcher.place_bid(bid_option_amount_user_5, bid_price_per_unit_user_5);
 
     set_contract_address(option_bidder_buyer_6());
-    round_dispatcher.auction_place_bid(bid_option_amount_user_6, bid_price_per_unit_user_6);
+    round_dispatcher.place_bid(bid_option_amount_user_6, bid_price_per_unit_user_6);
 
     set_block_timestamp(option_params.auction_end_time + 1);
-    round_dispatcher.settle_auction();
+    round_dispatcher.end_auction();
 
+    let round_dispatcher_erc20 = IERC20Dispatcher {
+        contract_address: round_dispatcher.contract_address
+    };
     let total_options_created_count: u256 = round_dispatcher.total_options_sold();
-    let options_created_user_1_count: u256 = round_dispatcher
-        .option_balance_of(option_bidder_buyer_1());
-    let options_created_user_2_count: u256 = round_dispatcher
-        .option_balance_of(option_bidder_buyer_2());
-    let options_created_user_3_count: u256 = round_dispatcher
-        .option_balance_of(option_bidder_buyer_3());
-    let options_created_user_4_count: u256 = round_dispatcher
-        .option_balance_of(option_bidder_buyer_4());
-    let options_created_user_5_count: u256 = round_dispatcher
-        .option_balance_of(option_bidder_buyer_5());
-    let options_created_user_6_count: u256 = round_dispatcher
-        .option_balance_of(option_bidder_buyer_6());
+    let options_created_user_1_count: u256 = round_dispatcher_erc20
+        .balance_of(option_bidder_buyer_1());
+    let options_created_user_2_count: u256 = round_dispatcher_erc20
+        .balance_of(option_bidder_buyer_2());
+    let options_created_user_3_count: u256 = round_dispatcher_erc20
+        .balance_of(option_bidder_buyer_3());
+    let options_created_user_4_count: u256 = round_dispatcher_erc20
+        .balance_of(option_bidder_buyer_4());
+    let options_created_user_5_count: u256 = round_dispatcher_erc20
+        .balance_of(option_bidder_buyer_5());
+    let options_created_user_6_count: u256 = round_dispatcher_erc20
+        .balance_of(option_bidder_buyer_6());
 
     assert(total_options_created_count == 275, 'options shd match');
     assert(options_created_user_1_count == 25, 'options shd match');
@@ -833,42 +838,45 @@ fn test_option_balance_per_bidder_after_auction_3() {
     let bid_price_per_unit_user_6: u256 = 1 * decimals();
 
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_option_amount_user_1, bid_price_per_unit_user_1);
+    round_dispatcher.place_bid(bid_option_amount_user_1, bid_price_per_unit_user_1);
 
     set_contract_address(option_bidder_buyer_2());
-    round_dispatcher.auction_place_bid(bid_option_amount_user_2, bid_price_per_unit_user_2);
+    round_dispatcher.place_bid(bid_option_amount_user_2, bid_price_per_unit_user_2);
 
     set_contract_address(option_bidder_buyer_3());
-    round_dispatcher.auction_place_bid(bid_option_amount_user_3, bid_price_per_unit_user_3);
+    round_dispatcher.place_bid(bid_option_amount_user_3, bid_price_per_unit_user_3);
 
     set_contract_address(option_bidder_buyer_4());
-    round_dispatcher.auction_place_bid(bid_option_amount_user_4, bid_price_per_unit_user_4);
+    round_dispatcher.place_bid(bid_option_amount_user_4, bid_price_per_unit_user_4);
 
     set_contract_address(option_bidder_buyer_5());
-    round_dispatcher.auction_place_bid(bid_option_amount_user_5, bid_price_per_unit_user_5);
+    round_dispatcher.place_bid(bid_option_amount_user_5, bid_price_per_unit_user_5);
 
     set_contract_address(option_bidder_buyer_6());
-    round_dispatcher.auction_place_bid(bid_option_amount_user_6, bid_price_per_unit_user_6);
+    round_dispatcher.place_bid(bid_option_amount_user_6, bid_price_per_unit_user_6);
 
     set_block_timestamp(option_params.auction_end_time + 1);
-    round_dispatcher.settle_auction();
+    round_dispatcher.end_auction();
 
+    let round_dispatcher_erc20: IERC20Dispatcher = IERC20Dispatcher {
+        contract_address: round_dispatcher.contract_address
+    };
     let total_options_created_count: u256 = round_dispatcher.total_options_sold();
-    let options_created_user_1_count: u256 = round_dispatcher
-        .option_balance_of(option_bidder_buyer_1());
-    let options_created_user_2_count: u256 = round_dispatcher
-        .option_balance_of(option_bidder_buyer_2());
-    let options_created_user_3_count: u256 = round_dispatcher
-        .option_balance_of(option_bidder_buyer_3());
-    let options_created_user_4_count: u256 = round_dispatcher
-        .option_balance_of(option_bidder_buyer_4());
-    let options_created_user_5_count: u256 = round_dispatcher
-        .option_balance_of(option_bidder_buyer_5());
-    let options_created_user_6_count: u256 = round_dispatcher
-        .option_balance_of(option_bidder_buyer_6());
+    let options_created_user_1_count: u256 = round_dispatcher_erc20
+        .balance_of(option_bidder_buyer_1());
+    let options_created_user_2_count: u256 = round_dispatcher_erc20
+        .balance_of(option_bidder_buyer_2());
+    let options_created_user_3_count: u256 = round_dispatcher_erc20
+        .balance_of(option_bidder_buyer_3());
+    let options_created_user_4_count: u256 = round_dispatcher_erc20
+        .balance_of(option_bidder_buyer_4());
+    let options_created_user_5_count: u256 = round_dispatcher_erc20
+        .balance_of(option_bidder_buyer_5());
+    let options_created_user_6_count: u256 = round_dispatcher_erc20
+        .balance_of(option_bidder_buyer_6());
 
     let unused_bid_amount_user_3: u256 = round_dispatcher
-        .unused_bid_deposit_balance_of(option_bidder_buyer_3());
+        .get_unused_bids_for(option_bidder_buyer_3());
 
     assert(
         total_options_created_count == option_params.total_options_available, 'options shd match'

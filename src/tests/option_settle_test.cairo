@@ -102,9 +102,9 @@ fn test_invalid_user_collection_of_payout_after_settle() {
     // Make bid
     set_contract_address(option_bidder_buyer_1());
     let bid_amount: u256 = option_amount * option_price;
-    round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
+    round_dispatcher.place_bid(bid_amount, option_params.reserve_price);
     set_block_timestamp(option_params.auction_end_time + 1);
-    round_dispatcher.settle_auction();
+    round_dispatcher.end_auction();
 
     // Settle option round
     set_block_timestamp(option_params.option_expiry_time + 1);
@@ -114,9 +114,9 @@ fn test_invalid_user_collection_of_payout_after_settle() {
         contract_address: vault_dispatcher.get_market_aggregator().contract_address
     };
     mock_maket_aggregator_setter.set_current_base_fee(option_params.strike_price + 5);
-    round_dispatcher.settle_option_round();
+    vault_dispatcher.settle_option_round();
 
-    let claimed_payout_amount: u256 = round_dispatcher.claim_option_payout(option_bidder_buyer_2());
+    let claimed_payout_amount: u256 = round_dispatcher.exercise_options(option_bidder_buyer_2());
     assert(
         claimed_payout_amount == 0, 'nothing should be claimed'
     ); // option_bidder_buyer_2 never auction_place_bid in the auction, so should not be able to claim payout
@@ -147,9 +147,9 @@ fn test_collection_of_premium_after_settle() {
     // Make bid and settle auction
     set_contract_address(option_bidder_buyer_1());
     let bid_amount: u256 = option_amount * option_price;
-    round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
+    round_dispatcher.place_bid(bid_amount, option_params.reserve_price);
     set_block_timestamp(option_params.auction_end_time + 1);
-    round_dispatcher.settle_auction();
+    round_dispatcher.end_auction();
 
     // Settle option round
     set_block_timestamp(option_params.option_expiry_time + 1);
@@ -162,14 +162,14 @@ fn test_collection_of_premium_after_settle() {
         .set_current_base_fee(
             option_params.strike_price - 100
         ); // means there is no payout. TODO confirm this is correct that there will be no payout if settle_option_round price is less than strike price?
-    round_dispatcher.settle_option_round();
+    vault_dispatcher.settle_option_round();
 
     // Claim payout
-    let claimed_payout_amount: u256 = round_dispatcher.claim_option_payout(option_bidder_buyer_1());
+    let claimed_payout_amount: u256 = round_dispatcher.exercise_options(option_bidder_buyer_1());
 
-    let claimable_premium_amount: u256 = round_dispatcher
-        .premium_balance_of(
-            liquidity_provider_1()
+    let claimable_premium_amount: u256 = vault_dispatcher
+        .get_lps_premiums_earned_in_option_round(
+            liquidity_provider_1(), option_round_id
         ); // this will collect the premium back into unallocated_pool in the vault   
     let unallocated_wei_after_premium: u256 = vault_dispatcher.total_unallocated_liquidity();
 
@@ -244,10 +244,10 @@ fn test_option_payout_1() {
     let bid_count: u256 = 2;
     let bid_amount: u256 = bid_count * option_params.reserve_price;
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
+    round_dispatcher.place_bid(bid_amount, option_params.reserve_price);
     // Settle auction
     set_block_timestamp(option_params.auction_end_time + 1);
-    round_dispatcher.settle_auction();
+    round_dispatcher.end_auction();
 
     // Settle round
     let settlement_price: u256 = option_params.strike_price + 10;
@@ -258,11 +258,14 @@ fn test_option_payout_1() {
         contract_address: vault_dispatcher.get_market_aggregator().contract_address
     };
     mock_maket_aggregator_setter.set_current_base_fee(settlement_price);
-    round_dispatcher.settle_option_round();
+    vault_dispatcher.settle_option_round();
 
     // Payout balance
-    let payout_balance = round_dispatcher.payout_balance_of(option_bidder_buyer_1());
-    let payout_balance_expected = round_dispatcher.option_balance_of(option_bidder_buyer_1())
+    let payout_balance = round_dispatcher.get_payout_balance_for(option_bidder_buyer_1());
+    let payout_balance_expected = IERC20Dispatcher {
+        contract_address: round_dispatcher.contract_address
+    }
+        .balance_of(option_bidder_buyer_1())
         * (settlement_price
             - option_params.strike_price); // TODO convert this to gwei instead of wei
     assert(payout_balance == payout_balance_expected, 'expected payout doesnt match');
@@ -289,9 +292,9 @@ fn test_option_payout_2() {
     let bid_count: u256 = 2;
     let bid_amount: u256 = bid_count * option_params.reserve_price;
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
+    round_dispatcher.place_bid(bid_amount, option_params.reserve_price);
     set_block_timestamp(option_params.auction_end_time + 1);
-    round_dispatcher.settle_auction();
+    round_dispatcher.end_auction();
 
     // Settle round
     let settlement_price: u256 = option_params.strike_price - 10;
@@ -302,9 +305,9 @@ fn test_option_payout_2() {
         contract_address: vault_dispatcher.get_market_aggregator().contract_address
     };
     mock_maket_aggregator_setter.set_current_base_fee(settlement_price);
-    round_dispatcher.settle_option_round();
+    vault_dispatcher.settle_option_round();
 
-    let payout_balance = round_dispatcher.payout_balance_of(option_bidder_buyer_1());
+    let payout_balance = round_dispatcher.get_payout_balance_for(option_bidder_buyer_1());
     let payout_balance_expected =
         0; // payout is zero because the settlement price is below the strike price
     assert(payout_balance == payout_balance_expected, 'expected payout doesnt match');
@@ -333,9 +336,9 @@ fn test_option_post_payout_collaterized_count_1() {
     let bid_count: u256 = 2;
     let bid_amount: u256 = bid_count * option_params.reserve_price;
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
+    round_dispatcher.place_bid(bid_amount, option_params.reserve_price);
     set_block_timestamp(option_params.auction_end_time + 1);
-    round_dispatcher.settle_auction();
+    round_dispatcher.end_auction();
     // Settle round
     let settlement_price: u256 = option_params.cap_level;
     set_block_timestamp(option_params.option_expiry_time + 1);
@@ -346,10 +349,10 @@ fn test_option_post_payout_collaterized_count_1() {
     };
     mock_maket_aggregator_setter.set_current_base_fee(settlement_price);
 
-    round_dispatcher.settle_option_round();
+    vault_dispatcher.settle_option_round();
 
     set_contract_address(option_bidder_buyer_1());
-    let claimed_payout: u256 = round_dispatcher.claim_option_payout(option_bidder_buyer_1());
+    let claimed_payout: u256 = round_dispatcher.exercise_options(option_bidder_buyer_1());
 
     let total_collaterized_count_after_payout_claimed: u256 = round_dispatcher
         .total_collateral(); // vault. ? 
@@ -381,9 +384,9 @@ fn test_option_post_payout_collaterized_count_2() {
     let bid_count: u256 = 2;
     let bid_amount: u256 = bid_count * option_params.reserve_price;
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
+    round_dispatcher.place_bid(bid_amount, option_params.reserve_price);
     set_block_timestamp(option_params.auction_end_time + 1);
-    round_dispatcher.settle_auction();
+    round_dispatcher.end_auction();
     // Settle round
     let settlement_price: u256 = option_params.cap_level;
     set_block_timestamp(option_params.option_expiry_time + 1);
@@ -392,9 +395,9 @@ fn test_option_post_payout_collaterized_count_2() {
         contract_address: vault_dispatcher.get_market_aggregator().contract_address
     };
     mock_maket_aggregator_setter.set_current_base_fee(settlement_price);
-    round_dispatcher.settle_option_round();
+    vault_dispatcher.settle_option_round();
 
-    let claimed_payout: u256 = round_dispatcher.claim_option_payout(option_bidder_buyer_1());
+    let claimed_payout: u256 = round_dispatcher.exercise_options(option_bidder_buyer_1());
     // let transferred_collateral :u256 = vault_dispatcher.transfer_collateral_to_vault(liquidity_provider_1());
     let total_collaterized_count_post_transfer: u256 = round_dispatcher
         .total_collateral(); //vault. ? 
@@ -426,9 +429,9 @@ fn test_option_post_payout_collaterized_count_3() {
     let bid_count: u256 = 2;
     let bid_amount: u256 = bid_count * option_params.reserve_price;
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
+    round_dispatcher.place_bid(bid_amount, option_params.reserve_price);
     set_block_timestamp(option_params.auction_end_time + 1);
-    round_dispatcher.settle_auction();
+    round_dispatcher.end_auction();
     // Settle round
     let settlement_price: u256 = option_params.strike_price + 10;
     set_block_timestamp(option_params.option_expiry_time + 1);
@@ -437,15 +440,16 @@ fn test_option_post_payout_collaterized_count_3() {
         contract_address: vault_dispatcher.get_market_aggregator().contract_address
     };
     mock_maket_aggregator_setter.set_current_base_fee(settlement_price);
-    round_dispatcher.settle_option_round();
+    vault_dispatcher.settle_option_round();
 
     let premium_paid: u256 = bid_amount;
     let total_collaterized_count_after_settle: u256 = vault_dispatcher
         .total_unallocated_liquidity();
-    let claim_payout_amount: u256 = round_dispatcher.payout_balance_of(option_bidder_buyer_1());
+    let claim_payout_amount: u256 = round_dispatcher
+        .get_payout_balance_for(option_bidder_buyer_1());
 
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.claim_option_payout(option_bidder_buyer_1());
+    round_dispatcher.exercise_options(option_bidder_buyer_1());
 
     set_contract_address(liquidity_provider_1());
 
@@ -487,9 +491,9 @@ fn test_option_payout_buyer_eth_balance() {
     let bid_count: u256 = 2;
     let bid_amount: u256 = bid_count * option_params.reserve_price;
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_amount, option_params.reserve_price);
+    round_dispatcher.place_bid(bid_amount, option_params.reserve_price);
     set_block_timestamp(option_params.auction_end_time + 1);
-    round_dispatcher.settle_auction();
+    round_dispatcher.end_auction();
 
     // Settle round
     let settlement_price: u256 = option_params.strike_price + 10;
@@ -503,12 +507,12 @@ fn test_option_payout_buyer_eth_balance() {
             settlement_price
         ); //TODO based on averages, TWAP an also pass in time.
 
-    round_dispatcher.settle_option_round();
+    vault_dispatcher.settle_option_round();
 
-    let payout_balance: u256 = round_dispatcher.payout_balance_of(option_bidder_buyer_1());
+    let payout_balance: u256 = round_dispatcher.get_payout_balance_for(option_bidder_buyer_1());
     let balance_before_claim: u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
 
-    round_dispatcher.claim_option_payout(option_bidder_buyer_1());
+    round_dispatcher.exercise_options(option_bidder_buyer_1());
     let balance_after_claim: u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
     assert(
         balance_after_claim == payout_balance + balance_before_claim, 'expected payout doesnt match'

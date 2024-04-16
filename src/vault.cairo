@@ -68,13 +68,19 @@ trait IVault<TContractState> { // erc721
 
     // Don't need arbitrary lookups, just current 
     // @return an LP's liquidity at the start of the option round
-    fn get_lps_starting_liquidity_in_option_round(self: @TContractState, round_id: u256) -> u256;
+    fn get_lps_starting_liquidity_in_option_round(
+        self: @TContractState, liquidity_provider: ContractAddress, round_id: u256
+    ) -> u256;
 
     // @return an LP's liquidity at the end of the option round (the remaining liquidity)
-    fn get_lps_final_liquidity_in_option_round(self: @TContractState, round_id: u256) -> u256;
+    fn get_lps_final_liquidity_in_option_round(
+        self: @TContractState, liquidity_provider: ContractAddress, round_id: u256
+    ) -> u256;
 
     // @return the premiums LP has earned in the option round
-    fn get_lps_premiums_earned_in_option_round(self: @TContractState, round_id: u256) -> u256;
+    fn get_lps_premiums_earned_in_option_round(
+        self: @TContractState, liquidity_provider: ContractAddress, round_id: u256
+    ) -> u256;
 
     /// Writes ///
 
@@ -87,9 +93,13 @@ trait IVault<TContractState> { // erc721
     // @return if the claim was submitted successfully
     fn submit_claim(ref self: TContractState) -> bool;
 
+    // @dev remove this, replaced with one below
     // LP withdraws their liquidity from the the current open option round 
     // @return if the withdrawal was successful
     fn withdraw_liquidity(ref self: TContractState, lp_id: u256, amount: u256) -> bool;
+
+    // LP withdraws from their position while in the round transition period
+    fn withdraw_from_position(ref self: TContractState, amount: u256);
 
     // @dev remove this function in place of start_auction
     // Deploy the next option round contract as long as the current is state::Settled, and start 
@@ -178,8 +188,8 @@ mod Vault {
     use pitch_lake_starknet::pool::IPoolDispatcher;
     use openzeppelin::utils::serde::SerializedAppend;
     use pitch_lake_starknet::option_round::{
-        OptionRound, OptionRoundConstructorParams, OptionRoundInitializerParams, OptionRoundParams,
-        OptionRoundState, IOptionRoundDispatcher, IOptionRoundDispatcherTrait
+        OptionRound, OptionRoundConstructorParams, OptionRoundParams, OptionRoundState,
+        IOptionRoundDispatcher, IOptionRoundDispatcherTrait
     };
     use pitch_lake_starknet::market_aggregator::{
         IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
@@ -258,16 +268,20 @@ mod Vault {
         }
 
         fn get_lps_starting_liquidity_in_option_round(
-            self: @ContractState, round_id: u256
+            self: @ContractState, liquidity_provider: ContractAddress, round_id: u256
         ) -> u256 {
             100
         }
 
-        fn get_lps_final_liquidity_in_option_round(self: @ContractState, round_id: u256) -> u256 {
+        fn get_lps_final_liquidity_in_option_round(
+            self: @ContractState, liquidity_provider: ContractAddress, round_id: u256
+        ) -> u256 {
             100
         }
 
-        fn get_lps_premiums_earned_in_option_round(self: @ContractState, round_id: u256) -> u256 {
+        fn get_lps_premiums_earned_in_option_round(
+            self: @ContractState, liquidity_provider: ContractAddress, round_id: u256
+        ) -> u256 {
             100
         }
         // matt 
@@ -291,6 +305,8 @@ mod Vault {
         fn withdraw_liquidity(ref self: ContractState, lp_id: u256, amount: u256) -> bool {
             true
         }
+
+        fn withdraw_from_position(ref self: ContractState, amount: u256) {}
 
         fn settle_option_round(ref self: ContractState) -> bool {
             true
@@ -333,7 +349,6 @@ mod Vault {
                 // start_time:start_time_,
                 option_expiry_time: 1000,
                 auction_end_time: 1000,
-                minimum_bid_amount: 100,
                 minimum_collateral_required: 100
             };
             // assert current round is settled, and next one is initialized
@@ -364,7 +379,6 @@ mod Vault {
                 // start_time:start_time_,
                 option_expiry_time: 1000,
                 auction_end_time: 1000,
-                minimum_bid_amount: 100,
                 minimum_collateral_required: 100
             };
             return (0, params);
@@ -382,7 +396,6 @@ mod Vault {
                 // start_time:start_time_,
                 option_expiry_time: 1000,
                 auction_end_time: 1000,
-                minimum_bid_amount: 100,
                 minimum_collateral_required: 100
             };
             return (0, params);

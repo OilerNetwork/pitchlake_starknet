@@ -84,9 +84,9 @@ fn test_strike_price_based_on_vault_types() {
             .get_option_round_address(vault_dispatcher_out_the_money.current_option_round_id() + 1)
     };
     // Get each round's params
-    let atm_params: OptionRoundParams = atm.get_option_round_params();
-    let itm_params: OptionRoundParams = itm.get_option_round_params();
-    let otm_params: OptionRoundParams = otm.get_option_round_params();
+    let atm_params: OptionRoundParams = atm.get_params();
+    let itm_params: OptionRoundParams = itm.get_params();
+    let otm_params: OptionRoundParams = otm.get_params();
     // Check the strike price of each vault's round 1
     assert(atm_params.strike_price == atm_params.current_average_basefee, 'ATM stike wrong');
     assert(itm_params.strike_price > itm_params.current_average_basefee, 'ITM stike wrong');

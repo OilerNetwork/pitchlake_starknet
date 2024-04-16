@@ -262,7 +262,6 @@ fn mock_option_params() -> OptionRoundParams {
         // start_time:timestamp_start_month(),
         option_expiry_time: timestamp_end_month(),
         auction_end_time: week_duration(),
-        minimum_bid_amount: 1000,
         minimum_collateral_required: 10000,
     };
     return tmp;

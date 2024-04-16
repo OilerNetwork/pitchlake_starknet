@@ -56,11 +56,11 @@ fn test_paid_premium_withdrawal_to_liquidity_provider() {
     set_contract_address(option_bidder_buyer_1());
     let bid_amount_user_1: u256 = (option_params.total_options_available / 2)
         * option_params.reserve_price;
-    round_dispatcher.auction_place_bid(bid_amount_user_1, option_params.reserve_price);
+    round_dispatcher.place_bid(bid_amount_user_1, option_params.reserve_price);
 
     // Settle auction
     set_block_timestamp(option_params.auction_end_time + 1);
-    round_dispatcher.settle_auction();
+    round_dispatcher.end_auction();
 
     let expected_unallocated_wei: u256 = round_dispatcher.get_auction_clearing_price()
         * round_dispatcher.total_options_sold();
@@ -100,11 +100,11 @@ fn test_paid_premium_withdrawal_to_invalid_provider() {
     set_contract_address(option_bidder_buyer_1());
     let bid_amount_user_1: u256 = (option_params.total_options_available / 2)
         * option_params.reserve_price;
-    round_dispatcher.auction_place_bid(bid_amount_user_1, option_params.reserve_price);
+    round_dispatcher.place_bid(bid_amount_user_1, option_params.reserve_price);
 
     // Settle auction
     set_block_timestamp(option_params.auction_end_time + 1);
-    round_dispatcher.settle_auction();
+    round_dispatcher.end_auction();
 
     let expected_unallocated_wei: u256 = round_dispatcher.get_auction_clearing_price()
         * round_dispatcher.total_options_sold();
@@ -146,10 +146,10 @@ fn test_premium_collection_ratio_conversion_unallocated_pool_1() {
         * option_params.reserve_price;
 
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_amount_user_1, option_params.reserve_price);
+    round_dispatcher.place_bid(bid_amount_user_1, option_params.reserve_price);
 
     set_block_timestamp(option_params.auction_end_time + 1);
-    round_dispatcher.settle_auction();
+    round_dispatcher.end_auction();
 
     //premium paid will be converted into unallocated.
     let total_collateral: u256 = round_dispatcher.total_collateral();
@@ -200,10 +200,9 @@ fn test_premium_collection_ratio_conversion_unallocated_pool_2() {
     set_contract_address(liquidity_provider_2());
     let lp_id_2: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
 
-    let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round();
+    vault_dispatcher.start_auction();
 
-    // OptionRoundDispatcher
+    // OptionRoundDispatcher (round 1 is the current round now)
     let (round_id, option_params) = vault_dispatcher.current_option_round();
     let round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
         contract_address: vault_dispatcher.option_round_addresses(round_id)
@@ -215,17 +214,17 @@ fn test_premium_collection_ratio_conversion_unallocated_pool_2() {
         * option_params.reserve_price;
 
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_amount_user_1, option_params.reserve_price);
+    round_dispatcher.place_bid(bid_amount_user_1, option_params.reserve_price);
 
     set_contract_address(option_bidder_buyer_2());
-    round_dispatcher.auction_place_bid(bid_amount_user_2, option_params.reserve_price);
+    round_dispatcher.place_bid(bid_amount_user_2, option_params.reserve_price);
     set_block_timestamp(option_params.auction_end_time + 1);
-    round_dispatcher.settle_auction();
+    round_dispatcher.end_auction();
 
-    let premium_balance_of_liquidity_provider_1: u256 = round_dispatcher
-        .premium_balance_of(liquidity_provider_1());
-    let premium_balance_of_liquidity_provider_2: u256 = round_dispatcher
-        .premium_balance_of(liquidity_provider_2());
+    let premium_balance_of_liquidity_provider_1: u256 = vault_dispatcher
+        .get_lps_premiums_earned_in_option_round(liquidity_provider_1(), round_id);
+    let premium_balance_of_liquidity_provider_2: u256 = vault_dispatcher
+        .get_lps_premiums_earned_in_option_round(liquidity_provider_2(), round_id);
 
     // these two lines were commented out, not sure why
     // vault_dispatcher.transfer_premium_collected_to_vault(liquidity_provider_1());

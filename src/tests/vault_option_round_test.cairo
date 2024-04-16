@@ -86,22 +86,22 @@ fn test_option_round_constructor() {
         contract_address: next_round_address
     };
     // Round 0 should be settled
-    let mut state: OptionRoundState = current_round_dispatcher.get_option_round_state();
+    let mut state: OptionRoundState = current_round_dispatcher.get_state();
     let mut expected: OptionRoundState = OptionRoundState::Settled;
     assert(expected == state, 'round 0 should be Settled');
 
     // Round 1 should be Open
-    state = next_round_dispatcher.get_option_round_state();
+    state = next_round_dispatcher.get_state();
     expected = OptionRoundState::Open;
     assert(expected == state, 'round 1 should be Open');
 
     // The round's vault & market aggregator addresses should be set
     assert(
-        current_round_dispatcher.get_vault_address() == vault_dispatcher.contract_address,
+        current_round_dispatcher.vault_address() == vault_dispatcher.contract_address,
         'vault address should be set'
     );
     assert(
-        next_round_dispatcher.get_vault_address() == vault_dispatcher.contract_address,
+        next_round_dispatcher.vault_address() == vault_dispatcher.contract_address,
         'vault address should be set'
     );
     assert(
@@ -174,19 +174,17 @@ fn test_vault_start_auction_success() {
         contract_address: next_round_address
     };
     // Check round 1 is auctioning
-    let mut state: OptionRoundState = current_round_dispatcher.get_option_round_state();
+    let mut state: OptionRoundState = current_round_dispatcher.get_state();
     let mut expectedState: OptionRoundState = OptionRoundState::Auctioning;
     assert(expectedState == state, 'round 1 should be auctioning');
     assert(current_round_id == 1, 'current round should be 1');
     // check round 2 is open
-    state = next_round_dispatcher.get_option_round_state();
+    state = next_round_dispatcher.get_state();
     expectedState = OptionRoundState::Open;
     assert(expectedState == state, 'round 2 should be open');
     assert(next_round_id == 2, 'next round should be 2');
     // Check that auction start event was emitted with correct total_options_available
-    assert_event_auction_start(
-        current_round_dispatcher.get_option_round_params().total_options_available
-    );
+    assert_event_auction_start(current_round_dispatcher.get_params().total_options_available);
 }
 
 // Test the next auction cannot start if the current round is Auctioning
@@ -230,13 +228,13 @@ fn test_vault_start_auction_while_current_round_Running_failure() {
     };
     // Make bid 
     set_contract_address(option_bidder_buyer_1());
-    let option_params: OptionRoundParams = current_round_dispatcher.get_option_round_params();
+    let option_params: OptionRoundParams = current_round_dispatcher.get_params();
     let bid_count: u256 = option_params.total_options_available + 10;
     let bid_price: u256 = option_params.reserve_price;
     let bid_amount: u256 = bid_count * bid_price;
     current_round_dispatcher.place_bid(bid_amount, bid_price);
     // Settle auction
-    let option_round_params: OptionRoundParams = current_round_dispatcher.get_option_round_params();
+    let option_round_params: OptionRoundParams = current_round_dispatcher.get_params();
     set_block_timestamp(option_round_params.auction_end_time + 1);
     vault_dispatcher.end_auction();
     // Try to start the next auction while the current is Running
@@ -262,13 +260,13 @@ fn test_vault_start_auction_before_round_transition_period_is_over_failure() {
     };
     // Make bid 
     set_contract_address(option_bidder_buyer_1());
-    let option_params: OptionRoundParams = current_round_dispatcher.get_option_round_params();
+    let option_params: OptionRoundParams = current_round_dispatcher.get_params();
     let bid_count: u256 = option_params.total_options_available + 10;
     let bid_price: u256 = option_params.reserve_price;
     let bid_amount: u256 = bid_count * bid_price;
     current_round_dispatcher.place_bid(bid_amount, bid_price);
     // Settle auction
-    let option_round_params: OptionRoundParams = current_round_dispatcher.get_option_round_params();
+    let option_round_params: OptionRoundParams = current_round_dispatcher.get_params();
     set_block_timestamp(option_round_params.auction_end_time + 1);
     vault_dispatcher.end_auction();
     // Settle option round
@@ -299,7 +297,7 @@ fn test_option_round_refund_unused_bids_too_early_failure() {
     };
     // Make bid 
     set_contract_address(option_bidder_buyer_1());
-    let option_params: OptionRoundParams = current_round_dispatcher.get_option_round_params();
+    let option_params: OptionRoundParams = current_round_dispatcher.get_params();
     let bid_count: u256 = option_params.total_options_available + 10;
     let bid_price: u256 = option_params.reserve_price;
     let bid_amount: u256 = bid_count * bid_price;
@@ -328,7 +326,7 @@ fn test_option_round_clearing_price_is_0_before_auction_end() {
     };
     // Make bid 
     set_contract_address(option_bidder_buyer_1());
-    let option_params: OptionRoundParams = current_round_dispatcher.get_option_round_params();
+    let option_params: OptionRoundParams = current_round_dispatcher.get_params();
     let bid_count: u256 = option_params.total_options_available + 10;
     let bid_price: u256 = option_params.reserve_price;
     let bid_amount: u256 = bid_count * bid_price;
@@ -357,7 +355,7 @@ fn test_option_round_options_sold_before_auction_end_is_0() {
     };
     // Make bid
     set_contract_address(option_bidder_buyer_1());
-    let option_params: OptionRoundParams = current_round_dispatcher.get_option_round_params();
+    let option_params: OptionRoundParams = current_round_dispatcher.get_params();
     let bid_count: u256 = option_params.total_options_available + 10;
     let bid_price: u256 = option_params.reserve_price;
     let bid_amount: u256 = bid_count * bid_price;
@@ -388,18 +386,18 @@ fn test_vault_end_auction_success() {
     };
     // Make bid 
     set_contract_address(option_bidder_buyer_1());
-    let option_params: OptionRoundParams = current_round_dispatcher.get_option_round_params();
+    let option_params: OptionRoundParams = current_round_dispatcher.get_params();
     let bid_count: u256 = option_params.total_options_available + 10;
     let bid_price: u256 = option_params.reserve_price;
     let bid_amount: u256 = bid_count * bid_price;
     current_round_dispatcher.place_bid(bid_amount, bid_price);
     // Settle auction
-    let option_round_params: OptionRoundParams = current_round_dispatcher.get_option_round_params();
+    let option_round_params: OptionRoundParams = current_round_dispatcher.get_params();
     set_block_timestamp(option_round_params.auction_end_time + 1);
     let clearing_price: u256 = vault_dispatcher.end_auction();
     assert(clearing_price == 0, 'should be reserve_price');
     // Check that state is Running now, and auction clearing price is set
-    let state: OptionRoundState = current_round_dispatcher.get_option_round_state();
+    let state: OptionRoundState = current_round_dispatcher.get_state();
     let expectedState: OptionRoundState = OptionRoundState::Running;
     assert(expectedState == state, 'round should be Running');
     // Check auction clearing price event 
@@ -425,7 +423,7 @@ fn test_option_round_end_auction_twice_failure() {
     };
     // Make bid 
     set_contract_address(option_bidder_buyer_1());
-    let option_params: OptionRoundParams = current_round_dispatcher.get_option_round_params();
+    let option_params: OptionRoundParams = current_round_dispatcher.get_params();
     let bid_count: u256 = option_params.total_options_available + 10;
     let bid_price: u256 = option_params.reserve_price;
     let bid_amount: u256 = bid_count * bid_price;
@@ -457,13 +455,13 @@ fn test_option_round_settle_success() {
     };
     // Make bid 
     set_contract_address(option_bidder_buyer_1());
-    let option_params: OptionRoundParams = current_round_dispatcher.get_option_round_params();
+    let option_params: OptionRoundParams = current_round_dispatcher.get_params();
     let bid_count: u256 = option_params.total_options_available + 10;
     let bid_price: u256 = option_params.reserve_price;
     let bid_amount: u256 = bid_count * bid_price;
     current_round_dispatcher.place_bid(bid_amount, bid_price);
     // Settle auction
-    let option_round_params: OptionRoundParams = current_round_dispatcher.get_option_round_params();
+    let option_round_params: OptionRoundParams = current_round_dispatcher.get_params();
     set_block_timestamp(option_round_params.auction_end_time + 1);
     let clearing_price: u256 = vault_dispatcher.end_auction();
     assert(clearing_price == option_round_params.reserve_price, 'clearing price wrong');
@@ -471,7 +469,7 @@ fn test_option_round_settle_success() {
     set_block_timestamp(option_round_params.option_expiry_time + 1);
     vault_dispatcher.settle_option_round();
     // Check that state is Settled now, auction clearing price is set, and the round is still the current round (round transition period just started)
-    let state: OptionRoundState = current_round_dispatcher.get_option_round_state();
+    let state: OptionRoundState = current_round_dispatcher.get_state();
     let settlement_price: u256 = current_round_dispatcher
         .get_market_aggregator()
         .get_current_base_fee();
@@ -499,13 +497,13 @@ fn test_option_round_settle_twice_failure() {
     };
     // Make bid 
     set_contract_address(option_bidder_buyer_1());
-    let option_params: OptionRoundParams = current_round_dispatcher.get_option_round_params();
+    let option_params: OptionRoundParams = current_round_dispatcher.get_params();
     let bid_count: u256 = option_params.total_options_available + 10;
     let bid_price: u256 = option_params.reserve_price;
     let bid_amount: u256 = bid_count * bid_price;
     current_round_dispatcher.place_bid(bid_amount, bid_price);
     // Settle auction
-    let option_round_params: OptionRoundParams = current_round_dispatcher.get_option_round_params();
+    let option_round_params: OptionRoundParams = current_round_dispatcher.get_params();
     set_block_timestamp(option_round_params.auction_end_time + 1);
     vault_dispatcher.end_auction();
     // Settle option round
@@ -536,13 +534,13 @@ fn test_exercise_options_too_early_failure() {
     };
     // Make bid 
     set_contract_address(option_bidder_buyer_1());
-    let option_params: OptionRoundParams = current_round_dispatcher.get_option_round_params();
+    let option_params: OptionRoundParams = current_round_dispatcher.get_params();
     let bid_count: u256 = option_params.total_options_available + 10;
     let bid_price: u256 = option_params.reserve_price;
     let bid_amount: u256 = bid_count * bid_price;
     current_round_dispatcher.place_bid(bid_amount, bid_price);
     // Settle auction
-    let option_round_params: OptionRoundParams = current_round_dispatcher.get_option_round_params();
+    let option_round_params: OptionRoundParams = current_round_dispatcher.get_params();
     set_block_timestamp(option_round_params.auction_end_time + 1);
     vault_dispatcher.end_auction();
     // Should fail as option has not settled
