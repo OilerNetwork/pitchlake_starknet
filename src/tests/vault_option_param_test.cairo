@@ -10,7 +10,9 @@ use pitch_lake_starknet::vault::{
     IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait,
     VaultType
 };
-use pitch_lake_starknet::option_round::{OptionRoundParams};
+use pitch_lake_starknet::option_round::{
+    OptionRoundParams, IOptionRoundDispatcher, IOptionRoundDispatcherTrait
+};
 use pitch_lake_starknet::pitch_lake::{
     IPitchLakeDispatcher, IPitchLakeSafeDispatcher, IPitchLakeDispatcherTrait, PitchLake,
     IPitchLakeSafeDispatcherTrait
@@ -38,34 +40,10 @@ use pitch_lake_starknet::tests::utils::{
     assert_no_events_left, deploy_pitch_lake
 };
 
-
-#[test]
-#[available_gas(10000000)]
-#[should_panic(expected: ('Some error', 'cannot generate params for zero liquidity'))]
-fn test_start_option_zero_liquidity() {
-    let (vault_dispatcher, _): (IVaultDispatcher, IERC20Dispatcher) = setup();
-
-    // Start the option round
-    let (option_round_id, _): (u256, OptionRoundParams) = vault_dispatcher.start_new_option_round();
-}
-
-
-// find out why commented out
-// #[test]
-// #[available_gas(10000000)]
-// #[should_panic(expected: ('Some error', 'end date must be greater than start date'))]
-// fn test_option_dates_valid() {
-
-//     let (vault_dispatcher, eth_dispatcher):(IVaultDispatcher, IERC20Dispatcher) = setup();
-//     let deposit_amount_wei:u256 = 100 * decimals();
-//     set_contract_address(liquidity_provider_1());
-//     let lp_id : u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
-//     let params : OptionRoundParams = vault_dispatcher.generate_option_round_params(timestamp_end_month(), timestamp_start_month() );
-// }
-
 #[test]
 #[available_gas(10000000)]
 fn test_strike_price_based_on_vault_types() {
+    // Deploy pitch lake
     let pitch_lake_dispatcher: IPitchLakeDispatcher = deploy_pitch_lake();
     // Deploy vaults
     let vault_dispatcher_at_the_money: IVaultDispatcher = pitch_lake_dispatcher
@@ -74,20 +52,46 @@ fn test_strike_price_based_on_vault_types() {
         .in_the_money_vault();
     let vault_dispatcher_out_the_money: IVaultDispatcher = pitch_lake_dispatcher
         .out_the_money_vault();
-    /// Deposit liquidity
+
+    // LP deposits (into each round 1) (cannot initialize round params if there is no liquidity)
     let deposit_amount_wei: u256 = 100 * decimals();
     set_contract_address(liquidity_provider_1());
-    let lp_id_1: u256 = vault_dispatcher_at_the_money.open_liquidity_position(deposit_amount_wei);
-    let lp_id_2: u256 = vault_dispatcher_in_the_money.open_liquidity_position(deposit_amount_wei);
-    let lp_id_3: u256 = vault_dispatcher_out_the_money.open_liquidity_position(deposit_amount_wei);
+    vault_dispatcher_at_the_money.deposit_liquidity(deposit_amount_wei);
+    vault_dispatcher_in_the_money.deposit_liquidity(deposit_amount_wei);
+    vault_dispatcher_out_the_money.deposit_liquidity(deposit_amount_wei);
 
-    // Start the option rounds and compare the strike prices
-    let (round_id, params) = vault_dispatcher_in_the_money.start_new_option_round();
-    assert(params.strike_price > params.current_average_basefee, ' ITM strike > average basefee');
+    // Vaults deploy with current -> 0: Settled, and next -> 1: Open,
+    // In all future rounds, when the current round settles, the next is initialized 
+    // The next round must be initialized inorder for its auction to start 
+    // This means r1 will need to be manually initialized before its auction, and 
+    // all following rounds will be automatically initialized when the current one settles. 
 
-    let (round_id, params) = vault_dispatcher_at_the_money.start_new_option_round();
-    assert(params.strike_price == params.current_average_basefee, ' ATM strike == average basefee');
+    // give more time for initial liquidity to collect, then initialize, then start the auction. 
 
-    let (round_id, params) = vault_dispatcher_out_the_money.start_new_option_round();
-    assert(params.strike_price < params.current_average_basefee, ' OTM strike < average basefee');
+    // let id, params = vault.initialize_first_round();
+
+    // Get each round 1 dispatcher
+    let atm: IOptionRoundDispatcher = IOptionRoundDispatcher {
+        contract_address: vault_dispatcher_at_the_money
+            .get_option_round_address(vault_dispatcher_at_the_money.current_option_round_id() + 1)
+    };
+    let itm: IOptionRoundDispatcher = IOptionRoundDispatcher {
+        contract_address: vault_dispatcher_in_the_money
+            .get_option_round_address(vault_dispatcher_in_the_money.current_option_round_id() + 1)
+    };
+    let otm: IOptionRoundDispatcher = IOptionRoundDispatcher {
+        contract_address: vault_dispatcher_out_the_money
+            .get_option_round_address(vault_dispatcher_out_the_money.current_option_round_id() + 1)
+    };
+    // Get each round's params
+    let atm_params: OptionRoundParams = atm.get_option_round_params();
+    let itm_params: OptionRoundParams = itm.get_option_round_params();
+    let otm_params: OptionRoundParams = otm.get_option_round_params();
+    // Check the strike price of each vault's round 1
+    assert(atm_params.strike_price == atm_params.current_average_basefee, 'ATM stike wrong');
+    assert(itm_params.strike_price > itm_params.current_average_basefee, 'ITM stike wrong');
+    assert(otm_params.strike_price < otm_params.current_average_basefee, 'OTM stike wrong');
 }
+// @dev Add test that the next round initializes correctly (when the current one settles)
+// i.e, test automatic initialization not just above manual one.
+
