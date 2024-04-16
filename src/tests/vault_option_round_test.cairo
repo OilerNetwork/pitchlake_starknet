@@ -149,7 +149,8 @@ fn test_vault_deposits_go_into_the_next_round() {
 
 /// Auction Start Tests ///
 
-// Test that start auction passes and the vault::current/next_round pointers are updated.
+// Test an auction starts and the round becomes the current round. Test that the 
+// next round is deployed.
 #[test]
 #[available_gas(10000000)]
 fn test_vault_start_auction_success() {
@@ -436,6 +437,7 @@ fn test_option_round_end_auction_twice_failure() {
     vault_dispatcher.end_auction();
 }
 
+/// Round Settle Tests ///
 
 // Test that the round settles 
 #[test]
