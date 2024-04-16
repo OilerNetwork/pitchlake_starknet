@@ -168,7 +168,7 @@ trait IOptionRound<TContractState> {
     // @return if the auction was settled or not
     // @note there was a note in the previous version that this should return the clearing price,
     // not sure which makes more sense at this time.
-    fn settle_auction(ref self: TContractState) -> u256;
+    fn end_auction(ref self: TContractState) -> u256;
 
     // Refund unused bids for an option bidder if the auction has ended
     // @param option_bidder: The bidder to refund the unused bid back to
@@ -373,7 +373,7 @@ mod OptionRound {
             false
         }
 
-        fn settle_auction(ref self: ContractState) -> u256 {
+        fn end_auction(ref self: ContractState) -> u256 {
             self.state.write(OptionRoundState::Running);
             100
         }
