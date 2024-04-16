@@ -547,91 +547,17 @@ fn test_exercise_options_too_early_failure() {
     current_round_dispatcher.exercise_options(option_bidder_buyer_1());
 }
 // Tests
-// @note test that liquidity moves from 1 -> 2 when auction 2 starts
-// @note test that LP can submit claim while round 1::running, and when round 1 
-// settles, claim is executed.
-// @note test that LP can withdraw after round 1 settles, and before round 2 starts 
-// (1::settled, 2::open)
-// @note test place bid when current.state == Running & Settled (both should fail)
-// @note test refund bid when current.state == Running & Settled (both should succeed if there are any to refund)
-// @note test refund bid
-// @note test combining LP NFTs with locked & unlocked liquidity
-// 
-// 
-// 
-// 
-// 
-/// Old ///
-// matt: test was commented out
-// when is this callable ? or only for rolling over liq/executing claims ?
-// #[test]
-// #[available_gas(10000000)]
-// #[should_panic(expected: ('Some error', 'auction has not ended, cannot claim premium collected',))]
-// fn test_claim_premium_failure() {
-//     let (vault_dispatcher, _): (IVaultDispatcher, IERC20Dispatcher) = setup();
-
-//     // Add liq. to current round
-//     set_contract_address(liquidity_provider_1());
-//     let deposit_amount_wei = 10000 * decimals();
-//     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
-
-//     // Start the option round
-//     let (option_round_id, _): (u256, OptionRoundParams) = vault_dispatcher.start_new_option_round();
-
-//     // OptionRoundDispatcher
-//     let (round_id, option_params) = vault_dispatcher.current_option_round();
-//     let round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
-//         contract_address: vault_dispatcher.option_round_addresses(round_id)
-//     };
-
-//     // Make bid
-//     let bid_count: u256 = option_params.total_options_available + 10;
-//     let bid_price_user_1: u256 = option_params.reserve_price;
-//     let bid_amount_user_1: u256 = bid_count * bid_price_user_1;
-//     set_contract_address(option_bidder_buyer_1());
-//     round_dispatcher.auction_place_bid(bid_amount_user_1, bid_price_user_1);
-
-//     // Should fail as auction has not ended
-//     round_dispatcher.transfer_premium_collected_to_vault(liquidity_provider_1());
-// }
-
-// dont think we need this test anymore, vault will handle transferring liq from current round to next,
-// liq never sits in the vault
-// #[test]
-// #[available_gas(10000000)]
-// #[should_panic(expected: ('Some error', 'option has not settled, cannot transfer'))]
-// fn test_transfer_to_vault_failure_matt() {
-//     let (vault_dispatcher, _): (IVaultDispatcher, IERC20Dispatcher) = setup();
-
-//     // Add liq. to current round
-//     set_contract_address(liquidity_provider_1());
-//     let deposit_amount_wei = 10000 * decimals();
-//     let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
-
-//     // Start the option round
-//     let (option_round_id, _): (u256, OptionRoundParams) = vault_dispatcher.start_new_option_round();
-
-//     // OptionRoundDispatcher
-//     let (round_id, option_params) = vault_dispatcher.current_option_round();
-//     let round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
-//         contract_address: vault_dispatcher.option_round_addresses(round_id)
-//     };
-
-//     // Make bid
-//     set_contract_address(option_bidder_buyer_1());
-//     let bid_count: u256 = option_params.total_options_available + 10;
-//     let bid_price_user_1: u256 = option_params.reserve_price;
-//     let bid_amount_user_1: u256 = bid_count * bid_price_user_1;
-//     round_dispatcher.auction_place_bid(bid_amount_user_1, bid_price_user_1);
-
-//     // Settle auction
-//     set_block_timestamp(option_params.auction_end_time + 1);
-//     round_dispatcher.settle_auction();
-
-//     // Try to withdraw liquidity before option has settled
-//     set_contract_address(liquidity_provider_1());
-//     vault_dispatcher
-//         .withdraw_liquidity(lp_id, deposit_amount_wei); // should fail as option has not settled
-// }
+// @note test collect premiums & unlocked liq before roll over, should fail if Settled 
+// @note test LP can deposit into next always 
+// @note test LP can withdraw from next (storage position) when current < Settled (only updates storage position if they already have one in the next round)
+// @note test LP can withdraw from next (dynamic) when current == Settled (calculate position value at end of current and update next position/checkpoint)
+// @note test that liquidity moves from current -> next when current settles 
+// @note test premiums & unlocked liq roll over 
+// @note test roll over if LP collects first
+// @note test that LP can withdraw from next position ONLY during round transition period
+// @note test place bid when current.state == Auctioning. Running & Settled should both should fail
+// @note test refund bid when current.state >= Running. Auctioning should fail since bid is locked
+// @note test that LP can tokenize current position when current.state >= Running. Auctioning should fail since no premiums yet 
+// @note test positionizing rlp tokens while into next round (at any current round state and during round transition period)
 
 
