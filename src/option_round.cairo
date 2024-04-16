@@ -98,6 +98,9 @@ trait IOptionRound<TContractState> {
     // The total liquidity locked at the start of the option round (when the auction starts)
     fn total_deposits(self: @TContractState) -> u256;
 
+    // The total liquidity that that is no longer collateralized if some options do not sell 
+    fn total_unallocated_liquidity(self: @TContractState) -> u256;
+
     // The total premium collected from the option round's auction, 0 before auction end
     fn total_premiums(self: @TContractState) -> u256;
 
@@ -251,6 +254,10 @@ mod OptionRound {
         }
 
         fn total_deposits(self: @ContractState) -> u256 {
+            100
+        }
+
+        fn total_unallocated_liquidity(self: @ContractState) -> u256 {
             100
         }
 
