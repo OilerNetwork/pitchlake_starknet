@@ -40,4 +40,4 @@ scarb test -f auction
 
 ## Crash Course
 
-The crash course is intended to catch devs up to speed on the technical aspects of the protocol, as well as help pre-prompt/train any LLMs for Pitchlake. This crash course can be found [here](./DOCUMENTATION.md).
+The crash course is intended to catch devs up to speed on the technical aspects of the protocol, as well as help pre-prompt/train any LLMs for Pitchlake. This crash course can be found [here](documentation.md).
