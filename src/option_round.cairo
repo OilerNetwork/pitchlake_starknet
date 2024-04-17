@@ -33,7 +33,7 @@ enum OptionRoundState {
     Running,
     Settled,
     // old
-    Initialized,
+    Initialized, // add between Open and Auctioning (round transition period)
     AuctionStarted,
     AuctionSettled,
     OptionSettled,
