@@ -172,6 +172,13 @@ fn test_deposit_liquidity_zero() {
 // @note Add test that total liquidity decrement with withdrawals (should not change ever once locked, used to calculate round results/%s)
 // @note Add test that when round's auction starts, LP unlocked becomes locked and round.total_deposits() lock
 
+
+/// Withdraw Tests ///
+// @dev Withdraw is used to collect from unlocked liquidity
+// While current round is Auctioning, any next round position is unlocked
+// While current round is Running, premiums/unsold options in current is unlocked, along with any in next round position
+// While current round is Settled (in rtp), all current round (net collected amounts) liquidity is rolled over into next, and is unlocked
+
 // Test that withdraw sends eth from round -> LP
 #[test]
 #[available_gas(10000000)]
@@ -272,6 +279,8 @@ fn test_deposit_withdraw_liquidity_zero() {
     );
 }
 
-// @note add test that unlocked == 0 when auction starts
+// @note premium/unlocked liquidity tests only need to check that premium/unsold amounts add to unlocked (while running) and are back to 0 (when settled)
+// @note add test that and premiums/unsold collected is marked in the contract
+// - this is because the same withdraw function is used, only difference being the max amount allowed and when it is called
+// @note add test that any of the above collections do not roll over
 // @note add test that remaining liquidity transfers (adds to) the next round when current settles 
-//  - LP unlocked should return amount (deposited) in next round while current is on going, and if current is settled (in rtp) it is included in unlocked (deposit + dynamic position value at the end of the current round)
