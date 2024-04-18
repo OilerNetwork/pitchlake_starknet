@@ -95,24 +95,34 @@ trait IOptionRound<TContractState> {
     // The paramters of the option round
     fn get_params(self: @TContractState) -> OptionRoundParams;
 
-    // The total liquidity in the option round. Desosits/withdrawals change this unitl the round's auction starts
-    // @dev This locks the value and it will remain so indefinitely for future calculations
+    // replace this with total_collateral ?
+    // The total liquidity locked at the start of the round's auction
+    // @dev This value will remain locked indefinitely for future calculations
     fn total_liquidity(self: @TContractState) -> u256;
 
-    // The total liquidity that that is no longer collateralized if some options do not sell 
+    // The total liqudity that is locked for the potential payout
+    // @dev This value fixes when the auction starts, and never changes
+    // unless there are onsold options. If a 1/2 of the options do not sell, 
+    // 1/2 of the collateral becomes unallocated.collateral moves to the unallocated liquidity
+    fn total_collateral(self: @TContractState) -> u256;
+
+    // The amount of the total liquidity that is not allocated for a payout 
+    // This is the premiums + any unsold liquidity 
+    // While open, all of a round's liquidity is unallocated
+    // When the auction starts, all of the liquidity becomes collateral
+    // When the auction ends, the premiums collected and any unsold liquidity becomes unallocated
+    // When the round settles, the_collateral - the_payout + remaining_unallocated_liquidity rolls to the next round
+    //  - At this time, the round's unallocated liquidity is 0 (its total collateral remains the same for future calculations)
     fn total_unallocated_liquidity(self: @TContractState) -> u256;
 
-    // The total premium collected from the option round's auction, 0 before auction end
+    // The total premium collected from the option round's auction
     fn total_premiums(self: @TContractState) -> u256;
 
-    // The total payouts of the option round, 0 before the option round is settled
-    // @note If the options do not become exercisable, it remains 0
+    // The total payouts of the option round
     fn total_payouts(self: @TContractState) -> u256;
 
-    // The total amount of premium (and unlocked liquidity) that was collected by LPs
-    // @dev Can seperate these if needed, seems simple to collect unallocated liquidity (if not all options sell)
-    // at the same time as collecting premiums 
-    fn total_premiums_collected(self: @TContractState) -> u256;
+    // The total amount of unallocated liquidity collected from the contract
+    fn get_unallocated_liquidity_collected(self: @TContractState) -> u256;
 
     // The total number of options sold in the option round, will be 0 until
     // the auction ends
@@ -174,10 +184,6 @@ trait IOptionRound<TContractState> {
     // locked collateral balance of liquidity_provider
     // moved to vault
     fn collateral_balance_of(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
-
-    // total collateral available in the round
-    // moved to vault
-    fn total_collateral(self: @TContractState) -> u256;
 
     fn bid_deposit_balance_of(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
@@ -276,7 +282,7 @@ mod OptionRound {
             100
         }
 
-        fn total_premiums_collected(self: @ContractState) -> u256 {
+        fn get_unallocated_liquidity_collected(self: @ContractState) -> u256 {
             100
         }
 

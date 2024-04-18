@@ -59,11 +59,15 @@ trait IVault<TContractState> { // erc721
     // @return the contract address of the option round
     fn get_option_round_address(self: @TContractState, option_round_id: u256) -> ContractAddress;
 
-    // Get the liquidity an LP has locked in the current round
-    fn get_locked_liquidity_for(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
+    // Get the liquidity an LP has locked as collateral in the current round
+    fn get_collateral_balance_for(
+        self: @TContractState, liquidity_provider: ContractAddress
+    ) -> u256;
 
-    // Get the liquidity an LP has unlocked in the current round
-    fn get_unlocked_liquidity_for(
+    // Get the liqudity an LP has unallocated (unlocked), they can withdraw from this amount
+    // @dev If the current round is Running, LP's share of its unallocated liquidity is uncluded (unless already withdrawn)
+    // @dev Includes deposits into the next round if there are any
+    fn get_unallocated_balance_for(
         self: @TContractState, liquidity_provider: ContractAddress
     ) -> u256;
 
@@ -250,15 +254,13 @@ mod Vault {
             self.option_round_addresses(option_round_id)
         }
 
-        // LP's deposit in the next round (Open)
-        fn get_unlocked_liquidity_for(
+        fn get_collateral_balance_for(
             self: @ContractState, liquidity_provider: ContractAddress
         ) -> u256 {
             100
         }
 
-        // LP's deposits into the current round (locked: Auctioning|Running, if Settled liq. is rolled over and is their unlocked liquidity)
-        fn get_locked_liquidity_for(
+        fn get_unallocated_balance_for(
             self: @ContractState, liquidity_provider: ContractAddress
         ) -> u256 {
             100
