@@ -221,10 +221,11 @@ fn test_premium_collection_ratio_conversion_unallocated_pool_2() {
     set_block_timestamp(option_params.auction_end_time + 1);
     round_dispatcher.end_auction();
 
+    // @dev these functions need name updates
     let premium_balance_of_liquidity_provider_1: u256 = vault_dispatcher
-        .get_lps_premiums_earned_in_option_round(liquidity_provider_1(), round_id);
+        .get_premiums_for(liquidity_provider_1());
     let premium_balance_of_liquidity_provider_2: u256 = vault_dispatcher
-        .get_lps_premiums_earned_in_option_round(liquidity_provider_2(), round_id);
+        .get_premiums_for(liquidity_provider_2());
 
     // these two lines were commented out, not sure why
     // vault_dispatcher.transfer_premium_collected_to_vault(liquidity_provider_1());

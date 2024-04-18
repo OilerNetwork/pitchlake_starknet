@@ -447,7 +447,6 @@ fn test_option_round_settle_success() {
     set_contract_address(liquidity_provider_1());
     vault_dispatcher.deposit_liquidity(deposit_amount_wei);
     // Start auction
-    set_contract_address(vault_manager());
     vault_dispatcher.start_auction();
     let current_round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
         contract_address: vault_dispatcher

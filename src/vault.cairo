@@ -50,15 +50,8 @@ trait IVault<TContractState> { // erc721
     // @dev Better access control ? (oz permits ?)
     fn vault_manager(self: @TContractState) -> ContractAddress;
 
-    // @return the type of the vault (ITM | ATM | OTM)
+    // Get the type of vault (ITM | ATM | OTM)
     fn vault_type(self: @TContractState) -> VaultType;
-
-    // matt 
-    // @return The LP's deposited balance at the start of the round_id (actual deposit value)
-    fn lp_deposit_balance(self: @TContractState, lp: ContractAddress, round_id: u256) -> u256;
-    // @return THe LP's position value at the start of the round_id
-    fn lp_position_balance(self: @TContractState, lp: ContractAddress, round_id: u256) -> u256;
-    // matt
 
     // @return the current option round id 
     fn current_option_round_id(self: @TContractState) -> u256;
@@ -66,32 +59,22 @@ trait IVault<TContractState> { // erc721
     // @return the contract address of the option round
     fn get_option_round_address(self: @TContractState, option_round_id: u256) -> ContractAddress;
 
-    // Don't need arbitrary lookups, just current 
-    // @return an LP's liquidity at the start of the option round
-    fn get_lps_starting_liquidity_in_option_round(
-        self: @TContractState, liquidity_provider: ContractAddress, round_id: u256
+    // Get the liquidity an LP has locked in the current round
+    fn get_locked_liquidity_for(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
+
+    // Get the liquidity an LP has unlocked in the current round
+    fn get_unlocked_liquidity_for(
+        self: @TContractState, liquidity_provider: ContractAddress
     ) -> u256;
 
-    // @return an LP's liquidity at the end of the option round (the remaining liquidity)
-    fn get_lps_final_liquidity_in_option_round(
-        self: @TContractState, liquidity_provider: ContractAddress, round_id: u256
-    ) -> u256;
-
-    // @return the premiums LP has earned in the option round
-    fn get_lps_premiums_earned_in_option_round(
-        self: @TContractState, liquidity_provider: ContractAddress, round_id: u256
-    ) -> u256;
+    // Get the total premium LP has earned in the current round
+    fn get_premiums_for(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
 
     /// Writes ///
 
-    // LP modifies their current position or creates a new one if they don't have one yet
+    // LP increments their position and sends the liquidity to the next round
     // @return the lp_id of the liquidity position (erc721 token id)
     fn deposit_liquidity(ref self: TContractState, amount: u256) -> u256;
-
-    // @dev remove this
-    // LP flags their entire position to be withdrawn at the end of the current running round
-    // @return if the claim was submitted successfully
-    fn submit_claim(ref self: TContractState) -> bool;
 
     // @dev remove this, replaced with one below
     // LP withdraws their liquidity from the the current open option round 
@@ -267,40 +250,29 @@ mod Vault {
             self.option_round_addresses(option_round_id)
         }
 
-        fn get_lps_starting_liquidity_in_option_round(
-            self: @ContractState, liquidity_provider: ContractAddress, round_id: u256
+        // LP's deposit in the next round (Open)
+        fn get_unlocked_liquidity_for(
+            self: @ContractState, liquidity_provider: ContractAddress
         ) -> u256 {
             100
         }
 
-        fn get_lps_final_liquidity_in_option_round(
-            self: @ContractState, liquidity_provider: ContractAddress, round_id: u256
+        // LP's deposits into the current round (locked: Auctioning|Running, if Settled liq. is rolled over and is their unlocked liquidity)
+        fn get_locked_liquidity_for(
+            self: @ContractState, liquidity_provider: ContractAddress
         ) -> u256 {
             100
         }
 
-        fn get_lps_premiums_earned_in_option_round(
-            self: @ContractState, liquidity_provider: ContractAddress, round_id: u256
-        ) -> u256 {
+        // LP' premiums earned after the current round's auction, if round is settled it is 0
+        fn get_premiums_for(self: @ContractState, liquidity_provider: ContractAddress) -> u256 {
             100
         }
 
-        // matt 
-        fn lp_deposit_balance(self: @ContractState, lp: ContractAddress, round_id: u256) -> u256 {
-            100
-        }
-
-        fn lp_position_balance(self: @ContractState, lp: ContractAddress, round_id: u256) -> u256 {
-            100
-        }
 
         /// Writes ///
         fn deposit_liquidity(ref self: ContractState, amount: u256) -> u256 {
             1
-        }
-
-        fn submit_claim(ref self: ContractState) -> bool {
-            true
         }
 
         fn withdraw_liquidity(ref self: ContractState, lp_id: u256, amount: u256) -> bool {
