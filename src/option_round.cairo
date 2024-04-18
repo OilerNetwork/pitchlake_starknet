@@ -95,8 +95,9 @@ trait IOptionRound<TContractState> {
     // The paramters of the option round
     fn get_params(self: @TContractState) -> OptionRoundParams;
 
-    // The total liquidity locked at the start of the option round (when the auction starts)
-    fn total_deposits(self: @TContractState) -> u256;
+    // The total liquidity in the option round. Desosits/withdrawals change this unitl the round's auction starts
+    // @dev This locks the value and it will remain so indefinitely for future calculations
+    fn total_liquidity(self: @TContractState) -> u256;
 
     // The total liquidity that that is no longer collateralized if some options do not sell 
     fn total_unallocated_liquidity(self: @TContractState) -> u256;
@@ -108,7 +109,9 @@ trait IOptionRound<TContractState> {
     // @note If the options do not become exercisable, it remains 0
     fn total_payouts(self: @TContractState) -> u256;
 
-    // The total amount of premium and unlocked liquidity that was collected by LPs
+    // The total amount of premium (and unlocked liquidity) that was collected by LPs
+    // @dev Can seperate these if needed, seems simple to collect unallocated liquidity (if not all options sell)
+    // at the same time as collecting premiums 
     fn total_premiums_collected(self: @TContractState) -> u256;
 
     // The total number of options sold in the option round, will be 0 until
@@ -253,7 +256,7 @@ mod OptionRound {
             self.params.read()
         }
 
-        fn total_deposits(self: @ContractState) -> u256 {
+        fn total_liquidity(self: @ContractState) -> u256 {
             100
         }
 
