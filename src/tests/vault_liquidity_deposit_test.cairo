@@ -37,6 +37,7 @@ use pitch_lake_starknet::tests::utils::{
 };
 ///helpers
 
+// Assert `amount` tokens transfer from `from` to `to`
 fn assert_event_transfer(from: ContractAddress, to: ContractAddress, amount: u256) {
     let event = pop_log::<VaultTransfer>(zero_address()).unwrap();
     assert(event.from == from, 'Invalid `from`');
@@ -78,7 +79,7 @@ fn test_deposit_liquidity_eth_transfer() {
     );
 }
 
-// Test deposit liquidity updates LP's unlocked_liquidity
+// Test deposit liquidity updates LP's unlocked_liquidity in vault
 #[test]
 #[available_gas(10000000)]
 fn test_deposit_liquidity_increments_LP_unlocked_liquidity() {
@@ -96,7 +97,7 @@ fn test_deposit_liquidity_increments_LP_unlocked_liquidity() {
     assert(locked_liquidity == 0, 'Locked liquidity wrong');
 }
 
-// Test deposit liquidity updates round's total liquidity
+// Test deposit liquidity updates total liquidity in round
 #[test]
 #[available_gas(10000000)]
 fn test_deposit_liquidity_is_round_liquidity() {
@@ -114,7 +115,8 @@ fn test_deposit_liquidity_is_round_liquidity() {
     assert(option_round.total_liquidity() == deposit_amount_wei, 'Unlocked liquidity wrong');
 }
 
-// Test deposit liquidity updates round's total liquidity
+// Test deposit liquidity increments total liquidity in round
+// @dev Same as test above with an additional deposit
 #[test]
 #[available_gas(10000000)]
 fn test_deposit_liquidity_increments_round_liquidity() {
@@ -144,7 +146,6 @@ fn test_deposit_liquidity_increments_round_liquidity() {
         liquidity_provider_1(), vault_dispatcher.contract_address, topup_amount_wei
     );
 }
-// @note add test that unlocked == 0 when auction starts, and locked becomes deposit_amount
 
 // Test deposit 0 liquidity
 #[test]
@@ -271,3 +272,6 @@ fn test_deposit_withdraw_liquidity_zero() {
     );
 }
 
+// @note add test that unlocked == 0 when auction starts
+// @note add test that remaining liquidity transfers (adds to) the next round when current settles 
+//  - LP unlocked should return amount (deposited) in next round while current is on going, and if current is settled (in rtp) it is included in unlocked (deposit + dynamic position value at the end of the current round)
