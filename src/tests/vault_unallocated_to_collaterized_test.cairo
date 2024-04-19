@@ -97,88 +97,60 @@ fn test_withdraw_liquidity_when_locked_failure() {
     vault_dispatcher.withdraw_from_position(deposit_amount_wei);
 }
 
-//
+
+// Test that round's unallocated liquidity becomes collateral when auction start (multiple LPs)
 #[test]
 #[available_gas(10000000)]
-fn test_total_collaterized_wei_1() {
+fn test_round_unallocated_becomes_collateral_when_auction_starts() {
     let (vault_dispatcher, _): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    // Add liq. to next round (1)
-    set_contract_address(liquidity_provider_1());
-    let deposit_amount_wei = 50 * decimals();
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
-    // Start the option round
-    vault_dispatcher.start_auction();
-    // OptionRoundDispatcher
     let current_round: IOptionRoundDispatcher = IOptionRoundDispatcher {
         contract_address: vault_dispatcher
-            .get_option_round_address(vault_dispatcher.current_option_round_id())
+            .get_option_round_address(vault_dispatcher.current_option_round_id() + 1)
     };
-    let params = current_round.get_params();
-
-    // Place bid
-    set_contract_address(option_bidder_buyer_1());
-    let option_amount: u256 = params.total_options_available;
-    let option_price: u256 = params.reserve_price;
-    let bid_amount: u256 = option_amount * option_price;
-    current_round.place_bid(bid_amount, option_price);
-    // Settle auction
-    set_block_timestamp(params.auction_end_time + 1);
-    current_round.end_auction();
-    // Settle option round
-    set_block_timestamp(params.option_expiry_time + 1);
-    current_round.settle_option_round();
-
-    ///////////////
-
-    let deposit_amount_wei = 10000 * decimals();
-    let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
-    // start_new_option_round will also starts the auction
-    let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round();
-
-    // OptionRoundDispatcher
-    let (round_id, option_params) = vault_dispatcher.current_option_round();
-    let round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
-        contract_address: vault_dispatcher.option_round_addresses(round_id)
-    };
-
-    // start auction will move the tokens from unallocated pool to collaterized pool within the option_round
-    let allocated_wei = round_dispatcher.total_collateral();
-    assert(allocated_wei == deposit_amount_wei, 'all tokens shld be collaterized');
+    // Add liq. to next round (1)
+    let deposit_amount_wei_1 = 1000 * decimals();
+    let deposit_amount_wei_2 = 10000 * decimals();
+    set_contract_address(liquidity_provider_1());
+    vault_dispatcher.deposit_liquidity(deposit_amount_wei_1);
+    set_contract_address(liquidity_provider_2());
+    vault_dispatcher.deposit_liquidity(deposit_amount_wei_2);
+    let total_unallocated = vault_dispatcher.total_unallocated_liquidity();
+    assert(
+        total_unallocated == deposit_amount_wei_1 + deposit_amount_wei_2,
+        'all tokens shd be unallocated'
+    );
+    // Start the option round
+    vault_dispatcher.start_auction();
+    // Check that unallocated amount is now collaterized
+    let total_collateral = current_round.total_collateral();
+    assert(total_collateral == total_unallocated, 'all tokens shld be collaterized');
 }
 
+// Test that LP's unallocated becomes collateral when auction start (multiple LPs)
 #[test]
 #[available_gas(10000000)]
-fn test_total_collaterized_wei_2() {
-    let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
+fn test_LP_unallocated_becomes_collateral_when_auction_starts() {
+    let (vault_dispatcher, _): (IVaultDispatcher, IERC20Dispatcher) = setup();
+    // Add liq. to next round (1)
     let deposit_amount_wei_1 = 10000 * decimals();
-    let deposit_amount_wei_2 = 10000 * decimals();
-
+    let deposit_amount_wei_2 = 11000 * decimals();
     set_contract_address(liquidity_provider_1());
-    let lp_id_1: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei_1);
+    vault_dispatcher.deposit_liquidity(deposit_amount_wei_1);
     set_contract_address(liquidity_provider_2());
-    let lp_id_2: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei_2);
-
-    let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round();
-
-    // OptionRoundDispatcher
-    let (round_id, option_params) = vault_dispatcher.current_option_round();
-    let round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
-        contract_address: vault_dispatcher.option_round_addresses(round_id)
-    };
-
-    // start auction will move the tokens from unallocated pool to collaterized pool within the option_round
-    let collaterized_wei_count: u256 = round_dispatcher.total_collateral();
-    // todo: is this still needed with new logic ? unallocated is always 0 ?
-    let unallocated_wei_count: u256 = vault_dispatcher.total_unallocated_liquidity();
-    assert(
-        collaterized_wei_count == deposit_amount_wei_1 + deposit_amount_wei_2,
-        'all tokens shld be collaterized'
-    );
-    assert(unallocated_wei_count == 0, 'unallocated should be 0');
+    vault_dispatcher.deposit_liquidity(deposit_amount_wei_2);
+    let total_unallocated_1 = vault_dispatcher.get_unallocated_balance_for(liquidity_provider_1());
+    let total_unallocated_2 = vault_dispatcher.get_unallocated_balance_for(liquidity_provider_2());
+    assert(total_unallocated_1 == deposit_amount_wei_1, 'all tokens1 shd be unallocated');
+    assert(total_unallocated_2 == deposit_amount_wei_2, 'all tokens2 shd be unallocated');
+    // Start the option round
+    vault_dispatcher.start_auction();
+    // Check that unallocated amount is now collaterized
+    let total_collateral_1 = vault_dispatcher.get_collateral_balance_for(liquidity_provider_1());
+    let total_collateral_2 = vault_dispatcher.get_collateral_balance_for(liquidity_provider_2());
+    assert(total_collateral_1 == total_unallocated_1, 'all tokens1 shd be collateral');
+    assert(total_collateral_2 == total_unallocated_2, 'all tokens2 shd be collateral');
 }
 // @note add test that only the vault can call option_round.settle_option_round() (anyone can call the wrapper)
-// wrapper makes sure the liquidity rolls over and the round transition period starts
+// - wrapper makes sure the liquidity rolls over and the round transition period starts
 
 
