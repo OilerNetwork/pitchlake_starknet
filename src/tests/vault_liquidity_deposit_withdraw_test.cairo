@@ -31,7 +31,7 @@ use pitch_lake_starknet::eth::Eth;
 use pitch_lake_starknet::tests::vault_helpers::{VaultFacade, VaultFacadeTrait};
 use pitch_lake_starknet::tests::utils;
 use pitch_lake_starknet::tests::utils::{
-    setup, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
+    setup,setup_facade, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
     timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
     option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
     zero_address, vault_manager, weth_owner, option_round_contract_address, mock_option_params,
@@ -161,14 +161,10 @@ fn test_deposit_liquidity_zero() {
 #[test]
 #[available_gas(10000000)]
 fn test_can_deposit_always(){
-    let (mut vault_dispatcher, mut eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let option_round: IOptionRoundDispatcher = IOptionRoundDispatcher {
-        contract_address: vault_dispatcher
-            .get_option_round_address(vault_dispatcher.current_option_round_id() + 1)
-    };
-    let deposit_amount_wei: u256 = 10 * decimals();
-    let mut vault_facade =  VaultFacade{vault_dispatcher:vault_dispatcher, eth_dispatcher:eth_dispatcher};
     
+    let mut vault_facade = setup_facade();
+    let deposit_amount_wei: u256 = 10 * decimals();
+
     vault_facade.checkDeposit(deposit_amount_wei,liquidity_provider_1());
 
     vault_facade.start_auction();
