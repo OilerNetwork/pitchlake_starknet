@@ -236,7 +236,6 @@ fn withdraw_from_position(LP: ContractAddress, withdraw_amount: uint) {
 		// `ending_amount -= lp_collections_in_round(LP, i)`,
 		// where `lp_collections_in_round()` retrieves how much premium and unlocked
 		// liquidity LP collected during this round if any (collected funds were not rolled over to the next round)
-	}
 
   // @dev At this point, ending_amount is the value of LP's position at the end of the current round.
   // @dev This is the amount rolled over into the next round.
@@ -389,7 +388,7 @@ fn convert_LP_tokens_to_position(LP: ContractAddress, LP_token_id: uint, LP_toke
   // Update LP's position value in the current round
 	positions[LP, current_round_id] = ending_amount;
 
-	// @dev Note, we are not concerned with LP's withdraw checkpoint since this acts like a deposit into the current round
+	// @dev Note, we are not concerned with LP's withdraw checkpoint since this acts like a typical deposit into the current round
 
   // Burn the LP tokens
   let LP_token_dispatcher = ERC20Dispatcher{address_for_lp_token_contract(LP_token_id)};

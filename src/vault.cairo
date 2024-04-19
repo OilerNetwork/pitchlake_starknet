@@ -225,6 +225,7 @@ mod Vault {
         }
 
         fn end_auction(ref self: ContractState) -> u256 {
+
             100
         }
 
