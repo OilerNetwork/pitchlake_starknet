@@ -33,41 +33,38 @@ use pitch_lake_starknet::tests::utils::{
 use pitch_lake_starknet::option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait};
 
 
+// Test that when LP withdraws premiums from the round, their unlocked liquidity decrements
+// @dev these tests are basically already written in normal withdraw liquidity tests. they just test how is unlcocked once auction starts, need to add test that premiums become unlocked, and that you cannot withdraw more than unlocked
 #[test]
 #[available_gas(10000000)]
-fn test_paid_premium_withdrawal_to_liquidity_provider() {
+fn test_withdraw_premiums_from_current_round() {
     let (vault_dispatcher, _): (IVaultDispatcher, IERC20Dispatcher) = setup();
-
-    // Add liq. to current round
+    // LP deposits (into round 1)
+    let deposit_amount_wei: u256 = 100000 * decimals();
     set_contract_address(liquidity_provider_1());
-    let deposit_amount_wei = 100000 * decimals();
-    let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
-
-    // Start the option round
-    let (option_round_id, _): (u256, OptionRoundParams) = vault_dispatcher.start_new_option_round();
-
-    // OptionRoundDispatcher
-    let (round_id, option_params) = vault_dispatcher.current_option_round();
+    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    // Start auction
+    vault_dispatcher.start_auction();
     let round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
-        contract_address: vault_dispatcher.option_round_addresses(round_id)
+        contract_address: vault_dispatcher
+            .get_option_round_address(vault_dispatcher.current_option_round_id())
     };
-
+    let params: OptionRoundParams = round_dispatcher.get_params();
     // Make bid
     set_contract_address(option_bidder_buyer_1());
-    let bid_amount_user_1: u256 = (option_params.total_options_available / 2)
-        * option_params.reserve_price;
-    round_dispatcher.auction_place_bid(bid_amount_user_1, option_params.reserve_price);
+    let bid_amount_user_1: u256 = (params.total_options_available / 2) * params.reserve_price;
+    round_dispatcher.place_bid(bid_amount_user_1, params.reserve_price);
 
     // Settle auction
-    set_block_timestamp(option_params.auction_end_time + 1);
-    round_dispatcher.settle_auction();
-
+    set_block_timestamp(params.auction_end_time + 1);
+    round_dispatcher.end_auction();
+    // 
     let expected_unallocated_wei: u256 = round_dispatcher.get_auction_clearing_price()
         * round_dispatcher.total_options_sold();
 
-    let success: bool = vault_dispatcher.withdraw_liquidity(lp_id, expected_unallocated_wei);
+    vault_dispatcher.withdraw_liquidity(expected_unallocated_wei);
 
-    assert(success == true, 'should be able withdraw premium');
+    //assert(success == true, 'should be able withdraw premium');
     assert_event_option_amount_transfer(
         round_dispatcher.contract_address, // from
         // round_dispatcher.contract_address, // to 
@@ -77,105 +74,59 @@ fn test_paid_premium_withdrawal_to_liquidity_provider() {
     );
 }
 
-#[test]
-#[available_gas(10000000)]
-fn test_paid_premium_withdrawal_to_invalid_provider() {
-    let (vault_dispatcher, _): (IVaultDispatcher, IERC20Dispatcher) = setup();
-
-    // Add liq. to current round
-    set_contract_address(liquidity_provider_1());
-    let deposit_amount_wei = 100000 * decimals();
-    let lp_id: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
-
-    // Start the option round
-    let (option_round_id, _): (u256, OptionRoundParams) = vault_dispatcher.start_new_option_round();
-
-    // OptionRoundDispatcher
-    let (round_id, option_params) = vault_dispatcher.current_option_round();
-    let round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
-        contract_address: vault_dispatcher.option_round_addresses(round_id)
-    };
-
-    // Make bid
-    set_contract_address(option_bidder_buyer_1());
-    let bid_amount_user_1: u256 = (option_params.total_options_available / 2)
-        * option_params.reserve_price;
-    round_dispatcher.auction_place_bid(bid_amount_user_1, option_params.reserve_price);
-
-    // Settle auction
-    set_block_timestamp(option_params.auction_end_time + 1);
-    round_dispatcher.settle_auction();
-
-    let expected_unallocated_wei: u256 = round_dispatcher.get_auction_clearing_price()
-        * round_dispatcher.total_options_sold();
-
-    // Try to withdraw from invalid provider
-    set_contract_address(liquidity_provider_2());
-
-    let success: bool = vault_dispatcher.withdraw_liquidity(lp_id, expected_unallocated_wei);
-
-    assert(success == false, 'should be able withdraw premium');
-}
-
-
+// collateral balance of should be vault::get_unlocked_liquidity_for()
+// @note Add test that unlocked is premium after auction, and is premium + next position if there is a deposit, and is premium + unsold options if there is any
 #[test]
 #[available_gas(10000000)]
 fn test_premium_collection_ratio_conversion_unallocated_pool_1() {
-    let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
-
+    let (vault_dispatcher, _): (IVaultDispatcher, IERC20Dispatcher) = setup();
+    let current_round: IOptionRoundDispatcher = IOptionRoundDispatcher {
+        contract_address: vault_dispatcher
+            .get_option_round_address(vault_dispatcher.current_option_round_id() + 1)
+    };
+    let params = current_round.get_params();
+    // Deposit liquidity
     let deposit_amount_wei_1: u256 = 1000 * decimals();
     let deposit_amount_wei_2: u256 = 10000 * decimals();
-
     set_contract_address(liquidity_provider_1());
-    let lp_id_1: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei_1);
-
+    vault_dispatcher.deposit_liquidity(deposit_amount_wei_1);
     set_contract_address(liquidity_provider_2());
-    let lp_id_2: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei_2);
-
-    // Start option round 
-    let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round();
-
-    // OptionRoundDispatcher
-    let (round_id, option_params) = vault_dispatcher.current_option_round();
-    let round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
-        contract_address: vault_dispatcher.option_round_addresses(round_id)
-    };
-
-    let bid_amount_user_1: u256 = (option_params.total_options_available)
-        * option_params.reserve_price;
-
+    vault_dispatcher.deposit_liquidity(deposit_amount_wei_2);
+    // Make bid (ob1)
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_amount_user_1, option_params.reserve_price);
+    let bid_amount: u256 = params.total_options_available;
+    let bid_price: u256 = params.reserve_price;
+    let bid_amount: u256 = bid_amount * bid_price;
+    current_round.place_bid(bid_amount, bid_price);
+    // End auction
+    set_block_timestamp(params.auction_end_time + 1);
+    current_round.end_auction();
 
-    set_block_timestamp(option_params.auction_end_time + 1);
-    round_dispatcher.settle_auction();
-
-    //premium paid will be converted into unallocated.
-    let total_collateral: u256 = round_dispatcher.total_collateral();
-    let total_premium_to_be_paid: u256 = round_dispatcher.get_auction_clearing_price()
-        * round_dispatcher.total_options_sold();
-
-    let ratio_of_liquidity_provider_1: u256 = (round_dispatcher
-        .collateral_balance_of(liquidity_provider_1())
+    // Premium comes from unallocated pool
+    let total_collateral: u256 = current_round.total_collateral();
+    let total_premium_to_be_paid: u256 = current_round.get_auction_clearing_price()
+        * current_round.total_options_sold();
+    // LP % of the round
+    let ratio_of_liquidity_provider_1: u256 = (vault_dispatcher
+        .get_collateral_balance_for(liquidity_provider_1())
         * 100)
         / total_collateral;
-    let ratio_of_liquidity_provider_2: u256 = (round_dispatcher
-        .collateral_balance_of(liquidity_provider_2())
+    let ratio_of_liquidity_provider_2: u256 = (vault_dispatcher
+        .get_collateral_balance_for(liquidity_provider_2())
         * 100)
         / total_collateral;
-
+    // LP premiums share
     let premium_for_liquidity_provider_1: u256 = (ratio_of_liquidity_provider_1
         * total_premium_to_be_paid)
         / 100;
     let premium_for_liquidity_provider_2: u256 = (ratio_of_liquidity_provider_2
         * total_premium_to_be_paid)
         / 100;
-
+    // The actual unallocated balance of the LPs
     let actual_unallocated_balance_provider_1: u256 = vault_dispatcher
-        .unallocated_liquidity_balance_of(lp_id_1);
+        .get_unallocated_balance_for(liquidity_provider_1());
     let actual_unallocated_balance_provider_2: u256 = vault_dispatcher
-        .unallocated_liquidity_balance_of(lp_id_2);
+        .get_unallocated_balance_for(liquidity_provider_2());
 
     assert(
         actual_unallocated_balance_provider_1 == premium_for_liquidity_provider_1,
@@ -190,65 +141,61 @@ fn test_premium_collection_ratio_conversion_unallocated_pool_1() {
 #[test]
 #[available_gas(10000000)]
 fn test_premium_collection_ratio_conversion_unallocated_pool_2() {
-    let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
-
-    let deposit_amount_wei: u256 = 10000 * decimals();
-
-    set_contract_address(liquidity_provider_1());
-    let lp_id_1: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
-
-    set_contract_address(liquidity_provider_2());
-    let lp_id_2: u256 = vault_dispatcher.open_liquidity_position(deposit_amount_wei);
-
-    let (option_round_id, option_params): (u256, OptionRoundParams) = vault_dispatcher
-        .start_new_option_round();
-
-    // OptionRoundDispatcher
-    let (round_id, option_params) = vault_dispatcher.current_option_round();
-    let round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
-        contract_address: vault_dispatcher.option_round_addresses(round_id)
+    let (vault_dispatcher, _): (IVaultDispatcher, IERC20Dispatcher) = setup();
+    let current_round: IOptionRoundDispatcher = IOptionRoundDispatcher {
+        contract_address: vault_dispatcher
+            .get_option_round_address(vault_dispatcher.current_option_round_id() + 1)
     };
-
-    let bid_amount_user_1: u256 = ((option_params.total_options_available / 2) + 1)
-        * option_params.reserve_price;
-    let bid_amount_user_2: u256 = (option_params.total_options_available / 2)
-        * option_params.reserve_price;
-
+    let params = current_round.get_params();
+    // Deposit liquidity
+    let deposit_amount_wei_1: u256 = 1000 * decimals();
+    set_contract_address(liquidity_provider_1());
+    vault_dispatcher.deposit_liquidity(deposit_amount_wei_1);
+    set_contract_address(liquidity_provider_2());
+    vault_dispatcher.deposit_liquidity(deposit_amount_wei_1);
+    // Make bid
+    let bid_amount_user_1: u256 = ((params.total_options_available / 2) + 1) * params.reserve_price;
+    let bid_amount_user_2: u256 = (params.total_options_available / 2) * params.reserve_price;
     set_contract_address(option_bidder_buyer_1());
-    round_dispatcher.auction_place_bid(bid_amount_user_1, option_params.reserve_price);
-
+    current_round.place_bid(bid_amount_user_1, params.reserve_price);
     set_contract_address(option_bidder_buyer_2());
-    round_dispatcher.auction_place_bid(bid_amount_user_2, option_params.reserve_price);
-    set_block_timestamp(option_params.auction_end_time + 1);
-    round_dispatcher.settle_auction();
+    current_round.place_bid(bid_amount_user_2, params.reserve_price);
+    // End auction
+    set_block_timestamp(params.auction_end_time + 1);
+    current_round.end_auction();
+    // Premium comes from unallocated pool
+    let total_collateral: u256 = current_round.total_collateral();
+    let total_premium_to_be_paid: u256 = current_round.get_auction_clearing_price()
+        * current_round.total_options_sold();
+    // LP % of the round
+    let ratio_of_liquidity_provider_1: u256 = (vault_dispatcher
+        .get_collateral_balance_for(liquidity_provider_1())
+        * 100)
+        / total_collateral;
+    let ratio_of_liquidity_provider_2: u256 = (vault_dispatcher
+        .get_collateral_balance_for(liquidity_provider_2())
+        * 100)
+        / total_collateral;
+    // LP premiums share
+    let premium_for_liquidity_provider_1: u256 = (ratio_of_liquidity_provider_1
+        * total_premium_to_be_paid)
+        / 100;
+    let premium_for_liquidity_provider_2: u256 = (ratio_of_liquidity_provider_2
+        * total_premium_to_be_paid)
+        / 100;
+    // The actual unallocated balance of the LPs
+    let actual_unallocated_balance_provider_1: u256 = vault_dispatcher
+        .get_unallocated_balance_for(liquidity_provider_1());
+    let actual_unallocated_balance_provider_2: u256 = vault_dispatcher
+        .get_unallocated_balance_for(liquidity_provider_2());
 
-    let premium_balance_of_liquidity_provider_1: u256 = round_dispatcher
-        .premium_balance_of(liquidity_provider_1());
-    let premium_balance_of_liquidity_provider_2: u256 = round_dispatcher
-        .premium_balance_of(liquidity_provider_2());
-
-    // these two lines were commented out, not sure why
-    // vault_dispatcher.transfer_premium_collected_to_vault(liquidity_provider_1());
-    // vault_dispatcher.transfer_premium_collected_to_vault(liquidity_provider_2());
-    // should there be an invoke here to transfer_premium_collected_to_vault()/roll over funds ? 
-
-    //premium paid will be converted into unallocated.
-    let unallocated_wei_count: u256 = vault_dispatcher.total_unallocated_liquidity();
-    let expected_unallocated_wei: u256 = round_dispatcher.get_auction_clearing_price()
-        * option_params.total_options_available;
-    assert(unallocated_wei_count == expected_unallocated_wei, 'paid premiums should translate');
-    // matt: check these asserts
-    assert_event_option_amount_transfer(
-        vault_dispatcher.contract_address,
-        vault_dispatcher.contract_address,
-        liquidity_provider_1(),
-        premium_balance_of_liquidity_provider_1
+    assert(
+        actual_unallocated_balance_provider_1 == premium_for_liquidity_provider_1,
+        'premium paid in ratio'
     );
-    assert_event_option_amount_transfer(
-        vault_dispatcher.contract_address,
-        vault_dispatcher.contract_address,
-        liquidity_provider_2(),
-        premium_balance_of_liquidity_provider_2
+    assert(
+        actual_unallocated_balance_provider_2 == premium_for_liquidity_provider_2,
+        'premium paid in ratio'
     );
 }
 

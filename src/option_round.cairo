@@ -13,35 +13,18 @@ struct OptionRoundConstructorParams {
 }
 
 #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
-struct OptionRoundInitializerParams {
+struct OptionRoundParams {
+    current_average_basefee: u256, // average basefee the last few months, used to calculate the strike
     standard_deviation: u256, // used to calculate k (-σ or 0 or σ if vault is: ITM | ATM | OTM)
-    strike_price: u256, // K = BF_last_few_months * (1 + k)
+    strike_price: u256, // K = current_average_basefee * (1 + k)
     cap_level: u256, // cl, percentage points of K that the options will pay out at most. Payout = min(cl*K, BF-K). Might not be set until auction settles if we use alternate cap design (see DOCUMENTATION.md)
     collateral_level: u256, // total deposits now locked in the round 
     reserve_price: u256, // minimum price per option in the auction
+    total_options_available: u256,
     minimum_collateral_required: u256, // the auction will not start unless this much collateral is deposited, needed ? 
     auction_end_time: u64, // when the auction can be ended
     option_expiry_time: u64, // when the options can be settled  
 }
-
-// old (all together)
-// unit of account is in wei
-#[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
-struct OptionRoundParams {
-    current_average_basefee: u256, // wei
-    standard_deviation: u256,
-    strike_price: u256, // wei
-    cap_level: u256, //wei 
-    collateral_level: u256,
-    reserve_price: u256, //wei
-    total_options_available: u256,
-    // start_time:u64,
-    option_expiry_time: u64, // OptionRound cannot settle before this time
-    auction_end_time: u64, // auction cannot settle before this time
-    minimum_bid_amount: u256, // to prevent a dos vector
-    minimum_collateral_required: u256 // the option round will not start until this much collateral is deposited
-}
-
 
 #[derive(Copy, Drop, Serde, PartialEq, starknet::Store)]
 enum OptionRoundState {
@@ -50,12 +33,11 @@ enum OptionRoundState {
     Running,
     Settled,
     // old
-    Initialized,
+    Initialized, // add between Open and Auctioning (round transition period)
     AuctionStarted,
     AuctionSettled,
     OptionSettled,
 }
-
 
 #[event]
 #[derive(Drop, starknet::Event)]
@@ -86,7 +68,6 @@ struct AuctionBid {
 #[derive(Drop, starknet::Event)]
 struct AuctionSettle {
     clearing_price: u256
-// total options sold ? 
 }
 
 #[derive(Drop, starknet::Event)]
@@ -103,51 +84,65 @@ struct OptionTransferEvent {
 
 #[starknet::interface]
 trait IOptionRound<TContractState> {
-    // new, folling crash course
     /// Reads /// 
 
-    // Get the address of round's deploying vault 
-    fn get_vault_address(self: @TContractState) -> ContractAddress;
+    // The address of vault that deployed this round
+    fn vault_address(self: @TContractState) -> ContractAddress;
 
-    // Gets the current state of the option round
-    fn get_option_round_state(self: @TContractState) -> OptionRoundState;
+    // The state of the option round
+    fn get_state(self: @TContractState) -> OptionRoundState;
 
-    // Gets the parameters for the option round
-    fn get_option_round_params(self: @TContractState) -> OptionRoundParams;
+    // The paramters of the option round
+    fn get_params(self: @TContractState) -> OptionRoundParams;
 
-    // The total liquidity at the start of the option round
-    fn total_deposits(self: @TContractState) -> u256;
+    // replace this with total_collateral ?
+    // The total liquidity locked at the start of the round's auction
+    // @dev This value will remain locked indefinitely for future calculations
+    fn total_liquidity(self: @TContractState) -> u256;
 
-    // Gets the total amount deposited by an option buyer. If the auction has not 
-    // ended, this represents the total amount locked up for auction. If the auction has 
-    // ended, this is the amount not converted into an option and can be claimed back.
-    fn get_unused_bid_deposit_balance_of(
-        self: @TContractState, option_bidder: ContractAddress
-    ) -> u256;
-
-    // Gets the clearing price for the auction
-    fn get_auction_clearing_price(self: @TContractState) -> u256;
-
-    // The total number of options sold in the option round
-    // @note Will be 0 until the auction is settled
-    // @dev Could we just use the ERC20::total_supply() ?
-    fn total_options_sold(self: @TContractState) -> u256;
-
-    // Gets the amount of an option buyer's bids that were not used in the auction 
-    fn get_unused_bids_of(self: @TContractState, option_buyer: ContractAddress) -> u256;
+    // The total liqudity that is locked for the potential payout
+    // @dev This value fixes when the auction starts, and never changes
+    // unless there are onsold options. If a 1/2 of the options do not sell, 
+    // 1/2 of the collateral becomes unallocated.collateral moves to the unallocated liquidity
+    fn total_collateral(self: @TContractState) -> u256;
 
     // The total premium collected from the option round's auction
     fn total_premiums(self: @TContractState) -> u256;
 
-    // Gets the amount that an option buyer can claim with their options balance
-    fn get_payout_balance_of(self: @TContractState, option_buyer: ContractAddress) -> u256;
-
     // The total payouts of the option round
-    // @note Will be 0 until the option round is settled
-    // @note Can be 0 depending on the market conditions (exerciseable vs non-exerciseable)
     fn total_payouts(self: @TContractState) -> u256;
 
-    // @dev `option_balance_of` is not needed, it will be included in the ERC20 component as `balance_of`
+
+    // The amount of the total liquidity that is not allocated for a payout 
+    // This is the premiums + any unsold liquidity 
+    // While open, all of a round's liquidity is unallocated
+    // When the auction starts, all of the liquidity becomes collateral
+    // When the auction ends, the premiums collected and any unsold liquidity becomes unallocated
+    // When the round settles, the_collateral - the_payout + remaining_unallocated_liquidity rolls to the next round
+    //  - At this time, the round's unallocated liquidity is 0 (its total collateral remains the same for future calculations)
+    fn total_unallocated_liquidity(self: @TContractState) -> u256;
+
+    // The total amount of unallocated liquidity collected from the contract
+    fn get_unallocated_liquidity_collected(self: @TContractState) -> u256;
+
+    // The total number of options sold in the option round, will be 0 until
+    // the auction ends
+    fn total_options_sold(self: @TContractState) -> u256;
+
+    // Gets the clearing price of the auction
+    fn get_auction_clearing_price(self: @TContractState) -> u256;
+
+    // Before the auction ends, this is the amount an option buyer locks for bidding,
+    // after the auction ends, this is the amount that was not used and is unlocked
+    fn get_unused_bids_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
+
+    // Gets how much premium and unlocked liquidity an LP claimed from the round
+    fn get_premiums_collected_by(
+        self: @TContractState, liquidity_provider: ContractAddress
+    ) -> u256;
+
+    // Gets the amount that an option buyer can claim with their option balance
+    fn get_payout_balance_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
     /// Writes ///
 
@@ -166,7 +161,7 @@ trait IOptionRound<TContractState> {
     // @return if the auction was settled or not
     // @note there was a note in the previous version that this should return the clearing price,
     // not sure which makes more sense at this time.
-    fn settle_auction(ref self: TContractState) -> u256;
+    fn end_auction(ref self: TContractState) -> u256;
 
     // Refund unused bids for an option bidder if the auction has ended
     // @param option_bidder: The bidder to refund the unused bid back to
@@ -174,8 +169,8 @@ trait IOptionRound<TContractState> {
     fn refund_unused_bids(ref self: TContractState, option_bidder: ContractAddress) -> u256;
 
     // Settle the option round if past the expiry date and in state::Running
-    // @note This function should probably me limited to just the vault, and be wrapped
-    // in another entrypoint that will do the claim handling/transfer of funds
+    // @note This function should probably me limited to a wrapper entry point
+    // in the vault that will handle liquidity roll over
     // @return if the option round settles or not 
     fn settle_option_round(ref self: TContractState) -> bool;
 
@@ -185,65 +180,7 @@ trait IOptionRound<TContractState> {
     // @return the amount of the transfer
     fn exercise_options(ref self: TContractState, option_buyer: ContractAddress) -> u256;
 
-
-    ////////// old (some were moved to above, if name is the same) //////////
-
-    // total amount deposited as part of bidding by an option buyer, if the auction has not ended this represents the total amount locked up for auction and cannot be claimed back,
-    // if the auction has ended this the amount which was not converted into an option and can be claimed back.
-    fn unused_bid_deposit_balance_of(self: @TContractState, option_buyer: ContractAddress) -> u256;
-
-    // payout due to an option buyer
-    fn payout_balance_of(self: @TContractState, option_buyer: ContractAddress) -> u256;
-
-    // no of options bought by a user
-    // can drop, erc20::balance_of will suffice
-    fn option_balance_of(self: @TContractState, option_buyer: ContractAddress) -> u256;
-
-    // premium balance of liquidity_provider
-    // moving this to vault
-    fn premium_balance_of(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
-
-    // locked collateral balance of liquidity_provider
-    // moved to vault
-    fn collateral_balance_of(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
-
-    // total collateral available in the round
-    // moved to vault
-    fn total_collateral(self: @TContractState) -> u256;
-
-    fn bid_deposit_balance_of(self: @TContractState, option_buyer: ContractAddress) -> u256;
-
-    // market aggregator is a sort of oracle and provides market data(both historic averages and current prices)
-    fn get_market_aggregator(self: @TContractState) -> IMarketAggregatorDispatcher;
-
-    // returns true if auction_place_bid if deposit has been locked up in the auction. false if auction not running or auction_place_bid below reserve price
-    // amount: max amount in auction_place_bid token to be used for bidding in the auction
-    // price: max price in auction_place_bid token(eth) per option. if the auction ends with a price higher than this then the auction_place_bid is not accepted
-    fn auction_place_bid(ref self: TContractState, amount: u256, price: u256) -> bool;
-
-
-    // moves/transfers the unused premium deposit back to the bidder, return value is the amount of the transfer
-    // this is per option buyer. every option buyer will have to individually call refund_unused_bid_deposit to transfer any used deposits
-    fn refund_unused_bid_deposit(ref self: TContractState, recipient: ContractAddress) -> u256;
-
-    // transfers any payout due to the option buyer, return value is the amount of the transfer
-    // this is per option buyer. every option buyer will have to individually call claim_option_payout.
-    fn claim_option_payout(ref self: TContractState, for_option_buyer: ContractAddress) -> u256;
-
-    // if the options are past the expiry date then we can move the collateral (after the payout) back to the vault(unallocated pool), returns the collateral moved
-    // this is per liquidity provider, every option buyer will have to individually call transfer_collateral_to_vault
-    fn transfer_collateral_to_vault(
-        ref self: TContractState, for_liquidity_provider: ContractAddress
-    ) -> u256;
-
-    // after the auction ends, liquidity_providers can transfer the premiums paid to them back to the vault from where they can be immediately withdrawn.
-    // this is per liquidity provider, every liquidity provider will have to individually call transfer_premium_collected_to_vault
-
-    // matt: this is changing: the premium is not immediately available for withdrawal, it is locked until the option is settled ?
-    // then the premium + LP is either rolled to next round or sent to the user. If claim submitted before options expire, premiums are returned
-    fn transfer_premium_collected_to_vault(
-        ref self: TContractState, for_liquidity_provider: ContractAddress
-    ) -> u256;
+   fn get_market_aggregator(self: @TContractState) -> IMarketAggregatorDispatcher;
 }
 
 #[starknet::contract]
@@ -254,10 +191,7 @@ mod OptionRound {
     use pitch_lake_starknet::vault::VaultType;
     use pitch_lake_starknet::pool::IPoolDispatcher;
     use openzeppelin::token::erc20::interface::IERC20Dispatcher;
-    use super::{
-        OptionRoundConstructorParams, OptionRoundInitializerParams, OptionRoundParams,
-        OptionRoundState
-    };
+    use super::{OptionRoundConstructorParams, OptionRoundParams, OptionRoundState};
     use pitch_lake_starknet::market_aggregator::{
         IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
     };
@@ -267,22 +201,9 @@ mod OptionRound {
         vault_address: ContractAddress,
         market_aggregator: ContractAddress,
         state: OptionRoundState,
+        params: OptionRoundParams,
         constructor_params: OptionRoundConstructorParams,
     }
-
-    // old
-    //#[constructor]
-    //fn constructor(
-    //    ref self: ContractState,
-    //    owner: ContractAddress,
-    //    vault_address: ContractAddress,
-    //    // collaterized_pool: ContractAddress, // old
-    //    option_round_params: OptionRoundParams,
-    //    market_aggregator: IMarketAggregatorDispatcher, // should change to just address and build dispatcher when needed ? 
-    //) {
-    //    self.state.write(OptionRoundState::Open);
-    //    self.market_aggregator.write(market_aggregator);
-    //}
 
     #[constructor]
     fn constructor(
@@ -306,50 +227,23 @@ mod OptionRound {
     #[abi(embed_v0)]
     impl OptionRoundImpl of super::IOptionRound<ContractState> {
         /// Reads /// 
-        fn get_vault_address(self: @ContractState) -> ContractAddress {
+        fn vault_address(self: @ContractState) -> ContractAddress {
             self.vault_address.read()
         }
-        fn get_option_round_state(self: @ContractState) -> OptionRoundState {
+
+        fn get_state(self: @ContractState) -> OptionRoundState {
             self.state.read()
         }
 
-        fn get_option_round_params(self: @ContractState) -> OptionRoundParams {
-            // dummy value
-            OptionRoundParams {
-                current_average_basefee: 100,
-                standard_deviation: 100,
-                strike_price: 100,
-                cap_level: 100,
-                collateral_level: 100,
-                reserve_price: 100,
-                total_options_available: 100,
-                // start_time: 100,
-                option_expiry_time: 100,
-                auction_end_time: 100,
-                minimum_bid_amount: 100,
-                minimum_collateral_required: 100,
-            }
+        fn get_params(self: @ContractState) -> OptionRoundParams {
+            self.params.read()
         }
 
-        fn total_deposits(self: @ContractState) -> u256 {
+        fn total_liquidity(self: @ContractState) -> u256 {
             100
         }
 
-        fn get_unused_bid_deposit_balance_of(
-            self: @ContractState, option_bidder: ContractAddress
-        ) -> u256 {
-            100
-        }
-
-        fn get_auction_clearing_price(self: @ContractState) -> u256 {
-            100
-        }
-
-        fn total_options_sold(self: @ContractState) -> u256 {
-            100
-        }
-
-        fn get_unused_bids_of(self: @ContractState, option_buyer: ContractAddress) -> u256 {
+        fn total_unallocated_liquidity(self: @ContractState) -> u256 {
             100
         }
 
@@ -357,11 +251,33 @@ mod OptionRound {
             100
         }
 
-        fn get_payout_balance_of(self: @ContractState, option_buyer: ContractAddress) -> u256 {
+        fn total_payouts(self: @ContractState) -> u256 {
             100
         }
 
-        fn total_payouts(self: @ContractState) -> u256 {
+        fn total_options_sold(self: @ContractState) -> u256 {
+            100
+        }
+
+        fn get_unallocated_liquidity_collected(self: @ContractState) -> u256 {
+            100
+        }
+
+        fn get_auction_clearing_price(self: @ContractState) -> u256 {
+            100
+        }
+
+        fn get_unused_bids_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
+            100
+        }
+
+        fn get_premiums_collected_by(
+            self: @ContractState, liquidity_provider: ContractAddress
+        ) -> u256 {
+            100
+        }
+
+        fn get_payout_balance_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
             100
         }
 
@@ -375,7 +291,7 @@ mod OptionRound {
             false
         }
 
-        fn settle_auction(ref self: ContractState) -> u256 {
+        fn end_auction(ref self: ContractState) -> u256 {
             self.state.write(OptionRoundState::Running);
             100
         }
@@ -395,64 +311,7 @@ mod OptionRound {
 
 
         /// old ///
-
-        fn auction_place_bid(ref self: ContractState, amount: u256, price: u256) -> bool {
-            true
-        }
-
-
-        fn refund_unused_bid_deposit(ref self: ContractState, recipient: ContractAddress) -> u256 {
-            100
-        }
-
-        fn claim_option_payout(ref self: ContractState, for_option_buyer: ContractAddress) -> u256 {
-            100
-        }
-
-        // rm?
-        fn transfer_collateral_to_vault(
-            ref self: ContractState, for_liquidity_provider: ContractAddress
-        ) -> u256 {
-            100
-        }
-
-        // rm ?
-        fn transfer_premium_collected_to_vault(
-            ref self: ContractState, for_liquidity_provider: ContractAddress
-        ) -> u256 {
-            100
-        }
-
-        fn unused_bid_deposit_balance_of(
-            self: @ContractState, option_buyer: ContractAddress
-        ) -> u256 {
-            100
-        }
-
-
-        fn payout_balance_of(self: @ContractState, option_buyer: ContractAddress) -> u256 {
-            100
-        }
-
-        fn option_balance_of(self: @ContractState, option_buyer: ContractAddress) -> u256 {
-            100
-        }
-
-        fn premium_balance_of(self: @ContractState, liquidity_provider: ContractAddress) -> u256 {
-            100
-        }
-
-        fn collateral_balance_of(
-            self: @ContractState, liquidity_provider: ContractAddress
-        ) -> u256 {
-            100
-        }
-
         fn total_collateral(self: @ContractState) -> u256 {
-            100
-        }
-
-        fn bid_deposit_balance_of(self: @ContractState, option_buyer: ContractAddress) -> u256 {
             100
         }
 

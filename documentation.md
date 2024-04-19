@@ -45,12 +45,12 @@ However, if an LP wishes to sell their current position (maybe LP speculates the
 - **Deposit**: LP adds liquidity to the **next** option round, updating their position.
 - **Collect:** LP collects their premiums & unlocked liquidity from the **current** round (if they do not, the funds will be rolled over to the **next** round when the **current** round settles). The **current** round's state must be _Running_ for this entry point to be called. If it were _Auctioning_, the premiums would not be calculated yet, and if it were _Settled_, the funds would have already been rolled over to the **next** round.
 - **Withdraw**: LP withdraws from their liquidity in the **next** round. The **current** round's state must be _Settled_ for this entry point to be called. The option round must be _Settled_ so that we know the value of the payout, and can calculate the value of LP's position when it was rolled over to the **next round**. If the round were _Auctioning_ | _Running_, the funds would still be locked in the round.
-- (1\*) Settle Current Option Round: Settles the **current** round, rolls over remaining liquidity to the **next** round, and starts the **round transition** period.
+- (1\*) Settle Current Option Round: Settles the **current** round, rolls over remaining liquidity to the **next** round, and starts the **round transition period**.
 - (2\*) Start Next Option Round: Starts the **next** round’s auction and deploys the **new next** round. Updates the vault’s **current** & **next** pointers accordingly.
 - **Getters**: There should be read functions on the vault for the **current** & **next** option round ids, the addresses for option rounds, an LP position's value in the **current** round, and the premiums/unlocked liquidity an LP can collect from the **current** round.
 
 > 1.  Anyone can settle an option round, as long as the option expiry date is passed. The incentivisation scheme still needs to be designed.
-> 2.  Anyone can start a new option round, as long as the current round is Settled and the round transition window has passed. The incentivisation scheme still needs to be designed.
+> 2.  Anyone can start a new option round, as long as the current round is Settled and the round transition period has passed. The incentivisation scheme still needs to be designed.
 
 ## An Option Round:
 
@@ -81,13 +81,13 @@ Once we pass the current round’s settlement date, we can settle it. Once a rou
 
 > _This is because if other protocols adopt the same option round schedule as Pitchlake, then without a transition window, there would be no time for LP’s to exit another protocol and join before the next auctions starts, nor would Pitchlake LPs have time to withdraw their positions before they get locked into the next round._
 
-Once this round transition window passes, we can call the `vault::start_next_option_round()` entry point. This will start the **next** option round’s auction (_Open → Auctioning_), deploy the **new next** option round contract (→ _Open_), and increment the **current** & **next** round pointers by 1.
+Once this round transition window passes, we can call the `vault::start_auction()` entry point. This will start the **next** option round’s auction (_Open → Auctioning_), deploy the **new next** option round contract (→ _Open_), and increment the **current** & **next** round pointers by 1.
 
 **Example**:
 
-When the vault deploys, its **current** round pointer is 0 (_Settled),_ and its **next** round pointer is 1 (_Open)_. Once `vault::start_next_option_round()` is called, round 1 starts _Auctioning,_ round 2 gets deployed (as _Open_), the **current** round pointer becomes 1, and the **next** round pointer becomes 2.
+When the vault deploys, its **current** round pointer is 0 (_Settled),_ and its **next** round pointer is 1 (_Open)_. Once `vault::start_auction()` is called, round 1 starts _Auctioning,_ round 2 gets deployed (as _Open_), the **current** round pointer becomes 1, and the **next** round pointer becomes 2.
 
-The **current** option round (1) continues, transitioning from _Auctioning_ to _Running_ to _Settled_. During this time, any deposits to the vault will be sent to the **next** round (2). After round 1 settles and the transition window passes, the cycle repeats. `vault::start_next_option_round()` is called, round 2 becomes _Auctioning_, round 3 gets deployed as _Open_, the **current** pointer becomes 2, and the **next** pointer becomes 3.
+The **current** option round (1) continues, transitioning from _Auctioning_ to _Running_ to _Settled_. During this time, any deposits to the vault will be sent to the **next** round (2). After round 1 settles and the transition window passes, the cycle repeats. `vault::start_auction()` is called, round 2 becomes _Auctioning_, round 3 gets deployed as _Open_, the **current** pointer becomes 2, and the **next** pointer becomes 3.
 
 **In Summary:**
 
@@ -128,11 +128,11 @@ The options will be in the form of ERC20 tokens, minted to OBs at the end of the
 
 Once the option settlement date has been reached, the next step is to settle the round. This permanently sets the round’s state to _Settled_ (still the **current** round in the vault). Fossil lets us know what the average basefee over the option round's duration was, and depending on this value, the options may become exercisable (more on Fossil later in the crash course). If the options become exercisable, the total payout of the options is calculated. This allows an OB to burn their options in exchange for their portion of the payout.
 
-At this time, the remaining LP liquidity is sent to the next round, along with any premiums/unlocked liquidity that was not collected.
+When the round settles, we enter the **round transition period**. At this time, the parameters of the **next** round are initialized from Fossil (more on this later), and the remaining LP liquidity is sent to the next round, along with any premiums/unlocked liquidity that was not collected.
 
 > **NOTE:** If an LP does not collect their premium or unlocked liquidity during a round, it is not lost. It is included as part of their rolled over liquidity into the **next** round.
 
-After the round settles and the transition period passes, the next round’s auction can start, repeating the same life cycle. At this time, the round is no longer the **current** round in the vault, that pointer is updated to the round that's auction just started.
+After the transition period passes, the next round’s auction can start, repeating the same life cycle. At this time, the settled round is no longer the **current** round in the vault, that pointer is updated to the round that's auction just started.
 
 # A Technical Deep Dive
 
@@ -198,7 +198,7 @@ We start by calculating LP’s position value at the end of the current round (e
 
 ```rust
 // LPs can only withdraw during the round transition period
-// @dev The current round is Settled, and the next round is Open
+// @dev i.e. the current round is Settled, and the next round is Open
 // @dev LP liquidity is currently sitting in the next round because it was rolled over
 // @param LP: The address withdrawing liquidity
 // @param withdraw_amount: The amount LP is trying to withdraw
@@ -235,8 +235,7 @@ fn withdraw_from_position(LP: ContractAddress, withdraw_amount: uint) {
 		// but it will need to be implemented, and look something like:
 		// `ending_amount -= lp_collections_in_round(LP, i)`,
 		// where `lp_collections_in_round()` retrieves how much premium and unlocked
-		// liquidity LP collected during this round if any (collected funds are not rolled over to the next round)
-	}
+		// liquidity LP collected during this round if any (collected funds were not rolled over to the next round)
 
   // @dev At this point, ending_amount is the value of LP's position at the end of the current round.
   // @dev This is the amount rolled over into the next round.
@@ -263,9 +262,9 @@ The above architecture works fine for LPs to withdraw from their positions upon 
 
 LP tokens represent a position's value at the start of a round net of any premiums collected from the round. By knowing the value of a position at the start of a round, we can calculate its value at the end of the round (once it settles), and there by also knowing the value going into the next round (by rolling over). There will be an LP token contract (ERC20) associated with each round. Meaning if an LP tokenizes their position during round 3 (r3), they are minted r3 LP tokens.
 
-When an LP tokenizes their position, they are converting the value of their position at the start of the **current** round to LP tokens. They can only do so once the round's auction has ended, and before the option round settles. Simply, LPs can only tokenize their position in the **current** round if the **current** round's state is _Running_. The **current** round could not be _Auctioning_ because the premiums would not be calculated yet, and it could not be _Settled_ because the funds would have already been rolled over to the **next** round.
+When an LP tokenizes their position, they are converting the value of their position at the start of the **current** round to LP tokens. They can only do so once the round's auction has ended, and before the option round settles. Simply, LPs can only tokenize their position in the **current** round if the **current** round's state is _Running_. The **current** round cannot be _Auctioning_, because the premiums would not be known yet, and it could not be _Settled_ because they could just withdraw their position normally (if current round is Settled, we are in the round transition period).
 
-Some pseudo code for an LP tokenizing their current position is below:
+Some pseudo code for an LP tokenizing their entire current position is below:
 
 ```rust
 // LP tokenizes their entire current position.
@@ -331,7 +330,7 @@ fn tokenize_position(LP: ContractAddress){
 
 #### Tokens -> Positions
 
-Notice that when an LP tokenizes their position, they also collect their premiums from the round. This means that when these tokens get converted back into a positions, the premiums from this round are not included in the calculation for their value. It is important to note that these tokens **do** accrue premiums, just not for the round they were created in.
+Notice that when an LP tokenizes their position, they also collect their premiums from the round. This means that when these tokens get converted back into a position, the premiums from the round are not included in the calculation for their value. It is important to note that these tokens **do** accrue premiums, just not for the round they were created in.
 
 For example: Say the current round is 3 and LP1 speculates that gas prices will go up, resulting in a payout for the option round. Instead of accepting this loss, LP1 decides to tokenize their position, and sell it, hoping to get more than this expected potential loss.
 

@@ -238,8 +238,8 @@ fn mock_option_params() -> OptionRoundParams {
             * standard_deviation); //per notes from tomasz, we set cap level at 3 standard deviation (captures 99.7% of the data points)
 
     let in_the_money_strike_price: u256 = average_basefee + standard_deviation;
-    let at_the_money_strike_price: u256 = average_basefee;
-    let out_the_money_strike_price: u256 = average_basefee - standard_deviation;
+    //let at_the_money_strike_price: u256 = average_basefee;
+    //let out_the_money_strike_price: u256 = average_basefee - standard_deviation;
 
     let collateral_level: u256 = cap_level - in_the_money_strike_price; // per notes from tomasz
     let total_options_available: u256 = total_unallocated_liquidity / collateral_level;
@@ -262,7 +262,6 @@ fn mock_option_params() -> OptionRoundParams {
         // start_time:timestamp_start_month(),
         option_expiry_time: timestamp_end_month(),
         auction_end_time: week_duration(),
-        minimum_bid_amount: 1000,
         minimum_collateral_required: 10000,
     };
     return tmp;
