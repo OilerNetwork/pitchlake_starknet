@@ -16,7 +16,7 @@ use pitch_lake_starknet::eth::Eth;
 
 use pitch_lake_starknet::vault::{
     IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait,
-    VaultType
+    VaultType, VaultTransfer
 };
 use pitch_lake_starknet::pitch_lake::{
     IPitchLakeDispatcher, IPitchLakeSafeDispatcher, IPitchLakeDispatcherTrait, PitchLake,
@@ -373,5 +373,13 @@ fn assert_event_option_amount_transfer(
     assert(event.from == from, 'from shd match');
     assert(event.to == to, 'to shd match');
     assert(event.amount == amount, 'amount shd match');
+    assert_no_events_left(zero_address());
+}
+
+fn assert_event_transfer(from: ContractAddress, to: ContractAddress, amount: u256) {
+    let event = pop_log::<VaultTransfer>(zero_address()).unwrap();
+    assert(event.from == from, 'Invalid `from`');
+    assert(event.to == to, 'Invalid `to`');
+    assert(event.amount == amount, 'Invalid `amount`');
     assert_no_events_left(zero_address());
 }

@@ -22,11 +22,13 @@ use starknet::{
 };
 
 use starknet::contract_address::ContractAddressZeroable;
+use pitch_lake_starknet::tests::vault_helpers;
 use openzeppelin::utils::serde::SerializedAppend;
 
 use traits::Into;
 use traits::TryInto;
 use pitch_lake_starknet::eth::Eth;
+use pitch_lake_starknet::tests::vault_helpers::{VaultFacade, VaultFacadeTrait};
 use pitch_lake_starknet::tests::utils;
 use pitch_lake_starknet::tests::utils::{
     setup, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
@@ -153,6 +155,31 @@ fn test_deposit_liquidity_zero() {
     assert(balance_before_transfer == balance_after_transfer, 'zero deposit should not effect');
     assert(option_round.total_unallocated_liquidity() == 0, 'total liquidity should be 0');
     assert(locked_liquidity + unlocked_liquidity == 0, 'un/locked liquidity should be 0');
+}
+
+// test LP can deposit into next always 
+#[test]
+#[available_gas(10000000)]
+fn test_can_deposit_always(){
+    let (mut vault_dispatcher, mut eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
+    let option_round: IOptionRoundDispatcher = IOptionRoundDispatcher {
+        contract_address: vault_dispatcher
+            .get_option_round_address(vault_dispatcher.current_option_round_id() + 1)
+    };
+    let deposit_amount_wei: u256 = 10 * decimals();
+    let mut vault_facade =  VaultFacade{vault_dispatcher:vault_dispatcher, eth_dispatcher:eth_dispatcher};
+    
+    vault_facade.checkDeposit(deposit_amount_wei,liquidity_provider_1());
+
+    vault_facade.start_auction();
+    vault_facade.checkDeposit(deposit_amount_wei, liquidity_provider_1());
+
+    vault_facade.end_auction();
+    vault_facade.deposit( deposit_amount_wei, liquidity_provider_1());
+
+    vault_facade.settle_option_round(liquidity_provider_1());
+    vault_facade.checkDeposit(deposit_amount_wei, liquidity_provider_1());
+    
 }
 
 

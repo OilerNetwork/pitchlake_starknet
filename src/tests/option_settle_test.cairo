@@ -31,7 +31,7 @@ use pitch_lake_starknet::tests::{
         option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
         vault_manager, weth_owner, mock_option_params
     },
-    vault_liquidity_deposit_test::assert_event_transfer
+    vault_liquidity_deposit_withdraw_test::assert_event_transfer
 };
 use pitch_lake_starknet::tests::mock_market_aggregator::{
     MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,

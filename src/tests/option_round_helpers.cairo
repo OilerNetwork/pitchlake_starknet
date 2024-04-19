@@ -13,14 +13,14 @@ use pitch_lake_starknet::option_round::{IOptionRoundDispatcher, IOptionRoundDisp
 
 
 //@note: confirm start/end auction flow in relation to vault function and set_contract_address accordingly
-fn start_auction(ref option_round_dispatcher: IOptionRoundDispatcher) -> bool {
-    let result: bool = option_round_dispatcher.start_auction();
-    return result;
-}
+//fn start_auction(ref option_round_dispatcher: IOptionRoundDispatcher) -> bool {
+//    let result: bool = option_round_dispatcher.start_auction();
+//     return result;
+// }
 
-fn end_auction(ref option_round_dispatcher: IOptionRoundDispatcher) {
-    option_round_dispatcher.end_auction();
-}
+// fn end_auction(ref option_round_dispatcher: IOptionRoundDispatcher) {
+//     option_round_dispatcher.end_auction();
+// }
 
 fn place_bid(
     ref option_round_dispatcher: IOptionRoundDispatcher,
@@ -28,7 +28,7 @@ fn place_bid(
     amount: u256,
     price: u256
 ) -> bool {
-    set_countract_address(option_bidder_buyer);
+    set_contract_address(option_bidder_buyer);
     let result: bool = option_round_dispatcher.place_bid(amount, price);
     return result;
 }
