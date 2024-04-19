@@ -112,7 +112,7 @@ fn test_collected_premium_does_not_roll_over() {
     // - @note need more tests for that
     set_contract_address(liquidity_provider_1());
     let claimable_premiums: u256 = params.total_options_available * params.reserve_price;
-    vault_dispatcher.withdraw_from_position(claimable_premiums);
+    vault_dispatcher.withdraw_liquidity(claimable_premiums);
 
     // The round has no more unallocated liquidity because lp withdrew it
     let unallocated_liqudity_after_premium_claim: u256 = option_round.total_unallocated_liquidity();
@@ -339,4 +339,5 @@ fn test_option_payout_amount_index_at_strike() {
     assert(payout_balance == 0, 'expected payout doesnt match');
 }
 // @note Add test that payout is capped even if index >>> strike
+
 

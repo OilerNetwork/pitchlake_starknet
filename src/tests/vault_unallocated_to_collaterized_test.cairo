@@ -63,7 +63,7 @@ fn test_withdraw_liquidity_when_unlocked_success() {
     );
 
     // Withdraw liquidity while current round is locked
-    vault_dispatcher.withdraw_from_position(deposit_amount_wei);
+    vault_dispatcher.withdraw_liquidity(deposit_amount_wei);
 
     // Check liquidity was withdrawn
     let lp_balance_after_withdraw: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
@@ -94,7 +94,7 @@ fn test_withdraw_liquidity_when_locked_failure() {
     vault_dispatcher.start_auction();
 
     // Try to withdraw liquidity while current round is locked
-    vault_dispatcher.withdraw_from_position(deposit_amount_wei);
+    vault_dispatcher.withdraw_liquidity(deposit_amount_wei);
 }
 
 
@@ -114,7 +114,7 @@ fn test_round_unallocated_becomes_collateral_when_auction_starts() {
     vault_dispatcher.deposit_liquidity(deposit_amount_wei_1);
     set_contract_address(liquidity_provider_2());
     vault_dispatcher.deposit_liquidity(deposit_amount_wei_2);
-    let total_unallocated = vault_dispatcher.total_unallocated_liquidity();
+    let total_unallocated = current_round.total_unallocated_liquidity();
     assert(
         total_unallocated == deposit_amount_wei_1 + deposit_amount_wei_2,
         'all tokens shd be unallocated'

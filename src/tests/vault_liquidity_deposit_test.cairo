@@ -179,7 +179,7 @@ fn test_withdraw_transfers_eth() {
     // Withdraw liquidity
     let lp_balance_before: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
     let round_balance_before: u256 = eth_dispatcher.balance_of(option_round.contract_address);
-    vault_dispatcher.withdraw_from_position(1 * decimals());
+    vault_dispatcher.withdraw_liquidity(1 * decimals());
     let lp_balance_after: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
     let round_balance_after: u256 = eth_dispatcher.balance_of(option_round.contract_address);
     // Check liquidity changes
@@ -205,12 +205,12 @@ fn test_withdraw_decrements_rounds_total_unallocated() {
     let deposit_amount_wei: u256 = 50 * decimals();
     vault_dispatcher.deposit_liquidity(deposit_amount_wei);
     // Withdraw liquidity
-    vault_dispatcher.withdraw_from_position(1 * decimals());
+    vault_dispatcher.withdraw_liquidity(1 * decimals());
     let round_liquidity = option_round.total_unallocated_liquidity();
     // Check total liquidity updates correctly
     assert(round_liquidity == deposit_amount_wei - (1 * decimals()), 'unlocked liquidity wrong');
     // Withdraw liquidity again
-    vault_dispatcher.withdraw_from_position(9 * decimals());
+    vault_dispatcher.withdraw_liquidity(9 * decimals());
     let round_liquidity = option_round.total_unallocated_liquidity();
     // Check total liquidity updates correctly
     assert(round_liquidity == deposit_amount_wei - (10 * decimals()), 'unlocked liquidity wrong');
@@ -228,7 +228,7 @@ fn test_withdraw_decrements_lps_unallocated_liquidity() {
     let deposit_amount_wei: u256 = 50 * decimals();
     vault_dispatcher.deposit_liquidity(deposit_amount_wei);
     // Withdraw liquidity
-    vault_dispatcher.withdraw_from_position(1 * decimals());
+    vault_dispatcher.withdraw_liquidity(1 * decimals());
     let locked_liquidity: u256 = vault_dispatcher
         .get_collateral_balance_for(liquidity_provider_1());
     let unlocked_liquidity: u256 = vault_dispatcher
@@ -254,7 +254,7 @@ fn test_deposit_withdraw_liquidity_zero() {
     vault_dispatcher.deposit_liquidity(deposit_amount_wei);
     // Withdraw 0 liquidity
     let balance_before_transfer: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
-    vault_dispatcher.withdraw_from_position(0);
+    vault_dispatcher.withdraw_liquidity(0);
     // Check no liquidity changes
     let balance_after_transfer: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
     let round_liquidity = option_round.total_unallocated_liquidity();

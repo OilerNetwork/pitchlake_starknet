@@ -106,6 +106,13 @@ trait IOptionRound<TContractState> {
     // 1/2 of the collateral becomes unallocated.collateral moves to the unallocated liquidity
     fn total_collateral(self: @TContractState) -> u256;
 
+    // The total premium collected from the option round's auction
+    fn total_premiums(self: @TContractState) -> u256;
+
+    // The total payouts of the option round
+    fn total_payouts(self: @TContractState) -> u256;
+
+
     // The amount of the total liquidity that is not allocated for a payout 
     // This is the premiums + any unsold liquidity 
     // While open, all of a round's liquidity is unallocated
@@ -114,12 +121,6 @@ trait IOptionRound<TContractState> {
     // When the round settles, the_collateral - the_payout + remaining_unallocated_liquidity rolls to the next round
     //  - At this time, the round's unallocated liquidity is 0 (its total collateral remains the same for future calculations)
     fn total_unallocated_liquidity(self: @TContractState) -> u256;
-
-    // The total premium collected from the option round's auction
-    fn total_premiums(self: @TContractState) -> u256;
-
-    // The total payouts of the option round
-    fn total_payouts(self: @TContractState) -> u256;
 
     // The total amount of unallocated liquidity collected from the contract
     fn get_unallocated_liquidity_collected(self: @TContractState) -> u256;
@@ -179,17 +180,7 @@ trait IOptionRound<TContractState> {
     // @return the amount of the transfer
     fn exercise_options(ref self: TContractState, option_buyer: ContractAddress) -> u256;
 
-    ////////// old (some were moved to above, if name is the same) //////////
-
-    // locked collateral balance of liquidity_provider
-    // moved to vault
-    fn collateral_balance_of(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
-
-    fn bid_deposit_balance_of(self: @TContractState, option_buyer: ContractAddress) -> u256;
-
-    // @dev rm ? can just use address in vault::market_aggregator ? 
-    // market aggregator is a sort of oracle and provides market data(both historic averages and current prices)
-    fn get_market_aggregator(self: @TContractState) -> IMarketAggregatorDispatcher;
+   fn get_market_aggregator(self: @TContractState) -> IMarketAggregatorDispatcher;
 }
 
 #[starknet::contract]
@@ -213,20 +204,6 @@ mod OptionRound {
         params: OptionRoundParams,
         constructor_params: OptionRoundConstructorParams,
     }
-
-    // old
-    //#[constructor]
-    //fn constructor(
-    //    ref self: ContractState,
-    //    owner: ContractAddress,
-    //    vault_address: ContractAddress,
-    //    // collaterized_pool: ContractAddress, // old
-    //    option_round_params: OptionRoundParams,
-    //    market_aggregator: IMarketAggregatorDispatcher, // should change to just address and build dispatcher when needed ? 
-    //) {
-    //    self.state.write(OptionRoundState::Open);
-    //    self.market_aggregator.write(market_aggregator);
-    //}
 
     #[constructor]
     fn constructor(
@@ -334,17 +311,7 @@ mod OptionRound {
 
 
         /// old ///
-        fn collateral_balance_of(
-            self: @ContractState, liquidity_provider: ContractAddress
-        ) -> u256 {
-            100
-        }
-
         fn total_collateral(self: @ContractState) -> u256 {
-            100
-        }
-
-        fn bid_deposit_balance_of(self: @ContractState, option_buyer: ContractAddress) -> u256 {
             100
         }
 

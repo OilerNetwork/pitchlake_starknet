@@ -62,7 +62,7 @@ fn test_withdraw_premiums_from_current_round() {
     let expected_unallocated_wei: u256 = round_dispatcher.get_auction_clearing_price()
         * round_dispatcher.total_options_sold();
 
-    vault_dispatcher.withdraw_from_position(expected_unallocated_wei);
+    vault_dispatcher.withdraw_liquidity(expected_unallocated_wei);
 
     //assert(success == true, 'should be able withdraw premium');
     assert_event_option_amount_transfer(

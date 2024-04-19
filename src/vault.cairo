@@ -43,7 +43,7 @@ struct OptionRoundCreated {
 // Is this the case or wil OBs interact with the option rounds ? 
 
 #[starknet::interface]
-trait IVault<TContractState> { // erc721
+trait IVault<TContractState> { 
     /// Reads ///
 
     // Get the vault's  manaager address 
@@ -80,23 +80,8 @@ trait IVault<TContractState> { // erc721
     // @return the lp_id of the liquidity position (erc721 token id)
     fn deposit_liquidity(ref self: TContractState, amount: u256) -> u256;
 
-    // @dev remove this, replaced with one below
-    // LP withdraws their liquidity from the the current open option round 
-    // @return if the withdrawal was successful
-    fn withdraw_liquidity(ref self: TContractState, lp_id: u256, amount: u256) -> bool;
-
     // LP withdraws from their position while in the round transition period
-    fn withdraw_from_position(ref self: TContractState, amount: u256);
-
-    // @dev remove this function in place of start_auction
-    // Deploy the next option round contract as long as the current is state::Settled, and start 
-    // the auction on the new current option round (-> state::Auctioning)
-    // @note This function should only be callable by the pitchlake server, or the public with incentive.
-    // @dev The current/next_option_round_id both increment by 1.
-    // @dev The new next option round is deployed with state::Open.
-    // @note Once we start the auction we know how much liquidity we have, this is where 
-    // we fetch/consume/pass the values from fossil (strike, cl, etc.) to create our OptionRoundParams.
-    fn start_next_option_round(ref self: TContractState) -> bool;
+    fn withdraw_liquidity(ref self: TContractState, amount: u256);
 
     // Settle the current option round as long as the current round is Running and the option expiry time has passed.
     fn settle_option_round(ref self: TContractState) -> bool;
@@ -108,55 +93,9 @@ trait IVault<TContractState> { // erc721
     // End the auction in the current round as long as the current round is Auctioning and the auction
     // bidding period has ended.
     fn end_auction(ref self: TContractState) -> u256;
-    /// old below
 
-    // @notice add liquidity to the next option round. This will create a new liquidity position
-    // @param amount: amount of liquidity to add
-    // @return liquidity position id
-    fn open_liquidity_position(ref self: TContractState, amount: u256) -> u256;
-
-    // @notice add liquidity to the next option round. This will update the liquidity position for lp_id
-    // @param lp_id: liquidity position id
-    // @param amount: amount of liquidity to add
-    // @return bool: true if the liquidity was added successfully 
-    fn deposit_liquidity_to(ref self: TContractState, lp_id: u256, amount: u256) -> bool;
-
-    // @notice withdraw liquidity from the position
-    // @dev this can only be withdrawn from amound deposited for the next option round or if the current option round has settled and is not collaterized anymore
-    // @param lp_id: liquidity position id
-    // @param amount: amount of liquidity to withdraw in wei
-    // @return bool: true if the liquidity was withdrawn successfully
-    // fn withdraw_liquidity(ref self: TContractState, lp_id: u256, amount: u256) -> bool;
-
-    // read 
-    // @return current option round params and the option round id
-    fn current_option_round(self: @TContractState) -> (u256, OptionRoundParams);
-
-    // @return next option round params and the option round id
-    fn next_option_round(self: @TContractState) -> (u256, OptionRoundParams);
-
+    // @note needed ? 
     fn get_market_aggregator(self: @TContractState) -> IMarketAggregatorDispatcher;
-
-    // @return the contract address of the option round
-    fn option_round_addresses(self: @TContractState, option_round_id: u256) -> ContractAddress;
-
-    // unallocated balance of balance of a liquidity position
-    fn unallocated_liquidity_balance_of(self: @TContractState, lp_id: u256) -> u256;
-
-    // total liquidity unallocated/uncollaterized
-    fn total_unallocated_liquidity(self: @TContractState) -> u256;
-
-    // decimals in the vault token ?
-    fn decimals(self: @TContractState) -> u8;
-
-
-    // #[view]
-    // fn generate_option_round_params(ref self: TContractState, option_expiry_time_:u64)-> OptionRoundParams;
-
-    // @notice Deploy a new option round, this also collaterizes amount from the previous option round into current option round. This also starts the auction for the options in the current round.
-    // @dev there should be checks to make sure that the current option round has settled and is not collaterized anymore and certain time has elapsed.
-    // @return option round params, and the next option round id and contract address
-    fn start_new_option_round(ref self: TContractState) -> (u256, OptionRoundParams);
 }
 
 #[starknet::contract]
@@ -251,7 +190,7 @@ mod Vault {
         fn get_option_round_address(
             self: @ContractState, option_round_id: u256
         ) -> ContractAddress {
-            self.option_round_addresses(option_round_id)
+            self.round_addresses.read(option_round_id)
         }
 
         fn get_collateral_balance_for(
@@ -266,28 +205,18 @@ mod Vault {
             100
         }
 
-        // LP' premiums earned after the current round's auction, if round is settled it is 0
         fn get_premiums_for(self: @ContractState, liquidity_provider: ContractAddress) -> u256 {
             100
         }
-
 
         /// Writes ///
         fn deposit_liquidity(ref self: ContractState, amount: u256) -> u256 {
             1
         }
 
-        fn withdraw_liquidity(ref self: ContractState, lp_id: u256, amount: u256) -> bool {
-            true
-        }
-
-        fn withdraw_from_position(ref self: ContractState, amount: u256) {}
+        fn withdraw_liquidity(ref self: ContractState, amount: u256) {}
 
         fn settle_option_round(ref self: ContractState) -> bool {
-            true
-        }
-        // replace with function underneath this one
-        fn start_next_option_round(ref self: ContractState) -> bool {
             true
         }
 
@@ -298,110 +227,9 @@ mod Vault {
         fn end_auction(ref self: ContractState) -> u256 {
             100
         }
-        /// old ///
-
-        fn open_liquidity_position(ref self: ContractState, amount: u256) -> u256 {
-            10
-        }
-
-        fn deposit_liquidity_to(ref self: ContractState, lp_id: u256, amount: u256) -> bool {
-            true
-        }
-
-        // fn withdraw_liquidity(ref self: ContractState, lp_id: u256, amount: u256) -> bool {
-        //     true
-        // }
-
-        fn start_new_option_round(ref self: ContractState) -> (u256, OptionRoundParams) {
-            let params = OptionRoundParams {
-                current_average_basefee: 100,
-                strike_price: 1000,
-                standard_deviation: 50,
-                cap_level: 100,
-                collateral_level: 100,
-                reserve_price: 10,
-                total_options_available: 1000,
-                // start_time:start_time_,
-                option_expiry_time: 1000,
-                auction_end_time: 1000,
-                minimum_collateral_required: 100
-            };
-            // assert current round is settled, and next one is initialized
-            // start next round's auction
-            // deploy new next round contract 
-            // update current/next round ids (current += 1, next += 1)
-
-            // let (round_address, _) = deploy_syscall(
-            //     OptionRound::TEST_CLASS_HASH.try_into().unwrap(), 'salt', call_data.span(), false
-            // )
-            //     .unwrap();
-
-            // // mock set in storage 
-            // self.round_addresses.write(1, round_address);
-
-            return (1, params);
-        }
-
-        fn current_option_round(self: @ContractState) -> (u256, OptionRoundParams) {
-            let params = OptionRoundParams {
-                current_average_basefee: 100,
-                strike_price: 1000,
-                standard_deviation: 50,
-                cap_level: 100,
-                collateral_level: 100,
-                reserve_price: 10,
-                total_options_available: 1000,
-                // start_time:start_time_,
-                option_expiry_time: 1000,
-                auction_end_time: 1000,
-                minimum_collateral_required: 100
-            };
-            return (0, params);
-        }
-
-        fn next_option_round(self: @ContractState) -> (u256, OptionRoundParams) {
-            let params = OptionRoundParams {
-                current_average_basefee: 100,
-                strike_price: 1000,
-                standard_deviation: 50,
-                cap_level: 100,
-                collateral_level: 100,
-                reserve_price: 10,
-                total_options_available: 1000,
-                // start_time:start_time_,
-                option_expiry_time: 1000,
-                auction_end_time: 1000,
-                minimum_collateral_required: 100
-            };
-            return (0, params);
-        }
-
-
-        // new
-        fn option_round_addresses(self: @ContractState, option_round_id: u256) -> ContractAddress {
-            // get_contract_address()
-            self.round_addresses.read(option_round_id)
-        }
-
-        // fn vault_type(self: @ContractState) -> VaultType {
-        //     // TODO fix later, random value
-        //     VaultType::AtTheMoney
-        // }
 
         fn get_market_aggregator(self: @ContractState) -> IMarketAggregatorDispatcher {
             IMarketAggregatorDispatcher { contract_address: self.market_aggregator.read() }
-        }
-
-        fn decimals(self: @ContractState) -> u8 {
-            18
-        }
-
-        fn total_unallocated_liquidity(self: @ContractState) -> u256 {
-            100
-        }
-
-        fn unallocated_liquidity_balance_of(self: @ContractState, lp_id: u256) -> u256 {
-            100
         }
     }
 }
