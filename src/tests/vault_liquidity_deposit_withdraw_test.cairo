@@ -7,13 +7,9 @@ use openzeppelin::token::erc20::interface::{
 };
 
 use pitch_lake_starknet::vault::{
-    IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait,
-    VaultTransfer, OptionRoundCreated
+    VaultTransfer
 };
-use pitch_lake_starknet::option_round::{
-    OptionRound, IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundParams
-};
-
+ 
 use result::ResultTrait;
 use starknet::{
     ClassHash, ContractAddress, contract_address_const, deploy_syscall,
@@ -87,7 +83,7 @@ fn test_deposit_liquidity_increments_rounds_total_unallocated() {
     vault_facade.get_next_round();
 
     // Initial total liquidity
-    let init_total_deposits: u256 = option_round_facade.option_round_dispatcher.total_liquidity();
+    let init_total_deposits: u256 = option_round_facade.total_liquidity();
     // Deposit liquidity
     let deposit_amount_wei: u256 = 50 * decimals();
     let topup_amount_wei: u256 = 100 * decimals();
@@ -122,7 +118,7 @@ fn test_deposit_liquidity_increments_LPs_unallocated_balance() {
     assert(lp_unallocated_1 == deposit_amount_wei, 'wrong unallocated 1');
     assert(lp_unallocated_2 == deposit_amount_wei + topup_amount_wei, 'wrong unallocated 2');
     assert_event_transfer(
-        liquidity_provider_1(), vault_facade.vault_dispatcher.contract_address, topup_amount_wei
+        liquidity_provider_1(), vault_facade.contract_address(), topup_amount_wei
     );
 }
 
@@ -131,7 +127,7 @@ fn test_deposit_liquidity_increments_LPs_unallocated_balance() {
 #[available_gas(10000000)]
 fn test_deposit_liquidity_zero() {
     let mut vault_facade : VaultFacade = setup_facade(); 
-    let option_round_facade: OptionRoundFacade = vault_facade.get_next_round();
+    let mut option_round_facade: OptionRoundFacade = vault_facade.get_next_round();
     let balance_before_transfer: u256 = vault_facade.eth_dispatcher.balance_of(liquidity_provider_1());
     let deposit_amount_wei: u256 = 0;
     vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
@@ -140,7 +136,7 @@ fn test_deposit_liquidity_zero() {
     let unlocked_liquidity: u256 = vault_facade.get_unlocked_liquidity(liquidity_provider_1());
 
     assert(balance_before_transfer == balance_after_transfer, 'zero deposit should not effect');
-    assert(option_round_facade.option_round_dispatcher.total_unallocated_liquidity() == 0, 'total liquidity should be 0');
+    assert(option_round_facade.total_unallocated_liquidity() == 0, 'total liquidity should be 0');
     assert(locked_liquidity + unlocked_liquidity == 0, 'un/locked liquidity should be 0');
 }
 

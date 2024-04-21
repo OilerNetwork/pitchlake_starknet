@@ -1,14 +1,11 @@
-use core::clone::Clone;
-use pitch_lake_starknet::vault::{IVaultDispatcher, IVaultDispatcherTrait,};
+use pitch_lake_starknet::vault::{IVaultDispatcher, IVaultDispatcherTrait};
 
 use pitch_lake_starknet::option_round::{
     OptionRound, OptionRoundParams, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,
-    IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait
 };
 
 use openzeppelin::token::erc20::interface::{
-    IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
-    IERC20SafeDispatcherTrait,
+     IERC20Dispatcher, IERC20DispatcherTrait
 };
 
 use starknet::{ContractAddress, testing::{set_contract_address}};
@@ -29,7 +26,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     fn contract_address(ref self:VaultFacade)->ContractAddress {
         return self.vault_dispatcher.contract_address;
     }
-    
+
     fn deposit(ref self: VaultFacade, amount: u256, liquidity_provider: ContractAddress) {
         set_contract_address(liquidity_provider);
         let _: u256 = self.vault_dispatcher.deposit_liquidity(amount);
