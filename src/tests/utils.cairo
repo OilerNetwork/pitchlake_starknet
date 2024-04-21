@@ -24,7 +24,7 @@ use pitch_lake_starknet::pitch_lake::{
 };
 
 
-use pitch_lake_starknet::tests::vault_helpers::{
+use pitch_lake_starknet::tests::vault_facade::{
     VaultFacade, VaultFacadeTrait
 };
 use pitch_lake_starknet::option_round;

@@ -22,7 +22,17 @@ use pitch_lake_starknet::option_round::{IOptionRoundDispatcher, IOptionRoundDisp
 //     option_round_dispatcher.end_auction();
 // }
 
-fn place_bid(
+#[derive(Drop)]
+struct OptionRoundFacade {
+    option_round_dispatcher:IOptionRoundDispatcher,
+    contract_address:ContractAddress
+}
+
+#[generate_trait]
+impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
+
+  fn place_bid(
+    ref self:OptionRoundFacade,
     ref option_round_dispatcher: IOptionRoundDispatcher,
     option_bidder_buyer: ContractAddress,
     amount: u256,
@@ -39,4 +49,9 @@ fn refund_bid(
     set_contract_address(option_bidder_buyer);
     let result: u256 = option_round_dispatcher.refund_unused_bids(option_bidder_buyer);
     return result;
+}   
+    fn total_liquidity(ref self:OptionRoundFacade)->u256{
+       return self.option_round_dispatcher.total_liquidity();
+    }
+
 }

@@ -22,13 +22,13 @@ use starknet::{
 };
 
 use starknet::contract_address::ContractAddressZeroable;
-use pitch_lake_starknet::tests::vault_helpers;
 use openzeppelin::utils::serde::SerializedAppend;
 
 use traits::Into;
 use traits::TryInto;
 use pitch_lake_starknet::eth::Eth;
-use pitch_lake_starknet::tests::vault_helpers::{VaultFacade, VaultFacadeTrait};
+use pitch_lake_starknet::tests::vault_facade::{VaultFacade, VaultFacadeTrait};
+use pitch_lake_starknet::tests::option_round_facade::{OptionRoundFacade,OptionRoundFacadeTrait};
 use pitch_lake_starknet::tests::utils;
 use pitch_lake_starknet::tests::utils::{
     setup,setup_facade, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
@@ -52,22 +52,18 @@ fn assert_event_transfer(from: ContractAddress, to: ContractAddress, amount: u25
 #[test]
 #[available_gas(10000000)]
 fn test_deposit_liquidity_transfers_eth() {
-    let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
+    let mut vault_facade = setup_facade();
     // Get the next option round
-    let option_round: IOptionRoundDispatcher = IOptionRoundDispatcher {
-        contract_address: vault_dispatcher
-            .get_option_round_address(vault_dispatcher.current_option_round_id() + 1)
-    };
+    let option_round_facade: OptionRoundFacade = vault_facade.get_next_round();
     // Initial balances
-    let initial_lp_balance: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
-    let initial_round_balance: u256 = eth_dispatcher.balance_of(option_round.contract_address);
+    let initial_lp_balance: u256 = vault_facade.eth_dispatcher.balance_of(liquidity_provider_1());
+    let initial_round_balance: u256 = vault_facade.eth_dispatcher.balance_of(option_round_facade.contract_address);
     // Deposit liquidity
     let deposit_amount_wei: u256 = 50 * decimals();
-    set_contract_address(liquidity_provider_1());
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    vault_facade.deposit(deposit_amount_wei,liquidity_provider_1());
     // Final balances
-    let final_lp_balance: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
-    let final_round_balance: u256 = eth_dispatcher.balance_of(option_round.contract_address);
+    let final_lp_balance: u256 = vault_facade.eth_dispatcher.balance_of(liquidity_provider_1());
+    let final_round_balance: u256 = vault_facade.eth_dispatcher.balance_of(option_round_facade.contract_address);
     // Assertions
     assert(
         final_lp_balance == initial_lp_balance - deposit_amount_wei, 'LP balance should decrease'
@@ -77,7 +73,7 @@ fn test_deposit_liquidity_transfers_eth() {
         'Round balance should increase'
     );
     assert_event_transfer(
-        liquidity_provider_1(), option_round.contract_address, deposit_amount_wei
+        liquidity_provider_1(), option_round_facade.contract_address, deposit_amount_wei
     );
 }
 
@@ -85,30 +81,27 @@ fn test_deposit_liquidity_transfers_eth() {
 #[test]
 #[available_gas(10000000)]
 fn test_deposit_liquidity_increments_rounds_total_unallocated() {
-    let (vault_dispatcher, _): (IVaultDispatcher, IERC20Dispatcher) = setup();
+    let mut vault_facade: VaultFacade = setup_facade();
     // Get the next option round
-    let option_round: IOptionRoundDispatcher = IOptionRoundDispatcher {
-        contract_address: vault_dispatcher
-            .get_option_round_address(vault_dispatcher.current_option_round_id() + 1)
-    };
+    let option_round_facade: OptionRoundFacade =  
+    vault_facade.get_next_round();
 
     // Initial total liquidity
-    let init_total_deposits: u256 = option_round.total_liquidity();
+    let init_total_deposits: u256 = option_round_facade.option_round_dispatcher.total_liquidity();
     // Deposit liquidity
     let deposit_amount_wei: u256 = 50 * decimals();
     let topup_amount_wei: u256 = 100 * decimals();
-    set_contract_address(liquidity_provider_1());
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
     // Topup liquidity
-    let next_total_deposits: u256 = option_round.total_unallocated_liquidity();
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
-    let final_total_deposits: u256 = option_round.total_unallocated_liquidity();
+    let next_total_deposits: u256 = option_round_facade.option_round_dispatcher.total_unallocated_liquidity();
+    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
+    let final_total_deposits: u256 = option_round_facade.option_round_dispatcher.total_unallocated_liquidity();
     // Check round total deposits incremented each time
     assert(init_total_deposits == 0, 'should with at 0');
     assert(next_total_deposits == init_total_deposits + deposit_amount_wei, 'should increment');
     assert(final_total_deposits == next_total_deposits + topup_amount_wei, 'should increment');
     assert_event_transfer(
-        liquidity_provider_1(), vault_dispatcher.contract_address, topup_amount_wei
+        liquidity_provider_1(), vault_facade.vault_dispatcher.contract_address, topup_amount_wei
     );
 }
 
@@ -116,21 +109,20 @@ fn test_deposit_liquidity_increments_rounds_total_unallocated() {
 #[test]
 #[available_gas(10000000)]
 fn test_deposit_liquidity_increments_LPs_unallocated_balance() {
-    let (vault_dispatcher, _): (IVaultDispatcher, IERC20Dispatcher) = setup();
+    let mut vault_facade = setup_facade();
     // Deposit liquidity
     let deposit_amount_wei: u256 = 50 * decimals();
     let topup_amount_wei: u256 = 100 * decimals();
-    set_contract_address(liquidity_provider_1());
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
-    let lp_unallocated_1 = vault_dispatcher.get_unallocated_balance_for(liquidity_provider_1());
+    vault_facade.deposit(deposit_amount_wei,liquidity_provider_1());
+    let lp_unallocated_1 = vault_facade.vault_dispatcher.get_unallocated_balance_for(liquidity_provider_1());
     // Topup liquidity
-    vault_dispatcher.deposit_liquidity(topup_amount_wei);
-    let lp_unallocated_2 = vault_dispatcher.get_unallocated_balance_for(liquidity_provider_1());
+    vault_facade.deposit(topup_amount_wei, liquidity_provider_1());
+    let lp_unallocated_2 = vault_facade.vault_dispatcher.get_unallocated_balance_for(liquidity_provider_1());
     // Check LP's unallocated incremented each time
     assert(lp_unallocated_1 == deposit_amount_wei, 'wrong unallocated 1');
     assert(lp_unallocated_2 == deposit_amount_wei + topup_amount_wei, 'wrong unallocated 2');
     assert_event_transfer(
-        liquidity_provider_1(), vault_dispatcher.contract_address, topup_amount_wei
+        liquidity_provider_1(), vault_facade.vault_dispatcher.contract_address, topup_amount_wei
     );
 }
 
@@ -138,22 +130,19 @@ fn test_deposit_liquidity_increments_LPs_unallocated_balance() {
 #[test]
 #[available_gas(10000000)]
 fn test_deposit_liquidity_zero() {
-    let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let option_round: IOptionRoundDispatcher = IOptionRoundDispatcher {
-        contract_address: vault_dispatcher
-            .get_option_round_address(vault_dispatcher.current_option_round_id() + 1)
-    };
-    set_contract_address(liquidity_provider_1());
-    let balance_before_transfer: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
+    let mut vault_facade : VaultFacade = setup_facade(); 
+    let option_round_facade: OptionRoundFacade = vault_facade.get_next_round();
+    let balance_before_transfer: u256 = vault_facade.eth_dispatcher.balance_of(liquidity_provider_1());
     let deposit_amount_wei: u256 = 0;
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
-    let balance_after_transfer: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
-    let locked_liquidity: u256 = vault_dispatcher
+    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
+    let balance_after_transfer: u256 = vault_facade.eth_dispatcher.balance_of(liquidity_provider_1());
+    let locked_liquidity: u256 = vault_facade.vault_dispatcher
         .get_collateral_balance_for(liquidity_provider_1());
-    let unlocked_liquidity: u256 = vault_dispatcher
+    let unlocked_liquidity: u256 = vault_facade.vault_dispatcher
         .get_unallocated_balance_for(liquidity_provider_1());
+
     assert(balance_before_transfer == balance_after_transfer, 'zero deposit should not effect');
-    assert(option_round.total_unallocated_liquidity() == 0, 'total liquidity should be 0');
+    assert(option_round_facade.option_round_dispatcher.total_unallocated_liquidity() == 0, 'total liquidity should be 0');
     assert(locked_liquidity + unlocked_liquidity == 0, 'un/locked liquidity should be 0');
 }
 
@@ -161,20 +150,22 @@ fn test_deposit_liquidity_zero() {
 #[test]
 #[available_gas(10000000)]
 fn test_can_deposit_always(){
-    
     let mut vault_facade = setup_facade();
-    let deposit_amount_wei: u256 = 10 * decimals();
 
-    vault_facade.checkDeposit(deposit_amount_wei,liquidity_provider_1());
-
+    //Open state
+    test_deposit_liquidity_transfers_eth();
+    
+    //Auctioning state
     vault_facade.start_auction();
-    vault_facade.checkDeposit(deposit_amount_wei, liquidity_provider_1());
+     test_deposit_liquidity_transfers_eth();
 
+    //Running state
     vault_facade.end_auction();
-    vault_facade.deposit( deposit_amount_wei, liquidity_provider_1());
+     test_deposit_liquidity_transfers_eth();
 
+    //Settled state
     vault_facade.settle_option_round(liquidity_provider_1());
-    vault_facade.checkDeposit(deposit_amount_wei, liquidity_provider_1());
+    test_deposit_liquidity_transfers_eth();
     
 }
 
@@ -189,52 +180,44 @@ fn test_can_deposit_always(){
 #[test]
 #[available_gas(10000000)]
 fn test_withdraw_transfers_eth() {
-    let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
+    let mut vault_facade = setup_facade();
     // Get the next option round
-    let option_round: IOptionRoundDispatcher = IOptionRoundDispatcher {
-        contract_address: vault_dispatcher
-            .get_option_round_address(vault_dispatcher.current_option_round_id() + 1)
-    };
+    let option_round_facade=vault_facade.get_next_round();
     // Deposit liquidity
-    set_contract_address(liquidity_provider_1());
     let deposit_amount_wei: u256 = 50 * decimals();
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
     // Withdraw liquidity
-    let lp_balance_before: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
-    let round_balance_before: u256 = eth_dispatcher.balance_of(option_round.contract_address);
-    vault_dispatcher.withdraw_liquidity(1 * decimals());
-    let lp_balance_after: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
-    let round_balance_after: u256 = eth_dispatcher.balance_of(option_round.contract_address);
+    let lp_balance_before: u256 = vault_facade.eth_dispatcher.balance_of(liquidity_provider_1());
+    let round_balance_before: u256 = vault_facade.eth_dispatcher.balance_of(option_round_facade.contract_address);
+    vault_facade.withdraw(1 * decimals(),liquidity_provider_1());
+    let lp_balance_after: u256 = vault_facade.eth_dispatcher.balance_of(liquidity_provider_1());
+    let round_balance_after: u256 = vault_facade.eth_dispatcher.balance_of(option_round_facade.contract_address);
     // Check liquidity changes
     assert(lp_balance_after == lp_balance_before + (1 * decimals()), 'lp transfer incorrect');
     assert(
         round_balance_after == round_balance_before - (1 * decimals()), 'round transfer incorrect'
     );
-    assert_event_transfer(option_round.contract_address, liquidity_provider_1(), 1 * decimals());
+    assert_event_transfer(option_round_facade.contract_address, liquidity_provider_1(), 1 * decimals());
 }
 
 // Test that withdraw decrements the round's total unallocated liquidity
 #[test]
 #[available_gas(10000000)]
 fn test_withdraw_decrements_rounds_total_unallocated() {
-    let (vault_dispatcher, _): (IVaultDispatcher, IERC20Dispatcher) = setup();
+    let mut vault_facade = setup_facade();
     // Get the next option round
-    let option_round: IOptionRoundDispatcher = IOptionRoundDispatcher {
-        contract_address: vault_dispatcher
-            .get_option_round_address(vault_dispatcher.current_option_round_id() + 1)
-    };
+    let option_round_facade = vault_facade.get_next_round();
     // Deposit liquidity
-    set_contract_address(liquidity_provider_1());
     let deposit_amount_wei: u256 = 50 * decimals();
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
     // Withdraw liquidity
-    vault_dispatcher.withdraw_liquidity(1 * decimals());
-    let round_liquidity = option_round.total_unallocated_liquidity();
+    vault_facade.withdraw(1 * decimals(),liquidity_provider_1());
+    let round_liquidity = option_round_facade.option_round_dispatcher.total_unallocated_liquidity();
     // Check total liquidity updates correctly
     assert(round_liquidity == deposit_amount_wei - (1 * decimals()), 'unlocked liquidity wrong');
     // Withdraw liquidity again
-    vault_dispatcher.withdraw_liquidity(9 * decimals());
-    let round_liquidity = option_round.total_unallocated_liquidity();
+    vault_facade.withdraw(9 * decimals(), liquidity_provider_1());
+    let round_liquidity = option_round_facade.option_round_dispatcher.total_unallocated_liquidity();
     // Check total liquidity updates correctly
     assert(round_liquidity == deposit_amount_wei - (10 * decimals()), 'unlocked liquidity wrong');
 }
@@ -244,17 +227,16 @@ fn test_withdraw_decrements_rounds_total_unallocated() {
 #[test]
 #[available_gas(10000000)]
 fn test_withdraw_decrements_lps_unallocated_liquidity() {
-    let (vault_dispatcher, _): (IVaultDispatcher, IERC20Dispatcher) = setup();
+    let mut vault_facade = setup_facade();
     // Get the next option round
     // Deposit liquidity
-    set_contract_address(liquidity_provider_1());
     let deposit_amount_wei: u256 = 50 * decimals();
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
     // Withdraw liquidity
-    vault_dispatcher.withdraw_liquidity(1 * decimals());
-    let locked_liquidity: u256 = vault_dispatcher
+    vault_facade.withdraw(1 * decimals(), liquidity_provider_1());
+    let locked_liquidity: u256 = vault_facade.vault_dispatcher
         .get_collateral_balance_for(liquidity_provider_1());
-    let unlocked_liquidity: u256 = vault_dispatcher
+    let unlocked_liquidity: u256 = vault_facade.vault_dispatcher
         .get_unallocated_balance_for(liquidity_provider_1());
     // Check un/locked liquidity updates correctly
     assert(unlocked_liquidity == deposit_amount_wei - (1 * decimals()), 'unlocked liquidity wrong');
@@ -266,31 +248,27 @@ fn test_withdraw_decrements_lps_unallocated_liquidity() {
 #[test]
 #[available_gas(10000000)]
 fn test_deposit_withdraw_liquidity_zero() {
-    let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let option_round: IOptionRoundDispatcher = IOptionRoundDispatcher {
-        contract_address: vault_dispatcher
-            .get_option_round_address(vault_dispatcher.current_option_round_id() + 1)
-    };
+    let mut vault_facade = setup_facade();
+    let mut option_round_facade: OptionRoundFacade = vault_facade.get_next_round();
     // Deposit liquidity
-    set_contract_address(liquidity_provider_1());
     let deposit_amount_wei: u256 = 10 * decimals();
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
     // Withdraw 0 liquidity
-    let balance_before_transfer: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
-    vault_dispatcher.withdraw_liquidity(0);
+    let balance_before_transfer: u256 = vault_facade.eth_dispatcher.balance_of(liquidity_provider_1());
+    vault_facade.withdraw(0, liquidity_provider_1());
     // Check no liquidity changes
-    let balance_after_transfer: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
-    let round_liquidity = option_round.total_unallocated_liquidity();
-    let locked_liquidity: u256 = vault_dispatcher
+    let balance_after_transfer: u256 = vault_facade.eth_dispatcher.balance_of(liquidity_provider_1());
+    let round_liquidity = option_round_facade.option_round_dispatcher.total_unallocated_liquidity();
+    let locked_liquidity: u256 = vault_facade.vault_dispatcher
         .get_collateral_balance_for(liquidity_provider_1());
-    let unlocked_liquidity: u256 = vault_dispatcher
+    let unlocked_liquidity: u256 = vault_facade.vault_dispatcher
         .get_unallocated_balance_for(liquidity_provider_1());
     assert(balance_before_transfer == balance_after_transfer, 'zero deposit should not effect');
     assert(round_liquidity == deposit_amount_wei, 'total liquidity shouldnt change');
     assert(locked_liquidity == 0, 'locked liq shouldnt change');
     assert(unlocked_liquidity == deposit_amount_wei, 'unlocked liq shouldnt change');
     assert_event_transfer(
-        vault_dispatcher.contract_address, liquidity_provider_1(), deposit_amount_wei
+        vault_facade.vault_dispatcher.contract_address, liquidity_provider_1(), deposit_amount_wei
     );
 }
 // @note add test that LP cannot withdraw more than unallocated balance
