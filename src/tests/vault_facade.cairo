@@ -25,6 +25,11 @@ struct VaultFacade {
 }
 #[generate_trait]
 impl VaultFacadeImpl of VaultFacadeTrait {
+
+    fn contract_address(ref self:VaultFacade)->ContractAddress {
+        return self.vault_dispatcher.contract_address;
+    }
+    
     fn deposit(ref self: VaultFacade, amount: u256, liquidity_provider: ContractAddress) {
         set_contract_address(liquidity_provider);
         let _: u256 = self.vault_dispatcher.deposit_liquidity(amount);
@@ -58,7 +63,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
             .get_option_round_address(self.vault_dispatcher.current_option_round_id());
         let option_round_dispatcher = IOptionRoundDispatcher { contract_address };
 
-        return OptionRoundFacade { option_round_dispatcher, contract_address };
+        return OptionRoundFacade { option_round_dispatcher};
     }
     fn get_next_round(ref self: VaultFacade) -> OptionRoundFacade {
         let contract_address = self
@@ -66,7 +71,15 @@ impl VaultFacadeImpl of VaultFacadeTrait {
             .get_option_round_address(self.vault_dispatcher.current_option_round_id() + 1);
         let option_round_dispatcher = IOptionRoundDispatcher { contract_address };
 
-        return OptionRoundFacade { option_round_dispatcher, contract_address };
+        return OptionRoundFacade { option_round_dispatcher};
+    }
+
+    fn get_locked_liquidity(ref self:VaultFacade,liquidity_provider:ContractAddress)->u256{
+        return self.vault_dispatcher.get_collateral_balance_for(liquidity_provider);
+    }
+
+    fn get_unlocked_liquidity(ref self:VaultFacade, liquidity_provider:ContractAddress)->u256{
+        return self.vault_dispatcher.get_unallocated_balance_for(liquidity_provider);
     }
 }
 

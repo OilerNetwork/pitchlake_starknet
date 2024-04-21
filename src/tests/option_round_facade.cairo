@@ -25,7 +25,6 @@ use pitch_lake_starknet::option_round::{IOptionRoundDispatcher, IOptionRoundDisp
 #[derive(Drop)]
 struct OptionRoundFacade {
     option_round_dispatcher:IOptionRoundDispatcher,
-    contract_address:ContractAddress
 }
 
 #[generate_trait]
@@ -53,5 +52,10 @@ fn refund_bid(
     fn total_liquidity(ref self:OptionRoundFacade)->u256{
        return self.option_round_dispatcher.total_liquidity();
     }
-
+    fn total_unallocated_liquidity(ref self:OptionRoundFacade)->u256{
+        return self.option_round_dispatcher.total_unallocated_liquidity();
+    }
+fn contract_address(ref self:OptionRoundFacade)->ContractAddress{
+    return self.option_round_dispatcher.contract_address;
+}
 }
