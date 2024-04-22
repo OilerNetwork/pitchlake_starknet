@@ -24,9 +24,7 @@ use pitch_lake_starknet::pitch_lake::{
 };
 
 
-use pitch_lake_starknet::tests::vault_facade::{
-    VaultFacade, VaultFacadeTrait
-};
+use pitch_lake_starknet::tests::vault_facade::{VaultFacade, VaultFacadeTrait};
 use pitch_lake_starknet::option_round;
 use pitch_lake_starknet::option_round::{
     OptionRound, OptionRoundParams, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,
@@ -155,7 +153,6 @@ fn setup() -> (IVaultDispatcher, IERC20Dispatcher) {
 }
 
 
-
 fn setup_facade() -> VaultFacade {
     let eth_dispatcher: IERC20Dispatcher = deploy_eth();
     let vault_dispatcher: IVaultDispatcher = deploy_vault(VaultType::InTheMoney);
@@ -174,7 +171,7 @@ fn setup_facade() -> VaultFacade {
 
     drop_event(zero_address());
 
-    let mut vault_facade = VaultFacade{vault_dispatcher,eth_dispatcher};
+    let mut vault_facade = VaultFacade { vault_dispatcher, eth_dispatcher };
     return vault_facade;
 }
 fn setup_return_mkt_agg() -> (IVaultDispatcher, IERC20Dispatcher, IMarketAggregatorDispatcher) {

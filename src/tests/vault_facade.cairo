@@ -4,9 +4,7 @@ use pitch_lake_starknet::option_round::{
     OptionRound, OptionRoundParams, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,
 };
 
-use openzeppelin::token::erc20::interface::{
-     IERC20Dispatcher, IERC20DispatcherTrait
-};
+use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
 
 use starknet::{ContractAddress, testing::{set_contract_address}};
 
@@ -22,8 +20,7 @@ struct VaultFacade {
 }
 #[generate_trait]
 impl VaultFacadeImpl of VaultFacadeTrait {
-
-    fn contract_address(ref self:VaultFacade)->ContractAddress {
+    fn contract_address(ref self: VaultFacade) -> ContractAddress {
         return self.vault_dispatcher.contract_address;
     }
 
@@ -60,7 +57,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
             .get_option_round_address(self.vault_dispatcher.current_option_round_id());
         let option_round_dispatcher = IOptionRoundDispatcher { contract_address };
 
-        return OptionRoundFacade { option_round_dispatcher};
+        return OptionRoundFacade { option_round_dispatcher };
     }
     fn get_next_round(ref self: VaultFacade) -> OptionRoundFacade {
         let contract_address = self
@@ -68,14 +65,14 @@ impl VaultFacadeImpl of VaultFacadeTrait {
             .get_option_round_address(self.vault_dispatcher.current_option_round_id() + 1);
         let option_round_dispatcher = IOptionRoundDispatcher { contract_address };
 
-        return OptionRoundFacade { option_round_dispatcher};
+        return OptionRoundFacade { option_round_dispatcher };
     }
 
-    fn get_locked_liquidity(ref self:VaultFacade,liquidity_provider:ContractAddress)->u256{
+    fn get_locked_liquidity(ref self: VaultFacade, liquidity_provider: ContractAddress) -> u256 {
         return self.vault_dispatcher.get_collateral_balance_for(liquidity_provider);
     }
 
-    fn get_unlocked_liquidity(ref self:VaultFacade, liquidity_provider:ContractAddress)->u256{
+    fn get_unlocked_liquidity(ref self: VaultFacade, liquidity_provider: ContractAddress) -> u256 {
         return self.vault_dispatcher.get_unallocated_balance_for(liquidity_provider);
     }
 }

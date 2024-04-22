@@ -180,7 +180,7 @@ trait IOptionRound<TContractState> {
     // @return the amount of the transfer
     fn exercise_options(ref self: TContractState, option_buyer: ContractAddress) -> u256;
 
-   fn get_market_aggregator(self: @TContractState) -> IMarketAggregatorDispatcher;
+    fn get_market_aggregator(self: @TContractState) -> IMarketAggregatorDispatcher;
 }
 
 #[starknet::contract]
