@@ -43,7 +43,7 @@ struct OptionRoundCreated {
 // Is this the case or wil OBs interact with the option rounds ? 
 
 #[starknet::interface]
-trait IVault<TContractState> { 
+trait IVault<TContractState> {
     /// Reads ///
 
     // Get the vault's  manaager address 
@@ -225,7 +225,6 @@ mod Vault {
         }
 
         fn end_auction(ref self: ContractState) -> u256 {
-
             100
         }
 

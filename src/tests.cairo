@@ -7,9 +7,13 @@ mod option_auction_bid_test;
 #[cfg(test)]
 mod option_settle_test;
 #[cfg(test)]
-mod vault_liquidity_deposit_test;
+mod vault_liquidity_deposit_withdraw_test;
 #[cfg(test)]
 mod utils;
+#[cfg(test)]
+mod vault_facade;
+#[cfg(test)]
+mod option_round_facade;
 #[cfg(test)]
 mod vault_premium_to_vault_test;
 #[cfg(test)]

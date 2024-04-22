@@ -16,13 +16,15 @@ use pitch_lake_starknet::eth::Eth;
 
 use pitch_lake_starknet::vault::{
     IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait,
-    VaultType
+    VaultType, VaultTransfer
 };
 use pitch_lake_starknet::pitch_lake::{
     IPitchLakeDispatcher, IPitchLakeSafeDispatcher, IPitchLakeDispatcherTrait, PitchLake,
     IPitchLakeSafeDispatcherTrait
 };
 
+
+use pitch_lake_starknet::tests::vault_facade::{VaultFacade, VaultFacadeTrait};
 use pitch_lake_starknet::option_round;
 use pitch_lake_starknet::option_round::{
     OptionRound, OptionRoundParams, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,
@@ -150,6 +152,28 @@ fn setup() -> (IVaultDispatcher, IERC20Dispatcher) {
     return (vault_dispatcher, eth_dispatcher);
 }
 
+
+fn setup_facade() -> VaultFacade {
+    let eth_dispatcher: IERC20Dispatcher = deploy_eth();
+    let vault_dispatcher: IVaultDispatcher = deploy_vault(VaultType::InTheMoney);
+    set_contract_address(weth_owner());
+    let deposit_amount_ether: u256 = 1000000;
+    let deposit_amount_wei: u256 = deposit_amount_ether * decimals();
+
+    eth_dispatcher.transfer(liquidity_provider_1(), deposit_amount_wei);
+    eth_dispatcher.transfer(liquidity_provider_2(), deposit_amount_wei);
+
+    let deposit_amount_ether: u256 = 100000;
+    let deposit_amount_wei: u256 = deposit_amount_ether * decimals();
+
+    eth_dispatcher.transfer(option_bidder_buyer_1(), deposit_amount_wei);
+    eth_dispatcher.transfer(option_bidder_buyer_2(), deposit_amount_wei);
+
+    drop_event(zero_address());
+
+    let mut vault_facade = VaultFacade { vault_dispatcher, eth_dispatcher };
+    return vault_facade;
+}
 fn setup_return_mkt_agg() -> (IVaultDispatcher, IERC20Dispatcher, IMarketAggregatorDispatcher) {
     let eth_dispatcher: IERC20Dispatcher = deploy_eth();
     let (vault_dispatcher, mkt_agg_dispatcher): (IVaultDispatcher, IMarketAggregatorDispatcher) =
@@ -373,5 +397,13 @@ fn assert_event_option_amount_transfer(
     assert(event.from == from, 'from shd match');
     assert(event.to == to, 'to shd match');
     assert(event.amount == amount, 'amount shd match');
+    assert_no_events_left(zero_address());
+}
+
+fn assert_event_transfer(from: ContractAddress, to: ContractAddress, amount: u256) {
+    let event = pop_log::<VaultTransfer>(zero_address()).unwrap();
+    assert(event.from == from, 'Invalid `from`');
+    assert(event.to == to, 'Invalid `to`');
+    assert(event.amount == amount, 'Invalid `amount`');
     assert_no_events_left(zero_address());
 }
