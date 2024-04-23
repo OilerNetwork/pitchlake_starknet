@@ -25,7 +25,7 @@ use pitch_lake_starknet::tests::vault_facade::{VaultFacade, VaultFacadeTrait};
 use pitch_lake_starknet::tests::option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait};
 use pitch_lake_starknet::tests::utils;
 use pitch_lake_starknet::tests::utils::{
-    setup_facade, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
+    setup_facade, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address, assert_event_transfer,
 
     timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
     option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
@@ -34,14 +34,15 @@ use pitch_lake_starknet::tests::utils::{
 };
 ///helpers
 
+// @note this test is duplicated in utils.cairo
 // Assert `amount` tokens transfer from `from` to `to`
-fn assert_event_transfer(from: ContractAddress, to: ContractAddress, amount: u256) {
-    let event = pop_log::<VaultTransfer>(zero_address()).unwrap();
-    assert(event.from == from, 'Invalid `from`');
-    assert(event.to == to, 'Invalid `to`');
-    assert(event.amount == amount, 'Invalid `amount`');
-    assert_no_events_left(zero_address());
-}
+//fn assert_event_transfer(from: ContractAddress, to: ContractAddress, amount: u256) {
+    //let event = pop_log::<VaultTransfer>(zero_address()).unwrap();
+    //assert(event.from == from, 'Invalid `from`');
+    //assert(event.to == to, 'Invalid `to`');
+    //assert(event.amount == amount, 'Invalid `amount`');
+    //assert_no_events_left(zero_address());
+//}
 
 // Test deposit liquidity transfers eth from LP -> round
 #[test]
