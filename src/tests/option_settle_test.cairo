@@ -37,10 +37,8 @@ use pitch_lake_starknet::tests::mock_market_aggregator::{
     IMarketAggregatorSetterDispatcherTrait
 };
 
-// @note add test that unallocated decrements when round settles (premiums + unsold were rolled over)
 
-// @dev this test belongs (and i think might already exist) in the premium tests, test OB cannot collect premium after round settles
-
+// @note move this to option_round/payout_tests.cairo
 // Test that an OB with 0 options gets 0 payout
 #[test]
 #[available_gas(10000000)]
@@ -76,8 +74,8 @@ fn test_user_with_no_options_gets_no_payout() {
     ); // option_bidder_buyer_2 never auction_place_bid in the auction, so should not be able to claim payout
 }
 
-// @note add test that eth transfers to next round on settlement
 
+// @note move this to vault/option_settle_tests
 // Test that collected premiums do not roll over to the next round 
 #[test]
 #[available_gas(10000000)]
@@ -121,6 +119,7 @@ fn test_collected_premium_does_not_roll_over() {
     assert(next_round_unallocated == deposit_amount_wei, 'Rollover amount wrong');
 }
 
+// @note move to vault/option_settle_tests
 // Test that uncollected premiums roll over
 #[test]
 #[available_gas(10000000)]
@@ -157,6 +156,7 @@ fn test_remaining_liqudity_rolls_over() {
     );
 }
 
+// @note move to option_round/payout_tests
 #[test]
 #[available_gas(10000000)]
 fn test_option_payout_sends_eth() {
@@ -195,6 +195,7 @@ fn test_option_payout_sends_eth() {
     assert_event_transfer(option_round.contract_address(), option_bidder_buyer_1(), payout);
 }
 
+// @note move to vault/option_settle_test
 #[test]
 #[available_gas(10000000)]
 fn test_option_payout_amount_index_higher_than_strike() {
@@ -230,6 +231,7 @@ fn test_option_payout_amount_index_higher_than_strike() {
     assert(payout_balance == payout_balance_expected, 'expected payout doesnt match');
 }
 
+// @note move to vault/option_settle_tests
 #[test]
 #[available_gas(10000000)]
 fn test_option_payout_amount_index_less_than_strike() {
@@ -263,6 +265,7 @@ fn test_option_payout_amount_index_less_than_strike() {
     assert(payout_balance == 0, 'expected payout doesnt match');
 }
 
+// @note move to vault/option_settle_tests
 #[test]
 #[available_gas(10000000)]
 fn test_option_payout_amount_index_at_strike() {
@@ -296,5 +299,6 @@ fn test_option_payout_amount_index_at_strike() {
     assert(payout_balance == 0, 'expected payout doesnt match');
 }
 // @note Add test that payout is capped even if index >>> strike
-
+// @note add test that unallocated decrements when round settles (premiums + unsold were rolled over)
+// @note add test that eth transfers to next round on settlement
 

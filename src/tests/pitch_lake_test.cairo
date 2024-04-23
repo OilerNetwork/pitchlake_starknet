@@ -101,6 +101,7 @@ fn deploy() -> IPitchLakeDispatcher {
     return IPitchLakeDispatcher { contract_address: address };
 }
 
+// @note move to vault/vault_tests
 #[test]
 #[available_gas(10000000)]
 fn test_vault_type() {

@@ -47,6 +47,7 @@ use pitch_lake_starknet::tests::option_round_facade::{OptionRoundFacade, OptionR
 
 /// Constructor Tests ///
 
+// @note move this to vault/deployment_tests
 // Test the vault's constructor 
 #[test]
 #[available_gas(10000000)]
@@ -69,6 +70,7 @@ fn test_vault_constructor() {
     assert(next_round_id == 1, 'next round should be 1');
 }
 
+// @note Move to vault/deployment_tests
 // Test the option round constructor
 // Test that round 0 deploys as settled, and round 1 deploys as open.
 #[test]
@@ -107,8 +109,10 @@ fn test_option_round_constructor() {
     );
 }
 
+// @note redundant, deposit test already covers this
 // Test that deposits go into the open/next round
 // @dev Move this test to deposit tests
+// @note repeated in deposit tests
 #[test]
 #[available_gas(10000000)]
 fn test_vault_deposits_go_into_the_next_round() {
@@ -133,6 +137,7 @@ fn test_vault_deposits_go_into_the_next_round() {
 
 /// Auction Start Tests ///
 
+// @note move to vault/start_auction_tests
 // Test an auction starts and the round becomes the current round. Test that the 
 // next round is deployed.
 #[test]
@@ -160,6 +165,7 @@ fn test_vault_start_auction_success() {
     assert_event_auction_start(current_round_facade.get_params().total_options_available);
 }
 
+// @note move to vault/start_auction_tests
 // Test the next auction cannot start if the current round is Auctioning
 #[test]
 #[available_gas(10000000)]
@@ -179,6 +185,7 @@ fn test_vault_start_auction_while_current_round_Auctioning_failure() {
     vault_facade.start_auction();
 }
 
+// @note move to vault/start_auction_tests
 // Test that an auction cannot start while the current is Running
 #[test]
 #[available_gas(10000000)]
@@ -204,6 +211,7 @@ fn test_vault_start_auction_while_current_round_Running_failure() {
     vault_facade.start_auction();
 }
 
+// @note move to vault/start_auction_tests
 // Test that an auction cannot start before the round transition period is over
 #[test]
 #[available_gas(10000000)]
@@ -232,6 +240,7 @@ fn test_vault_start_auction_before_round_transition_period_is_over_failure() {
     vault_facade.start_auction();
 }
 
+// @note move to option_round/bidding_tests.cairo
 // Test that OB cannot refund bids before auction settles
 // @dev move this into auction/bid tests
 #[test]
@@ -256,6 +265,7 @@ fn test_option_round_refund_unused_bids_too_early_failure() {
     current_round_facade.refund_bid(option_bidder_buyer_1());
 }
 
+// @note move to option_round/clearing_price_tests
 // Test that auction clearing price is 0 pre auction end
 // @dev move to auction/bidding tests
 #[test]
@@ -281,6 +291,7 @@ fn test_option_round_clearing_price_is_0_before_auction_end() {
     assert(clearing_price == 0, 'should be 0 pre auction end');
 }
 
+// @note move to option_round/options_sold_tests
 // Test that options sold is 0 pre auction end
 // @dev move to auction/bid tests
 #[test]
@@ -309,6 +320,7 @@ fn test_option_round_options_sold_before_auction_end_is_0() {
 
 /// Auction End Tests /// 
 
+// @note move to vault/auction_end_tests
 // Test that the auction clearing price is set post auction end, and state updates to Running
 #[test]
 #[available_gas(10000000)]
@@ -340,6 +352,7 @@ fn test_vault_end_auction_success() {
     assert_event_auction_settle(current_round_facade.get_auction_clearing_price());
 }
 
+// @note move to vault/auction_end_tests
 // Test that the auction cannot be ended twice
 #[test]
 #[available_gas(10000000)]
@@ -368,6 +381,7 @@ fn test_option_round_end_auction_twice_failure() {
 
 /// Round Settle Tests ///
 
+// @note move to vault/option_settle_tests
 // Test that the round settles 
 #[test]
 #[available_gas(10000000)]
@@ -402,6 +416,7 @@ fn test_option_round_settle_success() {
     assert(vault_facade.current_option_round_id() == 1, 'current round should still be 1');
 }
 
+// @note move to vault/option_settle_tests
 // Test that an option round cannot be settled twice
 #[test]
 #[available_gas(10000000)]
@@ -434,6 +449,7 @@ fn test_option_round_settle_twice_failure() {
 }
 
 
+// @note move to option_round/exercising_options_tests
 // Test that OB cannot exercise options pre option settlement
 // Move to auction/bidding tests
 #[test]
