@@ -34,6 +34,9 @@ use starknet::contract_address::ContractAddressZeroable;
 use traits::Into;
 use traits::TryInto;
 
+
+// @note Moving these tests to option_round/bidding&clearing_price_tests
+
 #[test]
 #[available_gas(10000000)]
 fn test_clearing_price_1() {

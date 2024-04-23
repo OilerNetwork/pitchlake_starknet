@@ -40,6 +40,8 @@ use pitch_lake_starknet::tests::utils::{
     assert_no_events_left, deploy_pitch_lake
 };
 
+// @note move to option_round/initialize_params_tests.cario
+
 #[test]
 #[available_gas(10000000)]
 fn test_strike_price_based_on_vault_types() {
@@ -66,7 +68,7 @@ fn test_strike_price_based_on_vault_types() {
     // This means r1 will need to be manually initialized before its auction, and 
     // all following rounds will be automatically initialized when the current one settles. 
 
-    // give more time for initial liquidity to collect, then initialize, then start the auction. 
+    // @note Need to initialize r1 manually, then start the auction.
 
     // let id, params = vault.initialize_first_round();
 

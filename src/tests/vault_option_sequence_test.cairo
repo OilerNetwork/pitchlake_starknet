@@ -54,6 +54,7 @@ fn assert_event_option_created(
     assert_no_events_left(zero_address());
 }
 
+// @note move to option_round/bidding_tests
 // Test OB cannot bid before the auction starts 
 #[test]
 #[available_gas(10000000)]
@@ -81,6 +82,7 @@ fn test_bid_before_auction_starts_failure() {
     next_round.place_bid(bid_amount, option_price);
 }
 
+// @note move to option_round/bidding_tests
 // Test OB cannot bid after the auction end date (regardless if end_auction() is called)
 #[test]
 #[available_gas(10000000)]
@@ -112,6 +114,7 @@ fn test_bid_after_auction_ends_failure() {
     current_round.place_bid(bid_amount, option_price);
 }
 
+// @note move to option_round/state_transition_tests
 // Test auction cannot end if it has not started
 #[test]
 #[available_gas(10000000)]
@@ -136,6 +139,7 @@ fn test_auction_end_before_it_starts_failure() {
     vault_dispatcher.settle_option_round();
 }
 
+// @note move to option_round/state_transition_tests
 // Test auction cannot end before the auction end date 
 #[test]
 #[available_gas(10000000)]
@@ -162,6 +166,7 @@ fn test_auction_end_before_end_date_failure() {
     current_round.end_auction();
 }
 
+// @note move to option_round/state_transition_tests or /option_settle_tests
 // Test options cannot settle before expiry date
 #[test]
 #[available_gas(10000000)]

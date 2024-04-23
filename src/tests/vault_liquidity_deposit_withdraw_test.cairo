@@ -98,7 +98,7 @@ fn test_deposit_liquidity_increments_rounds_total_unallocated() {
     assert(next_total_deposits == init_total_deposits + deposit_amount_wei, 'should increment');
     assert(final_total_deposits == next_total_deposits + topup_amount_wei, 'should increment');
     assert_event_transfer(
-        liquidity_provider_1(), option_round_facade.contract_address() , topup_amount_wei
+        liquidity_provider_1(), option_round_facade.contract_address(), topup_amount_wei
     );
 }
 

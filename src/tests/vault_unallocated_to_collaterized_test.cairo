@@ -33,6 +33,7 @@ use pitch_lake_starknet::tests::utils::{
     vault_manager, weth_owner, mock_option_params
 };
 
+// @note move to vault/auction_end tests
 // Test that LP can withdraw their liquidity during the round transition period (uncollaterized liquidity)
 #[test]
 #[available_gas(10000000)]
@@ -78,6 +79,7 @@ fn test_withdraw_liquidity_when_unlocked_success() {
     );
 }
 
+// @note change/remove this, test needs to test deposit locks (unallocated->collateral) when auction start (vault/auction_start_tests)
 // Test that LP cannot withdraw their liquidity while not in the round transition period
 #[test]
 #[available_gas(10000000)]
@@ -97,7 +99,7 @@ fn test_withdraw_liquidity_when_locked_failure() {
     vault_dispatcher.withdraw_liquidity(deposit_amount_wei);
 }
 
-
+// @note move to vault/auction_start tests
 // Test that round's unallocated liquidity becomes collateral when auction start (multiple LPs)
 #[test]
 #[available_gas(10000000)]
@@ -126,6 +128,7 @@ fn test_round_unallocated_becomes_collateral_when_auction_starts() {
     assert(total_collateral == total_unallocated, 'all tokens shld be collaterized');
 }
 
+// @note move to vault/auction_start tests
 // Test that LP's unallocated becomes collateral when auction start (multiple LPs)
 #[test]
 #[available_gas(10000000)]

@@ -33,6 +33,7 @@ use pitch_lake_starknet::tests::utils::{
 use pitch_lake_starknet::option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait};
 
 
+// redudnant
 // Test that when LP withdraws premiums from the round, their unlocked liquidity decrements
 // @dev these tests are basically already written in normal withdraw liquidity tests. they just test how is unlcocked once auction starts, need to add test that premiums become unlocked, and that you cannot withdraw more than unlocked
 #[test]
@@ -74,6 +75,7 @@ fn test_withdraw_premiums_from_current_round() {
     );
 }
 
+// @note move to vault/auction_end tests
 // collateral balance of should be vault::get_unlocked_liquidity_for()
 // @note Add test that unlocked is premium after auction, and is premium + next position if there is a deposit, and is premium + unsold options if there is any
 #[test]
@@ -138,6 +140,7 @@ fn test_premium_collection_ratio_conversion_unallocated_pool_1() {
     );
 }
 
+// @note move to vault/auction_end tests
 #[test]
 #[available_gas(10000000)]
 fn test_premium_collection_ratio_conversion_unallocated_pool_2() {
