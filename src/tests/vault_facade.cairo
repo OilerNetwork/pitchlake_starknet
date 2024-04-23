@@ -13,6 +13,7 @@ use pitch_lake_starknet::tests::utils::{
 };
 
 use pitch_lake_starknet::market_aggregator::{IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait};
+
 use pitch_lake_starknet::tests::option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait};
 #[derive(Drop)]
 struct VaultFacade {
@@ -63,6 +64,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     fn get_current_round_id(ref self:VaultFacade)->u256 {
         self.vault_dispatcher.current_option_round_id()
     }
+
     fn get_current_round(ref self: VaultFacade) -> OptionRoundFacade {
         let contract_address = self
             .vault_dispatcher

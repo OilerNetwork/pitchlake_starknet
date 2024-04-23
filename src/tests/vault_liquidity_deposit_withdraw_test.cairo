@@ -26,6 +26,7 @@ use pitch_lake_starknet::tests::option_round_facade::{OptionRoundFacade, OptionR
 use pitch_lake_starknet::tests::utils;
 use pitch_lake_starknet::tests::utils::{
     setup_facade, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
+
     timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
     option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
     zero_address, vault_manager, weth_owner, option_round_contract_address, mock_option_params,
@@ -52,6 +53,7 @@ fn test_deposit_liquidity_transfers_eth() {
     // Initial balances
     let initial_lp_balance: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
     let initial_round_balance: u256 = eth_dispatcher
+
         .balance_of(option_round_facade.contract_address());
     // Deposit liquidity
     let deposit_amount_wei: u256 = 50 * decimals();
@@ -147,6 +149,7 @@ fn test_deposit_liquidity_zero() {
 fn test_can_deposit_always() {
     let (mut vault_facade,_) = setup_facade();
 
+
     //Open state
     test_deposit_liquidity_transfers_eth();
 
@@ -187,6 +190,7 @@ fn test_withdraw_transfers_eth() {
     vault_facade.withdraw(1 * decimals(), liquidity_provider_1());
     let lp_balance_after: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
     let round_balance_after: u256 = eth_dispatcher
+
         .balance_of(option_round_facade.contract_address());
     // Check liquidity changes
     assert(lp_balance_after == lp_balance_before + (1 * decimals()), 'lp transfer incorrect');
@@ -226,6 +230,7 @@ fn test_withdraw_decrements_rounds_total_unallocated() {
 #[available_gas(10000000)]
 fn test_withdraw_decrements_lps_unallocated_liquidity() {
     let (mut vault_facade, _) = setup_facade();
+
     // Get the next option round
     // Deposit liquidity
     let deposit_amount_wei: u256 = 50 * decimals();

@@ -10,10 +10,15 @@ use pitch_lake_starknet::option_round::{
 };
 
 use pitch_lake_starknet::tests::utils::{vault_manager};
+
 //@note: confirm start/end auction flow in relation to vault function and set_contract_address accordingly
 //fn start_auction(ref option_round_dispatcher: IOptionRoundDispatcher) -> bool {
 //    let result: bool = option_round_dispatcher.start_auction();
 //     return result;
+// }
+
+// fn end_auction(ref option_round_dispatcher: IOptionRoundDispatcher) {
+//     option_round_dispatcher.end_auction();
 // }
 
 #[derive(Drop)]
