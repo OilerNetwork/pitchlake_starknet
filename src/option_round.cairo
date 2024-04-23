@@ -181,7 +181,6 @@ trait IOptionRound<TContractState> {
     fn exercise_options(ref self: TContractState, option_buyer: ContractAddress) -> u256;
 
     fn get_market_aggregator(self: @TContractState) -> ContractAddress;
-
 }
 
 #[starknet::contract]
@@ -316,8 +315,8 @@ mod OptionRound {
             100
         }
 
-        fn get_market_aggregator(self: @ContractState) -> ContractAddress{
-           self.market_aggregator.read()
+        fn get_market_aggregator(self: @ContractState) -> ContractAddress {
+            self.market_aggregator.read()
         }
     }
 }

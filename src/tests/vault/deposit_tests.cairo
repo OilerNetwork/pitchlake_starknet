@@ -25,12 +25,11 @@ use pitch_lake_starknet::tests::vault_facade::{VaultFacade, VaultFacadeTrait};
 use pitch_lake_starknet::tests::option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait};
 use pitch_lake_starknet::tests::utils;
 use pitch_lake_starknet::tests::utils::{
-    setup_facade, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address, assert_event_transfer,
-
-    timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
-    option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
-    zero_address, vault_manager, weth_owner, option_round_contract_address, mock_option_params,
-    pop_log, assert_no_events_left
+    setup_facade, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
+    assert_event_transfer, timestamp_start_month, timestamp_end_month, liquidity_provider_1,
+    liquidity_provider_2, option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
+    option_bidder_buyer_4, zero_address, vault_manager, weth_owner, option_round_contract_address,
+    mock_option_params, pop_log, assert_no_events_left
 };
 
 // Test deposit liquidity transfers eth from LP -> round
@@ -43,7 +42,6 @@ fn test_deposit_liquidity_transfers_eth() {
     // Initial balances
     let initial_lp_balance: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
     let initial_round_balance: u256 = eth_dispatcher
-
         .balance_of(option_round_facade.contract_address());
     // Deposit liquidity
     let deposit_amount_wei: u256 = 50 * decimals();
@@ -69,7 +67,7 @@ fn test_deposit_liquidity_transfers_eth() {
 #[test]
 #[available_gas(10000000)]
 fn test_deposit_liquidity_increments_rounds_total_unallocated() {
-    let  (mut vault_facade,_) = setup_facade();
+    let (mut vault_facade, _) = setup_facade();
     // Get the next option round
     let mut option_round_facade: OptionRoundFacade = vault_facade.get_next_round();
 
@@ -96,7 +94,7 @@ fn test_deposit_liquidity_increments_rounds_total_unallocated() {
 #[test]
 #[available_gas(10000000)]
 fn test_deposit_liquidity_increments_LPs_unallocated_balance() {
-    let (mut vault_facade,_) = setup_facade();
+    let (mut vault_facade, _) = setup_facade();
     // Deposit liquidity
     let deposit_amount_wei: u256 = 50 * decimals();
     let topup_amount_wei: u256 = 100 * decimals();
@@ -119,12 +117,10 @@ fn test_deposit_liquidity_increments_LPs_unallocated_balance() {
 fn test_deposit_liquidity_zero() {
     let (mut vault_facade, eth_dispatcher) = setup_facade();
     let mut option_round_facade: OptionRoundFacade = vault_facade.get_next_round();
-    let balance_before_transfer: u256 = eth_dispatcher
-        .balance_of(liquidity_provider_1());
+    let balance_before_transfer: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
     let deposit_amount_wei: u256 = 0;
     vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
-    let balance_after_transfer: u256 = eth_dispatcher
-        .balance_of(liquidity_provider_1());
+    let balance_after_transfer: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
     let locked_liquidity: u256 = vault_facade.get_locked_liquidity(liquidity_provider_1());
     let unlocked_liquidity: u256 = vault_facade.get_unlocked_liquidity(liquidity_provider_1());
 
@@ -137,8 +133,7 @@ fn test_deposit_liquidity_zero() {
 #[test]
 #[available_gas(10000000)]
 fn test_can_deposit_always() {
-    let (mut vault_facade,_) = setup_facade();
-
+    let (mut vault_facade, _) = setup_facade();
 
     //Open state
     test_deposit_liquidity_transfers_eth();

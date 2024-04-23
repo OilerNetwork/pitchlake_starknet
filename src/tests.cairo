@@ -33,17 +33,17 @@ mod mock_market_aggregator;
 // Re-org
 #[cfg(test)]
 mod vault {
-      mod withdraw_tests{
-          mod while_current_round_is_auctioning;
-          mod while_current_round_is_running;
-          mod while_current_round_is_settled;
-          mod withdraw_tests;
-        }
-      mod auction_end_tests;
-      mod auction_start_tests;
-      mod deployment_tests;
-      mod deposit_tests;
-      mod option_settle_tests;
+    mod withdraw_tests {
+        mod while_current_round_is_auctioning;
+        mod while_current_round_is_running;
+        mod while_current_round_is_settled;
+        mod withdraw_tests;
+    }
+    mod auction_end_tests;
+    mod auction_start_tests;
+    mod deployment_tests;
+    mod deposit_tests;
+    mod option_settle_tests;
 }
 
 #[cfg(test)]
@@ -55,5 +55,4 @@ mod option_round {
     mod payout_tests;
     mod state_transition_tests;
 }
-
 

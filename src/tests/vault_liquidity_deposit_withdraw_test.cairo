@@ -25,15 +25,12 @@ use pitch_lake_starknet::tests::vault_facade::{VaultFacade, VaultFacadeTrait};
 use pitch_lake_starknet::tests::option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait};
 use pitch_lake_starknet::tests::utils;
 use pitch_lake_starknet::tests::utils::{
-    setup_facade, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address, assert_event_transfer,
-
-    timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
-    option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
-    zero_address, vault_manager, weth_owner, option_round_contract_address, mock_option_params,
-    pop_log, assert_no_events_left
+    setup_facade, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
+    assert_event_transfer, timestamp_start_month, timestamp_end_month, liquidity_provider_1,
+    liquidity_provider_2, option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
+    option_bidder_buyer_4, zero_address, vault_manager, weth_owner, option_round_contract_address,
+    mock_option_params, pop_log, assert_no_events_left
 };
-
-
 
 
 /// Withdraw Tests ///
@@ -46,7 +43,7 @@ use pitch_lake_starknet::tests::utils::{
 #[test]
 #[available_gas(10000000)]
 fn test_withdraw_transfers_eth() {
-    let( mut vault_facade,eth_dispatcher) = setup_facade();
+    let (mut vault_facade, eth_dispatcher) = setup_facade();
     // Get the next option round
     let mut option_round_facade = vault_facade.get_next_round();
     // Deposit liquidity
@@ -59,7 +56,6 @@ fn test_withdraw_transfers_eth() {
     vault_facade.withdraw(1 * decimals(), liquidity_provider_1());
     let lp_balance_after: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
     let round_balance_after: u256 = eth_dispatcher
-
         .balance_of(option_round_facade.contract_address());
     // Check liquidity changes
     assert(lp_balance_after == lp_balance_before + (1 * decimals()), 'lp transfer incorrect');
@@ -75,7 +71,7 @@ fn test_withdraw_transfers_eth() {
 #[test]
 #[available_gas(10000000)]
 fn test_withdraw_decrements_rounds_total_unallocated() {
-    let (mut vault_facade,_) = setup_facade();
+    let (mut vault_facade, _) = setup_facade();
     // Get the next option round
     let mut option_round_facade = vault_facade.get_next_round();
     // Deposit liquidity
@@ -124,12 +120,10 @@ fn test_deposit_withdraw_liquidity_zero() {
     let deposit_amount_wei: u256 = 10 * decimals();
     vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
     // Withdraw 0 liquidity
-    let balance_before_transfer: u256 =eth_dispatcher
-        .balance_of(liquidity_provider_1());
+    let balance_before_transfer: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
     vault_facade.withdraw(0, liquidity_provider_1());
     // Check no liquidity changes
-    let balance_after_transfer: u256 = eth_dispatcher
-        .balance_of(liquidity_provider_1());
+    let balance_after_transfer: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
     let round_liquidity = option_round_facade.total_unallocated_liquidity();
     let locked_liquidity: u256 = vault_facade.get_locked_liquidity(liquidity_provider_1());
     let unlocked_liquidity: u256 = vault_facade.get_unlocked_liquidity(liquidity_provider_1());
