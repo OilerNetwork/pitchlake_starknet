@@ -28,7 +28,7 @@ use traits::Into;
 use traits::TryInto;
 use pitch_lake_starknet::eth::Eth;
 use pitch_lake_starknet::tests::utils::{
-    setup, setup_facade, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
+    setup_facade, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
     timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
     option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
     zero_address, vault_manager, weth_owner, option_round_contract_address, mock_option_params,
@@ -61,7 +61,7 @@ fn assert_event_option_created(
 #[available_gas(10000000)]
 #[should_panic(expected: ('Cannot bid before auction starts', 'ENTRYPOINT_FAILED'))]
 fn test_bid_before_auction_starts_failure() {
-    let mut vault_facade: VaultFacade = setup_facade();
+    let (mut vault_facade, _) = setup_facade();
     // OptionRoundDispatcher
     let mut next_round: OptionRoundFacade = vault_facade.get_next_round();
     let params = next_round.get_params();
@@ -85,7 +85,7 @@ fn test_bid_after_auction_ends_failure() {
     // Add liq. to next round
     // note: Why is this option buyer and not liquidity provider?
     //set_contract_address(option_bidder_buyer_1());
-    let mut vault_facade: VaultFacade = setup_facade();
+    let (mut vault_facade, _) = setup_facade();
     let deposit_amount_wei = 50 * decimals();
     vault_facade.deposit(deposit_amount_wei, option_bidder_buyer_1());
 
@@ -110,7 +110,7 @@ fn test_bid_after_auction_ends_failure() {
 #[available_gas(10000000)]
 #[should_panic(expected: ('Cannot end auction before it starts', 'ENTRYPOINT_FAILED'))]
 fn test_auction_end_before_it_starts_failure() {
-    let mut vault_facade: VaultFacade = setup_facade();
+    let (mut vault_facade, _) = setup_facade();
     // OptionRoundDispatcher
     let mut next_round: OptionRoundFacade = vault_facade.get_next_round();
     let params = next_round.get_params();
@@ -129,7 +129,7 @@ fn test_auction_end_before_it_starts_failure() {
 #[available_gas(10000000)]
 #[should_panic(expected: ('Some error', 'Auction cannot settle before due time',))]
 fn test_auction_end_before_end_date_failure() {
-    let mut vault_facade: VaultFacade = setup_facade();
+    let (mut vault_facade, _) = setup_facade();
     // Add liq. to current round
     // note Why some deposits are by option_bidder
     let deposit_amount_wei = 50 * decimals();
@@ -151,7 +151,7 @@ fn test_auction_end_before_end_date_failure() {
 #[available_gas(10000000)]
 #[should_panic(expected: ('Some error', 'Options cannot settle before expiry',))]
 fn test_options_settle_before_expiry_date_failure() {
-    let mut vault_facade:VaultFacade = setup_facade();
+    let (mut vault_facade, _) = setup_facade();
     // Add liq. to next round
     let deposit_amount_wei = 50 * decimals();
     vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());

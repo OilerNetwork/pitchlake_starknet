@@ -12,11 +12,11 @@ use pitch_lake_starknet::tests::utils::{
     liquidity_provider_1, vault_manager, decimals, assert_event_transfer
 };
 
+use pitch_lake_starknet::market_aggregator::{IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait};
 use pitch_lake_starknet::tests::option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait};
 #[derive(Drop)]
 struct VaultFacade {
     vault_dispatcher: IVaultDispatcher,
-    eth_dispatcher: IERC20Dispatcher,
 }
 #[generate_trait]
 impl VaultFacadeImpl of VaultFacadeTrait {
@@ -51,13 +51,17 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         let result: bool = self.vault_dispatcher.settle_option_round();
         return result;
     }
-    
-    fn current_option_round_id(ref self:VaultFacade)->u256 {
-         return self.vault_dispatcher.current_option_round_id();
+
+    fn current_option_round_id(ref self: VaultFacade) -> u256 {
+        return self.vault_dispatcher.current_option_round_id();
     }
 
-    fn get_option_round_address(ref self:VaultFacade, id:u256)->ContractAddress {
+    fn get_option_round_address(ref self: VaultFacade, id: u256) -> ContractAddress {
         return self.vault_dispatcher.get_option_round_address(id);
+    }
+
+    fn get_current_round_id(ref self:VaultFacade)->u256 {
+        self.vault_dispatcher.current_option_round_id()
     }
     fn get_current_round(ref self: VaultFacade) -> OptionRoundFacade {
         let contract_address = self
@@ -84,12 +88,20 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         return self.vault_dispatcher.get_unallocated_balance_for(liquidity_provider);
     }
 
-    fn get_collateral_balance_for(ref self:VaultFacade, liquidity_provider:ContractAddress)->u256{
+    fn get_collateral_balance_for(
+        ref self: VaultFacade, liquidity_provider: ContractAddress
+    ) -> u256 {
         return self.vault_dispatcher.get_collateral_balance_for(liquidity_provider);
     }
 
-     fn get_unallocated_balance_for(ref self:VaultFacade, liquidity_provider:ContractAddress)->u256{
+    fn get_unallocated_balance_for(
+        ref self: VaultFacade, liquidity_provider: ContractAddress
+    ) -> u256 {
         return self.vault_dispatcher.get_unallocated_balance_for(liquidity_provider);
+    }
+    
+    fn get_market_aggregator(ref self:VaultFacade)->ContractAddress {
+        self.vault_dispatcher.get_market_aggregator()
     }
 }
 

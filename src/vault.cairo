@@ -95,7 +95,7 @@ trait IVault<TContractState> {
     fn end_auction(ref self: TContractState) -> u256;
 
     // @note needed ? 
-    fn get_market_aggregator(self: @TContractState) -> IMarketAggregatorDispatcher;
+    fn get_market_aggregator(self: @TContractState) -> ContractAddress;
 }
 
 #[starknet::contract]
@@ -228,8 +228,8 @@ mod Vault {
             100
         }
 
-        fn get_market_aggregator(self: @ContractState) -> IMarketAggregatorDispatcher {
-            IMarketAggregatorDispatcher { contract_address: self.market_aggregator.read() }
+        fn get_market_aggregator(self: @ContractState) -> ContractAddress{
+            self.market_aggregator.read()
         }
     }
 }

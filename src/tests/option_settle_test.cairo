@@ -5,10 +5,6 @@ use openzeppelin::token::erc20::interface::{
     IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
     IERC20SafeDispatcherTrait,
 };
-
-use pitch_lake_starknet::vault::{
-    IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait
-};
 use pitch_lake_starknet::option_round::{OptionRoundParams};
 
 use result::ResultTrait;
@@ -21,12 +17,15 @@ use starknet::{
 use starknet::contract_address::ContractAddressZeroable;
 use openzeppelin::utils::serde::SerializedAppend;
 
+
 use traits::Into;
 use traits::TryInto;
 use pitch_lake_starknet::eth::Eth;
+use pitch_lake_starknet::tests::vault_facade::{VaultFacade, VaultFacadeTrait};
+use pitch_lake_starknet::tests::option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait};
 use pitch_lake_starknet::tests::{
     utils::{
-        setup, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
+        setup_facade, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
         timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
         option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
         vault_manager, weth_owner, mock_option_params
@@ -37,7 +36,6 @@ use pitch_lake_starknet::tests::mock_market_aggregator::{
     MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
     IMarketAggregatorSetterDispatcherTrait
 };
-use pitch_lake_starknet::option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait};
 
 // @note add test that unallocated decrements when round settles (premiums + unsold were rolled over)
 
@@ -47,22 +45,18 @@ use pitch_lake_starknet::option_round::{IOptionRoundDispatcher, IOptionRoundDisp
 #[test]
 #[available_gas(10000000)]
 fn test_user_with_no_options_gets_no_payout() {
-    let (vault_dispatcher, _): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let option_round: IOptionRoundDispatcher = IOptionRoundDispatcher {
-        contract_address: vault_dispatcher
-            .get_option_round_address(vault_dispatcher.current_option_round_id() + 1)
-    };
+    let (mut vault_facade,_) = setup_facade();
+    let mut option_round: OptionRoundFacade = vault_facade.get_next_round();
     let params = option_round.get_params();
     // Deposit liquidity
-    set_contract_address(liquidity_provider_1());
     let deposit_amount_wei: u256 = 50 * decimals();
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
     // Make bid (ob1)
-    set_contract_address(option_bidder_buyer_1());
+    vault_facade.start_auction();
     let bid_amount: u256 = params.total_options_available;
     let bid_price: u256 = params.reserve_price;
     let bid_amount: u256 = bid_amount * bid_price;
-    option_round.place_bid(bid_amount, bid_price);
+    option_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
     // End auction
     set_block_timestamp(params.auction_end_time + 1);
     option_round.end_auction();
@@ -71,10 +65,10 @@ fn test_user_with_no_options_gets_no_payout() {
     // @dev This ensures the market aggregator returns the mocked current price
     let mock_maket_aggregator_setter: IMarketAggregatorSetterDispatcher =
         IMarketAggregatorSetterDispatcher {
-        contract_address: vault_dispatcher.get_market_aggregator().contract_address
+        contract_address: vault_facade.get_market_aggregator()
     };
     mock_maket_aggregator_setter.set_current_base_fee(params.strike_price + 5);
-    vault_dispatcher.settle_option_round();
+    vault_facade.settle_option_round(liquidity_provider_1());
     // OB 2 tries to claim a payout
     let claimed_payout_amount: u256 = option_round.exercise_options(option_bidder_buyer_2());
     assert(
@@ -88,31 +82,25 @@ fn test_user_with_no_options_gets_no_payout() {
 #[test]
 #[available_gas(10000000)]
 fn test_collected_premium_does_not_roll_over() {
-    let (vault_dispatcher, _): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let option_round: IOptionRoundDispatcher = IOptionRoundDispatcher {
-        contract_address: vault_dispatcher
-            .get_option_round_address(vault_dispatcher.current_option_round_id() + 1)
-    };
+    let (mut vault_facade,_) = setup_facade();
+    let mut option_round: OptionRoundFacade = vault_facade.get_next_round();
     let params = option_round.get_params();
     // Deposit liquidity
-    set_contract_address(liquidity_provider_1());
     let deposit_amount_wei: u256 = 50 * decimals();
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
     // Make bid 
-    set_contract_address(option_bidder_buyer_1());
     let bid_amount: u256 = params.total_options_available;
     let bid_price: u256 = params.reserve_price;
     let bid_amount: u256 = bid_amount * bid_price;
-    option_round.place_bid(bid_amount, bid_price);
+    option_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
     // End auction
     set_block_timestamp(params.auction_end_time + 1);
     option_round.end_auction();
     // Collect premium 
     // @dev Since the round is running withdraw first come from unallocated liquidity
     // - @note need more tests for that
-    set_contract_address(liquidity_provider_1());
     let claimable_premiums: u256 = params.total_options_available * params.reserve_price;
-    vault_dispatcher.withdraw_liquidity(claimable_premiums);
+    vault_facade.withdraw(claimable_premiums, liquidity_provider_1());
 
     // The round has no more unallocated liquidity because lp withdrew it
     let unallocated_liqudity_after_premium_claim: u256 = option_round.total_unallocated_liquidity();
@@ -121,15 +109,12 @@ fn test_collected_premium_does_not_roll_over() {
     // Settle option round with no payout
     set_block_timestamp(params.option_expiry_time + 1);
     IMarketAggregatorSetterDispatcher {
-        contract_address: vault_dispatcher.get_market_aggregator().contract_address
+        contract_address: vault_facade.get_market_aggregator()
     }
         .set_current_base_fee(params.strike_price - 1);
-    vault_dispatcher.settle_option_round();
+    vault_facade.settle_option_round(liquidity_provider_1());
     // At this time, remaining liqudity was rolled to the next round (just initial deposit since there is no payout and premiums were collected)
-    let next_option_round: IOptionRoundDispatcher = IOptionRoundDispatcher {
-        contract_address: vault_dispatcher
-            .get_option_round_address(vault_dispatcher.current_option_round_id())
-    };
+    let mut next_option_round: OptionRoundFacade = vault_facade.get_next_round();
 
     // Check rolled over amount is correct
     let next_round_unallocated: u256 = next_option_round.total_unallocated_liquidity();
@@ -140,22 +125,17 @@ fn test_collected_premium_does_not_roll_over() {
 #[test]
 #[available_gas(10000000)]
 fn test_remaining_liqudity_rolls_over() {
-    let (vault_dispatcher, _): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let option_round: IOptionRoundDispatcher = IOptionRoundDispatcher {
-        contract_address: vault_dispatcher
-            .get_option_round_address(vault_dispatcher.current_option_round_id() + 1)
-    };
+    let (mut vault_facade,_) = setup_facade();
+    let mut option_round: OptionRoundFacade = vault_facade.get_next_round();
     let params = option_round.get_params();
     // Deposit liquidity
-    set_contract_address(liquidity_provider_1());
     let deposit_amount_wei: u256 = 50 * decimals();
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
     // Make bid 
-    set_contract_address(option_bidder_buyer_1());
     let bid_amount: u256 = params.total_options_available;
     let bid_price: u256 = params.reserve_price;
     let bid_amount: u256 = bid_amount * bid_price;
-    option_round.place_bid(bid_amount, bid_price);
+    option_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
     // End auction
     set_block_timestamp(params.auction_end_time + 1);
     option_round.end_auction();
@@ -164,15 +144,12 @@ fn test_remaining_liqudity_rolls_over() {
     // Settle option round with no payout
     set_block_timestamp(params.option_expiry_time + 1);
     IMarketAggregatorSetterDispatcher {
-        contract_address: vault_dispatcher.get_market_aggregator().contract_address
+        contract_address: vault_facade.get_market_aggregator()
     }
         .set_current_base_fee(params.strike_price - 1);
-    vault_dispatcher.settle_option_round();
+    vault_facade.settle_option_round(liquidity_provider_1());
     // At this time, remaining liqudity was rolled to the next round (initial deposit + premiums)
-    let next_option_round: IOptionRoundDispatcher = IOptionRoundDispatcher {
-        contract_address: vault_dispatcher
-            .get_option_round_address(vault_dispatcher.current_option_round_id())
-    };
+    let mut next_option_round:OptionRoundFacade=vault_facade.get_next_round();
     // Check rolled over amount is correct
     let next_round_unallocated: u256 = next_option_round.total_unallocated_liquidity();
     assert(
@@ -183,22 +160,17 @@ fn test_remaining_liqudity_rolls_over() {
 #[test]
 #[available_gas(10000000)]
 fn test_option_payout_sends_eth() {
-    let (vault_dispatcher, eth_dispatcher): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let option_round: IOptionRoundDispatcher = IOptionRoundDispatcher {
-        contract_address: vault_dispatcher
-            .get_option_round_address(vault_dispatcher.current_option_round_id() + 1)
-    };
+    let (mut vault_facade, eth_dispatcher) = setup_facade();
+    let mut option_round:OptionRoundFacade=vault_facade.get_next_round();
     let params = option_round.get_params();
     // Deposit liquidity
-    set_contract_address(liquidity_provider_1());
     let deposit_amount_wei: u256 = 10000 * decimals();
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
     // Make bid (ob1)
-    set_contract_address(option_bidder_buyer_1());
     let bid_amount: u256 = 2;
     let bid_price: u256 = params.reserve_price;
     let bid_amount: u256 = bid_amount * bid_price;
-    option_round.place_bid(bid_amount, bid_price);
+    option_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
     // End auction
     set_block_timestamp(params.auction_end_time + 1);
     option_round.end_auction();
@@ -206,10 +178,10 @@ fn test_option_payout_sends_eth() {
     let settlement_price = params.reserve_price + 10;
     set_block_timestamp(params.option_expiry_time + 1);
     IMarketAggregatorSetterDispatcher {
-        contract_address: vault_dispatcher.get_market_aggregator().contract_address
+        contract_address: vault_facade.get_market_aggregator()
     }
         .set_current_base_fee(settlement_price);
-    vault_dispatcher.settle_option_round();
+    vault_facade.settle_option_round(liquidity_provider_1());
     // Settle auction
     set_block_timestamp(params.auction_end_time + 1);
     option_round.end_auction();
@@ -220,28 +192,23 @@ fn test_option_payout_sends_eth() {
     // Check balance updates
     assert(ob_balance_after == ob_balance_before + payout, 'payout not received');
     // Check eth transfer to OB
-    assert_event_transfer(option_round.contract_address, option_bidder_buyer_1(), payout);
+    assert_event_transfer(option_round.contract_address(), option_bidder_buyer_1(), payout);
 }
 
 #[test]
 #[available_gas(10000000)]
 fn test_option_payout_amount_index_higher_than_strike() {
-    let (vault_dispatcher, _): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let option_round: IOptionRoundDispatcher = IOptionRoundDispatcher {
-        contract_address: vault_dispatcher
-            .get_option_round_address(vault_dispatcher.current_option_round_id() + 1)
-    };
+    let (mut vault_facade,_) = setup_facade();
+    let mut option_round: OptionRoundFacade = vault_facade.get_next_round();
     let params = option_round.get_params();
     // Deposit liquidity
-    set_contract_address(liquidity_provider_1());
     let deposit_amount_wei: u256 = 10000 * decimals();
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
     // Make bid
-    set_contract_address(option_bidder_buyer_1());
     let bid_amount: u256 = 2;
     let bid_price: u256 = params.reserve_price;
     let bid_amount: u256 = bid_amount * bid_price;
-    option_round.place_bid(bid_amount, bid_price);
+    option_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
     // End auction
     set_block_timestamp(params.auction_end_time + 1);
     option_round.end_auction();
@@ -249,10 +216,10 @@ fn test_option_payout_amount_index_higher_than_strike() {
     let settlement_price = params.reserve_price + 10;
     set_block_timestamp(params.option_expiry_time + 1);
     IMarketAggregatorSetterDispatcher {
-        contract_address: vault_dispatcher.get_market_aggregator().contract_address
+        contract_address: vault_facade.get_market_aggregator()
     }
         .set_current_base_fee(settlement_price);
-    vault_dispatcher.settle_option_round();
+    vault_facade.settle_option_round(liquidity_provider_1());
     // Settle auction
     set_block_timestamp(params.auction_end_time + 1);
     option_round.end_auction();
@@ -266,22 +233,17 @@ fn test_option_payout_amount_index_higher_than_strike() {
 #[test]
 #[available_gas(10000000)]
 fn test_option_payout_amount_index_less_than_strike() {
-    let (vault_dispatcher, _): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let option_round: IOptionRoundDispatcher = IOptionRoundDispatcher {
-        contract_address: vault_dispatcher
-            .get_option_round_address(vault_dispatcher.current_option_round_id() + 1)
-    };
+    let (mut vault_facade,_) = setup_facade();
+    let mut option_round: OptionRoundFacade = vault_facade.get_next_round();
     let params = option_round.get_params();
     // Deposit liquidity
-    set_contract_address(liquidity_provider_1());
     let deposit_amount_wei: u256 = 10000 * decimals();
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
     // Make bid (ob1)
-    set_contract_address(option_bidder_buyer_1());
     let bid_amount: u256 = 2;
     let bid_price: u256 = params.reserve_price;
     let bid_amount: u256 = bid_amount * bid_price;
-    option_round.place_bid(bid_amount, bid_price);
+    option_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
     // End auction
     set_block_timestamp(params.auction_end_time + 1);
     option_round.end_auction();
@@ -289,10 +251,10 @@ fn test_option_payout_amount_index_less_than_strike() {
     let settlement_price = params.reserve_price - 10;
     set_block_timestamp(params.option_expiry_time + 1);
     IMarketAggregatorSetterDispatcher {
-        contract_address: vault_dispatcher.get_market_aggregator().contract_address
+        contract_address: vault_facade.get_market_aggregator()
     }
         .set_current_base_fee(settlement_price);
-    vault_dispatcher.settle_option_round();
+    vault_facade.settle_option_round(liquidity_provider_1());
     // Settle auction
     set_block_timestamp(params.auction_end_time + 1);
     option_round.end_auction();
@@ -304,22 +266,17 @@ fn test_option_payout_amount_index_less_than_strike() {
 #[test]
 #[available_gas(10000000)]
 fn test_option_payout_amount_index_at_strike() {
-    let (vault_dispatcher, _): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let option_round: IOptionRoundDispatcher = IOptionRoundDispatcher {
-        contract_address: vault_dispatcher
-            .get_option_round_address(vault_dispatcher.current_option_round_id() + 1)
-    };
+    let (mut vault_facade,_) = setup_facade();
+    let mut option_round: OptionRoundFacade = vault_facade.get_next_round();
     let params = option_round.get_params();
     // Deposit liquidity
-    set_contract_address(liquidity_provider_1());
     let deposit_amount_wei: u256 = 10000 * decimals();
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
     // Make bid (ob1)
-    set_contract_address(option_bidder_buyer_1());
     let bid_amount: u256 = 2;
     let bid_price: u256 = params.reserve_price;
     let bid_amount: u256 = bid_amount * bid_price;
-    option_round.place_bid(bid_amount, bid_price);
+    option_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
     // End auction
     set_block_timestamp(params.auction_end_time + 1);
     option_round.end_auction();
@@ -327,10 +284,10 @@ fn test_option_payout_amount_index_at_strike() {
     let settlement_price = params.reserve_price;
     set_block_timestamp(params.option_expiry_time + 1);
     IMarketAggregatorSetterDispatcher {
-        contract_address: vault_dispatcher.get_market_aggregator().contract_address
+        contract_address: vault_facade.get_market_aggregator()
     }
         .set_current_base_fee(settlement_price);
-    vault_dispatcher.settle_option_round();
+    vault_facade.settle_option_round(liquidity_provider_1());
     // Settle auction
     set_block_timestamp(params.auction_end_time + 1);
     option_round.end_auction();

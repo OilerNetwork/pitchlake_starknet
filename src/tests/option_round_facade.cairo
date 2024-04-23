@@ -6,7 +6,7 @@ use pitch_lake_starknet::vault::{
 
 use starknet::{ContractAddress, testing::{set_contract_address}};
 use pitch_lake_starknet::option_round::{
-    IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundParams
+    IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundParams, OptionRoundState
 };
 
 use pitch_lake_starknet::tests::utils::{vault_manager};
@@ -31,8 +31,9 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     ) -> bool {
         set_contract_address(option_bidder_buyer);
         let result: bool = self.option_round_dispatcher.place_bid(amount, price);
-        return result;
+        result
     }
+
 
     fn end_auction(ref self: OptionRoundFacade) {
         set_contract_address(vault_manager());
@@ -42,32 +43,54 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     fn refund_bid(ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress) -> u256 {
         set_contract_address(option_bidder_buyer);
         let result: u256 = self.option_round_dispatcher.refund_unused_bids(option_bidder_buyer);
-        return result;
+        result
     }
 
+    fn exercise_options(ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress) -> u256 {
+        self.option_round_dispatcher.exercise_options(option_bidder_buyer)
+    }
+    fn get_state(ref self: OptionRoundFacade) -> OptionRoundState {
+        self.option_round_dispatcher.get_state()
+    }
+
+    fn vault_address(ref self:OptionRoundFacade)->ContractAddress{
+        self.vault_address()
+    }
     fn total_liquidity(ref self: OptionRoundFacade) -> u256 {
-        return self.option_round_dispatcher.total_liquidity();
+        self.option_round_dispatcher.total_liquidity()
     }
     fn total_unallocated_liquidity(ref self: OptionRoundFacade) -> u256 {
-        return self.option_round_dispatcher.total_unallocated_liquidity();
+        self.option_round_dispatcher.total_unallocated_liquidity()
     }
     fn contract_address(ref self: OptionRoundFacade) -> ContractAddress {
-        return self.option_round_dispatcher.contract_address;
+        self.option_round_dispatcher.contract_address
     }
 
     fn get_params(ref self: OptionRoundFacade) -> OptionRoundParams {
-        return self.option_round_dispatcher.get_params();
-    }
-    
-    fn total_options_sold(ref self: OptionRoundFacade)->u256{
-        return self.option_round_dispatcher.total_options_sold();
+        self.option_round_dispatcher.get_params()
     }
 
-    fn get_auction_clearing_price(ref self:OptionRoundFacade)->u256{
-        return self.option_round_dispatcher.get_auction_clearing_price();
+    fn total_options_sold(ref self: OptionRoundFacade) -> u256 {
+        self.option_round_dispatcher.total_options_sold()
     }
 
-    fn total_collateral(ref self:OptionRoundFacade)->u256{
-        return self.option_round_dispatcher.total_collateral();
+    fn get_auction_clearing_price(ref self: OptionRoundFacade) -> u256 {
+        self.option_round_dispatcher.get_auction_clearing_price()
+    }
+
+    fn total_collateral(ref self: OptionRoundFacade) -> u256 {
+        self.option_round_dispatcher.total_collateral()
+    }
+
+    fn get_payout_balance_for(
+        ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
+    ) -> u256 {
+        self.option_round_dispatcher.get_payout_balance_for(option_bidder_buyer)
+    }
+    fn get_unused_bids_for(ref self:OptionRoundFacade, option_bidder_buyer:ContractAddress)->u256{
+        self.option_round_dispatcher.get_unused_bids_for(option_bidder_buyer)
+    }
+    fn get_market_aggregator(ref self: OptionRoundFacade) -> ContractAddress {
+        self.option_round_dispatcher.get_market_aggregator()
     }
 }

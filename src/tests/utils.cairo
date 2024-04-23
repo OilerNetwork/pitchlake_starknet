@@ -153,7 +153,7 @@ fn setup() -> (IVaultDispatcher, IERC20Dispatcher) {
 }
 
 
-fn setup_facade() -> VaultFacade {
+fn setup_facade() -> (VaultFacade, IERC20Dispatcher) {
     let eth_dispatcher: IERC20Dispatcher = deploy_eth();
     let vault_dispatcher: IVaultDispatcher = deploy_vault(VaultType::InTheMoney);
     set_contract_address(weth_owner());
@@ -171,8 +171,8 @@ fn setup_facade() -> VaultFacade {
 
     drop_event(zero_address());
 
-    let mut vault_facade = VaultFacade { vault_dispatcher, eth_dispatcher };
-    return vault_facade;
+    let vault_facade = VaultFacade { vault_dispatcher};
+    return (vault_facade, eth_dispatcher);
 }
 fn setup_return_mkt_agg() -> (IVaultDispatcher, IERC20Dispatcher, IMarketAggregatorDispatcher) {
     let eth_dispatcher: IERC20Dispatcher = deploy_eth();
@@ -196,6 +196,31 @@ fn setup_return_mkt_agg() -> (IVaultDispatcher, IERC20Dispatcher, IMarketAggrega
     drop_event(zero_address());
 
     return (vault_dispatcher, eth_dispatcher, mkt_agg_dispatcher);
+}
+
+fn setup_return_mkt_agg_facade() -> (VaultFacade, IERC20Dispatcher, IMarketAggregatorDispatcher) {
+    let eth_dispatcher: IERC20Dispatcher = deploy_eth();
+    let (vault_dispatcher, mkt_agg_dispatcher): (IVaultDispatcher, IMarketAggregatorDispatcher) =
+        deploy_vault_with_mkt_agg(
+        VaultType::InTheMoney
+    );
+    set_contract_address(weth_owner());
+    let deposit_amount_ether: u256 = 1000000;
+    let deposit_amount_wei: u256 = deposit_amount_ether * decimals();
+
+    eth_dispatcher.transfer(liquidity_provider_1(), deposit_amount_wei);
+    eth_dispatcher.transfer(liquidity_provider_2(), deposit_amount_wei);
+
+    let deposit_amount_ether: u256 = 100000;
+    let deposit_amount_wei: u256 = deposit_amount_ether * decimals();
+
+    eth_dispatcher.transfer(option_bidder_buyer_1(), deposit_amount_wei);
+    eth_dispatcher.transfer(option_bidder_buyer_2(), deposit_amount_wei);
+
+    drop_event(zero_address());
+
+    let vault_facade = VaultFacade { vault_dispatcher };
+    return (vault_facade, eth_dispatcher, mkt_agg_dispatcher);
 }
 
 fn option_round_test_owner() -> ContractAddress {

@@ -25,7 +25,7 @@ use traits::Into;
 use traits::TryInto;
 use pitch_lake_starknet::eth::Eth;
 use pitch_lake_starknet::tests::utils::{
-    setup, setup_facade, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
+    setup_facade, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
     timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
     option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
     vault_manager, weth_owner, mock_option_params, assert_event_option_amount_transfer
@@ -40,7 +40,7 @@ use pitch_lake_starknet::option_round::{IOptionRoundDispatcher, IOptionRoundDisp
 #[test]
 #[available_gas(10000000)]
 fn test_withdraw_premiums_from_current_round() {
-    let mut vault_facade: VaultFacade = setup_facade();
+    let (mut vault_facade, _) = setup_facade();
     // LP deposits (into round 1)
     let deposit_amount_wei: u256 = 100000 * decimals();
     vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
@@ -76,7 +76,7 @@ fn test_withdraw_premiums_from_current_round() {
 #[test]
 #[available_gas(10000000)]
 fn test_premium_collection_ratio_conversion_unallocated_pool_1() {
-    let mut vault_facade:VaultFacade = setup_facade();
+    let (mut vault_facade, _) = setup_facade();
     let mut current_round:OptionRoundFacade =  vault_facade.get_current_round();
     let params = current_round.get_params();
     // Deposit liquidity
@@ -132,7 +132,7 @@ fn test_premium_collection_ratio_conversion_unallocated_pool_1() {
 #[test]
 #[available_gas(10000000)]
 fn test_premium_collection_ratio_conversion_unallocated_pool_2() {
-    let mut vault_facade:VaultFacade = setup_facade();
+    let (mut vault_facade, _) = setup_facade();
     let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
     let params = current_round.get_params();
     // Deposit liquidity
