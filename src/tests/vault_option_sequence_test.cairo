@@ -19,6 +19,8 @@ use starknet::{
     testing::{set_block_timestamp, set_contract_address}
 };
 
+use pitch_lake_starknet::tests::vault_facade::{VaultFacade, VaultFacadeTrait};
+use pitch_lake_starknet::tests::option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait};
 use starknet::contract_address::ContractAddressZeroable;
 use openzeppelin::utils::serde::SerializedAppend;
 
@@ -26,7 +28,7 @@ use traits::Into;
 use traits::TryInto;
 use pitch_lake_starknet::eth::Eth;
 use pitch_lake_starknet::tests::utils::{
-    setup, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
+    setup_facade, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
     timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
     option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
     zero_address, vault_manager, weth_owner, option_round_contract_address, mock_option_params,
@@ -59,26 +61,20 @@ fn assert_event_option_created(
 #[available_gas(10000000)]
 #[should_panic(expected: ('Cannot bid before auction starts', 'ENTRYPOINT_FAILED'))]
 fn test_bid_before_auction_starts_failure() {
-    let (vault_dispatcher, _): (IVaultDispatcher, IERC20Dispatcher) = setup();
-
+    let (mut vault_facade, _) = setup_facade();
     // OptionRoundDispatcher
-    let next_round: IOptionRoundDispatcher = IOptionRoundDispatcher {
-        contract_address: vault_dispatcher
-            .get_option_round_address(vault_dispatcher.current_option_round_id() + 1)
-    };
+    let mut next_round: OptionRoundFacade = vault_facade.get_next_round();
     let params = next_round.get_params();
 
     // Add liq. to next round
-    set_contract_address(liquidity_provider_1());
     let deposit_amount_wei = 50 * decimals();
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
 
     // Try to place bid before auction starts
-    set_contract_address(option_bidder_buyer_1());
     let option_amount: u256 = params.total_options_available;
     let option_price: u256 = params.reserve_price;
     let bid_amount: u256 = option_amount * option_price;
-    next_round.place_bid(bid_amount, option_price);
+    next_round.place_bid(bid_amount, option_price, option_bidder_buyer_1());
 }
 
 // Test OB cannot bid after the auction end date (regardless if end_auction() is called)
@@ -86,21 +82,18 @@ fn test_bid_before_auction_starts_failure() {
 #[available_gas(10000000)]
 #[should_panic(expected: ('Auction ended, cannot place bid', 'ENTRYPOINT_FAILED',))]
 fn test_bid_after_auction_ends_failure() {
-    let (vault_dispatcher, _): (IVaultDispatcher, IERC20Dispatcher) = setup();
-
     // Add liq. to next round
-    set_contract_address(option_bidder_buyer_1());
+    // note: Why is this option buyer and not liquidity provider?
+    //set_contract_address(option_bidder_buyer_1());
+    let (mut vault_facade, _) = setup_facade();
     let deposit_amount_wei = 50 * decimals();
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    vault_facade.deposit(deposit_amount_wei, option_bidder_buyer_1());
 
     // Start the option round
-    vault_dispatcher.start_auction();
+    vault_facade.start_auction();
 
     // Get current round params
-    let current_round: IOptionRoundDispatcher = IOptionRoundDispatcher {
-        contract_address: vault_dispatcher
-            .get_option_round_address(vault_dispatcher.current_option_round_id())
-    };
+    let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
     let params: OptionRoundParams = current_round.get_params();
 
     // Place bid after auction end
@@ -109,7 +102,7 @@ fn test_bid_after_auction_ends_failure() {
     let option_amount = params.total_options_available;
     let option_price = params.reserve_price;
     let bid_amount = option_amount * option_price;
-    current_round.place_bid(bid_amount, option_price);
+    current_round.place_bid(bid_amount, option_price, option_bidder_buyer_1());
 }
 
 // Test auction cannot end if it has not started
@@ -117,23 +110,18 @@ fn test_bid_after_auction_ends_failure() {
 #[available_gas(10000000)]
 #[should_panic(expected: ('Cannot end auction before it starts', 'ENTRYPOINT_FAILED'))]
 fn test_auction_end_before_it_starts_failure() {
-    let (vault_dispatcher, _): (IVaultDispatcher, IERC20Dispatcher) = setup();
-
+    let (mut vault_facade, _) = setup_facade();
     // OptionRoundDispatcher
-    let next_round: IOptionRoundDispatcher = IOptionRoundDispatcher {
-        contract_address: vault_dispatcher
-            .get_option_round_address(vault_dispatcher.current_option_round_id() + 1)
-    };
+    let mut next_round: OptionRoundFacade = vault_facade.get_next_round();
     let params = next_round.get_params();
 
     // Add liq. to next round
-    set_contract_address(liquidity_provider_1());
     let deposit_amount_wei = 50 * decimals();
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
 
     // Try to end auction before it starts 
     set_block_timestamp(params.option_expiry_time + 1);
-    vault_dispatcher.settle_option_round();
+    vault_facade.settle_option_round(liquidity_provider_1());
 }
 
 // Test auction cannot end before the auction end date 
@@ -141,20 +129,16 @@ fn test_auction_end_before_it_starts_failure() {
 #[available_gas(10000000)]
 #[should_panic(expected: ('Some error', 'Auction cannot settle before due time',))]
 fn test_auction_end_before_end_date_failure() {
-    let (vault_dispatcher, _): (IVaultDispatcher, IERC20Dispatcher) = setup();
-
+    let (mut vault_facade, _) = setup_facade();
     // Add liq. to current round
-    set_contract_address(option_bidder_buyer_1());
+    // note Why some deposits are by option_bidder
     let deposit_amount_wei = 50 * decimals();
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    vault_facade.deposit(deposit_amount_wei, option_bidder_buyer_1());
 
     // Start the auction
-    vault_dispatcher.start_auction();
+    vault_facade.start_auction();
 
-    let current_round: IOptionRoundDispatcher = IOptionRoundDispatcher {
-        contract_address: vault_dispatcher
-            .get_option_round_address(vault_dispatcher.current_option_round_id())
-    };
+    let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
     let params: OptionRoundParams = current_round.get_params();
 
     // Try to end auction before the end time
@@ -167,29 +151,23 @@ fn test_auction_end_before_end_date_failure() {
 #[available_gas(10000000)]
 #[should_panic(expected: ('Some error', 'Options cannot settle before expiry',))]
 fn test_options_settle_before_expiry_date_failure() {
-    let (vault_dispatcher, _): (IVaultDispatcher, IERC20Dispatcher) = setup();
-
+    let (mut vault_facade, _) = setup_facade();
     // Add liq. to next round
-    set_contract_address(liquidity_provider_1());
     let deposit_amount_wei = 50 * decimals();
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
 
     // Start the option round
-    vault_dispatcher.start_auction();
+    vault_facade.start_auction();
 
     // OptionRoundDispatcher
-    let current_round: IOptionRoundDispatcher = IOptionRoundDispatcher {
-        contract_address: vault_dispatcher
-            .get_option_round_address(vault_dispatcher.current_option_round_id())
-    };
+    let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
     let params = current_round.get_params();
 
     // Place bid
-    set_contract_address(option_bidder_buyer_1());
     let option_amount: u256 = params.total_options_available;
     let option_price: u256 = params.reserve_price;
     let bid_amount: u256 = option_amount * option_price;
-    current_round.place_bid(bid_amount, option_price);
+    current_round.place_bid(bid_amount, option_price, option_bidder_buyer_1());
 
     // Settle auction
     set_block_timestamp(params.auction_end_time + 1);
@@ -197,5 +175,5 @@ fn test_options_settle_before_expiry_date_failure() {
 
     // Settle option round before expiry
     set_block_timestamp(params.option_expiry_time - 1);
-    vault_dispatcher.settle_option_round();
+    vault_facade.settle_option_round(option_bidder_buyer_1());
 }
