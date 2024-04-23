@@ -25,11 +25,13 @@ use traits::Into;
 use traits::TryInto;
 use pitch_lake_starknet::eth::Eth;
 use pitch_lake_starknet::tests::utils::{
-    setup, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
+    setup, setup_facade, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
     timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
     option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
     vault_manager, weth_owner, mock_option_params, assert_event_option_amount_transfer
 };
+use pitch_lake_starknet::tests::vault_facade::{VaultFacade, VaultFacadeTrait};
+use pitch_lake_starknet::tests::option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait};
 use pitch_lake_starknet::option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait};
 
 
@@ -38,35 +40,30 @@ use pitch_lake_starknet::option_round::{IOptionRoundDispatcher, IOptionRoundDisp
 #[test]
 #[available_gas(10000000)]
 fn test_withdraw_premiums_from_current_round() {
-    let (vault_dispatcher, _): (IVaultDispatcher, IERC20Dispatcher) = setup();
+    let mut vault_facade: VaultFacade = setup_facade();
     // LP deposits (into round 1)
     let deposit_amount_wei: u256 = 100000 * decimals();
-    set_contract_address(liquidity_provider_1());
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei);
+    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
     // Start auction
-    vault_dispatcher.start_auction();
-    let round_dispatcher: IOptionRoundDispatcher = IOptionRoundDispatcher {
-        contract_address: vault_dispatcher
-            .get_option_round_address(vault_dispatcher.current_option_round_id())
-    };
-    let params: OptionRoundParams = round_dispatcher.get_params();
+    vault_facade.start_auction();
+    let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
+    let params: OptionRoundParams = current_round.get_params();
     // Make bid
-    set_contract_address(option_bidder_buyer_1());
     let bid_amount_user_1: u256 = (params.total_options_available / 2) * params.reserve_price;
-    round_dispatcher.place_bid(bid_amount_user_1, params.reserve_price);
+    current_round.place_bid(bid_amount_user_1, params.reserve_price, option_bidder_buyer_1());
 
     // Settle auction
     set_block_timestamp(params.auction_end_time + 1);
-    round_dispatcher.end_auction();
+    current_round.end_auction();
     // 
-    let expected_unallocated_wei: u256 = round_dispatcher.get_auction_clearing_price()
-        * round_dispatcher.total_options_sold();
+    let expected_unallocated_wei: u256 = current_round.get_auction_clearing_price()
+        * current_round.total_options_sold();
 
-    vault_dispatcher.withdraw_liquidity(expected_unallocated_wei);
+    vault_facade.withdraw(expected_unallocated_wei, liquidity_provider_1());
 
     //assert(success == true, 'should be able withdraw premium');
     assert_event_option_amount_transfer(
-        round_dispatcher.contract_address, // from
+        current_round.contract_address(), // from
         // round_dispatcher.contract_address, // to 
         liquidity_provider_1(), // to: is this correct vs pre above ? or from round -> vault ? 
         liquidity_provider_1(), // for user
@@ -79,25 +76,19 @@ fn test_withdraw_premiums_from_current_round() {
 #[test]
 #[available_gas(10000000)]
 fn test_premium_collection_ratio_conversion_unallocated_pool_1() {
-    let (vault_dispatcher, _): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let current_round: IOptionRoundDispatcher = IOptionRoundDispatcher {
-        contract_address: vault_dispatcher
-            .get_option_round_address(vault_dispatcher.current_option_round_id() + 1)
-    };
+    let mut vault_facade:VaultFacade = setup_facade();
+    let mut current_round:OptionRoundFacade =  vault_facade.get_current_round();
     let params = current_round.get_params();
     // Deposit liquidity
     let deposit_amount_wei_1: u256 = 1000 * decimals();
     let deposit_amount_wei_2: u256 = 10000 * decimals();
-    set_contract_address(liquidity_provider_1());
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei_1);
-    set_contract_address(liquidity_provider_2());
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei_2);
+    vault_facade.deposit(deposit_amount_wei_1, liquidity_provider_1());
+    vault_facade.deposit(deposit_amount_wei_2, liquidity_provider_2());
     // Make bid (ob1)
-    set_contract_address(option_bidder_buyer_1());
     let bid_amount: u256 = params.total_options_available;
     let bid_price: u256 = params.reserve_price;
     let bid_amount: u256 = bid_amount * bid_price;
-    current_round.place_bid(bid_amount, bid_price);
+    current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
     // End auction
     set_block_timestamp(params.auction_end_time + 1);
     current_round.end_auction();
@@ -107,11 +98,11 @@ fn test_premium_collection_ratio_conversion_unallocated_pool_1() {
     let total_premium_to_be_paid: u256 = current_round.get_auction_clearing_price()
         * current_round.total_options_sold();
     // LP % of the round
-    let ratio_of_liquidity_provider_1: u256 = (vault_dispatcher
+    let ratio_of_liquidity_provider_1: u256 = (vault_facade
         .get_collateral_balance_for(liquidity_provider_1())
         * 100)
         / total_collateral;
-    let ratio_of_liquidity_provider_2: u256 = (vault_dispatcher
+    let ratio_of_liquidity_provider_2: u256 = (vault_facade
         .get_collateral_balance_for(liquidity_provider_2())
         * 100)
         / total_collateral;
@@ -123,9 +114,9 @@ fn test_premium_collection_ratio_conversion_unallocated_pool_1() {
         * total_premium_to_be_paid)
         / 100;
     // The actual unallocated balance of the LPs
-    let actual_unallocated_balance_provider_1: u256 = vault_dispatcher
+    let actual_unallocated_balance_provider_1: u256 = vault_facade
         .get_unallocated_balance_for(liquidity_provider_1());
-    let actual_unallocated_balance_provider_2: u256 = vault_dispatcher
+    let actual_unallocated_balance_provider_2: u256 = vault_facade
         .get_unallocated_balance_for(liquidity_provider_2());
 
     assert(
@@ -141,25 +132,18 @@ fn test_premium_collection_ratio_conversion_unallocated_pool_1() {
 #[test]
 #[available_gas(10000000)]
 fn test_premium_collection_ratio_conversion_unallocated_pool_2() {
-    let (vault_dispatcher, _): (IVaultDispatcher, IERC20Dispatcher) = setup();
-    let current_round: IOptionRoundDispatcher = IOptionRoundDispatcher {
-        contract_address: vault_dispatcher
-            .get_option_round_address(vault_dispatcher.current_option_round_id() + 1)
-    };
+    let mut vault_facade:VaultFacade = setup_facade();
+    let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
     let params = current_round.get_params();
     // Deposit liquidity
     let deposit_amount_wei_1: u256 = 1000 * decimals();
-    set_contract_address(liquidity_provider_1());
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei_1);
-    set_contract_address(liquidity_provider_2());
-    vault_dispatcher.deposit_liquidity(deposit_amount_wei_1);
+    vault_facade.deposit(deposit_amount_wei_1,liquidity_provider_1());
+    vault_facade.deposit(deposit_amount_wei_1, liquidity_provider_2());
     // Make bid
     let bid_amount_user_1: u256 = ((params.total_options_available / 2) + 1) * params.reserve_price;
     let bid_amount_user_2: u256 = (params.total_options_available / 2) * params.reserve_price;
-    set_contract_address(option_bidder_buyer_1());
-    current_round.place_bid(bid_amount_user_1, params.reserve_price);
-    set_contract_address(option_bidder_buyer_2());
-    current_round.place_bid(bid_amount_user_2, params.reserve_price);
+    current_round.place_bid(bid_amount_user_1, params.reserve_price,option_bidder_buyer_1());
+    current_round.place_bid(bid_amount_user_2, params.reserve_price, option_bidder_buyer_2());
     // End auction
     set_block_timestamp(params.auction_end_time + 1);
     current_round.end_auction();
@@ -168,11 +152,11 @@ fn test_premium_collection_ratio_conversion_unallocated_pool_2() {
     let total_premium_to_be_paid: u256 = current_round.get_auction_clearing_price()
         * current_round.total_options_sold();
     // LP % of the round
-    let ratio_of_liquidity_provider_1: u256 = (vault_dispatcher
+    let ratio_of_liquidity_provider_1: u256 = (vault_facade
         .get_collateral_balance_for(liquidity_provider_1())
         * 100)
         / total_collateral;
-    let ratio_of_liquidity_provider_2: u256 = (vault_dispatcher
+    let ratio_of_liquidity_provider_2: u256 = (vault_facade
         .get_collateral_balance_for(liquidity_provider_2())
         * 100)
         / total_collateral;
@@ -184,9 +168,9 @@ fn test_premium_collection_ratio_conversion_unallocated_pool_2() {
         * total_premium_to_be_paid)
         / 100;
     // The actual unallocated balance of the LPs
-    let actual_unallocated_balance_provider_1: u256 = vault_dispatcher
+    let actual_unallocated_balance_provider_1: u256 = vault_facade
         .get_unallocated_balance_for(liquidity_provider_1());
-    let actual_unallocated_balance_provider_2: u256 = vault_dispatcher
+    let actual_unallocated_balance_provider_2: u256 = vault_facade
         .get_unallocated_balance_for(liquidity_provider_2());
 
     assert(

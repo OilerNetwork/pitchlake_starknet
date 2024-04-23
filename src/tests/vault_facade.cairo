@@ -51,6 +51,14 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         let result: bool = self.vault_dispatcher.settle_option_round();
         return result;
     }
+    
+    fn current_option_round_id(ref self:VaultFacade)->u256 {
+         return self.vault_dispatcher.current_option_round_id();
+    }
+
+    fn get_option_round_address(ref self:VaultFacade, id:u256)->ContractAddress {
+        return self.vault_dispatcher.get_option_round_address(id);
+    }
     fn get_current_round(ref self: VaultFacade) -> OptionRoundFacade {
         let contract_address = self
             .vault_dispatcher
@@ -73,6 +81,14 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     }
 
     fn get_unlocked_liquidity(ref self: VaultFacade, liquidity_provider: ContractAddress) -> u256 {
+        return self.vault_dispatcher.get_unallocated_balance_for(liquidity_provider);
+    }
+
+    fn get_collateral_balance_for(ref self:VaultFacade, liquidity_provider:ContractAddress)->u256{
+        return self.vault_dispatcher.get_collateral_balance_for(liquidity_provider);
+    }
+
+     fn get_unallocated_balance_for(ref self:VaultFacade, liquidity_provider:ContractAddress)->u256{
         return self.vault_dispatcher.get_unallocated_balance_for(liquidity_provider);
     }
 }
