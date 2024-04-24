@@ -32,10 +32,10 @@ use pitch_lake_starknet::tests::utils::{
     mock_option_params, pop_log, assert_no_events_left
 };
 
-// Test deposit liquidity transfers eth from LP -> round
+// Test deposit liquidity transfers eth from LP -> next round
 #[test]
 #[available_gas(10000000)]
-fn test_deposit_liquidity_transfers_eth() {
+fn test_deposit_transfers_eth_to_next_round() {
     let (mut vault_facade, eth_dispatcher) = setup_facade();
     // Get the next option round
     let mut option_round_facade: OptionRoundFacade = vault_facade.get_next_round();
@@ -66,7 +66,7 @@ fn test_deposit_liquidity_transfers_eth() {
 // Test deposit liquidity increments total unallocated liquidity in the round
 #[test]
 #[available_gas(10000000)]
-fn test_deposit_liquidity_increments_rounds_total_unallocated() {
+fn test_deposit_increments_round_unallocated() {
     let (mut vault_facade, _) = setup_facade();
     // Get the next option round
     let mut option_round_facade: OptionRoundFacade = vault_facade.get_next_round();
@@ -93,7 +93,7 @@ fn test_deposit_liquidity_increments_rounds_total_unallocated() {
 // Test deposit liquidity updates LP's unallocated balance in the vault
 #[test]
 #[available_gas(10000000)]
-fn test_deposit_liquidity_increments_LPs_unallocated_balance() {
+fn test_deposit_increments_LP_unallocated() {
     let (mut vault_facade, _) = setup_facade();
     // Deposit liquidity
     let deposit_amount_wei: u256 = 50 * decimals();
@@ -129,24 +129,23 @@ fn test_deposit_liquidity_zero() {
     assert(locked_liquidity + unlocked_liquidity == 0, 'un/locked liquidity should be 0');
 }
 
-// test LP can deposit into next always 
+// Test that deposits always go into the next round
 #[test]
 #[available_gas(10000000)]
-fn test_can_deposit_always() {
+fn test_deposit_is_always_into_next_round() {
     let (mut vault_facade, _) = setup_facade();
-
-    //Open state
-    test_deposit_liquidity_transfers_eth();
-
-    //Auctioning state
+    // Get the next option round
+    let mut round_1: OptionRoundFacade = vault_facade.get_next_round();
+    // Deposit liquidity
+    let deposit_amount_wei: u256 = 50 * decimals();
+    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
+    // Assert deposit goes to round 1
+    assert_event_transfer(liquidity_provider_1(), round_1.contract_address(), deposit_amount_wei);
+    // Start next auction, updating the current/next round
     vault_facade.start_auction();
-    test_deposit_liquidity_transfers_eth();
-
-    //Running state
-    vault_facade.end_auction();
-    test_deposit_liquidity_transfers_eth();
-
-    //Settled state
-    vault_facade.settle_option_round(liquidity_provider_1());
-    test_deposit_liquidity_transfers_eth();
+    let mut round_2: OptionRoundFacade = vault_facade.get_next_round();
+    // Deposit liquidity again
+    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
+    // Assert deposit goes to new next round
+    assert_event_transfer(liquidity_provider_1(), round_2.contract_address(), deposit_amount_wei);
 }
