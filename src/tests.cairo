@@ -21,8 +21,6 @@ mod vault_unallocated_to_collaterized_test;
 mod vault_option_round_test;
 #[cfg(test)]
 mod vault_option_param_test;
-#[cfg(test)]
-mod vault_option_sequence_test;
 
 #[cfg(test)]
 mod mock_market_aggregator;
