@@ -35,49 +35,6 @@ use pitch_lake_starknet::tests::utils::{
 use pitch_lake_starknet::tests::vault_facade::{VaultFacade, VaultFacadeTrait};
 use pitch_lake_starknet::tests::option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait};
 
-// @note move to vault/auction_end tests
-// Test that LP can withdraw their liquidity during the round transition period (uncollaterized liquidity)
-#[test]
-#[available_gas(10000000)]
-fn test_withdraw_liquidity_when_unlocked_success() {
-    let (mut vault_facade, eth_dispatcher) = setup_facade();
-    // Init balances
-    let next_round_address = vault_facade
-        .get_option_round_address(vault_facade.current_option_round_id() + 1);
-    let lp_balance_before: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
-    let round_balance_before: u256 = eth_dispatcher.balance_of(next_round_address);
-
-    // Deposit liquidity into next (open) round
-    let deposit_amount_wei: u256 = 50 * decimals();
-    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
-
-    let lp_balance_after: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
-    let round_balance_after: u256 = eth_dispatcher.balance_of(next_round_address);
-
-    // Check liquidity was deposited
-    assert(
-        lp_balance_after == lp_balance_before - deposit_amount_wei, 'LP balance should decrease'
-    );
-    assert(
-        round_balance_after == round_balance_before + deposit_amount_wei,
-        'Round balance should increase'
-    );
-
-    // Withdraw liquidity while current round is locked
-    vault_facade.withdraw(deposit_amount_wei, liquidity_provider_1());
-
-    // Check liquidity was withdrawn
-    let lp_balance_after_withdraw: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
-    let round_balance_after_withdraw: u256 = eth_dispatcher.balance_of(next_round_address);
-    assert(
-        lp_balance_after_withdraw == lp_balance_after + deposit_amount_wei,
-        'LP balance should increase'
-    );
-    assert(
-        round_balance_after_withdraw == round_balance_after - deposit_amount_wei,
-        'Round balance should decrease'
-    );
-}
 
 // @note change/remove this, test needs to test deposit locks (unallocated->collateral) when auction start (vault/auction_start_tests)
 // Test that LP cannot withdraw their liquidity while not in the round transition period
