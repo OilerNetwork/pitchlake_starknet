@@ -76,10 +76,9 @@ fn test_bid_after_auction_ends_failure() {
     let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
     let params = current_round.get_params();
     // End the auction
-    set_block_timestamp(params.auction_end_time + 1);
-    current_round.end_auction();
+
+    vault_facade.timeskip_and_end_auction();
     // Place bid after auction end
-    set_contract_address(option_bidder_buyer_1());
     set_block_timestamp(params.auction_end_time + 1);
     let option_amount = params.total_options_available;
     let option_price = params.reserve_price;
@@ -91,7 +90,7 @@ fn test_bid_after_auction_ends_failure() {
 #[test]
 #[available_gas(10000000)]
 #[should_panic(expected: ('Auction over, cannot place bid', 'ENTRYPOINT_FAILED',))]
-fn test_bid_after_auction_end_data_failure() {
+fn test_bid_after_auction_end_failure_2() {
     // Add liq. to next round
     let (mut vault_facade, _) = setup_facade();
     let deposit_amount_wei = 50 * decimals();
@@ -104,11 +103,73 @@ fn test_bid_after_auction_end_data_failure() {
     // Jump to after auction end time, but beat the call that ends the round's auction
     set_block_timestamp(params.auction_end_time + 1);
     // Place bid after auction end date
-    set_contract_address(option_bidder_buyer_1());
-    set_block_timestamp(params.auction_end_time + 1);
     let option_amount = params.total_options_available;
     let option_price = params.reserve_price;
     let bid_amount = option_amount * option_price;
     current_round.place_bid(bid_amount, option_price, option_bidder_buyer_1());
+}
+
+
+
+#[test]
+#[available_gas(10000000)]
+fn test_lock_of_bid_funds() {
+    let (mut vault_facade, eth_dispatcher): (VaultFacade, IERC20Dispatcher) = setup_facade();
+    // LP deposits (into round 1)
+    let deposit_amount_wei: u256 = 10000 * decimals();
+    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
+    // Start auction
+    vault_facade.start_auction();
+    let mut round_facade: OptionRoundFacade = vault_facade.get_current_round();
+    let params: OptionRoundParams = round_facade.get_params();
+    // Make bid
+    let bid_count: u256 = 2;
+    let bid_price: u256 = params.reserve_price;
+    let bid_amount: u256 = bid_count * bid_count;
+    let ob_balance_before_bid: u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
+    let round_balance_before_bid: u256 = eth_dispatcher.balance_of(round_facade.contract_address());
+    round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
+    let ob_balance_after_bid: u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
+    let round_balance_after_bid: u256 = eth_dispatcher.balance_of(round_facade.contract_address());
+    // Check bids went to the round
+    assert(
+        ob_balance_after_bid - bid_amount == ob_balance_before_bid, 'bid did not leave obs account'
+    );
+    assert(
+        round_balance_before_bid + bid_amount == round_balance_after_bid, 'bid did not reach round'
+    );
+}
+
+
+#[test]
+#[available_gas(10000000)]
+#[should_panic(expected: ('Bid amount must be > 0', 'ENTRYPOINT_FAILED',))]
+fn test_bid_zero_amount_failure() {
+    let (mut vault_facade, _) = setup_facade();
+    // LP deposits (into round 1)
+    let deposit_amount_wei: u256 = 10000 * decimals();
+    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
+    // Start auction
+    vault_facade.start_auction();
+    let mut round_facade: OptionRoundFacade = vault_facade.get_current_round();
+    let params: OptionRoundParams = round_facade.get_params();
+    // Try to bid 0 amount
+    round_facade.place_bid(0, params.reserve_price, option_bidder_buyer_1());
+}
+
+#[test]
+#[available_gas(10000000)]
+#[should_panic(expected: ('Bid price must be >= reserve price', 'ENTRYPOINT_FAILED',))]
+fn test_bid_price_below_reserve_price_failure() {
+    let (mut vault_facade, _) = setup_facade();
+    // LP deposits (into round 1)
+    let deposit_amount_wei: u256 = 10000 * decimals();
+    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
+    // Start auction
+    vault_facade.start_auction();
+    let mut round_facade: OptionRoundFacade = vault_facade.get_current_round();
+    let params: OptionRoundParams = round_facade.get_params();
+    // Try to bid 0 price
+    round_facade.place_bid(2, params.reserve_price - 1, option_bidder_buyer_1());
 }
 

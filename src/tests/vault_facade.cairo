@@ -6,7 +6,7 @@ use pitch_lake_starknet::option_round::{
 
 use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
 
-use starknet::{ContractAddress, testing::{set_contract_address}};
+use starknet::{ContractAddress, testing::{set_contract_address,set_block_timestamp}};
 
 use pitch_lake_starknet::tests::utils::{
     liquidity_provider_1, vault_manager, decimals, assert_event_transfer
@@ -24,12 +24,12 @@ struct VaultFacade {
 #[generate_trait]
 impl VaultFacadeImpl of VaultFacadeTrait {
     fn contract_address(ref self: VaultFacade) -> ContractAddress {
-        return self.vault_dispatcher.contract_address;
+        self.vault_dispatcher.contract_address
     }
 
     fn deposit(ref self: VaultFacade, amount: u256, liquidity_provider: ContractAddress) {
         set_contract_address(liquidity_provider);
-        let _: u256 = self.vault_dispatcher.deposit_liquidity(amount);
+        self.vault_dispatcher.deposit_liquidity(amount);
     }
 
     fn withdraw(ref self: VaultFacade, amount: u256, liquidity_provider: ContractAddress) {
@@ -39,28 +39,39 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     fn start_auction(ref self: VaultFacade) -> bool {
         set_contract_address(vault_manager());
-        let result: bool = self.vault_dispatcher.start_auction();
-        return result;
+        self.vault_dispatcher.start_auction()
     }
 
     fn end_auction(ref self: VaultFacade) -> u256 {
         set_contract_address(vault_manager());
-        let result: u256 = self.vault_dispatcher.end_auction();
-        return result;
+        self.vault_dispatcher.end_auction()
     }
 
     fn settle_option_round(ref self: VaultFacade, address: ContractAddress) -> bool {
         set_contract_address(address);
-        let result: bool = self.vault_dispatcher.settle_option_round();
-        return result;
+        self.vault_dispatcher.settle_option_round()
+        
+    }
+
+    fn timeskip_and_settle_round(ref self:VaultFacade)-> bool {
+        let mut current_round = self.get_current_round();
+         set_block_timestamp(current_round.get_params().option_expiry_time + 1);
+         self.vault_dispatcher.settle_option_round()
+
+    }
+
+    fn timeskip_and_end_auction(ref self:VaultFacade)-> u256 {
+        let mut current_round = self.get_current_round();
+        set_block_timestamp(current_round.get_params().auction_end_time + 1);
+        self.vault_dispatcher.end_auction()
     }
 
     fn current_option_round_id(ref self: VaultFacade) -> u256 {
-        return self.vault_dispatcher.current_option_round_id();
+        self.vault_dispatcher.current_option_round_id()
     }
 
     fn get_option_round_address(ref self: VaultFacade, id: u256) -> ContractAddress {
-        return self.vault_dispatcher.get_option_round_address(id);
+        self.vault_dispatcher.get_option_round_address(id)
     }
 
     fn get_current_round_id(ref self: VaultFacade) -> u256 {
@@ -73,7 +84,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
             .get_option_round_address(self.vault_dispatcher.current_option_round_id());
         let option_round_dispatcher = IOptionRoundDispatcher { contract_address };
 
-        return OptionRoundFacade { option_round_dispatcher };
+        OptionRoundFacade { option_round_dispatcher }
     }
     fn get_next_round(ref self: VaultFacade) -> OptionRoundFacade {
         let contract_address = self
@@ -81,15 +92,15 @@ impl VaultFacadeImpl of VaultFacadeTrait {
             .get_option_round_address(self.vault_dispatcher.current_option_round_id() + 1);
         let option_round_dispatcher = IOptionRoundDispatcher { contract_address };
 
-        return OptionRoundFacade { option_round_dispatcher };
+        OptionRoundFacade { option_round_dispatcher }
     }
 
     fn get_locked_liquidity(ref self: VaultFacade, liquidity_provider: ContractAddress) -> u256 {
-        return self.vault_dispatcher.get_collateral_balance_for(liquidity_provider);
+        self.vault_dispatcher.get_collateral_balance_for(liquidity_provider)
     }
 
     fn get_unlocked_liquidity(ref self: VaultFacade, liquidity_provider: ContractAddress) -> u256 {
-        return self.vault_dispatcher.get_unallocated_balance_for(liquidity_provider);
+        self.vault_dispatcher.get_unallocated_balance_for(liquidity_provider)
     }
 
     // Get lps liquidity spread (collateral, unallocated)
@@ -102,13 +113,13 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     fn get_collateral_balance_for(
         ref self: VaultFacade, liquidity_provider: ContractAddress
     ) -> u256 {
-        return self.vault_dispatcher.get_collateral_balance_for(liquidity_provider);
+        self.vault_dispatcher.get_collateral_balance_for(liquidity_provider)
     }
 
     fn get_unallocated_balance_for(
         ref self: VaultFacade, liquidity_provider: ContractAddress
     ) -> u256 {
-        return self.vault_dispatcher.get_unallocated_balance_for(liquidity_provider);
+        self.vault_dispatcher.get_unallocated_balance_for(liquidity_provider)
     }
 
     fn get_market_aggregator(ref self: VaultFacade) -> ContractAddress {

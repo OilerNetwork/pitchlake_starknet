@@ -45,11 +45,13 @@ mod vault {
 
 #[cfg(test)]
 mod option_round {
+    mod premium_tests;
     mod bidding_tests;
     mod clearing_price_tests;
     mod initializing_params_tests;
     mod options_sold_tests;
     mod payout_tests;
     mod state_transition_tests;
+    mod unused_bids_tests;
 }
 
