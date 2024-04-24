@@ -127,7 +127,7 @@ fn test_round_unallocated_becomes_collateral_when_auction_starts() {
 #[test]
 #[available_gas(10000000)]
 fn test_LP_unallocated_becomes_collateral_when_auction_starts() {
-    let (mut vault_facade, eth_dispatcher) = setup_facade();
+    let (mut vault_facade, _) = setup_facade();
     // Add liq. to next round (1)
     let deposit_amount_wei_1 = 10000 * decimals();
     let deposit_amount_wei_2 = 11000 * decimals();
