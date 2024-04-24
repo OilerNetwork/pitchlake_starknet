@@ -228,7 +228,7 @@ mod Vault {
             100
         }
 
-        fn get_market_aggregator(self: @ContractState) -> ContractAddress{
+        fn get_market_aggregator(self: @ContractState) -> ContractAddress {
             self.market_aggregator.read()
         }
     }

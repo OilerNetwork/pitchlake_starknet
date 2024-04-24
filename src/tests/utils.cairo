@@ -154,7 +154,6 @@ fn setup() -> (IVaultDispatcher, IERC20Dispatcher) {
 
 
 fn setup_facade() -> (VaultFacade, IERC20Dispatcher) {
-
     let eth_dispatcher: IERC20Dispatcher = deploy_eth();
     let vault_dispatcher: IVaultDispatcher = deploy_vault(VaultType::InTheMoney);
     set_contract_address(weth_owner());
@@ -172,9 +171,8 @@ fn setup_facade() -> (VaultFacade, IERC20Dispatcher) {
 
     drop_event(zero_address());
 
-    let vault_facade = VaultFacade { vault_dispatcher};
+    let vault_facade = VaultFacade { vault_dispatcher };
     return (vault_facade, eth_dispatcher);
-
 }
 fn setup_return_mkt_agg() -> (IVaultDispatcher, IERC20Dispatcher, IMarketAggregatorDispatcher) {
     let eth_dispatcher: IERC20Dispatcher = deploy_eth();
