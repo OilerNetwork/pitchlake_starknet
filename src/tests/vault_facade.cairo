@@ -6,7 +6,7 @@ use pitch_lake_starknet::option_round::{
 
 use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
 
-use starknet::{ContractAddress, testing::{set_contract_address,set_block_timestamp}};
+use starknet::{ContractAddress, testing::{set_contract_address, set_block_timestamp}};
 
 use pitch_lake_starknet::tests::utils::{
     liquidity_provider_1, vault_manager, decimals, assert_event_transfer
@@ -50,17 +50,15 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     fn settle_option_round(ref self: VaultFacade, address: ContractAddress) -> bool {
         set_contract_address(address);
         self.vault_dispatcher.settle_option_round()
-        
     }
 
-    fn timeskip_and_settle_round(ref self:VaultFacade)-> bool {
+    fn timeskip_and_settle_round(ref self: VaultFacade) -> bool {
         let mut current_round = self.get_current_round();
-         set_block_timestamp(current_round.get_params().option_expiry_time + 1);
-         self.vault_dispatcher.settle_option_round()
-
+        set_block_timestamp(current_round.get_params().option_expiry_time + 1);
+        self.vault_dispatcher.settle_option_round()
     }
 
-    fn timeskip_and_end_auction(ref self:VaultFacade)-> u256 {
+    fn timeskip_and_end_auction(ref self: VaultFacade) -> u256 {
         let mut current_round = self.get_current_round();
         set_block_timestamp(current_round.get_params().auction_end_time + 1);
         self.vault_dispatcher.end_auction()

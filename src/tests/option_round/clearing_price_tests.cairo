@@ -1,4 +1,3 @@
-
 // use array::ArrayTrait;
 // use debug::PrintTrait;
 // use option::OptionTrait;
@@ -100,7 +99,7 @@ fn test_clearing_price_3() {
     vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
     // Start auction
     vault_facade.start_auction();
-    let mut current_round_facade:OptionRoundFacade=vault_facade.get_current_round();
+    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
     let params: OptionRoundParams = current_round_facade.get_params();
     // Two OBs bid for the combined total amount of options, OB 1 outbids OB 2
     let bid_count_user_1: u256 = params.total_options_available - 20;
@@ -146,7 +145,7 @@ fn test_clearing_price_4() {
     round_facade.place_bid(bid_amount_user_2, bid_price_user_2, option_bidder_buyer_2());
     round_facade.place_bid(bid_amount_user_3, bid_price_user_3, option_bidder_buyer_3());
     // End the auction
-    
+
     // OB3's price will be the clearing price since we need to include all 3
     let clearing_price: u256 = vault_facade.timeskip_and_end_auction();
     assert(clearing_price == bid_price_user_3, 'clear price equal reserve price');
@@ -181,12 +180,11 @@ fn test_clearing_price_5() {
     round_facade.place_bid(bid_amount_user_2, bid_price_user_2, option_bidder_buyer_2());
     round_facade.place_bid(bid_amount_user_3, bid_price_user_3, option_bidder_buyer_3());
     // End the auction
-    
+
     // We can sell all options for a higher price if we clear with OB2's price
     // OB3's bid is not needed to sell all the options
     let clearing_price: u256 = vault_facade.timeskip_and_end_auction();
     assert(clearing_price == bid_price_user_2, 'clear price equal reserve price');
-
 }
 // Test that auction clearing price is 0 pre auction end
 #[test]

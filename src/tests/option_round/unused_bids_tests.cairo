@@ -36,8 +36,6 @@ use pitch_lake_starknet::tests::{
 // use traits::Into;
 // use traits::TryInto;
 
-
-
 #[test]
 #[available_gas(10000000)]
 fn test_unused_bids_for_ob_while_auctioning() {
@@ -124,8 +122,6 @@ fn test_collect_unused_bids_after_auction_end_success() {
         round_facade.get_unused_bids_for(option_bidder_buyer_1()) == 0, 'collect amount should be 0'
     );
 }
-
-
 
 
 #[test]

@@ -93,7 +93,10 @@ fn test_start_auction_becomes_current_round() {
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
     let mut next_round_facade: OptionRoundFacade = vault_facade.get_next_round();
     assert(vault_facade.get_current_round_id() == 0, 'current round should be 0');
-    assert(current_round_facade.get_state() == OptionRoundState::Settled, 'current round should be settled');
+    assert(
+        current_round_facade.get_state() == OptionRoundState::Settled,
+        'current round should be settled'
+    );
     assert(next_round_facade.get_state() == OptionRoundState::Open, 'next round should be open');
     // LP deposits (into round 1) so its auction can start
     let deposit_amount_wei: u256 = 100 * decimals();
@@ -105,7 +108,10 @@ fn test_start_auction_becomes_current_round() {
     next_round_facade = vault_facade.get_next_round();
     // Check round 1 is auctioning
     assert(vault_facade.get_current_round_id() == 1, 'current round should be 1');
-    assert(current_round_facade.get_state() == OptionRoundState::Auctioning, 'current round should be settled');
+    assert(
+        current_round_facade.get_state() == OptionRoundState::Auctioning,
+        'current round should be settled'
+    );
     assert(next_round_facade.get_state() == OptionRoundState::Open, 'next round should be open');
     // Check that auction start event was emitted with correct total_options_available
     assert_event_auction_start(current_round_facade.get_params().total_options_available);

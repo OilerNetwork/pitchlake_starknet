@@ -110,7 +110,6 @@ fn test_bid_after_auction_end_failure_2() {
 }
 
 
-
 #[test]
 #[available_gas(10000000)]
 fn test_lock_of_bid_funds() {

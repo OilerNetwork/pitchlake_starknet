@@ -1,12 +1,5 @@
 // @note Moving these tests to option_round/bidding&clearing_price_tests
 
-
-
-
-
-
-
-
 // test where the total options available have all been sold and there are unused bids which are locked up and can be claimed by the bidders
 // @note The test looks redundant with unused bids tests, confirm with Matt
 // #[test]
@@ -79,3 +72,5 @@
 //     assert(options_created_user_6_count == 0, 'options shd match');
 //     assert(unused_bid_amount_user_3 == 27, 'unused bid amount shd match');
 // }
+
+

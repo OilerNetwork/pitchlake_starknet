@@ -47,7 +47,6 @@ use pitch_lake_starknet::tests::option_round_facade::{OptionRoundFacade, OptionR
 
 // @note move to vault/auction_end_tests
 
-
 // @note move to vault/auction_end_tests
 
 /// Round Settle Tests ///
