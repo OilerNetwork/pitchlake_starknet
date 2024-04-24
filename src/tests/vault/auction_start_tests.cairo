@@ -30,14 +30,14 @@ use pitch_lake_starknet::tests::utils::{
     setup_facade, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
     timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
     option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
-    vault_manager, weth_owner, mock_option_params
+    vault_manager, weth_owner, mock_option_params, assert_event_auction_start
 };
 use pitch_lake_starknet::tests::vault_facade::{VaultFacade, VaultFacadeTrait};
 use pitch_lake_starknet::tests::option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait};
+use pitch_lake_starknet::option_round::{OptionRoundState};
 
 
-// Test that round's unallocated liquidity becomes collateral when auction start (multiple LPs)
-// Test that a round & LP's unallocated update when the auction starts
+// Test that round and lp's unallocated becomes collateral when auction starts (multiple LPs)
 #[test]
 #[available_gas(10000000)]
 fn test_unallocated_becomes_collateral() {
@@ -84,3 +84,101 @@ fn test_unallocated_becomes_collateral() {
     assert(next_round_unallocated == 0, 'next round unallocated wrong');
 }
 
+// Test an auction starts and the round becomes the current round. Test that the 
+// next round is deployed.
+#[test]
+#[available_gas(10000000)]
+fn test_start_auction_becomes_current_round() {
+    let (mut vault_facade, _) = setup_facade();
+    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
+    let mut next_round_facade: OptionRoundFacade = vault_facade.get_next_round();
+    assert(vault_facade.get_current_round_id() == 0, 'current round should be 0');
+    assert(current_round_facade.get_state() == OptionRoundState::Settled, 'current round should be settled');
+    assert(next_round_facade.get_state() == OptionRoundState::Open, 'next round should be open');
+    // LP deposits (into round 1) so its auction can start
+    let deposit_amount_wei: u256 = 100 * decimals();
+    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
+    // Start round 1's auction
+    vault_facade.start_auction();
+    // Get the current and next rounds
+    current_round_facade = vault_facade.get_current_round();
+    next_round_facade = vault_facade.get_next_round();
+    // Check round 1 is auctioning
+    assert(vault_facade.get_current_round_id() == 1, 'current round should be 1');
+    assert(current_round_facade.get_state() == OptionRoundState::Auctioning, 'current round should be settled');
+    assert(next_round_facade.get_state() == OptionRoundState::Open, 'next round should be open');
+    // Check that auction start event was emitted with correct total_options_available
+    assert_event_auction_start(current_round_facade.get_params().total_options_available);
+}
+
+// Test the next auction cannot start if it is not time
+#[test]
+#[available_gas(10000000)]
+#[should_panic(expected: ('Cannot start auction yet', 'ENTRYPOINT_FAILED'))]
+fn test_start_auction_while_current_round_auctioning_failure() {
+    let (mut vault_facade, _) = setup_facade();
+    // LP deposits (into round 1) so its auction can start
+    let deposit_amount_wei: u256 = 10 * decimals();
+    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
+    // @dev The vault constructor already has the current round (0) settled, so we need to start round 1 first to make it Auctioning.
+    // Start round 1 (Auctioning) and deploy round 2 (Open)
+    vault_facade.start_auction();
+    // Try to start auction 2 before round 1 has settled
+    vault_facade.start_auction();
+}
+
+// Test that an auction cannot start while the current is Running
+#[test]
+#[available_gas(10000000)]
+#[should_panic(expected: ('Cannot start auction yet', 'ENTRYPOINT_FAILED',))]
+fn test_start_auction_while_current_round_running_failure() {
+    let (mut vault_facade, _) = setup_facade();
+    // LP deposits (into round 1)
+    let deposit_amount_wei: u256 = 10000 * decimals();
+    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
+    // Start auction
+    vault_facade.start_auction();
+    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
+    // Make bid 
+    let option_params: OptionRoundParams = current_round_facade.get_params();
+    let bid_count: u256 = option_params.total_options_available + 10;
+    let bid_price: u256 = option_params.reserve_price;
+    let bid_amount: u256 = bid_count * bid_price;
+    current_round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
+    // Settle auction
+    set_block_timestamp(option_params.auction_end_time + 1);
+    vault_facade.end_auction();
+    // Try to start the next auction while the current is Running
+    vault_facade.start_auction();
+}
+
+// Test that an auction cannot start before the round transition period is over
+#[test]
+#[available_gas(10000000)]
+#[should_panic(expected: ('Cannot start auction yet', 'ENTRYPOINT_FAILED',))]
+fn test_start_auction_before_round_transition_period_over_failure() {
+    let (mut vault_facade, _) = setup_facade();
+    // LP deposits (into round 1)
+    let deposit_amount_wei: u256 = 10000 * decimals();
+    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
+    // Start auction
+    vault_facade.start_auction();
+    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
+    // Make bid 
+    let option_params: OptionRoundParams = current_round_facade.get_params();
+    let bid_count: u256 = option_params.total_options_available + 10;
+    let bid_price: u256 = option_params.reserve_price;
+    let bid_amount: u256 = bid_count * bid_price;
+    current_round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
+    // Settle auction
+    set_block_timestamp(option_params.auction_end_time + 1);
+    vault_facade.end_auction();
+    // Settle option round
+    set_block_timestamp(option_params.option_expiry_time + 1);
+    vault_facade.settle_option_round(liquidity_provider_1());
+    // Try to start the next auction before waiting the round transition period
+    // @dev add in the round transition period either in option round params or vault
+    let rtp = 111;
+    set_block_timestamp(option_params.option_expiry_time + rtp - 1);
+    vault_facade.start_auction();
+}
