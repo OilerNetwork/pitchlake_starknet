@@ -42,7 +42,8 @@ use pitch_lake_starknet::tests::option_round_facade::{OptionRoundFacade, OptionR
 fn test_withdraw_liquidity_when_unlocked_success() {
     let (mut vault_facade, eth_dispatcher) = setup_facade();
     // Init balances
-    let next_round_address = vault_facade.get_option_round_address(vault_facade.current_option_round_id()+1);
+    let next_round_address = vault_facade
+        .get_option_round_address(vault_facade.current_option_round_id() + 1);
     let lp_balance_before: u256 = eth_dispatcher.balance_of(liquidity_provider_1());
     let round_balance_before: u256 = eth_dispatcher.balance_of(next_round_address);
 
@@ -84,11 +85,11 @@ fn test_withdraw_liquidity_when_unlocked_success() {
 #[available_gas(10000000)]
 #[should_panic(expected: ('Some error', 'Cannot withdraw, liquidity locked',))]
 fn test_withdraw_liquidity_when_locked_failure() {
-    let (mut vault_facade,_) = setup_facade();
+    let (mut vault_facade, _) = setup_facade();
 
     // Deposit liquidity into next (open) round
     let deposit_amount_wei: u256 = 50 * decimals();
-    vault_facade.deposit(deposit_amount_wei,liquidity_provider_1());
+    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
 
     // Start the auction, locking the liquidity
     vault_facade.start_auction();
@@ -102,7 +103,7 @@ fn test_withdraw_liquidity_when_locked_failure() {
 #[test]
 #[available_gas(10000000)]
 fn test_round_unallocated_becomes_collateral_when_auction_starts() {
-    let (mut vault_facade,_) = setup_facade();
+    let (mut vault_facade, _) = setup_facade();
     let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
     // Add liq. to next round (1)
     let deposit_amount_wei_1 = 1000 * decimals();
@@ -126,7 +127,7 @@ fn test_round_unallocated_becomes_collateral_when_auction_starts() {
 #[test]
 #[available_gas(10000000)]
 fn test_LP_unallocated_becomes_collateral_when_auction_starts() {
-    let (mut vault_facade, eth_dispatcher) = setup_facade();
+    let (mut vault_facade, _) = setup_facade();
     // Add liq. to next round (1)
     let deposit_amount_wei_1 = 10000 * decimals();
     let deposit_amount_wei_2 = 11000 * decimals();

@@ -12,10 +12,12 @@ use pitch_lake_starknet::tests::utils::{
     liquidity_provider_1, vault_manager, decimals, assert_event_transfer
 };
 
-use pitch_lake_starknet::market_aggregator::{IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait};
+use pitch_lake_starknet::market_aggregator::{
+    IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
+};
 
 use pitch_lake_starknet::tests::option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait};
-#[derive(Drop)]
+#[derive(Drop, Copy)]
 struct VaultFacade {
     vault_dispatcher: IVaultDispatcher,
 }
@@ -61,7 +63,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         return self.vault_dispatcher.get_option_round_address(id);
     }
 
-    fn get_current_round_id(ref self:VaultFacade)->u256 {
+    fn get_current_round_id(ref self: VaultFacade) -> u256 {
         self.vault_dispatcher.current_option_round_id()
     }
 
@@ -90,6 +92,13 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         return self.vault_dispatcher.get_unallocated_balance_for(liquidity_provider);
     }
 
+    // Get lps liquidity spread (collateral, unallocated)
+    fn get_all_lp_liquidity(ref self: VaultFacade, lp: ContractAddress) -> (u256, u256) {
+        let collateral = self.vault_dispatcher.get_collateral_balance_for(lp);
+        let unallocated = self.vault_dispatcher.get_unallocated_balance_for(lp);
+        (collateral, unallocated)
+    }
+
     fn get_collateral_balance_for(
         ref self: VaultFacade, liquidity_provider: ContractAddress
     ) -> u256 {
@@ -101,8 +110,8 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     ) -> u256 {
         return self.vault_dispatcher.get_unallocated_balance_for(liquidity_provider);
     }
-    
-    fn get_market_aggregator(ref self:VaultFacade)->ContractAddress {
+
+    fn get_market_aggregator(ref self: VaultFacade) -> ContractAddress {
         self.vault_dispatcher.get_market_aggregator()
     }
 }

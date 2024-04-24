@@ -7,6 +7,7 @@ use openzeppelin::token::erc20::interface::{
 };
 
 use pitch_lake_starknet::vault::{VaultTransfer};
+use pitch_lake_starknet::option_round::{OptionRoundState};
 
 use result::ResultTrait;
 use starknet::{
@@ -32,27 +33,28 @@ use pitch_lake_starknet::tests::utils::{
     mock_option_params, pop_log, assert_no_events_left
 };
 
-// Test withdraw > lp unallocated fails
-#[test]
-#[available_gas(10000000)]
-#[should_panic(expected: ('Withdraw > unallocated balance', 'ENTRYPOINT_FAILED'))]
-fn test_withdraw_more_than_unallocated_balance_failure() {
-    let (mut vault_facade, _) = setup_facade();
-    // Deposit liquidity (in the next round, unallocated)
-    vault_facade.deposit(100 * decimals(), liquidity_provider_1());
-    // Withdraw from unallocated
-    let (_, lp_unallocated) = vault_facade.get_all_lp_liquidity(liquidity_provider_1());
-    vault_facade.withdraw(lp_unallocated + 1, liquidity_provider_1());
+// Accelerate to the current round auctioning (needs non 0 liquidity to start auction)
+fn accelerate_to_auctioning(ref self: VaultFacade) {
+    // Deposit liquidity so round 1's auction can start
+    self.deposit(100 * decimals(), liquidity_provider_1());
+    // Start round 1's auction
+    self.start_auction();
 }
 
-// Test withdraw 0 fails
-#[test]
-#[available_gas(10000000)]
-#[should_panic(expected: ('Cannot withdraw 0', 'ENTRYPOINT_FAILED'))]
-fn test_withdraw_0_failure() {
-    let (mut vault_facade, _) = setup_facade();
-    // Deposit liquidity (in the next round, unallocated)
-    vault_facade.deposit(100 * decimals(), liquidity_provider_1());
-    // Withdraw from deposits
-    vault_facade.withdraw(0, liquidity_provider_1());
+// Accelerate to the current round's auction end
+fn accelerate_to_running(ref self: VaultFacade) {
+    accelerate_to_auctioning(ref self);
+    // Bid for all options at reserve price
+    let mut current_round = self.get_current_round();
+    let params = current_round.get_params();
+    let bid_amount = params.total_options_available;
+    let bid_price = params.reserve_price;
+    let bid_amount = bid_amount * bid_price;
+    current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
+    // End auction
+    set_block_timestamp(params.auction_end_time + 1);
+    current_round.end_auction();
 }
+// @note Might want to add accelerate to settled with args for settlemnt price
+
+

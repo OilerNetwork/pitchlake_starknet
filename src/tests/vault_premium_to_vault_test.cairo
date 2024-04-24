@@ -79,7 +79,7 @@ fn test_withdraw_premiums_from_current_round() {
 #[available_gas(10000000)]
 fn test_premium_collection_ratio_conversion_unallocated_pool_1() {
     let (mut vault_facade, _) = setup_facade();
-    let mut current_round:OptionRoundFacade =  vault_facade.get_current_round();
+    let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
     let params = current_round.get_params();
     // Deposit liquidity
     let deposit_amount_wei_1: u256 = 1000 * decimals();
@@ -140,12 +140,12 @@ fn test_premium_collection_ratio_conversion_unallocated_pool_2() {
     let params = current_round.get_params();
     // Deposit liquidity
     let deposit_amount_wei_1: u256 = 1000 * decimals();
-    vault_facade.deposit(deposit_amount_wei_1,liquidity_provider_1());
+    vault_facade.deposit(deposit_amount_wei_1, liquidity_provider_1());
     vault_facade.deposit(deposit_amount_wei_1, liquidity_provider_2());
     // Make bid
     let bid_amount_user_1: u256 = ((params.total_options_available / 2) + 1) * params.reserve_price;
     let bid_amount_user_2: u256 = (params.total_options_available / 2) * params.reserve_price;
-    current_round.place_bid(bid_amount_user_1, params.reserve_price,option_bidder_buyer_1());
+    current_round.place_bid(bid_amount_user_1, params.reserve_price, option_bidder_buyer_1());
     current_round.place_bid(bid_amount_user_2, params.reserve_price, option_bidder_buyer_2());
     // End auction
     set_block_timestamp(params.auction_end_time + 1);
