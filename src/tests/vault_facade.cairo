@@ -17,7 +17,7 @@ use pitch_lake_starknet::market_aggregator::{
 };
 
 use pitch_lake_starknet::tests::option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait};
-#[derive(Drop)]
+#[derive(Drop, Copy)]
 struct VaultFacade {
     vault_dispatcher: IVaultDispatcher,
 }
@@ -90,6 +90,13 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     fn get_unlocked_liquidity(ref self: VaultFacade, liquidity_provider: ContractAddress) -> u256 {
         return self.vault_dispatcher.get_unallocated_balance_for(liquidity_provider);
+    }
+
+    // Get lps liquidity spread (collateral, unallocated)
+    fn get_all_lp_liquidity(ref self: VaultFacade, lp: ContractAddress) -> (u256, u256) {
+        let collateral = self.vault_dispatcher.get_collateral_balance_for(lp);
+        let unallocated = self.vault_dispatcher.get_unallocated_balance_for(lp);
+        (collateral, unallocated)
     }
 
     fn get_collateral_balance_for(

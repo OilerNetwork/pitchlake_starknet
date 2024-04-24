@@ -87,6 +87,14 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         self.option_round_dispatcher.total_collateral()
     }
 
+    // Get the round's liquidity spread (collateral, unallocated)
+    fn get_all_round_liquidity(ref self: OptionRoundFacade) -> (u256, u256) {
+        let round = self.option_round_dispatcher;
+        let collateral = round.total_collateral();
+        let unallocated = round.total_unallocated_liquidity();
+        (collateral, unallocated)
+    }
+
     fn get_payout_balance_for(
         ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
     ) -> u256 {
