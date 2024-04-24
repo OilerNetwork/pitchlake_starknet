@@ -8,6 +8,19 @@ Options are financial contracts that give a buyer the right, but not the obligat
 
 In the context of Pitchlake, we will use liquidity deposits to auction call options to buyers. These call options will give their owner the right to exercise their options, buying basefee at the price set in the contract.
 
+## How EIP-1559 Decides Basefee
+
+Under [EIP-1559](https://eips.ethereum.org/EIPS/eip-1559), each block has a base fee, which is the minimum price per unit of gas for inclusion in this block. The base fee is calculated independently of the current block and is instead determined by the blocks before it - making transaction fees more predictable for users.
+
+Here's how the base fee is calculated:
+
+1. The protocol sets a base fee for each block.
+2. If the previous block used more than the target gas (set at 50% of the maximum gas limit per block), the base fee increases. Conversely, if it used less, the base fee decreases. The amount of change is proportional to how far gas usage deviated from the target gas.
+3. To prevent large swings in the base fee, the amount it can change from one block to the next is limited (currently to 12.5% per block).
+4. Any transaction fees above the base fee are given to the miner as a tip.
+
+This mechanism aims to make base fees more predictable and responsive to network congestion compared to the previous model. However, base fees can still fluctuate significantly block by block, particularly during periods of high network activity. This variability can make it challenging for rollups to accurately estimate the cost of their transactions over longer time horizons.
+
 ## Why Buy Basefee Options ?
 
 A rollup uses a lot of gas each month settling L2 blocks on L1, hence L2 gas fees. The goal of the rollup is the have L2 → L1 settlements as cheap as possible, charging the L2 users just enough to cover it.
@@ -481,4 +494,3 @@ Where `cl` is the cap level, `BF_T1_T2` is the TWAP of basefee over the round, a
 ## In Summary
 
 Fossil is used twice over the course of an option round's life cycle, at initialization and settlement. When we settle the current round, we initialize the next. This starts the round transition period, and once it is over, the next auction (for the initialized round) can start. Once the round's auction starts, it becomes the current round, and the next (uninitialized) round is deployed.
-
