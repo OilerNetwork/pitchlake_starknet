@@ -31,6 +31,7 @@ use pitch_lake_starknet::tests::utils::{
     option_bidder_buyer_4, zero_address, vault_manager, weth_owner, option_round_contract_address,
     mock_option_params, pop_log, assert_no_events_left
 };
+use pitch_lake_starknet::tests::vault::utils::{accelerate_to_running};
 
 // Test withdraw > lp unallocated fails
 #[test]
@@ -38,11 +39,24 @@ use pitch_lake_starknet::tests::utils::{
 #[should_panic(expected: ('Withdraw > unallocated balance', 'ENTRYPOINT_FAILED'))]
 fn test_withdraw_more_than_unallocated_balance_failure() {
     let (mut vault_facade, _) = setup_facade();
-    // Deposit liquidity (in the next round, unallocated)
-    vault_facade.deposit(100 * decimals(), liquidity_provider_1());
-    // Withdraw from unallocated
+    // Accelerate to round 1 running
+    accelerate_to_running(ref vault_facade);
+    // Current round (running), next round (open)
+    let mut current_round = vault_facade.get_current_round();
+    let current_params = current_round.get_params();
+    // Make deposit into next round
+    let deposit_amount = 100 * decimals();
+    vault_facade.deposit(deposit_amount, liquidity_provider_1());
+    // Amount of premiums earned from the auction (plus unsold liq) for LP 
+    let premiums_earned = current_round.total_options_sold()
+        * current_params
+            .reserve_price; // @dev lp owns 100% of the pool, so 100% of the prmeium is theirs
+    // LP unallocated is premiums earned + next round deposits
     let (_, lp_unallocated) = vault_facade.get_all_lp_liquidity(liquidity_provider_1());
-    vault_facade.withdraw(lp_unallocated + 1, liquidity_provider_1());
+    // Withdraw from rewards
+    let withdraw_amount = lp_unallocated + 1;
+    assert(lp_unallocated == premiums_earned + deposit_amount, 'LP unallocated wrong');
+    vault_facade.withdraw(withdraw_amount, liquidity_provider_1());
 }
 
 // Test withdraw 0 fails

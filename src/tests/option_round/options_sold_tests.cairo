@@ -289,3 +289,28 @@ fn test_option_balance_per_bidder_after_auction_2() {
     assert(options_created_user_5_count == 0, 'options shd match');
     assert(options_created_user_6_count == 0, 'options shd match');
 }
+
+// Test that options sold is 0 pre auction end
+#[test]
+#[available_gas(10000000)]
+fn test_option_round_options_sold_before_auction_end_is_0() {
+    let (mut vault_facade, _) = setup_facade();
+    // LP deposits (into round 1)
+    let deposit_amount_wei: u256 = 10 * decimals();
+    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
+    // Start auction
+    set_contract_address(vault_manager());
+    vault_facade.start_auction();
+    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
+    // Make bid
+    set_contract_address(option_bidder_buyer_1());
+    let option_params: OptionRoundParams = current_round_facade.get_params();
+    let bid_count: u256 = option_params.total_options_available + 10;
+    let bid_price: u256 = option_params.reserve_price;
+    let bid_amount: u256 = bid_count * bid_price;
+    current_round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
+    // Check that options_sold is 0 pre auction settlement
+    let options_sold: u256 = current_round_facade.total_options_sold();
+    // Should be zero as auction has not ended
+    assert(options_sold == 0, 'options_sold should be 0');
+}

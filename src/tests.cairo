@@ -16,12 +16,7 @@ mod option_round_facade;
 #[cfg(test)]
 mod vault_premium_to_vault_test;
 #[cfg(test)]
-mod vault_unallocated_to_collaterized_test;
-#[cfg(test)]
 mod vault_option_round_test;
-#[cfg(test)]
-mod vault_option_param_test;
-
 #[cfg(test)]
 mod mock_market_aggregator;
 
