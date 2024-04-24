@@ -34,44 +34,6 @@ use pitch_lake_starknet::tests::vault_facade::{VaultFacade, VaultFacadeTrait};
 use pitch_lake_starknet::tests::option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait};
 use pitch_lake_starknet::option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait};
 
-
-// redudnant
-// Test that when LP withdraws premiums from the round, their unlocked liquidity decrements
-// @dev these tests are basically already written in normal withdraw liquidity tests. they just test how is unlcocked once auction starts, need to add test that premiums become unlocked, and that you cannot withdraw more than unlocked
-#[test]
-#[available_gas(10000000)]
-fn test_withdraw_premiums_from_current_round() {
-    let (mut vault_facade, _) = setup_facade();
-    // LP deposits (into round 1)
-    let deposit_amount_wei: u256 = 100000 * decimals();
-    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
-    // Start auction
-    vault_facade.start_auction();
-    let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round.get_params();
-    // Make bid
-    let bid_amount_user_1: u256 = (params.total_options_available / 2) * params.reserve_price;
-    current_round.place_bid(bid_amount_user_1, params.reserve_price, option_bidder_buyer_1());
-
-    // Settle auction
-    set_block_timestamp(params.auction_end_time + 1);
-    current_round.end_auction();
-    // 
-    let expected_unallocated_wei: u256 = current_round.get_auction_clearing_price()
-        * current_round.total_options_sold();
-
-    vault_facade.withdraw(expected_unallocated_wei, liquidity_provider_1());
-
-    //assert(success == true, 'should be able withdraw premium');
-    assert_event_option_amount_transfer(
-        current_round.contract_address(), // from
-        // round_dispatcher.contract_address, // to 
-        liquidity_provider_1(), // to: is this correct vs pre above ? or from round -> vault ? 
-        liquidity_provider_1(), // for user
-        expected_unallocated_wei // amount
-    );
-}
-
 // @note move to vault/auction_end tests
 // collateral balance of should be vault::get_unlocked_liquidity_for()
 // @note Add test that unlocked is premium after auction, and is premium + next position if there is a deposit, and is premium + unsold options if there is any

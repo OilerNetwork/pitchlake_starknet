@@ -223,7 +223,6 @@ fn test_withdraw_from_rewards_and_deposits_updates_collateral_and_unallocated() 
         'next round unallocated wrong'
     );
 }
-// @note There should already be a test that any withdraw > total_unallocated_for_lp reverts
 // @note Add test for checking a vault storage var for current round collections is updated to reflect how much LP collects (premiums/unsold) from the current round
 
 
