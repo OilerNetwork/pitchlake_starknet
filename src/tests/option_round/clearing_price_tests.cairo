@@ -187,6 +187,7 @@ fn test_clearing_price_5() {
     let clearing_price: u256 = vault_facade.timeskip_and_end_auction();
     assert(clearing_price == bid_price_user_2, 'clear price equal reserve price');
 
+}
 // Test that auction clearing price is 0 pre auction end
 #[test]
 #[available_gas(10000000)]
@@ -208,6 +209,4 @@ fn test_option_round_clearing_price_is_0_before_auction_end() {
     // Check that clearing price is 0 pre auction settlement
     let clearing_price = current_round_facade.get_auction_clearing_price();
     assert(clearing_price == 0, 'should be 0 pre auction end');
-
 }
-

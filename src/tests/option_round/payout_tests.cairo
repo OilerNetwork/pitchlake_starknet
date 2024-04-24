@@ -3,7 +3,7 @@
 // use option::OptionTrait;
 use openzeppelin::token::erc20::interface::{IERC20, IERC20Dispatcher, IERC20DispatcherTrait,// IERC20SafeDispatcher,IERC20SafeDispatcherTrait,
 };
-// use pitch_lake_starknet::option_round::{OptionRoundParams};
+use pitch_lake_starknet::option_round::{OptionRoundParams};
 
 // use result::ResultTrait;
 // use starknet::{
@@ -25,11 +25,11 @@ use pitch_lake_starknet::tests::{
 };
 use pitch_lake_starknet::tests::utils::{
     setup_facade, liquidity_provider_1, option_bidder_buyer_1, option_bidder_buyer_2,
-    option_bidder_buyer_3, decimals, assert_event_transfer
+    option_bidder_buyer_3, decimals, assert_event_transfer, vault_manager
 // , deploy_vault, allocated_pool_address, unallocated_pool_address,
 // timestamp_start_month, timestamp_end_month, liquidity_provider_2,
 // , option_bidder_buyer_4,
-// vault_manager, weth_owner, mock_option_params
+// , weth_owner, mock_option_params
 };
 use pitch_lake_starknet::tests::mock_market_aggregator::{
     MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
@@ -190,4 +190,32 @@ fn test_option_payout_amount_index_at_strike() {
     // Check payout balance is expected
     let payout_balance = option_round.get_payout_balance_for(option_bidder_buyer_1());
     assert(payout_balance == 0, 'expected payout doesnt match');
+}
+
+
+#[test]
+#[available_gas(10000000)]
+#[should_panic(expected: ('Cannot exercise before round settles ', 'ENTRYPOINT_FAILED',))]
+fn test_exercise_options_too_early_failure() {
+    let (mut vault_facade, _) = setup_facade();
+    // LP deposits (into round 1)
+    let deposit_amount_wei: u256 = 10000 * decimals();
+
+    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
+    // Start auction
+    set_contract_address(vault_manager());
+    vault_facade.start_auction();
+    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
+    // Make bid 
+    let option_params: OptionRoundParams = current_round_facade.get_params();
+    let bid_count: u256 = option_params.total_options_available + 10;
+    let bid_price: u256 = option_params.reserve_price;
+    let bid_amount: u256 = bid_count * bid_price;
+    current_round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
+    // Settle auction
+    let option_round_params: OptionRoundParams = current_round_facade.get_params();
+    set_block_timestamp(option_round_params.auction_end_time + 1);
+    vault_facade.end_auction();
+    // Should fail as option has not settled
+    current_round_facade.exercise_options(option_bidder_buyer_1());
 }

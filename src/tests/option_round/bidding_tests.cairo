@@ -180,6 +180,12 @@ fn test_bid_price_below_reserve_price_failure() {
 #[available_gas(10000000)]
 #[should_panic(expected: ('The auction is still on-going', 'ENTRYPOINT_FAILED',))]
 fn test_option_round_refund_unused_bids_too_early_failure() {
+    let (mut vault_facade, _) = setup_facade();
+    // LP deposits (into round 1)
+    let deposit_amount_wei: u256 = 10000 * decimals();
+    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
+    // Start auction
+    vault_facade.start_auction();
     // Get the current (auctioning) round
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
     // Make bid 
@@ -191,4 +197,3 @@ fn test_option_round_refund_unused_bids_too_early_failure() {
     // Try to refund bid before auction settles
     current_round_facade.refund_bid(option_bidder_buyer_1());
 }
-

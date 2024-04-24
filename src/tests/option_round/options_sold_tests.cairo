@@ -15,11 +15,12 @@ use openzeppelin::token::erc20::interface::{
 // use pitch_lake_starknet::eth::Eth;
 use pitch_lake_starknet::tests::utils::{
     setup_facade, decimals, liquidity_provider_1, option_bidder_buyer_1, assert_event_auction_bid,
-    option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4, option_bidder_buyer_5, option_bidder_buyer_6
+    option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4, option_bidder_buyer_5,
+    option_bidder_buyer_6, vault_manager
 // , deploy_vault, allocated_pool_address, unallocated_pool_address,
 // timestamp_start_month, timestamp_end_month, liquidity_provider_2,
 // option_bidder_buyer_1
-// , option_bidder_buyer_6, vault_manager, weth_owner, mock_option_params,
+// , option_bidder_buyer_6, weth_owner, mock_option_params,
 // month_duration
 };
 use pitch_lake_starknet::option_round::{OptionRoundParams};
@@ -35,9 +36,6 @@ use pitch_lake_starknet::tests::{
 
 // use traits::Into;
 // use traits::TryInto;
-
-
-
 
 #[test]
 #[available_gas(10000000)]
@@ -71,7 +69,6 @@ fn test_total_options_after_auction_1() {
 }
 
 
-
 #[test]
 #[available_gas(10000000)]
 fn test_total_options_after_auction_2() {
@@ -98,7 +95,9 @@ fn test_total_options_after_auction_2() {
     vault_facade.timeskip_and_end_auction();
 
     // Check total options sold is the total options available
-    assert( params.total_options_available == round_facade.total_options_sold(), 'options sold wrong');
+    assert(
+        params.total_options_available == round_facade.total_options_sold(), 'options sold wrong'
+    );
 }
 
 
