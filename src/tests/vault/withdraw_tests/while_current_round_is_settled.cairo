@@ -114,5 +114,3 @@ fn test_withdraw_from_deposits_updates_collateral_and_unallocated() {
     );
 }
 
-
-
