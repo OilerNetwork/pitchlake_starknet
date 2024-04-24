@@ -28,8 +28,9 @@ use pitch_lake_starknet::tests::{
         setup_facade, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
         timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
         option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
-        vault_manager, weth_owner, mock_option_params, assert_event_transfer
+        vault_manager, weth_owner, mock_option_params
     },
+    vault_liquidity_deposit_withdraw_test::assert_event_transfer
 };
 use pitch_lake_starknet::tests::mock_market_aggregator::{
     MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
@@ -42,7 +43,7 @@ use pitch_lake_starknet::tests::mock_market_aggregator::{
 #[test]
 #[available_gas(10000000)]
 fn test_user_with_no_options_gets_no_payout() {
-    let (mut vault_facade, _) = setup_facade();
+    let (mut vault_facade,_) = setup_facade();
     let mut option_round: OptionRoundFacade = vault_facade.get_next_round();
     let params = option_round.get_params();
     // Deposit liquidity
@@ -79,7 +80,7 @@ fn test_user_with_no_options_gets_no_payout() {
 #[test]
 #[available_gas(10000000)]
 fn test_collected_premium_does_not_roll_over() {
-    let (mut vault_facade, _) = setup_facade();
+    let (mut vault_facade,_) = setup_facade();
     let mut option_round: OptionRoundFacade = vault_facade.get_next_round();
     let params = option_round.get_params();
     // Deposit liquidity
@@ -105,7 +106,9 @@ fn test_collected_premium_does_not_roll_over() {
 
     // Settle option round with no payout
     set_block_timestamp(params.option_expiry_time + 1);
-    IMarketAggregatorSetterDispatcher { contract_address: vault_facade.get_market_aggregator() }
+    IMarketAggregatorSetterDispatcher {
+        contract_address: vault_facade.get_market_aggregator()
+    }
         .set_current_base_fee(params.strike_price - 1);
     vault_facade.settle_option_round(liquidity_provider_1());
     // At this time, remaining liqudity was rolled to the next round (just initial deposit since there is no payout and premiums were collected)
@@ -121,7 +124,7 @@ fn test_collected_premium_does_not_roll_over() {
 #[test]
 #[available_gas(10000000)]
 fn test_remaining_liqudity_rolls_over() {
-    let (mut vault_facade, _) = setup_facade();
+    let (mut vault_facade,_) = setup_facade();
     let mut option_round: OptionRoundFacade = vault_facade.get_next_round();
     let params = option_round.get_params();
     // Deposit liquidity
@@ -139,11 +142,13 @@ fn test_remaining_liqudity_rolls_over() {
     let claimable_premiums: u256 = params.total_options_available * params.reserve_price;
     // Settle option round with no payout
     set_block_timestamp(params.option_expiry_time + 1);
-    IMarketAggregatorSetterDispatcher { contract_address: vault_facade.get_market_aggregator() }
+    IMarketAggregatorSetterDispatcher {
+        contract_address: vault_facade.get_market_aggregator()
+    }
         .set_current_base_fee(params.strike_price - 1);
     vault_facade.settle_option_round(liquidity_provider_1());
     // At this time, remaining liqudity was rolled to the next round (initial deposit + premiums)
-    let mut next_option_round: OptionRoundFacade = vault_facade.get_next_round();
+    let mut next_option_round:OptionRoundFacade=vault_facade.get_next_round();
     // Check rolled over amount is correct
     let next_round_unallocated: u256 = next_option_round.total_unallocated_liquidity();
     assert(
@@ -156,7 +161,7 @@ fn test_remaining_liqudity_rolls_over() {
 #[available_gas(10000000)]
 fn test_option_payout_sends_eth() {
     let (mut vault_facade, eth_dispatcher) = setup_facade();
-    let mut option_round: OptionRoundFacade = vault_facade.get_next_round();
+    let mut option_round:OptionRoundFacade=vault_facade.get_next_round();
     let params = option_round.get_params();
     // Deposit liquidity
     let deposit_amount_wei: u256 = 10000 * decimals();
@@ -172,7 +177,9 @@ fn test_option_payout_sends_eth() {
     // Settle option round with payout
     let settlement_price = params.reserve_price + 10;
     set_block_timestamp(params.option_expiry_time + 1);
-    IMarketAggregatorSetterDispatcher { contract_address: vault_facade.get_market_aggregator() }
+    IMarketAggregatorSetterDispatcher {
+        contract_address: vault_facade.get_market_aggregator()
+    }
         .set_current_base_fee(settlement_price);
     vault_facade.settle_option_round(liquidity_provider_1());
     // Settle auction
@@ -192,7 +199,7 @@ fn test_option_payout_sends_eth() {
 #[test]
 #[available_gas(10000000)]
 fn test_option_payout_amount_index_higher_than_strike() {
-    let (mut vault_facade, _) = setup_facade();
+    let (mut vault_facade,_) = setup_facade();
     let mut option_round: OptionRoundFacade = vault_facade.get_next_round();
     let params = option_round.get_params();
     // Deposit liquidity
@@ -209,7 +216,9 @@ fn test_option_payout_amount_index_higher_than_strike() {
     // Settle option round with payout
     let settlement_price = params.reserve_price + 10;
     set_block_timestamp(params.option_expiry_time + 1);
-    IMarketAggregatorSetterDispatcher { contract_address: vault_facade.get_market_aggregator() }
+    IMarketAggregatorSetterDispatcher {
+        contract_address: vault_facade.get_market_aggregator()
+    }
         .set_current_base_fee(settlement_price);
     vault_facade.settle_option_round(liquidity_provider_1());
     // Settle auction
@@ -226,7 +235,7 @@ fn test_option_payout_amount_index_higher_than_strike() {
 #[test]
 #[available_gas(10000000)]
 fn test_option_payout_amount_index_less_than_strike() {
-    let (mut vault_facade, _) = setup_facade();
+    let (mut vault_facade,_) = setup_facade();
     let mut option_round: OptionRoundFacade = vault_facade.get_next_round();
     let params = option_round.get_params();
     // Deposit liquidity
@@ -243,7 +252,9 @@ fn test_option_payout_amount_index_less_than_strike() {
     // Settle option round with no payout
     let settlement_price = params.reserve_price - 10;
     set_block_timestamp(params.option_expiry_time + 1);
-    IMarketAggregatorSetterDispatcher { contract_address: vault_facade.get_market_aggregator() }
+    IMarketAggregatorSetterDispatcher {
+        contract_address: vault_facade.get_market_aggregator()
+    }
         .set_current_base_fee(settlement_price);
     vault_facade.settle_option_round(liquidity_provider_1());
     // Settle auction
@@ -258,7 +269,7 @@ fn test_option_payout_amount_index_less_than_strike() {
 #[test]
 #[available_gas(10000000)]
 fn test_option_payout_amount_index_at_strike() {
-    let (mut vault_facade, _) = setup_facade();
+    let (mut vault_facade,_) = setup_facade();
     let mut option_round: OptionRoundFacade = vault_facade.get_next_round();
     let params = option_round.get_params();
     // Deposit liquidity
@@ -275,7 +286,9 @@ fn test_option_payout_amount_index_at_strike() {
     // Settle option round with no payout
     let settlement_price = params.reserve_price;
     set_block_timestamp(params.option_expiry_time + 1);
-    IMarketAggregatorSetterDispatcher { contract_address: vault_facade.get_market_aggregator() }
+    IMarketAggregatorSetterDispatcher {
+        contract_address: vault_facade.get_market_aggregator()
+    }
         .set_current_base_fee(settlement_price);
     vault_facade.settle_option_round(liquidity_provider_1());
     // Settle auction
@@ -288,5 +301,4 @@ fn test_option_payout_amount_index_at_strike() {
 // @note Add test that payout is capped even if index >>> strike
 // @note add test that unallocated decrements when round settles (premiums + unsold were rolled over)
 // @note add test that eth transfers to next round on settlement
-
 
