@@ -31,25 +31,7 @@ use pitch_lake_starknet::tests::utils::{
     option_bidder_buyer_4, zero_address, vault_manager, weth_owner, option_round_contract_address,
     mock_option_params, pop_log, assert_no_events_left
 };
-
-
-fn accelerate_to_running(ref self: VaultFacade) {
-    // Deposit liquidity so round 1's auction can start
-    self.deposit(100 * decimals(), liquidity_provider_1());
-    // Start round 1's auction
-    self.start_auction();
-    // Bid for all options at reserve price
-    let mut round_1 = self.get_current_round();
-    let params = round_1.get_params();
-    let bid_amount = params.total_options_available;
-    let bid_price = params.reserve_price;
-    let bid_amount = bid_amount * bid_price;
-    round_1.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
-    // End auction
-    set_block_timestamp(params.auction_end_time + 1);
-    round_1.end_auction();
-}
-
+use pitch_lake_starknet::tests::vault::utils::{accelerate_to_running};
 
 // @note Rewards are unallocated liquidity in the current round (premiums earned + any unsold liqudity)
 

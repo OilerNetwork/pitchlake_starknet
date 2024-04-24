@@ -40,6 +40,7 @@ mod vault {
     mod deployment_tests;
     mod deposit_tests;
     mod option_settle_tests;
+    mod utils;
 }
 
 #[cfg(test)]

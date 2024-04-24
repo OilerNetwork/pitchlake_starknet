@@ -31,14 +31,8 @@ use pitch_lake_starknet::tests::utils::{
     option_bidder_buyer_4, zero_address, vault_manager, weth_owner, option_round_contract_address,
     mock_option_params, pop_log, assert_no_events_left
 };
+use pitch_lake_starknet::tests::vault::utils::{accelerate_to_auctioning};
 
-// Accelerate to the current round auctioning (needs non 0 liquidity to start auction)
-fn accelerate_to_auctioning(ref self: VaultFacade) {
-    // Deposit liquidity so round 1's auction can start
-    self.deposit(100 * decimals(), liquidity_provider_1());
-    // Start round 1's auction
-    self.start_auction();
-}
 
 // Test eth transfer when LP withdraws from their next round deposit 
 #[test]
