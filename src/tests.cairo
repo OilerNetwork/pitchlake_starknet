@@ -43,5 +43,6 @@ mod option_round {
 #[cfg(test)]
 mod lp_token {
     mod lp_token_tests;
+    mod deployment_tests;
 }
 
