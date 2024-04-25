@@ -98,9 +98,7 @@ fn test_strike_price_based_on_vault_types() {
     assert(itm_params.strike_price > itm_params.current_average_basefee, 'ITM stike wrong');
     assert(otm_params.strike_price < otm_params.current_average_basefee, 'OTM stike wrong');
 }
-
 // @note Add tests for other init params. Reserve price, cap levels etc.
 // @note Add test that option round params are logical (auction start time < auction end time < option settlement time)
-
 
 

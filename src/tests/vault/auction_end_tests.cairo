@@ -10,7 +10,7 @@ use pitch_lake_starknet::vault::{
     IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait,
     OptionRoundCreated
 };
-use pitch_lake_starknet::option_round::{OptionRoundParams};
+use pitch_lake_starknet::option_round::{OptionRoundParams, OptionRoundState};
 
 use result::ResultTrait;
 use starknet::{
@@ -32,7 +32,7 @@ use pitch_lake_starknet::tests::utils::{
     timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
     option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
     zero_address, vault_manager, weth_owner, option_round_contract_address, mock_option_params,
-    pop_log, assert_no_events_left, month_duration
+    pop_log, assert_no_events_left, month_duration, assert_event_auction_settle
 };
 use pitch_lake_starknet::option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait};
 use pitch_lake_starknet::tests::mock_market_aggregator::{
@@ -85,4 +85,61 @@ fn test_auction_end_before_end_date_failure() {
     // Try to end auction before the end time
     set_block_timestamp(params.auction_end_time - 1);
     current_round.end_auction();
+}
+
+// Test that the auction clearing price is set post auction end, and state updates to Running
+#[test]
+#[available_gas(10000000)]
+fn test_vault_end_auction_success() {
+    let (mut vault_facade, _) = setup_facade();
+    // LP deposits (into round 1)
+    let deposit_amount_wei: u256 = 10000 * decimals();
+    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
+    // Start auction
+    set_contract_address(vault_manager());
+    vault_facade.start_auction();
+    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
+    // Make bid 
+    let option_params: OptionRoundParams = current_round_facade.get_params();
+    let bid_count: u256 = option_params.total_options_available + 10;
+    let bid_price: u256 = option_params.reserve_price;
+    let bid_amount: u256 = bid_count * bid_price;
+    current_round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
+    // Settle auction
+    let option_round_params: OptionRoundParams = current_round_facade.get_params();
+    set_block_timestamp(option_round_params.auction_end_time + 1);
+    let clearing_price: u256 = vault_facade.end_auction();
+    assert(clearing_price == 0, 'should be reserve_price');
+    // Check that state is Running now, and auction clearing price is set
+    let state: OptionRoundState = current_round_facade.get_state();
+    let expectedState: OptionRoundState = OptionRoundState::Running;
+    assert(expectedState == state, 'round should be Running');
+    // Check auction clearing price event 
+    assert_event_auction_settle(current_round_facade.get_auction_clearing_price());
+}
+
+// Test that the auction cannot be ended twice
+#[test]
+#[available_gas(10000000)]
+#[should_panic(expected: ('The auction has already been settled', 'ENTRYPOINT_FAILED',))]
+fn test_option_round_end_auction_twice_failure() {
+    let (mut vault_facade, _) = setup_facade();
+    // LP deposits (into round 1)
+    let deposit_amount_wei: u256 = 10000 * decimals();
+    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
+    // Start auction
+    set_contract_address(vault_manager());
+    vault_facade.start_auction();
+    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
+    // Make bid 
+    let option_params: OptionRoundParams = current_round_facade.get_params();
+    let bid_count: u256 = option_params.total_options_available + 10;
+    let bid_price: u256 = option_params.reserve_price;
+    let bid_amount: u256 = bid_count * bid_price;
+    current_round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
+    // Settle auction
+    set_block_timestamp(option_params.auction_end_time + 1);
+    vault_facade.end_auction();
+    // Try to settle auction a second time
+    vault_facade.end_auction();
 }
