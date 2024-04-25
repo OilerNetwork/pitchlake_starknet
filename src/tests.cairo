@@ -1,6 +1,7 @@
 mod utils;
 mod vault_facade;
 mod option_round_facade;
+mod lp_token_facade;
 mod mocks {
     mod mock_market_aggregator;
 }
