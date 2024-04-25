@@ -1,4 +1,3 @@
-use array::ArrayTrait;
 use debug::PrintTrait;
 use option::OptionTrait;
 use openzeppelin::token::erc20::interface::{
@@ -11,7 +10,6 @@ use pitch_lake_starknet::vault::{
     OptionRoundCreated
 };
 use pitch_lake_starknet::option_round::{OptionRoundParams, OptionRoundState};
-
 use result::ResultTrait;
 use starknet::{
     ClassHash, ContractAddress, contract_address_const, deploy_syscall,
@@ -24,8 +22,6 @@ use pitch_lake_starknet::tests::option_round_facade::{OptionRoundFacade, OptionR
 use starknet::contract_address::ContractAddressZeroable;
 use openzeppelin::utils::serde::SerializedAppend;
 
-use traits::Into;
-use traits::TryInto;
 use pitch_lake_starknet::eth::Eth;
 use pitch_lake_starknet::tests::utils::{
     setup_facade, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
