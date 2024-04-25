@@ -111,7 +111,6 @@ mod Vault {
         get_contract_address
     };
     use pitch_lake_starknet::vault::VaultType;
-    use pitch_lake_starknet::pool::IPoolDispatcher;
     use openzeppelin::utils::serde::SerializedAppend;
     use pitch_lake_starknet::option_round::{
         OptionRound, OptionRoundConstructorParams, OptionRoundParams, OptionRoundState,
