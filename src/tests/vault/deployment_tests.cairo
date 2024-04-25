@@ -35,7 +35,7 @@ use pitch_lake_starknet::tests::utils::{
     option_bidder_buyer_1, option_bidder_buyer_2, vault_manager, weth_owner, mock_option_params,
     assert_event_auction_start, assert_event_auction_settle, assert_event_option_settle
 };
-use pitch_lake_starknet::tests::mock_market_aggregator::{
+use pitch_lake_starknet::tests::mocks::mock_market_aggregator::{
     MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
     IMarketAggregatorSetterDispatcherTrait
 };

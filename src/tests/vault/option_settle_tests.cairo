@@ -36,7 +36,7 @@ use pitch_lake_starknet::tests::utils::{
     assert_event_option_settle
 };
 use pitch_lake_starknet::option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait};
-use pitch_lake_starknet::tests::mock_market_aggregator::{
+use pitch_lake_starknet::tests::mocks::mock_market_aggregator::{
     MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
     IMarketAggregatorSetterDispatcherTrait,
 };

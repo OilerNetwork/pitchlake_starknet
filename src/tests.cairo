@@ -4,21 +4,11 @@
 #[cfg(test)]
 mod pitch_lake_test;
 #[cfg(test)]
-mod option_auction_bid_test;
-#[cfg(test)]
-mod option_settle_test;
-#[cfg(test)]
 mod utils;
 #[cfg(test)]
 mod vault_facade;
 #[cfg(test)]
 mod option_round_facade;
-#[cfg(test)]
-mod vault_premium_to_vault_test;
-#[cfg(test)]
-mod vault_option_round_test;
-#[cfg(test)]
-mod mock_market_aggregator;
 
 
 // Re-org
@@ -50,3 +40,12 @@ mod option_round {
     mod unused_bids_tests;
 }
 
+#[cfg(test)]
+mod lp_token {
+    mod lp_token_tests;
+}
+
+#[cfg(test)]
+mod mocks {
+    mod mock_market_aggregator;
+}
