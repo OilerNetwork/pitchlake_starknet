@@ -40,11 +40,6 @@ use pitch_lake_starknet::tests::mock_market_aggregator::{
     IMarketAggregatorSetterDispatcherTrait
 };
 
-// @note Add (or move in) test that checks LP's unallocated & next round's unallocated increment 
-//
-//
-// @note round & lp liquity spread update
-//
 
 // Test auction cannot end if it has not started
 #[test]
@@ -143,3 +138,6 @@ fn test_option_round_end_auction_twice_failure() {
     // Try to settle auction a second time
     vault_facade.end_auction();
 }
+
+// @note Add tests that unallocated/collatera (lp and round) update at auction end
+//    - test unallocate in current round goes from 0 -> premiums + unsold liq.

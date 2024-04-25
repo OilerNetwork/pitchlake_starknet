@@ -155,3 +155,6 @@ fn test_option_round_settle_twice_failure() {
     // Try to settle the option round again
     vault_facade.timeskip_and_settle_round();
 }
+
+// @note test collateral + unallocated (not claimed) move to next round (unallocated in next round)
+//  - test roll over if LP collects from unallocated before roll over (partial and full tests maybe)
