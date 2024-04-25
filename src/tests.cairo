@@ -1,17 +1,16 @@
-// old structure
-// #[cfg(test)]
-// mod eth_test;
-#[cfg(test)]
-mod pitch_lake_test;
-#[cfg(test)]
 mod utils;
-#[cfg(test)]
 mod vault_facade;
-#[cfg(test)]
 mod option_round_facade;
+mod mocks {
+    mod mock_market_aggregator;
+}
 
+#[cfg(test)]
+mod extra {
+    //mod eth_test;
+    mod pitch_lake_test;
+}
 
-// Re-org
 #[cfg(test)]
 mod vault {
     mod withdraw_tests {
@@ -45,7 +44,3 @@ mod lp_token {
     mod lp_token_tests;
 }
 
-#[cfg(test)]
-mod mocks {
-    mod mock_market_aggregator;
-}
