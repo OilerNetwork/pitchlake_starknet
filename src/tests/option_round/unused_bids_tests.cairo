@@ -153,5 +153,5 @@ fn test_collect_unused_bids_again_does_nothing() {
     // Check OB gets their refunded depost and their amount updates to 0
     assert(ob_balance_before_collect == ob_balance_after_collect, 'balance should not change');
 }
-
 // @note Add test for trying to refund bid while still auctioning (all bids locked until post auction, where some may become unlocked if not used)
+
