@@ -156,5 +156,6 @@ fn test_option_round_settle_twice_failure() {
     vault_facade.timeskip_and_settle_round();
 }
 
+// @note Add test that eth transfers to next round on settlement
 // @note test collateral + unallocated (not claimed) move to next round (unallocated in next round)
 //  - test roll over if LP collects from unallocated before roll over (partial and full tests maybe)

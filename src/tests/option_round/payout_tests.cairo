@@ -221,3 +221,5 @@ fn test_exercise_options_too_early_failure() {
     // Should fail as option has not settled
     current_round_facade.exercise_options(option_bidder_buyer_1());
 }
+
+// @note Add test that payout is capped even if index >>> strike
