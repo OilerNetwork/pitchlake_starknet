@@ -4,5 +4,6 @@ mod vault;
 mod pool;
 mod option_round;
 mod market_aggregator;
+mod lp_token;
 #[cfg(test)]
 mod tests;
