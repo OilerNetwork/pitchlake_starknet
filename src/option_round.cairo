@@ -181,7 +181,6 @@ mod OptionRound {
     use openzeppelin::token::erc20::interface::IERC20;
     use starknet::ContractAddress;
     use pitch_lake_starknet::vault::VaultType;
-    use pitch_lake_starknet::pool::IPoolDispatcher;
     use openzeppelin::token::erc20::interface::IERC20Dispatcher;
     use super::{OptionRoundConstructorParams, OptionRoundParams, OptionRoundState};
     use pitch_lake_starknet::market_aggregator::{
