@@ -12,9 +12,17 @@ impl LPTokenFacadeImpl of LPTokenFacadeTrait {
     fn contract_address(ref self: LPTokenFacade) -> ContractAddress {
         self.lp_token_dispatcher.contract_address
     }
+
+    fn vault_address(ref self: LPTokenFacade) -> ContractAddress {
+        self.lp_token_dispatcher.vault_address()
+    }
+
+    fn option_round_address(ref self: LPTokenFacade) -> ContractAddress {
+        self.lp_token_dispatcher.option_round_address()
+    }
 /// Writes ///
 
-// @note token -> position & position -> token should be a vault entry point
+// @note token -> position & position -> token should be vault entry points
 
 /// Helpers ///
 }
