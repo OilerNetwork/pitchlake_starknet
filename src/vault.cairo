@@ -1,12 +1,7 @@
-use starknet::{ContractAddress, StorePacking};
-use array::{Array};
-use traits::{Into, TryInto};
-use openzeppelin::token::erc20::interface::IERC20Dispatcher;
-use openzeppelin::utils::serde::SerializedAppend;
-
+use starknet::{ContractAddress};
 use pitch_lake_starknet::option_round::{OptionRoundParams, OptionRoundState};
 use pitch_lake_starknet::market_aggregator::{
-    IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
+    IMarketAggregator, IMarketAggregatorDispatcher
 };
 
 #[derive(Copy, Drop, Serde, PartialEq)]
@@ -100,9 +95,6 @@ trait IVault<TContractState> {
 
 #[starknet::contract]
 mod Vault {
-    use core::option::OptionTrait;
-    use core::traits::TryInto;
-    use core::traits::Into;
     use pitch_lake_starknet::vault::IVault;
     use openzeppelin::token::erc20::ERC20Component;
     use openzeppelin::token::erc20::interface::IERC20;
@@ -114,12 +106,11 @@ mod Vault {
     use openzeppelin::utils::serde::SerializedAppend;
     use pitch_lake_starknet::option_round::{
         OptionRound, OptionRoundConstructorParams, OptionRoundParams, OptionRoundState,
-        IOptionRoundDispatcher, IOptionRoundDispatcherTrait
+        IOptionRoundDispatcher
     };
     use pitch_lake_starknet::market_aggregator::{
-        IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
+        IMarketAggregatorDispatcher
     };
-    use debug::{PrintTrait};
 
 
     #[storage]
@@ -129,7 +120,7 @@ mod Vault {
         current_option_round_id: u256,
         market_aggregator: ContractAddress,
         round_addresses: LegacyMap<u256, ContractAddress>,
-    // liquidity_positions: Array<(u256, u256)>,
+    // liquidity_positions: LegacyMap<((ContractAddress, u256), u256)>,
     }
 
     #[constructor]
