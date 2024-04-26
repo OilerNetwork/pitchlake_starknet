@@ -23,11 +23,10 @@ trait ILPToken<TContractState> {
 
     // The address of the option round associated with this lp token
     fn option_round_address(self: @TContractState) -> ContractAddress;
+/// Writes ///
 
-    /// Writes ///
-
-    // Burn round tokens and convert them into a position in the vault
-    fn convert_to_position(ref self: TContractState, amount: u256);
+// Burn round tokens and convert them into a position in the vault
+//fn convert_to_position(ref self: TContractState, amount: u256);
 }
 #[starknet::contract]
 mod LpToken {
@@ -73,9 +72,8 @@ mod LpToken {
         fn option_round_address(self: @ContractState) -> ContractAddress {
             self.option_round_address.read()
         }
+    /// Writes /// 
 
-        /// Writes /// 
-
-        fn convert_to_position(ref self: ContractState, amount: u256) {}
+    //fn convert_to_position(ref self: ContractState, amount: u256) {}
     }
 }
