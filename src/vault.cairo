@@ -72,11 +72,39 @@ trait IVault<TContractState> {
     /// Writes ///
 
     // LP increments their position and sends the liquidity to the next round
-    // @return the lp_id of the liquidity position (erc721 token id)
+    // @note do we need a return value here ? 
     fn deposit_liquidity(ref self: TContractState, amount: u256) -> u256;
 
     // LP withdraws from their position while in the round transition period
     fn withdraw_liquidity(ref self: TContractState, amount: u256);
+    
+    // LP converts their collateral into LP tokens
+    // @note all at once or can LP convert a partial amount ? 
+    //  - logically i'm pretty sure they could do a partial amount (collecting all rewards in either case)
+    fn convert_position_to_lp_tokens(ref self: TContractState, amount: u256);
+
+    // LP converts their (source_round) LP tokens into a position in the current round
+    // @dev Premiums/unsold from the source round are not counted
+    fn convert_lp_tokens_to_position(ref self: TContractState, source_round: u256, amount: u256);
+
+    // rx_tokens -> ry_tokens ? 
+    // @dev Rx tokens do not include premiums/unsold from rx (above) 
+    // This is not a problem for token -> position, but is a problem for
+    // token -> token because when rx tokens convert to ry, the ry tokens should
+    // be able to collect ry premiums but will not be able to (above)
+    // @dev One solution is to take the amount of premiums/unallocated from ry that will get ignored, and
+    // add it to the ry token amount, this way when when the vault arbitrarily looks at the ry tokens,
+    // it can ignore the premiums/unsold from ry as it should, but the LP will still get their value.
+    // @dev if y is open, premiums are not known yet, so we could not add them in (so they will be properly ignored in the future)
+    //  - if y is open, y-1 must be settled, if < settled then we do not know the conversion rate for payout in y-1 -> y
+    // @dev if y is auctioning, premiums are not known yet, so we could do the same, not include them in the conversion
+    // @dev if y is running, act as mentioned previously (include them in the amount so they when ignored in the future they are still counted)
+    // @dev if y is settled, perform the same as running
+    // The point of converting token -> token is to stay liquid but also have access to the most liquidity/buyers
+    // If you have r3 tokens, and the current round is 50, there are probably fewer buyers for the r3 tokens than
+    // r49 or r50 tokens
+    // @return the amount of target round tokens received
+    fn convert_lp_tokens_to_newer_lp_tokens(ref self: TContractState, source_round: u256, target_round: u256, amount: u256) -> u256;
 
     // Settle the current option round as long as the current round is Running and the option expiry time has passed.
     fn settle_option_round(ref self: TContractState) -> bool;
@@ -205,6 +233,17 @@ mod Vault {
         }
 
         fn withdraw_liquidity(ref self: ContractState, amount: u256) {}
+
+        fn convert_position_to_lp_tokens(ref self: ContractState, amount: u256) {
+        }
+
+        fn convert_lp_tokens_to_position(ref self: ContractState, source_round: u256, amount: u256) {}
+
+        fn convert_lp_tokens_to_newer_lp_tokens(
+            ref self: ContractState, source_round: u256, target_round: u256, amount: u256
+        ) -> u256 {
+        100
+        }
 
         fn settle_option_round(ref self: ContractState) -> bool {
             true
