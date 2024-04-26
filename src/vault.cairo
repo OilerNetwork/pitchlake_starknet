@@ -1,8 +1,6 @@
 use starknet::{ContractAddress};
 use pitch_lake_starknet::option_round::{OptionRoundParams, OptionRoundState};
-use pitch_lake_starknet::market_aggregator::{
-    IMarketAggregator, IMarketAggregatorDispatcher
-};
+use pitch_lake_starknet::market_aggregator::{IMarketAggregator, IMarketAggregatorDispatcher};
 
 #[derive(Copy, Drop, Serde, PartialEq)]
 enum VaultType {
@@ -77,7 +75,7 @@ trait IVault<TContractState> {
 
     // LP withdraws from their position while in the round transition period
     fn withdraw_liquidity(ref self: TContractState, amount: u256);
-    
+
     // LP converts their collateral into LP tokens
     // @note all at once or can LP convert a partial amount ? 
     //  - logically i'm pretty sure they could do a partial amount (collecting all rewards in either case)
@@ -104,7 +102,9 @@ trait IVault<TContractState> {
     // If you have r3 tokens, and the current round is 50, there are probably fewer buyers for the r3 tokens than
     // r49 or r50 tokens
     // @return the amount of target round tokens received
-    fn convert_lp_tokens_to_newer_lp_tokens(ref self: TContractState, source_round: u256, target_round: u256, amount: u256) -> u256;
+    fn convert_lp_tokens_to_newer_lp_tokens(
+        ref self: TContractState, source_round: u256, target_round: u256, amount: u256
+    ) -> u256;
 
     // Settle the current option round as long as the current round is Running and the option expiry time has passed.
     fn settle_option_round(ref self: TContractState) -> bool;
@@ -136,9 +136,7 @@ mod Vault {
         OptionRound, OptionRoundConstructorParams, OptionRoundParams, OptionRoundState,
         IOptionRoundDispatcher
     };
-    use pitch_lake_starknet::market_aggregator::{
-        IMarketAggregatorDispatcher
-    };
+    use pitch_lake_starknet::market_aggregator::{IMarketAggregatorDispatcher};
 
 
     #[storage]
@@ -234,15 +232,16 @@ mod Vault {
 
         fn withdraw_liquidity(ref self: ContractState, amount: u256) {}
 
-        fn convert_position_to_lp_tokens(ref self: ContractState, amount: u256) {
-        }
+        fn convert_position_to_lp_tokens(ref self: ContractState, amount: u256) {}
 
-        fn convert_lp_tokens_to_position(ref self: ContractState, source_round: u256, amount: u256) {}
+        fn convert_lp_tokens_to_position(
+            ref self: ContractState, source_round: u256, amount: u256
+        ) {}
 
         fn convert_lp_tokens_to_newer_lp_tokens(
             ref self: ContractState, source_round: u256, target_round: u256, amount: u256
         ) -> u256 {
-        100
+            100
         }
 
         fn settle_option_round(ref self: ContractState) -> bool {
