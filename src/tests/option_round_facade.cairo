@@ -87,6 +87,11 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         self.option_round_dispatcher.total_collateral()
     }
 
+    // might be dupped when repo syncs
+    fn total_premiums(ref self: OptionRoundFacade) -> u256 {
+        self.option_round_dispatcher.total_premiums()
+    }
+
     // Get the round's liquidity spread (collateral, unallocated)
     fn get_all_round_liquidity(ref self: OptionRoundFacade) -> (u256, u256) {
         let round = self.option_round_dispatcher;

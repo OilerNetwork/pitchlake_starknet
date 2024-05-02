@@ -85,23 +85,17 @@ trait IVault<TContractState> {
     // @dev Premiums/unsold from the source round are not counted
     fn convert_lp_tokens_to_position(ref self: TContractState, source_round: u256, amount: u256);
 
-    // rx_tokens -> ry_tokens ? 
+    // LP token owner converts an amount of source round tokens to target round tokens
     // @dev Rx tokens do not include premiums/unsold from rx (above) 
     // This is not a problem for token -> position, but is a problem for
     // token -> token because when rx tokens convert to ry, the ry tokens should
     // be able to collect ry premiums but will not be able to (above)
-    // @dev One solution is to take the amount of premiums/unallocated from ry that will get ignored, and
-    // add it to the ry token amount, this way when when the vault arbitrarily looks at the ry tokens,
-    // it can ignore the premiums/unsold from ry as it should, but the LP will still get their value.
-    // @dev if y is open, premiums are not known yet, so we could not add them in (so they will be properly ignored in the future)
-    //  - if y is open, y-1 must be settled, if < settled then we do not know the conversion rate for payout in y-1 -> y
-    // @dev if y is auctioning, premiums are not known yet, so we could do the same, not include them in the conversion
-    // @dev if y is running, act as mentioned previously (include them in the amount so they when ignored in the future they are still counted)
-    // @dev if y is settled, perform the same as running
-    // The point of converting token -> token is to stay liquid but also have access to the most liquidity/buyers
-    // If you have r3 tokens, and the current round is 50, there are probably fewer buyers for the r3 tokens than
-    // r49 or r50 tokens
+    // @dev Ry must be running or settled. This way we can know the premiums that the rY tokens earned in the round, and collect them
+    // as a deposit into the next round. We need to collect these rY premiums because the LP tokens need to represent the value of a
+    // deposit in the round net any premiums from the round. 
+    // @dev If we do not collect the premiums for rY upon conversion, they would be lost.
     // @return the amount of target round tokens received
+    // @dev move entry point to LPToken ?
     fn convert_lp_tokens_to_newer_lp_tokens(
         ref self: TContractState, source_round: u256, target_round: u256, amount: u256
     ) -> u256;

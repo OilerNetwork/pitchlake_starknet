@@ -64,6 +64,31 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         self.vault_dispatcher.end_auction()
     }
 
+    fn convert_position_to_lp_tokens(ref self: VaultFacade, amount: u256, lp: ContractAddress) {
+        set_contract_address(lp);
+        self.vault_dispatcher.convert_position_to_lp_tokens(amount);
+    }
+
+    fn convert_lp_tokens_to_position(
+        ref self: VaultFacade, source_round: u256, amount: u256, lp: ContractAddress
+    ) {
+        set_contract_address(lp);
+        self.vault_dispatcher.convert_lp_tokens_to_position(source_round, amount);
+    }
+
+    fn convert_lp_tokens_to_newer_lp_tokens(
+        ref self: VaultFacade,
+        source_round: u256,
+        target_round: u256,
+        amount: u256,
+        lp: ContractAddress
+    ) {
+        set_contract_address(lp);
+        self
+            .vault_dispatcher
+            .convert_lp_tokens_to_newer_lp_tokens(source_round, target_round, amount);
+    }
+
     fn current_option_round_id(ref self: VaultFacade) -> u256 {
         self.vault_dispatcher.current_option_round_id()
     }
@@ -122,6 +147,11 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     fn get_market_aggregator(ref self: VaultFacade) -> ContractAddress {
         self.vault_dispatcher.get_market_aggregator()
+    }
+
+    // might be duplicated when repo syncs
+    fn get_premiums_for(ref self: VaultFacade, lp: ContractAddress) -> u256 {
+        self.vault_dispatcher.get_premiums_for(lp)
     }
 }
 
