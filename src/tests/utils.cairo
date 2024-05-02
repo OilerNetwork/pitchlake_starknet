@@ -24,7 +24,10 @@ use pitch_lake_starknet::pitch_lake::{
 };
 
 
-use pitch_lake_starknet::tests::vault_facade::{VaultFacade, VaultFacadeTrait};
+use pitch_lake_starknet::tests::{
+    option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
+    vault_facade::{VaultFacade, VaultFacadeTrait}
+};
 use pitch_lake_starknet::option_round;
 use pitch_lake_starknet::option_round::{
     OptionRound, OptionRoundParams, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,
@@ -432,3 +435,29 @@ fn assert_event_transfer(from: ContractAddress, to: ContractAddress, amount: u25
     assert(event.amount == amount, 'Invalid `amount`');
     assert_no_events_left(zero_address());
 }
+
+// Accelerate to the current round auctioning (needs non 0 liquidity to start auction)
+fn accelerate_to_auctioning(ref self: VaultFacade) {
+    // Deposit liquidity so round 1's auction can start
+    self.deposit(100 * decimals(), liquidity_provider_1());
+    // Start round 1's auction
+    self.start_auction();
+}
+
+// Accelerate to the current round's auction end
+fn accelerate_to_running(ref self: VaultFacade) {
+    accelerate_to_auctioning(ref self);
+    // Bid for all options at reserve price
+    let mut current_round = self.get_current_round();
+    let params = current_round.get_params();
+    let bid_amount = params.total_options_available;
+    let bid_price = params.reserve_price;
+    let bid_amount = bid_amount * bid_price;
+    current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
+    // End auction
+    set_block_timestamp(params.auction_end_time + 1);
+    current_round.end_auction();
+}
+// @note Might want to add accelerate to settled with args for settlemnt price
+
+

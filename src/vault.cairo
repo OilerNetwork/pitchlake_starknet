@@ -96,6 +96,10 @@ trait IVault<TContractState> {
 
     // @note needed ? 
     fn get_market_aggregator(self: @TContractState) -> ContractAddress;
+
+    fn is_premium_collected(self: @TContractState, lp:ContractAddress) -> bool;
+
+    fn collect_unallocated(ref self: TContractState, amount:u256);
 }
 
 #[starknet::contract]
@@ -130,6 +134,8 @@ mod Vault {
         current_option_round_id: u256,
         market_aggregator: ContractAddress,
         round_addresses: LegacyMap<u256, ContractAddress>,
+        premiums_collected:LegacyMap<(u256,ContractAddress),bool>,
+
     // liquidity_positions: Array<(u256, u256)>,
     }
 
@@ -209,6 +215,10 @@ mod Vault {
             100
         }
 
+        fn is_premium_collected(self: @ContractState, lp:ContractAddress, roundId:u256) -> bool {
+            self.premiums_collected.read((roundId,lp))
+        }
+
         /// Writes ///
         fn deposit_liquidity(ref self: ContractState, amount: u256) -> u256 {
             1
@@ -231,5 +241,6 @@ mod Vault {
         fn get_market_aggregator(self: @ContractState) -> ContractAddress {
             self.market_aggregator.read()
         }
+        fn collect_unallocated(ref self:ContractState, amount:u256){}
     }
 }
