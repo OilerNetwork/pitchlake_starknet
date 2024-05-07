@@ -22,7 +22,11 @@ struct OptionRoundParams {
     reserve_price: u256, // minimum price per option in the auction
     total_options_available: u256,
     minimum_collateral_required: u256, // the auction will not start unless this much collateral is deposited, needed ? 
-    auction_end_time: u64, // when the auction can be ended
+    // @dev should we consider setting this upon auction start ? 
+    // that way if the round's auction start is delayed (due to collateral requirements), we can set a proper auction end time
+    // when it eventually starts ?
+    auction_end_time: u64, // when an auction can end
+    // @dev same as auction end time, wait to set when round acutally starts ? 
     option_expiry_time: u64, // when the options can be settled  
 }
 
