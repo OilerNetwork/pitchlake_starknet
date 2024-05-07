@@ -149,6 +149,14 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         self.vault_dispatcher.get_market_aggregator()
     }
 
+    // Gets the round transition period in seconds, 3 hours is a random number for testing
+    // @note TODO impl this in contract later
+    fn get_round_transition_period(ref self: VaultFacade) -> u64 {
+        let minute = 60;
+        let hour = 60 * minute;
+        3 * hour
+    }
+
     // might be duplicated when repo syncs
     fn get_premiums_for(ref self: VaultFacade, lp: ContractAddress) -> u256 {
         self.vault_dispatcher.get_premiums_for(lp)
