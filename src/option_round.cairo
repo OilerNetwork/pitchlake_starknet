@@ -100,11 +100,14 @@ trait IOptionRound<TContractState> {
     fn get_params(self: @TContractState) -> OptionRoundParams;
 
     // The total liquidity at the start of the round's auction
-    // @dev This values is fixed and is used for position caluclations
+    // @dev Redundant with total_collateral/unallocated. 
     fn total_liquidity(self: @TContractState) -> u256;
 
-    // The amount of liqudity that is locked for the potential payout
-    // @dev Decreases if the auction does not sell all of the options
+    // The amount of liqudity that is locked for the potential payout. May shrink
+    // if the auction does not sell all options (moving some collateral to unallocated).
+    // @dev For now this value is being tested as if it remains a fixed value after the auction. 
+    // We may need to mark the starting liquidity/collateral using another variable for conversions if we 
+    // think total collateral should be 0 after the round settles
     fn total_collateral(self: @TContractState) -> u256;
 
     // The the amount of liquidity that is not allocated for a payout and is withdrawable
