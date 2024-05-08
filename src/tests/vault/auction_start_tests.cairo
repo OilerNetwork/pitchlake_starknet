@@ -192,6 +192,10 @@ fn test_start_auction_before_round_transition_period_over_failure() {
 }
 
 // Test that an auction cannot start if the minimum_collateral_required is not reached 
+// @note Tomasz said this is unneccesary, we may introduce a maximum_collateral_required.
+// Tomasz said too much collateral leads to problems with manipulation for premium
+// This is a much later concern
+#[ignore]
 #[test]
 #[available_gas(10000000)]
 #[should_panic(expected: ('Cannot start auction yet', 'ENTRYPOINT_FAILED',))]
