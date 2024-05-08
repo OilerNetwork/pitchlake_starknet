@@ -59,7 +59,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     }
 
     fn vault_address(ref self: OptionRoundFacade) -> ContractAddress {
-        self.vault_address()
+        self.option_round_dispatcher.vault_address()
     }
     fn total_liquidity(ref self: OptionRoundFacade) -> u256 {
         self.option_round_dispatcher.total_liquidity()
