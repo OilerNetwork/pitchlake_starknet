@@ -77,18 +77,15 @@ fn test_vault_constructor() {
 fn test_option_round_constructor() {
     let (mut vault_facade, _) = setup_facade();
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-
     let mut next_round_facade: OptionRoundFacade = vault_facade.get_next_round();
     // Round 0 should be settled
     let mut state: OptionRoundState = current_round_facade.get_state();
     let mut expected: OptionRoundState = OptionRoundState::Settled;
     assert(expected == state, 'round 0 should be Settled');
-
     // Round 1 should be Open
     state = next_round_facade.get_state();
     expected = OptionRoundState::Open;
     assert(expected == state, 'round 1 should be Open');
-
     // The round's vault & market aggregator addresses should be set
     assert(
         current_round_facade.vault_address() == vault_facade.contract_address(),

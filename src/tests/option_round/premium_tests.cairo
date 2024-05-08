@@ -223,7 +223,6 @@ fn test_premium_collection_ratio_conversion_unallocated_pool_2() {
         'premium paid in ratio'
     );
 }
-
 // @note Need tests for collecting premiums: eth transfer, lp/round unallocated decrementing, remaining premiums for other LPs unaffected 
 
 
