@@ -67,7 +67,7 @@ fn test_unallocated_becomes_collateral() {
     assert(next_round_unallocated == deposit_total, 'next round unallocated wrong');
     // Start the auction
     vault_facade.start_auction();
-    // Final collaterla/unallocated spread
+    // Final collateral/unallocated spread
     let (lp1_collateral, lp1_unallocated) = vault_facade
         .get_all_lp_liquidity(liquidity_provider_1());
     let (lp2_collateral, lp2_unallocated) = vault_facade
@@ -84,7 +84,7 @@ fn test_unallocated_becomes_collateral() {
     assert(next_round_unallocated == 0, 'next round unallocated wrong');
 }
 
-// Test an auction starts and the round becomes the current round. Test that the 
+// Test when an auction starts, it becomes the current round and the 
 // next round is deployed.
 #[test]
 #[available_gas(10000000)]
@@ -117,7 +117,9 @@ fn test_start_auction_becomes_current_round() {
     assert_event_auction_start(current_round_facade.get_params().total_options_available);
 }
 
-// Test the next auction cannot start if it is not time
+/// Failures ///
+
+// Test the next auction cannot start before the round transition period is over
 #[test]
 #[available_gas(10000000)]
 #[should_panic(expected: ('Cannot start auction yet', 'ENTRYPOINT_FAILED'))]
@@ -188,3 +190,29 @@ fn test_start_auction_before_round_transition_period_over_failure() {
     set_block_timestamp(option_params.option_expiry_time + rtp - 1);
     vault_facade.start_auction();
 }
+
+// Test that an auction cannot start if the minimum_collateral_required is not reached 
+// @note Tomasz said this is unneccesary, we may introduce a maximum_collateral_required.
+// Tomasz said too much collateral leads to problems with manipulation for premium
+// This is a much later concern
+#[ignore]
+#[test]
+#[available_gas(10000000)]
+#[should_panic(expected: ('Cannot start auction yet', 'ENTRYPOINT_FAILED',))]
+fn test_start_auction_under_minium_collateral_required_failure() {
+    let (mut vault_facade, _) = setup_facade();
+
+    // @dev Need to manually initialize round 1 unless it is initialed during the vault constructor
+    // ... vault::_initialize_round_1()
+
+    // Get round 1's minium collateral requirements
+    let mut next_round: OptionRoundFacade = vault_facade.get_next_round();
+    let params = next_round.get_params();
+    let minimum_collateral_required = params.minimum_collateral_required;
+    // LP deposits (into round 1)
+    let deposit_amount_wei: u256 = minimum_collateral_required - 1;
+    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
+    // Try to start auction 
+    vault_facade.start_auction();
+}
+

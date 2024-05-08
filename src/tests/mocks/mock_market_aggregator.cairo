@@ -20,6 +20,7 @@ mod MockMarketAggregator {
         standard_deviation_base_fee: u256,
         current_base_fee: u256,
     }
+
     #[abi(embed_v0)]
     impl MockMarketAggregatorSetterImpl of super::IMarketAggregatorSetter<ContractState> {
         fn set_average_base_fee(ref self: ContractState, base_fee: u256) {
@@ -34,19 +35,20 @@ mod MockMarketAggregator {
             self.current_base_fee.write(base_fee);
         }
     }
+
     #[abi(embed_v0)]
     impl MockMarketAggregatorImpl of super::IMarketAggregator<ContractState> {
-        // this is the average base fee for the previous round, returns in wei
+        // this is the average basefee for the previous round, returns in wei
         fn get_average_base_fee(self: @ContractState) -> u256 {
             self.average_base_fee.read()
         }
 
-        // this is the standard deviation of the base fee for the previous round, returns in wei
+        // this is the standard deviation of the basefee for the previous round, returns in wei
         fn get_standard_deviation_base_fee(self: @ContractState) -> u256 {
             self.standard_deviation_base_fee.read()
         }
 
-        // this is the current base fee, returns in wei
+        // this is the current basefee, returns in wei
         fn get_current_base_fee(self: @ContractState) -> u256 {
             self.current_base_fee.read()
         }

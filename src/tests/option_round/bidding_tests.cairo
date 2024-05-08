@@ -35,7 +35,7 @@ use pitch_lake_starknet::tests::utils::{
     pop_log, assert_no_events_left, month_duration
 };
 use pitch_lake_starknet::option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait};
-use pitch_lake_starknet::tests::mock_market_aggregator::{
+use pitch_lake_starknet::tests::mocks::mock_market_aggregator::{
     MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
     IMarketAggregatorSetterDispatcherTrait
 };
@@ -139,7 +139,6 @@ fn test_lock_of_bid_funds() {
     );
 }
 
-
 #[test]
 #[available_gas(10000000)]
 #[should_panic(expected: ('Bid amount must be > 0', 'ENTRYPOINT_FAILED',))]
@@ -169,7 +168,7 @@ fn test_bid_price_below_reserve_price_failure() {
 
     let mut round_facade: OptionRoundFacade = vault_facade.get_current_round();
     let params: OptionRoundParams = round_facade.get_params();
-    // Try to bid 0 price
+    // Try to bid below reserve price
     round_facade.place_bid(2, params.reserve_price - 1, option_bidder_buyer_1());
 }
 

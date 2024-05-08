@@ -37,7 +37,7 @@ use pitch_lake_starknet::market_aggregator::{
     IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait,
     IMarketAggregatorSafeDispatcher, IMarketAggregatorSafeDispatcherTrait
 };
-use pitch_lake_starknet::tests::mock_market_aggregator::{MockMarketAggregator};
+use pitch_lake_starknet::tests::mocks::mock_market_aggregator::{MockMarketAggregator};
 
 const DECIMALS: u8 = 18_u8;
 const SUPPLY: u256 = 99999999999999999999999999999;
