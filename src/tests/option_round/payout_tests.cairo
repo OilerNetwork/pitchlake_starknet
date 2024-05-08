@@ -33,7 +33,7 @@ use pitch_lake_starknet::tests::utils::{
 // , option_bidder_buyer_4,
 // , weth_owner, mock_option_params
 };
-use pitch_lake_starknet::tests::mock_market_aggregator::{
+use pitch_lake_starknet::tests::mocks::mock_market_aggregator::{
     MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
     IMarketAggregatorSetterDispatcherTrait
 };
@@ -89,7 +89,7 @@ fn test_option_payout_sends_eth() {
     // End auction
     vault_facade.timeskip_and_end_auction();
     // Settle option round with payout
-    let settlement_price = params.reserve_price + 10;
+    let settlement_price = params.strike_price + 10;
     IMarketAggregatorSetterDispatcher { contract_address: vault_facade.get_market_aggregator() }
         .set_current_base_fee(settlement_price);
 
@@ -123,7 +123,7 @@ fn test_option_payout_amount_index_higher_than_strike() {
     // End auction
     vault_facade.timeskip_and_end_auction();
     // Settle option round with payout
-    let settlement_price = params.reserve_price + 10;
+    let settlement_price = params.strike_price + 11;
     IMarketAggregatorSetterDispatcher { contract_address: vault_facade.get_market_aggregator() }
         .set_current_base_fee(settlement_price);
     vault_facade.settle_option_round(liquidity_provider_1());
@@ -153,7 +153,7 @@ fn test_option_payout_amount_index_less_than_strike() {
     // End auction
     vault_facade.timeskip_and_end_auction();
     // Settle option round with no payout
-    let settlement_price = params.reserve_price - 10;
+    let settlement_price = params.strike_price - 10;
     IMarketAggregatorSetterDispatcher { contract_address: vault_facade.get_market_aggregator() }
         .set_current_base_fee(settlement_price);
     // Settle auction
@@ -182,7 +182,7 @@ fn test_option_payout_amount_index_at_strike() {
 
     vault_facade.end_auction();
     // Settle option round with no payout
-    let settlement_price = params.reserve_price;
+    let settlement_price = params.strike_price;
 
     IMarketAggregatorSetterDispatcher { contract_address: vault_facade.get_market_aggregator() }
         .set_current_base_fee(settlement_price);
@@ -221,3 +221,6 @@ fn test_exercise_options_too_early_failure() {
     // Should fail as option has not settled
     current_round_facade.exercise_options(option_bidder_buyer_1());
 }
+// @note Add test that payout is capped even if index >>> strike
+
+

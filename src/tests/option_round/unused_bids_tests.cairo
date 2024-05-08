@@ -38,7 +38,7 @@ use pitch_lake_starknet::tests::{
 
 #[test]
 #[available_gas(10000000)]
-fn test_unused_bids_for_ob_while_auctioning() {
+fn test_get_unused_bids_for_ob_during_auction() {
     let (mut vault_facade, _) = setup_facade();
     // LP deposits (into round 1)
     let deposit_amount_wei: u256 = 10000 * decimals();
@@ -57,10 +57,9 @@ fn test_unused_bids_for_ob_while_auctioning() {
     assert(ob_unused_bid_amount == bid_amount, 'unused bids wrong');
 }
 
-///////////////////// tests below are based on auction_reference_size_is_max_amount.py results/////////////////////////
 #[test]
 #[available_gas(10000000)]
-fn test_unused_bids_for_ob_after_auctioning() {
+fn test_unused_bids_for_ob_after_auction() {
     let (mut vault_facade, _) = setup_facade();
     // LP deposits (into round 1)
     let deposit_amount_wei: u256 = 10000 * decimals();
@@ -105,13 +104,13 @@ fn test_collect_unused_bids_after_auction_end_success() {
     let bid_price_2 = bid_price + 1;
     let bid_amount = bid_count * bid_price;
     let bid_amount_2 = bid_count * bid_price_2;
-
     round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
-
     round_facade.place_bid(bid_amount_2, bid_price_2, option_bidder_buyer_2());
     // Settle auction
     vault_facade.timeskip_and_end_auction();
-    // OB 1 collects their unused bids
+    // OB 1 collects their unused bids (at any time post auction)
+    let now = starknet::get_block_timestamp();
+    set_block_timestamp(now + 10000000000);
     let unused_amount = round_facade.get_unused_bids_for(option_bidder_buyer_1());
     let ob_balance_before_collect = eth_dispatcher.balance_of(option_bidder_buyer_1());
     round_facade.refund_bid(option_bidder_buyer_1());
@@ -123,10 +122,9 @@ fn test_collect_unused_bids_after_auction_end_success() {
     );
 }
 
-
 #[test]
 #[available_gas(10000000)]
-fn test_collect_unused_bids_none_left() {
+fn test_collect_unused_bids_again_does_nothing() {
     let (mut vault_facade, eth_dispatcher): (VaultFacade, IERC20Dispatcher) = setup_facade();
     // LP deposits (into round 1)
     let deposit_amount_wei: u256 = 10000 * decimals();
@@ -155,3 +153,6 @@ fn test_collect_unused_bids_none_left() {
     // Check OB gets their refunded depost and their amount updates to 0
     assert(ob_balance_before_collect == ob_balance_after_collect, 'balance should not change');
 }
+// @note Add test for trying to refund bid while still auctioning (all bids locked until post auction, where some may become unlocked if not used)
+
+

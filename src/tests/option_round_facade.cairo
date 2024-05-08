@@ -59,7 +59,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     }
 
     fn vault_address(ref self: OptionRoundFacade) -> ContractAddress {
-        self.vault_address()
+        self.option_round_dispatcher.vault_address()
     }
     fn total_liquidity(ref self: OptionRoundFacade) -> u256 {
         self.option_round_dispatcher.total_liquidity()
@@ -67,6 +67,14 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     fn total_unallocated_liquidity(ref self: OptionRoundFacade) -> u256 {
         self.option_round_dispatcher.total_unallocated_liquidity()
     }
+    fn total_payout(ref self: OptionRoundFacade) -> u256 {
+        self.option_round_dispatcher.total_payouts()
+    }
+
+    fn total_unallocated_liquidity_collected(ref self: OptionRoundFacade) -> u256 {
+        self.option_round_dispatcher.total_unallocated_liquidity_collected()
+    }
+
     fn contract_address(ref self: OptionRoundFacade) -> ContractAddress {
         self.option_round_dispatcher.contract_address
     }
@@ -85,6 +93,20 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
 
     fn total_collateral(ref self: OptionRoundFacade) -> u256 {
         self.option_round_dispatcher.total_collateral()
+    }
+
+    fn total_premiums(ref self: OptionRoundFacade) -> u256 {
+        self.option_round_dispatcher.total_premiums()
+    }
+
+    // Gets the remaining liquidity of an option round (assuming it is settled)
+    // @dev This is the amount that was rolled to the next round
+    fn get_remaining_liquidity(ref self: OptionRoundFacade) -> u256 {
+        let round = self.option_round_dispatcher;
+        round.total_collateral()
+            + round.total_premiums()
+            - round.total_unallocated_liquidity_collected()
+            - round.total_payouts()
     }
 
     // Get the round's liquidity spread (collateral, unallocated)

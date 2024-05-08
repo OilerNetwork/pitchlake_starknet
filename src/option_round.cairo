@@ -22,7 +22,11 @@ struct OptionRoundParams {
     reserve_price: u256, // minimum price per option in the auction
     total_options_available: u256,
     minimum_collateral_required: u256, // the auction will not start unless this much collateral is deposited, needed ? 
-    auction_end_time: u64, // when the auction can be ended
+    // @dev should we consider setting this upon auction start ? 
+    // that way if the round's auction start is delayed (due to collateral requirements), we can set a proper auction end time
+    // when it eventually starts ?
+    auction_end_time: u64, // when an auction can end
+    // @dev same as auction end time, wait to set when round acutally starts ? 
     option_expiry_time: u64, // when the options can be settled  
 }
 
@@ -96,11 +100,14 @@ trait IOptionRound<TContractState> {
     fn get_params(self: @TContractState) -> OptionRoundParams;
 
     // The total liquidity at the start of the round's auction
-    // @dev This values is fixed and is used for position caluclations
+    // @dev Redundant with total_collateral/unallocated. 
     fn total_liquidity(self: @TContractState) -> u256;
 
-    // The amount of liqudity that is locked for the potential payout
-    // @dev Decreases if the auction does not sell all of the options
+    // The amount of liqudity that is locked for the potential payout. May shrink
+    // if the auction does not sell all options (moving some collateral to unallocated).
+    // @dev For now this value is being tested as if it remains a fixed value after the auction. 
+    // We may need to mark the starting liquidity/collateral using another variable for conversions if we 
+    // think total collateral should be 0 after the round settles
     fn total_collateral(self: @TContractState) -> u256;
 
     // The the amount of liquidity that is not allocated for a payout and is withdrawable
@@ -181,7 +188,6 @@ mod OptionRound {
     use openzeppelin::token::erc20::interface::IERC20;
     use starknet::ContractAddress;
     use pitch_lake_starknet::vault::VaultType;
-    use pitch_lake_starknet::pool::IPoolDispatcher;
     use openzeppelin::token::erc20::interface::IERC20Dispatcher;
     use super::{OptionRoundConstructorParams, OptionRoundParams, OptionRoundState};
     use pitch_lake_starknet::market_aggregator::{

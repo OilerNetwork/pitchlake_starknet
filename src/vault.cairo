@@ -1,15 +1,8 @@
-use starknet::{ContractAddress, StorePacking};
-use array::{Array};
-use traits::{Into, TryInto};
-use openzeppelin::token::erc20::interface::IERC20Dispatcher;
-use openzeppelin::utils::serde::SerializedAppend;
-
+use starknet::{ContractAddress};
 use pitch_lake_starknet::option_round::{OptionRoundParams, OptionRoundState};
-use pitch_lake_starknet::market_aggregator::{
-    IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
-};
+use pitch_lake_starknet::market_aggregator::{IMarketAggregator, IMarketAggregatorDispatcher};
 
-#[derive(Copy, Drop, Serde, PartialEq)]
+#[derive(starknet::Store, Copy, Drop, Serde, PartialEq)]
 enum VaultType {
     InTheMoney,
     AtTheMoney,
@@ -77,11 +70,35 @@ trait IVault<TContractState> {
     /// Writes ///
 
     // LP increments their position and sends the liquidity to the next round
-    // @return the lp_id of the liquidity position (erc721 token id)
+    // @note do we need a return value here ? 
     fn deposit_liquidity(ref self: TContractState, amount: u256) -> u256;
 
     // LP withdraws from their position while in the round transition period
     fn withdraw_liquidity(ref self: TContractState, amount: u256);
+
+    // LP converts their collateral into LP tokens
+    // @note all at once or can LP convert a partial amount ? 
+    //  - logically i'm pretty sure they could do a partial amount (collecting all rewards in either case)
+    fn convert_position_to_lp_tokens(ref self: TContractState, amount: u256);
+
+    // LP converts their (source_round) LP tokens into a position in the current round
+    // @dev Premiums/unsold from the source round are not counted
+    fn convert_lp_tokens_to_position(ref self: TContractState, source_round: u256, amount: u256);
+
+    // LP token owner converts an amount of source round tokens to target round tokens
+    // @dev Rx tokens do not include premiums/unsold from rx (above) 
+    // This is not a problem for token -> position, but is a problem for
+    // token -> token because when rx tokens convert to ry, the ry tokens should
+    // be able to collect ry premiums but will not be able to (above)
+    // @dev Ry must be running or settled. This way we can know the premiums that the rY tokens earned in the round, and collect them
+    // as a deposit into the next round. We need to collect these rY premiums because the LP tokens need to represent the value of a
+    // deposit in the round net any premiums from the round. 
+    // @dev If we do not collect the premiums for rY upon conversion, they would be lost.
+    // @return the amount of target round tokens received
+    // @dev move entry point to LPToken ?
+    fn convert_lp_tokens_to_newer_lp_tokens(
+        ref self: TContractState, source_round: u256, target_round: u256, amount: u256
+    ) -> u256;
 
     // Settle the current option round as long as the current round is Running and the option expiry time has passed.
     fn settle_option_round(ref self: TContractState) -> bool;
@@ -100,9 +117,6 @@ trait IVault<TContractState> {
 
 #[starknet::contract]
 mod Vault {
-    use core::option::OptionTrait;
-    use core::traits::TryInto;
-    use core::traits::Into;
     use pitch_lake_starknet::vault::IVault;
     use openzeppelin::token::erc20::ERC20Component;
     use openzeppelin::token::erc20::interface::IERC20;
@@ -111,26 +125,23 @@ mod Vault {
         get_contract_address
     };
     use pitch_lake_starknet::vault::VaultType;
-    use pitch_lake_starknet::pool::IPoolDispatcher;
     use openzeppelin::utils::serde::SerializedAppend;
     use pitch_lake_starknet::option_round::{
         OptionRound, OptionRoundConstructorParams, OptionRoundParams, OptionRoundState,
-        IOptionRoundDispatcher, IOptionRoundDispatcherTrait
+        IOptionRoundDispatcher
     };
-    use pitch_lake_starknet::market_aggregator::{
-        IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
-    };
-    use debug::{PrintTrait};
+    use pitch_lake_starknet::market_aggregator::{IMarketAggregatorDispatcher};
 
 
     #[storage]
     struct Storage {
         vault_manager: ContractAddress,
+        vault_type: VaultType,
         current_option_round_params: OptionRoundParams,
         current_option_round_id: u256,
         market_aggregator: ContractAddress,
         round_addresses: LegacyMap<u256, ContractAddress>,
-    // liquidity_positions: Array<(u256, u256)>,
+    // liquidity_positions: LegacyMap<((ContractAddress, u256), u256)>,
     }
 
     #[constructor]
@@ -143,6 +154,7 @@ mod Vault {
         option_round_class_hash: ClassHash,
     ) {
         self.vault_manager.write(vault_manager);
+        self.vault_type.write(vault_type);
         self.market_aggregator.write(market_aggregator);
         // @dev Deploy the 0th round as current (Settled) and deploy the 1st round (Open)
         let z_constructor_args: OptionRoundConstructorParams = OptionRoundConstructorParams {
@@ -179,7 +191,7 @@ mod Vault {
         }
 
         fn vault_type(self: @ContractState) -> VaultType {
-            VaultType::AtTheMoney
+            self.vault_type.read()
         }
 
         fn current_option_round_id(self: @ContractState) -> u256 {
@@ -215,6 +227,18 @@ mod Vault {
         }
 
         fn withdraw_liquidity(ref self: ContractState, amount: u256) {}
+
+        fn convert_position_to_lp_tokens(ref self: ContractState, amount: u256) {}
+
+        fn convert_lp_tokens_to_position(
+            ref self: ContractState, source_round: u256, amount: u256
+        ) {}
+
+        fn convert_lp_tokens_to_newer_lp_tokens(
+            ref self: ContractState, source_round: u256, target_round: u256, amount: u256
+        ) -> u256 {
+            100
+        }
 
         fn settle_option_round(ref self: ContractState) -> bool {
             true
