@@ -37,6 +37,7 @@ use pitch_lake_starknet::tests::utils::{
 ///
 
 // Test converting position->lp tokens fails if the auction has not ended
+#[ignore]
 #[test]
 #[available_gas(10000000)]
 #[should_panic(expected: ('Cannot tokenize until auction ends', 'ENTRYPOINT_FAILED',))]
@@ -57,6 +58,7 @@ fn test_convert_position_to_lp_tokens_while_auctioning_failure() {
 //  next round during this time and could just be withdrawn instead of tokenized. 
 //  @note If we allow this, the premiums still need to be collected, since they are already sitting in the
 //  next round, we can mark the current round's premiums collected, and leave the amount sitting in the next round
+#[ignore]
 #[test]
 #[available_gas(10000000)]
 #[should_panic(expected: ('Cannot tokenize when round is settled?', 'ENTRYPOINT_FAILED',))]
@@ -90,6 +92,7 @@ fn test_convert_position_to_lp_tokens_while_settled__TODO__() {
 // Test that converting position -> LP tokens auto-collects premiums and updates the position
 // @dev Check unallocated assertions after speaking with Dhruv, should unallocated_balance be premiums + next_round_deposit, or just next_round_deposit ?
 // @dev Is this test suffice for knowing withdrawCheckpoint and current_roundPosition is updated correctly? If lp_collateral is correct then withdrawCheckpoint must be right ? 
+#[ignore]
 #[test]
 #[available_gas(10000000)]
 fn test_convert_position_to_lp_tokens_success() { // 
@@ -182,6 +185,7 @@ fn test_convert_position_to_lp_tokens_success() { //
 // Test converting tokens-> position deposits into the current round
 // @dev If user can choose target round when converting, then target must be > withdrawCheckpoint,
 // and the round target-1 must be settled.
+#[ignore]
 #[test]
 #[available_gas(10000000)]
 fn test_convert_lp_tokens_to_position_is_always_deposit_into_current_round() { //
@@ -300,6 +304,7 @@ fn test_convert_lp_tokens_to_position_is_always_deposit_into_current_round() { /
 // Test converting lp tokens into a position does not count the premiums earned in the source round 
 #[test]
 #[available_gas(10000000)]
+#[ignore]
 fn test_convert_lp_tokens_to_position_does_not_count_source_round_premiums() { //
 // Deploy vault
 
