@@ -2,7 +2,7 @@ use starknet::{ContractAddress};
 use pitch_lake_starknet::option_round::{OptionRoundParams, OptionRoundState};
 use pitch_lake_starknet::market_aggregator::{IMarketAggregator, IMarketAggregatorDispatcher};
 
-#[derive(Copy, Drop, Serde, PartialEq)]
+#[derive(starknet::Store, Copy, Drop, Serde, PartialEq)]
 enum VaultType {
     InTheMoney,
     AtTheMoney,
@@ -136,6 +136,7 @@ mod Vault {
     #[storage]
     struct Storage {
         vault_manager: ContractAddress,
+        vault_type: VaultType,
         current_option_round_params: OptionRoundParams,
         current_option_round_id: u256,
         market_aggregator: ContractAddress,
@@ -153,6 +154,7 @@ mod Vault {
         option_round_class_hash: ClassHash,
     ) {
         self.vault_manager.write(vault_manager);
+        self.vault_type.write(vault_type);
         self.market_aggregator.write(market_aggregator);
         // @dev Deploy the 0th round as current (Settled) and deploy the 1st round (Open)
         let z_constructor_args: OptionRoundConstructorParams = OptionRoundConstructorParams {
@@ -189,7 +191,7 @@ mod Vault {
         }
 
         fn vault_type(self: @ContractState) -> VaultType {
-            VaultType::AtTheMoney
+            self.vault_type.read()
         }
 
         fn current_option_round_id(self: @ContractState) -> u256 {
