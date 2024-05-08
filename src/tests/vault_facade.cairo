@@ -8,10 +8,13 @@ use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTr
 
 use starknet::{ContractAddress, testing::{set_contract_address, set_block_timestamp}};
 
-use pitch_lake_starknet::tests::utils::{
-    liquidity_provider_1, vault_manager, decimals, assert_event_transfer
+use pitch_lake_starknet::tests::{
+    utils::{liquidity_provider_1, vault_manager, decimals, assert_event_transfer},
 };
-
+use pitch_lake_starknet::tests::mocks::mock_market_aggregator::{
+    MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
+    IMarketAggregatorSetterDispatcherTrait,
+};
 use pitch_lake_starknet::market_aggregator::{
     IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
 };
@@ -37,6 +40,12 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         self.vault_dispatcher.withdraw_liquidity(amount);
     }
 
+    // @dev might clash when repo syncs
+    fn collect_premiums(ref self: VaultFacade, liquidity_provider: ContractAddress) {
+        set_contract_address(liquidity_provider);
+    //self.vault_dispatcher.collect_premiums();
+    }
+
     fn start_auction(ref self: VaultFacade) -> bool {
         set_contract_address(vault_manager());
         self.vault_dispatcher.start_auction()
@@ -50,6 +59,18 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     fn settle_option_round(ref self: VaultFacade, address: ContractAddress) -> bool {
         set_contract_address(address);
         self.vault_dispatcher.settle_option_round()
+    }
+
+    // Mock the round to have/not have a payout and settle it
+    fn settle_option_round_without_payout(ref self: VaultFacade, is_payout: bool) {
+        let mut current_round = self.get_current_round();
+        let mock_settlement_price = match is_payout {
+            true => { current_round.get_params().strike_price + 10 },
+            false => { current_round.get_params().strike_price },
+        };
+        IMarketAggregatorSetterDispatcher { contract_address: self.get_market_aggregator() }
+            .set_current_base_fee(mock_settlement_price);
+        self.timeskip_and_settle_round();
     }
 
     fn timeskip_and_settle_round(ref self: VaultFacade) -> bool {
@@ -116,6 +137,12 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         let option_round_dispatcher = IOptionRoundDispatcher { contract_address };
 
         OptionRoundFacade { option_round_dispatcher }
+    }
+
+    fn get_current_and_next_rounds(
+        ref self: VaultFacade
+    ) -> (OptionRoundFacade, OptionRoundFacade) {
+        (self.get_current_round(), self.get_next_round())
     }
 
     fn get_locked_liquidity(ref self: VaultFacade, liquidity_provider: ContractAddress) -> u256 {
