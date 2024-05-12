@@ -107,7 +107,6 @@ fn test_premium_amount_for_liquidity_providers_2() {
     assert(lp3_actual_premium == lp3_expected_premium, 'lp3 collectable premium wrong');
     assert(lp4_actual_premium == lp4_expected_premium, 'lp4 collectable premium wrong');
 }
-
 // @note Need tests for premium collection: eth transfer, lp/round unallocated decrementing, remaining premiums for other LPs unaffected, cannot collect twice/more than remaining collectable amount
 
 
