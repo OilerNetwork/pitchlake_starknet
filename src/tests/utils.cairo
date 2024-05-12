@@ -84,7 +84,7 @@ fn deploy_vault(vault_type: VaultType) -> IVaultDispatcher {
     let mut calldata = array![];
     calldata.append_serde(vault_manager());
     calldata.append_serde(vault_type);
-    calldata.append_serde(deploy_market_aggregator().contract_address); // needed ? 
+    calldata.append_serde(deploy_market_aggregator().contract_address); // needed ?
     calldata.append_serde(round_class_hash);
 
     let (address, _) = deploy_syscall(
@@ -102,7 +102,7 @@ fn deploy_vault_with_mkt_agg(
     calldata.append_serde(vault_manager());
     calldata.append_serde(vault_type);
     let mkt_agg = deploy_market_aggregator();
-    calldata.append_serde(mkt_agg.contract_address); // needed ? 
+    calldata.append_serde(mkt_agg.contract_address); // needed ?
     calldata.append_serde(round_class_hash);
 
     let (address, _) = deploy_syscall(
@@ -113,16 +113,15 @@ fn deploy_vault_with_mkt_agg(
 }
 
 fn deploy_pitch_lake() -> IPitchLakeDispatcher {
-    let vault_dispatcher_in_the_money: IVaultDispatcher = deploy_vault(VaultType::InTheMoney);
-    let vault_dispatcher_out_of_money: IVaultDispatcher = deploy_vault(VaultType::OutOfMoney);
-    let vault_dispatcher_at_the_money: IVaultDispatcher = deploy_vault(VaultType::AtTheMoney);
-
     let mut calldata = array![];
-
-    calldata.append_serde(vault_dispatcher_in_the_money);
-    calldata.append_serde(vault_dispatcher_out_of_money);
-    calldata.append_serde(vault_dispatcher_at_the_money);
-    calldata.append_serde(deploy_market_aggregator());
+    let ITM: IVaultDispatcher = deploy_vault(VaultType::InTheMoney);
+    let OTM: IVaultDispatcher = deploy_vault(VaultType::OutOfMoney);
+    let ATM: IVaultDispatcher = deploy_vault(VaultType::AtTheMoney);
+    let mkagg = deploy_market_aggregator();
+    calldata.append_serde(ITM.contract_address);
+    calldata.append_serde(OTM.contract_address);
+    calldata.append_serde(ATM.contract_address);
+    calldata.append_serde(mkagg.contract_address);
 
     let (address, _) = deploy_syscall(
         PitchLake::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
@@ -140,12 +139,16 @@ fn setup() -> (IVaultDispatcher, IERC20Dispatcher) {
 
     eth_dispatcher.transfer(liquidity_provider_1(), deposit_amount_wei);
     eth_dispatcher.transfer(liquidity_provider_2(), deposit_amount_wei);
+    eth_dispatcher.transfer(liquidity_provider_3(), deposit_amount_wei);
+    eth_dispatcher.transfer(liquidity_provider_4(), deposit_amount_wei);
 
     let deposit_amount_ether: u256 = 100000;
     let deposit_amount_wei: u256 = deposit_amount_ether * decimals();
 
     eth_dispatcher.transfer(option_bidder_buyer_1(), deposit_amount_wei);
     eth_dispatcher.transfer(option_bidder_buyer_2(), deposit_amount_wei);
+    eth_dispatcher.transfer(option_bidder_buyer_3(), deposit_amount_wei);
+    eth_dispatcher.transfer(option_bidder_buyer_4(), deposit_amount_wei);
 
     drop_event(zero_address());
 
@@ -168,7 +171,7 @@ fn setup_facade() -> (VaultFacade, IERC20Dispatcher) {
 
     eth_dispatcher.transfer(option_bidder_buyer_1(), deposit_amount_wei);
     eth_dispatcher.transfer(option_bidder_buyer_2(), deposit_amount_wei);
-
+    // @def figure out why this is needed
     drop_event(zero_address());
 
     let vault_facade = VaultFacade { vault_dispatcher };
@@ -247,6 +250,14 @@ fn liquidity_provider_2() -> ContractAddress {
     contract_address_const::<'liquidity_provider_2'>()
 }
 
+fn liquidity_provider_3() -> ContractAddress {
+    contract_address_const::<'liquidity_provider_3'>()
+}
+
+fn liquidity_provider_4() -> ContractAddress {
+    contract_address_const::<'liquidity_provider_4'>()
+}
+
 fn option_bidder_buyer_1() -> ContractAddress {
     contract_address_const::<'option_bidder_buyer1'>()
 }
@@ -280,7 +291,7 @@ fn decimals() -> u256 {
 fn mock_option_params() -> OptionRoundParams {
     let total_unallocated_liquidity: u256 = 10000 * decimals(); // from LPs ?
     let option_reserve_price_: u256 = 6 * decimals(); // from market aggregator (fossil) ?
-    let average_basefee: u256 = 20; // from market aggregator (fossil) ?              
+    let average_basefee: u256 = 20; // from market aggregator (fossil) ?
     let standard_deviation: u256 = 30; // from market aggregator (fossil) ?
     let cap_level: u256 = average_basefee
         + (3
