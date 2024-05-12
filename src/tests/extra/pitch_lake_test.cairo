@@ -20,7 +20,7 @@
 // 2. get average basefee last month
 // 3. calculate strike price for the next month
 // 4. calculate premium for the reserve price
-// 5. calculate collateral requirements 
+// 5. calculate collateral requirements
 // 6. calculate cap
 // 7. run batch auction
 // 8. resolve batch auction
@@ -65,18 +65,17 @@
 // events: liq deployed addr round amount
 // events: liq redeemed addr round amount (base, reward)
 
-use array::ArrayTrait;
-use option::OptionTrait;
-use pitch_lake_starknet::pitch_lake::{
-    IPitchLake, IPitchLakeDispatcher, IPitchLakeDispatcherTrait, IPitchLakeSafeDispatcher,
-    IPitchLakeSafeDispatcherTrait, PitchLake,
+use pitch_lake_starknet::{
+    pitch_lake::{
+        IPitchLake, IPitchLakeDispatcher, IPitchLakeDispatcherTrait, IPitchLakeSafeDispatcher,
+        IPitchLakeSafeDispatcherTrait, PitchLake,
+    },
+    vault::{
+        IVault, IVaultDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcher,
+        IVaultSafeDispatcherTrait, Vault, VaultType
+    },
+    tests::utils::{deploy_vault, deploy_market_aggregator, deploy_pitch_lake},
 };
-
-use pitch_lake_starknet::vault::{
-    IVault, IVaultDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcher,
-    IVaultSafeDispatcherTrait, Vault, VaultType
-};
-use result::ResultTrait;
 use starknet::{
     ClassHash, ContractAddress, contract_address_const, deploy_syscall,
     Felt252TryIntoContractAddress, get_contract_address,
@@ -84,34 +83,18 @@ use starknet::{
 use traits::TryInto;
 use openzeppelin::utils::serde::SerializedAppend;
 use starknet::contract_address::ContractAddressZeroable;
+use debug::PrintTrait;
 
-
-fn deploy() -> IPitchLakeDispatcher {
-    let mut calldata = array![];
-
-    calldata.append_serde(ContractAddressZeroable::zero());
-
-    calldata.append_serde(ContractAddressZeroable::zero()); // vaults address, update later
-    calldata.append_serde(ContractAddressZeroable::zero());
-    calldata.append_serde(ContractAddressZeroable::zero());
-    let (address, _) = deploy_syscall(
-        PitchLake::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
-    )
-        .expect('DEPLOY_AD_FAILED');
-    return IPitchLakeDispatcher { contract_address: address };
-}
-
-// @note move to vault/vault_tests
+// @note Make a tests/pitchlake/ directory for this ?
 #[test]
 #[available_gas(10000000)]
 fn test_vault_type() {
-    let pitch_lake_dispatcher: IPitchLakeDispatcher = deploy();
-    let in_the_money_vault: IVaultDispatcher = pitch_lake_dispatcher.in_the_money_vault();
-    let out_the_money_vault: IVaultDispatcher = pitch_lake_dispatcher.out_the_money_vault();
-    let at_the_money_vault: IVaultDispatcher = pitch_lake_dispatcher.at_the_money_vault();
-
-    assert(in_the_money_vault.vault_type() == VaultType::InTheMoney, 'ITM vault wrong');
-    assert(out_the_money_vault.vault_type() == VaultType::OutOfMoney, 'OTM vault wrong');
-    assert(at_the_money_vault.vault_type() == VaultType::AtTheMoney, 'ATM vault wrong');
+    let pitch_lake_dispatcher: IPitchLakeDispatcher = deploy_pitch_lake();
+    let itm_vault: IVaultDispatcher = pitch_lake_dispatcher.in_the_money_vault();
+    let otm_vault: IVaultDispatcher = pitch_lake_dispatcher.out_the_money_vault();
+    let atm_vault: IVaultDispatcher = pitch_lake_dispatcher.at_the_money_vault();
+    assert(itm_vault.vault_type() == VaultType::InTheMoney, 'ITM vault wrong');
+    assert(otm_vault.vault_type() == VaultType::OutOfMoney, 'OTM vault wrong');
+    assert(atm_vault.vault_type() == VaultType::AtTheMoney, 'ATM vault wrong');
 }
 
