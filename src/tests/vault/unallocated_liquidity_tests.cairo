@@ -39,16 +39,6 @@ use pitch_lake_starknet::tests::mocks::mock_market_aggregator::{
 
 // Test that collected premiums do not roll over to the next round 
 
-#[test]
-#[available_gas(10000000)]
-fn test_helper() {
-
-    let a = 1;
-    let mut arr:Array<ContractAddress> = liquidity_providers_get(5);
-    let first:ContractAddress = liquidity_provider_1();
-    let felt = contract_address_to_felt252(first);
-    felt.print();
-}
 
 #[test]
 #[available_gas(10000000)]
