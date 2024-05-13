@@ -181,6 +181,10 @@ fn liquidity_provider_4() -> ContractAddress {
     contract_address_const::<'liquidity_provider_4'>()
 }
 
+fn liquidity_provider_5() -> ContractAddress {
+    contract_address_const::<'liquidity_provider_5'>()
+}
+
 fn option_bidder_buyer_1() -> ContractAddress {
     contract_address_const::<'option_bidder_buyer1'>()
 }
@@ -198,11 +202,11 @@ fn option_bidder_buyer_4() -> ContractAddress {
 }
 
 fn option_bidder_buyer_5() -> ContractAddress {
-    contract_address_const::<'option_bidder_buyer4'>()
+    contract_address_const::<'option_bidder_buyer5'>()
 }
 
 fn option_bidder_buyer_6() -> ContractAddress {
-    contract_address_const::<'option_bidder_buyer4'>()
+    contract_address_const::<'option_bidder_buyer6'>()
 }
 
 
