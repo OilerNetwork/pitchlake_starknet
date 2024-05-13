@@ -1,5 +1,5 @@
 // use array::ArrayTrait;
-// use debug::PrintTrait;
+use debug::PrintTrait;
 // use option::OptionTrait;
 // use openzeppelin::token::erc20::interface::{
 //     IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
@@ -8,12 +8,12 @@
 // use pitch_lake_starknet::option_round::{OptionRoundParams};
 
 // use result::ResultTrait;
-// use starknet::{
-//     ClassHash, ContractAddress, contract_address_const, deploy_syscall,
-//     Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
-//     testing::{set_block_timestamp, set_contract_address}
-// };
-use starknet::testing::{set_block_timestamp, set_contract_address};
+use starknet::{ContractAddressIntoFelt252,contract_address_to_felt252,
+    ClassHash, ContractAddress, contract_address_const, deploy_syscall,
+    Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
+    testing::{set_block_timestamp, set_contract_address}
+};
+
 // use starknet::contract_address::ContractAddressZeroable;
 // use openzeppelin::utils::serde::SerializedAppend;
 
@@ -26,18 +26,29 @@ use pitch_lake_starknet::tests::{
     vault_facade::{VaultFacade, VaultFacadeTrait}
 };
 use pitch_lake_starknet::tests::utils::{
-    setup_facade, liquidity_provider_1, liquidity_provider_2, decimals, option_bidder_buyer_1,
-    option_bidder_buyer_2, accelerate_to_running, accelerate_to_auctioning // , deploy_vault, allocated_pool_address, unallocated_pool_address,
+    setup_facade, liquidity_provider_1, liquidity_provider_2, liquidity_providers_get, decimals, option_bidder_buyer_1,
+    option_bidder_buyer_2, accelerate_to_running, accelerate_to_auctioning, accelerate_to_running_partial // , deploy_vault, allocated_pool_address, unallocated_pool_address,
 // timestamp_start_month, timestamp_end_month, liquidity_provider_2,
 // , option_bidder_buyer_3, option_bidder_buyer_4,
 // vault_manager, weth_owner, mock_option_params, assert_event_transfer
 };
-use pitch_lake_starknet::tests::mock_market_aggregator::{
+use pitch_lake_starknet::tests::mocks::mock_market_aggregator::{
     MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
     IMarketAggregatorSetterDispatcherTrait
 };
 
 // Test that collected premiums do not roll over to the next round 
+
+#[test]
+#[available_gas(10000000)]
+fn test_helper() {
+
+    let a = 1;
+    let mut arr:Array<ContractAddress> = liquidity_providers_get(5);
+    let first:ContractAddress = liquidity_provider_1();
+    let felt = contract_address_to_felt252(first);
+    felt.print();
+}
 
 #[test]
 #[available_gas(10000000)]
@@ -230,3 +241,25 @@ fn test_premium_collection_ratio_conversion_unallocated_pool_2() {
     );
 }
 
+#[test]
+#[available_gas(10000000)]
+fn test_unsold_liquidity() {
+    let (mut vault_facade, _) = setup_facade();
+    // Accelerate to round 1 running
+    accelerate_to_running_partial(ref vault_facade);
+    // Current round (running), next round (open)
+    let mut current_round = vault_facade.get_current_round();
+    let current_params = current_round.get_params();
+    // Make deposit into next round
+    let deposit_amount = 100 * decimals();
+    vault_facade.deposit(deposit_amount, liquidity_provider_1());
+    // Amount of premiums earned from the auction (plus unsold liq) for LP 
+    let premiums_earned = current_round.total_options_sold()
+        * current_params
+            .reserve_price; // @dev lp owns 100% of the pool, so 100% of the prmeium is theirs
+    // LP unallocated is premiums earned + next round deposits
+    let (_, lp_unallocated) = vault_facade.get_all_lp_liquidity(liquidity_provider_1());
+    // Withdraw from rewards
+    let collect_amount = lp_unallocated + 1;
+    assert(lp_unallocated == premiums_earned + deposit_amount, 'LP unallocated wrong');
+}

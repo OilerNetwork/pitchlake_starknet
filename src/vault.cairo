@@ -114,7 +114,7 @@ trait IVault<TContractState> {
     // @note needed ? 
     fn get_market_aggregator(self: @TContractState) -> ContractAddress;
 
-    fn is_premium_collected(self: @TContractState, lp:ContractAddress) -> bool;
+    fn is_premium_collected(self: @TContractState, lp:ContractAddress, round_id:u256) -> bool;
 
     fn collect_unallocated(ref self: TContractState, amount:u256);
 }
@@ -226,8 +226,8 @@ mod Vault {
             100
         }
 
-        fn is_premium_collected(self: @ContractState, lp:ContractAddress, roundId:u256) -> bool {
-            self.premiums_collected.read((roundId,lp))
+        fn is_premium_collected(self: @ContractState, lp:ContractAddress, round_id:u256) -> bool {
+            self.premiums_collected.read((round_id,lp))
         }
 
         /// Writes ///
