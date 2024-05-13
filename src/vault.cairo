@@ -112,7 +112,7 @@ trait IVault<TContractState> {
     // @return the clearing price of the auction
     fn end_auction(ref self: TContractState) -> u256;
 
-    // @note needed ?
+    // Get the market aggregator address
     fn get_market_aggregator(self: @TContractState) -> ContractAddress;
 }
 
@@ -158,22 +158,24 @@ mod Vault {
         self.vault_type.write(vault_type);
         self.market_aggregator.write(market_aggregator);
         // @dev Deploy the 0th round as current (Settled) and deploy the 1st round (Open)
-        let z_constructor_args: OptionRoundConstructorParams = OptionRoundConstructorParams {
+        let round_zero_constructor_args: OptionRoundConstructorParams =
+            OptionRoundConstructorParams {
             vault_address: starknet::get_contract_address(), round_id: 0
         };
-        let f_constructor_args: OptionRoundConstructorParams = OptionRoundConstructorParams {
+        let round_one_constructor_args: OptionRoundConstructorParams =
+            OptionRoundConstructorParams {
             vault_address: starknet::get_contract_address(), round_id: 1
         };
         // Deploy 0th round
         let mut calldata = array![market_aggregator.into()];
-        calldata.append_serde(z_constructor_args);
+        calldata.append_serde(round_zero_constructor_args);
         let (z_address, _) = deploy_syscall(
             option_round_class_hash, 'some salt', calldata.span(), false
         )
             .unwrap();
         // Deploy 1st round
         let mut calldata = array![market_aggregator.into()];
-        calldata.append_serde(f_constructor_args);
+        calldata.append_serde(round_one_constructor_args);
         let (f_address, _) = deploy_syscall(
             option_round_class_hash, 'some salt', calldata.span(), false
         )
