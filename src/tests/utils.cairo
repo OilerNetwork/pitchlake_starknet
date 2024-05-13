@@ -1,11 +1,9 @@
-use option::OptionTrait;
 use debug::PrintTrait;
 use starknet::{
     ClassHash, ContractAddress, contract_address_const, deploy_syscall,
-    Felt252TryIntoContractAddress, get_contract_address, contract_address_try_from_felt252,
+    Felt252TryIntoContractAddress, get_contract_address, contract_address_try_from_felt252, testing,
     testing::{set_block_timestamp, set_contract_address}
 };
-use starknet::testing;
 
 use openzeppelin::token::erc20::interface::{
     IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
@@ -37,8 +35,9 @@ use pitch_lake_starknet::market_aggregator::{
 use pitch_lake_starknet::tests::mocks::mock_market_aggregator::{MockMarketAggregator};
 
 const DECIMALS: u8 = 18_u8;
-const SUPPLY: u256 = 99999999999999999999999999999;
+const SUPPLY: u256 = 99999999999999999999999999999999;
 
+// Deploy eth contract for testing
 fn deploy_eth() -> IERC20Dispatcher {
     let mut calldata = array![];
 
@@ -52,23 +51,7 @@ fn deploy_eth() -> IERC20Dispatcher {
     return IERC20Dispatcher { contract_address };
 }
 
-// deploys a mock option round contract, this one is not associated with any (valid/deployed) vault
-fn deploy_option_round(owner: ContractAddress) -> IOptionRoundDispatcher {
-    let mut calldata = array![];
-
-    calldata.append_serde(owner);
-    calldata.append_serde(contract_address_const::<'vault address'>());
-    calldata.append_serde(mock_option_params());
-    calldata.append_serde(deploy_market_aggregator());
-
-    let (address, _) = deploy_syscall(
-        OptionRound::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
-    )
-        .expect('DEPLOY_OPTION_ROUND_FAILED');
-
-    IOptionRoundDispatcher { contract_address: address }
-}
-
+// Deploy market aggregator for testing
 fn deploy_market_aggregator() -> IMarketAggregatorDispatcher {
     let mut calldata = array![];
 
@@ -79,6 +62,7 @@ fn deploy_market_aggregator() -> IMarketAggregatorDispatcher {
     return IMarketAggregatorDispatcher { contract_address: address };
 }
 
+// Deploy the vault and market aggregator
 fn deploy_vault(vault_type: VaultType) -> IVaultDispatcher {
     let round_class_hash: felt252 = OptionRound::TEST_CLASS_HASH;
     let mut calldata = array![];
@@ -92,24 +76,6 @@ fn deploy_vault(vault_type: VaultType) -> IVaultDispatcher {
     )
         .expect('DEPLOY_VAULT_FAILED');
     return IVaultDispatcher { contract_address: address };
-}
-
-fn deploy_vault_with_mkt_agg(
-    vault_type: VaultType
-) -> (IVaultDispatcher, IMarketAggregatorDispatcher) {
-    let round_class_hash: felt252 = OptionRound::TEST_CLASS_HASH;
-    let mut calldata = array![];
-    calldata.append_serde(vault_manager());
-    calldata.append_serde(vault_type);
-    let mkt_agg = deploy_market_aggregator();
-    calldata.append_serde(mkt_agg.contract_address); // needed ?
-    calldata.append_serde(round_class_hash);
-
-    let (address, _) = deploy_syscall(
-        Vault::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
-    )
-        .expect('DEPLOY_VAULT_FAILED');
-    (IVaultDispatcher { contract_address: address }, mkt_agg)
 }
 
 fn deploy_pitch_lake() -> IPitchLakeDispatcher {
@@ -165,66 +131,23 @@ fn setup_facade() -> (VaultFacade, IERC20Dispatcher) {
 
     eth_dispatcher.transfer(liquidity_provider_1(), deposit_amount_wei);
     eth_dispatcher.transfer(liquidity_provider_2(), deposit_amount_wei);
+    eth_dispatcher.transfer(liquidity_provider_3(), deposit_amount_wei);
+    eth_dispatcher.transfer(liquidity_provider_4(), deposit_amount_wei);
 
     let deposit_amount_ether: u256 = 100000;
     let deposit_amount_wei: u256 = deposit_amount_ether * decimals();
 
     eth_dispatcher.transfer(option_bidder_buyer_1(), deposit_amount_wei);
     eth_dispatcher.transfer(option_bidder_buyer_2(), deposit_amount_wei);
+    eth_dispatcher.transfer(option_bidder_buyer_3(), deposit_amount_wei);
+    eth_dispatcher.transfer(option_bidder_buyer_4(), deposit_amount_wei);
     // @def figure out why this is needed
     drop_event(zero_address());
 
     let vault_facade = VaultFacade { vault_dispatcher };
     return (vault_facade, eth_dispatcher);
 }
-fn setup_return_mkt_agg() -> (IVaultDispatcher, IERC20Dispatcher, IMarketAggregatorDispatcher) {
-    let eth_dispatcher: IERC20Dispatcher = deploy_eth();
-    let (vault_dispatcher, mkt_agg_dispatcher): (IVaultDispatcher, IMarketAggregatorDispatcher) =
-        deploy_vault_with_mkt_agg(
-        VaultType::InTheMoney
-    );
-    set_contract_address(weth_owner());
-    let deposit_amount_ether: u256 = 1000000;
-    let deposit_amount_wei: u256 = deposit_amount_ether * decimals();
 
-    eth_dispatcher.transfer(liquidity_provider_1(), deposit_amount_wei);
-    eth_dispatcher.transfer(liquidity_provider_2(), deposit_amount_wei);
-
-    let deposit_amount_ether: u256 = 100000;
-    let deposit_amount_wei: u256 = deposit_amount_ether * decimals();
-
-    eth_dispatcher.transfer(option_bidder_buyer_1(), deposit_amount_wei);
-    eth_dispatcher.transfer(option_bidder_buyer_2(), deposit_amount_wei);
-
-    drop_event(zero_address());
-
-    return (vault_dispatcher, eth_dispatcher, mkt_agg_dispatcher);
-}
-
-fn setup_return_mkt_agg_facade() -> (VaultFacade, IERC20Dispatcher, IMarketAggregatorDispatcher) {
-    let eth_dispatcher: IERC20Dispatcher = deploy_eth();
-    let (vault_dispatcher, mkt_agg_dispatcher): (IVaultDispatcher, IMarketAggregatorDispatcher) =
-        deploy_vault_with_mkt_agg(
-        VaultType::InTheMoney
-    );
-    set_contract_address(weth_owner());
-    let deposit_amount_ether: u256 = 1000000;
-    let deposit_amount_wei: u256 = deposit_amount_ether * decimals();
-
-    eth_dispatcher.transfer(liquidity_provider_1(), deposit_amount_wei);
-    eth_dispatcher.transfer(liquidity_provider_2(), deposit_amount_wei);
-
-    let deposit_amount_ether: u256 = 100000;
-    let deposit_amount_wei: u256 = deposit_amount_ether * decimals();
-
-    eth_dispatcher.transfer(option_bidder_buyer_1(), deposit_amount_wei);
-    eth_dispatcher.transfer(option_bidder_buyer_2(), deposit_amount_wei);
-
-    drop_event(zero_address());
-
-    let vault_facade = VaultFacade { vault_dispatcher };
-    return (vault_facade, eth_dispatcher, mkt_agg_dispatcher);
-}
 
 fn option_round_test_owner() -> ContractAddress {
     contract_address_const::<'option_round_test_owner'>()
