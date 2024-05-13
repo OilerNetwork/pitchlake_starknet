@@ -110,6 +110,21 @@ fn test_premium_amount_for_liquidity_providers_4() {
 
     _test_premiums_collectable_helper(ref vault_facade, lps.span(), amounts.span());
 }
+
+// Test the portion of premiums an LP can collect in a round is correct, when deposit 1 >>> deposit 2
+#[test]
+#[available_gas(10000000)]
+fn test_premium_amount_for_liquidity_providers_5() {
+    let (mut vault_facade, _) = setup_facade();
+    // LPs
+    let lps = array![liquidity_provider_1(), liquidity_provider_2(),];
+    // Deposit amounts
+    // @dev 1000 ETH & 0.001 ETH
+    let amounts = array![1000 * decimals(), decimals() / 1000];
+
+    _test_premiums_collectable_helper(ref vault_facade, lps.span(), amounts.span());
+}
+
 // Internal tester to check the premiums collectable for LPs is correct
 fn _test_premiums_collectable_helper(
     ref vault_facade: VaultFacade, liquidity_providers: Span<ContractAddress>, amounts: Span<u256>
