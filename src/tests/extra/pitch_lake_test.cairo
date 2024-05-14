@@ -96,3 +96,4 @@ fn test_vault_type() {
     assert(itm_vault.vault_type() == VaultType::InTheMoney, 'ITM vault wrong');
     assert(otm_vault.vault_type() == VaultType::OutOfMoney, 'OTM vault wrong');
     assert(atm_vault.vault_type() == VaultType::AtTheMoney, 'ATM vault wrong');
+}
