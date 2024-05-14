@@ -180,6 +180,9 @@ trait IOptionRound<TContractState> {
     fn exercise_options(ref self: TContractState, option_buyer: ContractAddress) -> u256;
 
     fn get_market_aggregator(self: @TContractState) -> ContractAddress;
+
+    fn is_premium_collected(self: @TContractState, lp:ContractAddress) -> bool;
+
 }
 
 #[starknet::contract]
@@ -201,6 +204,7 @@ mod OptionRound {
         state: OptionRoundState,
         params: OptionRoundParams,
         constructor_params: OptionRoundConstructorParams,
+        premiums_collected:LegacyMap<ContractAddress, bool>,
     }
 
     #[constructor]
@@ -279,6 +283,10 @@ mod OptionRound {
 
         fn get_market_aggregator(self: @ContractState) -> ContractAddress {
             self.market_aggregator.read()
+        }
+
+        fn is_premium_collected(self: @ContractState, lp:ContractAddress) -> bool {
+            self.premiums_collected.read(lp)
         }
 
         /// Writes /// 

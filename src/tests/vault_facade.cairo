@@ -175,6 +175,10 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     fn get_market_aggregator(ref self: VaultFacade) -> ContractAddress {
         self.vault_dispatcher.get_market_aggregator()
     }
+    fn collect_unallocated(ref self:VaultFacade, amount:u256){
+        self.vault_dispatcher.collect_unallocated(amount);
+    }
+  
 
     // Gets the round transition period in seconds, 3 hours is a random number for testing
     // @note TODO impl this in contract later
