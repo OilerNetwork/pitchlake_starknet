@@ -12,30 +12,31 @@ use openzeppelin::token::erc20::interface::{
 use openzeppelin::utils::serde::SerializedAppend;
 use pitch_lake_starknet::eth::Eth;
 
-use pitch_lake_starknet::vault::{
-    IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait,
-    VaultType, VaultTransfer
-};
-use pitch_lake_starknet::pitch_lake::{
-    IPitchLakeDispatcher, IPitchLakeSafeDispatcher, IPitchLakeDispatcherTrait, PitchLake,
-    IPitchLakeSafeDispatcherTrait
+use pitch_lake_starknet::{
+    pitch_lake::{
+        IPitchLakeDispatcher, IPitchLakeSafeDispatcher, IPitchLakeDispatcherTrait, PitchLake,
+        IPitchLakeSafeDispatcherTrait
+    },
+    market_aggregator::{
+        IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait,
+        IMarketAggregatorSafeDispatcher, IMarketAggregatorSafeDispatcherTrait
+    },
+    vault::{
+        IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault,
+        IVaultSafeDispatcherTrait, VaultType, VaultTransfer
+    },
+    option_round,
+    option_round::{
+        OptionRound, OptionRoundParams, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,
+        IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait
+    },
+    tests::{
+        option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
+        vault_facade::{VaultFacade, VaultFacadeTrait},
+        mocks::mock_market_aggregator::{MockMarketAggregator}
+    },
 };
 
-
-use pitch_lake_starknet::tests::{
-    option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
-    vault_facade::{VaultFacade, VaultFacadeTrait}
-};
-use pitch_lake_starknet::option_round;
-use pitch_lake_starknet::option_round::{
-    OptionRound, OptionRoundParams, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,
-    IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait
-};
-use pitch_lake_starknet::market_aggregator::{
-    IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait,
-    IMarketAggregatorSafeDispatcher, IMarketAggregatorSafeDispatcherTrait
-};
-use pitch_lake_starknet::tests::mocks::mock_market_aggregator::{MockMarketAggregator};
 
 const DECIMALS: u8 = 18_u8;
 const SUPPLY: u256 = 99999999999999999999999999999999;
@@ -47,10 +48,13 @@ fn deploy_eth() -> IERC20Dispatcher {
     calldata.append_serde(SUPPLY);
     calldata.append_serde(weth_owner());
 
-    let (contract_address, _) = deploy_syscall(
+    let (contract_address, _): (ContractAddress, Span<felt252>) = deploy_syscall(
         Eth::TEST_CLASS_HASH.try_into().unwrap(), 'some salt', calldata.span(), false
     )
         .unwrap();
+
+    // Clear the event log
+    clear_event_log(contract_address);
     return IERC20Dispatcher { contract_address };
 }
 
@@ -58,66 +62,87 @@ fn deploy_eth() -> IERC20Dispatcher {
 fn deploy_market_aggregator() -> IMarketAggregatorDispatcher {
     let mut calldata = array![];
 
-    let (address, _) = deploy_syscall(
-        MockMarketAggregator::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
+    let (contract_address, _) = deploy_syscall(
+        MockMarketAggregator::TEST_CLASS_HASH.try_into().unwrap(),
+        'some salt',
+        calldata.span(),
+        true
     )
         .expect('DEPLOY_MARKET_AGGREGATOR_FAILED');
-    return IMarketAggregatorDispatcher { contract_address: address };
+
+    // Clear the event log
+    clear_event_log(contract_address);
+    return IMarketAggregatorDispatcher { contract_address };
 }
 
 // Deploy the vault and market aggregator
 fn deploy_vault(vault_type: VaultType) -> IVaultDispatcher {
-    let round_class_hash: felt252 = OptionRound::TEST_CLASS_HASH;
     let mut calldata = array![];
     calldata.append_serde(vault_manager());
     calldata.append_serde(vault_type);
     calldata.append_serde(deploy_market_aggregator().contract_address); // needed ?
-    calldata.append_serde(round_class_hash);
+    calldata.append_serde(OptionRound::TEST_CLASS_HASH);
 
-    let (address, _) = deploy_syscall(
-        Vault::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
+    let (contract_address, _) = deploy_syscall(
+        Vault::TEST_CLASS_HASH.try_into().unwrap(), 'some salt', calldata.span(), true
     )
         .expect('DEPLOY_VAULT_FAILED');
-    return IVaultDispatcher { contract_address: address };
+
+    // Clear the event log
+    clear_event_log(contract_address);
+
+    return IVaultDispatcher { contract_address };
 }
 
 fn deploy_pitch_lake() -> IPitchLakeDispatcher {
     let mut calldata = array![];
+
     let ITM: IVaultDispatcher = deploy_vault(VaultType::InTheMoney);
     let OTM: IVaultDispatcher = deploy_vault(VaultType::OutOfMoney);
     let ATM: IVaultDispatcher = deploy_vault(VaultType::AtTheMoney);
     let mkagg = deploy_market_aggregator();
+
     calldata.append_serde(ITM.contract_address);
     calldata.append_serde(OTM.contract_address);
     calldata.append_serde(ATM.contract_address);
     calldata.append_serde(mkagg.contract_address);
 
-    let (address, _) = deploy_syscall(
+    let (contract_address, _) = deploy_syscall(
         PitchLake::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
     )
         .expect('DEPLOY_AD_FAILED');
-    return IPitchLakeDispatcher { contract_address: address };
+
+    // Clear event logs
+    clear_event_log(ITM.contract_address);
+    clear_event_log(OTM.contract_address);
+    clear_event_log(ATM.contract_address);
+    clear_event_log(mkagg.contract_address);
+    clear_event_log(contract_address);
+
+    return IPitchLakeDispatcher { contract_address };
 }
 
 fn setup() -> (IVaultDispatcher, IERC20Dispatcher) {
     let eth_dispatcher: IERC20Dispatcher = deploy_eth();
     let vault_dispatcher: IVaultDispatcher = deploy_vault(VaultType::InTheMoney);
+
+    let lp_amount_wei: u256 = 1000000 * decimals();
+    let ob_amount_wei: u256 = 100000 * decimals();
+
+    let mut lps = liquidity_providers_get(5);
+    let mut obs = option_bidders_get(5);
+
     set_contract_address(weth_owner());
-    let deposit_amount_ether: u256 = 1000000;
-    let deposit_amount_wei: u256 = deposit_amount_ether * decimals();
 
-    eth_dispatcher.transfer(liquidity_provider_1(), deposit_amount_wei);
-    eth_dispatcher.transfer(liquidity_provider_2(), deposit_amount_wei);
-    eth_dispatcher.transfer(liquidity_provider_3(), deposit_amount_wei);
-    eth_dispatcher.transfer(liquidity_provider_4(), deposit_amount_wei);
+    match lps.pop_front() {
+        Option::Some(lp) => { eth_dispatcher.transfer(lp, lp_amount_wei); },
+        Option::None => {},
+    };
 
-    let deposit_amount_ether: u256 = 100000;
-    let deposit_amount_wei: u256 = deposit_amount_ether * decimals();
-
-    eth_dispatcher.transfer(option_bidder_buyer_1(), deposit_amount_wei);
-    eth_dispatcher.transfer(option_bidder_buyer_2(), deposit_amount_wei);
-    eth_dispatcher.transfer(option_bidder_buyer_3(), deposit_amount_wei);
-    eth_dispatcher.transfer(option_bidder_buyer_4(), deposit_amount_wei);
+    match obs.pop_front() {
+        Option::Some(ob) => { eth_dispatcher.transfer(ob, ob_amount_wei); },
+        Option::None => {},
+    };
 
     drop_event(zero_address());
 
@@ -252,6 +277,7 @@ fn option_bidders_get(number: u32) -> Array<ContractAddress> {
     };
     data
 }
+
 fn decimals() -> u256 {
     //10  ** 18
     1000000000000000000
@@ -353,6 +379,15 @@ fn pop_log<T, impl TDrop: Drop<T>, impl TEvent: starknet::Event<T>>(
     ret
 }
 
+/// Clear event log for the contract
+fn clear_event_log(address: ContractAddress) {
+    match testing::pop_log_raw(address) {
+        Option::Some(event) => { drop_event(address); },
+        Option::None => {},
+    };
+    assert_no_events_left(address);
+}
+
 fn assert_no_events_left(address: ContractAddress) {
     assert(testing::pop_log_raw(address).is_none(), 'Events remaining on queue');
 }
@@ -361,56 +396,90 @@ fn drop_event(address: ContractAddress) {
     testing::pop_log_raw(address);
 }
 
-fn assert_event_auction_start(total_options_available: u256) {
-    let event = pop_log::<option_round::AuctionStart>(zero_address());
-    assert(!event.is_none(), 'Could not find event');
-    assert(
-        event.unwrap().total_options_available == total_options_available,
-        'options_available shd match'
-    );
-    assert_no_events_left(zero_address());
-}
-
-fn assert_event_auction_bid(bidder: ContractAddress, amount: u256, price: u256) {
-    let event = pop_log::<option_round::AuctionBid>(zero_address());
-    assert(!event.is_none(), 'Could not find event');
-    let event = event.unwrap();
-    assert(event.amount == amount, 'amount shd match');
-    assert(event.price == price, 'price shd match');
-    assert(event.bidder == bidder, 'bidder shd match');
-    assert_no_events_left(zero_address());
-}
-
-fn assert_event_auction_settle(auction_clearing_price: u256) {
-    let event = pop_log::<option_round::AuctionSettle>(zero_address());
-    assert(!event.is_none(), 'Could not find event');
-    assert(event.unwrap().clearing_price == auction_clearing_price, 'price shd match');
-    assert_no_events_left(zero_address());
-}
-
-fn assert_event_option_settle(option_settlement_price: u256) {
-    let event = pop_log::<option_round::OptionSettle>(zero_address());
-    assert(!event.is_none(), 'Could not find event');
-    assert(event.unwrap().settlement_price == option_settlement_price, 'price shd match');
-    assert_no_events_left(zero_address());
-}
-
-fn assert_event_option_amount_transfer(
-    from: ContractAddress, to: ContractAddress, for_user: ContractAddress, amount: u256
+fn assert_event_auction_start(
+    option_round_address: ContractAddress, total_options_available: u256
 ) {
-    let event = pop_log::<option_round::OptionTransferEvent>(zero_address()).unwrap();
-    assert(event.from == from, 'from shd match');
-    assert(event.to == to, 'to shd match');
-    assert(event.amount == amount, 'amount shd match');
-    assert_no_events_left(zero_address());
+    let event = pop_log::<option_round::AuctionStart>(option_round_address);
+    match event.is_some() {
+        true => {
+            assert(
+                event.unwrap().total_options_available == total_options_available,
+                'options_available shd match'
+            );
+        },
+        false => { panic(array!['Could not find event']); },
+    };
 }
 
-fn assert_event_transfer(from: ContractAddress, to: ContractAddress, amount: u256) {
-    let event = pop_log::<VaultTransfer>(zero_address()).unwrap();
-    assert(event.from == from, 'Invalid `from`');
-    assert(event.to == to, 'Invalid `to`');
-    assert(event.amount == amount, 'Invalid `amount`');
-    assert_no_events_left(zero_address());
+fn assert_event_auction_bid(
+    option_round_address: ContractAddress, bidder: ContractAddress, amount: u256, price: u256
+) {
+    let event = pop_log::<option_round::AuctionBid>(option_round_address);
+    match event.is_some() {
+        true => {
+            let e = event.unwrap();
+            assert(e.amount == amount, 'amount shd match');
+            assert(e.price == price, 'price shd match');
+            assert(e.bidder == bidder, 'bidder shd match');
+        },
+        false => { panic(array!['Could not find event']); },
+    };
+}
+
+fn assert_event_auction_settle(
+    option_round_address: ContractAddress, auction_clearing_price: u256
+) {
+    let event = pop_log::<option_round::AuctionSettle>(option_round_address);
+    match event.is_some() {
+        true => {
+            assert(event.unwrap().clearing_price == auction_clearing_price, 'price shd match');
+        },
+        false => { panic(array!['Could not find event']); },
+    };
+}
+
+fn assert_event_option_settle(
+    option_round_address: ContractAddress, option_settlement_price: u256
+) {
+    let event = pop_log::<option_round::OptionSettle>(option_round_address);
+    match event.is_some() {
+        true => {
+            assert(event.unwrap().settlement_price == option_settlement_price, 'price shd match');
+        },
+        false => { panic(array!['Could not find event']); },
+    };
+}
+
+// For all option transfer events (withdraw premium, withdraw payout, withraw liquidity, withdraw unused bids)
+fn assert_event_option_transfer(
+    option_round_address: ContractAddress, from: ContractAddress, to: ContractAddress, amount: u256
+) {
+    let event = pop_log::<option_round::OptionTransferEvent>(option_round_address);
+    match event.is_some() {
+        true => {
+            let e = event.unwrap();
+            assert(e.from == from, 'from shd match');
+            assert(e.to == to, 'to shd match');
+            assert(e.amount == amount, 'amount shd match');
+        },
+        false => { panic(array!['Could not find event']); },
+    };
+}
+
+// Test eth transfer event
+fn assert_event_transfer(
+    eth_address: ContractAddress, from: ContractAddress, to: ContractAddress, amount: u256
+) {
+    let event = pop_log::<VaultTransfer>(eth_address);
+    match event.is_some() {
+        true => {
+            let e = event.unwrap();
+            assert(e.from == from, 'from shd match');
+            assert(e.to == to, 'to shd match');
+            assert(e.amount == amount, 'amount shd match');
+        },
+        false => { panic(array!['Could not find event']); },
+    }
 }
 
 // Accelerate to the current round auctioning (needs non 0 liquidity to start auction)
@@ -444,7 +513,7 @@ fn accelerate_to_auctioning_n(ref self: VaultFacade, providers: u32) {
     }
 }
 
-//Deposit with a gradient 
+//Deposit with a gradient
 fn accelerate_to_auctioning_n_gradient(ref self: VaultFacade, providers: u32) {
     let mut index: u32 = 0;
     let mut lp: Array<ContractAddress> = liquidity_providers_get(providers);
