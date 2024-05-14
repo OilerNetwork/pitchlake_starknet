@@ -42,6 +42,28 @@ use pitch_lake_starknet::tests::mocks::mock_market_aggregator::{
 
 #[test]
 #[available_gas(10000000)]
+fn test_premiums_and_unsold_liquidity_unallocated_amount() {
+    let (mut vault_facade, _) = setup_facade();
+    // Accelerate to round 1 running
+    accelerate_to_running_partial(ref vault_facade);
+    // Current round (running), next round (open)
+    let mut current_round = vault_facade.get_current_round();
+    let current_params = current_round.get_params();
+    // Make deposit into next round
+    let deposit_amount = 100 * decimals();
+    vault_facade.deposit(deposit_amount, liquidity_provider_1());
+    // Amount of premiums earned from the auction (plus unsold liq) for LP 
+    let premiums_earned = current_round.total_options_sold()
+        * current_params
+            .reserve_price; // @dev lp owns 100% of the pool, so 100% of the prmeium is theirs
+    // LP unallocated is premiums earned + next round deposits
+    let (_, lp_unallocated) = vault_facade.get_all_lp_liquidity(liquidity_provider_1());
+    // Withdraw from rewards
+    assert(lp_unallocated == premiums_earned + deposit_amount, 'LP unallocated wrong');
+}
+
+#[test]
+#[available_gas(10000000)]
 #[should_panic(expected: ('Collect > unallocated balance', 'ENTRYPOINT_FAILED'))]
 fn test_collect_more_than_unallocated_balance_failure() {
     let (mut vault_facade, _) = setup_facade();
@@ -226,24 +248,3 @@ fn test_premium_collection_ratio_conversion_unallocated_pool_2() {
     );
 }
 
-#[test]
-#[available_gas(10000000)]
-fn test_unsold_liquidity() {
-    let (mut vault_facade, _) = setup_facade();
-    // Accelerate to round 1 running
-    accelerate_to_running_partial(ref vault_facade);
-    // Current round (running), next round (open)
-    let mut current_round = vault_facade.get_current_round();
-    let current_params = current_round.get_params();
-    // Make deposit into next round
-    let deposit_amount = 100 * decimals();
-    vault_facade.deposit(deposit_amount, liquidity_provider_1());
-    // Amount of premiums earned from the auction (plus unsold liq) for LP 
-    let premiums_earned = current_round.total_options_sold()
-        * current_params
-            .reserve_price; // @dev lp owns 100% of the pool, so 100% of the prmeium is theirs
-    // LP unallocated is premiums earned + next round deposits
-    let (_, lp_unallocated) = vault_facade.get_all_lp_liquidity(liquidity_provider_1());
-    // Withdraw from rewards
-    assert(lp_unallocated == premiums_earned + deposit_amount, 'LP unallocated wrong');
-}
