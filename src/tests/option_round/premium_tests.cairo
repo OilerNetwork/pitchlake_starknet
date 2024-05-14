@@ -23,9 +23,7 @@ use openzeppelin::token::erc20::interface::{
 // Test premiums collectable is 0 before auction end
 #[test]
 #[available_gas(10000000)]
-fn test_premium_amount_0_before_auction_end(
-    ref vault_facade: VaultFacade, liquidity_providers: Span<ContractAddress>, amounts: Span<u256>
-) {
+fn test_premium_amount_0_before_auction_end() {
     let (mut vault_facade, _) = setup_facade();
 
     // Deposit liquidity
@@ -163,7 +161,10 @@ fn test_premium_collection_transfers_eth() {
         lp2_balance_final == lp2_balance_init + collectable_premiums, 'lp2 did not collect premiums'
     );
     assert_event_transfer(
-        current_round.contract_address(), liquidity_provider_1(), collectable_premiums
+        eth.contract_address,
+        current_round.contract_address(),
+        liquidity_provider_1(),
+        collectable_premiums
     );
 }
 

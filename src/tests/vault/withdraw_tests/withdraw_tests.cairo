@@ -50,7 +50,7 @@ fn test_withdraw_0_failure() {
 #[test]
 #[available_gas(10000000)]
 fn test_withdraw_is_always_from_next_round() {
-    let (mut vault, _) = setup_facade();
+    let (mut vault, eth_dispatcher) = setup_facade();
     let mut next_round = vault.get_next_round();
 
     // Deposit liquidity while current round is settled
@@ -62,7 +62,12 @@ fn test_withdraw_is_always_from_next_round() {
     next_round = vault.get_next_round();
     vault.deposit(deposit_amount + 1, liquidity_provider_1());
     vault.withdraw(deposit_amount, liquidity_provider_1());
-    assert_event_transfer(next_round.contract_address(), liquidity_provider_1(), deposit_amount);
+    assert_event_transfer(
+        eth_dispatcher.contract_address,
+        next_round.contract_address(),
+        liquidity_provider_1(),
+        deposit_amount
+    );
     // Deposit liquidity while current round is running
     let params = current_round.get_params();
     let bid_amount = params.total_options_available;
@@ -78,7 +83,7 @@ fn test_withdraw_is_always_from_next_round() {
 #[test]
 #[available_gas(10000000)]
 fn test_withdraw_updates_unallocated_balance() {
-    let (mut vault, _) = setup_facade();
+    let (mut vault, eth_dispatcher) = setup_facade();
     let mut next_round = vault.get_next_round();
 
     // Deposit liquidity while current round is settled
@@ -91,7 +96,12 @@ fn test_withdraw_updates_unallocated_balance() {
     vault.deposit(deposit_amount + 1, liquidity_provider_1());
     vault.get_unallocated_balance_for(liquidity_provider_1());
     vault.withdraw(deposit_amount, liquidity_provider_1());
-    assert_event_transfer(next_round.contract_address(), liquidity_provider_1(), deposit_amount);
+    assert_event_transfer(
+        eth_dispatcher.contract_address,
+        next_round.contract_address(),
+        liquidity_provider_1(),
+        deposit_amount
+    );
     // Deposit liquidity while current round is running
     let params = current_round.get_params();
     let bid_amount = params.total_options_available;

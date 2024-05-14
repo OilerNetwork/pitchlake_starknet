@@ -55,12 +55,12 @@ fn test_auction_end_before_start_failure() {
     let deposit_amount_wei = 50 * decimals();
     vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
 
-    // Try to end auction before it starts 
+    // Try to end auction before it starts
     set_block_timestamp(params.option_expiry_time + 1);
     vault_facade.settle_option_round(liquidity_provider_1());
 }
 
-// Test auction cannot end before the auction end date 
+// Test auction cannot end before the auction end date
 #[test]
 #[available_gas(10000000)]
 #[should_panic(expected: ('Some error', 'Auction cannot settle before due time',))]
@@ -94,7 +94,7 @@ fn test_vault_end_auction_success() {
     set_contract_address(vault_manager());
     vault_facade.start_auction();
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    // Make bid 
+    // Make bid
     let option_params: OptionRoundParams = current_round_facade.get_params();
     let bid_count: u256 = option_params.total_options_available + 10;
     let bid_price: u256 = option_params.reserve_price;
@@ -109,8 +109,10 @@ fn test_vault_end_auction_success() {
     let state: OptionRoundState = current_round_facade.get_state();
     let expectedState: OptionRoundState = OptionRoundState::Running;
     assert(expectedState == state, 'round should be Running');
-    // Check auction clearing price event 
-    assert_event_auction_settle(current_round_facade.get_auction_clearing_price());
+    // Check auction clearing price event
+    assert_event_auction_settle(
+        current_round_facade.contract_address(), current_round_facade.get_auction_clearing_price()
+    );
 }
 
 // Test that the auction cannot be ended twice
@@ -126,7 +128,7 @@ fn test_option_round_end_auction_twice_failure() {
     set_contract_address(vault_manager());
     vault_facade.start_auction();
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    // Make bid 
+    // Make bid
     let option_params: OptionRoundParams = current_round_facade.get_params();
     let bid_count: u256 = option_params.total_options_available + 10;
     let bid_price: u256 = option_params.reserve_price;

@@ -46,7 +46,7 @@ fn test_withdraw_from_rewards_eth_transfer() {
     let mut current_round = vault_facade.get_current_round();
     let mut next_round = vault_facade.get_next_round();
     // Amount of premiums earned from the current round's auction
-    // This is LP's unallocated balance in the current round 
+    // This is LP's unallocated balance in the current round
     let params = current_round.get_params();
     let premiums_earned = params.total_options_available
         * params.reserve_price; // @dev lp owns 100% of the pool, so 100% of the prmeium is theirs
@@ -68,10 +68,15 @@ fn test_withdraw_from_rewards_eth_transfer() {
         'current shd send eth'
     );
     assert(final_next_round_balance == init_next_round_balance, 'next shd not be touched');
-    assert_event_transfer(next_round.contract_address(), liquidity_provider_1(), withdraw_amount);
+    assert_event_transfer(
+        eth_dispatcher.contract_address,
+        next_round.contract_address(),
+        liquidity_provider_1(),
+        withdraw_amount
+    );
 }
 
-// Test eth transfer when LP withdraws from their rewards and next round deposit 
+// Test eth transfer when LP withdraws from their rewards and next round deposit
 #[test]
 #[available_gas(10000000)]
 fn test_withdraw_from_rewards_and_deposits_eth_transfer() {
@@ -85,7 +90,7 @@ fn test_withdraw_from_rewards_and_deposits_eth_transfer() {
     let mut current_round = vault_facade.get_current_round();
     let mut next_round = vault_facade.get_next_round();
     // Amount of premiums earned from the current round's auction
-    // This is LP's unallocated balance in the current round 
+    // This is LP's unallocated balance in the current round
     let params = current_round.get_params();
     let premiums_earned = params.total_options_available
         * params.reserve_price; // @dev lp owns 100% of the pool, so 100% of the prmeium is theirs
@@ -107,15 +112,20 @@ fn test_withdraw_from_rewards_and_deposits_eth_transfer() {
         'current shd send all eth'
     );
     assert(final_next_round_balance == init_next_round_balance - 1, 'next shd send eth');
-    // @dev Check pop order is correct 
-    assert_event_transfer(next_round.contract_address(), liquidity_provider_1(), 1);
+    // @dev Check pop order is correct
     assert_event_transfer(
-        current_round.contract_address(), liquidity_provider_1(), premiums_earned
+        eth_dispatcher.contract_address, next_round.contract_address(), liquidity_provider_1(), 1
+    );
+    assert_event_transfer(
+        eth_dispatcher.contract_address,
+        current_round.contract_address(),
+        liquidity_provider_1(),
+        premiums_earned
     );
 }
 
 // Test collateral/unallocated amounts when LP withdraws from their rewards
-// @note Add assertion tha vault::collected_amount_for(lp) updates also 
+// @note Add assertion tha vault::collected_amount_for(lp) updates also
 #[test]
 #[available_gas(10000000)]
 fn test_withdraw_from_rewards_updates_collateral_and_unallocated() {
@@ -126,7 +136,7 @@ fn test_withdraw_from_rewards_updates_collateral_and_unallocated() {
     let mut current_round = vault_facade.get_current_round();
     let mut next_round = vault_facade.get_next_round();
     let current_params = current_round.get_params();
-    // Amount of premiums earned from the auction (plus unsold liq) for LP 
+    // Amount of premiums earned from the auction (plus unsold liq) for LP
     let premiums_earned = current_params.total_options_available
         * current_params
             .reserve_price; // @dev lp owns 100% of the pool, so 100% of the prmeium is theirs
@@ -182,7 +192,7 @@ fn test_withdraw_from_rewards_and_deposits_updates_collateral_and_unallocated() 
     let mut current_round = vault_facade.get_current_round();
     let mut next_round = vault_facade.get_next_round();
     let current_params = current_round.get_params();
-    // Amount of premiums earned from the auction (plus unsold liq) for LP 
+    // Amount of premiums earned from the auction (plus unsold liq) for LP
     let premiums_earned = current_params.total_options_available
         * current_params
             .reserve_price; // @dev lp owns 100% of the pool, so 100% of the prmeium is theirs

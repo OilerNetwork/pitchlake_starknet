@@ -58,7 +58,12 @@ fn test_deposit_eth_transfer() {
     assert(
         final_next_round_balance == init_next_round_balance + deposit_amount, 'next shd receive eth'
     );
-    assert_event_transfer(liquidity_provider_1(), next_round.contract_address(), deposit_amount);
+    assert_event_transfer(
+        eth_dispatcher.contract_address,
+        liquidity_provider_1(),
+        next_round.contract_address(),
+        deposit_amount
+    );
 }
 
 // Test collateral/unallocated amounts when LP deposits
@@ -121,20 +126,25 @@ fn test_deposit_zero_liquidity_failure() {
 #[test]
 #[available_gas(10000000)]
 fn test_deposit_is_always_into_next_round() {
-    let (mut vault, _) = setup_facade();
+    let (mut vault, eth) = setup_facade();
     let mut next_round = vault.get_next_round();
 
     // Deposit liquidity while current round is settled
     let deposit_amount = 50 * decimals();
     vault.deposit(deposit_amount, liquidity_provider_1());
-    assert_event_transfer(liquidity_provider_1(), next_round.contract_address(), deposit_amount);
+    assert_event_transfer(
+        eth.contract_address, liquidity_provider_1(), next_round.contract_address(), deposit_amount
+    );
     // Deposit liquidity while current round is auctioning
     vault.start_auction();
     let mut current_round = vault.get_current_round();
     next_round = vault.get_next_round();
     vault.deposit(deposit_amount + 1, liquidity_provider_1());
     assert_event_transfer(
-        liquidity_provider_1(), next_round.contract_address(), deposit_amount + 1
+        eth.contract_address,
+        liquidity_provider_1(),
+        next_round.contract_address(),
+        deposit_amount + 1
     );
     // Deposit liquidity while current round is running
     let params = current_round.get_params();
@@ -146,6 +156,9 @@ fn test_deposit_is_always_into_next_round() {
     vault.end_auction();
     vault.deposit(deposit_amount + 2, liquidity_provider_1());
     assert_event_transfer(
-        liquidity_provider_1(), next_round.contract_address(), deposit_amount + 2
+        eth.contract_address,
+        liquidity_provider_1(),
+        next_round.contract_address(),
+        deposit_amount + 2
     );
 }

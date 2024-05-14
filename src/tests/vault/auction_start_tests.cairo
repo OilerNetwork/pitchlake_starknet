@@ -50,7 +50,7 @@ fn test_unallocated_becomes_collateral() {
     let deposit_total = deposit_amount_wei_1 + deposit_amount_wei_2;
     vault_facade.deposit(deposit_amount_wei_1, liquidity_provider_1());
     vault_facade.deposit(deposit_amount_wei_2, liquidity_provider_2());
-    // Initial collateral/unallocated 
+    // Initial collateral/unallocated
     let (lp1_collateral, lp1_unallocated) = vault_facade
         .get_all_lp_liquidity(liquidity_provider_1());
     let (lp2_collateral, lp2_unallocated) = vault_facade
@@ -84,7 +84,7 @@ fn test_unallocated_becomes_collateral() {
     assert(next_round_unallocated == 0, 'next round unallocated wrong');
 }
 
-// Test when an auction starts, it becomes the current round and the 
+// Test when an auction starts, it becomes the current round and the
 // next round is deployed.
 #[test]
 #[available_gas(10000000)]
@@ -114,7 +114,10 @@ fn test_start_auction_becomes_current_round() {
     );
     assert(next_round_facade.get_state() == OptionRoundState::Open, 'next round should be open');
     // Check that auction start event was emitted with correct total_options_available
-    assert_event_auction_start(current_round_facade.get_params().total_options_available);
+    assert_event_auction_start(
+        current_round_facade.contract_address(),
+        current_round_facade.get_params().total_options_available
+    );
 }
 
 /// Failures ///
@@ -147,7 +150,7 @@ fn test_start_auction_while_current_round_running_failure() {
     // Start auction
     vault_facade.start_auction();
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    // Make bid 
+    // Make bid
     let option_params: OptionRoundParams = current_round_facade.get_params();
     let bid_count: u256 = option_params.total_options_available + 10;
     let bid_price: u256 = option_params.reserve_price;
@@ -172,7 +175,7 @@ fn test_start_auction_before_round_transition_period_over_failure() {
     // Start auction
     vault_facade.start_auction();
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    // Make bid 
+    // Make bid
     let option_params: OptionRoundParams = current_round_facade.get_params();
     let bid_count: u256 = option_params.total_options_available + 10;
     let bid_price: u256 = option_params.reserve_price;
@@ -191,7 +194,7 @@ fn test_start_auction_before_round_transition_period_over_failure() {
     vault_facade.start_auction();
 }
 
-// Test that an auction cannot start if the minimum_collateral_required is not reached 
+// Test that an auction cannot start if the minimum_collateral_required is not reached
 // @note Tomasz said this is unneccesary, we may introduce a maximum_collateral_required.
 // Tomasz said too much collateral leads to problems with manipulation for premium
 // This is a much later concern
@@ -212,7 +215,7 @@ fn test_start_auction_under_minium_collateral_required_failure() {
     // LP deposits (into round 1)
     let deposit_amount_wei: u256 = minimum_collateral_required - 1;
     vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
-    // Try to start auction 
+    // Try to start auction
     vault_facade.start_auction();
 }
 

@@ -32,7 +32,7 @@ use pitch_lake_starknet::tests::utils::{
     mock_option_params, pop_log, assert_no_events_left
 };
 
-// Test eth transfer when LP withdraws from their next round deposit 
+// Test eth transfer when LP withdraws from their next round deposit
 #[test]
 #[available_gas(10000000)]
 fn test_withdraw_from_deposits_eth_transfer() {
@@ -60,7 +60,12 @@ fn test_withdraw_from_deposits_eth_transfer() {
     assert(
         final_next_round_balance == init_next_round_balance - withdraw_amount, 'next shd send eth'
     );
-    assert_event_transfer(next_round.contract_address(), liquidity_provider_1(), withdraw_amount);
+    assert_event_transfer(
+        eth_dispatcher.contract_address,
+        next_round.contract_address(),
+        liquidity_provider_1(),
+        withdraw_amount
+    );
 }
 
 // Test collateral/unallocated amounts when LP withdraws from their next round deposit

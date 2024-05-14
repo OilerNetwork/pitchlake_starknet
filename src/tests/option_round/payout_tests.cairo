@@ -102,7 +102,12 @@ fn test_option_payout_sends_eth() {
     // Check balance updates
     assert(ob_balance_after == ob_balance_before + payout, 'payout not received');
     // Check eth transfer to OB
-    assert_event_transfer(option_round.contract_address(), option_bidder_buyer_1(), payout);
+    assert_event_transfer(
+        eth_dispatcher.contract_address,
+        option_round.contract_address(),
+        option_bidder_buyer_1(),
+        payout
+    );
 }
 
 
