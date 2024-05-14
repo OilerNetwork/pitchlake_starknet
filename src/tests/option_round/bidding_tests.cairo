@@ -40,7 +40,7 @@ use pitch_lake_starknet::tests::mocks::mock_market_aggregator::{
     IMarketAggregatorSetterDispatcherTrait
 };
 
-// Test OB cannot bid before the auction starts 
+// Test OB cannot bid before the auction starts
 #[test]
 #[available_gas(10000000)]
 #[should_panic(expected: ('Cannot bid before auction starts', 'ENTRYPOINT_FAILED'))]
@@ -172,6 +172,7 @@ fn test_bid_price_below_reserve_price_failure() {
     round_facade.place_bid(2, params.reserve_price - 1, option_bidder_buyer_1());
 }
 
+// @note This test was moved to unused_bids_tests.cairo
 // Test that OB cannot refund bids before auction settles
 // @dev move to Dhruv's file next resync option_round/unused_bids_tests.cairo
 #[test]
@@ -186,7 +187,7 @@ fn test_option_round_refund_unused_bids_too_early_failure() {
     vault_facade.start_auction();
     // Get the current (auctioning) round
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    // Make bid 
+    // Make bid
     let option_params: OptionRoundParams = current_round_facade.get_params();
     let bid_count: u256 = option_params.total_options_available + 10;
     let bid_price: u256 = option_params.reserve_price;
@@ -195,3 +196,6 @@ fn test_option_round_refund_unused_bids_too_early_failure() {
     // Try to refund bid before auction settles
     current_round_facade.refund_bid(option_bidder_buyer_1());
 }
+// @note Add test for eth: ob -> round when bidding
+
+
