@@ -18,16 +18,16 @@ struct OptionRoundParams {
     standard_deviation: u256, // used to calculate k (-σ or 0 or σ if vault is: ITM | ATM | OTM)
     strike_price: u256, // K = current_average_basefee * (1 + k)
     cap_level: u256, // cl, percentage points of K that the options will pay out at most. Payout = min(cl*K, BF-K). Might not be set until auction settles if we use alternate cap design (see DOCUMENTATION.md)
-    collateral_level: u256, // total deposits now locked in the round 
+    collateral_level: u256, // total deposits now locked in the round
     reserve_price: u256, // minimum price per option in the auction
     total_options_available: u256,
-    minimum_collateral_required: u256, // the auction will not start unless this much collateral is deposited, needed ? 
-    // @dev should we consider setting this upon auction start ? 
+    minimum_collateral_required: u256, // the auction will not start unless this much collateral is deposited, needed ?
+    // @dev should we consider setting this upon auction start ?
     // that way if the round's auction start is delayed (due to collateral requirements), we can set a proper auction end time
     // when it eventually starts ?
     auction_end_time: u64, // when an auction can end
-    // @dev same as auction end time, wait to set when round acutally starts ? 
-    option_expiry_time: u64, // when the options can be settled  
+    // @dev same as auction end time, wait to set when round acutally starts ?
+    option_expiry_time: u64, // when the options can be settled
 }
 
 #[derive(Copy, Drop, Serde, PartialEq, starknet::Store)]
@@ -88,7 +88,7 @@ struct OptionTransferEvent {
 
 #[starknet::interface]
 trait IOptionRound<TContractState> {
-    /// Reads /// 
+    /// Reads ///
 
     // The address of vault that deployed this round
     fn vault_address(self: @TContractState) -> ContractAddress;
@@ -100,13 +100,13 @@ trait IOptionRound<TContractState> {
     fn get_params(self: @TContractState) -> OptionRoundParams;
 
     // The total liquidity at the start of the round's auction
-    // @dev Redundant with total_collateral/unallocated. 
+    // @dev Redundant with total_collateral/unallocated.
     fn total_liquidity(self: @TContractState) -> u256;
 
     // The amount of liqudity that is locked for the potential payout. May shrink
     // if the auction does not sell all options (moving some collateral to unallocated).
-    // @dev For now this value is being tested as if it remains a fixed value after the auction. 
-    // We may need to mark the starting liquidity/collateral using another variable for conversions if we 
+    // @dev For now this value is being tested as if it remains a fixed value after the auction.
+    // We may need to mark the starting liquidity/collateral using another variable for conversions if we
     // think total collateral should be 0 after the round settles
     fn total_collateral(self: @TContractState) -> u256;
 
@@ -124,7 +124,7 @@ trait IOptionRound<TContractState> {
     // The total premium collected from the auction
     fn total_premiums(self: @TContractState) -> u256;
 
-    // The total payouts of the option round 
+    // The total payouts of the option round
     // @dev OB can collect their share of this total
     fn total_payouts(self: @TContractState) -> u256;
 
@@ -145,12 +145,14 @@ trait IOptionRound<TContractState> {
 
     // @dev Anyone can call the 3 below functions using the wrapping entry point in the vault
 
+    // @note Should migrate back to returning success or not (instead of txn failing). For tests and UX.
+
     // Try to start the option round's auction
     // @return true if the auction was started, false if the auction was already started/cannot start yet
     fn start_auction(ref self: TContractState, option_params: OptionRoundParams);
 
-    // Settle the auction if the auction time has passed 
-    // @return if the auction was settled or not
+    // Settle the auction if the auction time has passed
+    // @return if the auction was settled or not (0 mean no, > 0 is clearing price ?, we already have get clearing price, so just bool instead)
     // @note there was a note in the previous version that this should return the clearing price,
     // not sure which makes more sense at this time.
     fn end_auction(ref self: TContractState) -> u256;
@@ -158,12 +160,12 @@ trait IOptionRound<TContractState> {
     // Settle the option round if past the expiry date and in state::Running
     // @note This function should probably me limited to a wrapper entry point
     // in the vault that will handle liquidity roll over
-    // @return if the option round settles or not 
+    // @return if the option round settles or not
     fn settle_option_round(ref self: TContractState) -> bool;
 
-    // Place a bid in the auction 
+    // Place a bid in the auction
     // @param amount: The max amount in place_bid_token to be used for bidding in the auction
-    // @param price: The max price in place_bid_token per option (if the clearing price is 
+    // @param price: The max price in place_bid_token per option (if the clearing price is
     // higher than this, the entire bid is unused and can be claimed back by the bidder)
     // @return if the bid was accepted or rejected
     fn place_bid(ref self: TContractState, amount: u256, price: u256) -> bool;
@@ -173,7 +175,7 @@ trait IOptionRound<TContractState> {
     // @return the amount of the transfer
     fn refund_unused_bids(ref self: TContractState, option_bidder: ContractAddress) -> u256;
 
-    // Claim the payout for an option buyer's options if the option round has settled 
+    // Claim the payout for an option buyer's options if the option round has settled
     // @note the value that each option pays out might be 0 if non-exercisable
     // @param option_buyer: The option buyer to claim the payout for
     // @return the amount of the transfer
@@ -181,8 +183,7 @@ trait IOptionRound<TContractState> {
 
     fn get_market_aggregator(self: @TContractState) -> ContractAddress;
 
-    fn is_premium_collected(self: @TContractState, lp:ContractAddress) -> bool;
-
+    fn is_premium_collected(self: @TContractState, lp: ContractAddress) -> bool;
 }
 
 #[starknet::contract]
@@ -204,7 +205,7 @@ mod OptionRound {
         state: OptionRoundState,
         params: OptionRoundParams,
         constructor_params: OptionRoundConstructorParams,
-        premiums_collected:LegacyMap<ContractAddress, bool>,
+        premiums_collected: LegacyMap<ContractAddress, bool>,
     }
 
     #[constructor]
@@ -213,22 +214,21 @@ mod OptionRound {
         market_aggregator: ContractAddress,
         constructor_params: OptionRoundConstructorParams
     ) {
-        // Set market aggregator's address 
+        // Set market aggregator's address
         self.market_aggregator.write(market_aggregator);
 
-        // Set the vault address 
+        // Set the vault address
         self.vault_address.write(constructor_params.vault_address);
         // Set round state to open unless this is round 0
-        if (constructor_params.round_id == 0_u256) {
-            self.state.write(OptionRoundState::Settled);
-        } else {
-            self.state.write(OptionRoundState::Open);
+        match constructor_params.round_id == 0_u256 {
+            true => self.state.write(OptionRoundState::Settled),
+            false => self.state.write(OptionRoundState::Open),
         }
     }
 
     #[abi(embed_v0)]
     impl OptionRoundImpl of super::IOptionRound<ContractState> {
-        /// Reads /// 
+        /// Reads ///
         fn vault_address(self: @ContractState) -> ContractAddress {
             self.vault_address.read()
         }
@@ -285,11 +285,11 @@ mod OptionRound {
             self.market_aggregator.read()
         }
 
-        fn is_premium_collected(self: @ContractState, lp:ContractAddress) -> bool {
+        fn is_premium_collected(self: @ContractState, lp: ContractAddress) -> bool {
             self.premiums_collected.read(lp)
         }
 
-        /// Writes /// 
+        /// Writes ///
 
         fn start_auction(ref self: ContractState, option_params: OptionRoundParams) {}
 
