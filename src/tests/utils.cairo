@@ -494,7 +494,7 @@ fn accelerate_to_running_n_partial(ref self: VaultFacade, providers: u32, bidder
     let params = current_round.get_params();
     let bid_amount = params.total_options_available;
     let bid_price = params.reserve_price;
-    let bid_quant = bid_amount/bidders.into();
+    let bid_quant = bid_amount / bidders.into();
     let bid_amount = bid_quant * bid_price;
     let index: u32 = 0;
     while index < bidders {
@@ -509,12 +509,11 @@ fn accelerate_to_running_partial(ref self: VaultFacade) {
     let params = current_round.get_params();
     let bid_amount = params.total_options_available;
     let bid_price = params.reserve_price;
-    let mut bid_quant = bid_amount/2;
-
+    let mut bid_quant = bid_amount / 2;
 
     //If quant gets 0 ensure minimum bid on 1 option
-    if bid_quant<1 {
-        bid_quant+=1;
+    if bid_quant < 1 {
+        bid_quant += 1;
     }
     let bid_amount = bid_quant * bid_price;
     current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());

@@ -35,7 +35,6 @@ use pitch_lake_starknet::tests::vault::utils::{accelerate_to_running};
 
 // Test withdraw > lp unallocated fails
 
-
 // Test withdraw 0 fails
 #[test]
 #[available_gas(10000000)]
@@ -62,10 +61,8 @@ fn test_withdraw_is_always_from_next_round() {
     let mut current_round = vault.get_current_round();
     next_round = vault.get_next_round();
     vault.deposit(deposit_amount + 1, liquidity_provider_1());
-    vault.withdraw(deposit_amount,liquidity_provider_1());
-      assert_event_transfer(
-       next_round.contract_address(), liquidity_provider_1() , deposit_amount
-    );
+    vault.withdraw(deposit_amount, liquidity_provider_1());
+    assert_event_transfer(next_round.contract_address(), liquidity_provider_1(), deposit_amount);
     // Deposit liquidity while current round is running
     let params = current_round.get_params();
     let bid_amount = params.total_options_available;
@@ -75,7 +72,7 @@ fn test_withdraw_is_always_from_next_round() {
     set_block_timestamp(params.auction_end_time + 1);
     vault.end_auction();
     vault.deposit(deposit_amount + 2, liquidity_provider_1());
-    vault.withdraw(deposit_amount+1,liquidity_provider_1());
+    vault.withdraw(deposit_amount + 1, liquidity_provider_1());
 }
 
 #[test]
@@ -93,10 +90,8 @@ fn test_withdraw_updates_unallocated_balance() {
     next_round = vault.get_next_round();
     vault.deposit(deposit_amount + 1, liquidity_provider_1());
     vault.get_unallocated_balance_for(liquidity_provider_1());
-    vault.withdraw(deposit_amount,liquidity_provider_1());
-      assert_event_transfer(
-       next_round.contract_address(), liquidity_provider_1() , deposit_amount
-    );
+    vault.withdraw(deposit_amount, liquidity_provider_1());
+    assert_event_transfer(next_round.contract_address(), liquidity_provider_1(), deposit_amount);
     // Deposit liquidity while current round is running
     let params = current_round.get_params();
     let bid_amount = params.total_options_available;
@@ -106,5 +101,5 @@ fn test_withdraw_updates_unallocated_balance() {
     set_block_timestamp(params.auction_end_time + 1);
     vault.end_auction();
     vault.deposit(deposit_amount + 2, liquidity_provider_1());
-    vault.withdraw(deposit_amount+1,liquidity_provider_1());
+    vault.withdraw(deposit_amount + 1, liquidity_provider_1());
 }

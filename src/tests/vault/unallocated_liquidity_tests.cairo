@@ -8,10 +8,10 @@ use debug::PrintTrait;
 // use pitch_lake_starknet::option_round::{OptionRoundParams};
 
 // use result::ResultTrait;
-use starknet::{ContractAddressIntoFelt252,contract_address_to_felt252,
-    ClassHash, ContractAddress, contract_address_const, deploy_syscall,
-    Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
-    testing::{set_block_timestamp, set_contract_address}
+use starknet::{
+    ContractAddressIntoFelt252, contract_address_to_felt252, ClassHash, ContractAddress,
+    contract_address_const, deploy_syscall, Felt252TryIntoContractAddress, get_contract_address,
+    get_block_timestamp, testing::{set_block_timestamp, set_contract_address}
 };
 
 // use starknet::contract_address::ContractAddressZeroable;
@@ -26,8 +26,9 @@ use pitch_lake_starknet::tests::{
     vault_facade::{VaultFacade, VaultFacadeTrait}
 };
 use pitch_lake_starknet::tests::utils::{
-    setup_facade, liquidity_provider_1, liquidity_provider_2, liquidity_providers_get, decimals, option_bidder_buyer_1,
-    option_bidder_buyer_2, accelerate_to_running, accelerate_to_auctioning, accelerate_to_running_partial // , deploy_vault, allocated_pool_address, unallocated_pool_address,
+    setup_facade, liquidity_provider_1, liquidity_provider_2, liquidity_providers_get, decimals,
+    option_bidder_buyer_1, option_bidder_buyer_2, accelerate_to_running, accelerate_to_auctioning,
+    accelerate_to_running_partial // , deploy_vault, allocated_pool_address, unallocated_pool_address,
 // timestamp_start_month, timestamp_end_month, liquidity_provider_2,
 // , option_bidder_buyer_3, option_bidder_buyer_4,
 // vault_manager, weth_owner, mock_option_params, assert_event_transfer
@@ -38,7 +39,6 @@ use pitch_lake_starknet::tests::mocks::mock_market_aggregator::{
 };
 
 // Test that collected premiums do not roll over to the next round 
-
 
 #[test]
 #[available_gas(10000000)]
@@ -88,13 +88,13 @@ fn test_collected_liquidity_does_not_roll_over() {
     let (mut vault_facade, _) = setup_facade();
     let mut option_round: OptionRoundFacade = vault_facade.get_next_round();
     let params = option_round.get_params();
-  accelerate_to_running(ref vault_facade);
-  //Get the total allocated liquidity at this stage
+    accelerate_to_running(ref vault_facade);
+    //Get the total allocated liquidity at this stage
 
-  let (lp_allocated,_) = vault_facade.get_all_lp_liquidity(liquidity_provider_1());
+    let (lp_allocated, _) = vault_facade.get_all_lp_liquidity(liquidity_provider_1());
     // Collect premium 
     // Since no more deposit is made unallocated is equal to the premiums from the auction
-    
+
     let claimable_premiums: u256 = params.total_options_available * params.reserve_price;
     vault_facade.collect_unallocated(claimable_premiums);
 
@@ -123,7 +123,7 @@ fn test_remaining_liqudity_rolls_over() {
     accelerate_to_running(ref vault_facade);
     //Get liquidity balance
     //@note Will include the premiums is unallocated and the locked deposit in allocated at this stage
-    let (lp_allocated,lp_unallocated) = vault_facade.get_all_lp_liquidity(liquidity_provider_1());
+    let (lp_allocated, lp_unallocated) = vault_facade.get_all_lp_liquidity(liquidity_provider_1());
     // Settle option round with no payout
     IMarketAggregatorSetterDispatcher { contract_address: vault_facade.get_market_aggregator() }
         .set_current_base_fee(params.strike_price - 1);
@@ -132,9 +132,7 @@ fn test_remaining_liqudity_rolls_over() {
     let mut next_option_round: OptionRoundFacade = vault_facade.get_next_round();
     // Check rolled over amount is correct
     let next_round_unallocated: u256 = next_option_round.total_unallocated_liquidity();
-    assert(
-        next_round_unallocated == lp_allocated + lp_unallocated, 'Rollover amount wrong'
-    );
+    assert(next_round_unallocated == lp_allocated + lp_unallocated, 'Rollover amount wrong');
 }
 
 #[test]

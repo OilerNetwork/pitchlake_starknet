@@ -33,7 +33,7 @@ use pitch_lake_starknet::tests::utils::{
 };
 use pitch_lake_starknet::tests::vault::utils::{accelerate_to_auctioning, accelerate_to_running};
 
-// Test eth transfer when LP deposits 
+// Test eth transfer when LP deposits
 #[test]
 #[available_gas(10000000)]
 fn test_deposit_eth_transfer() {
