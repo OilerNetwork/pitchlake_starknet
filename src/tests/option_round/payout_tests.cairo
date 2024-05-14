@@ -126,7 +126,6 @@ fn test_option_payout_amount_index_higher_than_strike() {
     let settlement_price = params.strike_price + 11;
     IMarketAggregatorSetterDispatcher { contract_address: vault_facade.get_market_aggregator() }
         .set_current_base_fee(settlement_price);
-    vault_facade.settle_option_round(liquidity_provider_1());
     // Settle auction
     vault_facade.timeskip_and_settle_round();
     // Check payout balance is expected
