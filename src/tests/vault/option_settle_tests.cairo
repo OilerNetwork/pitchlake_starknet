@@ -99,7 +99,7 @@ fn test_option_round_settle_updates_round_states() {
 // which will be stored.
 #[test]
 #[available_gas(10000000)]
-fn test_option_round_settle_settlement_price() {
+fn test_option_round_settle_event() {
     let (mut vault_facade, _) = setup_facade();
     // Deposit liquidity, start and end auction, minting all options at reserve price
     accelerate_to_running(ref vault_facade);
@@ -111,7 +111,8 @@ fn test_option_round_settle_settlement_price() {
     vault_facade.timeskip_and_settle_round();
 
     // Assert the settlement price is set correctly
-    assert_event_option_settle(settlement_price);
+    let mut current_round = vault_facade.get_current_round();
+    assert_event_option_settle(current_round.contract_address(), settlement_price);
 }
 
 // Test settling the option round twice fails
@@ -247,7 +248,10 @@ fn _test_option_round_settle_moves_remaining_liquidity_to_next_round_with_or_wit
 
     // Assert transfer event
     assert_event_transfer(
-        current_round.contract_address(), next_round.contract_address(), remaining_liquidity
+        eth_dispatcher.contract_address,
+        current_round.contract_address(),
+        next_round.contract_address(),
+        remaining_liquidity
     );
 }
 
