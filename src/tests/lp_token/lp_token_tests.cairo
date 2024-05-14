@@ -53,9 +53,9 @@ fn test_convert_position_to_lp_tokens_while_auctioning_failure() {
 }
 
 // Test converting position -> lp tokens while the current round is settled
-//  @note We should discuss if there is a use case for this. I do not think it breaks any logic 
-//  (it should act the same as if the round were Running), but the liquidity is all unlocked in the 
-//  next round during this time and could just be withdrawn instead of tokenized. 
+//  @note We should discuss if there is a use case for this. I do not think it breaks any logic
+//  (it should act the same as if the round were Running), but the liquidity is all unlocked in the
+//  next round during this time and could just be withdrawn instead of tokenized.
 //  @note If we allow this, the premiums still need to be collected, since they are already sitting in the
 //  next round, we can mark the current round's premiums collected, and leave the amount sitting in the next round
 #[ignore]
@@ -70,7 +70,7 @@ fn test_convert_position_to_lp_tokens_while_settled__TODO__() {
     // Start auction
     vault_facade.start_auction();
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    // Make bid 
+    // Make bid
     let option_params: OptionRoundParams = current_round_facade.get_params();
     let bid_count: u256 = option_params.total_options_available;
     let bid_price: u256 = option_params.reserve_price;
@@ -91,12 +91,12 @@ fn test_convert_position_to_lp_tokens_while_settled__TODO__() {
 
 // Test that converting position -> LP tokens auto-collects premiums and updates the position
 // @dev Check unallocated assertions after speaking with Dhruv, should unallocated_balance be premiums + next_round_deposit, or just next_round_deposit ?
-// @dev Is this test suffice for knowing withdrawCheckpoint and current_roundPosition is updated correctly? If lp_collateral is correct then withdrawCheckpoint must be right ? 
+// @dev Is this test suffice for knowing withdrawCheckpoint and current_roundPosition is updated correctly? If lp_collateral is correct then withdrawCheckpoint must be right ?
 #[ignore]
 #[test]
 #[available_gas(10000000)]
-fn test_convert_position_to_lp_tokens_success() { // 
-    let (mut vault_facade, _) = setup_facade();
+fn test_convert_position_to_lp_tokens_success() { //
+    let (mut vault_facade, eth) = setup_facade();
     // LPs deposit 50/50 into the next round (round 1)
     let deposit_amount_wei: u256 = 10000 * decimals();
     vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
@@ -105,7 +105,7 @@ fn test_convert_position_to_lp_tokens_success() { //
     vault_facade.start_auction();
     let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
     let mut next_round = vault_facade.get_next_round();
-    // Make bid 
+    // Make bid
     let option_params: OptionRoundParams = current_round.get_params();
     let bid_count: u256 = option_params.total_options_available;
     let bid_price: u256 = option_params.reserve_price;
@@ -145,9 +145,9 @@ fn test_convert_position_to_lp_tokens_success() { //
         lp1_premiums_final == lp1_premiums_init
             - expected_premiums_share && lp1_premiums_final == 0,
         'lp1 premiums incorrect'
-    ); // @dev need both checks ? 
+    ); // @dev need both checks ?
     assert(lp2_premiums_final == lp2_premiums_init, 'lp2 premiums shd not change');
-    // @dev Some of LP1's collateral is now represented as tokens, this means their collateral will decrease, 
+    // @dev Some of LP1's collateral is now represented as tokens, this means their collateral will decrease,
     // but the round's will remain the same.
     assert(
         lp1_collateral_final == lp1_collateral_init - tokenizing_amount, 'premiums not collected'
@@ -169,9 +169,12 @@ fn test_convert_position_to_lp_tokens_success() { //
     );
     // Check ETH transferred from current -> next round
     assert_event_transfer(
-        current_round.contract_address(), next_round.contract_address(), expected_premiums_share
+        eth.contract_address,
+        current_round.contract_address(),
+        next_round.contract_address(),
+        expected_premiums_share
     );
-// @note Add lp token transfer event assert function 
+// @note Add lp token transfer event assert function
 // assert_lp_event_transfer(lp_token_contract, from: 0, to: LP1, amount: tokenizing_amount)
 }
 
@@ -197,7 +200,7 @@ fn test_convert_lp_tokens_to_position_is_always_deposit_into_current_round() { /
     vault_facade.start_auction();
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
     let mut next_round_facade: OptionRoundFacade = vault_facade.get_next_round();
-    // Make bid 
+    // Make bid
     let option_params: OptionRoundParams = current_round_facade.get_params();
     let bid_count: u256 = option_params.total_options_available;
     let bid_price: u256 = option_params.reserve_price;
@@ -228,8 +231,8 @@ fn test_convert_lp_tokens_to_position_is_always_deposit_into_current_round() { /
     let (next_round_collateral1, next_round_unallocated1) = next_round_facade
         .get_all_round_liquidity();
 
-    // Settle option round 
-    // @dev Do we need to mock the mkagg to say there is no payout for these tests ? 
+    // Settle option round
+    // @dev Do we need to mock the mkagg to say there is no payout for these tests ?
     vault_facade.timeskip_and_settle_round();
 
     // Convert some tokens to a position while current is Settled
@@ -301,7 +304,7 @@ fn test_convert_lp_tokens_to_position_is_always_deposit_into_current_round() { /
 // Test converting round lp tokens into a position backwards fails (only if user can choose target round)
 //fn test_convert_lp_tokens_to_position_backwards_fails() { }
 
-// Test converting lp tokens into a position does not count the premiums earned in the source round 
+// Test converting lp tokens into a position does not count the premiums earned in the source round
 #[test]
 #[available_gas(10000000)]
 #[ignore]
@@ -324,7 +327,7 @@ fn test_convert_lp_tokens_to_position_does_not_count_source_round_premiums() { /
 
 
 // Test converting lp tokens into a position in same round (r1 tokens to r1 position) sets premiumsCollected to true
-//  - The minter of the rx tokens already collected their premiums, this ensures that if the buyer of the tokens converts the rx tokens 
+//  - The minter of the rx tokens already collected their premiums, this ensures that if the buyer of the tokens converts the rx tokens
 //  into an rx position, they are not allowed to double-collect these premiums
 fn test_rx_tokens_to_rx_position_sets_rx_premiums_collected_to_true() { //
 // Deploy vault
@@ -354,8 +357,8 @@ fn test_rx_tokens_to_rx_position_sets_rx_premiums_collected_to_true() { //
 // assert(vault.premiums_balance_of(LP1) == 0)
 // assert(vault.premiums_balance_of(LP2) == 0)
 
-// What are premiumsCollected for both LP1 and LP2 ?  
-//  - 
+// What are premiumsCollected for both LP1 and LP2 ?
+//  -
 
 // Convert all r1 LP tokens to an r1 position
 // vault.convert_lp_tokens_to_position(lp_token_id: 1, target_round_for_position: 1, amount: 5 ETH LP tokens)
@@ -364,24 +367,24 @@ fn test_rx_tokens_to_rx_position_sets_rx_premiums_collected_to_true() { //
 
 // Assert position[1] == 10ETH
 
-// premiumsCollected needs to be set, so that LP cannot double claim the r1 premium 
+// premiumsCollected needs to be set, so that LP cannot double claim the r1 premium
 
 }
 
 // Test converting lp tokens into a position in the same round (r1 tokens to r1 position) handles exisiting premiums
-// @dev When rX tokens -> rX position, we set premiumsCollected to true. If the user has an active position with 
+// @dev When rX tokens -> rX position, we set premiumsCollected to true. If the user has an active position with
 // collectable premiums, we do not want them to get lost, so we collect them during this step.
 fn test_rx_tokens_to_rx_position_handles_exisiting_premiums() { //
 // lp 1 and 2 deposit, auction starts/ends
 // lp 1 tokenizes and sells to lp2
-// lp 2 converts the rX tokens into an rX position, 
+// lp 2 converts the rX tokens into an rX position,
 // - test that lp2's already exisiting premiums get collected
 // - test that lp2's premiumsCollected is true
 }
 // @note Add test that converting tokens->position is always a position into the current round
 //    @dev If we want to add that a user can choose the position round (rx tokens -> ry position),
-//    then y must be > user.withdrawCheckpoint and we should check that other logic does not break. 
-//    @dev The 2 tests below are not needed if the conversion is always into the current round, only 
+//    then y must be > user.withdrawCheckpoint and we should check that other logic does not break.
+//    @dev The 2 tests below are not needed if the conversion is always into the current round, only
 //    if they user can specify the round when converting tokens->position
 
 ///
@@ -391,13 +394,13 @@ fn test_rx_tokens_to_rx_position_handles_exisiting_premiums() { //
 // - Cannot go backwards (B must be > A)
 // - rB's auction must be over
 // - @dev LP tokens represent a position net premiums, so we do not count the premiums earned from an lp token's source round.
-// This is an issue because if a user converts tokenAs -> tokenBs, in the future we will ingore the premiums earned from roundB. To make sure the user 
-// still gets their premiums from this round upon tokenA->tokenB conversion, we need to collect the premiums from roundB for the user 
+// This is an issue because if a user converts tokenAs -> tokenBs, in the future we will ingore the premiums earned from roundB. To make sure the user
+// still gets their premiums from this round upon tokenA->tokenB conversion, we need to collect the premiums from roundB for the user
 // (we collect the amount of premiums the tokens earn in rB, if the user already has a storage position in rB with collectable premiums we ignore them).
-// - @dev When we collect rB's premiums, we do not touch premiumsCollected or collectable premiums in rB, they can stay as they are in storage 
-// - @dev When we collect rB's premiums, we deposit them into roundB+1 as a position. 
-//    - We cannot collect the premiums as ETH since rB might be a historical (not the current) round and that ETH may be locked in the current round. If B is the current round, then 
-//    this position in rB+1 is immediately withdrawable. 
+// - @dev When we collect rB's premiums, we do not touch premiumsCollected or collectable premiums in rB, they can stay as they are in storage
+// - @dev When we collect rB's premiums, we deposit them into roundB+1 as a position.
+//    - We cannot collect the premiums as ETH since rB might be a historical (not the current) round and that ETH may be locked in the current round. If B is the current round, then
+//    this position in rB+1 is immediately withdrawable.
 
 // @dev Begs the question, should collect always be a deposit into the next round, to then be withdrawable if choosen to (if user wants to claim premiums as eth, can just do a multi-call, collect, then withdraw)
 //  - `collect()` should not always set premiumsCollected to true. If a user converts tokens A-B, we collect the rB premiums for the tokens. If the user has a position in storage with collectable premiums, we are
