@@ -1,27 +1,4 @@
-// use array::ArrayTrait;
-// use debug::PrintTrait;
-// use option::OptionTrait;
-// use openzeppelin::token::erc20::interface::{
-//     IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
-//     IERC20SafeDispatcherTrait,
-// };
-// use pitch_lake_starknet::option_round::{OptionRoundParams};
-
-// use result::ResultTrait;
-// use starknet::{
-//     ClassHash, ContractAddress, contract_address_const, deploy_syscall,
-//     Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
-//     testing::{set_block_timestamp, set_contract_address}
-// };
-
-use starknet::testing::{set_block_timestamp, set_contract_address};
-// use starknet::contract_address::ContractAddressZeroable;
-// use openzeppelin::utils::serde::SerializedAppend;
-
-// use traits::Into;
-// use traits::TryInto;
-// use pitch_lake_starknet::eth::Eth;
-
+use starknet::testing::{set_block_timestamp, set_contract_address, ContractAddress};
 use pitch_lake_starknet::tests::{
     option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
     vault_facade::{VaultFacade, VaultFacadeTrait},
@@ -30,199 +7,270 @@ use pitch_lake_starknet::tests::{
             MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
             IMarketAggregatorSetterDispatcherTrait
         }
-    }
+    },
+    vault::utils::{accelerate_to_running}, utils::{assert_event_transfer}
 };
 use pitch_lake_starknet::tests::utils::{
-    setup_facade, liquidity_provider_1, liquidity_provider_2, decimals, option_bidder_buyer_1,
-    option_bidder_buyer_2 // , deploy_vault, allocated_pool_address, unallocated_pool_address,
-// timestamp_start_month, timestamp_end_month, liquidity_provider_2,
-// , option_bidder_buyer_3, option_bidder_buyer_4,
-// vault_manager, weth_owner, mock_option_params, assert_event_transfer
+    setup_facade, liquidity_provider_1, liquidity_provider_2, liquidity_provider_3,
+    liquidity_provider_4, liquidity_provider_5, decimals, option_bidder_buyer_1,
+    option_bidder_buyer_2
+};
+use openzeppelin::token::erc20::interface::{
+    IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
+    IERC20SafeDispatcherTrait,
 };
 
-// Test that collected premiums do not roll over to the next round 
+// Test premiums collectable is 0 before auction end
 #[test]
 #[available_gas(10000000)]
-fn test_collected_premium_does_not_roll_over() {
+fn test_premium_amount_0_before_auction_end(
+    ref vault_facade: VaultFacade, liquidity_providers: Span<ContractAddress>, amounts: Span<u256>
+) {
     let (mut vault_facade, _) = setup_facade();
-    let mut option_round: OptionRoundFacade = vault_facade.get_next_round();
-    let params = option_round.get_params();
+
     // Deposit liquidity
-    let deposit_amount_wei: u256 = 50 * decimals();
-    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
+    vault_facade.deposit(100 * decimals(), liquidity_provider_1());
+    // Start auction
     vault_facade.start_auction();
-    // Make bid 
-    let bid_amount: u256 = params.total_options_available;
-    let bid_price: u256 = params.reserve_price;
-    let bid_amount: u256 = bid_amount * bid_price;
-    option_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
-    // End auction
-    vault_facade.timeskip_and_end_auction();
-    // Collect premium 
-    // @dev Since the round is running withdraw first come from unallocated liquidity
-    // - @note need more tests for that
-    let claimable_premiums: u256 = params.total_options_available * params.reserve_price;
-    vault_facade.withdraw(claimable_premiums, liquidity_provider_1());
-
-    // The round has no more unallocated liquidity because lp withdrew it
-    let unallocated_liqudity_after_premium_claim: u256 = option_round.total_unallocated_liquidity();
-    assert(unallocated_liqudity_after_premium_claim == 0, 'premium should not roll over');
-
-    // Settle option round with no payout
-    set_block_timestamp(params.option_expiry_time + 1);
-    IMarketAggregatorSetterDispatcher { contract_address: vault_facade.get_market_aggregator() }
-        .set_current_base_fee(params.strike_price - 1);
-    vault_facade.settle_option_round(liquidity_provider_1());
-    // At this time, remaining liqudity was rolled to the next round (just initial deposit since there is no payout and premiums were collected)
-    let mut next_option_round: OptionRoundFacade = vault_facade.get_next_round();
-
-    // Check rolled over amount is correct
-    let next_round_unallocated: u256 = next_option_round.total_unallocated_liquidity();
-    assert(next_round_unallocated == deposit_amount_wei, 'Rollover amount wrong');
-}
-
-// Test that uncollected premiums roll over
-#[test]
-#[available_gas(10000000)]
-fn test_remaining_liqudity_rolls_over() {
-    let (mut vault_facade, _) = setup_facade();
-    let mut option_round: OptionRoundFacade = vault_facade.get_next_round();
-    let params = option_round.get_params();
-    // Deposit liquidity
-    let deposit_amount_wei: u256 = 50 * decimals();
-    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
-    vault_facade.start_auction();
-    // Make bid 
-    let bid_amount: u256 = params.total_options_available;
-    let bid_price: u256 = params.reserve_price;
-    let bid_amount: u256 = bid_amount * bid_price;
-    option_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
-    // End auction
-    vault_facade.timeskip_and_end_auction();
-    let claimable_premiums: u256 = params.total_options_available * params.reserve_price;
-    // Settle option round with no payout
-    IMarketAggregatorSetterDispatcher { contract_address: vault_facade.get_market_aggregator() }
-        .set_current_base_fee(params.strike_price - 1);
-    vault_facade.timeskip_and_settle_round();
-    // At this time, remaining liqudity was rolled to the next round (initial deposit + premiums)
-    let mut next_option_round: OptionRoundFacade = vault_facade.get_next_round();
-    // Check rolled over amount is correct
-    let next_round_unallocated: u256 = next_option_round.total_unallocated_liquidity();
-    assert(
-        next_round_unallocated == deposit_amount_wei + claimable_premiums, 'Rollover amount wrong'
-    );
-}
-
-#[test]
-#[available_gas(10000000)]
-fn test_premium_collection_ratio_conversion_unallocated_pool_1() {
-    let (mut vault_facade, _) = setup_facade();
-    let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
+    // Bid for all options at reserve price
+    let mut current_round = vault_facade.get_current_round();
     let params = current_round.get_params();
-    // Deposit liquidity
-    let deposit_amount_wei_1: u256 = 1000 * decimals();
-    let deposit_amount_wei_2: u256 = 10000 * decimals();
-    vault_facade.deposit(deposit_amount_wei_1, liquidity_provider_1());
-    vault_facade.deposit(deposit_amount_wei_2, liquidity_provider_2());
-    vault_facade.start_auction();
-    // Make bid (ob1)
-    let bid_amount: u256 = params.total_options_available;
-    let bid_price: u256 = params.reserve_price;
-    let bid_amount: u256 = bid_amount * bid_price;
+    let bid_amount = params.total_options_available;
+    let bid_price = params.reserve_price;
+    let bid_amount = bid_amount * bid_price;
     current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
-    // End auction
 
-    vault_facade.timeskip_and_end_auction();
-
-    // Premium comes from unallocated pool
-    let total_collateral: u256 = current_round.total_collateral();
-    let total_premium_to_be_paid: u256 = current_round.get_auction_clearing_price()
-        * current_round.total_options_sold();
-    // LP % of the round
-    let ratio_of_liquidity_provider_1: u256 = (vault_facade
-        .get_collateral_balance_for(liquidity_provider_1())
-        * 100)
-        / total_collateral;
-    let ratio_of_liquidity_provider_2: u256 = (vault_facade
-        .get_collateral_balance_for(liquidity_provider_2())
-        * 100)
-        / total_collateral;
-    // LP premiums share
-    let premium_for_liquidity_provider_1: u256 = (ratio_of_liquidity_provider_1
-        * total_premium_to_be_paid)
-        / 100;
-    let premium_for_liquidity_provider_2: u256 = (ratio_of_liquidity_provider_2
-        * total_premium_to_be_paid)
-        / 100;
-    // The actual unallocated balance of the LPs
-    let actual_unallocated_balance_provider_1: u256 = vault_facade
-        .get_unallocated_balance_for(liquidity_provider_1());
-    let actual_unallocated_balance_provider_2: u256 = vault_facade
-        .get_unallocated_balance_for(liquidity_provider_2());
-
-    assert(
-        actual_unallocated_balance_provider_1 == premium_for_liquidity_provider_1,
-        'premium paid in ratio'
-    );
-    assert(
-        actual_unallocated_balance_provider_2 == premium_for_liquidity_provider_2,
-        'premium paid in ratio'
-    );
+    // Check premiums collectable is 0 since auction is still on going
+    let premiums_collectable = vault_facade.get_unallocated_balance_for(liquidity_provider_1());
+    assert(premiums_collectable == 0, 'LP premiums shd be 0');
 }
 
+
+// Test the portion of premiums an LP can collect in a round is correct
 #[test]
 #[available_gas(10000000)]
-fn test_premium_collection_ratio_conversion_unallocated_pool_2() {
+fn test_premium_amount_for_liquidity_providers_1() {
     let (mut vault_facade, _) = setup_facade();
-    let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
-    let params = current_round.get_params();
-    // Deposit liquidity
-    let deposit_amount_wei_1: u256 = 1000 * decimals();
-    vault_facade.deposit(deposit_amount_wei_1, liquidity_provider_1());
-    vault_facade.deposit(deposit_amount_wei_1, liquidity_provider_2());
-    // Make bid
-    vault_facade.start_auction();
-    let bid_amount_user_1: u256 = ((params.total_options_available / 2) + 1) * params.reserve_price;
-    let bid_amount_user_2: u256 = (params.total_options_available / 2) * params.reserve_price;
-    current_round.place_bid(bid_amount_user_1, params.reserve_price, option_bidder_buyer_1());
-    current_round.place_bid(bid_amount_user_2, params.reserve_price, option_bidder_buyer_2());
-    // End auction
-    vault_facade.timeskip_and_end_auction();
-    // Premium comes from unallocated pool
-    let total_collateral: u256 = current_round.total_collateral();
-    let total_premium_to_be_paid: u256 = current_round.get_auction_clearing_price()
-        * current_round.total_options_sold();
-    // LP % of the round
-    let ratio_of_liquidity_provider_1: u256 = (vault_facade
-        .get_collateral_balance_for(liquidity_provider_1())
-        * 100)
-        / total_collateral;
-    let ratio_of_liquidity_provider_2: u256 = (vault_facade
-        .get_collateral_balance_for(liquidity_provider_2())
-        * 100)
-        / total_collateral;
-    // LP premiums share
-    let premium_for_liquidity_provider_1: u256 = (ratio_of_liquidity_provider_1
-        * total_premium_to_be_paid)
-        / 100;
-    let premium_for_liquidity_provider_2: u256 = (ratio_of_liquidity_provider_2
-        * total_premium_to_be_paid)
-        / 100;
-    // The actual unallocated balance of the LPs
-    let actual_unallocated_balance_provider_1: u256 = vault_facade
-        .get_unallocated_balance_for(liquidity_provider_1());
-    let actual_unallocated_balance_provider_2: u256 = vault_facade
-        .get_unallocated_balance_for(liquidity_provider_2());
+    // LPs
+    let lps = array![liquidity_provider_1(), liquidity_provider_2(),];
+    // Deposit amounts
+    let amounts = array![1000 * decimals(), 10000 * decimals()];
 
+    _test_premiums_collectable_helper(ref vault_facade, lps.span(), amounts.span());
+}
+
+// Test the portion of premiums an LP can collect in a round is correct (more LPs)
+#[test]
+#[available_gas(10000000)]
+fn test_premium_amount_for_liquidity_providers_2() {
+    let (mut vault_facade, _) = setup_facade();
+    // LPs
+    let lps = array![
+        liquidity_provider_1(),
+        liquidity_provider_2(),
+        liquidity_provider_3(),
+        liquidity_provider_4()
+    ];
+    // Deposit amounts
+    let amounts = array![250 * decimals(), 500 * decimals(), 1000 * decimals(), 1500 * decimals(),];
+
+    _test_premiums_collectable_helper(ref vault_facade, lps.span(), amounts.span());
+}
+
+// Test the portion of premiums an LP can collect in a round is correct (more LPs)
+#[test]
+#[available_gas(10000000)]
+fn test_premium_amount_for_liquidity_providers_3() {
+    let (mut vault_facade, _) = setup_facade();
+    // LPs
+    let lps = array![
+        liquidity_provider_1(),
+        liquidity_provider_2(),
+        liquidity_provider_3(),
+        liquidity_provider_4()
+    ];
+    // Deposit amounts
+    let amounts = array![333 * decimals(), 333 * decimals(), 333 * decimals(), 1 * decimals(),];
+
+    _test_premiums_collectable_helper(ref vault_facade, lps.span(), amounts.span());
+}
+
+// Test the portion of premiums an LP can collect in a round is correct (more LPs)
+#[test]
+#[available_gas(10000000)]
+fn test_premium_amount_for_liquidity_providers_4() {
+    let (mut vault_facade, _) = setup_facade();
+    // LPs
+    let lps = array![
+        liquidity_provider_1(),
+        liquidity_provider_2(),
+        liquidity_provider_3(),
+        liquidity_provider_4(),
+        liquidity_provider_5(),
+    ];
+    // Deposit amounts
+    let amounts = array![25, 25, 25, 25, 1];
+
+    _test_premiums_collectable_helper(ref vault_facade, lps.span(), amounts.span());
+}
+
+// Test the portion of premiums an LP can collect in a round is correct, when deposit 1 >>> deposit 2
+#[test]
+#[available_gas(10000000)]
+fn test_premium_amount_for_liquidity_providers_5() {
+    let (mut vault_facade, _) = setup_facade();
+    // LPs
+    let lps = array![liquidity_provider_1(), liquidity_provider_2(),];
+    // Deposit amounts
+    // @dev 1000 ETH & 0.001 ETH
+    let amounts = array![1000 * decimals(), decimals() / 1000];
+
+    _test_premiums_collectable_helper(ref vault_facade, lps.span(), amounts.span());
+}
+
+// Test collecting premiums transfers ETH
+#[test]
+#[available_gas(10000000)]
+fn test_premium_collection_transfers_eth() {
+    let (mut vault_facade, eth) = setup_facade();
+    // LPs
+    let lps = array![liquidity_provider_1(), liquidity_provider_2(),];
+    // Deposit amounts
+    let amounts = array![50 * decimals(), 50 * decimals()];
+
+    _test_premiums_collectable_helper(ref vault_facade, lps.span(), amounts.span());
+
+    // LP balances pre collection
+    let lp1_balance_init = eth.balance_of(liquidity_provider_1());
+    let lp2_balance_init = eth.balance_of(liquidity_provider_2());
+    let collectable_premiums = vault_facade
+        .get_unallocated_balance_for(liquidity_provider_1()); // same as lp2
+
+    // Collect premiums
+    vault_facade.collect_premiums(liquidity_provider_1());
+    vault_facade.collect_premiums(liquidity_provider_2());
+
+    // LP balances post collection
+    let lp2_balance_final = eth.balance_of(liquidity_provider_2());
+    let lp1_balance_final = eth.balance_of(liquidity_provider_1());
+    let mut current_round = vault_facade.get_current_round();
+
+    // Check eth: current_round -> lps
     assert(
-        actual_unallocated_balance_provider_1 == premium_for_liquidity_provider_1,
-        'premium paid in ratio'
+        lp1_balance_final == lp1_balance_init + collectable_premiums, 'lp1 did not collect premiums'
     );
     assert(
-        actual_unallocated_balance_provider_2 == premium_for_liquidity_provider_2,
-        'premium paid in ratio'
+        lp2_balance_final == lp2_balance_init + collectable_premiums, 'lp2 did not collect premiums'
+    );
+    assert_event_transfer(
+        current_round.contract_address(), liquidity_provider_1(), collectable_premiums
     );
 }
-// @note Need tests for collecting premiums: eth transfer, lp/round unallocated decrementing, remaining premiums for other LPs unaffected 
 
+// Test collecting premiums updates lp/round unallocated
+#[test]
+#[available_gas(10000000)]
+fn test_premium_collection_updates_unallocated_amounts() {
+    let (mut vault_facade, _) = setup_facade();
+    // LPs
+    let lps = array![liquidity_provider_1(), liquidity_provider_2(),];
+    // Deposit amounts
+    let amounts = array![50 * decimals(), 50 * decimals()];
 
+    _test_premiums_collectable_helper(ref vault_facade, lps.span(), amounts.span());
+
+    // Unallocated balances pre collection
+    let mut current_round = vault_facade.get_current_round();
+    let round_unallocated_init = current_round.total_unallocated_liquidity();
+    let lp2_unallocated_init = vault_facade.get_unallocated_balance_for(liquidity_provider_2());
+    // Collect premiums (lp 1 only)
+    vault_facade.collect_premiums(liquidity_provider_1());
+
+    // Unallocated balaances post collection
+    let lp1_unallocated_final = vault_facade.get_unallocated_balance_for(liquidity_provider_1());
+    let lp2_unallocated_final = vault_facade.get_unallocated_balance_for(liquidity_provider_2());
+    let round_unallocated_final = current_round.total_unallocated_liquidity();
+
+    // Check unallocated balances for round/lps is correct
+    assert(lp1_unallocated_final == 0, 'lp1 did not collect premiums');
+    assert(lp2_unallocated_final == lp2_unallocated_init, 'lp2 shd not collect premiums');
+    assert(
+        round_unallocated_final == round_unallocated_init - lp2_unallocated_init,
+        'round unallocated wrong'
+    );
+}
+
+// Test collecting premiums twice fails
+// @note Maybe this shouldnt fail, but just do nothing instead ?
+#[test]
+#[available_gas(10000000)]
+#[should_panic(expected: ('No premiums to collect', 'ENTRYPOINT_FAILED'))]
+fn test_premium_collect_none_fails() {
+    let (mut vault_facade, eth) = setup_facade();
+    // LPs
+    let lps = array![liquidity_provider_1()];
+    let amounts = array![50 * decimals()];
+    // Deposit amounts
+
+    _test_premiums_collectable_helper(ref vault_facade, lps.span(), amounts.span());
+
+    // Collect premiums
+    vault_facade.collect_premiums(liquidity_provider_1());
+
+    // Try to collect premiums again
+    vault_facade.collect_premiums(liquidity_provider_1());
+}
+
+// Internal tester to check the premiums collectable for LPs is correct
+fn _test_premiums_collectable_helper(
+    ref vault_facade: VaultFacade, liquidity_providers: Span<ContractAddress>, amounts: Span<u256>
+) {
+    let (mut vault_facade, _) = setup_facade();
+    assert(liquidity_providers.len() == amounts.len(), 'Span missmatch');
+    // Deposit liquidity
+    let mut i = 0;
+    loop {
+        if (i == liquidity_providers.len()) {
+            break;
+        }
+        let lp: ContractAddress = *liquidity_providers.at(i);
+        let deposit_amount: u256 = *amounts.at(i);
+        vault_facade.deposit(deposit_amount, lp);
+
+        i += 1;
+    };
+    // Start auction
+    vault_facade.start_auction();
+    // End auction, minting all options at reserve price
+    accelerate_to_running(ref vault_facade);
+    // Get total collateral in pool (deposit total) and total premium
+    let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
+    let mut total_collateral_in_pool = 0;
+    i = 0;
+    loop {
+        if (i == amounts.len()) {
+            break;
+        }
+        total_collateral_in_pool += *amounts.at(i);
+        i += 1;
+    };
+    let total_premium: u256 = current_round.get_auction_clearing_price()
+        * current_round.total_options_sold();
+
+    // Check each LP's collectable premiums matches expected
+    i = 0;
+    loop {
+        if (i == liquidity_providers.len()) {
+            break;
+        }
+        // @note Handle precision loss ?
+        let lp_expected_premium = (*amounts.at(i) * total_premium) / total_collateral_in_pool;
+        let lp_actual_premium = vault_facade
+            .get_unallocated_balance_for(*liquidity_providers.at(i));
+
+        assert(lp_actual_premium == lp_expected_premium, 'LP premiums wrong');
+
+        i += 1;
+    };
+}
+// @note Need tests for premium collection: lp/round unallocated decrementing, remaining premiums for other LPs unaffected, cannot collect twice/more than remaining collectable amount

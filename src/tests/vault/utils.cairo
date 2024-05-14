@@ -33,6 +33,8 @@ use pitch_lake_starknet::tests::utils::{
     mock_option_params, pop_log, assert_no_events_left
 };
 
+// Accelerate the current round by starting its auction
+// @dev Deposits 100 ETH as liquidity provider 1
 // Accelerate to the current round auctioning (needs non 0 liquidity to start auction)
 fn accelerate_to_auctioning(ref self: VaultFacade) {
     // Deposit liquidity so round 1's auction can start
@@ -41,9 +43,15 @@ fn accelerate_to_auctioning(ref self: VaultFacade) {
     self.start_auction();
 }
 
-// Accelerate to the current round's auction end
+// Accelerate the current round by ending its auction
+// @dev Bids for all options at reserve price
+// @dev Starts the round's auction if it hasn't yet
 fn accelerate_to_running(ref self: VaultFacade) {
-    accelerate_to_auctioning(ref self);
+    // If the current round is not auctioning yet, start its auction first
+    let mut current_round = self.get_current_round();
+    if (current_round.get_state() != OptionRoundState::Auctioning) {
+        accelerate_to_auctioning(ref self);
+    }
     // Bid for all options at reserve price
     let mut current_round = self.get_current_round();
     let params = current_round.get_params();

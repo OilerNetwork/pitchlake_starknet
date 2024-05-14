@@ -16,10 +16,7 @@
 // reserve price (this will be difficult?)
 // liquidity cap
 // fossil
-use starknet::{ContractAddress, StorePacking};
-use array::{Array};
-use traits::{Into, TryInto};
-use pitch_lake_starknet::vault::{Vault, IVault, IVaultDispatcher};
+use pitch_lake_starknet::vault::{IVaultDispatcher};
 
 
 #[starknet::interface]
@@ -31,39 +28,43 @@ trait IPitchLake<TContractState> {
 
 #[starknet::contract]
 mod PitchLake {
-    use starknet::{ContractAddress, StorePacking};
+    use starknet::{ContractAddress};
     use starknet::contract_address::ContractAddressZeroable;
     use pitch_lake_starknet::vault::{Vault, IVault, IVaultDispatcher};
     use pitch_lake_starknet::market_aggregator::{IMarketAggregator, IMarketAggregatorDispatcher};
 
     #[storage]
     struct Storage {
-        in_the_money_vault: IVaultDispatcher,
-        out_the_money_vault: IVaultDispatcher,
-        at_the_money_vault: IVaultDispatcher,
-        market_aggregator: IMarketAggregatorDispatcher,
+        in_the_money_vault: ContractAddress,
+        out_the_money_vault: ContractAddress,
+        at_the_money_vault: ContractAddress,
+        market_aggregator: ContractAddress,
     }
 
     #[constructor]
     fn constructor(
         ref self: ContractState,
-        in_the_money_vault_: IVaultDispatcher,
-        out_the_money_vault_: IVaultDispatcher,
-        at_the_money_vault_: IVaultDispatcher,
-        market_aggregator_: IMarketAggregatorDispatcher
+        in_the_money_vault_: ContractAddress,
+        out_the_money_vault_: ContractAddress,
+        at_the_money_vault_: ContractAddress,
+        market_aggregator_: ContractAddress
     ) { // self.option_round_class_hash.write( option_round_class_hash_);
+        self.in_the_money_vault.write(in_the_money_vault_);
+        self.out_the_money_vault.write(out_the_money_vault_);
+        self.at_the_money_vault.write(at_the_money_vault_);
+        self.in_the_money_vault.write(market_aggregator_);
     }
 
     #[abi(embed_v0)]
     impl PitchLakeImpl of super::IPitchLake<ContractState> {
         fn in_the_money_vault(self: @ContractState) -> IVaultDispatcher {
-            IVaultDispatcher { contract_address: ContractAddressZeroable::zero() }
+            IVaultDispatcher { contract_address: self.in_the_money_vault.read() }
         }
         fn out_the_money_vault(self: @ContractState) -> IVaultDispatcher {
-            IVaultDispatcher { contract_address: ContractAddressZeroable::zero() }
+            IVaultDispatcher { contract_address: self.out_the_money_vault.read() }
         }
         fn at_the_money_vault(self: @ContractState) -> IVaultDispatcher {
-            IVaultDispatcher { contract_address: ContractAddressZeroable::zero() }
+            IVaultDispatcher { contract_address: self.at_the_money_vault.read() }
         }
     }
 }

@@ -33,20 +33,20 @@ struct OptionRoundCreated {
 }
 
 //IVault, Vault will be the main contract that the liquidity_providers and option_buyers will interact with.
-// Is this the case or wil OBs interact with the option rounds ? 
+// Is this the case or wil OBs interact with the option rounds ?
 
 #[starknet::interface]
 trait IVault<TContractState> {
     /// Reads ///
 
-    // Get the vault's  manaager address 
+    // Get the vault's  manaager address
     // @dev Better access control ? (oz permits ?)
     fn vault_manager(self: @TContractState) -> ContractAddress;
 
     // Get the type of vault (ITM | ATM | OTM)
     fn vault_type(self: @TContractState) -> VaultType;
 
-    // @return the current option round id 
+    // @return the current option round id
     fn current_option_round_id(self: @TContractState) -> u256;
 
     // @return the contract address of the option round
@@ -70,14 +70,14 @@ trait IVault<TContractState> {
     /// Writes ///
 
     // LP increments their position and sends the liquidity to the next round
-    // @note do we need a return value here ? 
+    // @note do we need a return value here ?
     fn deposit_liquidity(ref self: TContractState, amount: u256) -> u256;
 
     // LP withdraws from their position while in the round transition period
     fn withdraw_liquidity(ref self: TContractState, amount: u256);
 
     // LP converts their collateral into LP tokens
-    // @note all at once or can LP convert a partial amount ? 
+    // @note all at once or can LP convert a partial amount ?
     //  - logically i'm pretty sure they could do a partial amount (collecting all rewards in either case)
     fn convert_position_to_lp_tokens(ref self: TContractState, amount: u256);
 
@@ -86,13 +86,13 @@ trait IVault<TContractState> {
     fn convert_lp_tokens_to_position(ref self: TContractState, source_round: u256, amount: u256);
 
     // LP token owner converts an amount of source round tokens to target round tokens
-    // @dev Rx tokens do not include premiums/unsold from rx (above) 
+    // @dev Rx tokens do not include premiums/unsold from rx (above)
     // This is not a problem for token -> position, but is a problem for
     // token -> token because when rx tokens convert to ry, the ry tokens should
     // be able to collect ry premiums but will not be able to (above)
     // @dev Ry must be running or settled. This way we can know the premiums that the rY tokens earned in the round, and collect them
     // as a deposit into the next round. We need to collect these rY premiums because the LP tokens need to represent the value of a
-    // deposit in the round net any premiums from the round. 
+    // deposit in the round net any premiums from the round.
     // @dev If we do not collect the premiums for rY upon conversion, they would be lost.
     // @return the amount of target round tokens received
     // @dev move entry point to LPToken ?
@@ -109,9 +109,10 @@ trait IVault<TContractState> {
 
     // End the auction in the current round as long as the current round is Auctioning and the auction
     // bidding period has ended.
+    // @return the clearing price of the auction
     fn end_auction(ref self: TContractState) -> u256;
 
-    // @note needed ? 
+    // Get the market aggregator address
     fn get_market_aggregator(self: @TContractState) -> ContractAddress;
 
     fn is_premium_collected(self: @TContractState, lp:ContractAddress, round_id:u256) -> bool;
@@ -162,22 +163,24 @@ mod Vault {
         self.vault_type.write(vault_type);
         self.market_aggregator.write(market_aggregator);
         // @dev Deploy the 0th round as current (Settled) and deploy the 1st round (Open)
-        let z_constructor_args: OptionRoundConstructorParams = OptionRoundConstructorParams {
+        let round_zero_constructor_args: OptionRoundConstructorParams =
+            OptionRoundConstructorParams {
             vault_address: starknet::get_contract_address(), round_id: 0
         };
-        let f_constructor_args: OptionRoundConstructorParams = OptionRoundConstructorParams {
+        let round_one_constructor_args: OptionRoundConstructorParams =
+            OptionRoundConstructorParams {
             vault_address: starknet::get_contract_address(), round_id: 1
         };
         // Deploy 0th round
         let mut calldata = array![market_aggregator.into()];
-        calldata.append_serde(z_constructor_args);
+        calldata.append_serde(round_zero_constructor_args);
         let (z_address, _) = deploy_syscall(
             option_round_class_hash, 'some salt', calldata.span(), false
         )
             .unwrap();
         // Deploy 1st round
         let mut calldata = array![market_aggregator.into()];
-        calldata.append_serde(f_constructor_args);
+        calldata.append_serde(round_one_constructor_args);
         let (f_address, _) = deploy_syscall(
             option_round_class_hash, 'some salt', calldata.span(), false
         )
