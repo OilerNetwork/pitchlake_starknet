@@ -244,8 +244,10 @@ fn _test_option_round_settle_moves_remaining_liquidity_to_next_round_with_or_wit
     assert(
         next_round_eth_final == next_round_eth_init + remaining_liquidity, 'next round eth shd inc.'
     );
+
+    // Assert transfer event
     assert_event_transfer(
-        next_round.contract_address(), current_round.contract_address(), remaining_liquidity
+        current_round.contract_address(), next_round.contract_address(), remaining_liquidity
     );
 }
 
