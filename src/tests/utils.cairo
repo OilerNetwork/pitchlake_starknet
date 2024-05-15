@@ -499,7 +499,7 @@ fn accelerate_to_running_n_linear(ref self: VaultFacade, providers: u32, bidders
 
 
 //Applies a gradient to bid price;
-fn accelerate_to_running_n_gradient(ref self: VaultFacade, providers: u32, bidders: u32) ->Array<u256> {
+fn accelerate_to_running_n_gradient(ref self: VaultFacade, providers: u32, bidders: u32) ->(Array<u256>,Array<u256>) {
     let mut current_round = self.get_current_round();
     if (current_round.get_state() != OptionRoundState::Auctioning) {
     accelerate_to_auctioning_n_linear(ref self, providers);
@@ -508,17 +508,18 @@ fn accelerate_to_running_n_gradient(ref self: VaultFacade, providers: u32, bidde
     let mut current_round = self.get_current_round();
     let params = current_round.get_params();
     let bid_amount = params.total_options_available;
-    let mut bids:Array<u256>  = array![];
-
+    let mut bid_amounts:Array<u256>  = array![];
+    let mut bid_prices:Array<u256> = array![];
     let index: u32 = 0;
     while index < bidders {
         let bid_quant = (bid_amount / bidders.into()) + 1;
         let bid_price = params.reserve_price + index.into();
         let bid_amount = bid_quant * bid_price ;
-        bids.append(bid_amount);
+        bid_amounts.append(bid_amount);
+        bid_prices.append(bid_price);
         current_round.place_bid(bid_amount, bid_price, *bidders_array.at(index));
     };
-    bids
+    (bid_amounts,bid_prices)
 }
 
 fn accelerate_to_running_n_custom(ref self: VaultFacade, providers: u32, bidders: u32, amounts:Array<u256>, prices:Array<u256>) {
@@ -531,19 +532,20 @@ fn accelerate_to_running_n_custom(ref self: VaultFacade, providers: u32, bidders
 }
 
 //Auction with partial bidding
-fn accelerate_to_running_n_partial(ref self: VaultFacade, providers: u32, bidders: u32) {
+fn accelerate_to_running_n_partial(ref self: VaultFacade, providers: u32, bidders: u32)-> (u256,u256){
     accelerate_to_auctioning_n_linear(ref self, providers);
     let bidders_array: Array<ContractAddress> = option_bidders_get(bidders);
     let mut current_round = self.get_current_round();
     let params = current_round.get_params();
     let bid_amount = params.total_options_available;
     let bid_price = params.reserve_price;
-    let bid_quant = bid_amount/bidders.into();
+    let bid_quant = bid_amount/bidders.into()/2;
     let bid_amount = bid_quant * bid_price;
     let index: u32 = 0;
     while index < bidders {
         current_round.place_bid(bid_amount, bid_price, *bidders_array.at(index));
-    }
+    };
+    (bid_amount, bid_price)
 }
 
 fn accelerate_to_running_partial(ref self: VaultFacade) {
