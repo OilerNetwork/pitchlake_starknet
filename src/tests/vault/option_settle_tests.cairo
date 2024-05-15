@@ -32,7 +32,7 @@ use pitch_lake_starknet::tests::utils::{
     option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
     zero_address, vault_manager, weth_owner, option_round_contract_address, mock_option_params,
     pop_log, assert_no_events_left, month_duration, assert_event_option_settle,
-    assert_event_transfer
+    assert_event_transfer, clear_event_logs,
 };
 use pitch_lake_starknet::option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait};
 use pitch_lake_starknet::tests::mocks::mock_market_aggregator::{
@@ -131,7 +131,7 @@ fn test_option_round_settle_twice_failure() {
 
 // Test current round's remaining liquidity adds to the next round's unallocated when there is no payout, and no premiums collected
 #[test]
-#[available_gas(10000000)]
+#[available_gas(1000000000)]
 fn test_option_round_settle_moves_remaining_liquidity_to_next_round_without_payout_without_premiums_collected() {
     _test_option_round_settle_moves_remaining_liquidity_to_next_round_with_or_without_payout_AND_with_or_without_premiums_collected(
         false, false
@@ -140,7 +140,7 @@ fn test_option_round_settle_moves_remaining_liquidity_to_next_round_without_payo
 
 // Test current round's remaining liquidity adds to the next round's unallocated when there is a payout,
 #[test]
-#[available_gas(10000000)]
+#[available_gas(1000000000)]
 fn test_option_round_settle_moves_remaining_liquidity_to_next_round_with_payout_without_premiums_collected() {
     _test_option_round_settle_moves_remaining_liquidity_to_next_round_with_or_without_payout_AND_with_or_without_premiums_collected(
         true, false
@@ -149,7 +149,7 @@ fn test_option_round_settle_moves_remaining_liquidity_to_next_round_with_payout_
 
 // Test current round's remaining liquidity adds to the next round's unallocated when there is no payout, and some premiums collected
 #[test]
-#[available_gas(10000000)]
+#[available_gas(1000000000)]
 fn test_option_round_settle_moves_remaining_liquidity_to_next_round_without_payout_with_premiums_collected() {
     _test_option_round_settle_moves_remaining_liquidity_to_next_round_with_or_without_payout_AND_with_or_without_premiums_collected(
         false, true
@@ -158,7 +158,7 @@ fn test_option_round_settle_moves_remaining_liquidity_to_next_round_without_payo
 
 // Test current round's remaining liquidity adds to the next round's unallocated when there is a payout, and some premiums collected
 #[test]
-#[available_gas(10000000)]
+#[available_gas(1000000000)]
 fn test_option_round_settle_moves_remaining_liquidity_to_next_round_with_payout_with_premiums_collected() {
     _test_option_round_settle_moves_remaining_liquidity_to_next_round_with_or_without_payout_AND_with_or_without_premiums_collected(
         true, true
@@ -215,6 +215,9 @@ fn _test_option_round_settle_moves_remaining_liquidity_to_next_round_with_or_wit
         expected_rollover_lp1 -= current_round.total_payout() / 2;
         expected_rollover_lp2 -= current_round.total_payout() / 2;
     }
+
+    // Clear eth transfer events log
+    clear_event_logs(array![eth_dispatcher.contract_address]);
 
     // Settle option round with or without payout
     vault_facade.settle_option_round_without_payout(is_payouts);
