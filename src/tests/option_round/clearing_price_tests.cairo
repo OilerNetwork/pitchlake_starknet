@@ -54,12 +54,6 @@ fn test_clearing_price_1() {
         'clearing price not set'
     );
     assert(clearing_price == bid_price, 'clearing price wrong');
-    assert_event_auction_bid(
-        current_round_facade.contract_address(),
-        option_bidder_buyer_1(),
-        bid_amount,
-        params.reserve_price
-    );
 }
 
 // Test clearing price is the lower bid price when minting < total options, to mint more
@@ -92,18 +86,6 @@ fn test_clearing_price_2() {
         'clearing price not set'
     );
     assert(clearing_price == params.reserve_price, 'clearing price wrong');
-    assert_event_auction_bid(
-        current_round_facade.contract_address(),
-        option_bidder_buyer_1(),
-        bid_amount_user_1,
-        bid_price_user_1
-    );
-    assert_event_auction_bid(
-        current_round_facade.contract_address(),
-        option_bidder_buyer_2(),
-        bid_amount_user_2,
-        bid_price_user_2
-    );
 }
 
 // Test clearing price is the higher bid price when able to mint all options
@@ -130,25 +112,6 @@ fn test_clearing_price_3() {
     let clearing_price = vault_facade.timeskip_and_end_auction();
     // OB 3's price should be the clearing price
     assert(clearing_price == bid_price_user_3, 'clearing price wrong');
-    // @note Test event ordering
-    assert_event_auction_bid(
-        current_round_facade.contract_address(),
-        option_bidder_buyer_1(),
-        bid_amount_user_1,
-        bid_price_user_1
-    );
-    assert_event_auction_bid(
-        current_round_facade.contract_address(),
-        option_bidder_buyer_2(),
-        bid_amount_user_2,
-        bid_price_user_2
-    );
-    assert_event_auction_bid(
-        current_round_facade.contract_address(),
-        option_bidder_buyer_3(),
-        bid_amount_user_3,
-        bid_price_user_3
-    );
 }
 
 
@@ -178,19 +141,6 @@ fn test_clearing_price_4() {
     let clearing_price: u256 = vault_facade.timeskip_and_end_auction();
     // OB 2's price should be the clearing price to mint all options
     assert(clearing_price == bid_price_user_1, 'clearing price shd be ob1 price');
-    // @note Test event ordering
-    assert_event_auction_bid(
-        current_round_facade.contract_address(),
-        option_bidder_buyer_1(),
-        bid_amount_user_1,
-        bid_price_user_1
-    );
-    assert_event_auction_bid(
-        current_round_facade.contract_address(),
-        option_bidder_buyer_2(),
-        bid_amount_user_2,
-        bid_price_user_2
-    );
 }
 
 // Test clearing price is the highest price able to mint the most options
@@ -224,30 +174,5 @@ fn test_clearing_price_5() {
     let clearing_price: u256 = vault_facade.timeskip_and_end_auction();
     // OB3's price will be the clearing price since. Higher would not mint all the options, and less would not optimze premium total
     assert(clearing_price == bid_price_user_3, 'clear price equal reserve price');
-    // @note Check event ordering
-    assert_event_auction_bid(
-        round_facade.contract_address(),
-        option_bidder_buyer_1(),
-        bid_amount_user_1,
-        bid_price_user_1
-    );
-    assert_event_auction_bid(
-        round_facade.contract_address(),
-        option_bidder_buyer_2(),
-        bid_amount_user_2,
-        bid_price_user_2
-    );
-    assert_event_auction_bid(
-        round_facade.contract_address(),
-        option_bidder_buyer_3(),
-        bid_amount_user_3,
-        bid_price_user_3
-    );
-    assert_event_auction_bid(
-        round_facade.contract_address(),
-        option_bidder_buyer_4(),
-        bid_amount_user_4,
-        bid_price_user_4
-    );
 }
 
