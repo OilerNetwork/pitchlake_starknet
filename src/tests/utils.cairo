@@ -122,14 +122,6 @@ fn deploy_pitch_lake() -> IPitchLakeDispatcher {
     return IPitchLakeDispatcher { contract_address };
 }
 
-fn setup() -> (IVaultDispatcher, IERC20Dispatcher) {
-    let eth_dispatcher: IERC20Dispatcher = deploy_eth();
-    let vault_dispatcher: IVaultDispatcher = deploy_vault(VaultType::InTheMoney);
-
-    let lp_amount_wei: u256 = 1000000 * decimals();
-    let ob_amount_wei: u256 = 100000 * decimals();
-
-    let mut lps = liquidity_providers_get(5);
     let mut obs = option_bidders_get(5);
 
     set_contract_address(weth_owner());

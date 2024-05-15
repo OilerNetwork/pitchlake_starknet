@@ -33,16 +33,16 @@ use traits::TryInto;
 use pitch_lake_starknet::eth::Eth;
 use pitch_lake_starknet::tests::utils;
 use pitch_lake_starknet::tests::utils::{
-    setup, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
-    timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
-    option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
-    vault_manager, weth_owner, option_round_contract_address, mock_option_params, pop_log,
-    assert_no_events_left, deploy_pitch_lake
+    decimals, deploy_vault, allocated_pool_address, unallocated_pool_address, timestamp_start_month,
+    timestamp_end_month, liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
+    option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4, vault_manager, weth_owner,
+    option_round_contract_address, mock_option_params, pop_log, assert_no_events_left,
+    deploy_pitch_lake
 };
 
-// @note Need to manually initialize round 1, either 
+// @note Need to manually initialize round 1, either
 // upon vault deployment (constructor) or through a one-time round 1 initializer entry point
-// @note Add test that all rounds, r > 1 are initialized automatically once 
+// @note Add test that all rounds, r > 1 are initialized automatically once
 // the round (r-1) settles
 
 // Test that the strik price is set correctly based on the vault type
@@ -67,10 +67,10 @@ fn test_strike_price_based_on_vault_types() {
     vault_dispatcher_out_the_money.deposit_liquidity(deposit_amount_wei);
 
     // Vaults deploy with current -> 0: Settled, and next -> 1: Open,
-    // In all future rounds, when the current round settles, the next is initialized 
-    // The next round must be initialized inorder for its auction to start 
+    // In all future rounds, when the current round settles, the next is initialized
+    // The next round must be initialized inorder for its auction to start
     // This means r1 will need to be manually initialized before its auction, then
-    // all following rounds will be automatically initialized when the current one settles. 
+    // all following rounds will be automatically initialized when the current one settles.
 
     // @note Need to initialize r1 manually, then start the auction.
 
