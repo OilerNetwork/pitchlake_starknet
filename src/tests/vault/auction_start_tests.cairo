@@ -29,6 +29,7 @@ use pitch_lake_starknet::eth::Eth;
 use pitch_lake_starknet::tests::utils::{
     setup_facade, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
     timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
+    liquidity_providers_get,
     option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
     vault_manager, weth_owner, mock_option_params, assert_event_auction_start
 };
@@ -45,9 +46,10 @@ fn test_unallocated_becomes_collateral() {
     // Get next round (open)
     let mut next_round: OptionRoundFacade = vault_facade.get_current_round();
     // Add liq. to next round (1)
-    let deposit_amount_wei_1 = 1000 * decimals();
-    let deposit_amount_wei_2 = 10000 * decimals();
-    let deposit_total = deposit_amount_wei_1 + deposit_amount_wei_2;
+
+    let lps = liquidity_providers_get(2);
+    let amounts = array![1000 * decimals(),10000 * decimals()];
+    let deposit_total = *amounts[0] + *amounts[1];
     vault_facade.deposit(deposit_amount_wei_1, liquidity_provider_1());
     vault_facade.deposit(deposit_amount_wei_2, liquidity_provider_2());
     // Initial collateral/unallocated 

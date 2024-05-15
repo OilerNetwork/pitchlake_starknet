@@ -413,12 +413,37 @@ fn assert_event_transfer(from: ContractAddress, to: ContractAddress, amount: u25
     assert_no_events_left(zero_address());
 }
 
+
 // Accelerate to the current round auctioning (needs non 0 liquidity to start auction)
 fn accelerate_to_auctioning(ref self: VaultFacade) {
     // Deposit liquidity so round 1's auction can start
     self.deposit(100 * decimals(), liquidity_provider_1());
     // Start round 1's auction
     self.start_auction();
+}
+
+fn deposit_n(ref self: VaultFacade, providers: u32, amount: u256) {
+    let mut index: u32 = 0;
+    let lp = liquidity_providers_get(providers);
+    while index < providers {
+        let amount = 100 * decimals();
+        self.deposit(amount, *lp.at(index));
+        index+=1;
+    };
+}
+
+fn deposit_n_custom(ref self: VaultFacade, providers: u32, amount: Array<u256>) {
+    let len = amount.len();
+    let mut index: u32 = 0;
+    let lp = liquidity_providers_get(providers);
+    while index < providers {
+        if (index < len) {
+            self.deposit(*amount[index], *lp.at(index));
+        } else {
+            self.deposit(*amount[0], *lp.at(index));
+        }
+        index+=1;
+    };
 }
 
 // Accelerate to the current round's auction end
@@ -439,33 +464,34 @@ fn accelerate_to_running(ref self: VaultFacade) {
     current_round.end_auction();
 }
 
-fn accelerate_to_auctioning_n_linear(ref self: VaultFacade, providers: u32) ->Array<u256>{
+fn accelerate_to_auctioning_n_linear(ref self: VaultFacade, providers: u32) -> Array<u256> {
     let mut index: u32 = 0;
-    let mut amounts:Array<u256> = array![];
+    let mut amounts: Array<u256> = array![];
     let mut lp: Array<ContractAddress> = liquidity_providers_get(providers);
     while index < providers {
         let amount = 100 * decimals();
         amounts.append(amount);
-        self.deposit(amount, *lp.at(index))
-
+        self.deposit(amount, *lp.at(index));
+        index+=1;
     };
     amounts
 }
 
 //Deposit with a gradient 
-fn accelerate_to_auctioning_n_gradient(ref self: VaultFacade, providers: u32) -> Array<u256>{
+fn accelerate_to_auctioning_n_gradient(ref self: VaultFacade, providers: u32) -> Array<u256> {
     let mut index: u32 = 0;
-    let mut amounts:Array<u256> = array![];
+    let mut amounts: Array<u256> = array![];
     let mut lp: Array<ContractAddress> = liquidity_providers_get(providers);
     while index < providers {
-        let amount = 100 * (index.into()+ 1)*decimals();
+        let amount = 100 * (index.into() + 1) * decimals();
         amounts.append(amount);
-        self.deposit(amount, *lp.at(index))
+        self.deposit(amount, *lp.at(index));
+        index+=1;
     };
     amounts
 }
 
-fn accelerate_to_auctioning_n_custom(ref self: VaultFacade, providers: u32, amounts:Array<u256>) {
+fn accelerate_to_auctioning_n_custom(ref self: VaultFacade, providers: u32, amounts: Array<u256>) {
     let mut index: u32 = 0;
     let mut lp: Array<ContractAddress> = liquidity_providers_get(providers);
     while index < providers {
@@ -474,76 +500,89 @@ fn accelerate_to_auctioning_n_custom(ref self: VaultFacade, providers: u32, amou
 }
 
 
-
 //Auction with linear bidding
-fn accelerate_to_running_n_linear(ref self: VaultFacade, providers: u32, bidders: u32) -> u256{
+fn accelerate_to_running_n_linear(ref self: VaultFacade, providers: u32, bidders: u32) -> u256 {
     let mut current_round = self.get_current_round();
     if (current_round.get_state() != OptionRoundState::Auctioning) {
-    accelerate_to_auctioning_n_linear(ref self, providers);
+        accelerate_to_auctioning_n_linear(ref self, providers);
     }
-  
+
     let bidders_array: Array<ContractAddress> = option_bidders_get(bidders);
     let mut current_round = self.get_current_round();
-    let mut bids:Array<u256> = array![];
+    let mut bids: Array<u256> = array![];
     let params = current_round.get_params();
     let bid_amount = params.total_options_available;
     let bid_price = params.reserve_price;
     let bidders_cast: u256 = bidders.into();
     let bid_amount = bid_amount * bid_price / bidders_cast;
-    let index: u32 = 0;
+    let mut index: u32 = 0;
     while index < bidders {
-        current_round.place_bid(bid_amount , bid_price, *bidders_array.at(index));
+        current_round.place_bid(bid_amount, bid_price, *bidders_array.at(index));
+        index+=1;
     };
     bid_amount
 }
 
 
 //Applies a gradient to bid price;
-fn accelerate_to_running_n_gradient(ref self: VaultFacade, providers: u32, bidders: u32) ->(Array<u256>,Array<u256>) {
+fn accelerate_to_running_n_gradient(
+    ref self: VaultFacade, providers: u32, bidders: u32
+) -> (Array<u256>, Array<u256>) {
     let mut current_round = self.get_current_round();
     if (current_round.get_state() != OptionRoundState::Auctioning) {
-    accelerate_to_auctioning_n_linear(ref self, providers);
+        accelerate_to_auctioning_n_linear(ref self, providers);
     }
     let bidders_array: Array<ContractAddress> = option_bidders_get(bidders);
     let mut current_round = self.get_current_round();
     let params = current_round.get_params();
     let bid_amount = params.total_options_available;
-    let mut bid_amounts:Array<u256>  = array![];
-    let mut bid_prices:Array<u256> = array![];
-    let index: u32 = 0;
+    let mut bid_amounts: Array<u256> = array![];
+    let mut bid_prices: Array<u256> = array![];
+    let mut index: u32 = 0;
     while index < bidders {
         let bid_quant = (bid_amount / bidders.into()) + 1;
         let bid_price = params.reserve_price + index.into();
-        let bid_amount = bid_quant * bid_price ;
+        let bid_amount = bid_quant * bid_price;
         bid_amounts.append(bid_amount);
         bid_prices.append(bid_price);
         current_round.place_bid(bid_amount, bid_price, *bidders_array.at(index));
+        index+=1;
     };
-    (bid_amounts,bid_prices)
+    (bid_amounts, bid_prices)
 }
 
-fn accelerate_to_running_n_custom(ref self: VaultFacade, providers: u32, bidders: u32, amounts:Array<u256>, prices:Array<u256>) {
+fn accelerate_to_running_n_custom(
+    ref self: VaultFacade, providers: u32, bidders: u32, amounts: Array<u256>, prices: Array<u256>
+) {
+    let mut current_round = self.get_current_round();
+    if (current_round.get_state() != OptionRoundState::Auctioning) {
+        accelerate_to_auctioning(ref self);
+    }
     let bidders_array: Array<ContractAddress> = option_bidders_get(bidders);
     let mut current_round = self.get_current_round();
-    let index: u32 = 0;
+    let mut index: u32 = 0;
     while index < bidders {
         current_round.place_bid(*amounts[index], *prices[index], *bidders_array.at(index));
+        index+=1;
     };
 }
 
 //Auction with partial bidding
-fn accelerate_to_running_n_partial(ref self: VaultFacade, providers: u32, bidders: u32)-> (u256,u256){
+fn accelerate_to_running_n_partial(
+    ref self: VaultFacade, providers: u32, bidders: u32
+) -> (u256, u256) {
     accelerate_to_auctioning_n_linear(ref self, providers);
     let bidders_array: Array<ContractAddress> = option_bidders_get(bidders);
     let mut current_round = self.get_current_round();
     let params = current_round.get_params();
     let bid_amount = params.total_options_available;
     let bid_price = params.reserve_price;
-    let bid_quant = bid_amount/bidders.into()/2;
+    let bid_quant = bid_amount / bidders.into() / 2;
     let bid_amount = bid_quant * bid_price;
-    let index: u32 = 0;
+    let mut index: u32 = 0;
     while index < bidders {
         current_round.place_bid(bid_amount, bid_price, *bidders_array.at(index));
+        index+=1;
     };
     (bid_amount, bid_price)
 }
@@ -555,12 +594,11 @@ fn accelerate_to_running_partial(ref self: VaultFacade) {
     let params = current_round.get_params();
     let bid_amount = params.total_options_available;
     let bid_price = params.reserve_price;
-    let mut bid_quant = bid_amount/2;
-
+    let mut bid_quant = bid_amount / 2;
 
     //If quant gets 0 ensure minimum bid on 1 option
-    if bid_quant<1 {
-        bid_quant+=1;
+    if bid_quant < 1 {
+        bid_quant += 1;
     }
     let bid_amount = bid_quant * bid_price;
     current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
