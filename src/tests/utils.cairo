@@ -493,18 +493,9 @@ fn accelerate_to_running(ref self: VaultFacade) {
     current_round.end_auction();
 }
 
-fn accelerate_to_auctioning_n_linear(ref self: VaultFacade, providers: u32) -> Array<u256> {
-    let mut index: u32 = 0;
-    let mut amounts: Array<u256> = array![];
-    let mut lp: Array<ContractAddress> = liquidity_providers_get(providers);
-    while index < providers {
-        let amount = 100 * decimals();
-        amounts.append(amount);
-        self.deposit(amount, *lp.at(index));
-        index+=1;
-    };
+fn accelerate_to_auctioning_n_linear(ref self: VaultFacade, providers: u32, amount:u256){
+    deposit_n(ref self,providers,amount);
     self.start_auction();
-    amounts
 }
 
 //Deposit with a gradient 
@@ -523,11 +514,8 @@ fn accelerate_to_auctioning_n_gradient(ref self: VaultFacade, providers: u32) ->
 }
 
 fn accelerate_to_auctioning_n_custom(ref self: VaultFacade, providers: u32, amounts: Array<u256>) {
-    let mut index: u32 = 0;
-    let mut lp: Array<ContractAddress> = liquidity_providers_get(providers);
-    while index < providers {
-        self.deposit(*amounts[index], *lp.at(index))
-    };
+
+    deposit_n_custom(ref self, providers, amounts);
     self.start_auction();
 }
 
@@ -536,7 +524,7 @@ fn accelerate_to_auctioning_n_custom(ref self: VaultFacade, providers: u32, amou
 fn accelerate_to_running_n_linear(ref self: VaultFacade, providers: u32, bidders: u32,amount:u256) -> u256 {
     let mut current_round = self.get_current_round();
     if (current_round.get_state() != OptionRoundState::Auctioning) {
-        accelerate_to_auctioning_n_linear(ref self, providers);
+        accelerate_to_auctioning(ref self);
     }
     let mut current_round = self.get_current_round();
     let params = current_round.get_params();
@@ -556,7 +544,7 @@ fn accelerate_to_running_n_gradient(
 ) -> (Array<u256>, Array<u256>) {
     let mut current_round = self.get_current_round();
     if (current_round.get_state() != OptionRoundState::Auctioning) {
-        accelerate_to_auctioning_n_linear(ref self, providers);
+        accelerate_to_auctioning(ref self);
     }
     let bidders_array: Array<ContractAddress> = option_bidders_get(bidders);
     let mut current_round = self.get_current_round();
@@ -586,7 +574,7 @@ fn accelerate_to_running_n_custom(
     if (current_round.get_state() != OptionRoundState::Auctioning) {
         accelerate_to_auctioning(ref self);
     }
-    
+    let params = current_round.get_params();
     bid_n_custom(ref self,bidders,amounts,prices);
     set_block_timestamp(params.auction_end_time + 1);
     current_round.end_auction();
