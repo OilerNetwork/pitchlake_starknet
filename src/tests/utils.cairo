@@ -54,7 +54,7 @@ fn deploy_eth() -> IERC20Dispatcher {
         .unwrap();
 
     // Clear the event log
-    clear_event_log(contract_address);
+    clear_event_logs(array![contract_address]);
     return IERC20Dispatcher { contract_address };
 }
 
@@ -71,7 +71,7 @@ fn deploy_market_aggregator() -> IMarketAggregatorDispatcher {
         .expect('DEPLOY_MARKET_AGGREGATOR_FAILED');
 
     // Clear the event log
-    clear_event_log(contract_address);
+    clear_event_logs(array![contract_address]);
     return IMarketAggregatorDispatcher { contract_address };
 }
 
@@ -89,7 +89,7 @@ fn deploy_vault(vault_type: VaultType) -> IVaultDispatcher {
         .expect('DEPLOY_VAULT_FAILED');
 
     // Clear the event log
-    clear_event_log(contract_address);
+    clear_event_logs(array![contract_address]);
 
     return IVaultDispatcher { contract_address };
 }
@@ -113,59 +113,53 @@ fn deploy_pitch_lake() -> IPitchLakeDispatcher {
         .expect('DEPLOY_AD_FAILED');
 
     // Clear event logs
-    clear_event_log(ITM.contract_address);
-    clear_event_log(OTM.contract_address);
-    clear_event_log(ATM.contract_address);
-    clear_event_log(mkagg.contract_address);
-    clear_event_log(contract_address);
+    clear_event_logs(
+        array![
+            ITM.contract_address,
+            OTM.contract_address,
+            ATM.contract_address,
+            mkagg.contract_address,
+            contract_address
+        ]
+    );
 
     return IPitchLakeDispatcher { contract_address };
 }
 
-    let mut obs = option_bidders_get(5);
-
-    set_contract_address(weth_owner());
-
-    match lps.pop_front() {
-        Option::Some(lp) => { eth_dispatcher.transfer(lp, lp_amount_wei); },
-        Option::None => {},
-    };
-
-    match obs.pop_front() {
-        Option::Some(ob) => { eth_dispatcher.transfer(ob, ob_amount_wei); },
-        Option::None => {},
-    };
-
-    drop_event(zero_address());
-
-    return (vault_dispatcher, eth_dispatcher);
-}
-
-
 fn setup_facade() -> (VaultFacade, IERC20Dispatcher) {
     let eth_dispatcher: IERC20Dispatcher = deploy_eth();
     let vault_dispatcher: IVaultDispatcher = deploy_vault(VaultType::InTheMoney);
+
+    // Supply eth to test users
     set_contract_address(weth_owner());
-    let deposit_amount_ether: u256 = 1000000;
-    let deposit_amount_wei: u256 = deposit_amount_ether * decimals();
+    let mut lps = liquidity_providers_get(5);
+    loop {
+        match lps.pop_front() {
+            Option::Some(lp) => {
+                let lp_amount_wei: u256 = 1000000 * decimals(); // 1,000,000 ETH
+                eth_dispatcher.transfer(lp, lp_amount_wei);
+            },
+            Option::None => { break (); },
+        };
+    };
 
-    eth_dispatcher.transfer(liquidity_provider_1(), deposit_amount_wei);
-    eth_dispatcher.transfer(liquidity_provider_2(), deposit_amount_wei);
-    eth_dispatcher.transfer(liquidity_provider_3(), deposit_amount_wei);
-    eth_dispatcher.transfer(liquidity_provider_4(), deposit_amount_wei);
+    // Give OBs eth
+    let mut obs = option_bidders_get(5);
+    loop {
+        match obs.pop_front() {
+            Option::Some(ob) => {
+                let ob_amount_wei: u256 = 100000 * decimals(); // 100,000 ETH
 
-    let deposit_amount_ether: u256 = 100000;
-    let deposit_amount_wei: u256 = deposit_amount_ether * decimals();
+                eth_dispatcher.transfer(ob, ob_amount_wei);
+            },
+            Option::None => { break; },
+        };
+    };
 
-    eth_dispatcher.transfer(option_bidder_buyer_1(), deposit_amount_wei);
-    eth_dispatcher.transfer(option_bidder_buyer_2(), deposit_amount_wei);
-    eth_dispatcher.transfer(option_bidder_buyer_3(), deposit_amount_wei);
-    eth_dispatcher.transfer(option_bidder_buyer_4(), deposit_amount_wei);
-    // @def figure out why this is needed
-    drop_event(zero_address());
+    // Clear eth transfer events
+    clear_event_logs(array![eth_dispatcher.contract_address]);
 
-    let vault_facade = VaultFacade { vault_dispatcher };
-    return (vault_facade, eth_dispatcher);
+    return (VaultFacade { vault_dispatcher }, eth_dispatcher);
 }
 
 
@@ -359,6 +353,9 @@ fn zero_address() -> ContractAddress {
     contract_address_const::<0>()
 }
 
+
+/// EVENTS ///
+
 /// Pop the earliest unpopped logged event for the contract as the requested type
 /// and checks there's no more data left on the event, preventing unaccounted params.
 /// Indexed event members are currently not supported, so they are ignored.
@@ -372,22 +369,30 @@ fn pop_log<T, impl TDrop: Drop<T>, impl TEvent: starknet::Event<T>>(
 }
 
 /// Clear event log for the contract
-fn clear_event_log(address: ContractAddress) {
-    match testing::pop_log_raw(address) {
-        Option::Some(event) => { drop_event(address); },
-        Option::None => {},
-    };
-    assert_no_events_left(address);
+// @dev Should drop each even when popped
+fn clear_event_logs(mut addresses: Array<ContractAddress>) {
+    loop {
+        match addresses.pop_front() {
+            Option::Some(addr) => {
+                loop {
+                    match testing::pop_log_raw(addr) {
+                        Option::Some(_) => { continue; },
+                        Option::None => { break; }
+                    }
+                };
+                assert_no_events_left(addr);
+            },
+            Option::None => { break; }
+        }
+    }
 }
 
 fn assert_no_events_left(address: ContractAddress) {
     assert(testing::pop_log_raw(address).is_none(), 'Events remaining on queue');
 }
 
-fn drop_event(address: ContractAddress) {
-    testing::pop_log_raw(address);
-}
 
+// Check total options available emmited when the auction starts
 fn assert_event_auction_start(
     option_round_address: ContractAddress, total_options_available: u256
 ) {
@@ -403,6 +408,7 @@ fn assert_event_auction_start(
     };
 }
 
+// Emit
 fn assert_event_auction_bid(
     option_round_address: ContractAddress, bidder: ContractAddress, amount: u256, price: u256
 ) {
