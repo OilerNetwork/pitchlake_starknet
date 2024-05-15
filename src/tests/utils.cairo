@@ -29,7 +29,7 @@ use pitch_lake_starknet::tests::{
 use pitch_lake_starknet::option_round;
 use pitch_lake_starknet::option_round::{
     OptionRound, OptionRoundParams, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,
-    IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait
+    IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait, OptionRoundState
 };
 use pitch_lake_starknet::market_aggregator::{
     IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait,
@@ -423,7 +423,10 @@ fn accelerate_to_auctioning(ref self: VaultFacade) {
 
 // Accelerate to the current round's auction end
 fn accelerate_to_running(ref self: VaultFacade) {
-    accelerate_to_auctioning(ref self);
+    let mut current_round = self.get_current_round();
+    if (current_round.get_state() != OptionRoundState::Auctioning) {
+        accelerate_to_auctioning(ref self);
+    }
     // Bid for all options at reserve price
     let mut current_round = self.get_current_round();
     let params = current_round.get_params();
@@ -436,29 +439,52 @@ fn accelerate_to_running(ref self: VaultFacade) {
     current_round.end_auction();
 }
 
-fn accelerate_to_auctioning_n(ref self: VaultFacade, providers: u32) {
+fn accelerate_to_auctioning_n_linear(ref self: VaultFacade, providers: u32) ->Array<u256>{
     let mut index: u32 = 0;
+    let mut amounts:Array<u256> = array![];
     let mut lp: Array<ContractAddress> = liquidity_providers_get(providers);
     while index < providers {
-        self.deposit(100 * decimals(), *lp.at(index))
-    }
+        let amount = 100 * decimals();
+        amounts.append(amount);
+        self.deposit(amount, *lp.at(index))
+
+    };
+    amounts
 }
 
 //Deposit with a gradient 
-fn accelerate_to_auctioning_n_gradient(ref self: VaultFacade, providers: u32) {
+fn accelerate_to_auctioning_n_gradient(ref self: VaultFacade, providers: u32) -> Array<u256>{
+    let mut index: u32 = 0;
+    let mut amounts:Array<u256> = array![];
+    let mut lp: Array<ContractAddress> = liquidity_providers_get(providers);
+    while index < providers {
+        let amount = 100 * (index.into()+ 1)*decimals();
+        amounts.append(amount);
+        self.deposit(amount, *lp.at(index))
+    };
+    amounts
+}
+
+fn accelerate_to_auctioning_n_custom(ref self: VaultFacade, providers: u32, amounts:Array<u256>) {
     let mut index: u32 = 0;
     let mut lp: Array<ContractAddress> = liquidity_providers_get(providers);
     while index < providers {
-        self.deposit(100 * (index.into() + 1) * decimals(), *lp.at(index))
-    }
+        self.deposit(*amounts[index], *lp.at(index))
+    };
 }
 
 
+
 //Auction with linear bidding
-fn accelerate_to_running_n_linear(ref self: VaultFacade, providers: u32, bidders: u32) {
-    accelerate_to_auctioning_n(ref self, providers);
+fn accelerate_to_running_n_linear(ref self: VaultFacade, providers: u32, bidders: u32) -> u256{
+    let mut current_round = self.get_current_round();
+    if (current_round.get_state() != OptionRoundState::Auctioning) {
+    accelerate_to_auctioning_n_linear(ref self, providers);
+    }
+  
     let bidders_array: Array<ContractAddress> = option_bidders_get(bidders);
     let mut current_round = self.get_current_round();
+    let mut bids:Array<u256> = array![];
     let params = current_round.get_params();
     let bid_amount = params.total_options_available;
     let bid_price = params.reserve_price;
@@ -466,29 +492,47 @@ fn accelerate_to_running_n_linear(ref self: VaultFacade, providers: u32, bidders
     let bid_amount = bid_amount * bid_price / bidders_cast;
     let index: u32 = 0;
     while index < bidders {
-        current_round.place_bid(bid_amount / 2, bid_price, *bidders_array.at(index));
-    }
+        current_round.place_bid(bid_amount , bid_price, *bidders_array.at(index));
+    };
+    bid_amount
 }
 
 
 //Applies a gradient to bid price;
-fn accelerate_to_running_n_gradient(ref self: VaultFacade, providers: u32, bidders: u32) {
+fn accelerate_to_running_n_gradient(ref self: VaultFacade, providers: u32, bidders: u32) ->Array<u256> {
+    let mut current_round = self.get_current_round();
+    if (current_round.get_state() != OptionRoundState::Auctioning) {
+    accelerate_to_auctioning_n_linear(ref self, providers);
+    }
     let bidders_array: Array<ContractAddress> = option_bidders_get(bidders);
     let mut current_round = self.get_current_round();
     let params = current_round.get_params();
     let bid_amount = params.total_options_available;
+    let mut bids:Array<u256>  = array![];
 
     let index: u32 = 0;
     while index < bidders {
         let bid_quant = (bid_amount / bidders.into()) + 1;
         let bid_price = params.reserve_price + index.into();
-        current_round.place_bid(bid_amount / 2, bid_price, *bidders_array.at(index));
-    }
+        let bid_amount = bid_quant * bid_price ;
+        bids.append(bid_amount);
+        current_round.place_bid(bid_amount, bid_price, *bidders_array.at(index));
+    };
+    bids
+}
+
+fn accelerate_to_running_n_custom(ref self: VaultFacade, providers: u32, bidders: u32, amounts:Array<u256>, prices:Array<u256>) {
+    let bidders_array: Array<ContractAddress> = option_bidders_get(bidders);
+    let mut current_round = self.get_current_round();
+    let index: u32 = 0;
+    while index < bidders {
+        current_round.place_bid(*amounts[index], *prices[index], *bidders_array.at(index));
+    };
 }
 
 //Auction with partial bidding
 fn accelerate_to_running_n_partial(ref self: VaultFacade, providers: u32, bidders: u32) {
-    accelerate_to_auctioning_n(ref self, providers);
+    accelerate_to_auctioning_n_linear(ref self, providers);
     let bidders_array: Array<ContractAddress> = option_bidders_get(bidders);
     let mut current_round = self.get_current_round();
     let params = current_round.get_params();
