@@ -446,6 +446,36 @@ fn deposit_n_custom(ref self: VaultFacade, providers: u32, amount: Array<u256>) 
     };
 }
 
+fn bid_n(ref self:VaultFacade, bidders:u32, amount:u256,price:u256){
+    let mut current_round = self.get_current_round();
+    let params = current_round.get_params();
+    let mut index:u32 = 0;
+    let bid_amount = params.total_options_available;
+    let bid_price = params.reserve_price;
+    let option_bidders = option_bidders_get(bidders);
+
+    assert(price>bid_price && amount>price,'Invalid parameters');
+    while index < bidders {
+        current_round.place_bid(amount,price,*option_bidders[index]);
+        index+=1;
+    }
+}
+
+
+fn bid_n_custom(ref self:VaultFacade, bidders:u32, amounts:Array<u256>,prices:Array<u256>){
+let mut current_round = self.get_current_round();
+    let params = current_round.get_params();
+    let mut index:u32 = 0;
+    let bid_price = params.reserve_price;
+    let option_bidders = option_bidders_get(bidders);
+   
+    while index < bidders {
+        assert(*prices[index]>bid_price && *amounts[index]>*prices[index],('Invalid parameters at {}'));
+        current_round.place_bid(*amounts[index],*prices[index],*option_bidders[index]);
+        index+=1;
+    }
+}
+
 // Accelerate to the current round's auction end
 fn accelerate_to_running(ref self: VaultFacade) {
     let mut current_round = self.get_current_round();
@@ -453,7 +483,6 @@ fn accelerate_to_running(ref self: VaultFacade) {
         accelerate_to_auctioning(ref self);
     }
     // Bid for all options at reserve price
-    let mut current_round = self.get_current_round();
     let params = current_round.get_params();
     let bid_amount = params.total_options_available;
     let bid_price = params.reserve_price;
