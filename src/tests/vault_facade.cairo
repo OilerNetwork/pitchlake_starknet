@@ -74,12 +74,14 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     }
 
     fn timeskip_and_settle_round(ref self: VaultFacade) -> bool {
+        set_contract_address(vault_manager());
         let mut current_round = self.get_current_round();
         set_block_timestamp(current_round.get_params().option_expiry_time + 1);
         self.vault_dispatcher.settle_option_round()
     }
 
     fn timeskip_and_end_auction(ref self: VaultFacade) -> u256 {
+        set_contract_address(vault_manager());
         let mut current_round = self.get_current_round();
         set_block_timestamp(current_round.get_params().auction_end_time + 1);
         self.vault_dispatcher.end_auction()
@@ -191,6 +193,17 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     // might be duplicated when repo syncs
     fn get_premiums_for(ref self: VaultFacade, lp: ContractAddress) -> u256 {
         self.vault_dispatcher.get_premiums_for(lp)
+    }
+
+    fn deposit_mutltiple(ref self:VaultFacade, lps:Array<ContractAddress>,amounts:Array<u256>){
+    let mut index: u32 = 0;
+    assert (lps.len()==amounts.len(),'Incorrect lengths');
+    
+    while index < lps.len() {
+            self.deposit(*amounts[index], *lps.at(index));
+        index+=1;
+
+    };
     }
 }
 

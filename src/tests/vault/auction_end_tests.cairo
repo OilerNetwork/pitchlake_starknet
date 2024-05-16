@@ -138,6 +138,10 @@ fn test_option_round_end_auction_twice_failure() {
     // Try to settle auction a second time
     vault_facade.end_auction();
 }
+
+
+
+
 // @note Add tests that unallocated/collatera (lp and round) update at auction end
 //    - test unallocate in current round goes from 0 -> premiums + unsold liq.
 
