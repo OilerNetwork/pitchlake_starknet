@@ -162,6 +162,22 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         (collateral, unallocated)
     }
 
+    // Get lps (multiple) liquidity (collateral, unallocated)
+    fn get_all_liquidity_for_n(
+        ref self: VaultFacade, lps: Array<ContractAddress>
+    ) -> (Array<u256>, Array<u256>) {
+        let mut index = 0;
+        let mut arr_collateral: Array<u256> = array![];
+        let mut arr_unallocated: Array<u256> = array![];
+        while index < lps
+            .len() {
+                let collateral = self.vault_dispatcher.get_collateral_balance_for(*lps[index]);
+                let unallocated = self.vault_dispatcher.get_unallocated_balance_for(*lps[index]);
+                arr_collateral.append(collateral);
+                arr_unallocated.append(unallocated);
+            };
+        (arr_collateral, arr_unallocated)
+    }
     fn get_collateral_balance_for(
         ref self: VaultFacade, liquidity_provider: ContractAddress
     ) -> u256 {
