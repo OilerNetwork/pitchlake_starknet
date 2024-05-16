@@ -133,16 +133,24 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
 
     //These functions have some custom logic
 
-    fn bid_multiple(ref self:OptionRoundFacade, bidders:Array<ContractAddress>, amounts:Array<u256>,prices:Array<u256>){
-        
-    let params = self.get_params();
-    let mut index:u32 = 0;
-    let bid_price = params.reserve_price;
-   
-    while index < bidders.len() {
-        assert(*prices[index]>bid_price && *amounts[index]>*prices[index],('Invalid parameters at {}'));
-        self.place_bid(*amounts[index],*prices[index],*bidders[index]);
-        index+=1;
-    }
+    fn bid_multiple(
+        ref self: OptionRoundFacade,
+        bidders: Array<ContractAddress>,
+        amounts: Array<u256>,
+        prices: Array<u256>
+    ) {
+        let params = self.get_params();
+        let mut index: u32 = 0;
+        let bid_price = params.reserve_price;
+
+        while index < bidders
+            .len() {
+                assert(
+                    *prices[index] > bid_price && *amounts[index] > *prices[index],
+                    ('Invalid parameters at {}')
+                );
+                self.place_bid(*amounts[index], *prices[index], *bidders[index]);
+                index += 1;
+            }
     }
 }

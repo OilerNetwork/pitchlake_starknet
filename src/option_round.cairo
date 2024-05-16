@@ -181,8 +181,7 @@ trait IOptionRound<TContractState> {
 
     fn get_market_aggregator(self: @TContractState) -> ContractAddress;
 
-    fn is_premium_collected(self: @TContractState, lp:ContractAddress) -> bool;
-
+    fn is_premium_collected(self: @TContractState, lp: ContractAddress) -> bool;
 }
 
 #[starknet::contract]
@@ -204,7 +203,7 @@ mod OptionRound {
         state: OptionRoundState,
         params: OptionRoundParams,
         constructor_params: OptionRoundConstructorParams,
-        premiums_collected:LegacyMap<ContractAddress, bool>,
+        premiums_collected: LegacyMap<ContractAddress, bool>,
     }
 
     #[constructor]
@@ -285,7 +284,7 @@ mod OptionRound {
             self.market_aggregator.read()
         }
 
-        fn is_premium_collected(self: @ContractState, lp:ContractAddress) -> bool {
+        fn is_premium_collected(self: @ContractState, lp: ContractAddress) -> bool {
             self.premiums_collected.read(lp)
         }
 

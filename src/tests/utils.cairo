@@ -37,7 +37,9 @@ use pitch_lake_starknet::market_aggregator::{
     IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait,
     IMarketAggregatorSafeDispatcher, IMarketAggregatorSafeDispatcherTrait
 };
-use pitch_lake_starknet::tests::mocks::mock_market_aggregator::{MockMarketAggregator, IMarketAggregatorSetterDispatcher, IMarketAggregatorSetter};
+use pitch_lake_starknet::tests::mocks::mock_market_aggregator::{
+    MockMarketAggregator, IMarketAggregatorSetterDispatcher, IMarketAggregatorSetter
+};
 
 const DECIMALS: u8 = 18_u8;
 const SUPPLY: u256 = 99999999999999999999999999999999;
@@ -429,7 +431,7 @@ fn deposit_n(ref self: VaultFacade, providers: u32, amount: u256) {
     let lp = liquidity_providers_get(providers);
     while index < providers {
         self.deposit(amount, *lp.at(index));
-        index+=1;
+        index += 1;
     };
 }
 
@@ -443,37 +445,40 @@ fn deposit_n_custom(ref self: VaultFacade, providers: u32, amount: Array<u256>) 
         } else {
             self.deposit(*amount[0], *lp.at(index));
         }
-        index+=1;
+        index += 1;
     };
 }
 
-fn bid_n(ref self:VaultFacade, bidders:u32, amount:u256,price:u256){
+fn bid_n(ref self: VaultFacade, bidders: u32, amount: u256, price: u256) {
     let mut current_round = self.get_current_round();
     let params = current_round.get_params();
-    let mut index:u32 = 0;
+    let mut index: u32 = 0;
     let bid_amount = params.total_options_available;
     let bid_price = params.reserve_price;
     let option_bidders = option_bidders_get(bidders);
 
-    assert(price>bid_price && amount>price,'Invalid parameters');
+    assert(price > bid_price && amount > price, 'Invalid parameters');
     while index < bidders {
-        current_round.place_bid(amount,price,*option_bidders[index]);
-        index+=1;
+        current_round.place_bid(amount, price, *option_bidders[index]);
+        index += 1;
     }
 }
 
 
-fn bid_n_custom(ref self:VaultFacade, bidders:u32, amounts:Array<u256>,prices:Array<u256>){
-let mut current_round = self.get_current_round();
+fn bid_n_custom(ref self: VaultFacade, bidders: u32, amounts: Array<u256>, prices: Array<u256>) {
+    let mut current_round = self.get_current_round();
     let params = current_round.get_params();
-    let mut index:u32 = 0;
+    let mut index: u32 = 0;
     let bid_price = params.reserve_price;
     let option_bidders = option_bidders_get(bidders);
-   
+
     while index < bidders {
-        assert(*prices[index]>bid_price && *amounts[index]>*prices[index],('Invalid parameters at {}'));
-        current_round.place_bid(*amounts[index],*prices[index],*option_bidders[index]);
-        index+=1;
+        assert(
+            *prices[index] > bid_price && *amounts[index] > *prices[index],
+            ('Invalid parameters at {}')
+        );
+        current_round.place_bid(*amounts[index], *prices[index], *option_bidders[index]);
+        index += 1;
     }
 }
 
@@ -495,54 +500,55 @@ fn accelerate_to_running(ref self: VaultFacade) {
 }
 
 
-
-
-fn accelerate_to_auctioning_custom(ref self:VaultFacade, lps:Array<ContractAddress>,amounts:Array<u256>){
-    self.deposit_mutltiple(lps,amounts);
+fn accelerate_to_auctioning_custom(
+    ref self: VaultFacade, lps: Array<ContractAddress>, amounts: Array<u256>
+) {
+    self.deposit_mutltiple(lps, amounts);
     set_contract_address(vault_manager());
     self.start_auction();
 }
 
-fn accelerate_to_running_custom(ref self:VaultFacade,bidders:Array<ContractAddress>, max_amounts:Array<u256>,prices:Array<u256>){
-
+fn accelerate_to_running_custom(
+    ref self: VaultFacade,
+    bidders: Array<ContractAddress>,
+    max_amounts: Array<u256>,
+    prices: Array<u256>
+) {
     let mut current_round = self.get_current_round();
     if (current_round.get_state() != OptionRoundState::Auctioning) {
-      panic!("Round is not in auctioning state!");
+        panic!("Round is not in auctioning state!");
     }
-    current_round.bid_multiple(bidders,max_amounts,prices);
+    current_round.bid_multiple(bidders, max_amounts, prices);
     self.timeskip_and_end_auction();
 }
 
-fn accelerate_to_settled(ref self:VaultFacade, base_fee:u256){
-
-let mock_maket_aggregator_setter: IMarketAggregatorSetterDispatcher =
-IMarketAggregatorSetterDispatcher {
-contract_address: self.get_market_aggregator()
-};
-mock_maket_aggregator_setter.set_current_base_fee(base_fee);
-self.timeskip_and_settle_round();
+fn accelerate_to_settled(ref self: VaultFacade, base_fee: u256) {
+    let mock_maket_aggregator_setter: IMarketAggregatorSetterDispatcher =
+        IMarketAggregatorSetterDispatcher {
+        contract_address: self.get_market_aggregator()
+    };
+    mock_maket_aggregator_setter.set_current_base_fee(base_fee);
+    self.timeskip_and_settle_round();
 }
 
 
 //Create various amounts array (For bids use the function twice for price and amount)
-fn create_array_linear(amount:u256, len:u32)->Array<u256>{
-
-    let mut arr:Array<u256> = array![];
+fn create_array_linear(amount: u256, len: u32) -> Array<u256> {
+    let mut arr: Array<u256> = array![];
     let mut index = 0;
-    while (index<len) {
+    while (index < len) {
         arr.append(amount);
-        index+=1;
+        index += 1;
     };
     arr
 }
 
-fn create_array_gradient(amount:u256,step:u256, len:u32) ->Array<u256>{
-
-    let mut arr:Array<u256> = array![];
-    let mut index:u32 = 0;
-    while(index<len){
-        arr.append(amount+index.into()*step);
-        index+=1;
+fn create_array_gradient(amount: u256, step: u256, len: u32) -> Array<u256> {
+    let mut arr: Array<u256> = array![];
+    let mut index: u32 = 0;
+    while (index < len) {
+        arr.append(amount + index.into() * step);
+        index += 1;
     };
     arr
 }
@@ -553,13 +559,11 @@ fn create_array_gradient(amount:u256,step:u256, len:u32) ->Array<u256>{
 //     self.start_auction();
 // }
 
-
 // fn accelerate_to_auctioning_n_custom(ref self: VaultFacade, providers: u32, amounts: Array<u256>) {
 
 //     deposit_n_custom(ref self, providers, amounts);
 //     self.start_auction();
 // }
-
 
 // //Auction with linear bidding
 // fn accelerate_to_running_n_linear(ref self: VaultFacade, providers: u32, bidders: u32,amount:u256) -> u256 {
@@ -578,9 +582,7 @@ fn create_array_gradient(amount:u256,step:u256, len:u32) ->Array<u256>{
 //     bid_amount
 // }
 
-
 // //Applies a gradient to bid price;
-
 
 // fn accelerate_to_running_n_custom(
 //     ref self: VaultFacade, providers: u32, bidders: u32, amounts: Array<u256>, prices: Array<u256>
@@ -597,8 +599,6 @@ fn create_array_gradient(amount:u256,step:u256, len:u32) ->Array<u256>{
 
 //Auction with partial bidding
 
-
-
 //@dev Should we create more complex helpers for creating conditions like this directly?
 fn accelerate_to_running_n_partial(
     ref self: VaultFacade, providers: u32, bidders: u32
@@ -612,7 +612,7 @@ fn accelerate_to_running_n_partial(
     let bid_price = params.reserve_price;
     let bid_quant = bid_amount / bidders.into() / 2;
     let bid_amount = bid_quant * bid_price;
-    bid_n(ref self, bidders,bid_amount,bid_price);
+    bid_n(ref self, bidders, bid_amount, bid_price);
     set_block_timestamp(params.auction_end_time + 1);
     current_round.end_auction();
     (bid_amount, bid_price)
@@ -620,7 +620,6 @@ fn accelerate_to_running_n_partial(
 
 
 fn accelerate_to_running_partial(ref self: VaultFacade) {
- 
     // Bid for half the options at reserve price
     let mut current_round = self.get_current_round();
     let params = current_round.get_params();

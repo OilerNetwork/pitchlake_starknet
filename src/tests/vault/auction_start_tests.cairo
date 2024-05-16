@@ -29,9 +29,8 @@ use pitch_lake_starknet::eth::Eth;
 use pitch_lake_starknet::tests::utils::{
     setup_facade, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
     timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
-    liquidity_providers_get,
-    option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
-    vault_manager, weth_owner, mock_option_params, assert_event_auction_start
+    liquidity_providers_get, option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
+    option_bidder_buyer_4, vault_manager, weth_owner, mock_option_params, assert_event_auction_start
 };
 use pitch_lake_starknet::tests::vault_facade::{VaultFacade, VaultFacadeTrait};
 use pitch_lake_starknet::tests::option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait};
@@ -48,11 +47,11 @@ fn test_unallocated_becomes_collateral() {
     // Add liq. to next round (1)
 
     let lps = liquidity_providers_get(2);
-    let amounts = array![1000 * decimals(),10000 * decimals()];
+    let amounts = array![1000 * decimals(), 10000 * decimals()];
     let deposit_total = *amounts[0] + *amounts[1];
-    vault_facade.deposit(deposit_amount_wei_1, liquidity_provider_1());
-    vault_facade.deposit(deposit_amount_wei_2, liquidity_provider_2());
-    // Initial collateral/unallocated 
+    vault_facade.deposit(*amounts[0], liquidity_provider_1());
+    vault_facade.deposit(*amounts[1], liquidity_provider_2());
+    // Initial collateral/unallocated
     let (lp1_collateral, lp1_unallocated) = vault_facade
         .get_all_lp_liquidity(liquidity_provider_1());
     let (lp2_collateral, lp2_unallocated) = vault_facade
@@ -64,8 +63,8 @@ fn test_unallocated_becomes_collateral() {
     assert(lp2_collateral == 0, 'lp2 collateral wrong');
     assert(next_round_collateral == 0, 'next round collateral wrong');
     assert(next_round_total_liquidity == 0, 'next round total liq. wrong');
-    assert(lp1_unallocated == deposit_amount_wei_1, 'lp1 unallocated wrong');
-    assert(lp2_unallocated == deposit_amount_wei_2, 'lp2 unallocated wrong');
+    assert(lp2_unallocated == *amounts[0], 'lp2 unallocated wrong');
+    assert(lp1_unallocated == *amounts[1], 'lp1 unallocated wrong');
     assert(next_round_unallocated == deposit_total, 'next round unallocated wrong');
     // Start the auction
     vault_facade.start_auction();
@@ -77,8 +76,8 @@ fn test_unallocated_becomes_collateral() {
     let (next_round_collateral, next_round_unallocated) = next_round.get_all_round_liquidity();
     let next_round_total_liquidity = next_round.total_liquidity();
     // Check final spread
-    assert(lp1_collateral == deposit_amount_wei_1, 'lp1 collateral wrong');
-    assert(lp2_collateral == deposit_amount_wei_2, 'lp2 collateral wrong');
+    assert(lp1_collateral == *amounts[0], 'lp1 collateral wrong');
+    assert(lp2_collateral == *amounts[1], 'lp2 collateral wrong');
     assert(next_round_collateral == deposit_total, 'next round collateral wrong');
     assert(next_round_total_liquidity == deposit_total, 'next round total liq. wrong');
     assert(lp1_unallocated == 0, 'lp1 unallocated wrong');
@@ -86,7 +85,7 @@ fn test_unallocated_becomes_collateral() {
     assert(next_round_unallocated == 0, 'next round unallocated wrong');
 }
 
-// Test when an auction starts, it becomes the current round and the 
+// Test when an auction starts, it becomes the current round and the
 // next round is deployed.
 #[test]
 #[available_gas(10000000)]
@@ -149,7 +148,7 @@ fn test_start_auction_while_current_round_running_failure() {
     // Start auction
     vault_facade.start_auction();
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    // Make bid 
+    // Make bid
     let option_params: OptionRoundParams = current_round_facade.get_params();
     let bid_count: u256 = option_params.total_options_available + 10;
     let bid_price: u256 = option_params.reserve_price;
@@ -174,7 +173,7 @@ fn test_start_auction_before_round_transition_period_over_failure() {
     // Start auction
     vault_facade.start_auction();
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    // Make bid 
+    // Make bid
     let option_params: OptionRoundParams = current_round_facade.get_params();
     let bid_count: u256 = option_params.total_options_available + 10;
     let bid_price: u256 = option_params.reserve_price;
@@ -193,7 +192,7 @@ fn test_start_auction_before_round_transition_period_over_failure() {
     vault_facade.start_auction();
 }
 
-// Test that an auction cannot start if the minimum_collateral_required is not reached 
+// Test that an auction cannot start if the minimum_collateral_required is not reached
 // @note Tomasz said this is unneccesary, we may introduce a maximum_collateral_required.
 // Tomasz said too much collateral leads to problems with manipulation for premium
 // This is a much later concern
@@ -214,7 +213,7 @@ fn test_start_auction_under_minium_collateral_required_failure() {
     // LP deposits (into round 1)
     let deposit_amount_wei: u256 = minimum_collateral_required - 1;
     vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
-    // Try to start auction 
+    // Try to start auction
     vault_facade.start_auction();
 }
 

@@ -177,10 +177,10 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     fn get_market_aggregator(ref self: VaultFacade) -> ContractAddress {
         self.vault_dispatcher.get_market_aggregator()
     }
-    fn collect_unallocated(ref self:VaultFacade, amount:u256){
+    fn collect_unallocated(ref self: VaultFacade, amount: u256) {
         self.vault_dispatcher.collect_unallocated(amount);
     }
-  
+
 
     // Gets the round transition period in seconds, 3 hours is a random number for testing
     // @note TODO impl this in contract later
@@ -195,15 +195,14 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         self.vault_dispatcher.get_premiums_for(lp)
     }
 
-    fn deposit_mutltiple(ref self:VaultFacade, lps:Array<ContractAddress>,amounts:Array<u256>){
-    let mut index: u32 = 0;
-    assert (lps.len()==amounts.len(),'Incorrect lengths');
-    
-    while index < lps.len() {
-            self.deposit(*amounts[index], *lps.at(index));
-        index+=1;
+    fn deposit_mutltiple(ref self: VaultFacade, lps: Array<ContractAddress>, amounts: Array<u256>) {
+        let mut index: u32 = 0;
+        assert(lps.len() == amounts.len(), 'Incorrect lengths');
 
-    };
+        while index < lps.len() {
+            self.deposit(*amounts[index], *lps.at(index));
+            index += 1;
+        };
     }
 }
 

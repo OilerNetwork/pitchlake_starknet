@@ -40,9 +40,12 @@ use pitch_lake_starknet::tests::utils::{
     assert_no_events_left, deploy_pitch_lake
 };
 
-// @note Need to manually initialize round 1, either 
+
+// @note Not important for now, probably will only have 1 vault
+
+// @note Need to manually initialize round 1, either
 // upon vault deployment (constructor) or through a one-time round 1 initializer entry point
-// @note Add test that all rounds, r > 1 are initialized automatically once 
+// @note Add test that all rounds, r > 1 are initialized automatically once
 // the round (r-1) settles
 
 // Test that the strik price is set correctly based on the vault type
@@ -67,10 +70,10 @@ fn test_strike_price_based_on_vault_types() {
     vault_dispatcher_out_the_money.deposit_liquidity(deposit_amount_wei);
 
     // Vaults deploy with current -> 0: Settled, and next -> 1: Open,
-    // In all future rounds, when the current round settles, the next is initialized 
-    // The next round must be initialized inorder for its auction to start 
+    // In all future rounds, when the current round settles, the next is initialized
+    // The next round must be initialized inorder for its auction to start
     // This means r1 will need to be manually initialized before its auction, then
-    // all following rounds will be automatically initialized when the current one settles. 
+    // all following rounds will be automatically initialized when the current one settles.
 
     // @note Need to initialize r1 manually, then start the auction.
 
