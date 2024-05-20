@@ -29,6 +29,10 @@ use pitch_lake_starknet::tests::utils::{
 };
 use pitch_lake_starknet::tests::vault::utils::{accelerate_to_running};
 
+// @note Add event tests once we agree on if we are using 1 or 2 withdraw functions.
+// Either one withdraw that takes from current premiums/unsold then from next round unallocated,
+// or one for current premiums/unsold and one for next round unallocated (withdraw vs withdraw & collect) ?
+
 // Test withdraw > lp unallocated fails
 
 // Test withdraw 0 fails

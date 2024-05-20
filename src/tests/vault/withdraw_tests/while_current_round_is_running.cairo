@@ -30,7 +30,12 @@ use pitch_lake_starknet::tests::utils::{
 };
 use pitch_lake_starknet::tests::vault::utils::{accelerate_to_running};
 
+
+// @note Add event tests once we settle on 1 or 2 withdraw functions see withdraw_tests.cairo for more info
+
+
 // @note Rewards are unallocated liquidity in the current round (premiums earned + any unsold liqudity)
+
 
 // Test eth transfer when LP withdraws from their rewards
 #[test]

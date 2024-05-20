@@ -29,6 +29,9 @@ use pitch_lake_starknet::tests::utils::{
     mock_option_params, pop_log, assert_no_events_left
 };
 
+// @note Add event tests once we settle on 1 or 2 withdraw functions see withdraw_tests.cairo for more info
+
+
 // Test eth transfer when LP withdraws from their next round deposit
 #[test]
 #[available_gas(10000000)]
