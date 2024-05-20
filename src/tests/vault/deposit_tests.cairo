@@ -116,7 +116,7 @@ fn test_deposit_events() {
         next_round.contract_address(), liquidity_provider_1(), deposit_amount
     );
     assert_event_option_deposit_liquidity(
-      next_round.contract_address(), liquidity_provider_2(), 2 * deposit_amount
+        next_round.contract_address(), liquidity_provider_2(), 2 * deposit_amount
     );
 }
 
@@ -194,7 +194,7 @@ fn test_event_testers() {
     assert_event_auction_end(r.contract_address(), 100);
     assert_event_option_settle(r.contract_address(), 100);
     assert_event_option_round_created(
-        v.contract_address(), v.contract_address(), v.contract_address(), 100, mock_option_params()
+        v.contract_address(), v.contract_address(), v.contract_address(), mock_option_params()
     );
 
     assert_event_vault_transfer(v.contract_address(), v.contract_address(), 100, 100, true);

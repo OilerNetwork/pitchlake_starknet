@@ -639,16 +639,15 @@ fn assert_event_option_round_created(
     contract: ContractAddress,
     prev_round: ContractAddress,
     new_round: ContractAddress,
-    collaterized_amount: u256,
+    //collaterized_amount: u256,
     option_round_params: OptionRoundParams
 ) {
     match pop_log::<Vault::OptionRoundCreated>(contract) {
         Option::Some(e) => {
             let e = Vault::Event::OptionRoundCreated(e);
             let expected = Vault::Event::OptionRoundCreated(
-                Vault::OptionRoundCreated {
-                    prev_round, new_round, collaterized_amount, option_round_params
-                }
+                Vault::OptionRoundCreated { prev_round, new_round, //collaterized_amount,
+                option_round_params }
             );
             assert_events_equal(e, expected);
         },
