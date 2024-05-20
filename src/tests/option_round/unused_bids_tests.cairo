@@ -31,11 +31,10 @@ use pitch_lake_starknet::tests::{
     vault_facade::{VaultFacade, VaultFacadeTrait},
     option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait}
 };
-// use starknet::contract_address::ContractAddressZeroable;
 
-// use traits::Into;
-// use traits::TryInto;
+// @note Should event emit if collecting 0 ?
 
+// @note use multiple bidders
 #[test]
 #[available_gas(10000000)]
 fn test_get_unused_bids_for_ob_during_auction() {
@@ -121,6 +120,9 @@ fn test_collect_unused_bids_after_auction_end_success() {
         round_facade.get_unused_bids_for(option_bidder_buyer_1()) == 0, 'collect amount should be 0'
     );
 }
+
+// @note Add test for eth transfer when collecting unused bids
+// @note Add event tester for collecitng unused bids (ValutTransfer and OptionTransferEvent)
 
 #[test]
 #[available_gas(10000000)]
