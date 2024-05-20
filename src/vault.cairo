@@ -10,9 +10,7 @@ enum VaultType {
     OutOfMoney,
 }
 
-//IVault, Vault will be the main contract that the liquidity_providers and option_buyers will interact with.
-// Is this the case or wil OBs interact with the option rounds ?
-
+// The interface for the vault contract
 #[starknet::interface]
 trait IVault<TContractState> {
     fn rm_me2(ref self: TContractState);

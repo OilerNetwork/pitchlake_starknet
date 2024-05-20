@@ -1,45 +1,24 @@
-// use array::ArrayTrait;
 use debug::PrintTrait;
-// use option::OptionTrait;
-// use openzeppelin::token::erc20::interface::{
-//     IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
-//     IERC20SafeDispatcherTrait,
-// };
-// use pitch_lake_starknet::option_round::{OptionRoundParams};
-
-// use result::ResultTrait;
 use starknet::{
     ContractAddressIntoFelt252, contract_address_to_felt252, ClassHash, ContractAddress,
     contract_address_const, deploy_syscall, Felt252TryIntoContractAddress, get_contract_address,
     get_block_timestamp, testing::{set_block_timestamp, set_contract_address}
 };
-
-// use starknet::contract_address::ContractAddressZeroable;
-// use openzeppelin::utils::serde::SerializedAppend;
-
-// use traits::Into;
-// use traits::TryInto;
-// use pitch_lake_starknet::eth::Eth;
-
 use pitch_lake_starknet::tests::{
     option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
-    vault_facade::{VaultFacade, VaultFacadeTrait}
-};
-use pitch_lake_starknet::tests::utils::{
-    setup_facade, liquidity_provider_1, liquidity_provider_2, liquidity_providers_get, decimals,
-    option_bidder_buyer_1, option_bidder_buyer_2, accelerate_to_running, accelerate_to_auctioning,
-    accelerate_to_running_partial // , deploy_vault, allocated_pool_address, unallocated_pool_address,
-// timestamp_start_month, timestamp_end_month, liquidity_provider_2,
-// , option_bidder_buyer_3, option_bidder_buyer_4,
-// vault_manager, weth_owner, mock_option_params, assert_event_transfer
-};
-use pitch_lake_starknet::tests::mocks::mock_market_aggregator::{
-    MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
-    IMarketAggregatorSetterDispatcherTrait
+    vault_facade::{VaultFacade, VaultFacadeTrait},
+    utils::{
+        setup_facade, liquidity_provider_1, liquidity_provider_2, liquidity_providers_get, decimals,
+        option_bidder_buyer_1, option_bidder_buyer_2, accelerate_to_running,
+        accelerate_to_auctioning, accelerate_to_running_partial
+    },
+    mocks::mock_market_aggregator::{
+        MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
+        IMarketAggregatorSetterDispatcherTrait
+    },
 };
 
-// Test that collected premiums do not roll over to the next round 
-
+// Test that collected premiums do not roll over to the next round
 #[test]
 #[available_gas(10000000)]
 fn test_premiums_and_unsold_liquidity_unallocated_amount() {
@@ -52,7 +31,7 @@ fn test_premiums_and_unsold_liquidity_unallocated_amount() {
     // Make deposit into next round
     let deposit_amount = 100 * decimals();
     vault_facade.deposit(deposit_amount, liquidity_provider_1());
-    // Amount of premiums earned from the auction (plus unsold liq) for LP 
+    // Amount of premiums earned from the auction (plus unsold liq) for LP
     let premiums_earned = current_round.total_options_sold()
         * current_params
             .reserve_price; // @dev lp owns 100% of the pool, so 100% of the prmeium is theirs
@@ -73,7 +52,7 @@ fn test_collect_more_than_unallocated_balance_failure() {
     // Make deposit into next round
     let deposit_amount = 100 * decimals();
     vault_facade.deposit(deposit_amount, liquidity_provider_1());
-    // Amount of premiums earned from the auction (plus unsold liq) for LP 
+    // Amount of premiums earned from the auction (plus unsold liq) for LP
     // @dev lp owns 100% of the pool, so 100% of the prmeium is theirs
     // LP unallocated is premiums earned + next round deposits
     let (_, lp_unallocated) = vault_facade.get_all_lp_liquidity(liquidity_provider_1());
@@ -92,8 +71,8 @@ fn test_collected_liquidity_does_not_roll_over() {
     //Get the total allocated liquidity at this stage
 
     let (lp_allocated, _) = vault_facade.get_all_lp_liquidity(liquidity_provider_1());
-    // Collect premium 
-    // Since no more deposit is made unallocated is equal to the premiums from the auction
+    // Collect premium
+    // Since no more deposits were made, unallocated is equal to the premiums from the auction
 
     let claimable_premiums: u256 = params.total_options_available * params.reserve_price;
     vault_facade.collect_unallocated(claimable_premiums);
