@@ -142,7 +142,9 @@ mod Vault {
     struct OptionRoundCreated {
         prev_round: ContractAddress,
         new_round: ContractAddress,
-        collaterized_amount: u256,
+        // @note Discuss below, when round is created/deployed, the liquidity is currently unallocated
+        //  - should it be dropped or replaced ?
+        //collaterized_amount: u256,
         option_round_params: OptionRoundParams
     }
 
@@ -208,7 +210,7 @@ mod Vault {
                         OptionRoundCreated {
                             prev_round: starknet::get_contract_address(),
                             new_round: starknet::get_contract_address(),
-                            collaterized_amount: 100,
+                            //collaterized_amount: 100,
                             option_round_params: mock_option_params(),
                         }
                     )
