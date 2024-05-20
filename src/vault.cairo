@@ -21,7 +21,9 @@ enum Event {
 struct VaultTransfer {
     #[key]
     user: ContractAddress,
-    total_deposit_now: u256,
+    total_balance_before: u256,
+    // Collateral + unallocated
+    total_balance_now: u256,
 }
 
 #[derive(Drop, starknet::Event, PartialEq)]
@@ -77,6 +79,11 @@ trait IVault<TContractState> {
     // LP withdraws from their position while in the round transition period
     fn withdraw_liquidity(ref self: TContractState, amount: u256);
 
+    // @note Discuss if there should be 1 withdraw function or two (1 for collecting
+    // premium/unsold from current and 1 for withdrawing unallocated from next round)
+    // LP collects from their unallocated balance
+    fn collect_unallocated(ref self: TContractState, amount: u256);
+
     // LP converts their collateral into LP tokens
     // @note all at once or can LP convert a partial amount ?
     //  - logically i'm pretty sure they could do a partial amount (collecting all rewards in either case)
@@ -117,8 +124,6 @@ trait IVault<TContractState> {
     fn get_market_aggregator(self: @TContractState) -> ContractAddress;
 
     fn is_premium_collected(self: @TContractState, lp: ContractAddress, round_id: u256) -> bool;
-
-    fn collect_unallocated(ref self: TContractState, amount: u256);
 }
 
 #[starknet::contract]
@@ -222,7 +227,7 @@ mod Vault {
                 .emit(
                     Event::Deposit(
                         VaultTransfer {
-                            user: starknet::get_contract_address(), total_deposit_now: 100
+                            user: starknet::get_contract_address(), total_balance_before: 100, total_balance_now: 100
                         }
                     )
                 );
@@ -230,7 +235,7 @@ mod Vault {
                 .emit(
                     Event::Withdrawal(
                         VaultTransfer {
-                            user: starknet::get_contract_address(), total_deposit_now: 100
+                            user: starknet::get_contract_address(),total_balance_before: 100, total_balance_now: 100
                         }
                     )
                 );

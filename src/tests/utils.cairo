@@ -664,7 +664,11 @@ fn assert_event_option_round_created(
 // Test VaultTransfer event emits correctly (deposit and withdraw)
 // is_deposit == true for Deposit event, false for Withdrawal event
 fn assert_event_vault_transfer(
-    vault: ContractAddress, user: ContractAddress, total_deposit_now: u256, is_deposit: bool
+    vault: ContractAddress,
+    user: ContractAddress,
+    total_balance_before: u256,
+    total_balance_now: u256,
+    is_deposit: bool
 ) {
     match pop_event_details(vault) {
         Option::Some((
@@ -672,11 +676,16 @@ fn assert_event_vault_transfer(
         )) => {
             let e_inner: Vault::VaultTransfer = Vault::VaultTransfer {
                 user: (*keys.at(1)).try_into().unwrap(),
-                total_deposit_now: u256 {
+                total_balance_before: u256 {
                     low: (*data.at(0)).try_into().unwrap(), high: (*data.at(1)).try_into().unwrap()
+                },
+                total_balance_now: u256 {
+                    low: (*data.at(2)).try_into().unwrap(), high: (*data.at(3)).try_into().unwrap()
                 }
             };
-            let expected_inner = Vault::VaultTransfer { user, total_deposit_now };
+            let expected_inner = Vault::VaultTransfer {
+                user, total_balance_before, total_balance_now
+            };
             let (e, expected) = match is_deposit {
                 true => { (Vault::Event::Deposit(e_inner), Vault::Event::Deposit(expected_inner)) },
                 false => {
