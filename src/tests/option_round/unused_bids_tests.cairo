@@ -162,6 +162,10 @@ fn test_collect_unused_bids_events() {
         lp1_balance_before - collected_amount,
         false
     );
+    // Check OptionRound event
+    assert_event_option_withdraw_unused_bids(
+        round_facade.contract_address(), option_bidder_buyer_1(), bid_amount
+    )
 }
 
 // Test eth transfer when collecting unused bids
