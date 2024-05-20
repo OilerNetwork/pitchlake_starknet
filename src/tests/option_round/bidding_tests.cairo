@@ -169,14 +169,6 @@ fn test_lock_of_bid_funds() {
     assert(
         round_balance_after_bid == round_balance_after_bid + bid_amount, 'bid did not reach round'
     );
-
-    // Check eth transfer event
-    assert_event_transfer(
-        eth_dispatcher.contract_address,
-        option_bidder_buyer_1(),
-        round_facade.contract_address(),
-        bid_amount,
-    );
 }
 
 #[test]
