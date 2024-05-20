@@ -538,6 +538,7 @@ fn assert_event_option_withdraw_payout(
 }
 
 // Check OptionTransfer::WithdrawLiquidity emits correctly
+// @note Note used anywhere yet, see withdraw_tests.cairo
 fn assert_event_option_withdraw_liquidity(
     contract: ContractAddress, user: ContractAddress, amount: u256
 ) {
@@ -561,7 +562,7 @@ fn assert_event_option_withdraw_unused_bids(
     }
 }
 
-
+// Internal helper function to test all option transfer event variants
 fn _assert_event_option_transfer_helper(
     contract: ContractAddress,
     keys: Span<felt252>,
@@ -605,6 +606,8 @@ fn _assert_event_option_transfer_helper(
 
 
 // Test transfer event (ERC20 structure) emits correctly
+// @note Can remove all instances of this test that are testing eth transfers, just testing the balance changes is enough
+// @note Add tests using this helper for erc20 transfer tests for options, lp tokens?
 fn assert_event_transfer(
     contract: ContractAddress, from: ContractAddress, to: ContractAddress, value: u256
 ) {
@@ -646,8 +649,10 @@ fn assert_event_option_round_created(
         Option::Some(e) => {
             let e = Vault::Event::OptionRoundCreated(e);
             let expected = Vault::Event::OptionRoundCreated(
-                Vault::OptionRoundCreated { prev_round, new_round, //collaterized_amount,
-                option_round_params }
+                Vault::OptionRoundCreated {
+                    prev_round, new_round, //collaterized_amount,
+                     option_round_params
+                }
             );
             assert_events_equal(e, expected);
         },

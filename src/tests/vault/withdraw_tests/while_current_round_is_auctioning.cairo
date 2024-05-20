@@ -33,7 +33,6 @@ use pitch_lake_starknet::tests::vault::utils::{accelerate_to_auctioning};
 
 // @note Add event tests once we settle on 1 or 2 withdraw functions see withdraw_tests.cairo for more info
 
-
 // Test eth transfer when LP withdraws from their next round deposit
 #[test]
 #[available_gas(10000000)]
