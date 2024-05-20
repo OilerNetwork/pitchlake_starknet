@@ -75,6 +75,51 @@ fn test_deposit_eth_transfer() {
     );
 }
 
+// Test deposit event emission
+#[test]
+#[available_gas(10000000)]
+fn test_deposit_events() {
+    let (mut vault_facade, _) = setup_facade();
+    let mut next_round = vault_facade.get_next_round();
+    // Deposit into next round
+    let deposit_amount = 50 * decimals();
+    // Initial balances
+    let (lp1_init_collateral, lp1_init_unallocated) = vault_facade
+        .get_all_lp_liquidity(liquidity_provider_1());
+    let (lp2_init_collateral, lp2_init_unallocated) = vault_facade
+        .get_all_lp_liquidity(liquidity_provider_2());
+    let lp1_total_before = lp1_init_collateral + lp1_init_unallocated;
+    let lp2_total_before = lp2_init_collateral + lp2_init_unallocated;
+
+    // Make deposits
+    // @note replace with accelerators, or no because of event log?
+    vault_facade.deposit(deposit_amount, liquidity_provider_1());
+    vault_facade.deposit(2 * deposit_amount, liquidity_provider_2());
+
+    // Check vault events emit correctly
+    assert_event_vault_transfer(
+        vault_facade.contract_address(),
+        liquidity_provider_1(),
+        lp1_total_before,
+        lp1_total_before + deposit_amount,
+        true // is deposit
+    );
+    assert_event_vault_transfer(
+        vault_facade.contract_address(),
+        liquidity_provider_2(),
+        lp2_total_before,
+        lp2_total_before + deposit_amount,
+        true // is deposit
+    );
+    // Check option round events emit correctly
+    assert_event_option_deposit_liquidity(
+        next_round.contract_address(), liquidity_provider_1(), deposit_amount
+    );
+    assert_event_option_deposit_liquidity(
+      next_round.contract_address(), liquidity_provider_2(), 2 * deposit_amount
+    );
+}
+
 // Test collateral/unallocated amounts when LP deposits
 // @note add assertion that vault::round_positions[lp, next_id] increments (need to add vault entry point for get_lp_deposit_in_round)
 #[test]
@@ -131,6 +176,7 @@ fn test_deposit_zero_liquidity_failure() {
     vault_facade.deposit(0, liquidity_provider_1());
 }
 
+// Move to different file
 // Test to make sure the event testers are working as expected
 #[test]
 #[available_gas(100000000)]
