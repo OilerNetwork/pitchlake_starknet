@@ -114,11 +114,6 @@ fn test_start_auction_becomes_current_round() {
         'current round should be settled'
     );
     assert(next_round_facade.get_state() == OptionRoundState::Open, 'next round should be open');
-    // Check that auction start event was emitted with correct total_options_available
-    assert_event_auction_start(
-        current_round_facade.contract_address(),
-        current_round_facade.get_params().total_options_available
-    );
 }
 
 // Test when the auction starts, the auction_start event is emitted
