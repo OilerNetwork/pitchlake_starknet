@@ -1,5 +1,4 @@
 use core::array::ArrayTrait;
-use pitch_lake_starknet::tests::mocks::mock_market_aggregator::IMarketAggregatorSetterDispatcherTrait;
 use debug::PrintTrait;
 use starknet::{
     ClassHash, ContractAddress, contract_address_const, deploy_syscall,
@@ -38,7 +37,8 @@ use pitch_lake_starknet::market_aggregator::{
     IMarketAggregatorSafeDispatcher, IMarketAggregatorSafeDispatcherTrait
 };
 use pitch_lake_starknet::tests::mocks::mock_market_aggregator::{
-    MockMarketAggregator, IMarketAggregatorSetterDispatcher, IMarketAggregatorSetter
+    MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
+    IMarketAggregatorSetterDispatcherTrait
 };
 
 const DECIMALS: u8 = 18_u8;
@@ -490,13 +490,22 @@ fn accelerate_to_running(ref self: VaultFacade) {
     }
     // Bid for all options at reserve price
     let params = current_round.get_params();
-    let bid_amount = params.total_options_available;
+    let bid_count = params.total_options_available;
     let bid_price = params.reserve_price;
-    let bid_amount = bid_amount * bid_price;
+    let bid_amount = bid_count * bid_price;
     current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
     // End auction
     set_block_timestamp(params.auction_end_time + 1);
     current_round.end_auction();
+}
+
+fn accelerate_to_settle(ref self: VaultFacade, base_fee: u256) {
+    let mock_maket_aggregator_setter: IMarketAggregatorSetterDispatcher =
+        IMarketAggregatorSetterDispatcher {
+        contract_address: self.get_market_aggregator()
+    };
+    mock_maket_aggregator_setter.set_current_base_fee(base_fee);
+    self.timeskip_and_settle_round();
 }
 
 
