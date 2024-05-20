@@ -120,6 +120,8 @@ fn test_start_auction_becomes_current_round() {
     );
 }
 
+// @note Add test for option round start event
+
 /// Failures ///
 
 // Test the next auction cannot start before the round transition period is over
