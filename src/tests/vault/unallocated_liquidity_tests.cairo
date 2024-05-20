@@ -140,7 +140,7 @@ fn test_premium_collection_ratio_conversion_unallocated_pool_1() {
     let total_premium_to_be_paid: u256 = current_round.get_auction_clearing_price()
         * current_round.total_options_sold();
     // LP % of the round
-    // @note Check math is correct/precision is handled
+    // @note Check math is correct/precision is handled (goes for all instances of ratio calculations like this)
     let ratio_of_liquidity_provider_1: u256 = (vault_facade
         .get_collateral_balance_for(liquidity_provider_1())
         * 100)
