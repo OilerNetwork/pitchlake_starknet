@@ -17,14 +17,14 @@ enum Event {
     OptionRoundCreated: OptionRoundCreated,
 }
 
-#[derive(Drop, starknet::Event)]
+#[derive(Drop, starknet::Event, PartialEq)]
 struct VaultTransfer {
-    from: ContractAddress,
-    to: ContractAddress,
-    amount: u256
+    #[key]
+    user: ContractAddress,
+    total_deposit_now: u256,
 }
 
-#[derive(Drop, starknet::Event)]
+#[derive(Drop, starknet::Event, PartialEq)]
 struct OptionRoundCreated {
     prev_round: ContractAddress,
     new_round: ContractAddress,
@@ -37,6 +37,7 @@ struct OptionRoundCreated {
 
 #[starknet::interface]
 trait IVault<TContractState> {
+    fn rm_me2(ref self: TContractState);
     /// Reads ///
 
     // Get the vault's  manaager address
@@ -136,7 +137,19 @@ mod Vault {
         IOptionRoundDispatcher
     };
     use pitch_lake_starknet::market_aggregator::{IMarketAggregatorDispatcher};
+    use super::{VaultTransfer, OptionRoundCreated};
 
+    // testing
+    use pitch_lake_starknet::tests::utils::{mock_option_params};
+
+    // Events
+    #[event]
+    #[derive(PartialEq, Drop, starknet::Event)]
+    enum Event {
+        Deposit: VaultTransfer,
+        Withdrawal: VaultTransfer,
+        OptionRoundCreated: OptionRoundCreated,
+    }
 
     #[storage]
     struct Storage {
@@ -193,6 +206,35 @@ mod Vault {
 
     #[abi(embed_v0)]
     impl VaultImpl of super::IVault<ContractState> {
+        fn rm_me2(ref self: ContractState) {
+            self
+                .emit(
+                    Event::OptionRoundCreated(
+                        OptionRoundCreated {
+                            prev_round: starknet::get_contract_address(),
+                            new_round: starknet::get_contract_address(),
+                            collaterized_amount: 100,
+                            option_round_params: mock_option_params(),
+                        }
+                    )
+                );
+            self
+                .emit(
+                    Event::Deposit(
+                        VaultTransfer {
+                            user: starknet::get_contract_address(), total_deposit_now: 100
+                        }
+                    )
+                );
+            self
+                .emit(
+                    Event::Withdrawal(
+                        VaultTransfer {
+                            user: starknet::get_contract_address(), total_deposit_now: 100
+                        }
+                    )
+                );
+        }
         /// Reads ///
         fn vault_manager(self: @ContractState) -> ContractAddress {
             self.vault_manager.read()
