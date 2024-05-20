@@ -62,7 +62,7 @@ fn test_bid_before_auction_starts_failure() {
 
     // Check bid rejected event
     assert_event_auction_bid(
-        next_round.contract_address(), option_bidder_buyer_1(), bid_amount, option_price
+        next_round.contract_address(), option_bidder_buyer_1(), bid_amount, option_price, false
     );
 }
 
@@ -94,7 +94,7 @@ fn test_bid_after_auction_ends_failure() {
 
     // Check bid rejected event
     assert_event_auction_bid(
-        current_round.contract_address(), option_bidder_buyer_1(), bid_amount, option_price
+        current_round.contract_address(), option_bidder_buyer_1(), bid_amount, option_price, false
     );
 }
 
@@ -125,7 +125,7 @@ fn test_bid_after_auction_end_failure_2() {
 
     // Check bid rejected event
     assert_event_auction_bid(
-        current_round.contract_address(), option_bidder_buyer_1(), bid_amount, option_price
+        current_round.contract_address(), option_bidder_buyer_1(), bid_amount, option_price, false
     );
 }
 
@@ -175,7 +175,7 @@ fn test_lock_of_bid_funds() {
         eth_dispatcher.contract_address,
         option_bidder_buyer_1(),
         round_facade.contract_address(),
-        bid_amount
+        bid_amount,
     );
 }
 
@@ -204,12 +204,16 @@ fn test_bid_accepted_events() {
 
                 // Check bid accepted event
                 assert_event_auction_bid(
-                    round_facade.contract_address(), option_bidder_buyer_1(), bid_amount, bid_price
+                    round_facade.contract_address(),
+                    option_bidder_buyer_1(),
+                    bid_amount,
+                    bid_price,
+                    true
                 );
 
                 step += 1;
             },
-            Option::None => { break (); }
+            Option::None => { break; }
         };
     };
 }
@@ -235,7 +239,7 @@ fn test_bid_zero_amount_failure() {
 
     // Check bid rejected event
     assert_event_auction_bid(
-        round_facade.contract_address(), option_bidder_buyer_1(), 0, params.reserve_price
+        round_facade.contract_address(), option_bidder_buyer_1(), 0, params.reserve_price, false
     );
 }
 
@@ -259,7 +263,7 @@ fn test_bid_price_below_reserve_price_failure() {
 
     // Check bid rejected event
     assert_event_auction_bid(
-        round_facade.contract_address(), option_bidder_buyer_1(), 2, params.reserve_price - 1
+        round_facade.contract_address(), option_bidder_buyer_1(), 2, params.reserve_price - 1, false
     );
 }
 
