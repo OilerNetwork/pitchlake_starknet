@@ -6,14 +6,21 @@ use pitch_lake_starknet::market_aggregator::{
     IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
 };
 
+// The parameters needed to construct an option round
+// @param vault_address: The address of the vault that deployed this round
+// @param round_id: The id of the round (the first round in a vault is round 0)
+// @note Move into separate file or within contract
 #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
 struct OptionRoundConstructorParams {
     vault_address: ContractAddress,
     round_id: u256,
 }
 
+// The parameters of the option round
+// @note Discuss setting some values upon deployment, some when the previous settles, and when this round's auction starts
 #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
 struct OptionRoundParams {
+    // @note Discuss if we should set these when previous round settles, or shortly after when this round's auction starts
     current_average_basefee: u256, // average basefee the last few months, used to calculate the strike
     standard_deviation: u256, // used to calculate k (-σ or 0 or σ if vault is: ITM | ATM | OTM)
     strike_price: u256, // K = current_average_basefee * (1 + k)
@@ -30,68 +37,22 @@ struct OptionRoundParams {
     option_expiry_time: u64, // when the options can be settled
 }
 
-// Move these into contract or separate file
+// The states an option round can be in
+// @note Should we move these into the contract or separate file ?
 #[derive(Copy, Drop, Serde, PartialEq, starknet::Store)]
 enum OptionRoundState {
-    Open,
-    Auctioning,
-    Running,
-    Settled,
-    // old
-    Initialized, // add between Open and Auctioning (round transition period) ?
+    Open, // Accepting deposits, waiting for auction to start
+    Auctioning, // Auction is on going, accepting bids
+    Running, // Auction has ended, waiting for option round expiry date to settle
+    Settled, // Option round has settled, remaining liquidity has rolled over to the next round
+//Initialized, // add between Open and Auctioning (round transition period) ?
 }
 
-#[event]
-#[derive(Drop, starknet::Event)]
-enum Event {
-    AuctionStart: AuctionStart,
-    AuctionAcceptedBid: AuctionBid,
-    AuctionRejectedBid: AuctionBid,
-    AuctionEnd: AuctionEnd,
-    OptionSettle: OptionSettle,
-    // @note Add specific events
-    DepositLiquidty: OptionTransferEvent,
-    WithdrawPremium: OptionTransferEvent,
-    WithdrawPayout: OptionTransferEvent, // OBs collect payouts
-    WithdrawLiquidity: OptionTransferEvent, // LPs collect unallocated liquidity
-    WithdrawUnusedBids: OptionTransferEvent, // OBs collect unused bids
-//WithdrawUnusedDeposit: OptionTransferEvent, // unsold liquidity is included in premium
-}
-
-#[derive(Drop, starknet::Event, PartialEq,)]
-struct AuctionStart {
-    total_options_available: u256, // total_deposits / max_payout
-}
-
-#[derive(Drop, starknet::Event, PartialEq)]
-struct AuctionBid {
-    #[key]
-    bidder: ContractAddress,
-    amount: u256,
-    price: u256
-}
-
-#[derive(Drop, starknet::Event, PartialEq)]
-struct AuctionEnd {
-    clearing_price: u256
-// @note Discuss adding options sold ?
-}
-
-#[derive(Drop, starknet::Event, PartialEq)]
-struct OptionSettle {
-    settlement_price: u256
-}
-
-// Emitted when eth leaves this round
-#[derive(Drop, starknet::Event, PartialEq)]
-struct OptionTransferEvent {
-    #[key]
-    user: ContractAddress,
-    amount: u256
-}
-
+// The option round contract interface
+// @note Should we move this into a separate file ?
 #[starknet::interface]
 trait IOptionRound<TContractState> {
+    // @note This function is being used for testing (event testers)
     fn rm_me(ref self: TContractState, x: u256);
     /// Reads ///
 
@@ -105,14 +66,14 @@ trait IOptionRound<TContractState> {
     fn get_params(self: @TContractState) -> OptionRoundParams;
 
     // The total liquidity at the start of the round's auction
-    // @dev Redundant with total_collateral/unallocated.
+    // @dev Redundant with total_collateral/unallocated?
     fn total_liquidity(self: @TContractState) -> u256;
 
     // The amount of liqudity that is locked for the potential payout. May shrink
     // if the auction does not sell all options (moving some collateral to unallocated).
     // @dev For now this value is being tested as if it remains a fixed value after the auction.
     // We may need to mark the starting liquidity/collateral using another variable for conversions if we
-    // think total collateral should be 0 after the round settles
+    // think total collateral should be 0 after the round settles and another variable should be used for starting liquidity
     fn total_collateral(self: @TContractState) -> u256;
 
     // The the amount of liquidity that is not allocated for a payout and is withdrawable
@@ -199,10 +160,7 @@ mod OptionRound {
     use pitch_lake_starknet::vault::VaultType;
     use pitch_lake_starknet::vault::{IVaultDispatcher, IVaultDispatcherTrait};
     use openzeppelin::token::erc20::interface::IERC20Dispatcher;
-    use super::{
-        OptionRoundConstructorParams, OptionRoundParams, OptionRoundState, AuctionStart, AuctionBid,
-        OptionSettle, AuctionEnd, OptionTransferEvent,
-    };
+    use super::{OptionRoundConstructorParams, OptionRoundParams, OptionRoundState,};
     use pitch_lake_starknet::market_aggregator::{
         IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
     };
@@ -217,6 +175,7 @@ mod OptionRound {
         premiums_collected: LegacyMap<ContractAddress, bool>,
     }
 
+    // Option round events
     #[event]
     #[derive(Drop, starknet::Event, PartialEq)]
     enum Event {
@@ -232,6 +191,52 @@ mod OptionRound {
         WithdrawUnusedBids: OptionTransferEvent,
     }
 
+    // Emitted when the auction starts
+    // @param total_options_available Max number of options that can be sold in the auction
+    // @note Discuss if any other params should be emitted
+    #[derive(Drop, starknet::Event, PartialEq,)]
+    struct AuctionStart {
+        total_options_available: u256,
+    }
+
+    // Emitted when a bid is accepted or rejected
+    // @param bidder The account that placed the bid
+    // @param amount The amount of liquidity that was bid (max amount of funds the bidder is willing to spend in total)
+    // @param price The price per option that was bid (max price the bidder is willing to spend per option)
+    #[derive(Drop, starknet::Event, PartialEq)]
+    struct AuctionBid {
+        #[key]
+        bidder: ContractAddress,
+        amount: u256,
+        price: u256
+    }
+
+    // Emiited when the auction ends
+    // @param clearing_price The resulting price per each option of the batch auction
+    // @note Discuss if any other params should be emitted (options sold ?)
+    #[derive(Drop, starknet::Event, PartialEq)]
+    struct AuctionEnd {
+        clearing_price: u256
+    }
+
+    // Emitted when the option round settles
+    // @param settlement_price The TWAP of basefee for the option round period, used to calculate the payout
+    // @note Discuss if any other params should be emitted (total payout ?)
+    #[derive(Drop, starknet::Event, PartialEq)]
+    struct OptionSettle {
+        settlement_price: u256
+    }
+
+    // Emitted when eth leaves/enters the round
+    // @param user The user that depositted/withdrew the liquidity
+    // @param amount The amount of liquidity that was depositted/withdrawn
+    #[derive(Drop, starknet::Event, PartialEq)]
+    struct OptionTransferEvent {
+        #[key]
+        user: ContractAddress,
+        amount: u256
+    }
+
     #[constructor]
     fn constructor(
         ref self: ContractState,
@@ -240,18 +245,23 @@ mod OptionRound {
     ) {
         // Set market aggregator's address
         self.market_aggregator.write(market_aggregator);
-
         // Set the vault address
         self.vault_address.write(constructor_params.vault_address);
         // Set round state to open unless this is round 0
-        match constructor_params.round_id == 0_u256 {
-            true => self.state.write(OptionRoundState::Settled),
-            false => self.state.write(OptionRoundState::Open),
-        }
+        self
+            .state
+            .write(
+                match constructor_params.round_id == 0_u256 {
+                    true => OptionRoundState::Settled,
+                    false => OptionRoundState::Open,
+                }
+            );
     }
 
     #[abi(embed_v0)]
     impl OptionRoundImpl of super::IOptionRound<ContractState> {
+        // @note This function is being used for to check event testers are working correctly
+        // @note Should be renamed, and moved (look if possible to make a contract emit event from our tests instead of through a dispatcher/call)
         fn rm_me(ref self: ContractState, x: u256) {
             self.emit(Event::AuctionStart(AuctionStart { total_options_available: x }));
             self
