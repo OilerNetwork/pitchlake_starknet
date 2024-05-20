@@ -30,7 +30,8 @@ use pitch_lake_starknet::tests::utils::{
     setup_facade, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
     timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
     option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
-    vault_manager, weth_owner, mock_option_params, assert_event_auction_start
+    vault_manager, weth_owner, mock_option_params, assert_event_auction_start,
+    accelerate_to_auctioning, assert_event_option_round_created,
 };
 use pitch_lake_starknet::tests::vault_facade::{VaultFacade, VaultFacadeTrait};
 use pitch_lake_starknet::tests::option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait};
@@ -120,7 +121,37 @@ fn test_start_auction_becomes_current_round() {
     );
 }
 
-// @note Add test for option round start event
+// Test when the auction starts, the auction_start event is emitted
+#[test]
+#[available_gas(10000000)]
+fn test_start_auction_event() {
+    let (mut vault, _) = setup_facade();
+    accelerate_to_auctioning(ref vault);
+    let mut current_round: OptionRoundFacade = vault.get_current_round();
+    let params = current_round.get_params();
+    // Check that auction start event was emitted with correct total_options_available
+    assert_event_auction_start(current_round.contract_address(), params.total_options_available);
+}
+
+// Test when the next round is deployed, the correct event fires
+#[test]
+#[available_gas(10000000)]
+fn test_start_next_round_event() {
+    let (mut vault, _) = setup_facade();
+    let (mut current_round, mut next_round) = vault.get_current_and_next_rounds();
+    accelerate_to_auctioning(ref vault);
+    let params = next_round.get_params();
+
+    // Check that auction start event was emitted with correct total_options_available
+    assert_event_option_round_created(
+        vault.contract_address(),
+        current_round.contract_address(),
+        next_round.contract_address(),
+        //'replace with amnt in accelerator',// the amount of unallocateed liquidity in the next round that bec
+        params
+    );
+}
+
 
 /// Failures ///
 
