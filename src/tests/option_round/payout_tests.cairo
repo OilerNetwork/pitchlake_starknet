@@ -27,16 +27,15 @@ use pitch_lake_starknet::tests::{
 };
 use pitch_lake_starknet::tests::utils::{
     setup_facade, liquidity_provider_1, option_bidder_buyer_1, option_bidder_buyer_2,
-    option_bidder_buyer_3, decimals, assert_event_transfer, vault_manager
-// , deploy_vault, allocated_pool_address, unallocated_pool_address,
-// timestamp_start_month, timestamp_end_month, liquidity_provider_2,
-// , option_bidder_buyer_4,
-// , weth_owner, mock_option_params
+    assert_event_vault_transfer, option_bidder_buyer_3, decimals, assert_event_transfer,
+    vault_manager, assert_event_option_withdraw_payout, clear_event_logs,
 };
 use pitch_lake_starknet::tests::mocks::mock_market_aggregator::{
     MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
     IMarketAggregatorSetterDispatcherTrait
 };
+
+// @note If collection fails/is 0, should we fire an event or no ?
 
 // Test that an OB with 0 options gets 0 payout
 #[test]
@@ -100,6 +99,7 @@ fn test_option_payout_sends_eth() {
     let payout = option_round.exercise_options(option_bidder_buyer_1());
     let ob_balance_after = eth_dispatcher.balance_of(option_bidder_buyer_1());
     // Check balance updates
+    assert(payout > 0, 'payout shd be > 0');
     assert(ob_balance_after == ob_balance_before + payout, 'payout not received');
     // Check eth transfer to OB
     assert_event_transfer(
@@ -107,6 +107,52 @@ fn test_option_payout_sends_eth() {
         option_round.contract_address(),
         option_bidder_buyer_1(),
         payout
+    );
+}
+
+// Test withdrawing payouts emits correct events
+#[test]
+#[available_gas(10000000)]
+fn test_option_payout_events() {
+    let (mut vault_facade, _) = setup_facade();
+    let mut option_round: OptionRoundFacade = vault_facade.get_next_round();
+    let params = option_round.get_params();
+    // Deposit liquidity
+    let deposit_amount_wei: u256 = 10000 * decimals();
+    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
+    // Make bids
+    let bid_amount: u256 = 2;
+    let bid_price: u256 = params.reserve_price;
+    let bid_amount: u256 = bid_amount * bid_price;
+    option_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
+    option_round.place_bid(bid_amount, bid_price, option_bidder_buyer_2());
+    // End auction
+    vault_facade.timeskip_and_end_auction();
+    // Settle option round with payout
+    let settlement_price = params.strike_price + 10;
+    IMarketAggregatorSetterDispatcher { contract_address: vault_facade.get_market_aggregator() }
+        .set_current_base_fee(settlement_price);
+
+    // Settle auction
+    vault_facade.timeskip_and_settle_round();
+    // Collect payout
+    clear_event_logs(array![vault_facade.contract_address(), option_round.contract_address()]);
+    let payout1 = option_round.exercise_options(option_bidder_buyer_1());
+    let payout2 = option_round.exercise_options(option_bidder_buyer_2());
+
+    // Check OptionRound events
+    assert_event_option_withdraw_payout(
+        option_round.contract_address(), option_bidder_buyer_1(), payout1
+    );
+    assert_event_option_withdraw_payout(
+        option_round.contract_address(), option_bidder_buyer_2(), payout2
+    );
+    // Check Vault events
+    assert_event_vault_transfer(
+        vault_facade.contract_address(), option_bidder_buyer_1(), payout1, false
+    );
+    assert_event_vault_transfer(
+        vault_facade.contract_address(), option_bidder_buyer_2(), payout2, false
     );
 }
 
