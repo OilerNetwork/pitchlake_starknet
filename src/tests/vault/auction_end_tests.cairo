@@ -103,7 +103,7 @@ fn test_vault_end_auction_success() {
     let option_round_params: OptionRoundParams = current_round_facade.get_params();
     set_block_timestamp(option_round_params.auction_end_time + 1);
     let clearing_price: u256 = vault_facade.end_auction();
-    assert(clearing_price == 0, 'should be reserve_price');
+    assert(clearing_price == bid_price, 'should be reserve_price');
     // Check that state is Running now, and auction clearing price is set
     let state: OptionRoundState = current_round_facade.get_state();
     let expectedState: OptionRoundState = OptionRoundState::Running;
@@ -111,6 +111,35 @@ fn test_vault_end_auction_success() {
     // Check auction clearing price event
     assert_event_auction_end(
         current_round_facade.contract_address(), current_round_facade.get_auction_clearing_price()
+    );
+}
+
+// Test that the auction end event emits correctly
+#[test]
+#[available_gas(10000000)]
+fn test_vault_end_auction_event() {
+    let (mut vault_facade, _) = setup_facade();
+    // LP deposits (into round 1)
+    let deposit_amount_wei: u256 = 10000 * decimals();
+    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
+    // Start auction
+    set_contract_address(vault_manager());
+    vault_facade.start_auction();
+    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
+    // Make bid
+    let option_params: OptionRoundParams = current_round_facade.get_params();
+    let bid_count: u256 = option_params.total_options_available;
+    let bid_price: u256 = option_params.reserve_price;
+    let bid_amount: u256 = bid_count * bid_price;
+    current_round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
+    // Settle auction
+    let option_round_params: OptionRoundParams = current_round_facade.get_params();
+    set_block_timestamp(option_round_params.auction_end_time + 1);
+    let clearing_price: u256 = vault_facade.end_auction();
+
+    // Assert event emitted correctly
+    assert_event_auction_end(
+      current_round_facade.contract_address(), clearing_price
     );
 }
 
