@@ -44,9 +44,6 @@ use pitch_lake_starknet::{
     }
 };
 
-/// helpers
-
-//
 // @note move to option_round/state_transition_tests or /option_settle_tests
 // Test options cannot settle before expiry date
 #[test]
@@ -82,8 +79,6 @@ fn test_option_round_settle_updates_round_states() {
 }
 
 // Test the settling the round fires an event for the settlement price
-// @dev I don't think we need a getter/storage var for this. We use this value to calculate the payout,
-// which will be stored.
 #[test]
 #[available_gas(10000000)]
 fn test_option_round_settle_event() {
@@ -101,6 +96,8 @@ fn test_option_round_settle_event() {
     let mut current_round = vault_facade.get_current_round();
     assert_event_option_settle(current_round.contract_address(), settlement_price);
 }
+
+// @note If there needs to be a storage var for the settlement price, add test/facade/entrypoint for it
 
 // Test settling the option round twice fails
 #[test]
