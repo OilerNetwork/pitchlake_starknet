@@ -227,7 +227,9 @@ mod Vault {
                 .emit(
                     Event::Deposit(
                         VaultTransfer {
-                            user: starknet::get_contract_address(), total_balance_before: 100, total_balance_now: 100
+                            user: starknet::get_contract_address(),
+                            total_balance_before: 100,
+                            total_balance_now: 100
                         }
                     )
                 );
@@ -235,7 +237,9 @@ mod Vault {
                 .emit(
                     Event::Withdrawal(
                         VaultTransfer {
-                            user: starknet::get_contract_address(),total_balance_before: 100, total_balance_now: 100
+                            user: starknet::get_contract_address(),
+                            total_balance_before: 100,
+                            total_balance_now: 100
                         }
                     )
                 );
