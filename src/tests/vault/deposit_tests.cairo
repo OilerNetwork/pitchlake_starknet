@@ -6,7 +6,7 @@ use openzeppelin::token::erc20::interface::{
     IERC20SafeDispatcherTrait,
 };
 
-use pitch_lake_starknet::vault::{VaultTransfer};
+use pitch_lake_starknet::vault::{Vault};
 
 use result::ResultTrait;
 use starknet::{
@@ -23,13 +23,22 @@ use traits::TryInto;
 use pitch_lake_starknet::eth::Eth;
 use pitch_lake_starknet::tests::vault_facade::{VaultFacade, VaultFacadeTrait};
 use pitch_lake_starknet::tests::option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait};
+
+use pitch_lake_starknet::option_round::{
+    IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundParams, OptionRoundState
+};
 use pitch_lake_starknet::tests::utils;
 use pitch_lake_starknet::tests::utils::{
     setup_facade, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
     assert_event_transfer, timestamp_start_month, timestamp_end_month, liquidity_provider_1,
     liquidity_provider_2, option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
     option_bidder_buyer_4, zero_address, vault_manager, weth_owner, option_round_contract_address,
-    mock_option_params, pop_log, assert_no_events_left
+    mock_option_params, pop_log, assert_no_events_left, clear_event_logs,
+    assert_event_auction_start, assert_event_auction_bid, assert_event_auction_end,
+    assert_event_option_settle, assert_event_option_round_created, assert_event_vault_transfer,
+    assert_event_option_deposit_liquidity, assert_event_option_withdraw_premium,
+    assert_event_option_withdraw_payout, assert_event_option_withdraw_liquidity,
+    assert_event_option_withdraw_unused_bids
 };
 use pitch_lake_starknet::tests::vault::utils::{accelerate_to_auctioning, accelerate_to_running};
 
@@ -121,6 +130,36 @@ fn test_deposit_zero_liquidity_failure() {
     let (mut vault_facade, _) = setup_facade();
     vault_facade.deposit(0, liquidity_provider_1());
 }
+
+// Test to make sure the event testers are working as expected
+#[test]
+#[available_gas(100000000)]
+fn test_event_testers() {
+    let (mut v, e) = setup_facade();
+    set_contract_address(liquidity_provider_1());
+    /// new test, make emission come from entry point on vault,
+    let mut r = v.get_current_round();
+    e.transfer(liquidity_provider_1(), 100);
+    assert_event_transfer(e.contract_address, liquidity_provider_1(), liquidity_provider_1(), 100);
+    r.option_round_dispatcher.rm_me(100);
+    assert_event_auction_start(r.contract_address(), 100);
+    assert_event_auction_bid(r.contract_address(), r.contract_address(), 100, 100, true);
+    assert_event_auction_bid(r.contract_address(), r.contract_address(), 100, 100, false);
+    assert_event_auction_end(r.contract_address(), 100);
+    assert_event_option_settle(r.contract_address(), 100);
+    assert_event_option_round_created(
+        v.contract_address(), v.contract_address(), v.contract_address(), 100, mock_option_params()
+    );
+
+    assert_event_vault_transfer(v.contract_address(), v.contract_address(), 100, 100, true);
+    assert_event_vault_transfer(v.contract_address(), v.contract_address(), 100, 100, false);
+    assert_event_option_deposit_liquidity(r.contract_address(), r.contract_address(), 100);
+    assert_event_option_withdraw_premium(r.contract_address(), r.contract_address(), 100);
+    assert_event_option_withdraw_payout(r.contract_address(), r.contract_address(), 100);
+    assert_event_option_withdraw_liquidity(r.contract_address(), r.contract_address(), 100);
+    assert_event_option_withdraw_unused_bids(r.contract_address(), r.contract_address(), 100);
+}
+
 
 // Test that deposits always go into the next round
 #[test]
