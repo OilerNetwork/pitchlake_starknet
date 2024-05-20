@@ -14,6 +14,7 @@ use pitch_lake_starknet::tests::utils::{
     setup_facade, liquidity_provider_1, liquidity_provider_2, liquidity_provider_3,
     liquidity_provider_4, liquidity_provider_5, decimals, option_bidder_buyer_1,
     option_bidder_buyer_2, assert_event_option_withdraw_payout, assert_event_vault_transfer,
+    clear_event_logs, assert_event_option_withdraw_premium
 };
 use openzeppelin::token::erc20::interface::{
     IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
@@ -162,6 +163,53 @@ fn test_premium_collection_transfers_eth() {
     assert(
         lp2_balance_final == lp2_balance_init + collectable_premiums, 'lp2 did not collect premiums'
     );
+}
+
+
+#[test]
+#[available_gas(10000000)]
+fn test_premium_collection_emits_events() {
+    let (mut vault_facade, _) = setup_facade();
+    // Deposit and start auction
+    // @note Replace with accelerators post sync
+    let lps = array![liquidity_provider_1(), liquidity_provider_2(),];
+    let amounts = array![50 * decimals(), 50 * decimals()];
+    _test_premiums_collectable_helper(ref vault_facade, lps.span(), amounts.span());
+    let mut option_round = vault_facade.get_current_round();
+    // Clear events
+    clear_event_logs(array![vault_facade.contract_address(), option_round.contract_address()]);
+    // Initial protocol spread
+    let (lp1_collateral_init, lp1_unallocated_init) = vault_facade.get_all_lp_liquidity(*lps.at(0));
+    let (lp2_collateral_init, lp2_unallocated_init) = vault_facade.get_all_lp_liquidity(*lps.at(1));
+    let lp1_total_balance_before = lp1_collateral_init + lp1_unallocated_init;
+    let lp2_total_balance_before = lp2_collateral_init + lp2_unallocated_init;
+
+    // Collect premiums
+    let collected_amount1 = vault_facade.collect_premiums(*lps.at(0));
+    let collected_amount2 = vault_facade.collect_premiums(*lps.at(1));
+
+    assert_event_option_withdraw_premium(
+        option_round.contract_address(), *lps.at(0), collected_amount1
+    );
+    assert_event_option_withdraw_premium(
+        option_round.contract_address(), *lps.at(1), collected_amount2
+    );
+    assert_event_vault_transfer(
+        vault_facade.contract_address(),
+        *lps.at(0),
+        lp1_total_balance_before,
+        lp1_total_balance_before - collected_amount1,
+        false
+    );
+        assert_event_vault_transfer(
+        vault_facade.contract_address(),
+        *lps.at(1),
+        lp2_total_balance_before,
+        lp2_total_balance_before - collected_amount2,
+        false
+    );
+
+//check vault and option round evetns
 }
 
 // Test collecting premiums updates lp/round unallocated
