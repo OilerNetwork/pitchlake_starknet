@@ -135,9 +135,10 @@ fn test_option_payout_events() {
     // Settle auction
     vault_facade.timeskip_and_settle_round();
     // Initial balances
-    let (lp1_collateral_before, lp1_unallocated_before)= vault_facade.
-    get_all_lp_liquidity(option_bidder_buyer_1());
-    let (lp2_collateral_before, lp2_unallocated_before)= vault_facade.get_all_lp_liquidity(option_bidder_buyer_2());
+    let (lp1_collateral_before, lp1_unallocated_before) = vault_facade
+        .get_all_lp_liquidity(option_bidder_buyer_1());
+    let (lp2_collateral_before, lp2_unallocated_before) = vault_facade
+        .get_all_lp_liquidity(option_bidder_buyer_2());
     let lp1_total_balance_before = lp1_collateral_before + lp1_unallocated_before;
     let lp2_total_balance_before = lp2_collateral_before + lp2_unallocated_before;
 
@@ -155,10 +156,18 @@ fn test_option_payout_events() {
     );
     // Check Vault events
     assert_event_vault_transfer(
-        vault_facade.contract_address(), option_bidder_buyer_1(), lp1_total_balance_before, lp1_total_balance_before - payout1, false
+        vault_facade.contract_address(),
+        option_bidder_buyer_1(),
+        lp1_total_balance_before,
+        lp1_total_balance_before - payout1,
+        false
     );
     assert_event_vault_transfer(
-        vault_facade.contract_address(), option_bidder_buyer_2(),lp2_total_balance_before, lp2_total_balance_before - payout2, false
+        vault_facade.contract_address(),
+        option_bidder_buyer_2(),
+        lp2_total_balance_before,
+        lp2_total_balance_before - payout2,
+        false
     );
 }
 

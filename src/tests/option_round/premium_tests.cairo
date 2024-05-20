@@ -201,14 +201,13 @@ fn test_premium_collection_emits_events() {
         lp1_total_balance_before - collected_amount1,
         false
     );
-        assert_event_vault_transfer(
+    assert_event_vault_transfer(
         vault_facade.contract_address(),
         *lps.at(1),
         lp2_total_balance_before,
         lp2_total_balance_before - collected_amount2,
         false
     );
-
 //check vault and option round evetns
 }
 
