@@ -2,36 +2,12 @@ use starknet::{ContractAddress};
 use pitch_lake_starknet::option_round::{OptionRoundParams, OptionRoundState};
 use pitch_lake_starknet::market_aggregator::{IMarketAggregator, IMarketAggregatorDispatcher};
 
+// The type of vault
 #[derive(starknet::Store, Copy, Drop, Serde, PartialEq)]
 enum VaultType {
     InTheMoney,
     AtTheMoney,
     OutOfMoney,
-}
-
-#[event]
-#[derive(Drop, starknet::Event)]
-enum Event {
-    Deposit: VaultTransfer,
-    Withdrawal: VaultTransfer,
-    OptionRoundCreated: OptionRoundCreated,
-}
-
-#[derive(Drop, starknet::Event, PartialEq)]
-struct VaultTransfer {
-    #[key]
-    user: ContractAddress,
-    total_balance_before: u256,
-    // Collateral + unallocated
-    total_balance_now: u256,
-}
-
-#[derive(Drop, starknet::Event, PartialEq)]
-struct OptionRoundCreated {
-    prev_round: ContractAddress,
-    new_round: ContractAddress,
-    collaterized_amount: u256,
-    option_round_params: OptionRoundParams
 }
 
 //IVault, Vault will be the main contract that the liquidity_providers and option_buyers will interact with.
@@ -142,7 +118,6 @@ mod Vault {
         IOptionRoundDispatcher
     };
     use pitch_lake_starknet::market_aggregator::{IMarketAggregatorDispatcher};
-    use super::{VaultTransfer, OptionRoundCreated};
 
     // testing
     use pitch_lake_starknet::tests::utils::{mock_option_params};
@@ -154,6 +129,23 @@ mod Vault {
         Deposit: VaultTransfer,
         Withdrawal: VaultTransfer,
         OptionRoundCreated: OptionRoundCreated,
+    }
+
+    #[derive(Drop, starknet::Event, PartialEq)]
+    struct VaultTransfer {
+        #[key]
+        user: ContractAddress,
+        total_balance_before: u256,
+        // Collateral + unallocated
+        total_balance_now: u256,
+    }
+
+    #[derive(Drop, starknet::Event, PartialEq)]
+    struct OptionRoundCreated {
+        prev_round: ContractAddress,
+        new_round: ContractAddress,
+        collaterized_amount: u256,
+        option_round_params: OptionRoundParams
     }
 
     #[storage]
