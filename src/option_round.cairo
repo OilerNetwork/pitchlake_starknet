@@ -30,6 +30,7 @@ struct OptionRoundParams {
     option_expiry_time: u64, // when the options can be settled
 }
 
+// Move these into contract or separate file
 #[derive(Copy, Drop, Serde, PartialEq, starknet::Store)]
 enum OptionRoundState {
     Open,
@@ -37,10 +38,7 @@ enum OptionRoundState {
     Running,
     Settled,
     // old
-    Initialized, // add between Open and Auctioning (round transition period)
-    AuctionStarted,
-    AuctionSettled,
-    OptionSettled,
+    Initialized, // add between Open and Auctioning (round transition period) ?
 }
 
 #[event]
@@ -49,45 +47,52 @@ enum Event {
     AuctionStart: AuctionStart,
     AuctionAcceptedBid: AuctionBid,
     AuctionRejectedBid: AuctionBid,
-    AuctionSettle: AuctionSettle,
+    AuctionEnd: AuctionEnd,
     OptionSettle: OptionSettle,
+    // @note Add specific events
+    DepositLiquidty: OptionTransferEvent,
     WithdrawPremium: OptionTransferEvent,
-    WithdrawUnusedDeposit: OptionTransferEvent, // LP collects liquidity if not all options sell, or is this when OB collects unused bid deposit?
     WithdrawPayout: OptionTransferEvent, // OBs collect payouts
-    WithdrawCollateral: OptionTransferEvent, // from option round back to vault
+    WithdrawLiquidity: OptionTransferEvent, // LPs collect unallocated liquidity
+    WithdrawUnusedBids: OptionTransferEvent, // OBs collect unused bids
+//WithdrawUnusedDeposit: OptionTransferEvent, // unsold liquidity is included in premium
 }
 
-#[derive(Drop, starknet::Event)]
+#[derive(Drop, starknet::Event, PartialEq,)]
 struct AuctionStart {
-    total_options_available: u256 // total_deposits / max_payout
+    total_options_available: u256, // total_deposits / max_payout
 }
 
-#[derive(Drop, starknet::Event)]
+#[derive(Drop, starknet::Event, PartialEq)]
 struct AuctionBid {
+    #[key]
     bidder: ContractAddress,
     amount: u256,
     price: u256
 }
 
-#[derive(Drop, starknet::Event)]
-struct AuctionSettle {
+#[derive(Drop, starknet::Event, PartialEq)]
+struct AuctionEnd {
     clearing_price: u256
+// @note Discuss adding options sold ?
 }
 
-#[derive(Drop, starknet::Event)]
+#[derive(Drop, starknet::Event, PartialEq)]
 struct OptionSettle {
     settlement_price: u256
 }
 
-#[derive(Drop, starknet::Event)]
+// Emitted when eth leaves this round
+#[derive(Drop, starknet::Event, PartialEq)]
 struct OptionTransferEvent {
-    from: ContractAddress,
-    to: ContractAddress,
+    #[key]
+    user: ContractAddress,
     amount: u256
 }
 
 #[starknet::interface]
 trait IOptionRound<TContractState> {
+    fn rm_me(ref self: TContractState, x: u256);
     /// Reads ///
 
     // The address of vault that deployed this round
@@ -192,8 +197,12 @@ mod OptionRound {
     use openzeppelin::token::erc20::interface::IERC20;
     use starknet::ContractAddress;
     use pitch_lake_starknet::vault::VaultType;
+    use pitch_lake_starknet::vault::{IVaultDispatcher, IVaultDispatcherTrait};
     use openzeppelin::token::erc20::interface::IERC20Dispatcher;
-    use super::{OptionRoundConstructorParams, OptionRoundParams, OptionRoundState};
+    use super::{
+        OptionRoundConstructorParams, OptionRoundParams, OptionRoundState, AuctionStart, AuctionBid,
+        OptionSettle, AuctionEnd, OptionTransferEvent,
+    };
     use pitch_lake_starknet::market_aggregator::{
         IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
     };
@@ -206,6 +215,21 @@ mod OptionRound {
         params: OptionRoundParams,
         constructor_params: OptionRoundConstructorParams,
         premiums_collected: LegacyMap<ContractAddress, bool>,
+    }
+
+    #[event]
+    #[derive(Drop, starknet::Event, PartialEq)]
+    enum Event {
+        AuctionStart: AuctionStart,
+        AuctionAcceptedBid: AuctionBid,
+        AuctionRejectedBid: AuctionBid,
+        AuctionEnd: AuctionEnd,
+        OptionSettle: OptionSettle,
+        DepositLiquidity: OptionTransferEvent,
+        WithdrawPremium: OptionTransferEvent,
+        WithdrawPayout: OptionTransferEvent,
+        WithdrawLiquidity: OptionTransferEvent,
+        WithdrawUnusedBids: OptionTransferEvent,
     }
 
     #[constructor]
@@ -228,6 +252,55 @@ mod OptionRound {
 
     #[abi(embed_v0)]
     impl OptionRoundImpl of super::IOptionRound<ContractState> {
+        fn rm_me(ref self: ContractState, x: u256) {
+            self.emit(Event::AuctionStart(AuctionStart { total_options_available: x }));
+            self
+                .emit(
+                    Event::AuctionAcceptedBid(
+                        AuctionBid { bidder: starknet::get_contract_address(), amount: x, price: x }
+                    )
+                );
+            self
+                .emit(
+                    Event::AuctionRejectedBid(
+                        AuctionBid { bidder: starknet::get_contract_address(), amount: x, price: x }
+                    )
+                );
+            self.emit(Event::AuctionEnd(AuctionEnd { clearing_price: x }));
+            self.emit(Event::OptionSettle(OptionSettle { settlement_price: x }));
+            IVaultDispatcher { contract_address: self.vault_address.read() }.rm_me2();
+            self
+                .emit(
+                    Event::DepositLiquidity(
+                        OptionTransferEvent { user: starknet::get_contract_address(), amount: x }
+                    )
+                );
+            self
+                .emit(
+                    Event::WithdrawPremium(
+                        OptionTransferEvent { user: starknet::get_contract_address(), amount: x }
+                    )
+                );
+            self
+                .emit(
+                    Event::WithdrawPayout(
+                        OptionTransferEvent { user: starknet::get_contract_address(), amount: x }
+                    )
+                );
+            self
+                .emit(
+                    Event::WithdrawLiquidity(
+                        OptionTransferEvent { user: starknet::get_contract_address(), amount: x }
+                    )
+                );
+            self
+                .emit(
+                    Event::WithdrawUnusedBids(
+                        OptionTransferEvent { user: starknet::get_contract_address(), amount: x }
+                    )
+                );
+        }
+
         /// Reads ///
         fn vault_address(self: @ContractState) -> ContractAddress {
             self.vault_address.read()
@@ -316,4 +389,3 @@ mod OptionRound {
         }
     }
 }
-
