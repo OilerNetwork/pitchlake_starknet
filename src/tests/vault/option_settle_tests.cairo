@@ -16,7 +16,7 @@ use openzeppelin::{
 use pitch_lake_starknet::{
     vault::{
         IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault,
-        IVaultSafeDispatcherTrait, OptionRoundCreated
+        IVaultSafeDispatcherTrait
     },
     eth::Eth, option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
     market_aggregator::{

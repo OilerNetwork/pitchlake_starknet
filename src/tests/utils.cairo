@@ -20,8 +20,8 @@ use pitch_lake_starknet::{
         IMarketAggregatorSafeDispatcher, IMarketAggregatorSafeDispatcherTrait
     },
     vault::{
-        IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault,
-        IVaultSafeDispatcherTrait, VaultType, VaultTransfer
+        IVaultDispatcher, IVaultDispatcherTrait, Vault,
+       VaultType
     },
     option_round,
     option_round::{

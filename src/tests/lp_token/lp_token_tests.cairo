@@ -6,7 +6,7 @@ use openzeppelin::token::erc20::interface::{
     IERC20SafeDispatcherTrait,
 };
 
-use pitch_lake_starknet::{vault::{VaultTransfer}, option_round::{OptionRoundParams}};
+use pitch_lake_starknet::{ option_round::{OptionRoundParams}};
 
 use result::ResultTrait;
 use starknet::{

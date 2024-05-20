@@ -10,7 +10,7 @@ use pitch_lake_starknet::{
     eth::Eth,
     vault::{
         IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault,
-        IVaultSafeDispatcherTrait, OptionRoundCreated
+        IVaultSafeDispatcherTrait
     },
     option_round::{OptionRoundParams, IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
     tests::{

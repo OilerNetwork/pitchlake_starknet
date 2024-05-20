@@ -8,7 +8,6 @@ use openzeppelin::token::erc20::interface::{
 
 use pitch_lake_starknet::vault::{
     IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait,
-    OptionRoundCreated
 };
 use pitch_lake_starknet::option_round::{OptionRoundParams, OptionRoundState};
 
