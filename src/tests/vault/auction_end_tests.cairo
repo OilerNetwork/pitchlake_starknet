@@ -108,10 +108,6 @@ fn test_vault_end_auction_success() {
     let state: OptionRoundState = current_round_facade.get_state();
     let expectedState: OptionRoundState = OptionRoundState::Running;
     assert(expectedState == state, 'round should be Running');
-    // Check auction clearing price event
-    assert_event_auction_end(
-        current_round_facade.contract_address(), current_round_facade.get_auction_clearing_price()
-    );
 }
 
 // Test that the auction end event emits correctly
@@ -138,9 +134,7 @@ fn test_vault_end_auction_event() {
     let clearing_price: u256 = vault_facade.end_auction();
 
     // Assert event emitted correctly
-    assert_event_auction_end(
-      current_round_facade.contract_address(), clearing_price
-    );
+    assert_event_auction_end(current_round_facade.contract_address(), clearing_price);
 }
 
 // Test that the auction cannot be ended twice
