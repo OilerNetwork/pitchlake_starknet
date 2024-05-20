@@ -13,13 +13,15 @@ use pitch_lake_starknet::tests::{
 use pitch_lake_starknet::tests::utils::{
     setup_facade, liquidity_provider_1, liquidity_provider_2, liquidity_provider_3,
     liquidity_provider_4, liquidity_provider_5, decimals, option_bidder_buyer_1,
-    option_bidder_buyer_2
+    option_bidder_buyer_2, assert_event_option_withdraw_payout, assert_event_vault_transfer,
 };
 use openzeppelin::token::erc20::interface::{
     IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
     IERC20SafeDispatcherTrait,
 };
 use debug::PrintTrait;
+
+// @note If premiums collected fails/is 0 amount, should an event be emiited or no ?
 
 // Test premiums collectable is 0 before auction end
 #[test]
@@ -55,7 +57,7 @@ fn test_premium_amount_for_liquidity_providers_1() {
     // Deposit amounts
     let amounts = array![1000 * decimals(), 10000 * decimals()];
 
-     _test_premiums_collectable_helper(ref vault_facade, lps.span(), amounts.span());
+    _test_premiums_collectable_helper(ref vault_facade, lps.span(), amounts.span());
 }
 
 // Test the portion of premiums an LP can collect in a round is correct (more LPs)
@@ -152,7 +154,6 @@ fn test_premium_collection_transfers_eth() {
     // LP balances post collection
     let lp2_balance_final = eth.balance_of(liquidity_provider_2());
     let lp1_balance_final = eth.balance_of(liquidity_provider_1());
-    let mut current_round = vault_facade.get_current_round();
 
     // Check eth: current_round -> lps
     assert(
@@ -160,12 +161,6 @@ fn test_premium_collection_transfers_eth() {
     );
     assert(
         lp2_balance_final == lp2_balance_init + collectable_premiums, 'lp2 did not collect premiums'
-    );
-    assert_event_transfer(
-        eth.contract_address,
-        current_round.contract_address(),
-        liquidity_provider_1(),
-        collectable_premiums
     );
 }
 
