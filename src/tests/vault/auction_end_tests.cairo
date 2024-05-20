@@ -32,7 +32,7 @@ use pitch_lake_starknet::tests::utils::{
     timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
     option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
     zero_address, vault_manager, weth_owner, option_round_contract_address, mock_option_params,
-    pop_log, assert_no_events_left, month_duration, assert_event_auction_settle
+    pop_log, assert_no_events_left, month_duration, assert_event_auction_end,
 };
 use pitch_lake_starknet::option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait};
 use pitch_lake_starknet::tests::mocks::mock_market_aggregator::{
@@ -110,7 +110,7 @@ fn test_vault_end_auction_success() {
     let expectedState: OptionRoundState = OptionRoundState::Running;
     assert(expectedState == state, 'round should be Running');
     // Check auction clearing price event
-    assert_event_auction_settle(
+    assert_event_auction_end(
         current_round_facade.contract_address(), current_round_facade.get_auction_clearing_price()
     );
 }
