@@ -374,7 +374,9 @@ mod OptionRound {
 
         /// Writes ///
 
-        fn start_auction(ref self: ContractState, option_params: OptionRoundParams) {}
+        fn start_auction(ref self: ContractState, option_params: OptionRoundParams) {
+            self.state.write(OptionRoundState::Auctioning);
+        }
 
         fn end_auction(ref self: ContractState) -> u256 {
             self.state.write(OptionRoundState::Running);

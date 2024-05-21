@@ -8,12 +8,13 @@ use pitch_lake_starknet::tests::{
             IMarketAggregatorSetterDispatcherTrait
         }
     },
-    vault::utils::{accelerate_to_running}, utils::{assert_event_transfer}
 };
 use pitch_lake_starknet::tests::utils::{
     setup_facade, liquidity_provider_1, liquidity_provider_2, liquidity_provider_3,
     liquidity_provider_4, liquidity_provider_5, decimals, option_bidder_buyer_1,
-    option_bidder_buyer_2, assert_event_option_withdraw_payout, assert_event_vault_transfer,
+    option_bidder_buyer_2, liquidity_providers_get, accelerate_to_auctioning, accelerate_to_running,
+    accelerate_to_settle, assert_event_transfer, accelerate_to_auctioning_custom
+    , assert_event_option_withdraw_payout, assert_event_vault_transfer,
     clear_event_logs, assert_event_option_withdraw_premium, liquidity_providers_get,
 };
 use openzeppelin::token::erc20::interface::{
@@ -29,14 +30,13 @@ use debug::PrintTrait;
 #[available_gas(10000000)]
 fn test_premium_amount_0_before_auction_end() {
     let (mut vault_facade, _) = setup_facade();
-
-    // Deposit liquidity
-    vault_facade.deposit(100 * decimals(), liquidity_provider_1());
-    // Start auction
-    vault_facade.start_auction();
-    // Bid for all options at reserve price
     let mut current_round = vault_facade.get_current_round();
     let params = current_round.get_params();
+
+    // Deposit liquidity and start the auction
+    accelerate_to_auctioning(ref vault_facade);
+
+    // Bid for all options at reserve price
     let bid_amount = params.total_options_available;
     let bid_price = params.reserve_price;
     let bid_amount = bid_amount * bid_price;
@@ -58,7 +58,7 @@ fn test_premium_amount_for_liquidity_providers_1() {
     // Deposit amounts
     let amounts = array![1000 * decimals(), 10000 * decimals()];
 
-    _test_premiums_collectable_helper(ref vault_facade, lps.span(), amounts.span());
+    _test_premiums_collectable_helper(ref vault_facade, lps.clone(), amounts.clone());
 }
 
 // Test the portion of premiums an LP can collect in a round is correct (more LPs)
@@ -67,16 +67,11 @@ fn test_premium_amount_for_liquidity_providers_1() {
 fn test_premium_amount_for_liquidity_providers_2() {
     let (mut vault_facade, _) = setup_facade();
     // LPs
-    let lps = array![
-        liquidity_provider_1(),
-        liquidity_provider_2(),
-        liquidity_provider_3(),
-        liquidity_provider_4()
-    ];
+    let lps = liquidity_providers_get(4);
     // Deposit amounts
     let amounts = array![250 * decimals(), 500 * decimals(), 1000 * decimals(), 1500 * decimals(),];
 
-    _test_premiums_collectable_helper(ref vault_facade, lps.span(), amounts.span());
+    _test_premiums_collectable_helper(ref vault_facade, lps.clone(), amounts.clone());
 }
 
 // Test the portion of premiums an LP can collect in a round is correct (more LPs)
@@ -85,16 +80,11 @@ fn test_premium_amount_for_liquidity_providers_2() {
 fn test_premium_amount_for_liquidity_providers_3() {
     let (mut vault_facade, _) = setup_facade();
     // LPs
-    let lps = array![
-        liquidity_provider_1(),
-        liquidity_provider_2(),
-        liquidity_provider_3(),
-        liquidity_provider_4()
-    ];
+    let lps = liquidity_providers_get(4);
     // Deposit amounts
     let amounts = array![333 * decimals(), 333 * decimals(), 333 * decimals(), 1 * decimals(),];
 
-    _test_premiums_collectable_helper(ref vault_facade, lps.span(), amounts.span());
+    _test_premiums_collectable_helper(ref vault_facade, lps.clone(), amounts.clone());
 }
 
 // Test the portion of premiums an LP can collect in a round is correct (more LPs)
@@ -103,17 +93,11 @@ fn test_premium_amount_for_liquidity_providers_3() {
 fn test_premium_amount_for_liquidity_providers_4() {
     let (mut vault_facade, _) = setup_facade();
     // LPs
-    let lps = array![
-        liquidity_provider_1(),
-        liquidity_provider_2(),
-        liquidity_provider_3(),
-        liquidity_provider_4(),
-        liquidity_provider_5(),
-    ];
+    let lps = liquidity_providers_get(5);
     // Deposit amounts
     let amounts = array![25, 25, 25, 25, 1];
 
-    _test_premiums_collectable_helper(ref vault_facade, lps.span(), amounts.span());
+    _test_premiums_collectable_helper(ref vault_facade, lps.clone(), amounts.clone());
 }
 
 // Test the portion of premiums an LP can collect in a round is correct, when deposit 1 >>> deposit 2
@@ -122,12 +106,12 @@ fn test_premium_amount_for_liquidity_providers_4() {
 fn test_premium_amount_for_liquidity_providers_5() {
     let (mut vault_facade, _) = setup_facade();
     // LPs
-    let lps = array![liquidity_provider_1(), liquidity_provider_2(),];
+    let lps = liquidity_providers_get(2);
     // Deposit amounts
     // @dev 1000 ETH & 0.001 ETH
     let amounts = array![1000 * decimals(), decimals() / 1000];
 
-    _test_premiums_collectable_helper(ref vault_facade, lps.span(), amounts.span());
+    _test_premiums_collectable_helper(ref vault_facade, lps.clone(), amounts.clone());
 }
 
 // Test collecting premiums transfers ETH
@@ -136,25 +120,25 @@ fn test_premium_amount_for_liquidity_providers_5() {
 fn test_premium_collection_transfers_eth() {
     let (mut vault_facade, eth) = setup_facade();
     // LPs
-    let lps = array![liquidity_provider_1(), liquidity_provider_2(),];
+    let lps = liquidity_providers_get(2);
     // Deposit amounts
     let amounts = array![50 * decimals(), 50 * decimals()];
 
-    _test_premiums_collectable_helper(ref vault_facade, lps.span(), amounts.span());
+    _test_premiums_collectable_helper(ref vault_facade, lps.clone(), amounts.clone());
 
     // LP balances pre collection
-    let lp1_balance_init = eth.balance_of(liquidity_provider_1());
-    let lp2_balance_init = eth.balance_of(liquidity_provider_2());
-    let collectable_premiums = vault_facade
-        .get_unallocated_balance_for(liquidity_provider_1()); // same as lp2
+    let lp1_balance_init = eth.balance_of(*lps[0]);
+    let lp2_balance_init = eth.balance_of(*lps[1]);
+    let collectable_premiums = vault_facade.get_unallocated_balance_for(*lps[0]); // same as lp2
 
     // Collect premiums
-    vault_facade.collect_premiums(liquidity_provider_1());
-    vault_facade.collect_premiums(liquidity_provider_2());
+    vault_facade.collect_premiums(*lps[0]);
+    vault_facade.collect_premiums(*lps[1]);
 
     // LP balances post collection
-    let lp2_balance_final = eth.balance_of(liquidity_provider_2());
-    let lp1_balance_final = eth.balance_of(liquidity_provider_1());
+    let lp2_balance_final = eth.balance_of(*lps[1]);
+    let lp1_balance_final = eth.balance_of(*lps[0]);
+    let mut current_round = vault_facade.get_current_round();
 
     // Check eth: current_round -> lps
     assert(
@@ -164,7 +148,6 @@ fn test_premium_collection_transfers_eth() {
         lp2_balance_final == lp2_balance_init + collectable_premiums, 'lp2 did not collect premiums'
     );
 }
-
 
 #[test]
 #[available_gas(10000000)]
@@ -208,7 +191,6 @@ fn test_premium_collection_emits_events() {
         lp2_total_balance_before - collected_amount2,
         false
     );
-//check vault and option round evetns
 }
 
 // Test collecting premiums updates lp/round unallocated
@@ -217,22 +199,22 @@ fn test_premium_collection_emits_events() {
 fn test_premium_collection_updates_unallocated_amounts() {
     let (mut vault_facade, _) = setup_facade();
     // LPs
-    let lps = array![liquidity_provider_1(), liquidity_provider_2(),];
+    let lps = liquidity_providers_get(2);
     // Deposit amounts
     let amounts = array![50 * decimals(), 50 * decimals()];
 
-    _test_premiums_collectable_helper(ref vault_facade, lps.span(), amounts.span());
+    _test_premiums_collectable_helper(ref vault_facade, lps.clone(), amounts.clone());
 
     // Unallocated balances pre collection
     let mut current_round = vault_facade.get_current_round();
     let round_unallocated_init = current_round.total_unallocated_liquidity();
-    let lp2_unallocated_init = vault_facade.get_unallocated_balance_for(liquidity_provider_2());
+    let lp2_unallocated_init = vault_facade.get_unallocated_balance_for(*lps[1]);
     // Collect premiums (lp 1 only)
-    vault_facade.collect_premiums(liquidity_provider_1());
+    vault_facade.collect_premiums(*lps[0]);
 
     // Unallocated balaances post collection
-    let lp1_unallocated_final = vault_facade.get_unallocated_balance_for(liquidity_provider_1());
-    let lp2_unallocated_final = vault_facade.get_unallocated_balance_for(liquidity_provider_2());
+    let lp1_unallocated_final = vault_facade.get_unallocated_balance_for(*lps[0]);
+    let lp2_unallocated_final = vault_facade.get_unallocated_balance_for(*lps[1]);
     let round_unallocated_final = current_round.total_unallocated_liquidity();
 
     // Check unallocated balances for round/lps is correct
@@ -252,50 +234,43 @@ fn test_premium_collection_updates_unallocated_amounts() {
 fn test_premium_collect_none_fails() {
     let (mut vault_facade, eth) = setup_facade();
     // LPs
-    let lps = array![liquidity_provider_1()];
+    let lps = liquidity_providers_get(1);
     let amounts = array![50 * decimals()];
     // Deposit amounts
 
-    _test_premiums_collectable_helper(ref vault_facade, lps.span(), amounts.span());
+    _test_premiums_collectable_helper(ref vault_facade, lps.clone(), amounts.clone());
 
     // Collect premiums
-    vault_facade.collect_premiums(liquidity_provider_1());
+    vault_facade.collect_premiums(*lps[0]);
 
     // Try to collect premiums again
-    vault_facade.collect_premiums(liquidity_provider_1());
+    vault_facade.collect_premiums(*lps[0]);
 }
 
 // Internal tester to check the premiums collectable for LPs is correct
 fn _test_premiums_collectable_helper(
-    ref vault_facade: VaultFacade, liquidity_providers: Span<ContractAddress>, amounts: Span<u256>
+    ref vault_facade: VaultFacade, liquidity_providers: Array<ContractAddress>, amounts: Array<u256>
 ) {
-    let (mut vault_facade, _) = setup_facade();
+    // @note: we don't need to setup it again right? we are doing this ??
+    // let (mut vault_facade, _) = setup_facade();
     assert(liquidity_providers.len() == amounts.len(), 'Span missmatch');
-    // Deposit liquidity
-    let mut i = 0;
-    loop {
-        if (i == liquidity_providers.len()) {
-            break;
-        }
-        let lp: ContractAddress = *liquidity_providers.at(i);
-        let deposit_amount: u256 = *amounts.at(i);
-        vault_facade.deposit(deposit_amount, lp);
 
-        i += 1;
-    };
-    // Start auction
-    vault_facade.start_auction();
+    // Deposit liquidity and start the auction
+    accelerate_to_auctioning_custom(ref vault_facade, liquidity_providers.clone(), amounts.clone());
+
     // End auction, minting all options at reserve price
     accelerate_to_running(ref vault_facade);
+
     // Get total collateral in pool (deposit total) and total premium
     let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
+    let amount_span = amounts.span();
     let mut total_collateral_in_pool = 0;
-    i = 0;
+    let mut i = 0;
     loop {
-        if (i == amounts.len()) {
+        if (i == amount_span.len()) {
             break;
         }
-        total_collateral_in_pool += *amounts.at(i);
+        total_collateral_in_pool += *amount_span.at(i);
         i += 1;
     };
     let total_premium: u256 = current_round.get_auction_clearing_price()
@@ -308,7 +283,7 @@ fn _test_premiums_collectable_helper(
             break;
         }
         // @note Handle precision loss ?
-        let lp_expected_premium = (*amounts.at(i) * total_premium) / total_collateral_in_pool;
+        let lp_expected_premium = (*amount_span.at(i) * total_premium) / total_collateral_in_pool;
         let lp_actual_premium = vault_facade
             .get_unallocated_balance_for(*liquidity_providers.at(i));
 
