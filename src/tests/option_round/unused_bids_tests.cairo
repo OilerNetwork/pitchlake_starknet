@@ -15,7 +15,8 @@ use openzeppelin::token::erc20::interface::{
 // use pitch_lake_starknet::eth::Eth;
 use pitch_lake_starknet::tests::utils::{
     setup_facade, decimals, liquidity_provider_1, option_bidder_buyer_1, assert_event_auction_bid,
-    option_bidder_buyer_2, option_bidder_buyer_3
+    option_bidder_buyer_2, option_bidder_buyer_3, accelerate_to_auctioning, accelerate_to_running,
+    accelerate_to_settle, accelerate_to_running_custom, option_bidders_get
 // , deploy_vault, allocated_pool_address, unallocated_pool_address,
 // timestamp_start_month, timestamp_end_month, liquidity_provider_2,
 // option_bidder_buyer_1, option_bidder_buyer_4
@@ -40,13 +41,11 @@ use pitch_lake_starknet::tests::{
 #[available_gas(10000000)]
 fn test_get_unused_bids_for_ob_during_auction() {
     let (mut vault_facade, _) = setup_facade();
-    // LP deposits (into round 1)
-    let deposit_amount_wei: u256 = 10000 * decimals();
-    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
-    // Start auction
-    vault_facade.start_auction();
     let mut round_facade: OptionRoundFacade = vault_facade.get_current_round();
     let params: OptionRoundParams = round_facade.get_params();
+    // Deposit liquidity and start the auction
+    accelerate_to_auctioning(ref vault_facade);
+
     // Make bid
     let bid_count = params.total_options_available;
     let bid_price = params.reserve_price;
@@ -61,24 +60,23 @@ fn test_get_unused_bids_for_ob_during_auction() {
 #[available_gas(10000000)]
 fn test_unused_bids_for_ob_after_auction() {
     let (mut vault_facade, _) = setup_facade();
-    // LP deposits (into round 1)
-    let deposit_amount_wei: u256 = 10000 * decimals();
-    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
-    // Start auction
-    vault_facade.start_auction();
     let mut round_facade: OptionRoundFacade = vault_facade.get_current_round();
     let params: OptionRoundParams = round_facade.get_params();
+
+    // Deposit liquidity and start the auction
+    accelerate_to_auctioning(ref vault_facade);
+
+    let bidders = option_bidders_get(2);
     // OB 2 outbids OB 1 for all the options
     let bid_count = params.total_options_available;
     let bid_price = params.reserve_price;
-    let bid_price_2 = bid_price + 1;
+    let bid_price_2 = params.reserve_price + 1;
     let bid_amount = bid_count * bid_price;
     let bid_amount_2 = bid_count * bid_price_2;
 
-    round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
-    round_facade.place_bid(bid_amount_2, bid_price_2, option_bidder_buyer_2());
-    // Settle auction
-    vault_facade.timeskip_and_end_auction();
+    accelerate_to_running_custom(
+        ref vault_facade, bidders, array![bid_amount, bid_amount_2], array![bid_price, bid_price_2]
+    );
     // Check OB 1's unused bid is their entire bid, and OB 2's is 0
     let ob_unused_bid_amount = round_facade.get_unused_bids_for(option_bidder_buyer_1());
     let ob_unused_bid_amount_2 = round_facade.get_unused_bids_for(option_bidder_buyer_2());
@@ -90,24 +88,25 @@ fn test_unused_bids_for_ob_after_auction() {
 #[available_gas(10000000)]
 fn test_collect_unused_bids_after_auction_end_success() {
     let (mut vault_facade, eth_dispatcher): (VaultFacade, IERC20Dispatcher) = setup_facade();
-    // LP deposits (into round 1)
-    let deposit_amount_wei: u256 = 10000 * decimals();
-
-    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
-    // Start auction
-    vault_facade.start_auction();
     let mut round_facade: OptionRoundFacade = vault_facade.get_current_round();
     let params: OptionRoundParams = round_facade.get_params();
+
+    // Deposit liquidity and start the auction
+    accelerate_to_auctioning(ref vault_facade);
+
+    let bidders = option_bidders_get(2);
+
     // OB 2 outbids OB 1 for all the options
     let bid_count = params.total_options_available;
     let bid_price = params.reserve_price;
     let bid_price_2 = bid_price + 1;
     let bid_amount = bid_count * bid_price;
     let bid_amount_2 = bid_count * bid_price_2;
-    round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
-    round_facade.place_bid(bid_amount_2, bid_price_2, option_bidder_buyer_2());
-    // Settle auction
-    vault_facade.timeskip_and_end_auction();
+
+    accelerate_to_running_custom(
+        ref vault_facade, bidders, array![bid_amount, bid_amount_2], array![bid_price, bid_price_2]
+    );
+
     // OB 1 collects their unused bids (at any time post auction)
     let now = starknet::get_block_timestamp();
     set_block_timestamp(now + 10000000000);
@@ -126,24 +125,24 @@ fn test_collect_unused_bids_after_auction_end_success() {
 #[available_gas(10000000)]
 fn test_collect_unused_bids_again_does_nothing() {
     let (mut vault_facade, eth_dispatcher): (VaultFacade, IERC20Dispatcher) = setup_facade();
-    // LP deposits (into round 1)
-    let deposit_amount_wei: u256 = 10000 * decimals();
-    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
-    // Start auction
-    vault_facade.start_auction();
     let mut round_facade: OptionRoundFacade = vault_facade.get_current_round();
     let params: OptionRoundParams = round_facade.get_params();
+
+    // Deposit liquidity and start the auction
+    accelerate_to_auctioning(ref vault_facade);
+
+    let bidders = option_bidders_get(2);
     // OB 2 outbids OB 1 for all the options
     let bid_count = params.total_options_available;
     let bid_price = params.reserve_price;
     let bid_price_2 = bid_price + 1;
     let bid_amount = bid_count * bid_price;
     let bid_amount_2 = bid_count * bid_price_2;
-    round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
-    round_facade.place_bid(bid_amount_2, bid_price_2, option_bidder_buyer_2());
-    // Settle auction
-    set_block_timestamp(params.auction_end_time + 1);
-    vault_facade.timeskip_and_end_auction();
+
+    accelerate_to_running_custom(
+        ref vault_facade, bidders, array![bid_amount, bid_amount_2], array![bid_price, bid_price_2]
+    );
+
     // OB 1 collects their unused bids
     round_facade.refund_bid(option_bidder_buyer_1());
     // OB 1 collects again

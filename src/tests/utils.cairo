@@ -524,9 +524,6 @@ fn accelerate_to_running_custom(
     prices: Array<u256>
 ) {
     let mut current_round = self.get_current_round();
-    if (current_round.get_state() != OptionRoundState::Auctioning) {
-        panic!("Round is not in auctioning state!");
-    }
     current_round.bid_multiple(bidders, max_amounts, prices);
     self.timeskip_and_end_auction();
 }

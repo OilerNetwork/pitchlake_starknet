@@ -142,7 +142,6 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         let params = self.get_params();
         let mut index: u32 = 0;
         let bid_price = params.reserve_price;
-
         while index < bidders
             .len() {
                 assert(

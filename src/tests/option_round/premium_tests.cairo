@@ -8,12 +8,12 @@ use pitch_lake_starknet::tests::{
             IMarketAggregatorSetterDispatcherTrait
         }
     },
-    vault::utils::{accelerate_to_running}, utils::{assert_event_transfer}
 };
 use pitch_lake_starknet::tests::utils::{
     setup_facade, liquidity_provider_1, liquidity_provider_2, liquidity_provider_3,
     liquidity_provider_4, liquidity_provider_5, decimals, option_bidder_buyer_1,
-    option_bidder_buyer_2, liquidity_providers_get,
+    option_bidder_buyer_2, liquidity_providers_get, accelerate_to_auctioning, accelerate_to_running,
+    accelerate_to_settle, assert_event_transfer
 };
 use openzeppelin::token::erc20::interface::{
     IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
@@ -23,18 +23,15 @@ use openzeppelin::token::erc20::interface::{
 // Test premiums collectable is 0 before auction end
 #[test]
 #[available_gas(10000000)]
-fn test_premium_amount_0_before_auction_end(
-    ref vault_facade: VaultFacade, liquidity_providers: Span<ContractAddress>, amounts: Span<u256>
-) {
+fn test_premium_amount_0_before_auction_end() {
     let (mut vault_facade, _) = setup_facade();
-
-    // Deposit liquidity
-    vault_facade.deposit(100 * decimals(), liquidity_provider_1());
-    // Start auction
-    vault_facade.start_auction();
-    // Bid for all options at reserve price
     let mut current_round = vault_facade.get_current_round();
     let params = current_round.get_params();
+
+    // Deposit liquidity and start the auction
+    accelerate_to_auctioning(ref vault_facade);
+
+    // Bid for all options at reserve price
     let bid_amount = params.total_options_available;
     let bid_price = params.reserve_price;
     let bid_amount = bid_amount * bid_price;
