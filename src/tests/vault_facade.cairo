@@ -1,3 +1,4 @@
+use core::array::ArrayTrait;
 use pitch_lake_starknet::vault::{IVaultDispatcher, IVaultDispatcherTrait};
 
 use pitch_lake_starknet::option_round::{
@@ -46,6 +47,8 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     //self.vault_dispatcher.collect_premiums();
     }
 
+    //@note Vault manager is set as caller here so the balances are not affected for previously set addresses for provider/bidder
+    //Anyone can call this function on the vault
     fn start_auction(ref self: VaultFacade) -> bool {
         set_contract_address(vault_manager());
         self.vault_dispatcher.start_auction()
@@ -84,7 +87,8 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         set_contract_address(vault_manager());
         let mut current_round = self.get_current_round();
         set_block_timestamp(current_round.get_params().auction_end_time + 1);
-        self.vault_dispatcher.end_auction()
+        self.vault_dispatcher.end_auction();
+        current_round.get_auction_clearing_price()
     }
 
     fn convert_position_to_lp_tokens(ref self: VaultFacade, amount: u256, lp: ContractAddress) {
@@ -164,7 +168,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     // Get lps (multiple) liquidity (collateral, unallocated)
     fn get_all_liquidity_for_n(
-        ref self: VaultFacade, lps: Array<ContractAddress>
+        ref self: VaultFacade, lps: Span<ContractAddress>
     ) -> (Array<u256>, Array<u256>) {
         let mut index = 0;
         let mut arr_collateral: Array<u256> = array![];
@@ -211,14 +215,24 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         self.vault_dispatcher.get_premiums_for(lp)
     }
 
-    fn deposit_mutltiple(ref self: VaultFacade, lps: Array<ContractAddress>, amounts: Array<u256>) {
-        let mut index: u32 = 0;
-        assert(lps.len() == amounts.len(), 'Incorrect lengths');
 
-        while index < lps.len() {
-            self.deposit(*amounts[index], *lps.at(index));
-            index += 1;
+    fn deposit_mutltiple(
+        ref self: VaultFacade, mut lps: Span<ContractAddress>, mut amounts: Span<u256>
+    ) -> u256 {
+        assert(lps.len() == amounts.len(), 'Incorrect lengths');
+        let mut total = 0;
+
+        loop {
+            match lps.pop_front() {
+                Option::Some(lp) => {
+                    let amount = amounts.pop_front().unwrap();
+                    total += *amount;
+                    self.deposit(*amount, *lp);
+                },
+                Option::None => { break (); }
+            };
         };
+        total
     }
 }
 

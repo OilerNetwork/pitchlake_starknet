@@ -28,7 +28,9 @@ use pitch_lake_starknet::tests::{
 use pitch_lake_starknet::tests::utils::{
     setup_facade, liquidity_provider_1, liquidity_provider_2, liquidity_providers_get, decimals,
     option_bidder_buyer_1, option_bidder_buyer_2, accelerate_to_running, accelerate_to_auctioning,
-    accelerate_to_running_partial // , deploy_vault, allocated_pool_address, unallocated_pool_address,
+    accelerate_to_running_partial, create_array_gradient, accelerate_to_auctioning_custom,
+    create_array_linear, option_bidders_get,
+    accelerate_to_running_custom // , deploy_vault, allocated_pool_address, unallocated_pool_address,
 // timestamp_start_month, timestamp_end_month, liquidity_provider_2,
 // , option_bidder_buyer_3, option_bidder_buyer_4,
 // vault_manager, weth_owner, mock_option_params, assert_event_transfer
@@ -68,7 +70,7 @@ fn test_premiums_and_unsold_liquidity_unallocated_amount() {
 fn test_collect_more_than_unallocated_balance_failure() {
     let (mut vault_facade, _) = setup_facade();
     // Accelerate to round 1 running
-    accelerate_to_running(ref vault_facade);
+    vault_facade.start_auction();
     // Current round (running), next round (open)
     // Make deposit into next round
     let deposit_amount = 100 * decimals();
@@ -140,21 +142,28 @@ fn test_remaining_liqudity_rolls_over() {
 fn test_premium_collection_ratio_conversion_unallocated_pool_1() {
     let (mut vault_facade, _) = setup_facade();
     let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
-    let params = current_round.get_params();
+
     // Deposit liquidity
     let deposit_amount_wei_1: u256 = 1000 * decimals();
     let deposit_amount_wei_2: u256 = 10000 * decimals();
     vault_facade.deposit(deposit_amount_wei_1, liquidity_provider_1());
     vault_facade.deposit(deposit_amount_wei_2, liquidity_provider_2());
-    vault_facade.start_auction();
+
+    let lps = liquidity_providers_get(5);
+    let deposit_amounts = create_array_gradient(1000 * decimals(), 1000 * decimals(), 5);
+    let deposit_total = accelerate_to_auctioning_custom(
+        ref vault_facade, lps.span(), deposit_amounts.span()
+    );
+    let params = current_round.get_params();
     // Make bid (ob1)
     let bid_amount: u256 = params.total_options_available;
-    let bid_price: u256 = params.reserve_price;
-    let bid_amount: u256 = bid_amount * bid_price;
-    current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
-    // End auction
 
-    vault_facade.timeskip_and_end_auction();
+    let obs = option_bidders_get(5);
+    let bid_prices = create_array_linear(params.reserve_price, 5);
+    let bid_amounts = create_array_linear(params.reserve_price * bid_amount, 5);
+    let clearing_price = accelerate_to_running_custom(
+        ref vault_facade, obs.span(), bid_prices.span(), bid_amounts.span()
+    );
 
     // Premium comes from unallocated pool
     let total_collateral: u256 = current_round.total_collateral();

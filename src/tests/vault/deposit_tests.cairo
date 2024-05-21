@@ -29,7 +29,8 @@ use pitch_lake_starknet::tests::utils::{
     assert_event_transfer, timestamp_start_month, timestamp_end_month, liquidity_provider_1,
     liquidity_provider_2, option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
     option_bidder_buyer_4, zero_address, vault_manager, weth_owner, option_round_contract_address,
-    mock_option_params, pop_log, assert_no_events_left
+    mock_option_params, pop_log, assert_no_events_left, create_array_gradient,
+    liquidity_providers_get,
 };
 use pitch_lake_starknet::tests::vault::utils::{accelerate_to_auctioning, accelerate_to_running};
 
@@ -65,30 +66,27 @@ fn test_deposit_eth_transfer() {
 // @note add assertion that vault::round_positions[lp, next_id] increments (need to add vault entry point for get_lp_deposit_in_round)
 #[test]
 #[available_gas(10000000)]
-fn test_deposit_collateral_and_unallocated() {
+fn test_deposit_collateral_and_unallocated_round() {
     let (mut vault_facade, _) = setup_facade();
     // Current round (settled), next round (open)
     let mut current_round = vault_facade.get_current_round();
     let mut next_round = vault_facade.get_next_round();
     // Initial collateral/unallocated
-    let (init_lp_collateral, init_lp_unallocated) = vault_facade
-        .get_all_lp_liquidity(liquidity_provider_1());
     let (init_current_round_collateral, init_current_round_unallocated) = current_round
         .get_all_round_liquidity();
     let (init_next_round_collateral, init_next_round_unallocated) = next_round
         .get_all_round_liquidity();
     // Deposit liquidity (into next round)
-    let deposit_amount = 50 * decimals();
-    vault_facade.deposit(deposit_amount, liquidity_provider_1());
+    let lps = liquidity_providers_get(5);
+    let amounts = create_array_gradient(50 * decimals(), 10 * decimals(), 5);
+
+    let deposit_total = vault_facade.deposit_mutltiple(lps.span(), amounts.span());
     // Final collateral/unallocated
-    let (final_lp_collateral, final_lp_unallocated) = vault_facade
-        .get_all_lp_liquidity(liquidity_provider_1());
     let (final_current_round_collateral, final_current_round_unallocated) = current_round
         .get_all_round_liquidity();
     let (final_next_round_collateral, final_next_round_unallocated) = next_round
         .get_all_round_liquidity();
     // Check collateral is untouched
-    assert(final_lp_collateral == init_lp_collateral, 'lp collateral wrong');
     assert(
         final_current_round_collateral == init_current_round_collateral,
         'current round collateral wrong'
@@ -97,16 +95,16 @@ fn test_deposit_collateral_and_unallocated() {
         final_next_round_collateral == init_next_round_collateral, 'next round collateral wrong'
     );
     // Check unallocated is updated
-    assert(final_lp_unallocated == init_lp_unallocated + deposit_amount, 'lp unallocated wrong');
     assert(
         final_current_round_unallocated == init_current_round_unallocated,
         'current round unallocated wrong'
     );
     assert(
-        final_next_round_unallocated == init_next_round_unallocated + deposit_amount,
+        final_next_round_unallocated == init_next_round_unallocated + deposit_total,
         'next round unallocated wrong'
     );
 }
+
 
 // Test that LP cannot deposit zero
 #[test]
@@ -149,3 +147,21 @@ fn test_deposit_is_always_into_next_round() {
         liquidity_provider_1(), next_round.contract_address(), deposit_amount + 2
     );
 }
+
+
+#[test]
+#[available_gas(10000000)]
+fn test_deposit_is_always_into_unallocated() {
+    let (mut vault_facade, _) = setup_facade();
+    // Initial collateral/unallocated
+    let (init_collateral, init_unallocated) = vault_facade
+        .get_all_lp_liquidity(liquidity_provider_1());
+
+    let deposit_amount = 50 * decimals();
+    vault_facade.deposit(deposit_amount, liquidity_provider_1());
+    let (final_collateral, final_unallocated) = vault_facade
+        .get_all_lp_liquidity(liquidity_provider_1());
+    assert(init_collateral == final_collateral, 'Collteral Mismatch');
+    assert(init_unallocated + deposit_amount == final_unallocated, 'Unallocated amount Mismatch');
+}
+

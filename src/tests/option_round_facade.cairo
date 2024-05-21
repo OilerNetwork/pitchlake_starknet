@@ -135,9 +135,9 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
 
     fn bid_multiple(
         ref self: OptionRoundFacade,
-        bidders: Array<ContractAddress>,
-        amounts: Array<u256>,
-        prices: Array<u256>
+        bidders: Span<ContractAddress>,
+        amounts: Span<u256>,
+        prices: Span<u256>
     ) {
         let params = self.get_params();
         let mut index: u32 = 0;

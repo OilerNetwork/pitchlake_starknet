@@ -32,7 +32,9 @@ use pitch_lake_starknet::tests::utils::{
     timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
     option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
     zero_address, vault_manager, weth_owner, option_round_contract_address, mock_option_params,
-    pop_log, assert_no_events_left, month_duration, assert_event_auction_settle
+    liquidity_providers_get, option_bidders_get, pop_log, assert_no_events_left, month_duration,
+    assert_event_auction_settle, create_array_linear, create_array_gradient,
+    accelerate_to_auctioning_custom, accelerate_to_running_custom, accelerate_to_settled
 };
 use pitch_lake_starknet::option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait};
 use pitch_lake_starknet::tests::mocks::mock_market_aggregator::{
@@ -82,10 +84,9 @@ fn test_auction_end_before_end_date_failure() {
     current_round.end_auction();
 }
 
-// Test that the auction clearing price is set post auction end, and state updates to Running
 #[test]
 #[available_gas(10000000)]
-fn test_vault_end_auction_success() {
+fn test_vault_end_auction_success_single() {
     let (mut vault_facade, _) = setup_facade();
     // LP deposits (into round 1)
     let deposit_amount_wei: u256 = 10000 * decimals();
@@ -105,6 +106,40 @@ fn test_vault_end_auction_success() {
     set_block_timestamp(option_round_params.auction_end_time + 1);
     let clearing_price: u256 = vault_facade.end_auction();
     assert(clearing_price == 0, 'should be reserve_price');
+    // Check that state is Running now, and auction clearing price is set
+    let state: OptionRoundState = current_round_facade.get_state();
+    let expectedState: OptionRoundState = OptionRoundState::Running;
+    assert(expectedState == state, 'round should be Running');
+    // Check auction clearing price event 
+    assert_event_auction_settle(current_round_facade.get_auction_clearing_price());
+}
+// Test that the auction clearing price is set post auction end, and state updates to Running
+#[test]
+#[available_gas(10000000)]
+fn test_vault_end_auction_success_multi() {
+    let (mut vault_facade, _) = setup_facade();
+    // LP deposits (into round 1)
+    let amounts = create_array_linear(10000 * decimals(), 5);
+    let lps = liquidity_providers_get(5);
+    accelerate_to_auctioning_custom(ref vault_facade, lps.span(), amounts.span());
+    // Start auction
+
+    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
+    // Make bid 
+    let option_params: OptionRoundParams = current_round_facade.get_params();
+    let bid_count: u256 = option_params.total_options_available;
+    let bid_price: u256 = option_params.reserve_price;
+    let bid_amount: u256 = bid_count * bid_price;
+    let bidders = option_bidders_get(5);
+    let bid_amounts = create_array_gradient(bid_amount, 10 * decimals(), 5);
+    let bid_prices = create_array_linear(bid_price, 5);
+
+    // Settle auction
+    let clearing_price = accelerate_to_running_custom(
+        ref vault_facade, bidders.span(), bid_amounts.span(), bid_prices.span()
+    );
+
+    assert(clearing_price == option_params.reserve_price, 'should be reserve_price');
     // Check that state is Running now, and auction clearing price is set
     let state: OptionRoundState = current_round_facade.get_state();
     let expectedState: OptionRoundState = OptionRoundState::Running;

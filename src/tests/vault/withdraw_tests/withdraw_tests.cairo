@@ -64,15 +64,19 @@ fn test_withdraw_is_always_from_next_round() {
     vault.withdraw(deposit_amount, liquidity_provider_1());
     assert_event_transfer(next_round.contract_address(), liquidity_provider_1(), deposit_amount);
     // Deposit liquidity while current round is running
+    let mut next_round = vault.get_next_round();
     let params = current_round.get_params();
     let bid_amount = params.total_options_available;
     let bid_price = params.reserve_price;
     let bid_amount = bid_amount * bid_price;
     current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
     set_block_timestamp(params.auction_end_time + 1);
+    vault.deposit(deposit_amount + 2, liquidity_provider_1());
+    vault.withdraw(deposit_amount + 1, liquidity_provider_1());
     vault.end_auction();
     vault.deposit(deposit_amount + 2, liquidity_provider_1());
     vault.withdraw(deposit_amount + 1, liquidity_provider_1());
+    assert_event_transfer(next_round.contract_address(), liquidity_provider_1(), deposit_amount);
 }
 
 #[test]

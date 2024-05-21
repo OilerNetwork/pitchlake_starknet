@@ -501,25 +501,27 @@ fn accelerate_to_running(ref self: VaultFacade) {
 
 
 fn accelerate_to_auctioning_custom(
-    ref self: VaultFacade, lps: Array<ContractAddress>, amounts: Array<u256>
-) {
-    self.deposit_mutltiple(lps, amounts);
+    ref self: VaultFacade, lps: Span<ContractAddress>, amounts: Span<u256>
+) -> u256 {
+    let deposit_total = self.deposit_mutltiple(lps, amounts);
     set_contract_address(vault_manager());
     self.start_auction();
+    deposit_total
 }
 
 fn accelerate_to_running_custom(
     ref self: VaultFacade,
-    bidders: Array<ContractAddress>,
-    max_amounts: Array<u256>,
-    prices: Array<u256>
-) {
+    bidders: Span<ContractAddress>,
+    max_amounts: Span<u256>,
+    prices: Span<u256>
+) -> u256 {
     let mut current_round = self.get_current_round();
     if (current_round.get_state() != OptionRoundState::Auctioning) {
         panic!("Round is not in auctioning state!");
     }
     current_round.bid_multiple(bidders, max_amounts, prices);
-    self.timeskip_and_end_auction();
+    let clearing_price = self.timeskip_and_end_auction();
+    clearing_price
 }
 
 fn accelerate_to_settled(ref self: VaultFacade, base_fee: u256) {
