@@ -130,4 +130,27 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     fn get_market_aggregator(ref self: OptionRoundFacade) -> ContractAddress {
         self.option_round_dispatcher.get_market_aggregator()
     }
+
+    //These functions have some custom logic
+
+    fn bid_multiple(
+        ref self: OptionRoundFacade,
+        bidders: Array<ContractAddress>,
+        amounts: Array<u256>,
+        prices: Array<u256>
+    ) {
+        let params = self.get_params();
+        let mut index: u32 = 0;
+        let bid_price = params.reserve_price;
+
+        while index < bidders
+            .len() {
+                assert(
+                    *prices[index] > bid_price && *amounts[index] > *prices[index],
+                    ('Invalid parameters at {}')
+                );
+                self.place_bid(*amounts[index], *prices[index], *bidders[index]);
+                index += 1;
+            }
+    }
 }

@@ -76,12 +76,14 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     }
 
     fn timeskip_and_settle_round(ref self: VaultFacade) -> bool {
+        set_contract_address(vault_manager());
         let mut current_round = self.get_current_round();
         set_block_timestamp(current_round.get_params().option_expiry_time + 1);
         self.vault_dispatcher.settle_option_round()
     }
 
     fn timeskip_and_end_auction(ref self: VaultFacade) -> u256 {
+        set_contract_address(vault_manager());
         let mut current_round = self.get_current_round();
         set_block_timestamp(current_round.get_params().auction_end_time + 1);
         self.vault_dispatcher.end_auction()
@@ -162,6 +164,22 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         (collateral, unallocated)
     }
 
+    // Get lps (multiple) liquidity (collateral, unallocated)
+    fn get_all_liquidity_for_n(
+        ref self: VaultFacade, lps: Array<ContractAddress>
+    ) -> (Array<u256>, Array<u256>) {
+        let mut index = 0;
+        let mut arr_collateral: Array<u256> = array![];
+        let mut arr_unallocated: Array<u256> = array![];
+        while index < lps
+            .len() {
+                let collateral = self.vault_dispatcher.get_collateral_balance_for(*lps[index]);
+                let unallocated = self.vault_dispatcher.get_unallocated_balance_for(*lps[index]);
+                arr_collateral.append(collateral);
+                arr_unallocated.append(unallocated);
+            };
+        (arr_collateral, arr_unallocated)
+    }
     fn get_collateral_balance_for(
         ref self: VaultFacade, liquidity_provider: ContractAddress
     ) -> u256 {
@@ -194,6 +212,16 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     // might be duplicated when repo syncs
     fn get_premiums_for(ref self: VaultFacade, lp: ContractAddress) -> u256 {
         self.vault_dispatcher.get_premiums_for(lp)
+    }
+
+    fn deposit_mutltiple(ref self: VaultFacade, lps: Array<ContractAddress>, amounts: Array<u256>) {
+        let mut index: u32 = 0;
+        assert(lps.len() == amounts.len(), 'Incorrect lengths');
+
+        while index < lps.len() {
+            self.deposit(*amounts[index], *lps.at(index));
+            index += 1;
+        };
     }
 }
 

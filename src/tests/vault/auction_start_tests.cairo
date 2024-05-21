@@ -32,6 +32,7 @@ use pitch_lake_starknet::tests::utils::{
     option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
     vault_manager, weth_owner, mock_option_params, assert_event_auction_start,
     accelerate_to_auctioning, assert_event_option_round_created,
+    liquidity_providers_get, 
 };
 use pitch_lake_starknet::tests::vault_facade::{VaultFacade, VaultFacadeTrait};
 use pitch_lake_starknet::tests::option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait};
@@ -46,11 +47,11 @@ fn test_unallocated_becomes_collateral() {
     // Get next round (open)
     let mut next_round: OptionRoundFacade = vault_facade.get_current_round();
     // Add liq. to next round (1)
-    let deposit_amount_wei_1 = 1000 * decimals();
-    let deposit_amount_wei_2 = 10000 * decimals();
-    let deposit_total = deposit_amount_wei_1 + deposit_amount_wei_2;
-    vault_facade.deposit(deposit_amount_wei_1, liquidity_provider_1());
-    vault_facade.deposit(deposit_amount_wei_2, liquidity_provider_2());
+    let lps = liquidity_providers_get(2);
+    let amounts = array![1000 * decimals(), 10000 * decimals()];
+    let deposit_total = *amounts[0] + *amounts[1];
+    vault_facade.deposit(*amounts[0], liquidity_provider_1());
+    vault_facade.deposit(*amounts[1], liquidity_provider_2());
     // Initial collateral/unallocated
     let (lp1_collateral, lp1_unallocated) = vault_facade
         .get_all_lp_liquidity(liquidity_provider_1());
@@ -63,8 +64,8 @@ fn test_unallocated_becomes_collateral() {
     assert(lp2_collateral == 0, 'lp2 collateral wrong');
     assert(next_round_collateral == 0, 'next round collateral wrong');
     assert(next_round_total_liquidity == 0, 'next round total liq. wrong');
-    assert(lp1_unallocated == deposit_amount_wei_1, 'lp1 unallocated wrong');
-    assert(lp2_unallocated == deposit_amount_wei_2, 'lp2 unallocated wrong');
+    assert(lp2_unallocated == *amounts[0], 'lp2 unallocated wrong');
+    assert(lp1_unallocated == *amounts[1], 'lp1 unallocated wrong');
     assert(next_round_unallocated == deposit_total, 'next round unallocated wrong');
     // Start the auction
     vault_facade.start_auction();
@@ -76,8 +77,8 @@ fn test_unallocated_becomes_collateral() {
     let (next_round_collateral, next_round_unallocated) = next_round.get_all_round_liquidity();
     let next_round_total_liquidity = next_round.total_liquidity();
     // Check final spread
-    assert(lp1_collateral == deposit_amount_wei_1, 'lp1 collateral wrong');
-    assert(lp2_collateral == deposit_amount_wei_2, 'lp2 collateral wrong');
+    assert(lp1_collateral == *amounts[0], 'lp1 collateral wrong');
+    assert(lp2_collateral == *amounts[1], 'lp2 collateral wrong');
     assert(next_round_collateral == deposit_total, 'next round collateral wrong');
     assert(next_round_total_liquidity == deposit_total, 'next round total liq. wrong');
     assert(lp1_unallocated == 0, 'lp1 unallocated wrong');

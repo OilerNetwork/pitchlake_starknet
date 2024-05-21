@@ -33,8 +33,6 @@ use pitch_lake_starknet::tests::vault::utils::{accelerate_to_running};
 // Either one withdraw that takes from current premiums/unsold then from next round unallocated,
 // or one for current premiums/unsold and one for next round unallocated (withdraw vs withdraw & collect) ?
 
-// Test withdraw > lp unallocated fails
-
 // Test withdraw 0 fails
 #[test]
 #[available_gas(10000000)]
@@ -62,12 +60,14 @@ fn test_withdraw_is_always_from_next_round() {
     next_round = vault.get_next_round();
     vault.deposit(deposit_amount + 1, liquidity_provider_1());
     vault.withdraw(deposit_amount, liquidity_provider_1());
+
     assert_event_transfer(
         eth_dispatcher.contract_address,
         next_round.contract_address(),
         liquidity_provider_1(),
         deposit_amount
     );
+
     // Deposit liquidity while current round is running
     let params = current_round.get_params();
     let bid_amount = params.total_options_available;
@@ -96,12 +96,14 @@ fn test_withdraw_updates_unallocated_balance() {
     vault.deposit(deposit_amount + 1, liquidity_provider_1());
     vault.get_unallocated_balance_for(liquidity_provider_1());
     vault.withdraw(deposit_amount, liquidity_provider_1());
+
     assert_event_transfer(
         eth_dispatcher.contract_address,
         next_round.contract_address(),
         liquidity_provider_1(),
         deposit_amount
     );
+
     // Deposit liquidity while current round is running
     let params = current_round.get_params();
     let bid_amount = params.total_options_available;

@@ -14,7 +14,7 @@ use pitch_lake_starknet::tests::utils::{
     setup_facade, liquidity_provider_1, liquidity_provider_2, liquidity_provider_3,
     liquidity_provider_4, liquidity_provider_5, decimals, option_bidder_buyer_1,
     option_bidder_buyer_2, assert_event_option_withdraw_payout, assert_event_vault_transfer,
-    clear_event_logs, assert_event_option_withdraw_premium
+    clear_event_logs, assert_event_option_withdraw_premium, liquidity_providers_get,
 };
 use openzeppelin::token::erc20::interface::{
     IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
@@ -54,7 +54,7 @@ fn test_premium_amount_0_before_auction_end() {
 fn test_premium_amount_for_liquidity_providers_1() {
     let (mut vault_facade, _) = setup_facade();
     // LPs
-    let lps = array![liquidity_provider_1(), liquidity_provider_2(),];
+    let lps = liquidity_providers_get(2);
     // Deposit amounts
     let amounts = array![1000 * decimals(), 10000 * decimals()];
 
