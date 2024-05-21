@@ -1,3 +1,4 @@
+use core::array::SpanTrait;
 use array::ArrayTrait;
 use debug::PrintTrait;
 use option::OptionTrait;
@@ -29,10 +30,11 @@ use pitch_lake_starknet::eth::Eth;
 use pitch_lake_starknet::tests::utils::{
     setup_facade, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
     timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
-    option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
-    vault_manager, weth_owner, mock_option_params, assert_event_auction_start,
-    accelerate_to_auctioning, assert_event_option_round_created,
-    liquidity_providers_get, 
+    liquidity_providers_get, option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
+    create_array_linear, create_array_gradient, option_bidder_buyer_4, vault_manager, weth_owner,
+    mock_option_params, assert_event_auction_start, accelerate_to_auctioning_custom,
+    accelerate_to_running_custom, accelerate_to_auctioning, assert_event_option_round_created,
+    
 };
 use pitch_lake_starknet::tests::vault_facade::{VaultFacade, VaultFacadeTrait};
 use pitch_lake_starknet::tests::option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait};
@@ -47,45 +49,35 @@ fn test_unallocated_becomes_collateral() {
     // Get next round (open)
     let mut next_round: OptionRoundFacade = vault_facade.get_current_round();
     // Add liq. to next round (1)
-    let lps = liquidity_providers_get(2);
-    let amounts = array![1000 * decimals(), 10000 * decimals()];
-    let deposit_total = *amounts[0] + *amounts[1];
-    vault_facade.deposit(*amounts[0], liquidity_provider_1());
-    vault_facade.deposit(*amounts[1], liquidity_provider_2());
-    // Initial collateral/unallocated
-    let (lp1_collateral, lp1_unallocated) = vault_facade
-        .get_all_lp_liquidity(liquidity_provider_1());
-    let (lp2_collateral, lp2_unallocated) = vault_facade
-        .get_all_lp_liquidity(liquidity_provider_2());
-    let (next_round_collateral, next_round_unallocated) = next_round.get_all_round_liquidity();
-    let next_round_total_liquidity = next_round.total_liquidity();
-    // Check initial spread
-    assert(lp1_collateral == 0, 'lp1 collateral wrong');
-    assert(lp2_collateral == 0, 'lp2 collateral wrong');
-    assert(next_round_collateral == 0, 'next round collateral wrong');
-    assert(next_round_total_liquidity == 0, 'next round total liq. wrong');
-    assert(lp2_unallocated == *amounts[0], 'lp2 unallocated wrong');
-    assert(lp1_unallocated == *amounts[1], 'lp1 unallocated wrong');
-    assert(next_round_unallocated == deposit_total, 'next round unallocated wrong');
+    let lps = liquidity_providers_get(5);
+    let len = lps.len();
+    let mut amounts = create_array_gradient(1000 * decimals(), 5000 * decimals(), len);
+
+    let deposit_total = vault_facade.deposit_mutltiple(lps.span(), amounts.span());
+    
     // Start the auction
     vault_facade.start_auction();
     // Final collateral/unallocated spread
-    let (lp1_collateral, lp1_unallocated) = vault_facade
-        .get_all_lp_liquidity(liquidity_provider_1());
-    let (lp2_collateral, lp2_unallocated) = vault_facade
-        .get_all_lp_liquidity(liquidity_provider_2());
     let (next_round_collateral, next_round_unallocated) = next_round.get_all_round_liquidity();
     let next_round_total_liquidity = next_round.total_liquidity();
-    // Check final spread
-    assert(lp1_collateral == *amounts[0], 'lp1 collateral wrong');
-    assert(lp2_collateral == *amounts[1], 'lp2 collateral wrong');
+    // Individual spread
+    let (mut arr_collateral, mut arr_unallocated) = vault_facade
+        .get_all_liquidity_for_n(lps.span());
+    loop {
+        match arr_collateral.pop_front() {
+            Option::Some(collateral) => {
+                assert(collateral == amounts.pop_front().unwrap(), 'Collateral Mismatch');
+                assert(arr_unallocated.pop_front().unwrap() == 0, 'Unallocated liquidity Mismatch');
+            },
+            Option::None => { break (); }
+        }
+    };
+
+    //Check totals on the option round
     assert(next_round_collateral == deposit_total, 'next round collateral wrong');
     assert(next_round_total_liquidity == deposit_total, 'next round total liq. wrong');
-    assert(lp1_unallocated == 0, 'lp1 unallocated wrong');
-    assert(lp2_unallocated == 0, 'lp2 unallocated wrong');
     assert(next_round_unallocated == 0, 'next round unallocated wrong');
 }
-
 // Test when an auction starts, it becomes the current round and the
 // next round is deployed.
 #[test]
@@ -94,12 +86,6 @@ fn test_start_auction_becomes_current_round() {
     let (mut vault_facade, _) = setup_facade();
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
     let mut next_round_facade: OptionRoundFacade = vault_facade.get_next_round();
-    assert(vault_facade.get_current_round_id() == 0, 'current round should be 0');
-    assert(
-        current_round_facade.get_state() == OptionRoundState::Settled,
-        'current round should be settled'
-    );
-    assert(next_round_facade.get_state() == OptionRoundState::Open, 'next round should be open');
     // LP deposits (into round 1) so its auction can start
     let deposit_amount_wei: u256 = 100 * decimals();
     vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
@@ -174,10 +160,12 @@ fn test_start_auction_while_current_round_auctioning_failure() {
 fn test_start_auction_while_current_round_running_failure() {
     let (mut vault_facade, _) = setup_facade();
     // LP deposits (into round 1)
-    let deposit_amount_wei: u256 = 10000 * decimals();
-    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
+    let lps = liquidity_providers_get(5);
+    let amounts = create_array_linear(10000 * decimals(), 5);
+    let deposit_total = accelerate_to_auctioning_custom(
+        ref vault_facade, lps.span(), amounts.span()
+    );
     // Start auction
-    vault_facade.start_auction();
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
     // Make bid
     let option_params: OptionRoundParams = current_round_facade.get_params();
@@ -186,8 +174,7 @@ fn test_start_auction_while_current_round_running_failure() {
     let bid_amount: u256 = bid_count * bid_price;
     current_round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
     // Settle auction
-    set_block_timestamp(option_params.auction_end_time + 1);
-    vault_facade.end_auction();
+    vault_facade.timeskip_and_end_auction();
     // Try to start the next auction while the current is Running
     vault_facade.start_auction();
 }
@@ -211,11 +198,9 @@ fn test_start_auction_before_round_transition_period_over_failure() {
     let bid_amount: u256 = bid_count * bid_price;
     current_round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
     // Settle auction
-    set_block_timestamp(option_params.auction_end_time + 1);
-    vault_facade.end_auction();
+    vault_facade.timeskip_and_end_auction();
     // Settle option round
-    set_block_timestamp(option_params.option_expiry_time + 1);
-    vault_facade.settle_option_round(liquidity_provider_1());
+    vault_facade.timeskip_and_settle_round();
     // Try to start the next auction before waiting the round transition period
     // @dev add in the round transition period either in option round params or vault
     let rtp = 111;

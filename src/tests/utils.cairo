@@ -706,63 +706,6 @@ fn accelerate_to_auctioning(ref self: VaultFacade) {
     self.start_auction();
 }
 
-fn deposit_n(ref self: VaultFacade, providers: u32, amount: u256) {
-    let mut index: u32 = 0;
-    let lp = liquidity_providers_get(providers);
-    while index < providers {
-        self.deposit(amount, *lp.at(index));
-        index += 1;
-    };
-}
-
-fn deposit_n_custom(ref self: VaultFacade, providers: u32, amount: Array<u256>) {
-    let len = amount.len();
-    let mut index: u32 = 0;
-    let lp = liquidity_providers_get(providers);
-    while index < providers {
-        if (index < len) {
-            self.deposit(*amount[index], *lp.at(index));
-        } else {
-            self.deposit(*amount[0], *lp.at(index));
-        }
-        index += 1;
-    };
-}
-
-
-fn bid_n(ref self: VaultFacade, bidders: u32, amount: u256, price: u256) {
-    let mut current_round = self.get_current_round();
-    let params = current_round.get_params();
-    let mut index: u32 = 0;
-    let bid_amount = params.total_options_available;
-    let bid_price = params.reserve_price;
-    let option_bidders = option_bidders_get(bidders);
-
-    assert(price > bid_price && amount > price, 'Invalid parameters');
-    while index < bidders {
-        current_round.place_bid(amount, price, *option_bidders[index]);
-        index += 1;
-    }
-}
-
-
-fn bid_n_custom(ref self: VaultFacade, bidders: u32, amounts: Array<u256>, prices: Array<u256>) {
-    let mut current_round = self.get_current_round();
-    let params = current_round.get_params();
-    let mut index: u32 = 0;
-    let bid_price = params.reserve_price;
-    let option_bidders = option_bidders_get(bidders);
-
-    while index < bidders {
-        assert(
-            *prices[index] > bid_price && *amounts[index] > *prices[index],
-            ('Invalid parameters at {}')
-        );
-        current_round.place_bid(*amounts[index], *prices[index], *option_bidders[index]);
-        index += 1;
-    }
-}
-
 // Accelerate to the current round's auction end
 fn accelerate_to_running(ref self: VaultFacade) {
     let mut current_round = self.get_current_round();
@@ -791,22 +734,24 @@ fn accelerate_to_settle(ref self: VaultFacade, base_fee: u256) {
 
 
 fn accelerate_to_auctioning_custom(
-    ref self: VaultFacade, lps: Array<ContractAddress>, amounts: Array<u256>
-) {
-    self.deposit_mutltiple(lps, amounts);
+    ref self: VaultFacade, lps: Span<ContractAddress>, amounts: Span<u256>
+) -> u256 {
+    let deposit_total = self.deposit_mutltiple(lps, amounts);
     set_contract_address(vault_manager());
     self.start_auction();
+    deposit_total
 }
 
 fn accelerate_to_running_custom(
     ref self: VaultFacade,
-    bidders: Array<ContractAddress>,
-    max_amounts: Array<u256>,
-    prices: Array<u256>
-) {
+    bidders: Span<ContractAddress>,
+    max_amounts: Span<u256>,
+    prices: Span<u256>
+) -> u256 {
     let mut current_round = self.get_current_round();
     current_round.bid_multiple(bidders, max_amounts, prices);
-    self.timeskip_and_end_auction();
+    let clearing_price = self.timeskip_and_end_auction();
+    clearing_price
 }
 
 fn accelerate_to_settled(ref self: VaultFacade, base_fee: u256) {
