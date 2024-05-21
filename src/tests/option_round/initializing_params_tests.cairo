@@ -6,42 +6,32 @@ use openzeppelin::token::erc20::interface::{
     IERC20SafeDispatcherTrait,
 };
 
-use pitch_lake_starknet::vault::{
-    IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait,
-    VaultType
-};
-use pitch_lake_starknet::option_round::{
-    OptionRoundParams, IOptionRoundDispatcher, IOptionRoundDispatcherTrait
-};
-use pitch_lake_starknet::pitch_lake::{
-    IPitchLakeDispatcher, IPitchLakeSafeDispatcher, IPitchLakeDispatcherTrait, PitchLake,
-    IPitchLakeSafeDispatcherTrait
+use pitch_lake_starknet::{
+    pitch_lake::{
+        IPitchLakeDispatcher, IPitchLakeSafeDispatcher, IPitchLakeDispatcherTrait, PitchLake,
+        IPitchLakeSafeDispatcherTrait
+    },
+    vault::{IVaultDispatcher, IVaultDispatcherTrait, Vault, VaultType},
+    option_round::{OptionRoundParams, IOptionRoundDispatcher, IOptionRoundDispatcherTrait}
 };
 
 use result::ResultTrait;
 use starknet::{
     ClassHash, ContractAddress, contract_address_const, deploy_syscall,
     Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
-    testing::{set_block_timestamp, set_contract_address}
+    testing::{set_block_timestamp, set_contract_address}, contract_address::ContractAddressZeroable
 };
 
-use starknet::contract_address::ContractAddressZeroable;
 use openzeppelin::utils::serde::SerializedAppend;
 
-use traits::Into;
-use traits::TryInto;
 use pitch_lake_starknet::eth::Eth;
-use pitch_lake_starknet::tests::utils;
 use pitch_lake_starknet::tests::utils::{
-    setup, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
-    timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
-    option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
-    vault_manager, weth_owner, option_round_contract_address, mock_option_params, pop_log,
-    assert_no_events_left, deploy_pitch_lake
+    decimals, deploy_vault, allocated_pool_address, unallocated_pool_address, timestamp_start_month,
+    timestamp_end_month, liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
+    option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4, vault_manager, weth_owner,
+    option_round_contract_address, mock_option_params, pop_log, assert_no_events_left,
+    deploy_pitch_lake
 };
-
-
-// @note Not important for now, probably will only have 1 vault
 
 // @note Need to manually initialize round 1, either
 // upon vault deployment (constructor) or through a one-time round 1 initializer entry point
@@ -65,9 +55,13 @@ fn test_strike_price_based_on_vault_types() {
     // LP deposits (into each round 1) (cannot initialize round params if there is no liquidity)
     let deposit_amount_wei: u256 = 100 * decimals();
     set_contract_address(liquidity_provider_1());
+
+    // @note For some reason this is throwing ENTRYPOINT_NOT_FOUND
     vault_dispatcher_at_the_money.deposit_liquidity(deposit_amount_wei);
     vault_dispatcher_in_the_money.deposit_liquidity(deposit_amount_wei);
     vault_dispatcher_out_the_money.deposit_liquidity(deposit_amount_wei);
+
+    'does not'.print();
 
     // Vaults deploy with current -> 0: Settled, and next -> 1: Open,
     // In all future rounds, when the current round settles, the next is initialized
@@ -92,6 +86,7 @@ fn test_strike_price_based_on_vault_types() {
         contract_address: vault_dispatcher_out_the_money
             .get_option_round_address(vault_dispatcher_out_the_money.current_option_round_id() + 1)
     };
+
     // Get each round's params
     let atm_params: OptionRoundParams = atm.get_params();
     let itm_params: OptionRoundParams = itm.get_params();

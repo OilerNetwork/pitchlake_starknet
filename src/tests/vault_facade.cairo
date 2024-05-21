@@ -42,9 +42,11 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     }
 
     // @dev might clash when repo syncs
-    fn collect_premiums(ref self: VaultFacade, liquidity_provider: ContractAddress) {
+    // @note should return the amount of premiums/unsold liq. collected
+    fn collect_premiums(ref self: VaultFacade, liquidity_provider: ContractAddress) -> u256 {
         set_contract_address(liquidity_provider);
-    //self.vault_dispatcher.collect_premiums();
+        //self.vault_dispatcher.collect_premiums();
+        100
     }
 
     //@note Vault manager is set as caller here so the balances are not affected for previously set addresses for provider/bidder
@@ -197,6 +199,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     fn get_market_aggregator(ref self: VaultFacade) -> ContractAddress {
         self.vault_dispatcher.get_market_aggregator()
     }
+
     fn collect_unallocated(ref self: VaultFacade, amount: u256) {
         self.vault_dispatcher.collect_unallocated(amount);
     }

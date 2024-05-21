@@ -138,7 +138,7 @@ fn test_total_options_after_auction_4() {
     // Make no bids
     // Settle auction
     vault_facade.timeskip_and_end_auction();
-    // Check no options were sold if no bids 
+    // Check no options were sold if no bids
     assert(0 == round_facade.total_options_sold(), 'no options should sell');
 }
 
@@ -200,7 +200,7 @@ fn test_option_balance_per_bidder_after_auction_1() {
     // End auction
     vault_facade.timeskip_and_end_auction();
     // Test that each user gets the correct amount of options
-    // @dev Using erc20 dispatcher since the option balances are the same as 
+    // @dev Using erc20 dispatcher since the option balances are the same as
     // erc20::balance_of()
     let round_facade_erc20 = IERC20Dispatcher { contract_address: round_facade.contract_address() };
     let total_options_created_count: u256 = round_facade.total_options_sold();
@@ -218,7 +218,7 @@ fn test_option_balance_per_bidder_after_auction_1() {
 }
 
 
-// test where the total options available have not been exhausted 
+// test where the total options available have not been exhausted
 #[test]
 #[available_gas(10000000)]
 fn test_option_balance_per_bidder_after_auction_2() {

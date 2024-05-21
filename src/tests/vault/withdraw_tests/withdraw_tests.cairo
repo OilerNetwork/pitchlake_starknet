@@ -5,16 +5,12 @@ use openzeppelin::token::erc20::interface::{
     IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
     IERC20SafeDispatcherTrait,
 };
-
-use pitch_lake_starknet::vault::{VaultTransfer};
-
 use result::ResultTrait;
 use starknet::{
     ClassHash, ContractAddress, contract_address_const, deploy_syscall,
     Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
     testing::{set_block_timestamp, set_contract_address}
 };
-
 use starknet::contract_address::ContractAddressZeroable;
 use openzeppelin::utils::serde::SerializedAppend;
 
@@ -33,7 +29,9 @@ use pitch_lake_starknet::tests::utils::{
 };
 use pitch_lake_starknet::tests::vault::utils::{accelerate_to_running};
 
-// Test withdraw > lp unallocated fails
+// @note Add event tests once we agree on if we are using 1 or 2 withdraw functions.
+// Either one withdraw that takes from current premiums/unsold then from next round unallocated,
+// or one for current premiums/unsold and one for next round unallocated (withdraw vs withdraw & collect) ?
 
 // Test withdraw 0 fails
 #[test]
@@ -50,7 +48,7 @@ fn test_withdraw_0_failure() {
 #[test]
 #[available_gas(10000000)]
 fn test_withdraw_is_always_from_next_round() {
-    let (mut vault, _) = setup_facade();
+    let (mut vault, eth_dispatcher) = setup_facade();
     let mut next_round = vault.get_next_round();
 
     // Deposit liquidity while current round is settled
@@ -62,7 +60,14 @@ fn test_withdraw_is_always_from_next_round() {
     next_round = vault.get_next_round();
     vault.deposit(deposit_amount + 1, liquidity_provider_1());
     vault.withdraw(deposit_amount, liquidity_provider_1());
-    assert_event_transfer(next_round.contract_address(), liquidity_provider_1(), deposit_amount);
+
+    assert_event_transfer(
+        eth_dispatcher.contract_address,
+        next_round.contract_address(),
+        liquidity_provider_1(),
+        deposit_amount
+    );
+
     // Deposit liquidity while current round is running
     let mut next_round = vault.get_next_round();
     let params = current_round.get_params();
@@ -82,7 +87,7 @@ fn test_withdraw_is_always_from_next_round() {
 #[test]
 #[available_gas(10000000)]
 fn test_withdraw_updates_unallocated_balance() {
-    let (mut vault, _) = setup_facade();
+    let (mut vault, eth_dispatcher) = setup_facade();
     let mut next_round = vault.get_next_round();
 
     // Deposit liquidity while current round is settled
@@ -95,7 +100,14 @@ fn test_withdraw_updates_unallocated_balance() {
     vault.deposit(deposit_amount + 1, liquidity_provider_1());
     vault.get_unallocated_balance_for(liquidity_provider_1());
     vault.withdraw(deposit_amount, liquidity_provider_1());
-    assert_event_transfer(next_round.contract_address(), liquidity_provider_1(), deposit_amount);
+
+    assert_event_transfer(
+        eth_dispatcher.contract_address,
+        next_round.contract_address(),
+        liquidity_provider_1(),
+        deposit_amount
+    );
+
     // Deposit liquidity while current round is running
     let params = current_round.get_params();
     let bid_amount = params.total_options_available;

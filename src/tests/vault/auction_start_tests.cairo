@@ -33,7 +33,8 @@ use pitch_lake_starknet::tests::utils::{
     liquidity_providers_get, option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
     create_array_linear, create_array_gradient, option_bidder_buyer_4, vault_manager, weth_owner,
     mock_option_params, assert_event_auction_start, accelerate_to_auctioning_custom,
-    accelerate_to_running_custom
+    accelerate_to_running_custom, accelerate_to_auctioning, assert_event_option_round_created,
+    
 };
 use pitch_lake_starknet::tests::vault_facade::{VaultFacade, VaultFacadeTrait};
 use pitch_lake_starknet::tests::option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait};
@@ -48,12 +49,12 @@ fn test_unallocated_becomes_collateral() {
     // Get next round (open)
     let mut next_round: OptionRoundFacade = vault_facade.get_current_round();
     // Add liq. to next round (1)
-
     let lps = liquidity_providers_get(5);
     let len = lps.len();
     let mut amounts = create_array_gradient(1000 * decimals(), 5000 * decimals(), len);
 
     let deposit_total = vault_facade.deposit_mutltiple(lps.span(), amounts.span());
+    
     // Start the auction
     vault_facade.start_auction();
     // Final collateral/unallocated spread
@@ -100,9 +101,39 @@ fn test_start_auction_becomes_current_round() {
         'current round should be settled'
     );
     assert(next_round_facade.get_state() == OptionRoundState::Open, 'next round should be open');
-    // Check that auction start event was emitted with correct total_options_available
-    assert_event_auction_start(current_round_facade.get_params().total_options_available);
 }
+
+// Test when the auction starts, the auction_start event is emitted
+#[test]
+#[available_gas(10000000)]
+fn test_start_auction_event() {
+    let (mut vault, _) = setup_facade();
+    accelerate_to_auctioning(ref vault);
+    let mut current_round: OptionRoundFacade = vault.get_current_round();
+    let params = current_round.get_params();
+    // Check that auction start event was emitted with correct total_options_available
+    assert_event_auction_start(current_round.contract_address(), params.total_options_available);
+}
+
+// Test when the next round is deployed, the correct event fires
+#[test]
+#[available_gas(10000000)]
+fn test_start_next_round_event() {
+    let (mut vault, _) = setup_facade();
+    let (mut current_round, mut next_round) = vault.get_current_and_next_rounds();
+    accelerate_to_auctioning(ref vault);
+    let params = next_round.get_params();
+
+    // Check that auction start event was emitted with correct total_options_available
+    assert_event_option_round_created(
+        vault.contract_address(),
+        current_round.contract_address(),
+        next_round.contract_address(),
+        //'replace with amnt in accelerator',// the amount of unallocateed liquidity in the next round that bec
+        params
+    );
+}
+
 
 /// Failures ///
 
