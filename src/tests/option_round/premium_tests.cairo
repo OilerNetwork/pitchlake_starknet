@@ -14,11 +14,16 @@ use pitch_lake_starknet::tests::utils::{
     liquidity_provider_4, liquidity_provider_5, decimals, option_bidder_buyer_1,
     option_bidder_buyer_2, liquidity_providers_get, accelerate_to_auctioning, accelerate_to_running,
     accelerate_to_settle, assert_event_transfer, accelerate_to_auctioning_custom
+    , assert_event_option_withdraw_payout, assert_event_vault_transfer,
+    clear_event_logs, assert_event_option_withdraw_premium, liquidity_providers_get,
 };
 use openzeppelin::token::erc20::interface::{
     IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
     IERC20SafeDispatcherTrait,
 };
+use debug::PrintTrait;
+
+// @note If premiums collected fails/is 0 amount, should an event be emiited or no ?
 
 // Test premiums collectable is 0 before auction end
 #[test]
@@ -45,7 +50,7 @@ fn test_premium_amount_0_before_auction_end() {
 
 // Test the portion of premiums an LP can collect in a round is correct
 #[test]
-#[available_gas(10000000)]
+#[available_gas(1000000000)]
 fn test_premium_amount_for_liquidity_providers_1() {
     let (mut vault_facade, _) = setup_facade();
     // LPs
@@ -58,7 +63,7 @@ fn test_premium_amount_for_liquidity_providers_1() {
 
 // Test the portion of premiums an LP can collect in a round is correct (more LPs)
 #[test]
-#[available_gas(10000000)]
+#[available_gas(1000000000)]
 fn test_premium_amount_for_liquidity_providers_2() {
     let (mut vault_facade, _) = setup_facade();
     // LPs
@@ -71,7 +76,7 @@ fn test_premium_amount_for_liquidity_providers_2() {
 
 // Test the portion of premiums an LP can collect in a round is correct (more LPs)
 #[test]
-#[available_gas(10000000)]
+#[available_gas(1000000000)]
 fn test_premium_amount_for_liquidity_providers_3() {
     let (mut vault_facade, _) = setup_facade();
     // LPs
@@ -84,7 +89,7 @@ fn test_premium_amount_for_liquidity_providers_3() {
 
 // Test the portion of premiums an LP can collect in a round is correct (more LPs)
 #[test]
-#[available_gas(10000000)]
+#[available_gas(1000000000)]
 fn test_premium_amount_for_liquidity_providers_4() {
     let (mut vault_facade, _) = setup_facade();
     // LPs
@@ -97,7 +102,7 @@ fn test_premium_amount_for_liquidity_providers_4() {
 
 // Test the portion of premiums an LP can collect in a round is correct, when deposit 1 >>> deposit 2
 #[test]
-#[available_gas(10000000)]
+#[available_gas(1000000000)]
 fn test_premium_amount_for_liquidity_providers_5() {
     let (mut vault_facade, _) = setup_facade();
     // LPs
@@ -142,7 +147,50 @@ fn test_premium_collection_transfers_eth() {
     assert(
         lp2_balance_final == lp2_balance_init + collectable_premiums, 'lp2 did not collect premiums'
     );
-    assert_event_transfer(current_round.contract_address(), *lps[0], collectable_premiums);
+}
+
+#[test]
+#[available_gas(10000000)]
+fn test_premium_collection_emits_events() {
+    let (mut vault_facade, _) = setup_facade();
+    // Deposit and start auction
+    // @note Replace with accelerators post sync
+    let lps = array![liquidity_provider_1(), liquidity_provider_2(),];
+    let amounts = array![50 * decimals(), 50 * decimals()];
+    _test_premiums_collectable_helper(ref vault_facade, lps.span(), amounts.span());
+    let mut option_round = vault_facade.get_current_round();
+    // Clear events
+    clear_event_logs(array![vault_facade.contract_address(), option_round.contract_address()]);
+    // Initial protocol spread
+    let (lp1_collateral_init, lp1_unallocated_init) = vault_facade.get_all_lp_liquidity(*lps.at(0));
+    let (lp2_collateral_init, lp2_unallocated_init) = vault_facade.get_all_lp_liquidity(*lps.at(1));
+    let lp1_total_balance_before = lp1_collateral_init + lp1_unallocated_init;
+    let lp2_total_balance_before = lp2_collateral_init + lp2_unallocated_init;
+
+    // Collect premiums
+    let collected_amount1 = vault_facade.collect_premiums(*lps.at(0));
+    let collected_amount2 = vault_facade.collect_premiums(*lps.at(1));
+
+    assert_event_option_withdraw_premium(
+        option_round.contract_address(), *lps.at(0), collected_amount1
+    );
+    assert_event_option_withdraw_premium(
+        option_round.contract_address(), *lps.at(1), collected_amount2
+    );
+    assert_event_vault_transfer(
+        vault_facade.contract_address(),
+        *lps.at(0),
+        lp1_total_balance_before,
+        lp1_total_balance_before - collected_amount1,
+        false
+    );
+    assert_event_vault_transfer(
+        vault_facade.contract_address(),
+        *lps.at(1),
+        lp2_total_balance_before,
+        lp2_total_balance_before - collected_amount2,
+        false
+    );
 }
 
 // Test collecting premiums updates lp/round unallocated
@@ -181,7 +229,7 @@ fn test_premium_collection_updates_unallocated_amounts() {
 // Test collecting premiums twice fails
 // @note Maybe this shouldnt fail, but just do nothing instead ?
 #[test]
-#[available_gas(10000000)]
+#[available_gas(10000000000)]
 #[should_panic(expected: ('No premiums to collect', 'ENTRYPOINT_FAILED'))]
 fn test_premium_collect_none_fails() {
     let (mut vault_facade, eth) = setup_facade();

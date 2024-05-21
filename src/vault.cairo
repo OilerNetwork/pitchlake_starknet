@@ -2,6 +2,7 @@ use starknet::{ContractAddress};
 use pitch_lake_starknet::option_round::{OptionRoundParams, OptionRoundState};
 use pitch_lake_starknet::market_aggregator::{IMarketAggregator, IMarketAggregatorDispatcher};
 
+// The type of vault
 #[derive(starknet::Store, Copy, Drop, Serde, PartialEq)]
 enum VaultType {
     InTheMoney,
@@ -9,34 +10,10 @@ enum VaultType {
     OutOfMoney,
 }
 
-#[event]
-#[derive(Drop, starknet::Event)]
-enum Event {
-    Deposit: VaultTransfer,
-    Withdrawal: VaultTransfer,
-    OptionRoundCreated: OptionRoundCreated,
-}
-
-#[derive(Drop, starknet::Event)]
-struct VaultTransfer {
-    from: ContractAddress,
-    to: ContractAddress,
-    amount: u256
-}
-
-#[derive(Drop, starknet::Event)]
-struct OptionRoundCreated {
-    prev_round: ContractAddress,
-    new_round: ContractAddress,
-    collaterized_amount: u256,
-    option_round_params: OptionRoundParams
-}
-
-//IVault, Vault will be the main contract that the liquidity_providers and option_buyers will interact with.
-// Is this the case or wil OBs interact with the option rounds ?
-
+// The interface for the vault contract
 #[starknet::interface]
 trait IVault<TContractState> {
+    fn rm_me2(ref self: TContractState);
     /// Reads ///
 
     // Get the vault's  manaager address
@@ -75,6 +52,11 @@ trait IVault<TContractState> {
 
     // LP withdraws from their position while in the round transition period
     fn withdraw_liquidity(ref self: TContractState, amount: u256);
+
+    // @note Discuss if there should be 1 withdraw function or two (1 for collecting
+    // premium/unsold from current and 1 for withdrawing unallocated from next round)
+    // LP collects from their unallocated balance
+    fn collect_unallocated(ref self: TContractState, amount: u256);
 
     // LP converts their collateral into LP tokens
     // @note all at once or can LP convert a partial amount ?
@@ -116,8 +98,6 @@ trait IVault<TContractState> {
     fn get_market_aggregator(self: @TContractState) -> ContractAddress;
 
     fn is_premium_collected(self: @TContractState, lp: ContractAddress, round_id: u256) -> bool;
-
-    fn collect_unallocated(ref self: TContractState, amount: u256);
 }
 
 #[starknet::contract]
@@ -137,6 +117,36 @@ mod Vault {
     };
     use pitch_lake_starknet::market_aggregator::{IMarketAggregatorDispatcher};
 
+    // testing
+    use pitch_lake_starknet::tests::utils::{mock_option_params};
+
+    // Events
+    #[event]
+    #[derive(PartialEq, Drop, starknet::Event)]
+    enum Event {
+        Deposit: VaultTransfer,
+        Withdrawal: VaultTransfer,
+        OptionRoundCreated: OptionRoundCreated,
+    }
+
+    #[derive(Drop, starknet::Event, PartialEq)]
+    struct VaultTransfer {
+        #[key]
+        user: ContractAddress,
+        total_balance_before: u256,
+        // Collateral + unallocated
+        total_balance_now: u256,
+    }
+
+    #[derive(Drop, starknet::Event, PartialEq)]
+    struct OptionRoundCreated {
+        prev_round: ContractAddress,
+        new_round: ContractAddress,
+        // @note Discuss below, when round is created/deployed, the liquidity is currently unallocated
+        //  - should it be dropped or replaced ?
+        //collaterized_amount: u256,
+        option_round_params: OptionRoundParams
+    }
 
     #[storage]
     struct Storage {
@@ -193,6 +203,39 @@ mod Vault {
 
     #[abi(embed_v0)]
     impl VaultImpl of super::IVault<ContractState> {
+        fn rm_me2(ref self: ContractState) {
+            self
+                .emit(
+                    Event::OptionRoundCreated(
+                        OptionRoundCreated {
+                            prev_round: starknet::get_contract_address(),
+                            new_round: starknet::get_contract_address(),
+                            //collaterized_amount: 100,
+                            option_round_params: mock_option_params(),
+                        }
+                    )
+                );
+            self
+                .emit(
+                    Event::Deposit(
+                        VaultTransfer {
+                            user: starknet::get_contract_address(),
+                            total_balance_before: 100,
+                            total_balance_now: 100
+                        }
+                    )
+                );
+            self
+                .emit(
+                    Event::Withdrawal(
+                        VaultTransfer {
+                            user: starknet::get_contract_address(),
+                            total_balance_before: 100,
+                            total_balance_now: 100
+                        }
+                    )
+                );
+        }
         /// Reads ///
         fn vault_manager(self: @ContractState) -> ContractAddress {
             self.vault_manager.read()

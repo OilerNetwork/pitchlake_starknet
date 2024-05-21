@@ -31,7 +31,7 @@ use pitch_lake_starknet::tests::utils::{
     setup_facade, decimals, option_round_test_owner, deploy_vault, allocated_pool_address,
     unallocated_pool_address, timestamp_start_month, timestamp_end_month, liquidity_provider_1,
     liquidity_provider_2, option_bidder_buyer_1, option_bidder_buyer_2, vault_manager, weth_owner,
-    mock_option_params, assert_event_auction_start, assert_event_auction_settle,
+    mock_option_params, assert_event_auction_start, assert_event_auction_end,
     assert_event_option_settle
 };
 use pitch_lake_starknet::tests::mocks::mock_market_aggregator::{
