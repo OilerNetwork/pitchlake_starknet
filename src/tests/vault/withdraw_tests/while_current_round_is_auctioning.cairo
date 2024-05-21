@@ -5,9 +5,6 @@ use openzeppelin::token::erc20::interface::{
     IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
     IERC20SafeDispatcherTrait,
 };
-
-use pitch_lake_starknet::vault::{VaultTransfer};
-
 use result::ResultTrait;
 use starknet::{
     ClassHash, ContractAddress, contract_address_const, deploy_syscall,
@@ -29,12 +26,14 @@ use pitch_lake_starknet::tests::utils::{
     assert_event_transfer, timestamp_start_month, timestamp_end_month, liquidity_provider_1,
     liquidity_provider_2, option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
     option_bidder_buyer_4, zero_address, vault_manager, weth_owner, option_round_contract_address,
-    mock_option_params, pop_log, assert_no_events_left
+    mock_option_params, pop_log, assert_no_events_left, assert_event_vault_transfer,
 };
 use pitch_lake_starknet::tests::vault::utils::{accelerate_to_auctioning};
 
 
-// Test eth transfer when LP withdraws from their next round deposit 
+// @note Add event tests once we settle on 1 or 2 withdraw functions see withdraw_tests.cairo for more info
+
+// Test eth transfer when LP withdraws from their next round deposit
 #[test]
 #[available_gas(10000000)]
 fn test_withdraw_from_deposits_eth_transfer() {
@@ -61,7 +60,12 @@ fn test_withdraw_from_deposits_eth_transfer() {
     assert(
         final_next_round_balance == init_next_round_balance - withdraw_amount, 'next shd send eth'
     );
-    assert_event_transfer(next_round.contract_address(), liquidity_provider_1(), withdraw_amount);
+    assert_event_transfer(
+        eth_dispatcher.contract_address,
+        next_round.contract_address(),
+        liquidity_provider_1(),
+        withdraw_amount
+    );
 }
 
 // Test collateral/unallocated amounts when LP withdraws from their next round deposit

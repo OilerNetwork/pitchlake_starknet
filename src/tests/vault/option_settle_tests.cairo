@@ -1,64 +1,48 @@
 use debug::PrintTrait;
 use option::OptionTrait;
-use openzeppelin::token::erc20::interface::{
-    IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
-    IERC20SafeDispatcherTrait,
-};
-
-use pitch_lake_starknet::vault::{
-    IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait,
-    OptionRoundCreated
-};
-use pitch_lake_starknet::tests::{
-    vault::{utils::{accelerate_to_auctioning, accelerate_to_running}},
-};
-use pitch_lake_starknet::option_round::{OptionRoundParams, OptionRoundState};
 use result::ResultTrait;
 use starknet::{
     ClassHash, ContractAddress, contract_address_const, deploy_syscall,
     Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
-    testing::{set_block_timestamp, set_contract_address}
+    testing::{set_block_timestamp, set_contract_address}, contract_address::ContractAddressZeroable,
 };
-
-use pitch_lake_starknet::tests::vault_facade::{VaultFacade, VaultFacadeTrait};
-use pitch_lake_starknet::tests::option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait};
-use starknet::contract_address::ContractAddressZeroable;
-use openzeppelin::utils::serde::SerializedAppend;
-
-use pitch_lake_starknet::eth::Eth;
-use pitch_lake_starknet::tests::utils::{
-    setup_facade, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
-    timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
-    option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
-    zero_address, vault_manager, weth_owner, option_round_contract_address, mock_option_params,
-    pop_log, assert_no_events_left, month_duration, assert_event_option_settle,
-    assert_event_transfer
+use openzeppelin::{
+    utils::serde::SerializedAppend,
+    token::erc20::interface::{
+        IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
+        IERC20SafeDispatcherTrait,
+    }
 };
-use pitch_lake_starknet::option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait};
-use pitch_lake_starknet::tests::mocks::mock_market_aggregator::{
-    MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
-    IMarketAggregatorSetterDispatcherTrait,
+use pitch_lake_starknet::{
+    vault::{
+        IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault,
+        IVaultSafeDispatcherTrait
+    },
+    eth::Eth, option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
+    market_aggregator::{
+        IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait,
+        IMarketAggregatorSafeDispatcher, IMarketAggregatorSafeDispatcherTrait
+    },
+    tests::{
+        vault::{utils::{accelerate_to_auctioning, accelerate_to_running}},
+        vault_facade::{VaultFacade, VaultFacadeTrait},
+        option_round_facade::{
+            OptionRoundParams, OptionRoundState, OptionRoundFacade, OptionRoundFacadeTrait
+        },
+        mocks::mock_market_aggregator::{
+            MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
+            IMarketAggregatorSetterDispatcherTrait
+        },
+        utils::{
+            setup_facade, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
+            timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
+            option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
+            option_bidder_buyer_4, zero_address, vault_manager, weth_owner,
+            option_round_contract_address, mock_option_params, pop_log, assert_no_events_left,
+            month_duration, assert_event_option_settle, assert_event_transfer, clear_event_logs
+        },
+    }
 };
-use pitch_lake_starknet::market_aggregator::{
-    IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait,
-    IMarketAggregatorSafeDispatcher, IMarketAggregatorSafeDispatcherTrait
-};
-
-/// helpers
-// not used anywhere ?
-fn assert_event_option_created(
-    prev_round: ContractAddress,
-    new_round: ContractAddress,
-    collaterized_amount: u256,
-    option_round_params: OptionRoundParams
-) {
-    let event = pop_log::<OptionRoundCreated>(zero_address()).unwrap();
-    assert(event.prev_round == prev_round, 'Invalid prev_round');
-    assert(event.new_round == new_round, 'Invalid new_round');
-    assert(event.collaterized_amount == collaterized_amount, 'Invalid collaterized_amount');
-    assert(event.option_round_params == option_round_params, 'Invalid option_round_params');
-    assert_no_events_left(zero_address());
-}
 
 // @note move to option_round/state_transition_tests or /option_settle_tests
 // Test options cannot settle before expiry date
@@ -95,11 +79,9 @@ fn test_option_round_settle_updates_round_states() {
 }
 
 // Test the settling the round fires an event for the settlement price
-// @dev I don't think we need a getter/storage var for this. We use this value to calculate the payout,
-// which will be stored.
 #[test]
 #[available_gas(10000000)]
-fn test_option_round_settle_settlement_price() {
+fn test_option_round_settle_event() {
     let (mut vault_facade, _) = setup_facade();
     // Deposit liquidity, start and end auction, minting all options at reserve price
     accelerate_to_running(ref vault_facade);
@@ -111,8 +93,11 @@ fn test_option_round_settle_settlement_price() {
     vault_facade.timeskip_and_settle_round();
 
     // Assert the settlement price is set correctly
-    assert_event_option_settle(settlement_price);
+    let mut current_round = vault_facade.get_current_round();
+    assert_event_option_settle(current_round.contract_address(), settlement_price);
 }
+
+// @note If there needs to be a storage var for the settlement price, add test/facade/entrypoint for it
 
 // Test settling the option round twice fails
 #[test]
@@ -130,7 +115,7 @@ fn test_option_round_settle_twice_failure() {
 
 // Test current round's remaining liquidity adds to the next round's unallocated when there is no payout, and no premiums collected
 #[test]
-#[available_gas(10000000)]
+#[available_gas(1000000000)]
 fn test_option_round_settle_moves_remaining_liquidity_to_next_round_without_payout_without_premiums_collected() {
     _test_option_round_settle_moves_remaining_liquidity_to_next_round_with_or_without_payout_AND_with_or_without_premiums_collected(
         false, false
@@ -139,7 +124,7 @@ fn test_option_round_settle_moves_remaining_liquidity_to_next_round_without_payo
 
 // Test current round's remaining liquidity adds to the next round's unallocated when there is a payout,
 #[test]
-#[available_gas(10000000)]
+#[available_gas(1000000000)]
 fn test_option_round_settle_moves_remaining_liquidity_to_next_round_with_payout_without_premiums_collected() {
     _test_option_round_settle_moves_remaining_liquidity_to_next_round_with_or_without_payout_AND_with_or_without_premiums_collected(
         true, false
@@ -148,7 +133,7 @@ fn test_option_round_settle_moves_remaining_liquidity_to_next_round_with_payout_
 
 // Test current round's remaining liquidity adds to the next round's unallocated when there is no payout, and some premiums collected
 #[test]
-#[available_gas(10000000)]
+#[available_gas(1000000000)]
 fn test_option_round_settle_moves_remaining_liquidity_to_next_round_without_payout_with_premiums_collected() {
     _test_option_round_settle_moves_remaining_liquidity_to_next_round_with_or_without_payout_AND_with_or_without_premiums_collected(
         false, true
@@ -157,7 +142,7 @@ fn test_option_round_settle_moves_remaining_liquidity_to_next_round_without_payo
 
 // Test current round's remaining liquidity adds to the next round's unallocated when there is a payout, and some premiums collected
 #[test]
-#[available_gas(10000000)]
+#[available_gas(1000000000)]
 fn test_option_round_settle_moves_remaining_liquidity_to_next_round_with_payout_with_premiums_collected() {
     _test_option_round_settle_moves_remaining_liquidity_to_next_round_with_or_without_payout_AND_with_or_without_premiums_collected(
         true, true
@@ -215,6 +200,9 @@ fn _test_option_round_settle_moves_remaining_liquidity_to_next_round_with_or_wit
         expected_rollover_lp2 -= current_round.total_payout() / 2;
     }
 
+    // Clear eth transfer events log
+    clear_event_logs(array![eth_dispatcher.contract_address]);
+
     // Settle option round with or without payout
     vault_facade.settle_option_round_without_payout(is_payouts);
     let remaining_liquidity = current_round.get_remaining_liquidity();
@@ -247,7 +235,10 @@ fn _test_option_round_settle_moves_remaining_liquidity_to_next_round_with_or_wit
 
     // Assert transfer event
     assert_event_transfer(
-        current_round.contract_address(), next_round.contract_address(), remaining_liquidity
+        eth_dispatcher.contract_address,
+        current_round.contract_address(),
+        next_round.contract_address(),
+        remaining_liquidity
     );
 }
 
