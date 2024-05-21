@@ -6,8 +6,6 @@ use openzeppelin::token::erc20::interface::{
     IERC20SafeDispatcherTrait,
 };
 
-use pitch_lake_starknet::vault::{VaultTransfer};
-
 use result::ResultTrait;
 use starknet::{
     ClassHash, ContractAddress, contract_address_const, deploy_syscall,
@@ -49,4 +47,5 @@ fn test_current_round_id_is_zero() {
     assert(next_round_facade.get_state() == OptionRoundState::Open, 'next round should be open');
 }
 // Test that deposits always go into the next round
+
 

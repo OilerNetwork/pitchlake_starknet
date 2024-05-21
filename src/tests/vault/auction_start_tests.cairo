@@ -34,7 +34,6 @@ use pitch_lake_starknet::tests::utils::{
     create_array_linear, create_array_gradient, option_bidder_buyer_4, vault_manager, weth_owner,
     mock_option_params, assert_event_auction_start, accelerate_to_auctioning_custom,
     accelerate_to_running_custom, accelerate_to_auctioning, assert_event_option_round_created,
-    
 };
 use pitch_lake_starknet::tests::vault_facade::{VaultFacade, VaultFacadeTrait};
 use pitch_lake_starknet::tests::option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait};
@@ -54,7 +53,7 @@ fn test_unallocated_becomes_collateral() {
     let mut amounts = create_array_gradient(1000 * decimals(), 5000 * decimals(), len);
 
     let deposit_total = vault_facade.deposit_mutltiple(lps.span(), amounts.span());
-    
+
     // Start the auction
     vault_facade.start_auction();
     // Final collateral/unallocated spread

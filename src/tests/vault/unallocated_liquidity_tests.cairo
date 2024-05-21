@@ -10,7 +10,7 @@ use pitch_lake_starknet::tests::{
     utils::{
         setup_facade, liquidity_provider_1, liquidity_provider_2, liquidity_providers_get, decimals,
         option_bidder_buyer_1, option_bidder_buyer_2, accelerate_to_running,
-        accelerate_to_auctioning, accelerate_to_running_partial
+        accelerate_to_auctioning
     },
     mocks::mock_market_aggregator::{
         MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
@@ -18,29 +18,24 @@ use pitch_lake_starknet::tests::{
     },
 };
 use pitch_lake_starknet::tests::utils::{
-    setup_facade, liquidity_provider_1, liquidity_provider_2, liquidity_providers_get, decimals,
-    option_bidder_buyer_1, option_bidder_buyer_2, accelerate_to_running, accelerate_to_auctioning,
-    accelerate_to_running_partial, create_array_gradient, accelerate_to_auctioning_custom,
+   create_array_gradient, accelerate_to_auctioning_custom,
     create_array_linear, option_bidders_get,
     accelerate_to_running_custom // , deploy_vault, allocated_pool_address, unallocated_pool_address,
 // timestamp_start_month, timestamp_end_month, liquidity_provider_2,
 // , option_bidder_buyer_3, option_bidder_buyer_4,
 // vault_manager, weth_owner, mock_option_params, assert_event_transfer
 };
-use pitch_lake_starknet::tests::mocks::mock_market_aggregator::{
-    MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
-    IMarketAggregatorSetterDispatcherTrait
-};
 
-// Test that collected premiums do not roll over to the next round 
+// Test that collected premiums do not roll over to the next round
 
 // Test that collected premiums do not roll over to the next round
 #[test]
 #[available_gas(10000000)]
 fn test_premiums_and_unsold_liquidity_unallocated_amount() {
     let (mut vault_facade, _) = setup_facade();
+    // @note add accelerate to auctioning
     // Accelerate to round 1 running
-    accelerate_to_running_partial(ref vault_facade);
+    accelerate_to_running(ref vault_facade);
     // Current round (running), next round (open)
     let mut current_round = vault_facade.get_current_round();
     let current_params = current_round.get_params();

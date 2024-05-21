@@ -81,7 +81,13 @@ fn test_withdraw_is_always_from_next_round() {
     vault.end_auction();
     vault.deposit(deposit_amount + 2, liquidity_provider_1());
     vault.withdraw(deposit_amount + 1, liquidity_provider_1());
-    assert_event_transfer(next_round.contract_address(), liquidity_provider_1(), deposit_amount);
+    // @note Check eth transfer without event
+    assert_event_transfer(
+        eth_dispatcher.contract_address,
+        next_round.contract_address(),
+        liquidity_provider_1(),
+        deposit_amount
+    );
 }
 
 #[test]

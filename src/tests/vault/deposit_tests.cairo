@@ -34,13 +34,11 @@ use pitch_lake_starknet::tests::utils::{
     liquidity_provider_2, option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
     option_bidder_buyer_4, zero_address, vault_manager, weth_owner, option_round_contract_address,
     mock_option_params, pop_log, assert_no_events_left, create_array_gradient,
-    liquidity_providers_get,
-    clear_event_logs,
-    assert_event_auction_start, assert_event_auction_bid, assert_event_auction_end,
-    assert_event_option_settle, assert_event_option_round_created, assert_event_vault_transfer,
-    assert_event_option_deposit_liquidity, assert_event_option_withdraw_premium,
-    assert_event_option_withdraw_payout, assert_event_option_withdraw_liquidity,
-    assert_event_option_withdraw_unused_bids
+    liquidity_providers_get, clear_event_logs, assert_event_auction_start, assert_event_auction_bid,
+    assert_event_auction_end, assert_event_option_settle, assert_event_option_round_created,
+    assert_event_vault_transfer, assert_event_option_deposit_liquidity,
+    assert_event_option_withdraw_premium, assert_event_option_withdraw_payout,
+    assert_event_option_withdraw_liquidity, assert_event_option_withdraw_unused_bids
 };
 use pitch_lake_starknet::tests::vault::utils::{accelerate_to_auctioning, accelerate_to_running};
 

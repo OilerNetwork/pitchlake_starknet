@@ -28,9 +28,8 @@ use pitch_lake_starknet::tests::{
 use pitch_lake_starknet::tests::utils::{
     setup_facade, liquidity_provider_1, option_bidder_buyer_1, option_bidder_buyer_2,
     option_bidder_buyer_3, decimals, assert_event_transfer, vault_manager, accelerate_to_auctioning,
-    accelerate_to_running, accelerate_to_settle,
-    assert_event_vault_transfer, decimals,
-     assert_event_option_withdraw_payout, clear_event_logs,
+    accelerate_to_running, accelerate_to_settle, assert_event_vault_transfer,
+    assert_event_option_withdraw_payout, clear_event_logs,
 };
 use pitch_lake_starknet::tests::mocks::mock_market_aggregator::{
     MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
@@ -187,7 +186,7 @@ fn test_option_payout_amount_index_less_than_strike() {
     accelerate_to_running(ref vault_facade);
     // Settle option round
     // @dev This ensures the market aggregator returns the mocked current price
-    // @note: if there are no mock values, the strike price here would be zero creating 
+    // @note: if there are no mock values, the strike price here would be zero creating
     //        'u256_sub Overflow'
     let settlement_price = params.strike_price - 10;
     accelerate_to_settle(ref vault_facade, settlement_price);

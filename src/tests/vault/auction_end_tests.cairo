@@ -32,9 +32,8 @@ use pitch_lake_starknet::tests::utils::{
     option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
     zero_address, vault_manager, weth_owner, option_round_contract_address, mock_option_params,
     liquidity_providers_get, option_bidders_get, pop_log, assert_no_events_left, month_duration,
-    create_array_linear, create_array_gradient,
-    accelerate_to_auctioning_custom, accelerate_to_running_custom, accelerate_to_settled
-   , month_duration, assert_event_auction_end,
+    create_array_linear, create_array_gradient, accelerate_to_auctioning_custom,
+    accelerate_to_running_custom, accelerate_to_settled, assert_event_auction_end
 };
 use pitch_lake_starknet::option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait};
 use pitch_lake_starknet::tests::mocks::mock_market_aggregator::{
@@ -150,7 +149,7 @@ fn test_vault_end_auction_success_multi() {
     // Start auction
 
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    // Make bid 
+    // Make bid
     let option_params: OptionRoundParams = current_round_facade.get_params();
     let bid_count: u256 = option_params.total_options_available;
     let bid_price: u256 = option_params.reserve_price;
@@ -169,8 +168,8 @@ fn test_vault_end_auction_success_multi() {
     let state: OptionRoundState = current_round_facade.get_state();
     let expectedState: OptionRoundState = OptionRoundState::Running;
     assert(expectedState == state, 'round should be Running');
-    // Check auction clearing price event 
-    assert_event_auction_settle(current_round_facade.get_auction_clearing_price());
+    // Check auction clearing price event
+    assert_event_auction_end(current_round_facade.contract_address(), current_round_facade.get_auction_clearing_price());
 }
 
 // Test that the auction cannot be ended twice

@@ -23,12 +23,15 @@ use pitch_lake_starknet::{
     vault::{IVaultDispatcher, IVaultDispatcherTrait, Vault, VaultType}, option_round,
     option_round::{
         OptionRound, OptionRoundParams, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,
-        IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait
+        IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait, OptionRoundState,
     },
     tests::{
         option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
         vault_facade::{VaultFacade, VaultFacadeTrait},
-        mocks::mock_market_aggregator::{MockMarketAggregator}
+        mocks::mock_market_aggregator::{
+            MockMarketAggregator, IMarketAggregatorSetterDispatcher,
+            IMarketAggregatorSetterDispatcherTrait
+        }
     },
     eth::Eth,
 };
@@ -784,8 +787,6 @@ fn create_array_gradient(amount: u256, step: u256, len: u32) -> Array<u256> {
     };
     arr
 }
-
-
 // fn accelerate_to_auctioning_n_linear(ref self: VaultFacade, providers: u32, amount:u256){
 //     deposit_n(ref self,providers,amount);
 //     self.start_auction();
@@ -831,44 +832,43 @@ fn create_array_gradient(amount: u256, step: u256, len: u32) -> Array<u256> {
 
 //Auction with partial bidding
 
-//@dev Should we create more complex helpers for creating conditions like this directly?
-fn accelerate_to_running_n_partial(
-    ref self: VaultFacade, providers: u32, bidders: u32
-) -> (u256, u256) {
-    let mut current_round = self.get_current_round();
-    if (current_round.get_state() != OptionRoundState::Auctioning) {
-        accelerate_to_auctioning(ref self);
-    }
-    let params = current_round.get_params();
-    let bid_amount = params.total_options_available;
-    let bid_price = params.reserve_price;
-    let bid_quant = bid_amount / bidders.into() / 2;
-    let bid_amount = bid_quant * bid_price;
-    bid_n(ref self, bidders, bid_amount, bid_price);
-    set_block_timestamp(params.auction_end_time + 1);
-    current_round.end_auction();
-    (bid_amount, bid_price)
-}
+////@dev Should we create more complex helpers for creating conditions like this directly?
+//fn accelerate_to_running_n_partial(
+//   ref self: VaultFacade, providers: u32, bidders: u32
+//) -> (u256, u256) {
+//    let mut current_round = self.get_current_round();
+//   if (current_round.get_state() != OptionRoundState::Auctioning) {
+//      accelerate_to_auctioning(ref self);
+// }
+//    let params = current_round.get_params();
+//   let bid_amount = params.total_options_available;
+//  let bid_price = params.reserve_price;
+// let bid_quant = bid_amount / bidders.into() / 2;
+//    let bid_amount = bid_quant * bid_price;
+//   bid_n(ref self, bidders, bid_amount, bid_price);
+//  set_block_timestamp(params.auction_end_time + 1);
+// current_round.end_auction();
+//(bid_amount, bid_price)
+//}
 
-
-fn accelerate_to_running_partial(ref self: VaultFacade) {
-    // Bid for half the options at reserve price
-    let mut current_round = self.get_current_round();
-    let params = current_round.get_params();
-    let bid_amount = params.total_options_available;
-    let bid_price = params.reserve_price;
-    let mut bid_quant = bid_amount / 2;
-
-    //If quant gets 0 ensure minimum bid on 1 option
-    if bid_quant < 1 {
-        bid_quant += 1;
-    }
-    let bid_amount = bid_quant * bid_price;
-    current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
-    // End auction
-    set_block_timestamp(params.auction_end_time + 1);
-    current_round.end_auction();
-}
+//fn accelerate_to_running_partial(ref self: VaultFacade) {
+//   // Bid for half the options at reserve price
+//  let mut current_round = self.get_current_round();
+// let params = current_round.get_params();
+//let bid_amount = params.total_options_available;
+//    let bid_price = params.reserve_price;
+//   let mut bid_quant = bid_amount / 2;
+//
+//   //If quant gets 0 ensure minimum bid on 1 option
+//  if bid_quant < 1 {
+//     bid_quant += 1;
+//    }
+//   let bid_amount = bid_quant * bid_price;
+//  current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
+//    // End auction
+//   set_block_timestamp(params.auction_end_time + 1);
+//  current_round.end_auction();
+//}
 // @note Might want to add accelerate to settled with args for settlemnt price
 
 
