@@ -124,8 +124,7 @@ fn test_premium_collection_transfers_eth() {
     // LP balances pre collection
     let lp1_balance_init = eth.balance_of(*lps[0]);
     let lp2_balance_init = eth.balance_of(*lps[1]);
-    let collectable_premiums = vault_facade
-        .get_unallocated_balance_for(*lps[0]); // same as lp2
+    let collectable_premiums = vault_facade.get_unallocated_balance_for(*lps[0]); // same as lp2
 
     // Collect premiums
     vault_facade.collect_premiums(*lps[0]);
@@ -143,9 +142,7 @@ fn test_premium_collection_transfers_eth() {
     assert(
         lp2_balance_final == lp2_balance_init + collectable_premiums, 'lp2 did not collect premiums'
     );
-    assert_event_transfer(
-        current_round.contract_address(), *lps[0], collectable_premiums
-    );
+    assert_event_transfer(current_round.contract_address(), *lps[0], collectable_premiums);
 }
 
 // Test collecting premiums updates lp/round unallocated
@@ -215,7 +212,7 @@ fn _test_premiums_collectable_helper(
 
     // End auction, minting all options at reserve price
     accelerate_to_running(ref vault_facade);
-    
+
     // Get total collateral in pool (deposit total) and total premium
     let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
     let amount_span = amounts.span();
