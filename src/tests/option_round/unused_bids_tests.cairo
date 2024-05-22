@@ -277,7 +277,7 @@ fn test_option_round_refund_unused_bids_too_early_failure() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round_facade.get_params();
+    let _params: OptionRoundParams = current_round_facade.get_params();
 
     let bid_count: u256 = option_params.total_options_available + 10;
     let bid_price: u256 = option_params.reserve_price;

@@ -44,7 +44,7 @@ fn test_withdraw_from_deposits_eth_transfer() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round_facade.get_params();
+    let _params: OptionRoundParams = current_round_facade.get_params();
     // Current round (auctioning) and next round (open)
     let mut current_round = vault_facade.get_current_round();
     let mut next_round = vault_facade.get_next_round();
@@ -83,7 +83,7 @@ fn test_withdraw_from_deposits_updates_collateral_and_unallocated() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round_facade.get_params();
+    let _params: OptionRoundParams = current_round_facade.get_params();
     // Current round (auctioning), next round (open)
     let mut current_round = vault_facade.get_current_round();
     let mut next_round = vault_facade.get_next_round();

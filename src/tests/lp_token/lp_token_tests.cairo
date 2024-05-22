@@ -117,11 +117,11 @@ fn test_convert_position_to_lp_tokens_success() { //
     // Get initial states before conversion
     let lp1_premiums_init = vault_facade.get_premiums_for(liquidity_provider_1());
     let lp2_premiums_init = vault_facade.get_premiums_for(liquidity_provider_2());
-    let (lp1_collateral_init, lp1_unallocated_init) = vault_facade
+    let (lp1_collateral_init, _lp1_unallocated_init) = vault_facade
         .get_all_lp_liquidity(liquidity_provider_1());
     let (lp2_collateral_init, lp2_unallocated_init) = vault_facade
         .get_all_lp_liquidity(liquidity_provider_2());
-    let (current_round_collateral_init, current_round_unallocated_init) = current_round
+    let (current_round_collateral_init, _current_round_unallocated_init) = current_round
         .get_all_round_liquidity();
     let (next_round_collateral_init, next_round_unallocated_init) = next_round
         .get_all_round_liquidity();

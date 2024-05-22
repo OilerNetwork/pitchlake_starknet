@@ -138,7 +138,7 @@ fn test_premium_collection_ratio_conversion_unallocated_pool_1() {
 
     let lps = liquidity_providers_get(5);
     let deposit_amounts = create_array_gradient(1000 * decimals(), 1000 * decimals(), 5);
-    let deposit_total = accelerate_to_auctioning_custom(
+    let _deposit_total = accelerate_to_auctioning_custom(
         ref vault_facade, lps.span(), deposit_amounts.span()
     );
     let params = current_round.get_params();
@@ -148,7 +148,7 @@ fn test_premium_collection_ratio_conversion_unallocated_pool_1() {
     let obs = option_bidders_get(5);
     let bid_prices = create_array_linear(params.reserve_price, 5);
     let bid_amounts = create_array_linear(params.reserve_price * bid_amount, 5);
-    let clearing_price = accelerate_to_running_custom(
+    let _clearing_price = accelerate_to_running_custom(
         ref vault_facade, obs.span(), bid_prices.span(), bid_amounts.span()
     );
 

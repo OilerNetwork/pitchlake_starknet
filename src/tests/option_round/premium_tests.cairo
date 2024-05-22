@@ -139,7 +139,7 @@ fn test_premium_collection_transfers_eth() {
     // LP balances post collection
     let lp2_balance_final = eth.balance_of(*lps[1]);
     let lp1_balance_final = eth.balance_of(*lps[0]);
-    let mut current_round = vault_facade.get_current_round();
+    let mut _current_round = vault_facade.get_current_round();
 
     // Check eth: current_round -> lps
     assert(
@@ -233,7 +233,7 @@ fn test_premium_collection_updates_unallocated_amounts() {
 #[available_gas(10000000000)]
 #[should_panic(expected: ('No premiums to collect', 'ENTRYPOINT_FAILED'))]
 fn test_premium_collect_none_fails() {
-    let (mut vault_facade, eth) = setup_facade();
+    let (mut vault_facade, _) = setup_facade();
     // LPs
     let lps = liquidity_providers_get(1);
     let amounts = array![50 * decimals()];

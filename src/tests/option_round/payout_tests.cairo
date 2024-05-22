@@ -237,14 +237,12 @@ fn test_option_payout_amount_index_at_strike() {
 #[should_panic(expected: ('Cannot exercise before round settles ', 'ENTRYPOINT_FAILED',))]
 fn test_exercise_options_too_early_failure() {
     let (mut vault_facade, _) = setup_facade();
-    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let option_params: OptionRoundParams = current_round_facade.get_params();
 
     // Deposit liquidity and start the auction
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round_facade.get_params();
+    let _params: OptionRoundParams = current_round_facade.get_params();
     // Place the bid and end the auction
     accelerate_to_running(ref vault_facade);
     // Should fail as option has not settled

@@ -116,7 +116,7 @@ fn test_total_options_after_auction_3() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round_facade.get_params();
+    let _params: OptionRoundParams = current_round_facade.get_params();
 
     // place bid and end the auction
     accelerate_to_running(ref vault_facade);
@@ -132,7 +132,7 @@ fn test_total_options_after_auction_4() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round_facade.get_params();
+    let _params: OptionRoundParams = current_round_facade.get_params();
 
     // Make no bids
     // Settle auction
@@ -322,7 +322,7 @@ fn test_option_round_options_sold_before_auction_end_is_0() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round_facade.get_params();
+    let _params: OptionRoundParams = current_round_facade.get_params();
 
     // Make bid
     set_contract_address(option_bidder_buyer_1());

@@ -76,7 +76,7 @@ fn test_bid_before_auction_starts_failure() {
 fn test_bid_after_auction_ends_failure() {
     // Add liq. to next round
     let (mut vault_facade, _) = setup_facade();
-    let deposit_amount_wei = 50 * decimals();
+    let _deposit_amount_wei = 50 * decimals();
 
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
@@ -154,7 +154,7 @@ fn test_lock_of_bid_funds() {
 
     // Eth balances before bid
     let ob_balance_before_bid: u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
-    let round_balance_before_bid: u256 = eth_dispatcher
+    let _round_balance_before_bid: u256 = eth_dispatcher
         .balance_of(current_round_facade.contract_address());
 
     // Make bid
