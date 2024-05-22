@@ -14,10 +14,9 @@ use openzeppelin::token::erc20::interface::{
 // use pitch_lake_starknet::option_round::{OptionRoundParams};
 // use pitch_lake_starknet::eth::Eth;
 use pitch_lake_starknet::tests::utils::{
-    setup_facade, decimals, liquidity_provider_1, option_bidder_buyer_1, assert_event_auction_bid,
-    option_bidder_buyer_2, option_bidder_buyer_3, accelerate_to_auctioning, accelerate_to_running,
-    accelerate_to_settle, accelerate_to_running_custom, option_bidders_get, clear_event_logs,
-    assert_event_option_withdraw_unused_bids
+    setup_facade, decimals, liquidity_provider_1, option_bidder_buyer_1, option_bidder_buyer_2,
+    option_bidder_buyer_3, accelerate_to_auctioning, accelerate_to_running, accelerate_to_settle,
+    accelerate_to_running_custom, option_bidders_get, clear_event_logs,
 // , deploy_vault, allocated_pool_address, unallocated_pool_address,
 // timestamp_start_month, timestamp_end_month, liquidity_provider_2,
 // option_bidder_buyer_1, option_bidder_buyer_4
@@ -30,7 +29,7 @@ use pitch_lake_starknet::option_round::{OptionRoundParams};
 use starknet::testing::{set_block_timestamp, set_contract_address};
 
 use pitch_lake_starknet::tests::{
-    vault_facade::{VaultFacade, VaultFacadeTrait},
+    utils, vault_facade::{VaultFacade, VaultFacadeTrait},
     option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait}
 };
 
@@ -160,7 +159,7 @@ fn test_collect_unused_bids_events() {
     let collected_amount = round_facade.refund_bid(option_bidder_buyer_1());
 
     // Check OptionRound event
-    assert_event_option_withdraw_unused_bids(
+    utils::assert_event_unused_bids_refunded(
         round_facade.contract_address(), option_bidder_buyer_1(), bid_amount
     )
 }
