@@ -128,6 +128,16 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         self.option_round_dispatcher.get_unused_bids_for(option_bidder_buyer)
     }
 
+    // Get the date the option round starts
+    fn round_start_date(ref self: OptionRoundFacade) -> u64 {
+        0
+    }
+
+    // Get the date the option round ends
+    fn round_end_date(ref self: OptionRoundFacade) -> u64 {
+        0
+    }
+
     //These functions have some custom logic
 
     fn bid_multiple(
