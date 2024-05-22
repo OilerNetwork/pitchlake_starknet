@@ -24,7 +24,7 @@ use pitch_lake_starknet::{
         IMarketAggregatorSafeDispatcher, IMarketAggregatorSafeDispatcherTrait
     },
     tests::{
-        vault::{utils::{accelerate_to_auctioning, accelerate_to_running}},
+        utils, vault::{utils::{accelerate_to_auctioning, accelerate_to_running}},
         vault_facade::{VaultFacade, VaultFacadeTrait},
         option_round_facade::{
             OptionRoundParams, OptionRoundState, OptionRoundFacade, OptionRoundFacadeTrait
@@ -85,16 +85,12 @@ fn test_option_round_settle_event() {
     let (mut vault_facade, _) = setup_facade();
     // Deposit liquidity, start and end auction, minting all options at reserve price
     accelerate_to_running(ref vault_facade);
-    // Mock the average base fee for the option duration
-    let settlement_price = 123;
-    IMarketAggregatorSetterDispatcher { contract_address: vault_facade.get_market_aggregator() }
-        .set_current_base_fee(settlement_price);
-    // Settle auction
-    vault_facade.timeskip_and_settle_round();
+    // End auction with settlement price of 123
+    utils::accelerate_to_settled(ref vault_facade, 123);
 
-    // Assert the settlement price is set correctly
+    // Assert event emits correctly
     let mut current_round = vault_facade.get_current_round();
-    assert_event_option_settle(current_round.contract_address(), settlement_price);
+    assert_event_option_settle(current_round.contract_address(), 123);
 }
 
 // @note If there needs to be a storage var for the settlement price, add test/facade/entrypoint for it
@@ -204,7 +200,12 @@ fn _test_option_round_settle_moves_remaining_liquidity_to_next_round_with_or_wit
     clear_event_logs(array![eth_dispatcher.contract_address]);
 
     // Settle option round with or without payout
-    vault_facade.settle_option_round_without_payout(is_payouts);
+    let settlement_price = match is_payouts {
+        true => 2 * current_round.get_params().reserve_price,
+        false => 0
+    };
+
+    utils::accelerate_to_settled(ref vault_facade, settlement_price);
     let remaining_liquidity = current_round.get_remaining_liquidity();
 
     // LP unallocated and round ETH balances before round settle
