@@ -127,9 +127,6 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     ) -> u256 {
         self.option_round_dispatcher.get_unused_bids_for(option_bidder_buyer)
     }
-    fn get_market_aggregator(ref self: OptionRoundFacade) -> ContractAddress {
-        self.option_round_dispatcher.get_market_aggregator()
-    }
 
     //These functions have some custom logic
 
