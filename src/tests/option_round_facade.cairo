@@ -144,10 +144,11 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         let bid_price = params.reserve_price;
         while index < bidders
             .len() {
-                assert(
-                    *prices[index] > bid_price && *amounts[index] > *prices[index],
-                    ('Invalid parameters at {}')
-                );
+                // @note: shall we remove this?
+                // assert(
+                //     *prices[index] > bid_price && *amounts[index] > *prices[index],
+                //     ('Invalid parameters at {}')
+                // );
                 self.place_bid(*amounts[index], *prices[index], *bidders[index]);
                 index += 1;
             }

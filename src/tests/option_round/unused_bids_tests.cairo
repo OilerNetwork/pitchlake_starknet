@@ -129,23 +129,24 @@ fn test_collect_unused_bids_after_auction_end_success() {
 #[available_gas(10000000)]
 fn test_collect_unused_bids_events() {
     let (mut vault_facade, _) = setup_facade();
-    // LP deposits (into round 1)
-    let deposit_amount_wei: u256 = 10000 * decimals();
-    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
-    // Start auction
-    vault_facade.start_auction();
     let mut round_facade: OptionRoundFacade = vault_facade.get_current_round();
     let params: OptionRoundParams = round_facade.get_params();
+
+
+    // Deposit liquidity and start the auction
+    accelerate_to_auctioning(ref vault_facade);
+
     // OB 2 outbids OB 1 for all the options
+    let bidders = option_bidders_get(2);
     let bid_count = params.total_options_available;
     let bid_price = params.reserve_price;
-    let bid_price_2 = bid_price + 1;
+    let bid_price_2 = params.reserve_price + 1;
     let bid_amount = bid_count * bid_price;
     let bid_amount_2 = bid_count * bid_price_2;
-    round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
-    round_facade.place_bid(bid_amount_2, bid_price_2, option_bidder_buyer_2());
-    // Settle auction
-    vault_facade.timeskip_and_end_auction();
+
+    accelerate_to_running_custom(
+        ref vault_facade, bidders.span(), array![bid_amount, bid_amount_2].span(), array![bid_price, bid_price_2].span()
+    );
     // Clear event logs
     clear_event_logs(array![vault_facade.contract_address(), round_facade.contract_address()]);
     // Initial balance and collectable amount
@@ -174,23 +175,23 @@ fn test_collect_unused_bids_events() {
 #[available_gas(10000000)]
 fn test_collect_unused_bids_eth_transfer() {
     let (mut vault_facade, eth) = setup_facade();
-    // LP deposits (into round 1)
-    let deposit_amount_wei: u256 = 10000 * decimals();
-    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
-    // Start auction
-    vault_facade.start_auction();
     let mut round_facade: OptionRoundFacade = vault_facade.get_current_round();
     let params: OptionRoundParams = round_facade.get_params();
+
+    // Deposit liquidity and start the auction
+    accelerate_to_auctioning(ref vault_facade);
+
     // OB 2 outbids OB 1 for all the options
+    let bidders = option_bidders_get(2);
     let bid_count = params.total_options_available;
     let bid_price = params.reserve_price;
-    let bid_price_2 = bid_price + 1;
+    let bid_price_2 = params.reserve_price + 1;
     let bid_amount = bid_count * bid_price;
     let bid_amount_2 = bid_count * bid_price_2;
-    round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
-    round_facade.place_bid(bid_amount_2, bid_price_2, option_bidder_buyer_2());
-    // Settle auction
-    vault_facade.timeskip_and_end_auction();
+
+    accelerate_to_running_custom(
+        ref vault_facade, bidders.span(), array![bid_amount, bid_amount_2].span(), array![bid_price, bid_price_2].span()
+    );
     // Initial balance
     let lp1_balance_before = eth.balance_of(liquidity_provider_1());
     let round_balance_before = eth.balance_of(round_facade.contract_address());
@@ -246,15 +247,12 @@ fn test_collect_unused_bids_again_does_nothing() {
 #[should_panic(expected: ('The auction is still on-going', 'ENTRYPOINT_FAILED',))]
 fn test_option_round_refund_unused_bids_too_early_failure() {
     let (mut vault_facade, _) = setup_facade();
-    // LP deposits (into round 1)
-    let deposit_amount_wei: u256 = 10000 * decimals();
-    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
-    // Start auction
-    vault_facade.start_auction();
-    // Get the current (auctioning) round
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    // Make bid
     let option_params: OptionRoundParams = current_round_facade.get_params();
+
+    // Deposit liquidity and start the auction
+    accelerate_to_auctioning(ref vault_facade);
+
     let bid_count: u256 = option_params.total_options_available + 10;
     let bid_price: u256 = option_params.reserve_price;
     let bid_amount: u256 = bid_count * bid_price;
