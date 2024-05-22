@@ -22,14 +22,13 @@ use starknet::testing::{set_block_timestamp, set_contract_address};
 // use traits::TryInto;
 // use pitch_lake_starknet::eth::Eth;
 use pitch_lake_starknet::tests::{
-    vault_facade::{VaultFacade, VaultFacadeTrait},
+    utils, vault_facade::{VaultFacade, VaultFacadeTrait},
     option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait}
 };
 use pitch_lake_starknet::tests::utils::{
     setup_facade, liquidity_provider_1, option_bidder_buyer_1, option_bidder_buyer_2,
     option_bidder_buyer_3, decimals, assert_event_transfer, vault_manager, accelerate_to_auctioning,
-    accelerate_to_running, accelerate_to_settle, assert_event_vault_withdrawal,
-    assert_event_option_withdraw_payout, clear_event_logs,
+    accelerate_to_running, accelerate_to_settle, assert_event_vault_withdrawal, clear_event_logs,
 };
 use pitch_lake_starknet::tests::mocks::mock_market_aggregator::{
     MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
@@ -127,24 +126,11 @@ fn test_option_payout_events() {
     let payout2 = option_round.exercise_options(option_bidder_buyer_2());
 
     // Check OptionRound events
-    assert_event_option_withdraw_payout(
-        option_round.contract_address(), option_bidder_buyer_1(), payout1
+    utils::assert_event_options_exercised(
+        option_round.contract_address(), option_bidder_buyer_1(), bid_amount, payout1
     );
-    assert_event_option_withdraw_payout(
-        option_round.contract_address(), option_bidder_buyer_2(), payout2
-    );
-    // Check Vault events
-    assert_event_vault_withdrawal(
-        vault_facade.contract_address(),
-        option_bidder_buyer_1(),
-        lp1_total_balance_before,
-        lp1_total_balance_before - payout1,
-    );
-    assert_event_vault_withdrawal(
-        vault_facade.contract_address(),
-        option_bidder_buyer_2(),
-        lp2_total_balance_before,
-        lp2_total_balance_before - payout2,
+    utils::assert_event_options_exercised(
+        option_round.contract_address(), option_bidder_buyer_2(), bid_amount, payout2
     );
 }
 
