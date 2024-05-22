@@ -55,12 +55,6 @@ trait IVault<TContractState> {
     // LP withdraws from their position while in the round transition period
     fn withdraw_liquidity(ref self: TContractState, amount: u256);
 
-    // @note rm this
-    // @note Discuss if there should be 1 withdraw function or two (1 for collecting
-    // premium/unsold from current and 1 for withdrawing unallocated from next round)
-    // LP collects from their unallocated balance
-    fn collect_unallocated(ref self: TContractState, amount: u256);
-
     // LP converts their collateral into LP tokens
     // @note all at once or can LP convert a partial amount ?
     //  - logically i'm pretty sure they could do a partial amount (collecting all rewards in either case)
@@ -317,6 +311,5 @@ mod Vault {
         fn get_market_aggregator(self: @ContractState) -> ContractAddress {
             self.market_aggregator.read()
         }
-        fn collect_unallocated(ref self: ContractState, amount: u256) {}
     }
 }
