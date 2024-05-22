@@ -29,7 +29,7 @@ use pitch_lake_starknet::tests::utils::{
     setup_facade, liquidity_provider_1, option_bidder_buyer_1, option_bidder_buyer_2,
     option_bidder_buyer_3, decimals, assert_event_transfer, vault_manager, accelerate_to_auctioning,
     accelerate_to_running, accelerate_to_settle, assert_event_vault_transfer,
-    assert_event_option_withdraw_payout, clear_event_logs,
+    assert_event_option_withdraw_payout, clear_event_logs,option_bidders_get, accelerate_to_running_custom
 };
 use pitch_lake_starknet::tests::mocks::mock_market_aggregator::{
     MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
@@ -96,23 +96,22 @@ fn test_option_payout_events() {
     let (mut vault_facade, _) = setup_facade();
     let mut option_round: OptionRoundFacade = vault_facade.get_next_round();
     let params = option_round.get_params();
-    // Deposit liquidity
-    let deposit_amount_wei: u256 = 10000 * decimals();
-    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
+    
+    // Deposit liquidity and start auction
+    accelerate_to_auctioning(ref vault_facade);
+    
     // Make bids
+    let option_bidders = option_bidders_get(2);
     let bid_amount: u256 = 2;
     let bid_price: u256 = params.reserve_price;
     let bid_amount: u256 = bid_amount * bid_price;
-    option_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
-    option_round.place_bid(bid_amount, bid_price, option_bidder_buyer_2());
-    // End auction
-    vault_facade.timeskip_and_end_auction();
+    // @note: this test is failing for different reason now because of assert in multiple bids
+    accelerate_to_running_custom(ref vault_facade, option_bidders.span(), array![bid_amount, bid_amount].span(), array![bid_price, bid_price].span());
+    
     // Settle option round with payout
     let settlement_price = params.strike_price + 10;
-    IMarketAggregatorSetterDispatcher { contract_address: vault_facade.get_market_aggregator() }
-        .set_current_base_fee(settlement_price);
-    // Settle auction
-    vault_facade.timeskip_and_settle_round();
+    accelerate_to_settle(ref vault_facade, settlement_price);
+    
     // Initial balances
     let (lp1_collateral_before, lp1_unallocated_before) = vault_facade
         .get_all_lp_liquidity(option_bidder_buyer_1());
