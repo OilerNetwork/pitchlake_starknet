@@ -26,7 +26,7 @@ use pitch_lake_starknet::tests::utils::{
     assert_event_transfer, timestamp_start_month, timestamp_end_month, liquidity_provider_1,
     liquidity_provider_2, option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
     option_bidder_buyer_4, zero_address, vault_manager, weth_owner, option_round_contract_address,
-    mock_option_params, pop_log, assert_no_events_left, assert_event_vault_transfer,
+    mock_option_params, pop_log, assert_no_events_left,
 };
 use pitch_lake_starknet::tests::vault::utils::{accelerate_to_auctioning};
 

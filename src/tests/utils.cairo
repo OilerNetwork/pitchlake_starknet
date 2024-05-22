@@ -640,21 +640,14 @@ fn assert_event_transfer(
 }
 
 // Test OptionRoundCreated event emits correctly
-fn assert_event_option_round_created(
-    contract: ContractAddress,
-    prev_round: ContractAddress,
-    new_round: ContractAddress,
-    //collaterized_amount: u256,
-    option_round_params: OptionRoundParams
+fn assert_event_option_round_deployed(
+    contract: ContractAddress, round_id: u256, address: ContractAddress,
 ) {
-    match pop_log::<Vault::OptionRoundCreated>(contract) {
+    match pop_log::<Vault::OptionRoundDeployed>(contract) {
         Option::Some(e) => {
-            let e = Vault::Event::OptionRoundCreated(e);
-            let expected = Vault::Event::OptionRoundCreated(
-                Vault::OptionRoundCreated {
-                    prev_round, new_round, //collaterized_amount,
-                     option_round_params
-                }
+            let e = Vault::Event::OptionRoundDeployed(e);
+            let expected = Vault::Event::OptionRoundDeployed(
+                Vault::OptionRoundDeployed { round_id, address, }
             );
             assert_events_equal(e, expected);
         },
@@ -662,39 +655,71 @@ fn assert_event_option_round_created(
     };
 }
 
-
-// Test VaultTransfer event emits correctly (deposit and withdraw)
-// is_deposit == true for Deposit event, false for Withdrawal event
-fn assert_event_vault_transfer(
+// Test deposit event emits correctly
+fn assert_event_vault_deposit(
     vault: ContractAddress,
-    user: ContractAddress,
-    total_balance_before: u256,
-    total_balance_now: u256,
-    is_deposit: bool
+    account: ContractAddress,
+    position_balance_before: u256,
+    position_balance_after: u256,
 ) {
     match pop_event_details(vault) {
         Option::Some((
             keys, data
         )) => {
-            let e_inner: Vault::VaultTransfer = Vault::VaultTransfer {
-                user: (*keys.at(1)).try_into().unwrap(),
-                total_balance_before: u256 {
-                    low: (*data.at(0)).try_into().unwrap(), high: (*data.at(1)).try_into().unwrap()
-                },
-                total_balance_now: u256 {
-                    low: (*data.at(2)).try_into().unwrap(), high: (*data.at(3)).try_into().unwrap()
+            let e = Vault::Event::Deposit(
+                Vault::Deposit {
+                    account: (*keys.at(1)).try_into().unwrap(),
+                    position_balance_before: u256 {
+                        low: (*data.at(0)).try_into().unwrap(),
+                        high: (*data.at(1)).try_into().unwrap()
+                    },
+                    position_balance_after: u256 {
+                        low: (*data.at(2)).try_into().unwrap(),
+                        high: (*data.at(3)).try_into().unwrap()
+                    }
                 }
-            };
-            let expected_inner = Vault::VaultTransfer {
-                user, total_balance_before, total_balance_now
-            };
-            let (e, expected) = match is_deposit {
-                true => { (Vault::Event::Deposit(e_inner), Vault::Event::Deposit(expected_inner)) },
-                false => {
-                    (Vault::Event::Withdrawal(e_inner), Vault::Event::Withdrawal(expected_inner))
-                },
-            };
-            assert_events_equal(e, expected);
+            );
+            assert_events_equal(
+                e,
+                Vault::Event::Deposit(
+                    Vault::Deposit { account, position_balance_before, position_balance_after }
+                )
+            );
+        },
+        Option::None => { panic(array!['No events found']); }
+    }
+}
+
+// Test withdrawal event emits correctly
+fn assert_event_vault_withdrawal(
+    vault: ContractAddress,
+    account: ContractAddress,
+    position_balance_before: u256,
+    position_balance_after: u256,
+) {
+    match pop_event_details(vault) {
+        Option::Some((
+            keys, data
+        )) => {
+            let e = Vault::Event::Withdrawal(
+                Vault::Withdrawal {
+                    account: (*keys.at(1)).try_into().unwrap(),
+                    position_balance_before: u256 {
+                        low: (*data.at(0)).try_into().unwrap(),
+                        high: (*data.at(1)).try_into().unwrap()
+                    },
+                    position_balance_after: u256 {
+                        low: (*data.at(2)).try_into().unwrap(),
+                        high: (*data.at(3)).try_into().unwrap()
+                    }
+                }
+            );
+            assert_events_equal(
+                e,
+                Vault::Event::Withdrawal(
+                    Vault::Withdrawal { account, position_balance_before, position_balance_after }
+                )
+            );
         },
         Option::None => { panic(array!['No events found']); }
     }

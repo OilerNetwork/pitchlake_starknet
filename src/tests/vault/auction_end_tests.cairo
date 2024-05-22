@@ -169,7 +169,9 @@ fn test_vault_end_auction_success_multi() {
     let expectedState: OptionRoundState = OptionRoundState::Running;
     assert(expectedState == state, 'round should be Running');
     // Check auction clearing price event
-    assert_event_auction_end(current_round_facade.contract_address(), current_round_facade.get_auction_clearing_price());
+    assert_event_auction_end(
+        current_round_facade.contract_address(), current_round_facade.get_auction_clearing_price()
+    );
 }
 
 // Test that the auction cannot be ended twice

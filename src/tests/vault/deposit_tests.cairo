@@ -35,10 +35,11 @@ use pitch_lake_starknet::tests::utils::{
     option_bidder_buyer_4, zero_address, vault_manager, weth_owner, option_round_contract_address,
     mock_option_params, pop_log, assert_no_events_left, create_array_gradient,
     liquidity_providers_get, clear_event_logs, assert_event_auction_start, assert_event_auction_bid,
-    assert_event_auction_end, assert_event_option_settle, assert_event_option_round_created,
-    assert_event_vault_transfer, assert_event_option_deposit_liquidity,
+    assert_event_auction_end, assert_event_option_settle, assert_event_option_round_deployed,
+    assert_event_vault_deposit, assert_event_option_deposit_liquidity,
     assert_event_option_withdraw_premium, assert_event_option_withdraw_payout,
-    assert_event_option_withdraw_liquidity, assert_event_option_withdraw_unused_bids
+    assert_event_option_withdraw_liquidity, assert_event_option_withdraw_unused_bids,
+    assert_event_vault_withdrawal,
 };
 use pitch_lake_starknet::tests::vault::utils::{accelerate_to_auctioning, accelerate_to_running};
 
@@ -97,19 +98,17 @@ fn test_deposit_events() {
     vault_facade.deposit(2 * deposit_amount, liquidity_provider_2());
 
     // Check vault events emit correctly
-    assert_event_vault_transfer(
+    assert_event_vault_deposit(
         vault_facade.contract_address(),
         liquidity_provider_1(),
         lp1_total_before,
         lp1_total_before + deposit_amount,
-        true // is deposit
     );
-    assert_event_vault_transfer(
+    assert_event_vault_deposit(
         vault_facade.contract_address(),
         liquidity_provider_2(),
         lp2_total_before,
         lp2_total_before + deposit_amount,
-        true // is deposit
     );
     // Check option round events emit correctly
     assert_event_option_deposit_liquidity(
@@ -190,12 +189,10 @@ fn test_event_testers() {
     assert_event_auction_bid(r.contract_address(), r.contract_address(), 100, 100, false);
     assert_event_auction_end(r.contract_address(), 100);
     assert_event_option_settle(r.contract_address(), 100);
-    assert_event_option_round_created(
-        v.contract_address(), v.contract_address(), v.contract_address(), mock_option_params()
-    );
+    assert_event_option_round_deployed(v.contract_address(), 1, v.contract_address());
 
-    assert_event_vault_transfer(v.contract_address(), v.contract_address(), 100, 100, true);
-    assert_event_vault_transfer(v.contract_address(), v.contract_address(), 100, 100, false);
+    assert_event_vault_deposit(v.contract_address(), v.contract_address(), 100, 100);
+    assert_event_vault_withdrawal(v.contract_address(), v.contract_address(), 100, 100);
     assert_event_option_deposit_liquidity(r.contract_address(), r.contract_address(), 100);
     assert_event_option_withdraw_premium(r.contract_address(), r.contract_address(), 100);
     assert_event_option_withdraw_payout(r.contract_address(), r.contract_address(), 100);
