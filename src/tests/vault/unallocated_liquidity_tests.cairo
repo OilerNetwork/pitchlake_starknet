@@ -18,17 +18,14 @@ use pitch_lake_starknet::tests::{
     },
 };
 use pitch_lake_starknet::tests::utils::{
-   create_array_gradient, accelerate_to_auctioning_custom,
-    create_array_linear, option_bidders_get,
+    create_array_gradient, accelerate_to_auctioning_custom, create_array_linear, option_bidders_get,
     accelerate_to_running_custom // , deploy_vault, allocated_pool_address, unallocated_pool_address,
 // timestamp_start_month, timestamp_end_month, liquidity_provider_2,
 // , option_bidder_buyer_3, option_bidder_buyer_4,
 // vault_manager, weth_owner, mock_option_params, assert_event_transfer
 };
 
-// Test that collected premiums do not roll over to the next round
 
-// Test that collected premiums do not roll over to the next round
 #[test]
 #[available_gas(10000000)]
 fn test_premiums_and_unsold_liquidity_unallocated_amount() {
@@ -52,6 +49,7 @@ fn test_premiums_and_unsold_liquidity_unallocated_amount() {
     assert(lp_unallocated == premiums_earned + deposit_amount, 'LP unallocated wrong');
 }
 
+// @note Should be a withdraw test
 #[test]
 #[available_gas(10000000)]
 #[should_panic(expected: ('Collect > unallocated balance', 'ENTRYPOINT_FAILED'))]
