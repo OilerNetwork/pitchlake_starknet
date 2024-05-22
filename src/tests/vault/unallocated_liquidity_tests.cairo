@@ -18,8 +18,7 @@ use pitch_lake_starknet::tests::{
     },
 };
 use pitch_lake_starknet::tests::utils::{
-   create_array_gradient, accelerate_to_auctioning_custom,
-    create_array_linear, option_bidders_get,
+    create_array_gradient, accelerate_to_auctioning_custom, create_array_linear, option_bidders_get,
     accelerate_to_running_custom // , deploy_vault, allocated_pool_address, unallocated_pool_address,
 // timestamp_start_month, timestamp_end_month, liquidity_provider_2,
 // , option_bidder_buyer_3, option_bidder_buyer_4,

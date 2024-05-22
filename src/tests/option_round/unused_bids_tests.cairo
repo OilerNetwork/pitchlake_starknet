@@ -75,8 +75,9 @@ fn test_unused_bids_for_ob_after_auction() {
     let bid_amount_2 = bid_count * bid_price_2;
 
     accelerate_to_running_custom(
-        ref vault_facade, bidders.span(),
-        array![bid_amount,bid_amount_2].span(),
+        ref vault_facade,
+        bidders.span(),
+        array![bid_amount, bid_amount_2].span(),
         array![bid_price, bid_price_2].span()
     );
     // Check OB 1's unused bid is their entire bid, and OB 2's is 0
@@ -106,7 +107,10 @@ fn test_collect_unused_bids_after_auction_end_success() {
     let bid_amount_2 = bid_count * bid_price_2;
 
     accelerate_to_running_custom(
-        ref vault_facade, bidders.span(), array![bid_amount, bid_amount_2].span(), array![bid_price, bid_price_2].span()
+        ref vault_facade,
+        bidders.span(),
+        array![bid_amount, bid_amount_2].span(),
+        array![bid_price, bid_price_2].span()
     );
 
     // OB 1 collects their unused bids (at any time post auction)
@@ -132,7 +136,6 @@ fn test_collect_unused_bids_events() {
     let mut round_facade: OptionRoundFacade = vault_facade.get_current_round();
     let params: OptionRoundParams = round_facade.get_params();
 
-
     // Deposit liquidity and start the auction
     accelerate_to_auctioning(ref vault_facade);
 
@@ -145,7 +148,10 @@ fn test_collect_unused_bids_events() {
     let bid_amount_2 = bid_count * bid_price_2;
 
     accelerate_to_running_custom(
-        ref vault_facade, bidders.span(), array![bid_amount, bid_amount_2].span(), array![bid_price, bid_price_2].span()
+        ref vault_facade,
+        bidders.span(),
+        array![bid_amount, bid_amount_2].span(),
+        array![bid_price, bid_price_2].span()
     );
     // Clear event logs
     clear_event_logs(array![vault_facade.contract_address(), round_facade.contract_address()]);
@@ -190,7 +196,10 @@ fn test_collect_unused_bids_eth_transfer() {
     let bid_amount_2 = bid_count * bid_price_2;
 
     accelerate_to_running_custom(
-        ref vault_facade, bidders.span(), array![bid_amount, bid_amount_2].span(), array![bid_price, bid_price_2].span()
+        ref vault_facade,
+        bidders.span(),
+        array![bid_amount, bid_amount_2].span(),
+        array![bid_price, bid_price_2].span()
     );
     // Initial balance
     let lp1_balance_before = eth.balance_of(liquidity_provider_1());
@@ -228,7 +237,10 @@ fn test_collect_unused_bids_again_does_nothing() {
     let bid_amount_2 = bid_count * bid_price_2;
 
     accelerate_to_running_custom(
-        ref vault_facade, bidders.span(), array![bid_amount, bid_amount_2].span(), array![bid_price, bid_price_2].span()
+        ref vault_facade,
+        bidders.span(),
+        array![bid_amount, bid_amount_2].span(),
+        array![bid_price, bid_price_2].span()
     );
 
     // OB 1 collects their unused bids
