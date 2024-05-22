@@ -13,7 +13,7 @@ use pitch_lake_starknet::tests::utils::{
     setup_facade, liquidity_provider_1, liquidity_provider_2, liquidity_provider_3,
     liquidity_provider_4, liquidity_provider_5, decimals, option_bidder_buyer_1,
     option_bidder_buyer_2, liquidity_providers_get, accelerate_to_auctioning, accelerate_to_running,
-    accelerate_to_settle, assert_event_transfer, accelerate_to_auctioning_custom,
+    accelerate_to_settled, assert_event_transfer, accelerate_to_auctioning_custom,
     assert_event_vault_withdrawal, clear_event_logs,
 };
 use openzeppelin::token::erc20::interface::{

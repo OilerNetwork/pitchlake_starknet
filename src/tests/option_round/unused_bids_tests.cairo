@@ -15,7 +15,7 @@ use openzeppelin::token::erc20::interface::{
 // use pitch_lake_starknet::eth::Eth;
 use pitch_lake_starknet::tests::utils::{
     setup_facade, decimals, liquidity_provider_1, option_bidder_buyer_1, option_bidder_buyer_2,
-    option_bidder_buyer_3, accelerate_to_auctioning, accelerate_to_running, accelerate_to_settle,
+    option_bidder_buyer_3, accelerate_to_auctioning, accelerate_to_running, accelerate_to_settled,
     accelerate_to_running_custom, option_bidders_get, clear_event_logs,
 // , deploy_vault, allocated_pool_address, unallocated_pool_address,
 // timestamp_start_month, timestamp_end_month, liquidity_provider_2,
