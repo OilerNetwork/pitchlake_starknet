@@ -1,8 +1,7 @@
 use pitch_lake_starknet::{
-    option_round::{OptionRoundParams},
     tests::{
         vault_facade::{VaultFacade, VaultFacadeTrait},
-        option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
+        option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundParams},
         utils::{
             setup_facade, decimals, liquidity_provider_1, option_bidder_buyer_1,
             assert_event_auction_bid, option_bidder_buyer_2, option_bidder_buyer_3,
@@ -20,6 +19,7 @@ fn test_option_round_clearing_price_0_before_auction_end() {
     let (mut vault_facade, _) = setup_facade();
     // Deposit liquidity and start the auction
     accelerate_to_auctioning(ref vault_facade);
+
     // Bid for option but do not end the auction
     let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
     let params: OptionRoundParams = current_round.get_params();
@@ -39,6 +39,7 @@ fn test_clearing_price_1() {
     let (mut vault_facade, _) = setup_facade();
     // Deposit liquidity and start the auction
     accelerate_to_auctioning(ref vault_facade);
+
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
     let params: OptionRoundParams = current_round_facade.get_params();

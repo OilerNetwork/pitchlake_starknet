@@ -1,6 +1,6 @@
 use starknet::testing::{set_block_timestamp, set_contract_address, ContractAddress};
 use pitch_lake_starknet::tests::{
-    option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
+    option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundParams},
     vault_facade::{VaultFacade, VaultFacadeTrait},
     mocks::{
         mock_market_aggregator::{
@@ -30,17 +30,18 @@ use debug::PrintTrait;
 #[available_gas(10000000)]
 fn test_premium_amount_0_before_auction_end() {
     let (mut vault_facade, _) = setup_facade();
-    let mut current_round = vault_facade.get_current_round();
-    let params = current_round.get_params();
 
     // Deposit liquidity and start the auction
     accelerate_to_auctioning(ref vault_facade);
+    // Make bids
+    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
+    let params: OptionRoundParams = current_round_facade.get_params();
 
     // Bid for all options at reserve price
     let bid_amount = params.total_options_available;
     let bid_price = params.reserve_price;
     let bid_amount = bid_amount * bid_price;
-    current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
+    current_round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
 
     // Check premiums collectable is 0 since auction is still on going
     let premiums_collectable = vault_facade.get_unallocated_balance_for(liquidity_provider_1());

@@ -24,14 +24,14 @@ use pitch_lake_starknet::tests::utils::{
 // , option_bidder_buyer_6, weth_owner, mock_option_params,
 // month_duration
 };
-use pitch_lake_starknet::option_round::{OptionRoundParams};
+// use pitch_lake_starknet::option_round::{OptionRoundParams};
 
 // use result::ResultTrait;
 use starknet::testing::{set_block_timestamp, set_contract_address};
 
 use pitch_lake_starknet::tests::{
     vault_facade::{VaultFacade, VaultFacadeTrait},
-    option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait}
+    option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundParams}
 };
 // use starknet::contract_address::ContractAddressZeroable;
 
@@ -42,11 +42,12 @@ use pitch_lake_starknet::tests::{
 #[available_gas(10000000)]
 fn test_total_options_after_auction_1() {
     let (mut vault_facade, _) = setup_facade();
-    let mut round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = round_facade.get_params();
 
     // Deposit liquidity and start the auction
     accelerate_to_auctioning(ref vault_facade);
+    // Make bids
+    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
+    let params: OptionRoundParams = current_round_facade.get_params();
 
     // OB 1 and 2 bid for > the total options available at the reserve price
     let option_bidders = option_bidders_get(2);
@@ -65,7 +66,8 @@ fn test_total_options_after_auction_1() {
 
     // Check total options sold is the total options available
     assert(
-        params.total_options_available == round_facade.total_options_sold(), 'options sold wrong'
+        params.total_options_available == current_round_facade.total_options_sold(),
+        'options sold wrong'
     );
 }
 
@@ -74,10 +76,12 @@ fn test_total_options_after_auction_1() {
 #[available_gas(10000000)]
 fn test_total_options_after_auction_2() {
     let (mut vault_facade, _) = setup_facade();
-    let mut round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = round_facade.get_params();
+
     // Deposit liquidity and start the auction
     accelerate_to_auctioning(ref vault_facade);
+    // Make bids
+    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
+    let params: OptionRoundParams = current_round_facade.get_params();
 
     // OB 1 and 2 bid for > the total options available at the reserve price
     let option_bidders = option_bidders_get(2);
@@ -97,7 +101,8 @@ fn test_total_options_after_auction_2() {
 
     // Check total options sold is the total options available
     assert(
-        params.total_options_available == round_facade.total_options_sold(), 'options sold wrong'
+        params.total_options_available == current_round_facade.total_options_sold(),
+        'options sold wrong'
     );
 }
 
@@ -106,51 +111,54 @@ fn test_total_options_after_auction_2() {
 #[available_gas(10000000)]
 fn test_total_options_after_auction_3() {
     let (mut vault_facade, _) = setup_facade();
-    let mut round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = round_facade.get_params();
 
     // Deposit liquidity and start the auction
     accelerate_to_auctioning(ref vault_facade);
+    // Make bids
+    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
+    let params: OptionRoundParams = current_round_facade.get_params();
 
     // place bid and end the auction
     accelerate_to_running(ref vault_facade);
     let bid_count = 2;
-    assert(bid_count == round_facade.total_options_sold(), 'options sold wrong');
+    assert(bid_count == current_round_facade.total_options_sold(), 'options sold wrong');
 }
 
 #[test]
 #[available_gas(10000000)]
 fn test_total_options_after_auction_4() {
     let (mut vault_facade, _) = setup_facade();
-    let mut round_facade: OptionRoundFacade = vault_facade.get_current_round();
-
     // Deposit liquidity and start the auction
     accelerate_to_auctioning(ref vault_facade);
+    // Make bids
+    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
+    let params: OptionRoundParams = current_round_facade.get_params();
 
     // Make no bids
     // Settle auction
     vault_facade.timeskip_and_end_auction();
 
     // Check no options were sold if no bids
-    assert(0 == round_facade.total_options_sold(), 'no options should sell');
+    assert(0 == current_round_facade.total_options_sold(), 'no options should sell');
 }
 
 #[test]
 #[available_gas(10000000)]
 fn test_total_options_after_auction_5() {
     let (mut vault_facade, _) = setup_facade();
-    let mut round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = round_facade.get_params();
 
     // Deposit liquidity and start the auction
     accelerate_to_auctioning(ref vault_facade);
+    // Make bids
+    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
+    let params: OptionRoundParams = current_round_facade.get_params();
 
     // place bid and end the auction
     accelerate_to_running(ref vault_facade);
 
     // Check all options sell
     assert(
-        params.total_options_available == round_facade.total_options_sold(),
+        params.total_options_available == current_round_facade.total_options_sold(),
         'max options should sell'
     );
 }
@@ -160,11 +168,12 @@ fn test_total_options_after_auction_5() {
 #[available_gas(10000000)]
 fn test_option_balance_per_bidder_after_auction_1() {
     let (mut vault_facade, _) = setup_facade();
-    let mut round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = round_facade.get_params();
 
     // Deposit liquidity and start the auction
     accelerate_to_auctioning(ref vault_facade);
+    // Make bids
+    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
+    let params: OptionRoundParams = current_round_facade.get_params();
 
     // Make bids
     let option_bidders = option_bidders_get(4);
@@ -202,8 +211,10 @@ fn test_option_balance_per_bidder_after_auction_1() {
     // Test that each user gets the correct amount of options
     // @dev Using erc20 dispatcher since the option balances are the same as
     // erc20::balance_of()
-    let round_facade_erc20 = IERC20Dispatcher { contract_address: round_facade.contract_address() };
-    let total_options_created_count: u256 = round_facade.total_options_sold();
+    let round_facade_erc20 = IERC20Dispatcher {
+        contract_address: current_round_facade.contract_address()
+    };
+    let total_options_created_count: u256 = current_round_facade.total_options_sold();
 
     // @dev: getting ENTRYPOINT_NOT_FOUND for this, check
     let options_created_user_1_count: u256 = round_facade_erc20.balance_of(*option_bidders[0]);
@@ -226,11 +237,12 @@ fn test_option_balance_per_bidder_after_auction_1() {
 #[available_gas(10000000)]
 fn test_option_balance_per_bidder_after_auction_2() {
     let (mut vault_facade, _) = setup_facade();
-    let mut round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let mut params: OptionRoundParams = round_facade.get_params();
 
     // Deposit liquidity and start the auction
     accelerate_to_auctioning(ref vault_facade);
+    // Make bids
+    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
+    let mut params: OptionRoundParams = current_round_facade.get_params();
 
     // Make bids
     let option_bidders = option_bidders_get(6);
@@ -279,8 +291,10 @@ fn test_option_balance_per_bidder_after_auction_2() {
             .span()
     );
 
-    let round_facade_erc20 = IERC20Dispatcher { contract_address: round_facade.contract_address() };
-    let total_options_created_count: u256 = round_facade.total_options_sold();
+    let round_facade_erc20 = IERC20Dispatcher {
+        contract_address: current_round_facade.contract_address()
+    };
+    let total_options_created_count: u256 = current_round_facade.total_options_sold();
     let options_created_user_1_count: u256 = round_facade_erc20.balance_of(*option_bidders[0]);
     let options_created_user_2_count: u256 = round_facade_erc20.balance_of(*option_bidders[1]);
     let options_created_user_3_count: u256 = round_facade_erc20.balance_of(*option_bidders[2]);
@@ -302,12 +316,13 @@ fn test_option_balance_per_bidder_after_auction_2() {
 #[available_gas(10000000)]
 fn test_option_round_options_sold_before_auction_end_is_0() {
     let (mut vault_facade, _) = setup_facade();
-    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let option_params: OptionRoundParams = current_round_facade.get_params();
 
     // Deposit liquidity and start the auction
     set_contract_address(vault_manager());
     accelerate_to_auctioning(ref vault_facade);
+    // Make bids
+    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
+    let params: OptionRoundParams = current_round_facade.get_params();
 
     // Make bid
     set_contract_address(option_bidder_buyer_1());
