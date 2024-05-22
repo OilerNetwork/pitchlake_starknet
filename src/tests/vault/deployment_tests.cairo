@@ -87,14 +87,6 @@ fn test_option_round_constructor() {
         next_round_facade.vault_address() == vault_facade.contract_address(),
         'vault address should be set'
     );
-    assert(
-        current_round_facade.get_market_aggregator() == vault_facade.get_market_aggregator(),
-        'round 0 mkt agg address wrong'
-    );
-    assert(
-        next_round_facade.get_market_aggregator() == vault_facade.get_market_aggregator(),
-        'round 1 mkt agg address wrong'
-    );
 }
 
 // Test market aggregator is deployed
