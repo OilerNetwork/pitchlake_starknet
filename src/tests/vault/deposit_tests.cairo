@@ -168,11 +168,12 @@ fn test_deposit_zero_liquidity_failure() {
 #[available_gas(100000000)]
 fn test_event_testers() {
     let (mut v, e) = setup_facade();
-    set_contract_address(liquidity_provider_1());
     /// new test, make emission come from entry point on vault,
     let mut r = v.get_current_round();
-    e.transfer(liquidity_provider_1(), 100);
-    assert_event_transfer(e.contract_address, liquidity_provider_1(), liquidity_provider_1(), 100);
+    set_contract_address(liquidity_provider_1());
+    clear_event_logs(array![e.contract_address, v.contract_address(), r.contract_address()]);
+    e.transfer(liquidity_provider_2(), 100);
+    assert_event_transfer(e.contract_address, liquidity_provider_1(), liquidity_provider_2(), 100);
     r.option_round_dispatcher.rm_me(100);
     assert_event_auction_start(r.contract_address(), 100);
     utils::assert_event_auction_bid_accepted(r.contract_address(), r.contract_address(), 100, 100);
