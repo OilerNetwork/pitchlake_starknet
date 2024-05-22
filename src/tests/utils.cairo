@@ -17,8 +17,9 @@ use pitch_lake_starknet::{
         IPitchLakeSafeDispatcherTrait
     },
     market_aggregator::{
-        IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait,
-        IMarketAggregatorSafeDispatcher, IMarketAggregatorSafeDispatcherTrait
+        MarketAggregator, IMarketAggregator, IMarketAggregatorDispatcher,
+        IMarketAggregatorDispatcherTrait, IMarketAggregatorSafeDispatcher,
+        IMarketAggregatorSafeDispatcherTrait
     },
     vault::{IVaultDispatcher, IVaultDispatcherTrait, Vault, VaultType}, option_round,
     option_round::{
@@ -707,12 +708,8 @@ fn accelerate_to_running(ref self: VaultFacade) {
     current_round.end_auction();
 }
 
-fn accelerate_to_settle(ref self: VaultFacade, base_fee: u256) {
-    let mock_maket_aggregator_setter: IMarketAggregatorSetterDispatcher =
-        IMarketAggregatorSetterDispatcher {
-        contract_address: self.get_market_aggregator()
-    };
-    mock_maket_aggregator_setter.set_current_base_fee(base_fee);
+fn accelerate_to_settled(ref self: VaultFacade, avg_base_fee: u256) {
+    self.set_market_aggregator_value(avg_base_fee);
     self.timeskip_and_settle_round();
 }
 
@@ -737,16 +734,6 @@ fn accelerate_to_running_custom(
     let clearing_price = self.timeskip_and_end_auction();
     clearing_price
 }
-
-fn accelerate_to_settled(ref self: VaultFacade, base_fee: u256) {
-    let mock_maket_aggregator_setter: IMarketAggregatorSetterDispatcher =
-        IMarketAggregatorSetterDispatcher {
-        contract_address: self.get_market_aggregator()
-    };
-    mock_maket_aggregator_setter.set_current_base_fee(base_fee);
-    self.timeskip_and_settle_round();
-}
-
 
 //Create various amounts array (For bids use the function twice for price and amount)
 fn create_array_linear(amount: u256, len: u32) -> Array<u256> {
