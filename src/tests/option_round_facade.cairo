@@ -40,9 +40,9 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     }
 
 
-    fn end_auction(ref self: OptionRoundFacade) {
+    fn end_auction(ref self: OptionRoundFacade) -> u256 {
         set_contract_address(vault_manager());
-        self.option_round_dispatcher.end_auction();
+        self.option_round_dispatcher.end_auction()
     }
 
     fn refund_bid(ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress) -> u256 {

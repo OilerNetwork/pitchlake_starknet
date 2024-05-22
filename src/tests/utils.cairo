@@ -710,7 +710,7 @@ fn accelerate_to_auctioning(ref self: VaultFacade) {
 }
 
 // Accelerate to the current round's auction end
-fn accelerate_to_running(ref self: VaultFacade) {
+fn accelerate_to_running(ref self: VaultFacade) -> u256 {
     let mut current_round = self.get_current_round();
     if (current_round.get_state() != OptionRoundState::Auctioning) {
         accelerate_to_auctioning(ref self);
@@ -723,7 +723,7 @@ fn accelerate_to_running(ref self: VaultFacade) {
     current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
     // End auction
     set_block_timestamp(params.auction_end_time + 1);
-    current_round.end_auction();
+    current_round.end_auction()
 }
 
 fn accelerate_to_settle(ref self: VaultFacade, base_fee: u256) {
