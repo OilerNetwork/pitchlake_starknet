@@ -59,7 +59,7 @@ fn test_unallocated_becomes_collateral() {
     vault_facade.start_auction();
     // Final collateral/unallocated spread
     let (next_round_collateral, next_round_unallocated) = next_round.get_all_round_liquidity();
-    let next_round_total_liquidity = next_round.total_liquidity();
+    let next_round_starting_liquidity = next_round.starting_liquidity();
     // Individual spread
     let (mut arr_collateral, mut arr_unallocated) = vault_facade
         .get_all_liquidity_for_n(lps.span());
@@ -75,7 +75,7 @@ fn test_unallocated_becomes_collateral() {
 
     //Check totals on the option round
     assert(next_round_collateral == deposit_total, 'next round collateral wrong');
-    assert(next_round_total_liquidity == deposit_total, 'next round total liq. wrong');
+    assert(next_round_starting_liquidity == deposit_total, 'next round total liq. wrong');
     assert(next_round_unallocated == 0, 'next round unallocated wrong');
 }
 // Test when an auction starts, it becomes the current round and the
