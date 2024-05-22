@@ -99,6 +99,6 @@ fn test_market_aggregator_deployed() {
         contract_address: vault_facade.get_market_aggregator()
     };
 
-    // At deployment this getter should exist (and return 0)
-    assert(mkt_agg.get_average_base_fee() == 0, 'avg basefee shd be 0');
+    // Entry point will fail if contract not deployed
+    assert(vault_facade.get_market_aggregator_value() == 0, 'avg basefee shd be 0');
 }
