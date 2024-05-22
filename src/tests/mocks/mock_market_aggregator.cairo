@@ -1,56 +1,51 @@
-use pitch_lake_starknet::market_aggregator::{IMarketAggregator, IMarketAggregatorDispatcher};
+use pitch_lake_starknet::market_aggregator::MarketAggregator;
 
-// NOTE ONLY USED IN TESTS FOR MOCKING PURPOSES
 #[starknet::interface]
 trait IMarketAggregatorSetter<TContractState> {
-    fn set_average_base_fee(ref self: TContractState, base_fee: u256);
+    fn set_value_without_proof(
+        ref self: TContractState, start_date: u64, end_date: u64, avg_base_fee: u256
+    ) -> Result<bool, felt252>;
 
-    fn set_standard_deviation_base_fee(ref self: TContractState, base_fee: u256);
 
-    fn set_current_base_fee(ref self: TContractState, base_fee: u256);
+    fn get_value(
+        self: @TContractState, start_date: u64, end_date: u64
+    ) -> Result<(u256, Span<felt252>), felt252>;
 }
+
+// @note Needs store and get value, use structs for the store lookup, value and proof
 
 #[starknet::contract]
 mod MockMarketAggregator {
     use starknet::{ContractAddress, StorePacking};
     use starknet::contract_address::ContractAddressZeroable;
+
     #[storage]
     struct Storage {
+        // (start date, end date), avg base fee
+        values: LegacyMap<(u64, u64), u256>,
+        // (start date, end date, index), proof chunk
+        // First index is the length of the proof
+        proofs: LegacyMap<(u64, u64, u32), felt252>,
         average_base_fee: u256,
         standard_deviation_base_fee: u256,
         current_base_fee: u256,
     }
 
     #[abi(embed_v0)]
-    impl MockMarketAggregatorSetterImpl of super::IMarketAggregatorSetter<ContractState> {
-        fn set_average_base_fee(ref self: ContractState, base_fee: u256) {
-            self.average_base_fee.write(base_fee);
+    impl IMarketAggregatorSetterImpl of super::IMarketAggregatorSetter<ContractState> {
+        fn get_value(
+            self: @ContractState, start_date: u64, end_date: u64
+        ) -> Result<(u256, Span<felt252>), felt252> {
+            let proof = array![].span();
+            Result::Ok((self.values.read((start_date, end_date)), proof))
         }
 
-        fn set_standard_deviation_base_fee(ref self: ContractState, base_fee: u256) {
-            self.standard_deviation_base_fee.write(base_fee);
-        }
-
-        fn set_current_base_fee(ref self: ContractState, base_fee: u256) {
-            self.current_base_fee.write(base_fee);
-        }
-    }
-
-    #[abi(embed_v0)]
-    impl MockMarketAggregatorImpl of super::IMarketAggregator<ContractState> {
-        // this is the average basefee for the previous round, returns in wei
-        fn get_average_base_fee(self: @ContractState) -> u256 {
-            self.average_base_fee.read()
-        }
-
-        // this is the standard deviation of the basefee for the previous round, returns in wei
-        fn get_standard_deviation_base_fee(self: @ContractState) -> u256 {
-            self.standard_deviation_base_fee.read()
-        }
-
-        // this is the current basefee, returns in wei
-        fn get_current_base_fee(self: @ContractState) -> u256 {
-            self.current_base_fee.read()
+        fn set_value_without_proof(
+            ref self: ContractState, start_date: u64, end_date: u64, avg_base_fee: u256
+        ) -> Result<bool, felt252> {
+            self.values.write((start_date, end_date), avg_base_fee);
+            Result::Ok(true)
         }
     }
 }
+

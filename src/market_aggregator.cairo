@@ -1,15 +1,21 @@
-// how the market aggregator works and comes up with the values is TBD.
+use MarketAggregator::{Lookup, Value};
+
 #[starknet::interface]
 trait IMarketAggregator<TContractState> {
-    // this is the average base fee for the previous round, returns in wei
-    fn get_average_base_fee(self: @TContractState) -> u256;
+    fn set_value(
+        ref self: TContractState,
+        start_date: u64,
+        end_date: u64,
+        avg_base_fee: u256,
+        proof: Span<felt252>
+    ) -> Result<bool, felt252>;
 
-    // this is the standard deviation of the base fee for the previous round, returns in wei
-    fn get_standard_deviation_base_fee(self: @TContractState) -> u256;
-
-    // this is the current base fee, returns in wei
-    fn get_current_base_fee(self: @TContractState) -> u256;
+    fn get_value(
+        self: @TContractState, start_date: u64, end_date: u64,
+    ) -> Result<(u256, Span<felt252>), felt252>;
 }
+
+// @note Needs store and get value, use structs for the store lookup, value and proof
 
 #[starknet::contract]
 mod MarketAggregator {
@@ -17,27 +23,58 @@ mod MarketAggregator {
     use starknet::contract_address::ContractAddressZeroable;
     #[storage]
     struct Storage {
+        // (start date, end date), avg base fee
+        values: LegacyMap<(u64, u64), u256>,
+        // (start date, end date, index), proof chunk
+        // First index is the length of the proof
+        proofs: LegacyMap<(u64, u64, u32), felt252>,
         average_base_fee: u256,
         standard_deviation_base_fee: u256,
         current_base_fee: u256,
     }
 
+    #[derive(Serde, Drop, Copy, starknet::Store)]
+    struct Lookup {
+        start_date: u64,
+        end_date: u64,
+    }
+
+    #[derive(Serde, Drop, Default, PartialEq, starknet::Store)]
+    struct Value {
+        start_date: u64,
+        end_date: u64,
+        avg_base_fee: u256
+    }
+
     #[abi(embed_v0)]
     impl IMarketAggregatorImpl of super::IMarketAggregator<ContractState> {
-        // TODO add time period. 
-        // this is the average base fee for the previous round, returns in wei
-        fn get_average_base_fee(self: @ContractState) -> u256 {
-            self.average_base_fee.read()
+        fn get_value(
+            self: @ContractState, start_date: u64, end_date: u64,
+        ) -> Result<(u256, Span<felt252>), felt252> {
+            // Assert there is a proof for this lookup (the value exists)
+            assert(self.proofs.read((start_date, end_date, 0)) != 0, 'Value not set');
+            // Build helper to create span of proof using proof length (found from reading proofs at slot 0)
+            let proof = array![
+                self.proofs.read((start_date, end_date, 1)),
+                self.proofs.read((start_date, end_date, 2))
+            ]
+                .span();
+            let avg_base_fee = self.values.read((start_date, end_date));
+
+            Result::Ok((avg_base_fee, proof))
         }
 
-        // this is the standard deviation of the base fee for the previous round, returns in wei
-        fn get_standard_deviation_base_fee(self: @ContractState) -> u256 {
-            self.standard_deviation_base_fee.read()
-        }
-
-        // this is the current base fee, returns in wei
-        fn get_current_base_fee(self: @ContractState) -> u256 {
-            self.current_base_fee.read()
+        fn set_value(
+            ref self: ContractState,
+            start_date: u64,
+            end_date: u64,
+            avg_base_fee: u256,
+            proof: Span<felt252>,
+        ) -> Result<bool, felt252> {
+            // Check lookup (derived from value) is not set yet
+            // Verify proof of value
+            // Set value and proof using lookup
+            Result::Ok(true)
         }
     }
 }
