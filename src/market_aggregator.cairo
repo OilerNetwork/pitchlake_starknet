@@ -1,5 +1,3 @@
-use MarketAggregator::{Lookup, Value};
-
 #[starknet::interface]
 trait IMarketAggregator<TContractState> {
     fn set_value(
@@ -15,35 +13,17 @@ trait IMarketAggregator<TContractState> {
     ) -> Result<(u256, Span<felt252>), felt252>;
 }
 
-// @note Needs store and get value, use structs for the store lookup, value and proof
-
 #[starknet::contract]
 mod MarketAggregator {
     use starknet::{ContractAddress, StorePacking};
     use starknet::contract_address::ContractAddressZeroable;
     #[storage]
     struct Storage {
-        // (start date, end date), avg base fee
+        // (start date, end date) -> avg base fee
         values: LegacyMap<(u64, u64), u256>,
-        // (start date, end date, index), proof chunk
-        // First index is the length of the proof
+        // (start date, end date, index) -> proof chunk
+        // @note First index is the length of the proof
         proofs: LegacyMap<(u64, u64, u32), felt252>,
-        average_base_fee: u256,
-        standard_deviation_base_fee: u256,
-        current_base_fee: u256,
-    }
-
-    #[derive(Serde, Drop, Copy, starknet::Store)]
-    struct Lookup {
-        start_date: u64,
-        end_date: u64,
-    }
-
-    #[derive(Serde, Drop, Default, PartialEq, starknet::Store)]
-    struct Value {
-        start_date: u64,
-        end_date: u64,
-        avg_base_fee: u256
     }
 
     #[abi(embed_v0)]

@@ -1,5 +1,3 @@
-use pitch_lake_starknet::market_aggregator::MarketAggregator;
-
 #[starknet::interface]
 trait IMarketAggregatorSetter<TContractState> {
     fn set_value_without_proof(
@@ -16,19 +14,15 @@ trait IMarketAggregatorSetter<TContractState> {
 
 #[starknet::contract]
 mod MockMarketAggregator {
-    use starknet::{ContractAddress, StorePacking};
-    use starknet::contract_address::ContractAddressZeroable;
+    use starknet::{ContractAddress};
 
     #[storage]
     struct Storage {
-        // (start date, end date), avg base fee
+        // (start date, end date) -> avg base fee
         values: LegacyMap<(u64, u64), u256>,
-        // (start date, end date, index), proof chunk
-        // First index is the length of the proof
+        // (start date, end date, index) -> proof chunk
+        // @note First index is the length of the proof
         proofs: LegacyMap<(u64, u64, u32), felt252>,
-        average_base_fee: u256,
-        standard_deviation_base_fee: u256,
-        current_base_fee: u256,
     }
 
     #[abi(embed_v0)]
