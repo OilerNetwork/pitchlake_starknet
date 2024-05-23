@@ -152,7 +152,7 @@ fn test_clearing_price_4() {
         array![bid_amount_user_1, bid_amount_user_2].span(),
         array![bid_price_user_1, bid_price_user_2].span()
     );
-    // OB 2's price should be the clearing price to mint all options
+    // OB 1's price should be the clearing price to mint all options
     assert(clearing_price == bid_price_user_1, 'clearing price shd be ob1 price');
 }
 

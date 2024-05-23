@@ -322,11 +322,15 @@ fn test_option_round_options_sold_before_auction_end_is_0() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let _params: OptionRoundParams = current_round_facade.get_params();
+    let params: OptionRoundParams = current_round_facade.get_params();
 
     // Make bid
     set_contract_address(option_bidder_buyer_1());
-    accelerate_to_running(ref vault_facade);
+
+    let bid_count: u256 = params.total_options_available + 10;
+    let bid_price: u256 = params.reserve_price;
+    let bid_amount: u256 = bid_count * bid_price;
+    current_round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
 
     // Check that options_sold is 0 pre auction settlement
     let options_sold: u256 = current_round_facade.total_options_sold();

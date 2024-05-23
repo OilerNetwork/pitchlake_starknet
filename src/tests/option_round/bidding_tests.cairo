@@ -46,7 +46,6 @@ use starknet::{
 fn test_bid_before_auction_starts_failure() {
     let (mut vault_facade, _) = setup_facade();
 
-    accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
     let params: OptionRoundParams = current_round_facade.get_params();
