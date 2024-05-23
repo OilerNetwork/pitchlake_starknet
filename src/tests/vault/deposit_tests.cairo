@@ -38,7 +38,8 @@ use pitch_lake_starknet::tests::utils::{
     assert_event_auction_end, assert_event_option_settle, assert_event_option_round_created,
     assert_event_vault_transfer, assert_event_option_deposit_liquidity,
     assert_event_option_withdraw_premium, assert_event_option_withdraw_payout,
-    assert_event_option_withdraw_liquidity, assert_event_option_withdraw_unused_bids, accelerate_to_auctioning, accelerate_to_running
+    assert_event_option_withdraw_liquidity, assert_event_option_withdraw_unused_bids,
+    accelerate_to_auctioning, accelerate_to_running
 };
 
 
@@ -63,9 +64,7 @@ fn test_deposit_vault_unlocked_liquidity() {
     let final_liquidity = vault_facade.get_unlocked_liquidity(*liquidity_providers[0]);
 
     // liquidity should increase by deposit_amount
-    assert(
-        final_liquidity == init_liquidity + deposit_amount, 'vault balance should increase'
-    );
+    assert(final_liquidity == init_liquidity + deposit_amount, 'vault balance should increase');
 }
 
 // test when LP multiple deposit, tokens are getting stored in the unlocked pool in vault of the next round
@@ -85,16 +84,14 @@ fn test_multi_deposit_vault_unlocked_liquidity() {
     // deposit some amount in the vault
     let deposit_amount = 50 * decimals();
     vault_facade.deposit(deposit_amount, *liquidity_providers[0]);
-    vault_facade.deposit(deposit_amount+1, *liquidity_providers[1]);
+    vault_facade.deposit(deposit_amount + 1, *liquidity_providers[1]);
 
     // get the liquidity after the first deposit
     let final_liquidity_1 = vault_facade.get_unlocked_liquidity(*liquidity_providers[0]);
     let final_liquidity_2 = vault_facade.get_unlocked_liquidity(*liquidity_providers[1]);
 
     // liquidity should increase by deposited amount
-    assert(
-        final_liquidity_1 == init_liquidity_1 + deposit_amount, 'vault balance should increase'
-    );
+    assert(final_liquidity_1 == init_liquidity_1 + deposit_amount, 'vault balance should increase');
     assert(
         final_liquidity_2 == init_liquidity_2 + deposit_amount + 1, 'vault balance should increase'
     );
@@ -121,9 +118,7 @@ fn test_deposit_option_round_total_liquidity() {
     let final_liquidity = next_round.total_liquidity();
 
     // liquidity should increase by deposit_amount
-    assert(
-        final_liquidity == init_liquidity + deposit_amount, 'total liquidity should increase'
-    );
+    assert(final_liquidity == init_liquidity + deposit_amount, 'total liquidity should increase');
 }
 
 // test when LP multiple deposit, total liquidity of the option round increases by that amount
@@ -150,7 +145,7 @@ fn test_multi_deposit_option_round_total_liquidity() {
 
     // liquidity should increase by deposit_amount
     assert(
-        final_liquidity == init_liquidity + (deposit_amount*3), 'total liquidity should increase'
+        final_liquidity == init_liquidity + (deposit_amount * 3), 'total liquidity should increase'
     );
 }
 
@@ -309,16 +304,16 @@ fn test_deposit_is_always_into_next_round() {
     let final_liquidity = next_round.total_liquidity();
 
     assert(
-        final_liquidity == init_liquidity + (deposit_amount+1), 'total liquidity should increase'
+        final_liquidity == init_liquidity + (deposit_amount + 1), 'total liquidity should increase'
     );
-    
+
     accelerate_to_running(ref vault_facade);
 
     let init_liquidity = next_round.total_liquidity();
     vault_facade.deposit(deposit_amount + 1, *liquidity_providers[0]);
     let final_liquidity = next_round.total_liquidity();
     assert(
-        final_liquidity == init_liquidity + (deposit_amount+1), 'total liquidity should increase'
+        final_liquidity == init_liquidity + (deposit_amount + 1), 'total liquidity should increase'
     );
 }
 
@@ -342,6 +337,9 @@ fn test_deposit_is_always_into_unlocked() {
     let final_unlocked_liquidity = vault_facade.get_unlocked_liquidity(*liquidity_providers[0]);
 
     assert(init_locked_liquidity == final_locked_liquidity, 'Locked Liquidity Mismatch');
-    assert(init_unlocked_liquidity + deposit_amount == final_unlocked_liquidity, 'Unlocked Liquidity Mismatch');
+    assert(
+        init_unlocked_liquidity + deposit_amount == final_unlocked_liquidity,
+        'Unlocked Liquidity Mismatch'
+    );
 }
 

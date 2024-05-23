@@ -261,13 +261,16 @@ fn test_bid_price_below_reserve_price_failure() {
     clear_event_logs(array![current_round_facade.contract_address()]);
 
     // Try to bid below reserve price
-    current_round_facade.place_bid(2, params.reserve_price - 1, option_bidder_buyer_1());
+    current_round_facade
+        .place_bid(
+            2 * (params.reserve_price - 1), params.reserve_price - 1, option_bidder_buyer_1()
+        );
 
     // Check bid rejected event
     assert_event_auction_bid(
         current_round_facade.contract_address(),
         option_bidder_buyer_1(),
-        2,
+        2 * (params.reserve_price - 1),
         params.reserve_price - 1,
         false
     );

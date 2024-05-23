@@ -116,11 +116,19 @@ fn test_total_options_after_auction_3() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let _params: OptionRoundParams = current_round_facade.get_params();
+    let params: OptionRoundParams = current_round_facade.get_params();
+
+    let option_bidders = option_bidders_get(1);
 
     // place bid and end the auction
-    accelerate_to_running(ref vault_facade);
     let bid_count = 2;
+    let bid_price = params.reserve_price;
+    let bid_amount = bid_count * bid_price;
+
+    accelerate_to_running_custom(
+        ref vault_facade, option_bidders.span(), array![bid_amount].span(), array![bid_price].span()
+    );
+
     assert(bid_count == current_round_facade.total_options_sold(), 'options sold wrong');
 }
 
@@ -154,7 +162,14 @@ fn test_total_options_after_auction_5() {
     let params: OptionRoundParams = current_round_facade.get_params();
 
     // place bid and end the auction
-    accelerate_to_running(ref vault_facade);
+    let option_bidders = option_bidders_get(1);
+    let bid_count = params.total_options_available + 10;
+    let bid_price = params.reserve_price;
+    let bid_amount = bid_count * bid_price;
+
+    accelerate_to_running_custom(
+        ref vault_facade, option_bidders.span(), array![bid_amount].span(), array![bid_price].span()
+    );
 
     // Check all options sell
     assert(
