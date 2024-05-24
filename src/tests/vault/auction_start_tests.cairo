@@ -39,43 +39,42 @@ use pitch_lake_starknet::tests::option_round_facade::{OptionRoundFacade, OptionR
 use pitch_lake_starknet::option_round::{OptionRoundState};
 
 
-// Test that round and lp's unallocated becomes collateral when auction starts (multiple LPs)
+// @note should be with other roll over tests
+// Test that round and lp's unlocked balance becomes locked when auction starts (multiple LPs)
 #[test]
 #[available_gas(10000000)]
-fn test_unallocated_becomes_collateral() {
+fn test_unlocked_becomes_locked() {
     let (mut vault_facade, _) = setup_facade();
     // Get next round (open)
     let mut next_round: OptionRoundFacade = vault_facade.get_current_round();
     // Add liq. to next round (1)
     let lps = liquidity_providers_get(5);
-    let len = lps.len();
-    let mut amounts = create_array_gradient(1000 * decimals(), 5000 * decimals(), len);
-
+    let mut amounts = create_array_gradient(1000 * decimals(), 5000 * decimals(), lps.len());
     let deposit_total = vault_facade.deposit_mutltiple(lps.span(), amounts.span());
 
     // Start the auction
     vault_facade.start_auction();
+
     // Final collateral/unallocated spread
-    let (next_round_collateral, next_round_unallocated) = next_round.get_all_round_liquidity();
-    let next_round_starting_liquidity = next_round.starting_liquidity();
+    let (total_locked, total_unlocked) = vault_facade.get_balance_spread();
     // Individual spread
-    let (mut arr_collateral, mut arr_unallocated) = vault_facade
+    let (mut locked_arr, mut unlocked_arr) = vault_facade
         .get_all_liquidity_for_n(lps.span());
     loop {
-        match arr_collateral.pop_front() {
-            Option::Some(collateral) => {
-                assert(collateral == amounts.pop_front().unwrap(), 'Collateral Mismatch');
-                assert(arr_unallocated.pop_front().unwrap() == 0, 'Unallocated liquidity Mismatch');
+        match locked_arr.pop_front() {
+            Option::Some(locked_amount) => {
+                assert(locked_amount == amounts.pop_front().unwrap(), 'Locked balance mismatch');
+                assert(unlocked_arr.pop_front().unwrap() == 0, 'Unlocked balance mismatch');
             },
             Option::None => { break (); }
         }
     };
 
     //Check totals on the option round
-    assert(next_round_collateral == deposit_total, 'next round collateral wrong');
-    assert(next_round_starting_liquidity == deposit_total, 'next round total liq. wrong');
-    assert(next_round_unallocated == 0, 'next round unallocated wrong');
+    assert(total_locked == deposit_total, 'vault::locked wrong');
+    assert(total_unlocked == 0, 'vault::unlocked wrong');
 }
+
 // Test when an auction starts, it becomes the current round and the
 // next round is deployed.
 #[test]
