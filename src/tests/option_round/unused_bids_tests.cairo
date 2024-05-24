@@ -23,7 +23,6 @@ use pitch_lake_starknet::tests::utils::{
 // , option_bidder_buyer_6, vault_manager, weth_owner, mock_option_params,
 // month_duration
 };
-use pitch_lake_starknet::option_round::{OptionRoundParams};
 
 // use result::ResultTrait;
 use starknet::testing::{set_block_timestamp, set_contract_address};
@@ -41,7 +40,7 @@ use pitch_lake_starknet::tests::{
 fn test_get_unused_bids_for_ob_during_auction() {
     let (mut vault_facade, _) = setup_facade();
     let mut round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = round_facade.get_params();
+    let params = round_facade.get_params();
     // Deposit liquidity and start the auction
     accelerate_to_auctioning(ref vault_facade);
 
@@ -60,7 +59,7 @@ fn test_get_unused_bids_for_ob_during_auction() {
 fn test_unused_bids_for_ob_after_auction() {
     let (mut vault_facade, _) = setup_facade();
     let mut round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = round_facade.get_params();
+    let params = round_facade.get_params();
 
     // Deposit liquidity and start the auction
     accelerate_to_auctioning(ref vault_facade);
@@ -91,7 +90,7 @@ fn test_unused_bids_for_ob_after_auction() {
 fn test_collect_unused_bids_after_auction_end_success() {
     let (mut vault_facade, eth_dispatcher): (VaultFacade, IERC20Dispatcher) = setup_facade();
     let mut round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = round_facade.get_params();
+    let params = round_facade.get_params();
 
     // Deposit liquidity and start the auction
     accelerate_to_auctioning(ref vault_facade);
@@ -137,8 +136,8 @@ fn test_collect_unused_bids_events() {
     vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
     // Start auction
     vault_facade.start_auction();
-    let mut round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = round_facade.get_params();
+    let mut round_facade = vault_facade.get_current_round();
+    let params = round_facade.get_params();
     // OB 2 outbids OB 1 for all the options
     let bid_count = params.total_options_available;
     let bid_price = params.reserve_price;
@@ -175,7 +174,7 @@ fn test_collect_unused_bids_eth_transfer() {
     // Start auction
     vault_facade.start_auction();
     let mut round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = round_facade.get_params();
+    let params = round_facade.get_params();
     // OB 2 outbids OB 1 for all the options
     let bid_count = params.total_options_available;
     let bid_price = params.reserve_price;
@@ -208,7 +207,7 @@ fn test_collect_unused_bids_eth_transfer() {
 fn test_collect_unused_bids_again_does_nothing() {
     let (mut vault_facade, eth_dispatcher): (VaultFacade, IERC20Dispatcher) = setup_facade();
     let mut round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = round_facade.get_params();
+    let params = round_facade.get_params();
 
     // Deposit liquidity and start the auction
     accelerate_to_auctioning(ref vault_facade);
@@ -252,7 +251,7 @@ fn test_option_round_refund_unused_bids_too_early_failure() {
     // Get the current (auctioning) round
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
     // Make bid
-    let option_params: OptionRoundParams = current_round_facade.get_params();
+    let option_params = current_round_facade.get_params();
     let bid_count: u256 = option_params.total_options_available + 10;
     let bid_price: u256 = option_params.reserve_price;
     let bid_amount: u256 = bid_count * bid_price;

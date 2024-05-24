@@ -9,7 +9,7 @@ use openzeppelin::token::erc20::interface::{
 use pitch_lake_starknet::vault::{
     IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait,
 };
-use pitch_lake_starknet::option_round::{OptionRoundParams, OptionRoundState};
+use pitch_lake_starknet::option_round::{OptionRoundState};
 
 use result::ResultTrait;
 use starknet::{
@@ -76,7 +76,7 @@ fn test_auction_end_before_end_date_failure() {
     vault_facade.start_auction();
 
     let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round.get_params();
+    let params = current_round.get_params();
 
     // Try to end auction before the end time
     set_block_timestamp(params.auction_end_time - 1);
@@ -95,14 +95,13 @@ fn test_vault_end_auction_success_single() {
     vault_facade.start_auction();
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
     // Make bid
-    let option_params: OptionRoundParams = current_round_facade.get_params();
+    let option_params = current_round_facade.get_params();
     let bid_count: u256 = option_params.total_options_available + 10;
     let bid_price: u256 = option_params.reserve_price;
     let bid_amount: u256 = bid_count * bid_price;
     current_round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
     // Settle auction
-    let option_round_params: OptionRoundParams = current_round_facade.get_params();
-    set_block_timestamp(option_round_params.auction_end_time + 1);
+    set_block_timestamp(option_params.auction_end_time + 1);
     let clearing_price: u256 = vault_facade.end_auction();
     assert(clearing_price == bid_price, 'should be reserve_price');
     // Check that state is Running now, and auction clearing price is set
@@ -124,14 +123,13 @@ fn test_vault_end_auction_event() {
     vault_facade.start_auction();
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
     // Make bid
-    let option_params: OptionRoundParams = current_round_facade.get_params();
+    let option_params = current_round_facade.get_params();
     let bid_count: u256 = option_params.total_options_available;
     let bid_price: u256 = option_params.reserve_price;
     let bid_amount: u256 = bid_count * bid_price;
     current_round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
     // Settle auction
-    let option_round_params: OptionRoundParams = current_round_facade.get_params();
-    set_block_timestamp(option_round_params.auction_end_time + 1);
+    set_block_timestamp(option_params.auction_end_time + 1);
     let clearing_price: u256 = vault_facade.end_auction();
 
     // Assert event emitted correctly
@@ -150,7 +148,7 @@ fn test_vault_end_auction_success_multi() {
 
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
     // Make bid
-    let option_params: OptionRoundParams = current_round_facade.get_params();
+    let option_params = current_round_facade.get_params();
     let bid_count: u256 = option_params.total_options_available;
     let bid_price: u256 = option_params.reserve_price;
     let bid_amount: u256 = bid_count * bid_price;
@@ -188,7 +186,7 @@ fn test_option_round_end_auction_twice_failure() {
     vault_facade.start_auction();
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
     // Make bid
-    let option_params: OptionRoundParams = current_round_facade.get_params();
+    let option_params = current_round_facade.get_params();
     let bid_count: u256 = option_params.total_options_available + 10;
     let bid_price: u256 = option_params.reserve_price;
     let bid_amount: u256 = bid_count * bid_price;

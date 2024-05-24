@@ -23,7 +23,6 @@ use pitch_lake_starknet::tests::utils::{
 // , option_bidder_buyer_6, weth_owner, mock_option_params,
 // month_duration
 };
-use pitch_lake_starknet::option_round::{OptionRoundParams};
 
 // use result::ResultTrait;
 use starknet::testing::{set_block_timestamp, set_contract_address};
@@ -47,8 +46,8 @@ fn test_total_options_after_auction_1() {
     vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
     // Start auction
     vault_facade.start_auction();
-    let mut round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = round_facade.get_params();
+    let mut round_facade = vault_facade.get_current_round();
+    let params = round_facade.get_params();
     // OB 1 and 2 bid for > the total options available at the reserve price
     let bid_count_1: u256 = params.total_options_available / 2 + 1;
     let bid_count_2: u256 = params.total_options_available / 2;
@@ -78,8 +77,8 @@ fn test_total_options_after_auction_2() {
     vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
     // Start auction
     vault_facade.start_auction();
-    let mut round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = round_facade.get_params();
+    let mut round_facade = vault_facade.get_current_round();
+    let params = round_facade.get_params();
     // OB 1 and 2 bid for > the total options available at the reserve price
     let bid_count_1: u256 = params.total_options_available / 2 + 1;
     let bid_count_2: u256 = params.total_options_available / 2;
@@ -110,8 +109,8 @@ fn test_total_options_after_auction_3() {
     vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
     // Start auction
     vault_facade.start_auction();
-    let mut round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = round_facade.get_params();
+    let mut round_facade = vault_facade.get_current_round();
+    let params = round_facade.get_params();
     // OB 1 and 2 bid for > the total options available at the reserve price
     let bid_count = 2;
     let bid_price = params.reserve_price;
@@ -152,7 +151,7 @@ fn test_total_options_after_auction_5() {
     // Start auction
     vault_facade.start_auction();
     let mut round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = round_facade.get_params();
+    let params = round_facade.get_params();
     // Make bids for > total options
     let bid_count = params.total_options_available + 10;
     let bid_price = params.reserve_price;
@@ -179,7 +178,7 @@ fn test_option_balance_per_bidder_after_auction_1() {
     // Start auction
     vault_facade.start_auction();
     let mut round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = round_facade.get_params();
+    let params = round_facade.get_params();
     // Make bids
     let bid_option_count_user_1: u256 = (params.total_options_available / 3);
     let bid_price_per_unit_user_1: u256 = params.reserve_price + 1;
@@ -229,7 +228,7 @@ fn test_option_balance_per_bidder_after_auction_2() {
     // Start auction
     vault_facade.start_auction();
     let mut round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let mut params: OptionRoundParams = round_facade.get_params();
+    let mut params = round_facade.get_params();
     // Make bids
     params.total_options_available = 300; //TODO need a better way to mock this
     params.reserve_price = 2;
@@ -303,7 +302,7 @@ fn test_option_round_options_sold_before_auction_end_is_0() {
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
     // Make bid
     set_contract_address(option_bidder_buyer_1());
-    let option_params: OptionRoundParams = current_round_facade.get_params();
+    let option_params = current_round_facade.get_params();
     let bid_count: u256 = option_params.total_options_available + 10;
     let bid_price: u256 = option_params.reserve_price;
     let bid_amount: u256 = bid_count * bid_price;

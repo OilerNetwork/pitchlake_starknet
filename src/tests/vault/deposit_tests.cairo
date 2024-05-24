@@ -25,7 +25,7 @@ use pitch_lake_starknet::tests::vault_facade::{VaultFacade, VaultFacadeTrait};
 use pitch_lake_starknet::tests::option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait};
 
 use pitch_lake_starknet::option_round::{
-    IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundParams, OptionRoundState
+    IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState
 };
 use pitch_lake_starknet::tests::utils;
 use pitch_lake_starknet::tests::utils::{

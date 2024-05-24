@@ -12,7 +12,7 @@ use pitch_lake_starknet::{
         IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault,
         IVaultSafeDispatcherTrait
     },
-    option_round::{OptionRoundParams, IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
+    option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
     tests::{
         vault_facade::{VaultFacade, VaultFacadeTrait},
         option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
@@ -144,7 +144,7 @@ fn test_lock_of_bid_funds() {
     // Start auction
     vault_facade.start_auction();
     let mut round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = round_facade.get_params();
+    let params = round_facade.get_params();
     // Clear event logs for eth transfers and bids
     clear_event_logs(array![eth_dispatcher.contract_address]);
 
@@ -180,7 +180,7 @@ fn test_bid_accepted_events() {
     accelerate_to_auctioning(ref vault_facade);
     // Current round
     let mut round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = round_facade.get_params();
+    let params = round_facade.get_params();
     // Clear event logs for eth transfers and bids
     clear_event_logs(array![eth_dispatcher.contract_address, round_facade.contract_address()]);
 
@@ -219,7 +219,7 @@ fn test_bid_zero_amount_failure() {
     // Start auction
     vault_facade.start_auction();
     let mut round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = round_facade.get_params();
+    let params = round_facade.get_params();
     // Clear event logs for bids
     clear_event_logs(array![round_facade.contract_address()]);
 
@@ -243,7 +243,7 @@ fn test_bid_price_below_reserve_price_failure() {
     // Start auction
     vault_facade.start_auction();
     let mut round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = round_facade.get_params();
+    let params = round_facade.get_params();
     // Clear event logs for bids
     clear_event_logs(array![round_facade.contract_address()]);
 
@@ -273,7 +273,7 @@ fn test_option_round_refund_unused_bids_too_early_failure() {
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
 
     // Make bid
-    let option_params: OptionRoundParams = current_round_facade.get_params();
+    let option_params = current_round_facade.get_params();
     let bid_count: u256 = option_params.total_options_available + 10;
     let bid_price: u256 = option_params.reserve_price;
     let bid_amount: u256 = bid_count * bid_price;

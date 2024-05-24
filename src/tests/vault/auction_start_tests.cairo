@@ -10,9 +10,7 @@ use openzeppelin::token::erc20::interface::{
 use pitch_lake_starknet::vault::{
     IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait
 };
-use pitch_lake_starknet::option_round::{
-    OptionRoundParams, IOptionRoundDispatcher, IOptionRoundDispatcherTrait
-};
+use pitch_lake_starknet::option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait};
 
 use result::ResultTrait;
 use starknet::{
@@ -173,7 +171,7 @@ fn test_start_auction_while_current_round_running_failure() {
     // Start auction
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
     // Make bid
-    let option_params: OptionRoundParams = current_round_facade.get_params();
+    let option_params = current_round_facade.get_params();
     let bid_count: u256 = option_params.total_options_available + 10;
     let bid_price: u256 = option_params.reserve_price;
     let bid_amount: u256 = bid_count * bid_price;
@@ -197,7 +195,7 @@ fn test_start_auction_before_round_transition_period_over_failure() {
     vault_facade.start_auction();
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
     // Make bid
-    let option_params: OptionRoundParams = current_round_facade.get_params();
+    let option_params = current_round_facade.get_params();
     let bid_count: u256 = option_params.total_options_available + 10;
     let bid_price: u256 = option_params.reserve_price;
     let bid_amount: u256 = bid_count * bid_price;
