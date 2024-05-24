@@ -10,6 +10,8 @@ trait IMarketAggregatorSetter<TContractState> {
     ) -> Result<(u256, Span<felt252>), felt252>;
 }
 
+// @note Needs store and get value, use structs for the store lookup, value and proof
+
 #[starknet::contract]
 mod MockMarketAggregator {
     use starknet::{ContractAddress};

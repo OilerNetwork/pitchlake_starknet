@@ -16,6 +16,17 @@ struct OptionRoundConstructorParams {
     round_id: u256,
 }
 
+<<<<<<< dismantle_option_round_params
+=======
+
+// option round params should be dismantled into separate getters
+// auction params: reserve price, start/end date
+// option params: strike, cap level, expiry date, starting liquidity (collateral_level)
+// add rest as getters, may not be need in the end but add for now
+
+// The parameters of the option round
+// @note Discuss setting some values upon deployment, some when the previous settles, and when this round's auction starts
+>>>>>>> develop
 #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
 struct StartAuctionParams {}
 
@@ -246,6 +257,7 @@ mod OptionRound {
     // Emitted when a bidder refunds their unused bids
     // @param account The account that's bids were refuned
     // @param amount The amount transferred
+<<<<<<< dismantle_option_round_params
     #[derive(Drop, starknet::Event, PartialEq)]
     struct UnusedBidsRefunded {
         #[key]
@@ -261,6 +273,23 @@ mod OptionRound {
     struct OptionsExercised {
         #[key]
         account: ContractAddress,
+=======
+    #[derive(Drop, starknet::Event, PartialEq)]
+    struct UnusedBidsRefunded {
+        #[key]
+        account: ContractAddress,
+        amount: u256
+    }
+
+    // Emitted when an option holder exercises their options
+    // @param account The account: that exercised the options
+    // @param num_options: The number of options exercised
+    // @param amount: The amount transferred
+    #[derive(Drop, starknet::Event, PartialEq)]
+    struct OptionsExercised {
+        #[key]
+        account: ContractAddress,
+>>>>>>> develop
         num_options: u256,
         amount: u256
     }
