@@ -23,7 +23,7 @@ use pitch_lake_starknet::{
     },
     vault::{IVaultDispatcher, IVaultDispatcherTrait, Vault, VaultType}, option_round,
     option_round::{
-        OptionRound, OptionRoundParams, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,
+        OptionRound, StartAuctionParams, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,
         IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait, OptionRoundState,
     },
     tests::{
@@ -32,7 +32,8 @@ use pitch_lake_starknet::{
         mocks::mock_market_aggregator::{
             MockMarketAggregator, IMarketAggregatorSetterDispatcher,
             IMarketAggregatorSetterDispatcherTrait
-        }
+        },
+        utils_new::structs::{OptionRoundParams}
     },
     eth::Eth,
 };
@@ -358,9 +359,7 @@ fn zero_address() -> ContractAddress {
 // Pop the earliest unpopped logged event for the contract as the requested type
 // and checks there's no more data left on the event, preventing unaccounted params.
 // Indexed event members are currently not supported, so they are ignored.
-fn pop_log<T, impl TDrop: Drop<T>, impl TEvent: starknet::Event<T>>(
-    address: ContractAddress
-) -> Option<T> {
+fn pop_log<T, +Drop<T>, impl TEvent: starknet::Event<T>>(address: ContractAddress) -> Option<T> {
     let (mut keys, mut data) = testing::pop_log_raw(address)?;
     let ret = starknet::Event::deserialize(ref keys, ref data);
     assert(data.is_empty(), 'Event has extra data');
