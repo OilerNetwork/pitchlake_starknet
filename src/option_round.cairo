@@ -16,6 +16,8 @@ struct OptionRoundConstructorParams {
     round_id: u256,
 }
 
+<<<<<<< dismantle_option_round_params
+=======
 
 // option round params should be dismantled into separate getters
 // auction params: reserve price, start/end date
@@ -24,24 +26,10 @@ struct OptionRoundConstructorParams {
 
 // The parameters of the option round
 // @note Discuss setting some values upon deployment, some when the previous settles, and when this round's auction starts
+>>>>>>> develop
 #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
-struct OptionRoundParams {
-    // @note Discuss if we should set these when previous round settles, or shortly after when this round's auction starts
-    current_average_basefee: u256, // average basefee the last few months, used to calculate the strike
-    standard_deviation: u256, // used to calculate k (-σ or 0 or σ if vault is: ITM | ATM | OTM)
-    strike_price: u256, // K = current_average_basefee * (1 + k)
-    cap_level: u256, // cl, percentage points of K that the options will pay out at most. Payout = min(cl*K, BF-K). Might not be set until auction settles if we use alternate cap design (see DOCUMENTATION.md)
-    collateral_level: u256, // total deposits now locked in the round
-    reserve_price: u256, // minimum price per option in the auction
-    total_options_available: u256,
-    minimum_collateral_required: u256, // the auction will not start unless this much collateral is deposited, needed ?
-    // @dev should we consider setting this upon auction start ?
-    // that way if the round's auction start is delayed (due to collateral requirements), we can set a proper auction end time
-    // when it eventually starts ?
-    auction_end_time: u64, // when an auction can end
-    // @dev same as auction end time, wait to set when round acutally starts ?
-    option_expiry_time: u64, // when the options can be settled
-}
+struct StartAuctionParams {}
+
 
 // The states an option round can be in
 // @note Should we move these into the contract or separate file ?
@@ -68,8 +56,32 @@ trait IOptionRound<TContractState> {
     // The state of the option round
     fn get_state(self: @TContractState) -> OptionRoundState;
 
-    // The paramters of the option round
-    fn get_params(self: @TContractState) -> OptionRoundParams;
+    // Average base fee over last few months, used to calculate strike price
+    fn get_current_average_basefee(self: @TContractState) -> u256;
+
+    // Standard deviation of base fee over last few months, used to calculate strike price
+    fn get_standard_deviation(self: @TContractState) -> u256;
+
+    // The strike price of the options
+    fn get_strike_price(self: @TContractState) -> u256;
+
+    // The cap level of the options
+    fn get_cap_level(self: @TContractState) -> u256;
+
+    // Minimum price per option in the auction
+    fn get_reserve_price(self: @TContractState) -> u256;
+
+    // The total number of options available in the auction
+    fn get_total_options_available(self: @TContractState) -> u256;
+
+    // Auction start time
+    fn get_auction_start_date(self: @TContractState) -> u64;
+
+    // Auction end time
+    fn get_auction_end_date(self: @TContractState) -> u64;
+
+    // Option expiry time
+    fn get_option_expiry_date(self: @TContractState) -> u64;
 
     // The total liquidity at the start of the round's auction
     fn starting_liquidity(self: @TContractState) -> u256;
@@ -120,7 +132,7 @@ trait IOptionRound<TContractState> {
 
     // Try to start the option round's auction
     // @return true if the auction was started, false if the auction was already started/cannot start yet
-    fn start_auction(ref self: TContractState, option_params: OptionRoundParams);
+    fn start_auction(ref self: TContractState, start_auction_params: StartAuctionParams);
 
     // Settle the auction if the auction time has passed
     // @return if the auction was settled or not (0 mean no, > 0 is clearing price ?, we already have get clearing price, so just bool instead)
@@ -161,7 +173,7 @@ mod OptionRound {
     use pitch_lake_starknet::vault::VaultType;
     use pitch_lake_starknet::vault::{IVaultDispatcher, IVaultDispatcherTrait};
     use openzeppelin::token::erc20::interface::IERC20Dispatcher;
-    use super::{OptionRoundConstructorParams, OptionRoundParams, OptionRoundState,};
+    use super::{OptionRoundConstructorParams, StartAuctionParams, OptionRoundState,};
     use pitch_lake_starknet::market_aggregator::{
         IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
     };
@@ -171,7 +183,10 @@ mod OptionRound {
         vault_address: ContractAddress,
         market_aggregator: ContractAddress,
         state: OptionRoundState,
-        params: OptionRoundParams,
+
+        // option round params
+        // params: OptionRoundParams,
+
         constructor_params: OptionRoundConstructorParams,
         premiums_collected: LegacyMap<ContractAddress, bool>,
     }
@@ -242,6 +257,7 @@ mod OptionRound {
     // Emitted when a bidder refunds their unused bids
     // @param account The account that's bids were refuned
     // @param amount The amount transferred
+<<<<<<< dismantle_option_round_params
     #[derive(Drop, starknet::Event, PartialEq)]
     struct UnusedBidsRefunded {
         #[key]
@@ -257,6 +273,23 @@ mod OptionRound {
     struct OptionsExercised {
         #[key]
         account: ContractAddress,
+=======
+    #[derive(Drop, starknet::Event, PartialEq)]
+    struct UnusedBidsRefunded {
+        #[key]
+        account: ContractAddress,
+        amount: u256
+    }
+
+    // Emitted when an option holder exercises their options
+    // @param account The account: that exercised the options
+    // @param num_options: The number of options exercised
+    // @param amount: The amount transferred
+    #[derive(Drop, starknet::Event, PartialEq)]
+    struct OptionsExercised {
+        #[key]
+        account: ContractAddress,
+>>>>>>> develop
         num_options: u256,
         amount: u256
     }
@@ -333,8 +366,42 @@ mod OptionRound {
             self.state.read()
         }
 
-        fn get_params(self: @ContractState) -> OptionRoundParams {
-            self.params.read()
+        // @note These were the OptionRoundParams
+
+        fn get_current_average_basefee(self: @ContractState) -> u256 {
+            100
+        }
+
+        fn get_standard_deviation(self: @ContractState) -> u256 {
+            100
+        }
+
+        fn get_strike_price(self: @ContractState) -> u256 {
+            100
+        }
+
+        fn get_cap_level(self: @ContractState) -> u256 {
+            100
+        }
+
+        fn get_reserve_price(self: @ContractState) -> u256 {
+            100
+        }
+
+        fn get_total_options_available(self: @ContractState) -> u256 {
+            100
+        }
+
+        fn get_auction_start_date(self: @ContractState) -> u64 {
+            100
+        }
+
+        fn get_auction_end_date(self: @ContractState) -> u64 {
+            100
+        }
+
+        fn get_option_expiry_date(self: @ContractState) -> u64 {
+            100
         }
 
         fn starting_liquidity(self: @ContractState) -> u256 {
@@ -379,7 +446,7 @@ mod OptionRound {
 
         /// Writes ///
 
-        fn start_auction(ref self: ContractState, option_params: OptionRoundParams) {
+        fn start_auction(ref self: ContractState, start_auction_params: StartAuctionParams) {
             self.state.write(OptionRoundState::Auctioning);
         }
 

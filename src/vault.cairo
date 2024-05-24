@@ -1,5 +1,5 @@
 use starknet::{ContractAddress};
-use pitch_lake_starknet::option_round::{OptionRoundParams, OptionRoundState};
+use pitch_lake_starknet::option_round::{StartAuctionParams, OptionRoundState};
 use pitch_lake_starknet::market_aggregator::{IMarketAggregator, IMarketAggregatorDispatcher};
 
 // The type of vault
@@ -109,7 +109,7 @@ mod Vault {
     use pitch_lake_starknet::vault::VaultType;
     use openzeppelin::utils::serde::SerializedAppend;
     use pitch_lake_starknet::option_round::{
-        OptionRound, OptionRoundConstructorParams, OptionRoundParams, OptionRoundState,
+        OptionRound, OptionRoundConstructorParams, StartAuctionParams, OptionRoundState,
         IOptionRoundDispatcher
     };
     use pitch_lake_starknet::market_aggregator::{IMarketAggregatorDispatcher};
@@ -156,7 +156,7 @@ mod Vault {
     struct Storage {
         vault_manager: ContractAddress,
         vault_type: VaultType,
-        current_option_round_params: OptionRoundParams,
+        //current_option_round_params: OptionRoundParams,
         current_option_round_id: u256,
         market_aggregator: ContractAddress,
         round_addresses: LegacyMap<u256, ContractAddress>,

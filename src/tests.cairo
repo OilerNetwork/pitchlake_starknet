@@ -7,6 +7,11 @@ mod mocks {
 }
 
 #[cfg(test)]
+mod utils_new {
+    mod structs;
+}
+
+#[cfg(test)]
 mod extra {
     //mod eth_test;
     mod pitch_lake_test;

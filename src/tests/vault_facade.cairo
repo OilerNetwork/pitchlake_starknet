@@ -2,7 +2,7 @@ use core::array::ArrayTrait;
 use pitch_lake_starknet::vault::{IVaultDispatcher, IVaultDispatcherTrait};
 
 use pitch_lake_starknet::option_round::{
-    OptionRound, OptionRoundParams, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,
+    OptionRound, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,
 };
 
 use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};

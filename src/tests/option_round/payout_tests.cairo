@@ -5,7 +5,6 @@ use openzeppelin::token::erc20::interface::{
     IERC20, IERC20Dispatcher,
     IERC20DispatcherTrait, // IERC20SafeDispatcher,IERC20SafeDispatcherTrait,
 };
-use pitch_lake_starknet::option_round::{OptionRoundParams};
 
 // use result::ResultTrait;
 // use starknet::{
@@ -204,7 +203,7 @@ fn test_option_payout_amount_index_at_strike() {
 fn test_exercise_options_too_early_failure() {
     let (mut vault_facade, _) = setup_facade();
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let option_params: OptionRoundParams = current_round_facade.get_params();
+    let option_params = current_round_facade.get_params();
 
     // Deposit liquidity and start the auction
     accelerate_to_auctioning(ref vault_facade);
