@@ -58,8 +58,7 @@ fn test_unlocked_becomes_locked() {
     // Final collateral/unallocated spread
     let (total_locked, total_unlocked) = vault_facade.get_balance_spread();
     // Individual spread
-    let (mut locked_arr, mut unlocked_arr) = vault_facade
-        .get_all_liquidity_for_n(lps.span());
+    let (mut locked_arr, mut unlocked_arr) = vault_facade.get_all_liquidity_for_n(lps.span());
     loop {
         match locked_arr.pop_front() {
             Option::Some(locked_amount) => {
@@ -103,7 +102,9 @@ fn test_start_auction_event() {
 
     // Check that auction start event was emitted with correct total_options_available
     let mut current_round: OptionRoundFacade = vault.get_current_round();
-    assert_event_auction_start(current_round.contract_address(), current_round.get_total_options_available());
+    assert_event_auction_start(
+        current_round.contract_address(), current_round.get_total_options_available()
+    );
 }
 
 // Test when the next round is deployed, the correct event fires

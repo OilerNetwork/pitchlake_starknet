@@ -45,13 +45,13 @@ trait IVault<TContractState> {
     fn get_lp_total_balance(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
 
     // Get the total liquidity locked
-    fn get_locked_balance(self: @TContractState, ) -> u256;
+    fn get_locked_balance(self: @TContractState,) -> u256;
 
     // Get the total liquidity unlocked
-    fn get_unlocked_balance(self: @TContractState, ) -> u256;
+    fn get_unlocked_balance(self: @TContractState,) -> u256;
 
     // Ge the total liquidity in the protocol
-    fn get_total_balance(self: @TContractState, ) -> u256;
+    fn get_total_balance(self: @TContractState,) -> u256;
 
     // Get the liqudity an LP has unallocated (unlocked), they can withdraw from this amount
     // @dev If the current round is Running, LP's share of its unallocated liquidity is uncluded (unless already withdrawn)
@@ -276,11 +276,15 @@ mod Vault {
             self.round_addresses.read(option_round_id)
         }
 
-        fn get_lp_locked_balance(self: @ContractState, liquidity_provider: ContractAddress) -> u256 {
+        fn get_lp_locked_balance(
+            self: @ContractState, liquidity_provider: ContractAddress
+        ) -> u256 {
             100
         }
 
-        fn get_lp_unlocked_balance(self: @ContractState, liquidity_provider: ContractAddress) -> u256 {
+        fn get_lp_unlocked_balance(
+            self: @ContractState, liquidity_provider: ContractAddress
+        ) -> u256 {
             100
         }
 
@@ -288,15 +292,15 @@ mod Vault {
             100
         }
 
-        fn get_locked_balance(self: @ContractState, ) -> u256 {
+        fn get_locked_balance(self: @ContractState,) -> u256 {
             100
         }
 
-        fn get_unlocked_balance(self: @ContractState, ) -> u256 {
+        fn get_unlocked_balance(self: @ContractState,) -> u256 {
             100
         }
 
-        fn get_total_balance(self: @ContractState, ) -> u256 {
+        fn get_total_balance(self: @ContractState,) -> u256 {
             100
         }
 
