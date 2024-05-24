@@ -12,7 +12,7 @@ use pitch_lake_starknet::{
         IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault,
         IVaultSafeDispatcherTrait
     },
-    option_round::{OptionRoundParams, IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
+    option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
     tests::{
         vault_facade::{VaultFacade, VaultFacadeTrait},
         option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
@@ -20,14 +20,15 @@ use pitch_lake_starknet::{
             MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
             IMarketAggregatorSetterDispatcherTrait
         },
+        utils,
         utils::{
             setup_facade, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
             timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
             option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
             option_bidder_buyer_4, zero_address, vault_manager, weth_owner,
             option_round_contract_address, mock_option_params, pop_log, assert_no_events_left,
-            month_duration, assert_event_auction_bid, assert_event_transfer, clear_event_logs,
-            accelerate_to_auctioning, option_bidders_get,
+            month_duration, assert_event_transfer, clear_event_logs, accelerate_to_auctioning,
+            option_bidders_get,
         },
     },
 };
@@ -59,12 +60,8 @@ fn test_bid_before_auction_starts_failure() {
     current_round_facade.place_bid(bid_amount, option_price, option_bidder_buyer_1());
 
     // Check bid rejected event
-    assert_event_auction_bid(
-        current_round_facade.contract_address(),
-        option_bidder_buyer_1(),
-        bid_amount,
-        option_price,
-        false
+    utils::assert_event_auction_bid_rejected(
+        current_round_facade.contract_address(), option_bidder_buyer_1(), bid_amount, option_price
     );
 }
 
@@ -94,12 +91,8 @@ fn test_bid_after_auction_ends_failure() {
     current_round_facade.place_bid(bid_amount, option_price, option_bidder_buyer_1());
 
     // Check bid rejected event
-    assert_event_auction_bid(
-        current_round_facade.contract_address(),
-        option_bidder_buyer_1(),
-        bid_amount,
-        option_price,
-        false
+    utils::assert_event_auction_bid_rejected(
+        current_round.contract_address(), option_bidder_buyer_1(), bid_amount, option_price
     );
 }
 
@@ -126,12 +119,8 @@ fn test_bid_after_auction_end_failure_2() {
     current_round_facade.place_bid(bid_amount, option_price, option_bidder_buyer_1());
 
     // Check bid rejected event
-    assert_event_auction_bid(
-        current_round_facade.contract_address(),
-        option_bidder_buyer_1(),
-        bid_amount,
-        option_price,
-        false
+    utils::assert_event_auction_bid_rejected(
+        current_round_facade.contract_address(), option_bidder_buyer_1(), bid_amount, option_price,
     );
 }
 
@@ -186,8 +175,6 @@ fn test_bid_accepted_events() {
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
     let params: OptionRoundParams = current_round_facade.get_params();
-    // Current round
-
     // Clear event logs for eth transfers and bids
     clear_event_logs(
         array![eth_dispatcher.contract_address, current_round_facade.contract_address()]
@@ -205,12 +192,8 @@ fn test_bid_accepted_events() {
                 current_round_facade.place_bid(bid_amount, bid_price, ob);
 
                 // Check bid accepted event
-                assert_event_auction_bid(
-                    current_round_facade.contract_address(),
-                    option_bidder_buyer_1(),
-                    bid_amount,
-                    bid_price,
-                    true
+                utils::assert_event_auction_bid_accepted(
+                    current_round_facade.contract_address(), option_bidder_buyer_1(), bid_amount, bid_price,
                 );
 
                 step += 1;
@@ -238,12 +221,8 @@ fn test_bid_zero_amount_failure() {
     current_round_facade.place_bid(0, params.reserve_price, option_bidder_buyer_1());
 
     // Check bid rejected event
-    assert_event_auction_bid(
-        current_round_facade.contract_address(),
-        option_bidder_buyer_1(),
-        0,
-        params.reserve_price,
-        false
+    utils::assert_event_auction_bid_rejected(
+        current_round_facade.contract_address(), option_bidder_buyer_1(), 0, params.reserve_price
     );
 }
 
@@ -267,12 +246,8 @@ fn test_bid_price_below_reserve_price_failure() {
         );
 
     // Check bid rejected event
-    assert_event_auction_bid(
-        current_round_facade.contract_address(),
-        option_bidder_buyer_1(),
-        2 * (params.reserve_price - 1),
-        params.reserve_price - 1,
-        false
+    utils::assert_event_auction_bid_rejected(
+        current_round_facade.contract_address(), option_bidder_buyer_1(), 2 * (params.reserve_price - 1), params.reserve_price - 1,
     );
 }
 
@@ -290,6 +265,7 @@ fn test_option_round_refund_unused_bids_too_early_failure() {
     let params: OptionRoundParams = current_round_facade.get_params();
     let bid_count: u256 = params.total_options_available + 10;
     let bid_price: u256 = params.reserve_price;
+
     let bid_amount: u256 = bid_count * bid_price;
     current_round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
     // Try to refund bid before auction settles

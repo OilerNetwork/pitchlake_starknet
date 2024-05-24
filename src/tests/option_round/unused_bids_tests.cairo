@@ -14,24 +14,22 @@ use openzeppelin::token::erc20::interface::{
 // use pitch_lake_starknet::option_round::{OptionRoundParams};
 // use pitch_lake_starknet::eth::Eth;
 use pitch_lake_starknet::tests::utils::{
-    setup_facade, decimals, liquidity_provider_1, option_bidder_buyer_1, assert_event_auction_bid,
-    option_bidder_buyer_2, option_bidder_buyer_3, accelerate_to_auctioning, accelerate_to_running,
-    accelerate_to_settle, accelerate_to_running_custom, option_bidders_get, clear_event_logs,
-    assert_event_vault_transfer, assert_event_option_withdraw_unused_bids
+    setup_facade, decimals, liquidity_provider_1, option_bidder_buyer_1, option_bidder_buyer_2,
+    option_bidder_buyer_3, accelerate_to_auctioning, accelerate_to_running, accelerate_to_settled,
+    accelerate_to_running_custom, option_bidders_get, clear_event_logs,
 // , deploy_vault, allocated_pool_address, unallocated_pool_address,
 // timestamp_start_month, timestamp_end_month, liquidity_provider_2,
 // option_bidder_buyer_1, option_bidder_buyer_4
 // , option_bidder_buyer_6, vault_manager, weth_owner, mock_option_params,
 // month_duration
 };
-// use pitch_lake_starknet::option_round::{OptionRoundParams};
 
 // use result::ResultTrait;
 use starknet::testing::{set_block_timestamp, set_contract_address};
 
 use pitch_lake_starknet::tests::{
-    vault_facade::{VaultFacade, VaultFacadeTrait},
-    option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundParams}
+    utils, vault_facade::{VaultFacade, VaultFacadeTrait},
+    option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait}
 };
 
 // @note Should event emit if collecting 0 ?
@@ -41,12 +39,11 @@ use pitch_lake_starknet::tests::{
 #[available_gas(10000000)]
 fn test_get_unused_bids_for_ob_during_auction() {
     let (mut vault_facade, _) = setup_facade();
-
     // Deposit liquidity and start the auction
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round_facade.get_params();
+    let params = current_round_facade.get_params();
 
     // Make bid
     let bid_count = params.total_options_available;
@@ -67,7 +64,7 @@ fn test_unused_bids_for_ob_after_auction() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round_facade.get_params();
+    let params = current_round_facade.get_params();
 
     let bidders = option_bidders_get(2);
     // OB 2 outbids OB 1 for all the options
@@ -99,7 +96,7 @@ fn test_collect_unused_bids_after_auction_end_success() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round_facade.get_params();
+    let params = current_round_facade.get_params();
 
     let bidders = option_bidders_get(2);
 
@@ -138,12 +135,12 @@ fn test_collect_unused_bids_after_auction_end_success() {
 #[available_gas(10000000)]
 fn test_collect_unused_bids_events() {
     let (mut vault_facade, _) = setup_facade();
-
+    
     // Deposit liquidity and start the auction
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round_facade.get_params();
+    let params = current_round_facade.get_params();
 
     // OB 2 outbids OB 1 for all the options
     let bidders = option_bidders_get(2);
@@ -170,16 +167,9 @@ fn test_collect_unused_bids_events() {
     // OB 1 collects their unused bids
     let collected_amount = current_round_facade.refund_bid(option_bidder_buyer_1());
 
-    // Check VaultTransfer events
-    assert_event_vault_transfer(
-        vault_facade.contract_address(),
-        liquidity_provider_1(),
-        lp1_balance_before,
-        lp1_balance_before - collected_amount,
-        false
-    );
     // Check OptionRound event
-    assert_event_option_withdraw_unused_bids(
+
+    utils::assert_event_unused_bids_refunded(
         current_round_facade.contract_address(), option_bidder_buyer_1(), bid_amount
     )
 }
@@ -194,8 +184,8 @@ fn test_collect_unused_bids_eth_transfer() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round_facade.get_params();
-
+    let params = current_round_facade.get_params();
+    
     // OB 2 outbids OB 1 for all the options
     let bidders = option_bidders_get(2);
     let bid_count = params.total_options_available;
@@ -237,7 +227,7 @@ fn test_collect_unused_bids_again_does_nothing() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round_facade.get_params();
+    let params = current_round_facade.get_params();
 
     let bidders = option_bidders_get(2);
     // OB 2 outbids OB 1 for all the options
@@ -270,14 +260,12 @@ fn test_collect_unused_bids_again_does_nothing() {
 #[should_panic(expected: ('The auction is still on-going', 'ENTRYPOINT_FAILED',))]
 fn test_option_round_refund_unused_bids_too_early_failure() {
     let (mut vault_facade, _) = setup_facade();
-    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let option_params: OptionRoundParams = current_round_facade.get_params();
 
     // Deposit liquidity and start the auction
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let _params: OptionRoundParams = current_round_facade.get_params();
+    let option_params: OptionRoundParams = current_round_facade.get_params();
 
     let bid_count: u256 = option_params.total_options_available + 10;
     let bid_price: u256 = option_params.reserve_price;

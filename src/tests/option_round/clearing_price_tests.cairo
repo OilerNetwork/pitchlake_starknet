@@ -23,7 +23,7 @@ fn test_option_round_clearing_price_0_before_auction_end() {
 
     // Bid for option but do not end the auction
     let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round.get_params();
+    let params = current_round.get_params();
     let bid_count: u256 = params.total_options_available;
     let bid_price: u256 = params.reserve_price;
     let bid_amount: u256 = bid_count * bid_price;
@@ -41,11 +41,8 @@ fn test_clearing_price_1() {
     // Deposit liquidity and start the auction
     accelerate_to_auctioning(ref vault_facade);
 
-    // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round_facade.get_params();
 
-    let bid_price: u256 = params.reserve_price + 1;
     let clearing_price = accelerate_to_running(ref vault_facade);
     // @dev This checks that vault::end_auction returns the clearing price that is set in storage
     assert(
@@ -68,9 +65,10 @@ fn test_clearing_price_2() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round_facade.get_params();
+    let params = current_round_facade.get_params();
 
     let option_bidders = option_bidders_get(2);
+
     let bid_count_user_1: u256 = 1;
     let bid_count_user_2: u256 = params.total_options_available - 2;
     let bid_price_user_1: u256 = params.reserve_price;
@@ -101,7 +99,7 @@ fn test_clearing_price_3() {
     accelerate_to_auctioning(ref vault_facade);
     // Two OBs bid for all options with different prices
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round_facade.get_params();
+    let params = current_round_facade.get_params();
 
     let option_bidders = option_bidders_get(3);
     let bid_count = params.total_options_available;
@@ -136,7 +134,7 @@ fn test_clearing_price_4() {
     accelerate_to_auctioning(ref vault_facade);
     // Two OBs bid for the combined total amount of options, OB 1 outbids OB 2
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round_facade.get_params();
+    let params = current_round_facade.get_params();
 
     let option_bidders = option_bidders_get(2);
     let bid_count_user_1: u256 = 1;
@@ -164,7 +162,7 @@ fn test_clearing_price_5() {
     // Deposit liquidity and start the auction
     accelerate_to_auctioning(ref vault_facade);
     let mut round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = round_facade.get_params();
+    let params = round_facade.get_params();
     // Three OBs bid for the more than the total amount of options,
     // OB1 outbids OB2, OB2 outbids OB3
     let option_bidders = option_bidders_get(4);

@@ -12,7 +12,7 @@ use pitch_lake_starknet::{
         IPitchLakeSafeDispatcherTrait
     },
     vault::{IVaultDispatcher, IVaultDispatcherTrait, Vault, VaultType},
-    option_round::{OptionRoundParams, IOptionRoundDispatcher, IOptionRoundDispatcherTrait}
+    option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait}
 };
 
 use result::ResultTrait;
@@ -25,12 +25,15 @@ use starknet::{
 use openzeppelin::utils::serde::SerializedAppend;
 
 use pitch_lake_starknet::eth::Eth;
-use pitch_lake_starknet::tests::utils::{
-    decimals, deploy_vault, allocated_pool_address, unallocated_pool_address, timestamp_start_month,
-    timestamp_end_month, liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
-    option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4, vault_manager, weth_owner,
-    option_round_contract_address, mock_option_params, pop_log, assert_no_events_left,
-    deploy_pitch_lake
+use pitch_lake_starknet::tests::{
+    utils::{
+        decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
+        timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
+        option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
+        vault_manager, weth_owner, option_round_contract_address, mock_option_params, pop_log,
+        assert_no_events_left, deploy_pitch_lake
+    },
+    option_round_facade::{OptionRoundFacade, OptionRoundFacadeImpl}
 };
 
 // @note Need to manually initialize round 1, either
@@ -74,23 +77,37 @@ fn test_strike_price_based_on_vault_types() {
     // let id, params = vault.initialize_first_round();
 
     // Get each round 1 dispatcher
-    let atm: IOptionRoundDispatcher = IOptionRoundDispatcher {
-        contract_address: vault_dispatcher_at_the_money
-            .get_option_round_address(vault_dispatcher_at_the_money.current_option_round_id() + 1)
+    let mut atm = OptionRoundFacade {
+        option_round_dispatcher: IOptionRoundDispatcher {
+            contract_address: vault_dispatcher_at_the_money
+                .get_option_round_address(
+                    vault_dispatcher_at_the_money.current_option_round_id() + 1
+                )
+        }
     };
-    let itm: IOptionRoundDispatcher = IOptionRoundDispatcher {
-        contract_address: vault_dispatcher_in_the_money
-            .get_option_round_address(vault_dispatcher_in_the_money.current_option_round_id() + 1)
+
+    let mut itm = OptionRoundFacade {
+        option_round_dispatcher: IOptionRoundDispatcher {
+            contract_address: vault_dispatcher_in_the_money
+                .get_option_round_address(
+                    vault_dispatcher_in_the_money.current_option_round_id() + 1
+                )
+        }
     };
-    let otm: IOptionRoundDispatcher = IOptionRoundDispatcher {
-        contract_address: vault_dispatcher_out_the_money
-            .get_option_round_address(vault_dispatcher_out_the_money.current_option_round_id() + 1)
+
+    let mut otm = OptionRoundFacade {
+        option_round_dispatcher: IOptionRoundDispatcher {
+            contract_address: vault_dispatcher_out_the_money
+                .get_option_round_address(
+                    vault_dispatcher_out_the_money.current_option_round_id() + 1
+                )
+        }
     };
 
     // Get each round's params
-    let atm_params: OptionRoundParams = atm.get_params();
-    let itm_params: OptionRoundParams = itm.get_params();
-    let otm_params: OptionRoundParams = otm.get_params();
+    let atm_params = atm.get_params();
+    let itm_params = itm.get_params();
+    let otm_params = otm.get_params();
     // Check the strike price of each vault's round 1
     assert(atm_params.strike_price == atm_params.current_average_basefee, 'ATM stike wrong');
     assert(itm_params.strike_price > itm_params.current_average_basefee, 'ITM stike wrong');

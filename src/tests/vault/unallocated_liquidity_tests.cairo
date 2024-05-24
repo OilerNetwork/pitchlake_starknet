@@ -6,7 +6,7 @@ use starknet::{
 };
 use pitch_lake_starknet::tests::{
     option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
-    vault_facade::{VaultFacade, VaultFacadeTrait},
+    vault_facade::{VaultFacade, VaultFacadeTrait}, utils,
     utils::{
         setup_facade, liquidity_provider_1, liquidity_provider_2, liquidity_providers_get, decimals,
         option_bidder_buyer_1, option_bidder_buyer_2, accelerate_to_running,
@@ -25,9 +25,7 @@ use pitch_lake_starknet::tests::utils::{
 // vault_manager, weth_owner, mock_option_params, assert_event_transfer
 };
 
-// Test that collected premiums do not roll over to the next round
 
-// Test that collected premiums do not roll over to the next round
 #[test]
 #[available_gas(10000000)]
 fn test_premiums_and_unsold_liquidity_unallocated_amount() {
@@ -51,10 +49,13 @@ fn test_premiums_and_unsold_liquidity_unallocated_amount() {
     assert(lp_unallocated == premiums_earned + deposit_amount, 'LP unallocated wrong');
 }
 
+// @note Should be a withdraw test
+// Make sure we update all withdraw tests and test all vectors (withdraw when premium/no premiums, next round deplosts/not, etc)
+// Should not fail but return Result::Err(e)
 #[test]
 #[available_gas(10000000)]
 #[should_panic(expected: ('Collect > unallocated balance', 'ENTRYPOINT_FAILED'))]
-fn test_collect_more_than_unallocated_balance_failure() {
+fn test_withdraw_more_than_unallocated_balance_failure() {
     let (mut vault_facade, _) = setup_facade();
     // Accelerate to round 1 running
     vault_facade.start_auction();
@@ -65,65 +66,52 @@ fn test_collect_more_than_unallocated_balance_failure() {
     // Amount of premiums earned from the auction (plus unsold liq) for LP
     // @dev lp owns 100% of the pool, so 100% of the prmeium is theirs
     // LP unallocated is premiums earned + next round deposits
-    let (_, lp_unallocated) = vault_facade.get_all_lp_liquidity(liquidity_provider_1());
+    let (_, lp_unlocked_position) = vault_facade.get_all_lp_liquidity(liquidity_provider_1());
     // Withdraw from rewards
-    let collect_amount = lp_unallocated + 1;
-    vault_facade.collect_unallocated(collect_amount);
+    vault_facade.withdraw(lp_unlocked_position + 1, liquidity_provider_1());
 }
 
+// @note should be a round settle test
 #[test]
 #[available_gas(10000000)]
-fn test_collected_liquidity_does_not_roll_over() {
+fn test_withdrawn_premiums_do_not_roll_over() {
     let (mut vault_facade, _) = setup_facade();
-    let mut option_round: OptionRoundFacade = vault_facade.get_next_round();
-    let params = option_round.get_params();
-    accelerate_to_running(ref vault_facade);
-    //Get the total allocated liquidity at this stage
+    // Round 1 running, round 2 open (round 1's starting liquidity is 200)
+    utils::accelerate_to_auctioning_custom(
+        ref vault_facade,
+        liquidity_providers_get(2).span(),
+        array![100 * decimals(), 100 * decimals()].span()
+    );
+    utils::accelerate_to_running(ref vault_facade);
+    let (mut round_1, mut round_2) = vault_facade.get_current_and_next_rounds();
 
-    let (lp_allocated, _) = vault_facade.get_all_lp_liquidity(liquidity_provider_1());
-    // Collect premium
-    // Since no more deposits were made, unallocated is equal to the premiums from the auction
+    // LP1 withdraws premiums earned in round 1, LP2 does not (1/2 premiums withdrawn)
+    let round_1_premiums = round_1.total_premiums();
+    vault_facade.withdraw(round_1_premiums / 2, liquidity_provider_1());
 
-    let claimable_premiums: u256 = params.total_options_available * params.reserve_price;
-    vault_facade.collect_unallocated(claimable_premiums);
+    // Settle round 1 with no payout, start round 2 (round 1 starting liquidity + 1/2 premiums roll over)
+    utils::accelerate_to_settled(ref vault_facade, 0);
+    set_block_timestamp(get_block_timestamp() + vault_facade.get_round_transition_period() + 1);
+    // Start round 2 auction, no additional deposits
+    utils::accelerate_to_auctioning_custom(ref vault_facade, array![].span(), array![].span());
 
-    // The round has no more unallocated liquidity because lp withdrew it
-    let unallocated_liqudity_after_premium_claim: u256 = option_round.total_unallocated_liquidity();
-    assert(unallocated_liqudity_after_premium_claim == 0, 'premium should not roll over');
+    // LP and total locked/unlocked positions
+    let (lp1_locked_position, lp1_unlocked_position) = vault_facade
+        .get_all_lp_liquidity(liquidity_provider_1());
+    let (lp2_locked_position, lp2_unlocked_position) = vault_facade
+        .get_all_lp_liquidity(liquidity_provider_2());
+    // @note replace with vaut::locked/unlocked
+    let (round_2_locked, round_2_unlocked) = round_2.get_all_round_liquidity();
 
-    // Settle option round with no payout
-    IMarketAggregatorSetterDispatcher { contract_address: vault_facade.get_market_aggregator() }
-        .set_current_base_fee(params.strike_price - 1);
-    vault_facade.timeskip_and_settle_round();
-    // At this time, remaining liqudity was rolled to the next round (just initial deposit since there is no payout and premiums were collected)
-    let mut next_option_round: OptionRoundFacade = vault_facade.get_next_round();
-    // Check rolled over amount is correct
-    let next_round_unallocated: u256 = next_option_round.total_unallocated_liquidity();
-    assert(next_round_unallocated == lp_allocated, 'Rollover amount wrong');
+    assert(round_2_locked == (200 * decimals()) + round_1_premiums / 2, 'Vault locked wrong');
+    assert(round_2_unlocked == 0, 'Vault unlocked wrong');
+    assert(lp1_locked_position == 100 * decimals(), 'LP1 locked wrong');
+    assert(lp1_unlocked_position == 0, 'LP1 unlocked wrong');
+    assert(lp2_locked_position == 100 * decimals() + round_1_premiums / 2, 'LP2 locked wrong');
+    assert(lp2_unlocked_position == 0, 'LP2 unlocked wrong');
 }
 
-// Test that uncollected premiums roll over
-#[test]
-#[available_gas(10000000)]
-fn test_remaining_liqudity_rolls_over() {
-    let (mut vault_facade, _) = setup_facade();
-    let mut option_round: OptionRoundFacade = vault_facade.get_next_round();
-    let params = option_round.get_params();
-    accelerate_to_running(ref vault_facade);
-    //Get liquidity balance
-    //@note Will include the premiums is unallocated and the locked deposit in allocated at this stage
-    let (lp_allocated, lp_unallocated) = vault_facade.get_all_lp_liquidity(liquidity_provider_1());
-    // Settle option round with no payout
-    IMarketAggregatorSetterDispatcher { contract_address: vault_facade.get_market_aggregator() }
-        .set_current_base_fee(params.strike_price - 1);
-    vault_facade.timeskip_and_settle_round();
-    // At this time, remaining liqudity was rolled to the next round (initial deposit + premiums)
-    let mut next_option_round: OptionRoundFacade = vault_facade.get_next_round();
-    // Check rolled over amount is correct
-    let next_round_unallocated: u256 = next_option_round.total_unallocated_liquidity();
-    assert(next_round_unallocated == lp_allocated + lp_unallocated, 'Rollover amount wrong');
-}
-
+// @note These tests need to update/rewrite
 #[test]
 #[available_gas(10000000)]
 fn test_premium_collection_ratio_conversion_unallocated_pool_1() {

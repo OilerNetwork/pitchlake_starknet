@@ -5,7 +5,6 @@ use openzeppelin::token::erc20::interface::{
     IERC20, IERC20Dispatcher,
     IERC20DispatcherTrait, // IERC20SafeDispatcher,IERC20SafeDispatcherTrait,
 };
-// use pitch_lake_starknet::current_round_facade::{OptionRoundParams};
 
 // use result::ResultTrait;
 // use starknet::{
@@ -22,15 +21,15 @@ use starknet::testing::{set_block_timestamp, set_contract_address};
 // use traits::TryInto;
 // use pitch_lake_starknet::eth::Eth;
 use pitch_lake_starknet::tests::{
-    vault_facade::{VaultFacade, VaultFacadeTrait},
-    option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundParams}
+    utils, vault_facade::{VaultFacade, VaultFacadeTrait},
+    option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait}
 };
 use pitch_lake_starknet::tests::utils::{
     setup_facade, liquidity_provider_1, option_bidder_buyer_1, option_bidder_buyer_2,
     option_bidder_buyer_3, decimals, assert_event_transfer, vault_manager, accelerate_to_auctioning,
-    accelerate_to_running, accelerate_to_settle, assert_event_vault_transfer,
-    assert_event_option_withdraw_payout, clear_event_logs, option_bidders_get,
-    accelerate_to_running_custom
+    accelerate_to_running, accelerate_to_settled,
+    clear_event_logs, option_bidders_get,
+    accelerate_to_running_custom, assert_event_vault_withdrawal,
 };
 use pitch_lake_starknet::tests::mocks::mock_market_aggregator::{
     MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
@@ -54,7 +53,7 @@ fn test_user_with_no_options_gets_no_payout() {
     accelerate_to_running(ref vault_facade);
     // Settle option round
     // @dev This ensures the market aggregator returns the mocked current price
-    accelerate_to_settle(ref vault_facade, params.strike_price + 5);
+    accelerate_to_settled(ref vault_facade, params.strike_price + 5);
     // OB 2 tries to claim a payout
     let claimed_payout_amount: u256 = current_round_facade
         .exercise_options(option_bidder_buyer_2());
@@ -77,7 +76,7 @@ fn test_option_payout_sends_eth() {
     accelerate_to_running(ref vault_facade);
     // Settle option round
     // @dev This ensures the market aggregator returns the mocked current price
-    accelerate_to_settle(ref vault_facade, params.strike_price + 10);
+    accelerate_to_settled(ref vault_facade, params.strike_price + 10);
     // Collect payout
     let ob_balance_before = eth_dispatcher.balance_of(option_bidder_buyer_1());
     let payout = current_round_facade.exercise_options(option_bidder_buyer_1());
@@ -121,8 +120,7 @@ fn test_option_payout_events() {
 
     // Settle option round with payout
     let settlement_price = params.strike_price + 10;
-    accelerate_to_settle(ref vault_facade, settlement_price);
-
+    utils::accelerate_to_settled(ref vault_facade, settlement_price);
     // Initial balances
     let (lp1_collateral_before, lp1_unallocated_before) = vault_facade
         .get_all_lp_liquidity(option_bidder_buyer_1());
@@ -139,26 +137,11 @@ fn test_option_payout_events() {
     let payout2 = current_round_facade.exercise_options(option_bidder_buyer_2());
 
     // Check OptionRound events
-    assert_event_option_withdraw_payout(
-        current_round_facade.contract_address(), option_bidder_buyer_1(), payout1
+    utils::assert_event_options_exercised(
+        option_round.contract_address(), option_bidder_buyer_1(), bid_amount, payout1
     );
-    assert_event_option_withdraw_payout(
-        current_round_facade.contract_address(), option_bidder_buyer_2(), payout2
-    );
-    // Check Vault events
-    assert_event_vault_transfer(
-        vault_facade.contract_address(),
-        option_bidder_buyer_1(),
-        lp1_total_balance_before,
-        lp1_total_balance_before - payout1,
-        false
-    );
-    assert_event_vault_transfer(
-        vault_facade.contract_address(),
-        option_bidder_buyer_2(),
-        lp2_total_balance_before,
-        lp2_total_balance_before - payout2,
-        false
+    utils::assert_event_options_exercised(
+        option_round.contract_address(), option_bidder_buyer_2(), bid_amount, payout2
     );
 }
 
@@ -178,7 +161,7 @@ fn test_option_payout_amount_index_higher_than_strike() {
     // Settle option round
     // @dev This ensures the market aggregator returns the mocked current price
     let settlement_price = params.strike_price + 11;
-    accelerate_to_settle(ref vault_facade, settlement_price);
+    accelerate_to_settled(ref vault_facade, settlement_price);
     // Check payout balance is expected
     let payout_balance = current_round_facade.get_payout_balance_for(option_bidder_buyer_1());
     let payout_balance_expected = current_round_facade.total_options_sold()
@@ -203,7 +186,7 @@ fn test_option_payout_amount_index_less_than_strike() {
     // @note: if there are no mock values, the strike price here would be zero creating
     //        'u256_sub Overflow'
     let settlement_price = params.strike_price - 10;
-    accelerate_to_settle(ref vault_facade, settlement_price);
+    accelerate_to_settled(ref vault_facade, settlement_price);
     // Check payout balance is expected
     let payout_balance = current_round_facade.get_payout_balance_for(option_bidder_buyer_1());
     assert(payout_balance == 0, 'expected payout doesnt match');
@@ -224,7 +207,7 @@ fn test_option_payout_amount_index_at_strike() {
     // Settle option round
     // @dev This ensures the market aggregator returns the mocked current price
     let settlement_price = params.strike_price;
-    accelerate_to_settle(ref vault_facade, settlement_price);
+    accelerate_to_settled(ref vault_facade, settlement_price);
 
     // Check payout balance is expected
     let payout_balance = current_round_facade.get_payout_balance_for(option_bidder_buyer_1());
@@ -242,7 +225,7 @@ fn test_exercise_options_too_early_failure() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let _params: OptionRoundParams = current_round_facade.get_params();
+    let _params = current_round_facade.get_params();
     // Place the bid and end the auction
     accelerate_to_running(ref vault_facade);
     // Should fail as option has not settled

@@ -2,7 +2,7 @@ use core::array::ArrayTrait;
 use pitch_lake_starknet::vault::{IVaultDispatcher, IVaultDispatcherTrait};
 
 use pitch_lake_starknet::option_round::{
-    OptionRound, OptionRoundParams, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,
+    OptionRound, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,
 };
 
 use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
@@ -17,7 +17,7 @@ use pitch_lake_starknet::tests::mocks::mock_market_aggregator::{
     IMarketAggregatorSetterDispatcherTrait,
 };
 use pitch_lake_starknet::market_aggregator::{
-    IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
+    MarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
 };
 
 use pitch_lake_starknet::tests::option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait};
@@ -64,18 +64,6 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     fn settle_option_round(ref self: VaultFacade, address: ContractAddress) -> bool {
         set_contract_address(address);
         self.vault_dispatcher.settle_option_round()
-    }
-
-    // Mock the round to have/not have a payout and settle it
-    fn settle_option_round_without_payout(ref self: VaultFacade, is_payout: bool) {
-        let mut current_round = self.get_current_round();
-        let mock_settlement_price = match is_payout {
-            true => { current_round.get_params().strike_price + 10 },
-            false => { current_round.get_params().strike_price },
-        };
-        IMarketAggregatorSetterDispatcher { contract_address: self.get_market_aggregator() }
-            .set_current_base_fee(mock_settlement_price);
-        self.timeskip_and_settle_round();
     }
 
     fn timeskip_and_settle_round(ref self: VaultFacade) -> bool {
@@ -200,10 +188,6 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         self.vault_dispatcher.get_market_aggregator()
     }
 
-    fn collect_unallocated(ref self: VaultFacade, amount: u256) {
-        self.vault_dispatcher.collect_unallocated(amount);
-    }
-
 
     // Gets the round transition period in seconds, 3 hours is a random number for testing
     // @note TODO impl this in contract later
@@ -236,6 +220,31 @@ impl VaultFacadeImpl of VaultFacadeTrait {
             };
         };
         total
+    }
+
+    // Set the mock market aggregators value for the period of the current round
+    fn set_market_aggregator_value(ref self: VaultFacade, avg_base_fee: u256) {
+        let mut current_round = self.get_current_round();
+        let start_date = current_round.round_start_date();
+        let end_date = current_round.round_end_date();
+        let market_aggregator = IMarketAggregatorSetterDispatcher {
+            contract_address: self.get_market_aggregator(),
+        };
+        market_aggregator.set_value_without_proof(start_date, end_date, avg_base_fee);
+    }
+
+    fn get_market_aggregator_value(ref self: VaultFacade) -> u256 {
+        let market_aggregator = IMarketAggregatorDispatcher {
+            contract_address: self.get_market_aggregator(),
+        };
+        let mut current_round = self.get_current_round();
+        let start_date = current_round.round_start_date();
+        let end_date = current_round.round_end_date();
+
+        match market_aggregator.get_value(start_date, end_date) {
+            Result::Ok((value, _)) => value,
+            Result::Err(e) => panic(array![e]),
+        }
     }
 }
 

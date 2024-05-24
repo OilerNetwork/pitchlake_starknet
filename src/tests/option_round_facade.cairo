@@ -6,10 +6,10 @@ use pitch_lake_starknet::vault::{
 
 use starknet::{ContractAddress, testing::{set_contract_address}};
 use pitch_lake_starknet::option_round::{
-    IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundParams, OptionRoundState
+    IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState
 };
 
-use pitch_lake_starknet::tests::utils::{vault_manager};
+use pitch_lake_starknet::tests::{utils::{vault_manager}, utils_new::structs::{OptionRoundParams}};
 
 //@note: confirm start/end auction flow in relation to vault function and set_contract_address accordingly
 //fn start_auction(ref option_round_dispatcher: IOptionRoundDispatcher) -> bool {
@@ -61,8 +61,8 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     fn vault_address(ref self: OptionRoundFacade) -> ContractAddress {
         self.option_round_dispatcher.vault_address()
     }
-    fn total_liquidity(ref self: OptionRoundFacade) -> u256 {
-        self.option_round_dispatcher.total_liquidity()
+    fn starting_liquidity(ref self: OptionRoundFacade) -> u256 {
+        self.option_round_dispatcher.starting_liquidity()
     }
     fn total_unallocated_liquidity(ref self: OptionRoundFacade) -> u256 {
         self.option_round_dispatcher.total_unallocated_liquidity()
@@ -80,7 +80,18 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     }
 
     fn get_params(ref self: OptionRoundFacade) -> OptionRoundParams {
-        self.option_round_dispatcher.get_params()
+        OptionRoundParams {
+            current_average_basefee: self.get_current_average_basefee(),
+            standard_deviation: self.get_standard_deviation(),
+            strike_price: self.get_strike_price(),
+            cap_level: self.get_cap_level(),
+            collateral_level: 0,
+            reserve_price: self.get_reserve_price(),
+            total_options_available: self.get_total_options_available(),
+            minimum_collateral_required: 0,
+            auction_end_time: self.get_auction_end_date(),
+            option_expiry_time: self.get_option_expiry_date(),
+        }
     }
 
     fn total_options_sold(ref self: OptionRoundFacade) -> u256 {
@@ -127,9 +138,53 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     ) -> u256 {
         self.option_round_dispatcher.get_unused_bids_for(option_bidder_buyer)
     }
-    fn get_market_aggregator(ref self: OptionRoundFacade) -> ContractAddress {
-        self.option_round_dispatcher.get_market_aggregator()
+
+    // Get the date the option round starts
+    fn round_start_date(ref self: OptionRoundFacade) -> u64 {
+        0
     }
+
+    // Get the date the option round ends
+    fn round_end_date(ref self: OptionRoundFacade) -> u64 {
+        0
+    }
+
+    fn get_current_average_basefee(ref self: OptionRoundFacade) -> u256 {
+        self.option_round_dispatcher.get_current_average_basefee()
+    }
+
+    fn get_standard_deviation(ref self: OptionRoundFacade) -> u256 {
+        self.option_round_dispatcher.get_standard_deviation()
+    }
+
+    fn get_strike_price(ref self: OptionRoundFacade) -> u256 {
+        self.option_round_dispatcher.get_strike_price()
+    }
+
+    fn get_cap_level(ref self: OptionRoundFacade) -> u256 {
+        self.option_round_dispatcher.get_cap_level()
+    }
+
+    fn get_reserve_price(ref self: OptionRoundFacade) -> u256 {
+        self.option_round_dispatcher.get_reserve_price()
+    }
+
+    fn get_total_options_available(ref self: OptionRoundFacade) -> u256 {
+        self.option_round_dispatcher.get_total_options_available()
+    }
+
+    fn get_auction_start_date(ref self: OptionRoundFacade) -> u64 {
+        self.option_round_dispatcher.get_auction_start_date()
+    }
+
+    fn get_auction_end_date(ref self: OptionRoundFacade) -> u64 {
+        self.option_round_dispatcher.get_auction_end_date()
+    }
+
+    fn get_option_expiry_date(ref self: OptionRoundFacade) -> u64 {
+        self.option_round_dispatcher.get_option_expiry_date()
+    }
+
 
     //These functions have some custom logic
 

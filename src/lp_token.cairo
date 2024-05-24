@@ -4,7 +4,7 @@ use traits::{Into, TryInto};
 use openzeppelin::token::erc20::interface::IERC20Dispatcher;
 use openzeppelin::utils::serde::SerializedAppend;
 
-use pitch_lake_starknet::option_round::{OptionRoundParams, OptionRoundState};
+use pitch_lake_starknet::option_round::{OptionRoundState};
 use pitch_lake_starknet::market_aggregator::{
     IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
 };
@@ -72,7 +72,7 @@ mod LpToken {
         fn option_round_address(self: @ContractState) -> ContractAddress {
             self.option_round_address.read()
         }
-    /// Writes /// 
+    /// Writes ///
 
     //fn convert_to_position(ref self: ContractState, amount: u256) {}
     }

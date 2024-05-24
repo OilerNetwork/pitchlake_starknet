@@ -1,5 +1,5 @@
 use starknet::{ContractAddress};
-use pitch_lake_starknet::option_round::{OptionRoundParams, OptionRoundState};
+use pitch_lake_starknet::option_round::{StartAuctionParams, OptionRoundState};
 use pitch_lake_starknet::market_aggregator::{IMarketAggregator, IMarketAggregatorDispatcher};
 
 // The type of vault
@@ -37,11 +37,13 @@ trait IVault<TContractState> {
     // Get the liqudity an LP has unallocated (unlocked), they can withdraw from this amount
     // @dev If the current round is Running, LP's share of its unallocated liquidity is uncluded (unless already withdrawn)
     // @dev Includes deposits into the next round if there are any
+    // @note does include premiums
     fn get_unallocated_balance_for(
         self: @TContractState, liquidity_provider: ContractAddress
     ) -> u256;
 
     // Get the total premium LP has earned in the current round
+    // @note premiums for previous rounds
     fn get_premiums_for(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
 
     /// Writes ///
@@ -52,11 +54,6 @@ trait IVault<TContractState> {
 
     // LP withdraws from their position while in the round transition period
     fn withdraw_liquidity(ref self: TContractState, amount: u256);
-
-    // @note Discuss if there should be 1 withdraw function or two (1 for collecting
-    // premium/unsold from current and 1 for withdrawing unallocated from next round)
-    // LP collects from their unallocated balance
-    fn collect_unallocated(ref self: TContractState, amount: u256);
 
     // LP converts their collateral into LP tokens
     // @note all at once or can LP convert a partial amount ?
@@ -112,7 +109,7 @@ mod Vault {
     use pitch_lake_starknet::vault::VaultType;
     use openzeppelin::utils::serde::SerializedAppend;
     use pitch_lake_starknet::option_round::{
-        OptionRound, OptionRoundConstructorParams, OptionRoundParams, OptionRoundState,
+        OptionRound, OptionRoundConstructorParams, StartAuctionParams, OptionRoundState,
         IOptionRoundDispatcher
     };
     use pitch_lake_starknet::market_aggregator::{IMarketAggregatorDispatcher};
@@ -124,35 +121,42 @@ mod Vault {
     #[event]
     #[derive(PartialEq, Drop, starknet::Event)]
     enum Event {
-        Deposit: VaultTransfer,
-        Withdrawal: VaultTransfer,
-        OptionRoundCreated: OptionRoundCreated,
+        Deposit: Deposit,
+        Withdrawal: Withdrawal,
+        OptionRoundDeployed: OptionRoundDeployed,
     }
 
     #[derive(Drop, starknet::Event, PartialEq)]
-    struct VaultTransfer {
+    struct Deposit {
         #[key]
-        user: ContractAddress,
-        total_balance_before: u256,
-        // Collateral + unallocated
-        total_balance_now: u256,
+        account: ContractAddress,
+        position_balance_before: u256,
+        position_balance_after: u256,
     }
 
     #[derive(Drop, starknet::Event, PartialEq)]
-    struct OptionRoundCreated {
-        prev_round: ContractAddress,
-        new_round: ContractAddress,
-        // @note Discuss below, when round is created/deployed, the liquidity is currently unallocated
-        //  - should it be dropped or replaced ?
-        //collaterized_amount: u256,
-        option_round_params: OptionRoundParams
+    struct Withdrawal {
+        #[key]
+        account: ContractAddress,
+        position_balance_before: u256,
+        position_balance_after: u256,
+    }
+
+
+    #[derive(Drop, starknet::Event, PartialEq)]
+    struct OptionRoundDeployed {
+        // might not need
+        round_id: u256,
+        address: ContractAddress,
+    // option_round_params: OptionRoundParams
+    // possibly more members to this event
     }
 
     #[storage]
     struct Storage {
         vault_manager: ContractAddress,
         vault_type: VaultType,
-        current_option_round_params: OptionRoundParams,
+        //current_option_round_params: OptionRoundParams,
         current_option_round_id: u256,
         market_aggregator: ContractAddress,
         round_addresses: LegacyMap<u256, ContractAddress>,
@@ -206,32 +210,29 @@ mod Vault {
         fn rm_me2(ref self: ContractState) {
             self
                 .emit(
-                    Event::OptionRoundCreated(
-                        OptionRoundCreated {
-                            prev_round: starknet::get_contract_address(),
-                            new_round: starknet::get_contract_address(),
-                            //collaterized_amount: 100,
-                            option_round_params: mock_option_params(),
+                    Event::OptionRoundDeployed(
+                        OptionRoundDeployed {
+                            round_id: 1, address: starknet::get_contract_address(),
                         }
                     )
                 );
             self
                 .emit(
                     Event::Deposit(
-                        VaultTransfer {
-                            user: starknet::get_contract_address(),
-                            total_balance_before: 100,
-                            total_balance_now: 100
+                        Deposit {
+                            account: starknet::get_contract_address(),
+                            position_balance_before: 100,
+                            position_balance_after: 100
                         }
                     )
                 );
             self
                 .emit(
                     Event::Withdrawal(
-                        VaultTransfer {
-                            user: starknet::get_contract_address(),
-                            total_balance_before: 100,
-                            total_balance_now: 100
+                        Withdrawal {
+                            account: starknet::get_contract_address(),
+                            position_balance_before: 100,
+                            position_balance_after: 100
                         }
                     )
                 );
@@ -310,6 +311,5 @@ mod Vault {
         fn get_market_aggregator(self: @ContractState) -> ContractAddress {
             self.market_aggregator.read()
         }
-        fn collect_unallocated(ref self: ContractState, amount: u256) {}
     }
 }

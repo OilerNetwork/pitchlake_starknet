@@ -25,7 +25,7 @@ use pitch_lake_starknet::tests::vault_facade::{VaultFacade, VaultFacadeTrait};
 use pitch_lake_starknet::tests::option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait};
 
 use pitch_lake_starknet::option_round::{
-    IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundParams, OptionRoundState
+    IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState
 };
 use pitch_lake_starknet::tests::utils;
 use pitch_lake_starknet::tests::utils::{
@@ -34,12 +34,9 @@ use pitch_lake_starknet::tests::utils::{
     liquidity_provider_2, option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
     option_bidder_buyer_4, zero_address, vault_manager, weth_owner, option_round_contract_address,
     mock_option_params, pop_log, assert_no_events_left, create_array_gradient,
-    liquidity_providers_get, clear_event_logs, assert_event_auction_start, assert_event_auction_bid,
-    assert_event_auction_end, assert_event_option_settle, assert_event_option_round_created,
-    assert_event_vault_transfer, assert_event_option_deposit_liquidity,
-    assert_event_option_withdraw_premium, assert_event_option_withdraw_payout,
-    assert_event_option_withdraw_liquidity, assert_event_option_withdraw_unused_bids,
-    accelerate_to_auctioning, accelerate_to_running
+    liquidity_providers_get, clear_event_logs, assert_event_auction_start, assert_event_auction_end,
+    assert_event_option_settle, assert_event_option_round_deployed, assert_event_vault_deposit,
+    assert_event_vault_withdrawal,
 };
 
 
@@ -199,7 +196,7 @@ fn test_deposit_to_vault_event() {
     vault_facade.deposit(deposit_amount, *liquidity_providers[0]);
 
     // Check vault events emit correctly
-    assert_event_vault_transfer(
+    assert_event_vault_deposit(
         vault_facade.contract_address(),
         *liquidity_providers[0],
         init_liquidity,
@@ -260,28 +257,23 @@ fn test_deposit_zero_liquidity_failure() {
 #[available_gas(100000000)]
 fn test_event_testers() {
     let (mut v, e) = setup_facade();
-    set_contract_address(liquidity_provider_1());
     /// new test, make emission come from entry point on vault,
     let mut r = v.get_current_round();
-    e.transfer(liquidity_provider_1(), 100);
-    assert_event_transfer(e.contract_address, liquidity_provider_1(), liquidity_provider_1(), 100);
+    set_contract_address(liquidity_provider_1());
+    clear_event_logs(array![e.contract_address, v.contract_address(), r.contract_address()]);
+    e.transfer(liquidity_provider_2(), 100);
+    assert_event_transfer(e.contract_address, liquidity_provider_1(), liquidity_provider_2(), 100);
     r.option_round_dispatcher.rm_me(100);
     assert_event_auction_start(r.contract_address(), 100);
-    assert_event_auction_bid(r.contract_address(), r.contract_address(), 100, 100, true);
-    assert_event_auction_bid(r.contract_address(), r.contract_address(), 100, 100, false);
+    utils::assert_event_auction_bid_accepted(r.contract_address(), r.contract_address(), 100, 100);
+    utils::assert_event_auction_bid_rejected(r.contract_address(), r.contract_address(), 100, 100);
     assert_event_auction_end(r.contract_address(), 100);
     assert_event_option_settle(r.contract_address(), 100);
-    assert_event_option_round_created(
-        v.contract_address(), v.contract_address(), v.contract_address(), mock_option_params()
-    );
-
-    assert_event_vault_transfer(v.contract_address(), v.contract_address(), 100, 100, true);
-    assert_event_vault_transfer(v.contract_address(), v.contract_address(), 100, 100, false);
-    assert_event_option_deposit_liquidity(r.contract_address(), r.contract_address(), 100);
-    assert_event_option_withdraw_premium(r.contract_address(), r.contract_address(), 100);
-    assert_event_option_withdraw_payout(r.contract_address(), r.contract_address(), 100);
-    assert_event_option_withdraw_liquidity(r.contract_address(), r.contract_address(), 100);
-    assert_event_option_withdraw_unused_bids(r.contract_address(), r.contract_address(), 100);
+    assert_event_option_round_deployed(v.contract_address(), 1, v.contract_address());
+    assert_event_vault_deposit(v.contract_address(), v.contract_address(), 100, 100);
+    assert_event_vault_withdrawal(v.contract_address(), v.contract_address(), 100, 100);
+    utils::assert_event_unused_bids_refunded(r.contract_address(), r.contract_address(), 100);
+    utils::assert_event_options_exercised(r.contract_address(), r.contract_address(), 100, 100);
 }
 
 

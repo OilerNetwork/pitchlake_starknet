@@ -24,7 +24,6 @@ use pitch_lake_starknet::tests::utils::{
 // , option_bidder_buyer_6, weth_owner, mock_option_params,
 // month_duration
 };
-// use pitch_lake_starknet::option_round::{OptionRoundParams};
 
 // use result::ResultTrait;
 use starknet::testing::{set_block_timestamp, set_contract_address};
@@ -47,7 +46,7 @@ fn test_total_options_after_auction_1() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round_facade.get_params();
+    let params = current_round_facade.get_params();
 
     // OB 1 and 2 bid for > the total options available at the reserve price
     let option_bidders = option_bidders_get(2);
@@ -81,7 +80,7 @@ fn test_total_options_after_auction_2() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round_facade.get_params();
+    let params = current_round_facade.get_params();
 
     // OB 1 and 2 bid for > the total options available at the reserve price
     let option_bidders = option_bidders_get(2);
@@ -116,7 +115,7 @@ fn test_total_options_after_auction_3() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round_facade.get_params();
+    let params = current_round_facade.get_params();
 
     let option_bidders = option_bidders_get(1);
 
@@ -159,10 +158,11 @@ fn test_total_options_after_auction_5() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round_facade.get_params();
+    let params = current_round_facade.get_params();
 
     // place bid and end the auction
     let option_bidders = option_bidders_get(1);
+
     let bid_count = params.total_options_available + 10;
     let bid_price = params.reserve_price;
     let bid_amount = bid_count * bid_price;
@@ -188,7 +188,7 @@ fn test_option_balance_per_bidder_after_auction_1() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round_facade.get_params();
+    let params = current_round_facade.get_params();
 
     // Make bids
     let option_bidders = option_bidders_get(4);
@@ -257,7 +257,7 @@ fn test_option_balance_per_bidder_after_auction_2() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let mut params: OptionRoundParams = current_round_facade.get_params();
+    let mut params = current_round_facade.get_params();
 
     // Make bids
     let option_bidders = option_bidders_get(6);
@@ -337,11 +337,10 @@ fn test_option_round_options_sold_before_auction_end_is_0() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round_facade.get_params();
+    let params = current_round_facade.get_params();
 
     // Make bid
     set_contract_address(option_bidder_buyer_1());
-
     let bid_count: u256 = params.total_options_available + 10;
     let bid_price: u256 = params.reserve_price;
     let bid_amount: u256 = bid_count * bid_price;
