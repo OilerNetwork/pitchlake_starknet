@@ -19,7 +19,9 @@ use traits::Into;
 use traits::TryInto;
 use pitch_lake_starknet::eth::Eth;
 use pitch_lake_starknet::tests::vault_facade::{VaultFacade, VaultFacadeTrait};
-use pitch_lake_starknet::tests::option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait};
+use pitch_lake_starknet::tests::option_round_facade::{
+    OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundParams
+};
 use pitch_lake_starknet::tests::utils;
 use pitch_lake_starknet::tests::utils::{
     setup_facade, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
@@ -40,6 +42,9 @@ fn test_withdraw_from_deposits_eth_transfer() {
     let (mut vault_facade, eth_dispatcher) = setup_facade();
     // Accelerate to current round auctioning
     accelerate_to_auctioning(ref vault_facade);
+    // Make bids
+    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
+    let _params: OptionRoundParams = current_round_facade.get_params();
     // Current round (auctioning) and next round (open)
     let mut current_round = vault_facade.get_current_round();
     let mut next_round = vault_facade.get_next_round();
@@ -76,6 +81,9 @@ fn test_withdraw_from_deposits_updates_collateral_and_unallocated() {
     let (mut vault_facade, _) = setup_facade();
     // Accelerate to round 1 running
     accelerate_to_auctioning(ref vault_facade);
+    // Make bids
+    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
+    let _params: OptionRoundParams = current_round_facade.get_params();
     // Current round (auctioning), next round (open)
     let mut current_round = vault_facade.get_current_round();
     let mut next_round = vault_facade.get_next_round();

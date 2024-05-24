@@ -40,9 +40,9 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     }
 
 
-    fn end_auction(ref self: OptionRoundFacade) {
+    fn end_auction(ref self: OptionRoundFacade) -> u256 {
         set_contract_address(vault_manager());
-        self.option_round_dispatcher.end_auction();
+        self.option_round_dispatcher.end_auction()
     }
 
     fn refund_bid(ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress) -> u256 {
@@ -194,15 +194,16 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         amounts: Span<u256>,
         prices: Span<u256>
     ) {
-        let params = self.get_params();
+        let _params = self.get_params();
         let mut index: u32 = 0;
-        let bid_price = params.reserve_price;
+        // let bid_price = params.reserve_price;
         while index < bidders
             .len() {
-                assert(
-                    *prices[index] > bid_price && *amounts[index] > *prices[index],
-                    ('Invalid parameters at {}')
-                );
+                // @note: shall we remove this?
+                // assert(
+                //     *prices[index] > bid_price && *amounts[index] > *prices[index],
+                //     ('Invalid parameters at {}')
+                // );
                 self.place_bid(*amounts[index], *prices[index], *bidders[index]);
                 index += 1;
             }

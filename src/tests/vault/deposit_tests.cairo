@@ -38,9 +38,115 @@ use pitch_lake_starknet::tests::utils::{
     assert_event_option_settle, assert_event_option_round_deployed, assert_event_vault_deposit,
     assert_event_vault_withdrawal,
 };
-use pitch_lake_starknet::tests::vault::utils::{accelerate_to_auctioning, accelerate_to_running};
 
-// Test eth transfer when LP deposits
+
+// Test when LP deposit, tokens are getting stored in unlocked pool in vault of the next round
+#[test]
+#[available_gas(10000000)]
+fn test_deposit_vault_unlocked_liquidity() {
+    let (mut vault_facade, _) = setup_facade();
+    let mut _current_round = vault_facade.get_current_round();
+    let mut _next_round = vault_facade.get_next_round();
+
+    // get one liquidity provider
+    let liquidity_providers = liquidity_providers_get(1);
+    // get the initial liquidity of the vault
+    let init_liquidity = vault_facade.get_unlocked_liquidity(*liquidity_providers[0]);
+
+    // deposit some amount in the vault
+    let deposit_amount = 50 * decimals();
+    vault_facade.deposit(deposit_amount, *liquidity_providers[0]);
+
+    // get the liquidity after the first deposit
+    let final_liquidity = vault_facade.get_unlocked_liquidity(*liquidity_providers[0]);
+
+    // liquidity should increase by deposit_amount
+    assert(final_liquidity == init_liquidity + deposit_amount, 'vault balance should increase');
+}
+
+// test when LP multiple deposit, tokens are getting stored in the unlocked pool in vault of the next round
+#[test]
+#[available_gas(10000000)]
+fn test_multi_deposit_vault_unlocked_liquidity() {
+    let (mut vault_facade, _) = setup_facade();
+    let mut _current_round = vault_facade.get_current_round();
+    let mut _next_round = vault_facade.get_next_round();
+
+    // get one liquidity provider
+    let liquidity_providers = liquidity_providers_get(2);
+    // get the initial liquidity of the vault
+    let init_liquidity_1 = vault_facade.get_unlocked_liquidity(*liquidity_providers[0]);
+    let init_liquidity_2 = vault_facade.get_unlocked_liquidity(*liquidity_providers[1]);
+
+    // deposit some amount in the vault
+    let deposit_amount = 50 * decimals();
+    vault_facade.deposit(deposit_amount, *liquidity_providers[0]);
+    vault_facade.deposit(deposit_amount + 1, *liquidity_providers[1]);
+
+    // get the liquidity after the first deposit
+    let final_liquidity_1 = vault_facade.get_unlocked_liquidity(*liquidity_providers[0]);
+    let final_liquidity_2 = vault_facade.get_unlocked_liquidity(*liquidity_providers[1]);
+
+    // liquidity should increase by deposited amount
+    assert(final_liquidity_1 == init_liquidity_1 + deposit_amount, 'vault balance should increase');
+    assert(
+        final_liquidity_2 == init_liquidity_2 + deposit_amount + 1, 'vault balance should increase'
+    );
+}
+
+// test when LP deposit, total liquidity of the option round increases by that amount
+#[test]
+#[available_gas(10000000)]
+fn test_deposit_option_round_total_liquidity() {
+    let (mut vault_facade, _) = setup_facade();
+    let mut _current_round = vault_facade.get_current_round();
+    let mut next_round = vault_facade.get_next_round();
+
+    // get one liquidity provider
+    let liquidity_providers = liquidity_providers_get(1);
+    // get the total initial liquidity of the option round
+    let init_liquidity = next_round.total_liquidity();
+
+    // deposit some amount in the vault
+    let deposit_amount = 50 * decimals();
+    vault_facade.deposit(deposit_amount, *liquidity_providers[0]);
+
+    // get the final total liquidity after the first deposit of the option round
+    let final_liquidity = next_round.total_liquidity();
+
+    // liquidity should increase by deposit_amount
+    assert(final_liquidity == init_liquidity + deposit_amount, 'total liquidity should increase');
+}
+
+// test when LP multiple deposit, total liquidity of the option round increases by that amount
+#[test]
+#[available_gas(10000000)]
+fn test_multi_deposit_option_round_total_liquidity() {
+    let (mut vault_facade, _) = setup_facade();
+    let mut _current_round = vault_facade.get_current_round();
+    let mut next_round = vault_facade.get_next_round();
+
+    // get one liquidity provider
+    let liquidity_providers = liquidity_providers_get(3);
+    // get the total initial liquidity of the option round
+    let init_liquidity = next_round.total_liquidity();
+
+    // deposit some amount in the vault
+    let deposit_amount = 50 * decimals();
+    vault_facade.deposit(deposit_amount, *liquidity_providers[0]);
+    vault_facade.deposit(deposit_amount, *liquidity_providers[1]);
+    vault_facade.deposit(deposit_amount, *liquidity_providers[2]);
+
+    // get the final total liquidity after the first deposit of the option round
+    let final_liquidity = next_round.total_liquidity();
+
+    // liquidity should increase by deposit_amount
+    assert(
+        final_liquidity == init_liquidity + (deposit_amount * 3), 'total liquidity should increase'
+    );
+}
+
+// test when LP deposit, check the balance of the contracts (vault and the sender) are updating accordingly
 #[test]
 #[available_gas(10000000)]
 fn test_deposit_eth_transfer() {
@@ -73,82 +179,65 @@ fn test_deposit_eth_transfer() {
     );
 }
 
-// Test deposit event emission
+// test when LP deposit, deposit events are getting fired
 #[test]
 #[available_gas(10000000)]
-fn test_deposit_events() {
+fn test_deposit_to_vault_event() {
     let (mut vault_facade, _) = setup_facade();
-    let mut next_round = vault_facade.get_next_round();
-    // Deposit into next round
-    let deposit_amount = 50 * decimals();
-    // Initial balances
-    let (lp1_init_collateral, lp1_init_unallocated) = vault_facade
-        .get_all_lp_liquidity(liquidity_provider_1());
-    let (lp2_init_collateral, lp2_init_unallocated) = vault_facade
-        .get_all_lp_liquidity(liquidity_provider_2());
-    let lp1_total_before = lp1_init_collateral + lp1_init_unallocated;
-    let lp2_total_before = lp2_init_collateral + lp2_init_unallocated;
+    let mut _next_round = vault_facade.get_next_round();
 
-    // Make deposits
-    // @note replace with accelerators, or no because of event log?
-    vault_facade.deposit(deposit_amount, liquidity_provider_1());
-    vault_facade.deposit(2 * deposit_amount, liquidity_provider_2());
+    // get one liquidity provider
+    let liquidity_providers = liquidity_providers_get(1);
+    // get the initial liquidity of the vault
+    let init_liquidity = vault_facade.get_unlocked_liquidity(*liquidity_providers[0]);
+
+    // deposit some amount in the vault
+    let deposit_amount = 50 * decimals();
+    vault_facade.deposit(deposit_amount, *liquidity_providers[0]);
 
     // Check vault events emit correctly
     assert_event_vault_deposit(
         vault_facade.contract_address(),
-        liquidity_provider_1(),
-        lp1_total_before,
-        lp1_total_before + deposit_amount,
-    );
-    assert_event_vault_deposit(
-        vault_facade.contract_address(),
-        liquidity_provider_2(),
-        lp2_total_before,
-        lp2_total_before + deposit_amount,
+        *liquidity_providers[0],
+        init_liquidity,
+        init_liquidity + deposit_amount,
+        true // is deposit
     );
 }
 
-// Test collateral/unallocated amounts when LP deposits
-// @note add assertion that vault::round_positions[lp, next_id] increments (need to add vault entry point for get_lp_deposit_in_round)
+// test when LP multiple deposit, all the events are getting fired in correct order
 #[test]
 #[available_gas(10000000)]
-fn test_deposit_collateral_and_unallocated_round() {
+fn test_multi_deposit_to_vault_event() {
     let (mut vault_facade, _) = setup_facade();
-    // Current round (settled), next round (open)
-    let mut current_round = vault_facade.get_current_round();
-    let mut next_round = vault_facade.get_next_round();
-    // Initial collateral/unallocated
-    let (init_current_round_collateral, init_current_round_unallocated) = current_round
-        .get_all_round_liquidity();
-    let (init_next_round_collateral, init_next_round_unallocated) = next_round
-        .get_all_round_liquidity();
-    // Deposit liquidity (into next round)
-    let lps = liquidity_providers_get(5);
-    let amounts = create_array_gradient(50 * decimals(), 10 * decimals(), 5);
+    let mut _next_round = vault_facade.get_next_round();
 
-    let deposit_total = vault_facade.deposit_mutltiple(lps.span(), amounts.span());
-    // Final collateral/unallocated
-    let (final_current_round_collateral, final_current_round_unallocated) = current_round
-        .get_all_round_liquidity();
-    let (final_next_round_collateral, final_next_round_unallocated) = next_round
-        .get_all_round_liquidity();
-    // Check collateral is untouched
-    assert(
-        final_current_round_collateral == init_current_round_collateral,
-        'current round collateral wrong'
+    // get one liquidity provider
+    let liquidity_providers = liquidity_providers_get(2);
+    // get the initial liquidity of the vault
+    let init_liquidity_1 = vault_facade.get_unlocked_liquidity(*liquidity_providers[0]);
+    let init_liquidity_2 = vault_facade.get_unlocked_liquidity(*liquidity_providers[1]);
+
+    // deposit some amount in the vault
+    let deposit_amount = 50 * decimals();
+    vault_facade.deposit(deposit_amount, *liquidity_providers[0]);
+    vault_facade.deposit(deposit_amount, *liquidity_providers[1]);
+
+    // Check vault events emit correctly
+    assert_event_vault_transfer(
+        vault_facade.contract_address(),
+        *liquidity_providers[0],
+        init_liquidity_1,
+        init_liquidity_1 + deposit_amount,
+        true // is deposit
     );
-    assert(
-        final_next_round_collateral == init_next_round_collateral, 'next round collateral wrong'
-    );
-    // Check unallocated is updated
-    assert(
-        final_current_round_unallocated == init_current_round_unallocated,
-        'current round unallocated wrong'
-    );
-    assert(
-        final_next_round_unallocated == init_next_round_unallocated + deposit_total,
-        'next round unallocated wrong'
+
+    assert_event_vault_transfer(
+        vault_facade.contract_address(),
+        *liquidity_providers[1],
+        init_liquidity_2,
+        init_liquidity_2 + deposit_amount,
+        true // is deposit
     );
 }
 
@@ -192,57 +281,57 @@ fn test_event_testers() {
 #[test]
 #[available_gas(10000000)]
 fn test_deposit_is_always_into_next_round() {
-    let (mut vault, eth) = setup_facade();
-    let mut next_round = vault.get_next_round();
+    let (mut vault_facade, _) = setup_facade();
+    let mut next_round = vault_facade.get_next_round();
 
-    // Deposit liquidity while current round is settled
+    let liquidity_providers = liquidity_providers_get(1);
+
+    accelerate_to_auctioning(ref vault_facade);
+
+    next_round = vault_facade.get_next_round();
     let deposit_amount = 50 * decimals();
-    vault.deposit(deposit_amount, liquidity_provider_1());
-    assert_event_transfer(
-        eth.contract_address, liquidity_provider_1(), next_round.contract_address(), deposit_amount
+
+    let init_liquidity = next_round.total_liquidity();
+    vault_facade.deposit(deposit_amount + 1, *liquidity_providers[0]);
+    let final_liquidity = next_round.total_liquidity();
+
+    assert(
+        final_liquidity == init_liquidity + (deposit_amount + 1), 'total liquidity should increase'
     );
-    // Deposit liquidity while current round is auctioning
-    vault.start_auction();
-    let mut current_round = vault.get_current_round();
-    next_round = vault.get_next_round();
-    vault.deposit(deposit_amount + 1, liquidity_provider_1());
-    assert_event_transfer(
-        eth.contract_address,
-        liquidity_provider_1(),
-        next_round.contract_address(),
-        deposit_amount + 1
-    );
-    // Deposit liquidity while current round is running
-    let params = current_round.get_params();
-    let bid_amount = params.total_options_available;
-    let bid_price = params.reserve_price;
-    let bid_amount = bid_amount * bid_price;
-    current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
-    set_block_timestamp(params.auction_end_time + 1);
-    vault.end_auction();
-    vault.deposit(deposit_amount + 2, liquidity_provider_1());
-    assert_event_transfer(
-        eth.contract_address,
-        liquidity_provider_1(),
-        next_round.contract_address(),
-        deposit_amount + 2
+
+    accelerate_to_running(ref vault_facade);
+
+    let init_liquidity = next_round.total_liquidity();
+    vault_facade.deposit(deposit_amount + 1, *liquidity_providers[0]);
+    let final_liquidity = next_round.total_liquidity();
+    assert(
+        final_liquidity == init_liquidity + (deposit_amount + 1), 'total liquidity should increase'
     );
 }
 
-
+// test that the liquidity is increasing only for the unlocked pool
 #[test]
 #[available_gas(10000000)]
-fn test_deposit_is_always_into_unallocated() {
+fn test_deposit_is_always_into_unlocked() {
     let (mut vault_facade, _) = setup_facade();
-    // Initial collateral/unallocated
-    let (init_collateral, init_unallocated) = vault_facade
-        .get_all_lp_liquidity(liquidity_provider_1());
+    let mut _current_round = vault_facade.get_current_round();
+    let mut _next_round = vault_facade.get_next_round();
+
+    let liquidity_providers = liquidity_providers_get(1);
+
+    let init_locked_liquidity = vault_facade.get_locked_liquidity(*liquidity_providers[0]);
+    let init_unlocked_liquidity = vault_facade.get_unlocked_liquidity(*liquidity_providers[0]);
 
     let deposit_amount = 50 * decimals();
-    vault_facade.deposit(deposit_amount, liquidity_provider_1());
-    let (final_collateral, final_unallocated) = vault_facade
-        .get_all_lp_liquidity(liquidity_provider_1());
-    assert(init_collateral == final_collateral, 'Collteral Mismatch');
-    assert(init_unallocated + deposit_amount == final_unallocated, 'Unallocated amount Mismatch');
+    vault_facade.deposit(deposit_amount, *liquidity_providers[0]);
+
+    let final_locked_liquidity = vault_facade.get_locked_liquidity(*liquidity_providers[0]);
+    let final_unlocked_liquidity = vault_facade.get_unlocked_liquidity(*liquidity_providers[0]);
+
+    assert(init_locked_liquidity == final_locked_liquidity, 'Locked Liquidity Mismatch');
+    assert(
+        init_unlocked_liquidity + deposit_amount == final_unlocked_liquidity,
+        'Unlocked Liquidity Mismatch'
+    );
 }
 

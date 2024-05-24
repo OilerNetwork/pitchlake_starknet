@@ -1,10 +1,12 @@
 use pitch_lake_starknet::{
     tests::{
         vault_facade::{VaultFacade, VaultFacadeTrait},
-        option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
+        option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundParams},
         utils::{
             setup_facade, decimals, liquidity_provider_1, option_bidder_buyer_1,
-            option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4
+            assert_event_auction_bid, option_bidder_buyer_2, option_bidder_buyer_3,
+            option_bidder_buyer_4, accelerate_to_running, accelerate_to_running_custom,
+            option_bidders_get
         },
         vault::utils::{accelerate_to_auctioning}
     }
@@ -18,6 +20,7 @@ fn test_option_round_clearing_price_0_before_auction_end() {
     let (mut vault_facade, _) = setup_facade();
     // Deposit liquidity and start the auction
     accelerate_to_auctioning(ref vault_facade);
+
     // Bid for option but do not end the auction
     let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
     let params = current_round.get_params();
@@ -37,15 +40,10 @@ fn test_clearing_price_1() {
     let (mut vault_facade, _) = setup_facade();
     // Deposit liquidity and start the auction
     accelerate_to_auctioning(ref vault_facade);
-    // Make bids
+
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params = current_round_facade.get_params();
-    let bid_count: u256 = params.total_options_available / 2;
-    let bid_price: u256 = params.reserve_price + 1;
-    let bid_amount: u256 = bid_count * bid_price;
-    current_round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
-    // End auction
-    let clearing_price: u256 = vault_facade.timeskip_and_end_auction();
+
+    let clearing_price = accelerate_to_running(ref vault_facade);
     // @dev This checks that vault::end_auction returns the clearing price that is set in storage
     assert(
         clearing_price == current_round_facade.get_auction_clearing_price(),
@@ -66,18 +64,24 @@ fn test_clearing_price_2() {
     // Deposit liquidity and start the auction
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
-    let mut current_round_facade = vault_facade.get_current_round();
+    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
     let params = current_round_facade.get_params();
+
+    let option_bidders = option_bidders_get(2);
+
     let bid_count_user_1: u256 = 1;
     let bid_count_user_2: u256 = params.total_options_available - 2;
     let bid_price_user_1: u256 = params.reserve_price;
     let bid_price_user_2: u256 = params.reserve_price * 10;
     let bid_amount_user_1: u256 = bid_count_user_1 * bid_price_user_1;
     let bid_amount_user_2: u256 = bid_count_user_2 * bid_price_user_2;
-    current_round_facade.place_bid(bid_amount_user_1, bid_price_user_1, option_bidder_buyer_1());
-    current_round_facade.place_bid(bid_amount_user_2, bid_price_user_2, option_bidder_buyer_2());
-    // Settle auction
-    let clearing_price: u256 = vault_facade.timeskip_and_end_auction();
+
+    let clearing_price = accelerate_to_running_custom(
+        ref vault_facade,
+        option_bidders.span(),
+        array![bid_amount_user_1, bid_amount_user_2].span(),
+        array![bid_price_user_1, bid_price_user_2].span()
+    );
     // @dev This tests that vault::end_auction returns the clearing price that gets set
     assert(
         clearing_price == current_round_facade.get_auction_clearing_price(),
@@ -94,8 +98,10 @@ fn test_clearing_price_3() {
     // Deposit liquidity and start the auction
     accelerate_to_auctioning(ref vault_facade);
     // Two OBs bid for all options with different prices
-    let mut current_round_facade = vault_facade.get_current_round();
+    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
     let params = current_round_facade.get_params();
+
+    let option_bidders = option_bidders_get(3);
     let bid_count = params.total_options_available;
     let bid_price_user_1 = params.reserve_price;
     let bid_price_user_2 = params.reserve_price + 1;
@@ -103,11 +109,13 @@ fn test_clearing_price_3() {
     let bid_amount_user_1 = bid_count * bid_price_user_1;
     let bid_amount_user_2 = bid_count * bid_price_user_2;
     let bid_amount_user_3 = bid_count * bid_price_user_3;
-    current_round_facade.place_bid(bid_amount_user_1, bid_price_user_1, option_bidder_buyer_1());
-    current_round_facade.place_bid(bid_amount_user_2, bid_price_user_2, option_bidder_buyer_2());
-    current_round_facade.place_bid(bid_amount_user_3, bid_price_user_3, option_bidder_buyer_3());
-    // Settle auction
-    let clearing_price = vault_facade.timeskip_and_end_auction();
+
+    let clearing_price = accelerate_to_running_custom(
+        ref vault_facade,
+        option_bidders.span(),
+        array![bid_amount_user_1, bid_amount_user_2, bid_amount_user_3].span(),
+        array![bid_price_user_1, bid_price_user_2, bid_price_user_3].span()
+    );
     // OB 3's price should be the clearing price
     assert(clearing_price == bid_price_user_3, 'clearing price wrong');
 }
@@ -127,17 +135,22 @@ fn test_clearing_price_4() {
     // Two OBs bid for the combined total amount of options, OB 1 outbids OB 2
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
     let params = current_round_facade.get_params();
+
+    let option_bidders = option_bidders_get(2);
     let bid_count_user_1: u256 = 1;
     let bid_count_user_2: u256 = params.total_options_available - 1;
     let bid_price_user_1: u256 = params.reserve_price;
     let bid_price_user_2: u256 = 10 * params.reserve_price;
     let bid_amount_user_1: u256 = bid_count_user_1 * bid_price_user_1 * decimals();
     let bid_amount_user_2: u256 = bid_count_user_2 * bid_price_user_2 * decimals();
-    current_round_facade.place_bid(bid_amount_user_1, bid_price_user_1, option_bidder_buyer_1());
-    current_round_facade.place_bid(bid_amount_user_2, bid_price_user_2, option_bidder_buyer_2());
-    // Settle auction
-    let clearing_price: u256 = vault_facade.timeskip_and_end_auction();
-    // OB 2's price should be the clearing price to mint all options
+
+    let clearing_price = accelerate_to_running_custom(
+        ref vault_facade,
+        option_bidders.span(),
+        array![bid_amount_user_1, bid_amount_user_2].span(),
+        array![bid_price_user_1, bid_price_user_2].span()
+    );
+    // OB 1's price should be the clearing price to mint all options
     assert(clearing_price == bid_price_user_1, 'clearing price shd be ob1 price');
 }
 
@@ -152,6 +165,8 @@ fn test_clearing_price_5() {
     let params = round_facade.get_params();
     // Three OBs bid for the more than the total amount of options,
     // OB1 outbids OB2, OB2 outbids OB3
+    let option_bidders = option_bidders_get(4);
+
     let bid_count_user_1: u256 = params.total_options_available / 3;
     let bid_count_user_2: u256 = params.total_options_available / 3;
     let bid_count_user_3: u256 = params.total_options_available / 3;
@@ -164,12 +179,13 @@ fn test_clearing_price_5() {
     let bid_amount_user_2: u256 = bid_count_user_2 * bid_price_user_2;
     let bid_amount_user_3: u256 = bid_count_user_3 * bid_price_user_3;
     let bid_amount_user_4: u256 = bid_count_user_4 * bid_price_user_4;
-    round_facade.place_bid(bid_amount_user_1, bid_price_user_1, option_bidder_buyer_1());
-    round_facade.place_bid(bid_amount_user_2, bid_price_user_2, option_bidder_buyer_2());
-    round_facade.place_bid(bid_amount_user_3, bid_price_user_3, option_bidder_buyer_3());
-    round_facade.place_bid(bid_amount_user_4, bid_price_user_4, option_bidder_buyer_4());
-    // End the auction
-    let clearing_price: u256 = vault_facade.timeskip_and_end_auction();
+
+    let clearing_price = accelerate_to_running_custom(
+        ref vault_facade,
+        option_bidders.span(),
+        array![bid_amount_user_1, bid_amount_user_2, bid_amount_user_3, bid_amount_user_4].span(),
+        array![bid_price_user_1, bid_price_user_2, bid_price_user_3, bid_price_user_4].span()
+    );
     // OB3's price will be the clearing price since. Higher would not mint all the options, and less would not optimze premium total
     assert(clearing_price == bid_price_user_3, 'clear price equal reserve price');
 }
