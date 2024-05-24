@@ -90,7 +90,8 @@ fn test_start_auction_becomes_current_round_deploys_next() {
     // Start round 1's auction
     vault_facade.start_auction();
     // Get the current and next rounds
-    let (mut current_round_facade, mut next_round_facade) = vault_facade.get_current_and_next_rounds();
+    let (mut current_round_facade, mut next_round_facade) = vault_facade
+        .get_current_and_next_rounds();
     // Check round 1 is auctioning and round 2 is open
     assert(vault_facade.get_current_round_id() == 1, 'current round should be 1');
     assert(
