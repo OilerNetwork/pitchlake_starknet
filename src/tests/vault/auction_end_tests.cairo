@@ -161,7 +161,7 @@ fn test_vault_end_auction_success_multi() {
         ref vault_facade, bidders.span(), bid_amounts.span(), bid_prices.span()
     );
 
-    assert(clearing_price == option_params.reserve_price, 'should be reserve_price');
+    assert(clearing_price == *bid_prices[4], 'should be reserve_price');
     // Check that state is Running now, and auction clearing price is set
     let state: OptionRoundState = current_round_facade.get_state();
     let expectedState: OptionRoundState = OptionRoundState::Running;
@@ -200,4 +200,5 @@ fn test_option_round_end_auction_twice_failure() {
 // @note Add tests that unallocated/collatera (lp and round) update at auction end
 //    - test unallocate in current round goes from 0 -> premiums + unsold liq.
 
+// @note Add test that premiums go to vault::unloccked and vault::lp::unlocked (and eth transfer to from round to vault)
 
