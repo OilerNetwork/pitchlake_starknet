@@ -184,6 +184,19 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         self.vault_dispatcher.get_unallocated_balance_for(liquidity_provider)
     }
 
+    // @note Dhruv might be adding these as well
+
+    fn get_lp_locked_balance(ref self: VaultFacade, lp: ContractAddress) -> u256 {
+        // @note update vault entry point name
+        self.vault_dispatcher.get_collateral_balance_for(lp)
+    }
+
+    fn get_lp_unlocked_balance(ref self: VaultFacade, lp: ContractAddress) -> u256 {
+        // @note update vault entry point name
+        self.vault_dispatcher.get_unallocated_balance_for(lp)
+    }
+
+
     fn get_market_aggregator(ref self: VaultFacade) -> ContractAddress {
         self.vault_dispatcher.get_market_aggregator()
     }
