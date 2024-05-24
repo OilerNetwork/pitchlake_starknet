@@ -4,9 +4,8 @@ use pitch_lake_starknet::{
         option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundParams},
         utils::{
             setup_facade, decimals, liquidity_provider_1, option_bidder_buyer_1,
-            assert_event_auction_bid, option_bidder_buyer_2, option_bidder_buyer_3,
-            option_bidder_buyer_4, accelerate_to_running, accelerate_to_running_custom,
-            option_bidders_get
+            option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
+            accelerate_to_running, accelerate_to_running_custom, option_bidders_get
         },
         vault::utils::{accelerate_to_auctioning}
     }
@@ -49,7 +48,7 @@ fn test_clearing_price_1() {
         clearing_price == current_round_facade.get_auction_clearing_price(),
         'clearing price not set'
     );
-    assert(clearing_price == bid_price, 'clearing price wrong');
+    assert(clearing_price == current_round_facade.get_reserve_price(), 'clearing price wrong');
 }
 
 // Test clearing price is the lower bid price when minting < total options, to mint more

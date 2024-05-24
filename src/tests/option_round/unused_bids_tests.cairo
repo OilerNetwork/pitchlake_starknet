@@ -135,7 +135,7 @@ fn test_collect_unused_bids_after_auction_end_success() {
 #[available_gas(10000000)]
 fn test_collect_unused_bids_events() {
     let (mut vault_facade, _) = setup_facade();
-    
+
     // Deposit liquidity and start the auction
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
@@ -185,7 +185,7 @@ fn test_collect_unused_bids_eth_transfer() {
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
     let params = current_round_facade.get_params();
-    
+
     // OB 2 outbids OB 1 for all the options
     let bidders = option_bidders_get(2);
     let bid_count = params.total_options_available;
@@ -265,7 +265,7 @@ fn test_option_round_refund_unused_bids_too_early_failure() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let option_params: OptionRoundParams = current_round_facade.get_params();
+    let option_params = current_round_facade.get_params();
 
     let bid_count: u256 = option_params.total_options_available + 10;
     let bid_price: u256 = option_params.reserve_price;

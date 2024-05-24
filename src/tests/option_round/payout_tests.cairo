@@ -27,8 +27,7 @@ use pitch_lake_starknet::tests::{
 use pitch_lake_starknet::tests::utils::{
     setup_facade, liquidity_provider_1, option_bidder_buyer_1, option_bidder_buyer_2,
     option_bidder_buyer_3, decimals, assert_event_transfer, vault_manager, accelerate_to_auctioning,
-    accelerate_to_running, accelerate_to_settled,
-    clear_event_logs, option_bidders_get,
+    accelerate_to_running, accelerate_to_settled, clear_event_logs, option_bidders_get,
     accelerate_to_running_custom, assert_event_vault_withdrawal,
 };
 use pitch_lake_starknet::tests::mocks::mock_market_aggregator::{
@@ -48,7 +47,7 @@ fn test_user_with_no_options_gets_no_payout() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round_facade.get_params();
+    let params = current_round_facade.get_params();
     // Place the bid and end the auction
     accelerate_to_running(ref vault_facade);
     // Settle option round
@@ -71,7 +70,7 @@ fn test_option_payout_sends_eth() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round_facade.get_params();
+    let params = current_round_facade.get_params();
     // Place the bid and end the auction
     accelerate_to_running(ref vault_facade);
     // Settle option round
@@ -103,7 +102,7 @@ fn test_option_payout_events() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round_facade.get_params();
+    let params = current_round_facade.get_params();
 
     // Make bids
     let option_bidders = option_bidders_get(2);
@@ -138,10 +137,10 @@ fn test_option_payout_events() {
 
     // Check OptionRound events
     utils::assert_event_options_exercised(
-        option_round.contract_address(), option_bidder_buyer_1(), bid_amount, payout1
+        current_round_facade.contract_address(), option_bidder_buyer_1(), bid_amount, payout1
     );
     utils::assert_event_options_exercised(
-        option_round.contract_address(), option_bidder_buyer_2(), bid_amount, payout2
+        current_round_facade.contract_address(), option_bidder_buyer_2(), bid_amount, payout2
     );
 }
 
@@ -155,7 +154,7 @@ fn test_option_payout_amount_index_higher_than_strike() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round_facade.get_params();
+    let params = current_round_facade.get_params();
     // Place the bid and end the auction
     accelerate_to_running(ref vault_facade);
     // Settle option round
@@ -178,7 +177,7 @@ fn test_option_payout_amount_index_less_than_strike() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round_facade.get_params();
+    let params = current_round_facade.get_params();
     // Place the bid and end the auction
     accelerate_to_running(ref vault_facade);
     // Settle option round
@@ -201,7 +200,7 @@ fn test_option_payout_amount_index_at_strike() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round_facade.get_params();
+    let params = current_round_facade.get_params();
     // Place the bid and end the auction
     accelerate_to_running(ref vault_facade);
     // Settle option round

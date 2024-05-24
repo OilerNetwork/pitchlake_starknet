@@ -14,10 +14,10 @@ use openzeppelin::token::erc20::interface::{
 // use pitch_lake_starknet::option_round::{OptionRoundParams};
 // use pitch_lake_starknet::eth::Eth;
 use pitch_lake_starknet::tests::utils::{
-    setup_facade, decimals, liquidity_provider_1, option_bidder_buyer_1, assert_event_auction_bid,
-    option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4, option_bidder_buyer_5,
-    option_bidder_buyer_6, vault_manager, accelerate_to_auctioning, accelerate_to_running_custom,
-    option_bidders_get, accelerate_to_running
+    setup_facade, decimals, liquidity_provider_1, option_bidder_buyer_1, option_bidder_buyer_2,
+    option_bidder_buyer_3, option_bidder_buyer_4, option_bidder_buyer_5, option_bidder_buyer_6,
+    vault_manager, accelerate_to_auctioning, accelerate_to_running_custom, option_bidders_get,
+    accelerate_to_running
 // , deploy_vault, allocated_pool_address, unallocated_pool_address,
 // timestamp_start_month, timestamp_end_month, liquidity_provider_2,
 // option_bidder_buyer_1

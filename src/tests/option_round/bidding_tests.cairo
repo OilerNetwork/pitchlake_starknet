@@ -49,7 +49,7 @@ fn test_bid_before_auction_starts_failure() {
 
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round_facade.get_params();
+    let params = current_round_facade.get_params();
     // Clear event logs for bids
     clear_event_logs(array![current_round_facade.contract_address()]);
 
@@ -77,7 +77,7 @@ fn test_bid_after_auction_ends_failure() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round_facade.get_params();
+    let params = current_round_facade.get_params();
     // End the auction
     vault_facade.timeskip_and_end_auction();
     // Clear event logs for bids
@@ -92,7 +92,7 @@ fn test_bid_after_auction_ends_failure() {
 
     // Check bid rejected event
     utils::assert_event_auction_bid_rejected(
-        current_round.contract_address(), option_bidder_buyer_1(), bid_amount, option_price
+        current_round_facade.contract_address(), option_bidder_buyer_1(), bid_amount, option_price
     );
 }
 
@@ -106,7 +106,7 @@ fn test_bid_after_auction_end_failure_2() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round_facade.get_params();
+    let params = current_round_facade.get_params();
     // Jump to after auction end time, but beat the call that ends the round's auction
     set_block_timestamp(params.auction_end_time + 1);
     // Clear event logs for bids
@@ -135,7 +135,7 @@ fn test_lock_of_bid_funds() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round_facade.get_params();
+    let params = current_round_facade.get_params();
 
     // Clear event logs for eth transfers and bids
     clear_event_logs(array![eth_dispatcher.contract_address]);
@@ -174,7 +174,7 @@ fn test_bid_accepted_events() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round_facade.get_params();
+    let params = current_round_facade.get_params();
     // Clear event logs for eth transfers and bids
     clear_event_logs(
         array![eth_dispatcher.contract_address, current_round_facade.contract_address()]
@@ -193,7 +193,10 @@ fn test_bid_accepted_events() {
 
                 // Check bid accepted event
                 utils::assert_event_auction_bid_accepted(
-                    current_round_facade.contract_address(), option_bidder_buyer_1(), bid_amount, bid_price,
+                    current_round_facade.contract_address(),
+                    option_bidder_buyer_1(),
+                    bid_amount,
+                    bid_price,
                 );
 
                 step += 1;
@@ -212,7 +215,7 @@ fn test_bid_zero_amount_failure() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round_facade.get_params();
+    let params = current_round_facade.get_params();
 
     // Clear event logs for bids
     clear_event_logs(array![current_round_facade.contract_address()]);
@@ -234,7 +237,7 @@ fn test_bid_price_below_reserve_price_failure() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round_facade.get_params();
+    let params = current_round_facade.get_params();
 
     // Clear event logs for bids
     clear_event_logs(array![current_round_facade.contract_address()]);
@@ -247,7 +250,10 @@ fn test_bid_price_below_reserve_price_failure() {
 
     // Check bid rejected event
     utils::assert_event_auction_bid_rejected(
-        current_round_facade.contract_address(), option_bidder_buyer_1(), 2 * (params.reserve_price - 1), params.reserve_price - 1,
+        current_round_facade.contract_address(),
+        option_bidder_buyer_1(),
+        2 * (params.reserve_price - 1),
+        params.reserve_price - 1,
     );
 }
 
@@ -262,7 +268,7 @@ fn test_option_round_refund_unused_bids_too_early_failure() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round_facade.get_params();
+    let params = current_round_facade.get_params();
     let bid_count: u256 = params.total_options_available + 10;
     let bid_price: u256 = params.reserve_price;
 
