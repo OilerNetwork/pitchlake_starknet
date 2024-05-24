@@ -81,17 +81,11 @@ fn test_unlocked_becomes_locked() {
 #[available_gas(10000000)]
 fn test_start_auction_becomes_current_round_deploys_next() {
     let (mut vault_facade, _) = setup_facade();
-    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let mut next_round_facade: OptionRoundFacade = vault_facade.get_next_round();
-    // LP deposits (into round 1) so its auction can start
-    let deposit_amount_wei: u256 = 100 * decimals();
-    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
-    // Start round 1's auction
-    vault_facade.start_auction();
-    // Get the current and next rounds
+    accelerate_to_auctioning(ref vault_facade);
+
+    // Check round 1 is auctioning and round 2 is open
     let (mut current_round_facade, mut next_round_facade) = vault_facade
         .get_current_and_next_rounds();
-    // Check round 1 is auctioning and round 2 is open
     assert(vault_facade.get_current_round_id() == 1, 'current round should be 1');
     assert(
         current_round_facade.get_state() == OptionRoundState::Auctioning,
@@ -106,10 +100,10 @@ fn test_start_auction_becomes_current_round_deploys_next() {
 fn test_start_auction_event() {
     let (mut vault, _) = setup_facade();
     accelerate_to_auctioning(ref vault);
-    let mut current_round: OptionRoundFacade = vault.get_current_round();
-    let params = current_round.get_params();
+
     // Check that auction start event was emitted with correct total_options_available
-    assert_event_auction_start(current_round.contract_address(), params.total_options_available);
+    let mut current_round: OptionRoundFacade = vault.get_current_round();
+    assert_event_auction_start(current_round.contract_address(), current_round.get_total_options_available());
 }
 
 // Test when the next round is deployed, the correct event fires
