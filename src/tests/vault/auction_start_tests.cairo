@@ -33,7 +33,8 @@ use pitch_lake_starknet::tests::utils::{
     liquidity_providers_get, option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
     create_array_linear, create_array_gradient, option_bidder_buyer_4, vault_manager, weth_owner,
     mock_option_params, assert_event_auction_start, accelerate_to_auctioning_custom,
-    accelerate_to_running_custom, accelerate_to_auctioning, assert_event_option_round_created,
+    accelerate_to_running_custom, accelerate_to_auctioning, assert_event_option_round_deployed,
+    accelerate_to_running, accelerate_to_settled,
 };
 use pitch_lake_starknet::tests::vault_facade::{VaultFacade, VaultFacadeTrait};
 use pitch_lake_starknet::tests::option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait};
@@ -58,7 +59,7 @@ fn test_unallocated_becomes_collateral() {
     vault_facade.start_auction();
     // Final collateral/unallocated spread
     let (next_round_collateral, next_round_unallocated) = next_round.get_all_round_liquidity();
-    let next_round_total_liquidity = next_round.total_liquidity();
+    let next_round_starting_liquidity = next_round.starting_liquidity();
     // Individual spread
     let (mut arr_collateral, mut arr_unallocated) = vault_facade
         .get_all_liquidity_for_n(lps.span());
@@ -74,7 +75,7 @@ fn test_unallocated_becomes_collateral() {
 
     //Check totals on the option round
     assert(next_round_collateral == deposit_total, 'next round collateral wrong');
-    assert(next_round_total_liquidity == deposit_total, 'next round total liq. wrong');
+    assert(next_round_starting_liquidity == deposit_total, 'next round total liq. wrong');
     assert(next_round_unallocated == 0, 'next round unallocated wrong');
 }
 // Test when an auction starts, it becomes the current round and the
@@ -119,18 +120,23 @@ fn test_start_auction_event() {
 #[available_gas(10000000)]
 fn test_start_next_round_event() {
     let (mut vault, _) = setup_facade();
-    let (mut current_round, mut next_round) = vault.get_current_and_next_rounds();
+    // Start auction, round 1 is now auctioning
     accelerate_to_auctioning(ref vault);
-    let params = next_round.get_params();
+    let (_, mut round_2) = vault.get_current_and_next_rounds();
 
-    // Check that auction start event was emitted with correct total_options_available
-    assert_event_option_round_created(
-        vault.contract_address(),
-        current_round.contract_address(),
-        next_round.contract_address(),
-        //'replace with amnt in accelerator',// the amount of unallocateed liquidity in the next round that bec
-        params
-    );
+    // Check the next round deployed event emits correctly
+    assert_event_option_round_deployed(vault.contract_address(), 2, round_2.contract_address(),);
+
+    // Check consecutive rounds
+    // Finish round 1 and start round 2's auction
+    accelerate_to_running(ref vault);
+    accelerate_to_settled(ref vault, 'does not matter'.into());
+    set_block_timestamp(starknet::get_block_timestamp() + vault.get_round_transition_period() + 1);
+    accelerate_to_auctioning(ref vault);
+    let (_, mut round_3) = vault.get_current_and_next_rounds();
+
+    // Check round 3 deployed event
+    assert_event_option_round_deployed(vault.contract_address(), 3, round_3.contract_address())
 }
 
 

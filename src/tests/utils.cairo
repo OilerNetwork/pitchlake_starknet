@@ -17,8 +17,9 @@ use pitch_lake_starknet::{
         IPitchLakeSafeDispatcherTrait
     },
     market_aggregator::{
-        IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait,
-        IMarketAggregatorSafeDispatcher, IMarketAggregatorSafeDispatcherTrait
+        MarketAggregator, IMarketAggregator, IMarketAggregatorDispatcher,
+        IMarketAggregatorDispatcherTrait, IMarketAggregatorSafeDispatcher,
+        IMarketAggregatorSafeDispatcherTrait
     },
     vault::{IVaultDispatcher, IVaultDispatcherTrait, Vault, VaultType}, option_round,
     option_round::{
@@ -417,56 +418,61 @@ fn assert_event_auction_start(
     }
 }
 
-// Check AuctionBid emits correctly
-// @note AuctionAcceptedBid and AuctionRejectedBid both fire this event type/struct.
-//  - Research more about different contract events sharing struct type but different names (see vault.cairo -> AuctionAcceptedBid|AuctionRejectedBid)
-fn assert_event_auction_bid(
-    contract: ContractAddress, bidder: ContractAddress, amount: u256, price: u256, is_accepted: bool
-) { //
-    // @note, Until the #[key] issue is fixed, we are manually building the event
-    //   match pop_log::<OptionRound::AuctionBid>(contract) {
-    //        Option::Some(e) => {
-    //           let e = match is_accepted {
-    //              true => OptionRound::Event::AuctionAcceptedBid(e),
-    //             false => OptionRound::Event::AuctionRejectedBid(e)
-    //        };
-    //       let expected = match is_accepted {
-    //          true => OptionRound::Event::AuctionAcceptedBid(
-    //             OptionRound::AuctionBid { bidder, amount, price }
-    //        ),
-    //       false => OptionRound::Event::AuctionRejectedBid(
-    //          OptionRound::AuctionBid { bidder, amount, price }
-    //     )
-    //            };
-    //           assert_events_equal(e, expected);
-    //      },
-    //     Option::None => { panic(array!['Could not find event']); },
-    //    }
+// Check AuctionAcceptedBid emits correctly
+fn assert_event_auction_bid_accepted(
+    contract: ContractAddress, account: ContractAddress, amount: u256, price: u256,
+) {
     match pop_event_details(contract) {
         Option::Some((
             keys, data
         )) => {
-            let expected_inner = OptionRound::AuctionBid { bidder, amount, price };
-            let e_inner = OptionRound::AuctionBid {
-                bidder: (*keys.at(1)).try_into().unwrap(),
-                amount: u256 {
-                    low: (*data.at(0)).try_into().unwrap(), high: (*data.at(1)).try_into().unwrap(),
-                },
-                price: u256 {
-                    low: (*data.at(2)).try_into().unwrap(), high: (*data.at(3)).try_into().unwrap(),
-                },
-            };
-            // Match event variant based on bid acceptance
-            let (e, expected) = match is_accepted {
-                true => (
-                    OptionRound::Event::AuctionAcceptedBid(e_inner),
-                    OptionRound::Event::AuctionAcceptedBid(expected_inner)
-                ),
-                false => (
-                    OptionRound::Event::AuctionRejectedBid(e_inner),
-                    OptionRound::Event::AuctionRejectedBid(expected_inner)
-                ),
-            };
+            let expected = OptionRound::Event::AuctionAcceptedBid(
+                OptionRound::AuctionAcceptedBid { account, amount, price }
+            );
+            let e = OptionRound::Event::AuctionAcceptedBid(
+                OptionRound::AuctionAcceptedBid {
+                    account: (*keys.at(1)).try_into().unwrap(),
+                    amount: u256 {
+                        low: (*data.at(0)).try_into().unwrap(),
+                        high: (*data.at(1)).try_into().unwrap(),
+                    },
+                    price: u256 {
+                        low: (*data.at(2)).try_into().unwrap(),
+                        high: (*data.at(3)).try_into().unwrap(),
+                    },
+                }
+            );
+            // Assert events are equal
+            assert_events_equal(e, expected);
+        },
+        Option::None => { panic(array!['No events found']); }
+    };
+}
+
+// Check AuctionRejectedBid emits correctly
+fn assert_event_auction_bid_rejected(
+    contract: ContractAddress, account: ContractAddress, amount: u256, price: u256,
+) {
+    match pop_event_details(contract) {
+        Option::Some((
+            keys, data
+        )) => {
+            let expected = OptionRound::Event::AuctionRejectedBid(
+                OptionRound::AuctionRejectedBid { account, amount, price }
+            );
+            let e = OptionRound::Event::AuctionRejectedBid(
+                OptionRound::AuctionRejectedBid {
+                    account: (*keys.at(1)).try_into().unwrap(),
+                    amount: u256 {
+                        low: (*data.at(0)).try_into().unwrap(),
+                        high: (*data.at(1)).try_into().unwrap(),
+                    },
+                    price: u256 {
+                        low: (*data.at(2)).try_into().unwrap(),
+                        high: (*data.at(3)).try_into().unwrap(),
+                    },
+                }
+            );
             // Assert events are equal
             assert_events_equal(e, expected);
         },
@@ -503,109 +509,61 @@ fn assert_event_option_settle(option_round_address: ContractAddress, settlement_
     };
 }
 
-// Check OptionTransfer::DepositLiquidty emits correctly
-fn assert_event_option_deposit_liquidity(
-    contract: ContractAddress, user: ContractAddress, amount: u256
+// Check UnusedBidsRefunded emits correctly
+fn assert_event_unused_bids_refunded(
+    contract: ContractAddress, account: ContractAddress, amount: u256
 ) {
     match pop_event_details(contract) {
         Option::Some((
             keys, data
-        )) => { _assert_event_option_transfer_helper(contract, keys, data, user, amount, 0); },
-        Option::None => { panic(array!['No events found']); },
-    }
-}
-
-// Check OptionTransfer::WithdrawPremium emits correctly
-fn assert_event_option_withdraw_premium(
-    contract: ContractAddress, user: ContractAddress, amount: u256
-) {
-    match pop_event_details(contract) {
-        Option::Some((
-            keys, data
-        )) => { _assert_event_option_transfer_helper(contract, keys, data, user, amount, 1); },
-        Option::None => { panic(array!['No events found']); },
-    }
-}
-
-// Check OptionTransfer::WithdrawPayout emits correctly
-fn assert_event_option_withdraw_payout(
-    contract: ContractAddress, user: ContractAddress, amount: u256
-) {
-    match pop_event_details(contract) {
-        Option::Some((
-            keys, data
-        )) => { _assert_event_option_transfer_helper(contract, keys, data, user, amount, 2); },
-        Option::None => { panic(array!['No events found']); },
-    }
-}
-
-// Check OptionTransfer::WithdrawLiquidity emits correctly
-// @note Note used anywhere yet, see withdraw_tests.cairo
-fn assert_event_option_withdraw_liquidity(
-    contract: ContractAddress, user: ContractAddress, amount: u256
-) {
-    match pop_event_details(contract) {
-        Option::Some((
-            keys, data
-        )) => { _assert_event_option_transfer_helper(contract, keys, data, user, amount, 3); },
-        Option::None => { panic(array!['No events found']); },
-    }
-}
-
-// Check OptionTransfer::WithdrawUnusedBids emits correctly
-fn assert_event_option_withdraw_unused_bids(
-    contract: ContractAddress, user: ContractAddress, amount: u256
-) {
-    match pop_event_details(contract) {
-        Option::Some((
-            keys, data
-        )) => { _assert_event_option_transfer_helper(contract, keys, data, user, amount, 4); },
-        Option::None => { panic(array!['No events found']); },
-    }
-}
-
-// Internal helper function to test all option transfer event variants
-fn _assert_event_option_transfer_helper(
-    contract: ContractAddress,
-    keys: Span<felt252>,
-    data: Span<felt252>,
-    user: ContractAddress,
-    amount: u256,
-    event_type: u8
-) {
-    let e_inner = OptionRound::OptionTransferEvent {
-        user: (*keys.at(1)).try_into().unwrap(),
-        amount: u256 {
-            low: (*data.at(0)).try_into().unwrap(), high: (*data.at(1)).try_into().unwrap()
+        )) => {
+            let expected = OptionRound::Event::UnusedBidsRefunded(
+                OptionRound::UnusedBidsRefunded { account, amount }
+            );
+            let e = OptionRound::Event::UnusedBidsRefunded(
+                OptionRound::UnusedBidsRefunded {
+                    account: (*keys.at(1)).try_into().unwrap(),
+                    amount: u256 {
+                        low: (*data.at(0)).try_into().unwrap(),
+                        high: (*data.at(1)).try_into().unwrap(),
+                    }
+                }
+            );
+            assert_events_equal(e, expected);
         },
-    };
-    let expected_inner = OptionRound::OptionTransferEvent { user, amount };
-    let (e, expected) = match event_type {
-        0 => (
-            OptionRound::Event::DepositLiquidity(e_inner),
-            OptionRound::Event::DepositLiquidity(expected_inner)
-        ),
-        1 => (
-            OptionRound::Event::WithdrawPremium(e_inner),
-            OptionRound::Event::WithdrawPremium(expected_inner)
-        ),
-        2 => (
-            OptionRound::Event::WithdrawPayout(e_inner),
-            OptionRound::Event::WithdrawPayout(expected_inner)
-        ),
-        3 => (
-            OptionRound::Event::WithdrawLiquidity(e_inner),
-            OptionRound::Event::WithdrawLiquidity(expected_inner)
-        ),
-        4 => (
-            OptionRound::Event::WithdrawUnusedBids(e_inner),
-            OptionRound::Event::WithdrawUnusedBids(expected_inner)
-        ),
-        _ => panic(array!['Invalid event type']),
-    };
-    assert_events_equal(e, expected);
+        Option::None => { panic(array!['No events found']); },
+    }
 }
 
+// Check OptionsExercised emits correctly
+fn assert_event_options_exercised(
+    contract: ContractAddress, account: ContractAddress, num_options: u256, amount: u256
+) {
+    match pop_event_details(contract) {
+        Option::Some((
+            keys, data
+        )) => {
+            let expected = OptionRound::Event::OptionsExercised(
+                OptionRound::OptionsExercised { account, num_options, amount }
+            );
+            let e = OptionRound::Event::OptionsExercised(
+                OptionRound::OptionsExercised {
+                    account: (*keys.at(1)).try_into().unwrap(),
+                    num_options: u256 {
+                        low: (*data.at(0)).try_into().unwrap(),
+                        high: (*data.at(1)).try_into().unwrap(),
+                    },
+                    amount: u256 {
+                        low: (*data.at(2)).try_into().unwrap(),
+                        high: (*data.at(3)).try_into().unwrap(),
+                    }
+                }
+            );
+            assert_events_equal(e, expected);
+        },
+        Option::None => { panic(array!['No events found']); },
+    }
+}
 
 // Test transfer event (ERC20 structure) emits correctly
 // @note Can remove all instances of this test that are testing eth transfers, just testing the balance changes is enough
@@ -640,21 +598,14 @@ fn assert_event_transfer(
 }
 
 // Test OptionRoundCreated event emits correctly
-fn assert_event_option_round_created(
-    contract: ContractAddress,
-    prev_round: ContractAddress,
-    new_round: ContractAddress,
-    //collaterized_amount: u256,
-    option_round_params: OptionRoundParams
+fn assert_event_option_round_deployed(
+    contract: ContractAddress, round_id: u256, address: ContractAddress,
 ) {
-    match pop_log::<Vault::OptionRoundCreated>(contract) {
+    match pop_log::<Vault::OptionRoundDeployed>(contract) {
         Option::Some(e) => {
-            let e = Vault::Event::OptionRoundCreated(e);
-            let expected = Vault::Event::OptionRoundCreated(
-                Vault::OptionRoundCreated {
-                    prev_round, new_round, //collaterized_amount,
-                     option_round_params
-                }
+            let e = Vault::Event::OptionRoundDeployed(e);
+            let expected = Vault::Event::OptionRoundDeployed(
+                Vault::OptionRoundDeployed { round_id, address, }
             );
             assert_events_equal(e, expected);
         },
@@ -662,44 +613,75 @@ fn assert_event_option_round_created(
     };
 }
 
-
-// Test VaultTransfer event emits correctly (deposit and withdraw)
-// is_deposit == true for Deposit event, false for Withdrawal event
-fn assert_event_vault_transfer(
+// Test deposit event emits correctly
+fn assert_event_vault_deposit(
     vault: ContractAddress,
-    user: ContractAddress,
-    total_balance_before: u256,
-    total_balance_now: u256,
-    is_deposit: bool
+    account: ContractAddress,
+    position_balance_before: u256,
+    position_balance_after: u256,
 ) {
     match pop_event_details(vault) {
         Option::Some((
             keys, data
         )) => {
-            let e_inner: Vault::VaultTransfer = Vault::VaultTransfer {
-                user: (*keys.at(1)).try_into().unwrap(),
-                total_balance_before: u256 {
-                    low: (*data.at(0)).try_into().unwrap(), high: (*data.at(1)).try_into().unwrap()
-                },
-                total_balance_now: u256 {
-                    low: (*data.at(2)).try_into().unwrap(), high: (*data.at(3)).try_into().unwrap()
+            let e = Vault::Event::Deposit(
+                Vault::Deposit {
+                    account: (*keys.at(1)).try_into().unwrap(),
+                    position_balance_before: u256 {
+                        low: (*data.at(0)).try_into().unwrap(),
+                        high: (*data.at(1)).try_into().unwrap()
+                    },
+                    position_balance_after: u256 {
+                        low: (*data.at(2)).try_into().unwrap(),
+                        high: (*data.at(3)).try_into().unwrap()
+                    }
                 }
-            };
-            let expected_inner = Vault::VaultTransfer {
-                user, total_balance_before, total_balance_now
-            };
-            let (e, expected) = match is_deposit {
-                true => { (Vault::Event::Deposit(e_inner), Vault::Event::Deposit(expected_inner)) },
-                false => {
-                    (Vault::Event::Withdrawal(e_inner), Vault::Event::Withdrawal(expected_inner))
-                },
-            };
-            assert_events_equal(e, expected);
+            );
+            assert_events_equal(
+                e,
+                Vault::Event::Deposit(
+                    Vault::Deposit { account, position_balance_before, position_balance_after }
+                )
+            );
         },
         Option::None => { panic(array!['No events found']); }
     }
 }
 
+// Test withdrawal event emits correctly
+fn assert_event_vault_withdrawal(
+    vault: ContractAddress,
+    account: ContractAddress,
+    position_balance_before: u256,
+    position_balance_after: u256,
+) {
+    match pop_event_details(vault) {
+        Option::Some((
+            keys, data
+        )) => {
+            let e = Vault::Event::Withdrawal(
+                Vault::Withdrawal {
+                    account: (*keys.at(1)).try_into().unwrap(),
+                    position_balance_before: u256 {
+                        low: (*data.at(0)).try_into().unwrap(),
+                        high: (*data.at(1)).try_into().unwrap()
+                    },
+                    position_balance_after: u256 {
+                        low: (*data.at(2)).try_into().unwrap(),
+                        high: (*data.at(3)).try_into().unwrap()
+                    }
+                }
+            );
+            assert_events_equal(
+                e,
+                Vault::Event::Withdrawal(
+                    Vault::Withdrawal { account, position_balance_before, position_balance_after }
+                )
+            );
+        },
+        Option::None => { panic(array!['No events found']); }
+    }
+}
 
 // Accelerate to the current round auctioning (needs non 0 liquidity to start auction)
 fn accelerate_to_auctioning(ref self: VaultFacade) {
@@ -726,12 +708,8 @@ fn accelerate_to_running(ref self: VaultFacade) {
     current_round.end_auction();
 }
 
-fn accelerate_to_settle(ref self: VaultFacade, base_fee: u256) {
-    let mock_maket_aggregator_setter: IMarketAggregatorSetterDispatcher =
-        IMarketAggregatorSetterDispatcher {
-        contract_address: self.get_market_aggregator()
-    };
-    mock_maket_aggregator_setter.set_current_base_fee(base_fee);
+fn accelerate_to_settled(ref self: VaultFacade, avg_base_fee: u256) {
+    self.set_market_aggregator_value(avg_base_fee);
     self.timeskip_and_settle_round();
 }
 
@@ -756,16 +734,6 @@ fn accelerate_to_running_custom(
     let clearing_price = self.timeskip_and_end_auction();
     clearing_price
 }
-
-fn accelerate_to_settled(ref self: VaultFacade, base_fee: u256) {
-    let mock_maket_aggregator_setter: IMarketAggregatorSetterDispatcher =
-        IMarketAggregatorSetterDispatcher {
-        contract_address: self.get_market_aggregator()
-    };
-    mock_maket_aggregator_setter.set_current_base_fee(base_fee);
-    self.timeskip_and_settle_round();
-}
-
 
 //Create various amounts array (For bids use the function twice for price and amount)
 fn create_array_linear(amount: u256, len: u32) -> Array<u256> {

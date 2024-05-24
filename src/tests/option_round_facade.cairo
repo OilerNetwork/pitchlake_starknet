@@ -61,8 +61,8 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     fn vault_address(ref self: OptionRoundFacade) -> ContractAddress {
         self.option_round_dispatcher.vault_address()
     }
-    fn total_liquidity(ref self: OptionRoundFacade) -> u256 {
-        self.option_round_dispatcher.total_liquidity()
+    fn starting_liquidity(ref self: OptionRoundFacade) -> u256 {
+        self.option_round_dispatcher.starting_liquidity()
     }
     fn total_unallocated_liquidity(ref self: OptionRoundFacade) -> u256 {
         self.option_round_dispatcher.total_unallocated_liquidity()
@@ -127,8 +127,15 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     ) -> u256 {
         self.option_round_dispatcher.get_unused_bids_for(option_bidder_buyer)
     }
-    fn get_market_aggregator(ref self: OptionRoundFacade) -> ContractAddress {
-        self.option_round_dispatcher.get_market_aggregator()
+
+    // Get the date the option round starts
+    fn round_start_date(ref self: OptionRoundFacade) -> u64 {
+        0
+    }
+
+    // Get the date the option round ends
+    fn round_end_date(ref self: OptionRoundFacade) -> u64 {
+        0
     }
 
     //These functions have some custom logic

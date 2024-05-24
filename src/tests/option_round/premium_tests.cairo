@@ -13,9 +13,8 @@ use pitch_lake_starknet::tests::utils::{
     setup_facade, liquidity_provider_1, liquidity_provider_2, liquidity_provider_3,
     liquidity_provider_4, liquidity_provider_5, decimals, option_bidder_buyer_1,
     option_bidder_buyer_2, liquidity_providers_get, accelerate_to_auctioning, accelerate_to_running,
-    accelerate_to_settle, assert_event_transfer, accelerate_to_auctioning_custom,
-    assert_event_option_withdraw_payout, assert_event_vault_transfer, clear_event_logs,
-    assert_event_option_withdraw_premium,
+    accelerate_to_settled, assert_event_transfer, accelerate_to_auctioning_custom,
+    assert_event_vault_withdrawal, clear_event_logs,
 };
 use openzeppelin::token::erc20::interface::{
     IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
@@ -171,25 +170,17 @@ fn test_premium_collection_emits_events() {
     let collected_amount1 = vault_facade.collect_premiums(*lps.at(0));
     let collected_amount2 = vault_facade.collect_premiums(*lps.at(1));
 
-    assert_event_option_withdraw_premium(
-        option_round.contract_address(), *lps.at(0), collected_amount1
-    );
-    assert_event_option_withdraw_premium(
-        option_round.contract_address(), *lps.at(1), collected_amount2
-    );
-    assert_event_vault_transfer(
+    assert_event_vault_withdrawal(
         vault_facade.contract_address(),
         *lps.at(0),
         lp1_total_balance_before,
         lp1_total_balance_before - collected_amount1,
-        false
     );
-    assert_event_vault_transfer(
+    assert_event_vault_withdrawal(
         vault_facade.contract_address(),
         *lps.at(1),
         lp2_total_balance_before,
         lp2_total_balance_before - collected_amount2,
-        false
     );
 }
 

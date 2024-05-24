@@ -87,14 +87,6 @@ fn test_option_round_constructor() {
         next_round_facade.vault_address() == vault_facade.contract_address(),
         'vault address should be set'
     );
-    assert(
-        current_round_facade.get_market_aggregator() == vault_facade.get_market_aggregator(),
-        'round 0 mkt agg address wrong'
-    );
-    assert(
-        next_round_facade.get_market_aggregator() == vault_facade.get_market_aggregator(),
-        'round 1 mkt agg address wrong'
-    );
 }
 
 // Test market aggregator is deployed
@@ -107,6 +99,6 @@ fn test_market_aggregator_deployed() {
         contract_address: vault_facade.get_market_aggregator()
     };
 
-    // At deployment this getter should exist (and return 0)
-    assert(mkt_agg.get_average_base_fee() == 0, 'avg basefee shd be 0');
+    // Entry point will fail if contract not deployed
+    assert(vault_facade.get_market_aggregator_value() == 0, 'avg basefee shd be 0');
 }

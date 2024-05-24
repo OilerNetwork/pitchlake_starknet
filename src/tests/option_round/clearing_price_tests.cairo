@@ -5,8 +5,7 @@ use pitch_lake_starknet::{
         option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
         utils::{
             setup_facade, decimals, liquidity_provider_1, option_bidder_buyer_1,
-            assert_event_auction_bid, option_bidder_buyer_2, option_bidder_buyer_3,
-            option_bidder_buyer_4
+            option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4
         },
         vault::utils::{accelerate_to_auctioning}
     }

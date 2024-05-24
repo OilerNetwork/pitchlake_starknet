@@ -16,6 +16,12 @@ struct OptionRoundConstructorParams {
     round_id: u256,
 }
 
+
+// option round params should be dismantled into separate getters
+// auction params: reserve price, start/end date
+// option params: strike, cap level, expiry date, starting liquidity (collateral_level)
+// add rest as getters, may not be need in the end but add for now
+
 // The parameters of the option round
 // @note Discuss setting some values upon deployment, some when the previous settles, and when this round's auction starts
 #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
@@ -66,8 +72,7 @@ trait IOptionRound<TContractState> {
     fn get_params(self: @TContractState) -> OptionRoundParams;
 
     // The total liquidity at the start of the round's auction
-    // @dev Redundant with total_collateral/unallocated?
-    fn total_liquidity(self: @TContractState) -> u256;
+    fn starting_liquidity(self: @TContractState) -> u256;
 
     // The amount of liqudity that is locked for the potential payout. May shrink
     // if the auction does not sell all options (moving some collateral to unallocated).
@@ -127,7 +132,7 @@ trait IOptionRound<TContractState> {
     // @note This function should probably me limited to a wrapper entry point
     // in the vault that will handle liquidity roll over
     // @return if the option round settles or not
-    fn settle_option_round(ref self: TContractState) -> bool;
+    fn settle_option_round(ref self: TContractState, avg_base_fee: u256) -> bool;
 
     // Place a bid in the auction
     // @param amount: The max amount in place_bid_token to be used for bidding in the auction
@@ -146,10 +151,6 @@ trait IOptionRound<TContractState> {
     // @param option_buyer: The option buyer to claim the payout for
     // @return the amount of the transfer
     fn exercise_options(ref self: TContractState, option_buyer: ContractAddress) -> u256;
-
-    fn get_market_aggregator(self: @TContractState) -> ContractAddress;
-
-    fn is_premium_collected(self: @TContractState, lp: ContractAddress) -> bool;
 }
 
 #[starknet::contract]
@@ -180,15 +181,12 @@ mod OptionRound {
     #[derive(Drop, starknet::Event, PartialEq)]
     enum Event {
         AuctionStart: AuctionStart,
-        AuctionAcceptedBid: AuctionBid,
-        AuctionRejectedBid: AuctionBid,
+        AuctionAcceptedBid: AuctionAcceptedBid,
+        AuctionRejectedBid: AuctionRejectedBid,
         AuctionEnd: AuctionEnd,
         OptionSettle: OptionSettle,
-        DepositLiquidity: OptionTransferEvent,
-        WithdrawPremium: OptionTransferEvent,
-        WithdrawPayout: OptionTransferEvent,
-        WithdrawLiquidity: OptionTransferEvent,
-        WithdrawUnusedBids: OptionTransferEvent,
+        UnusedBidsRefunded: UnusedBidsRefunded,
+        OptionsExercised: OptionsExercised,
     }
 
     // Emitted when the auction starts
@@ -197,19 +195,33 @@ mod OptionRound {
     #[derive(Drop, starknet::Event, PartialEq,)]
     struct AuctionStart {
         total_options_available: u256,
+    //...
     }
 
-    // Emitted when a bid is accepted or rejected
-    // @param bidder The account that placed the bid
+    // Emitted when a bid is accepted
+    // @param account The account that placed the bid
     // @param amount The amount of liquidity that was bid (max amount of funds the bidder is willing to spend in total)
     // @param price The price per option that was bid (max price the bidder is willing to spend per option)
     #[derive(Drop, starknet::Event, PartialEq)]
-    struct AuctionBid {
+    struct AuctionAcceptedBid {
         #[key]
-        bidder: ContractAddress,
+        account: ContractAddress,
         amount: u256,
         price: u256
     }
+
+    // Emitted when a bid is rejected
+    // @param account The account that placed the bid
+    // @param amount The amount of liquidity that was bid (max amount of funds the bidder is willing to spend in total)
+    // @param price The price per option that was bid (max price the bidder is willing to spend per option)
+    #[derive(Drop, starknet::Event, PartialEq)]
+    struct AuctionRejectedBid {
+        #[key]
+        account: ContractAddress,
+        amount: u256,
+        price: u256
+    }
+
 
     // Emiited when the auction ends
     // @param clearing_price The resulting price per each option of the batch auction
@@ -227,13 +239,25 @@ mod OptionRound {
         settlement_price: u256
     }
 
-    // Emitted when eth leaves/enters the round
-    // @param user The user that depositted/withdrew the liquidity
-    // @param amount The amount of liquidity that was depositted/withdrawn
+    // Emitted when a bidder refunds their unused bids
+    // @param account The account that's bids were refuned
+    // @param amount The amount transferred
     #[derive(Drop, starknet::Event, PartialEq)]
-    struct OptionTransferEvent {
+    struct UnusedBidsRefunded {
         #[key]
-        user: ContractAddress,
+        account: ContractAddress,
+        amount: u256
+    }
+
+    // Emitted when an option holder exercises their options
+    // @param account The account: that exercised the options
+    // @param num_options: The number of options exercised
+    // @param amount: The amount transferred
+    #[derive(Drop, starknet::Event, PartialEq)]
+    struct OptionsExercised {
+        #[key]
+        account: ContractAddress,
+        num_options: u256,
         amount: u256
     }
 
@@ -267,48 +291,37 @@ mod OptionRound {
             self
                 .emit(
                     Event::AuctionAcceptedBid(
-                        AuctionBid { bidder: starknet::get_contract_address(), amount: x, price: x }
+                        AuctionAcceptedBid {
+                            account: starknet::get_contract_address(), amount: x, price: x
+                        }
                     )
                 );
             self
                 .emit(
                     Event::AuctionRejectedBid(
-                        AuctionBid { bidder: starknet::get_contract_address(), amount: x, price: x }
+                        AuctionRejectedBid {
+                            account: starknet::get_contract_address(), amount: x, price: x
+                        }
                     )
                 );
             self.emit(Event::AuctionEnd(AuctionEnd { clearing_price: x }));
             self.emit(Event::OptionSettle(OptionSettle { settlement_price: x }));
+            self
+                .emit(
+                    Event::UnusedBidsRefunded(
+                        UnusedBidsRefunded { account: starknet::get_contract_address(), amount: x }
+                    )
+                );
+            self
+                .emit(
+                    Event::OptionsExercised(
+                        OptionsExercised {
+                            account: starknet::get_contract_address(), num_options: x, amount: x
+                        }
+                    )
+                );
+
             IVaultDispatcher { contract_address: self.vault_address.read() }.rm_me2();
-            self
-                .emit(
-                    Event::DepositLiquidity(
-                        OptionTransferEvent { user: starknet::get_contract_address(), amount: x }
-                    )
-                );
-            self
-                .emit(
-                    Event::WithdrawPremium(
-                        OptionTransferEvent { user: starknet::get_contract_address(), amount: x }
-                    )
-                );
-            self
-                .emit(
-                    Event::WithdrawPayout(
-                        OptionTransferEvent { user: starknet::get_contract_address(), amount: x }
-                    )
-                );
-            self
-                .emit(
-                    Event::WithdrawLiquidity(
-                        OptionTransferEvent { user: starknet::get_contract_address(), amount: x }
-                    )
-                );
-            self
-                .emit(
-                    Event::WithdrawUnusedBids(
-                        OptionTransferEvent { user: starknet::get_contract_address(), amount: x }
-                    )
-                );
         }
 
         /// Reads ///
@@ -324,7 +337,7 @@ mod OptionRound {
             self.params.read()
         }
 
-        fn total_liquidity(self: @ContractState) -> u256 {
+        fn starting_liquidity(self: @ContractState) -> u256 {
             100
         }
 
@@ -364,14 +377,6 @@ mod OptionRound {
             100
         }
 
-        fn get_market_aggregator(self: @ContractState) -> ContractAddress {
-            self.market_aggregator.read()
-        }
-
-        fn is_premium_collected(self: @ContractState, lp: ContractAddress) -> bool {
-            self.premiums_collected.read(lp)
-        }
-
         /// Writes ///
 
         fn start_auction(ref self: ContractState, option_params: OptionRoundParams) {
@@ -383,7 +388,7 @@ mod OptionRound {
             100
         }
 
-        fn settle_option_round(ref self: ContractState) -> bool {
+        fn settle_option_round(ref self: ContractState, avg_base_fee: u256) -> bool {
             self.state.write(OptionRoundState::Settled);
             true
         }
