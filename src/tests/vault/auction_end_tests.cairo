@@ -60,7 +60,7 @@ fn test_auction_end_before_start_failure() {
 
     // Try to end auction before it starts
     set_block_timestamp(params.option_expiry_time + 1);
-    vault_facade.settle_option_round(liquidity_provider_1());
+    vault_facade.settle_option_round();
 }
 
 // Test auction cannot end before the auction end date
@@ -256,6 +256,6 @@ fn test_premiums_update_vault_and_lp_unlocked() {
     assert(lp2_locked == *deposits[1], 'lp2 locked wrong');
     assert(lp2_unlocked == 2 * total_premiums / 3, 'lp2 unlocked wrong');
 }
-
 // @note Add test like one above but with an extra deposit into unlocked during auction. This will test that only the round partipants get the premium, not just unlocekd pool participants
+
 

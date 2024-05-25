@@ -41,7 +41,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         self.vault_dispatcher.withdraw_liquidity(amount);
     }
 
-    // @dev might clash when repo syncs
+    // @note needs to be removed, only withdraw function
     // @note should return the amount of premiums/unsold liq. collected
     fn collect_premiums(ref self: VaultFacade, liquidity_provider: ContractAddress) -> u256 {
         set_contract_address(liquidity_provider);
@@ -61,8 +61,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         self.vault_dispatcher.end_auction()
     }
 
-    fn settle_option_round(ref self: VaultFacade, address: ContractAddress) -> bool {
-        set_contract_address(address);
+    fn settle_option_round(ref self: VaultFacade) -> bool {
         self.vault_dispatcher.settle_option_round()
     }
 

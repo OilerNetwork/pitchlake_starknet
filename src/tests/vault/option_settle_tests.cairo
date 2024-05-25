@@ -24,7 +24,6 @@ use pitch_lake_starknet::{
         IMarketAggregatorSafeDispatcher, IMarketAggregatorSafeDispatcherTrait
     },
     tests::{
-        utils, vault::{utils::{accelerate_to_auctioning, accelerate_to_running}},
         vault_facade::{VaultFacade, VaultFacadeTrait},
         option_round_facade::{
             OptionRoundParams, OptionRoundState, OptionRoundFacade, OptionRoundFacadeTrait
@@ -39,7 +38,8 @@ use pitch_lake_starknet::{
             option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
             option_bidder_buyer_4, zero_address, vault_manager, weth_owner,
             option_round_contract_address, mock_option_params, pop_log, assert_no_events_left,
-            month_duration, assert_event_option_settle, assert_event_transfer, clear_event_logs
+            month_duration, assert_event_option_settle, assert_event_transfer, clear_event_logs,
+            accelerate_to_settled, accelerate_to_auctioning, accelerate_to_running
         },
     }
 };
@@ -58,17 +58,15 @@ fn test_options_settle_before_expiry_date_failure() {
     let mut current_round = vault_facade.get_current_round();
     let params = current_round.get_params();
     set_block_timestamp(params.option_expiry_time - 1);
-    vault_facade.settle_option_round(option_bidder_buyer_1());
+    vault_facade.settle_option_round();
 }
 
 #[test]
 #[available_gas(10000000)]
 fn test_option_round_settle_updates_round_states() {
     let (mut vault_facade, _) = setup_facade();
-    // Deposit liquidity, start and end auction, minting all options at reserve price
     accelerate_to_running(ref vault_facade);
-    // Settle option round
-    vault_facade.timeskip_and_settle_round();
+    accelerate_to_settled(ref vault_facade, 0x123);
 
     // Check that the current round is Settled, and the next round is Open
     let (mut current_round, mut next_round) = vault_facade.get_current_and_next_rounds();
@@ -83,14 +81,12 @@ fn test_option_round_settle_updates_round_states() {
 #[available_gas(10000000)]
 fn test_option_round_settle_event() {
     let (mut vault_facade, _) = setup_facade();
-    // Deposit liquidity, start and end auction, minting all options at reserve price
     accelerate_to_running(ref vault_facade);
-    // End auction with settlement price of 123
-    utils::accelerate_to_settled(ref vault_facade, 123);
+    accelerate_to_settled(ref vault_facade, 0x123);
 
     // Assert event emits correctly
     let mut current_round = vault_facade.get_current_round();
-    assert_event_option_settle(current_round.contract_address(), 123);
+    assert_event_option_settle(current_round.contract_address(), 0x123);
 }
 
 // @note If there needs to be a storage var for the settlement price, add test/facade/entrypoint for it
@@ -104,9 +100,9 @@ fn test_option_round_settle_twice_failure() {
     // Deposit into the next round, start and end its auction, minting all options at reserve price
     accelerate_to_running(ref vault_facade);
     // Jump to option expiry time and settle the round
-    vault_facade.timeskip_and_settle_round();
+    accelerate_to_settled(ref vault_facade, 0x123);
     // Try to settle the option round again
-    vault_facade.timeskip_and_settle_round();
+    vault_facade.settle_option_round();
 }
 
 // Test current round's remaining liquidity adds to the next round's unallocated when there is no payout, and no premiums collected
@@ -205,7 +201,7 @@ fn _test_option_round_settle_moves_remaining_liquidity_to_next_round_with_or_wit
         false => 0
     };
 
-    utils::accelerate_to_settled(ref vault_facade, settlement_price);
+    accelerate_to_settled(ref vault_facade, settlement_price);
     let remaining_liquidity = current_round.get_remaining_liquidity();
 
     // LP unallocated and round ETH balances before round settle
