@@ -130,46 +130,41 @@ fn test_bid_after_auction_end_failure_2() {
 //  - Testing bid accepted events is in separate test (below, test_bid_accepted_events)
 #[test]
 #[available_gas(10000000)]
-fn test_lock_of_bid_funds() {
+fn test_bid_eth_transfer() {
     let (mut vault_facade, eth_dispatcher): (VaultFacade, IERC20Dispatcher) = setup_facade();
     accelerate_to_auctioning(ref vault_facade);
-    // Make bids
-    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params = current_round_facade.get_params();
-
-    // Clear event logs for eth transfers and bids
-    clear_event_logs(array![eth_dispatcher.contract_address]);
 
     // Eth balances before bid
-    let ob_balance_before_bid: u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
-    let _round_balance_before_bid: u256 = eth_dispatcher
-        .balance_of(current_round_facade.contract_address());
+    let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
+    let ob_balance_init = eth_dispatcher.balance_of(option_bidder_buyer_1());
+    let round_balance_init = eth_dispatcher
+        .balance_of(current_round.contract_address());
 
     // Make bid
-    let bid_count: u256 = 2;
-    let bid_price: u256 = params.reserve_price;
-    let bid_amount: u256 = bid_count * bid_count;
-    current_round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
+    let params = current_round.get_params();
+    let bid_count = 2;
+    let bid_price = params.reserve_price;
+    let bid_amount = bid_count * bid_count;
+    current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
 
     // Eth balances after bid
-    let ob_balance_after_bid: u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
-    let round_balance_after_bid: u256 = eth_dispatcher
-        .balance_of(current_round_facade.contract_address());
+    let ob_balance_final: u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
+    let round_balance_final: u256 = eth_dispatcher
+        .balance_of(current_round.contract_address());
 
     // Check bids went from OB to round
-    // @note Maybe just use assert_event_transfer(eth...) to test eth transfer ?
     assert(
-        ob_balance_after_bid == ob_balance_before_bid - bid_amount, 'bid did not leave obs account'
+        ob_balance_final == ob_balance_init - bid_amount, 'bid did not leave obs account'
     );
     assert(
-        round_balance_after_bid == round_balance_after_bid + bid_amount, 'bid did not reach round'
+        round_balance_final == round_balance_init + bid_amount, 'bid did not reach round'
     );
 }
 
 #[test]
 #[available_gas(10000000)]
 fn test_bid_accepted_events() {
-    let (mut vault_facade, eth_dispatcher): (VaultFacade, IERC20Dispatcher) = setup_facade();
+    let (mut vault_facade, _): (VaultFacade, IERC20Dispatcher) = setup_facade();
     // Deposit liquidity, start auction, and place bid
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
@@ -177,7 +172,7 @@ fn test_bid_accepted_events() {
     let params = current_round_facade.get_params();
     // Clear event logs for eth transfers and bids
     clear_event_logs(
-        array![eth_dispatcher.contract_address, current_round_facade.contract_address()]
+        array![current_round_facade.contract_address()]
     );
 
     let mut obs = option_bidders_get(5);
