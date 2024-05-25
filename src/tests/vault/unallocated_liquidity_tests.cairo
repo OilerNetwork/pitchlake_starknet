@@ -230,4 +230,7 @@ fn test_premium_collection_ratio_conversion_unallocated_pool_2() {
         'premium paid in ratio'
     );
 }
+// @note add test for lps entering round, 1 leaves their position over mulitple rounds, 1 collects premiums each round
+//  - have other LP's join the protocol over the rounds, and make sure everyone's premiums are correct
+
 
