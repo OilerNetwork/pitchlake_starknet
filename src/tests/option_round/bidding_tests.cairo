@@ -252,26 +252,4 @@ fn test_bid_price_below_reserve_price_failure() {
     );
 }
 
-// @note This test was moved to unused_bids_tests.cairo
-// Test that OB cannot refund bids before auction settles
-// @dev move to Dhruv's file next resync option_round/unused_bids_tests.cairo
-#[test]
-#[available_gas(10000000)]
-#[should_panic(expected: ('The auction is still on-going', 'ENTRYPOINT_FAILED',))]
-fn test_option_round_refund_unused_bids_too_early_failure() {
-    let (mut vault_facade, _) = setup_facade();
-    accelerate_to_auctioning(ref vault_facade);
-    // Make bids
-    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params = current_round_facade.get_params();
-    let bid_count: u256 = params.total_options_available + 10;
-    let bid_price: u256 = params.reserve_price;
-
-    let bid_amount: u256 = bid_count * bid_price;
-    current_round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
-    // Try to refund bid before auction settles
-    current_round_facade.refund_bid(option_bidder_buyer_1());
-}
-// @note Add test for eth: ob -> round when bidding
-
 
