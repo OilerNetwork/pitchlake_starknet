@@ -137,8 +137,7 @@ fn test_bid_eth_transfer() {
     // Eth balances before bid
     let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
     let ob_balance_init = eth_dispatcher.balance_of(option_bidder_buyer_1());
-    let round_balance_init = eth_dispatcher
-        .balance_of(current_round.contract_address());
+    let round_balance_init = eth_dispatcher.balance_of(current_round.contract_address());
 
     // Make bid
     let params = current_round.get_params();
@@ -149,16 +148,11 @@ fn test_bid_eth_transfer() {
 
     // Eth balances after bid
     let ob_balance_final: u256 = eth_dispatcher.balance_of(option_bidder_buyer_1());
-    let round_balance_final: u256 = eth_dispatcher
-        .balance_of(current_round.contract_address());
+    let round_balance_final: u256 = eth_dispatcher.balance_of(current_round.contract_address());
 
     // Check bids went from OB to round
-    assert(
-        ob_balance_final == ob_balance_init - bid_amount, 'bid did not leave obs account'
-    );
-    assert(
-        round_balance_final == round_balance_init + bid_amount, 'bid did not reach round'
-    );
+    assert(ob_balance_final == ob_balance_init - bid_amount, 'bid did not leave obs account');
+    assert(round_balance_final == round_balance_init + bid_amount, 'bid did not reach round');
 }
 
 #[test]
@@ -171,9 +165,7 @@ fn test_bid_accepted_events() {
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
     let params = current_round_facade.get_params();
     // Clear event logs for eth transfers and bids
-    clear_event_logs(
-        array![current_round_facade.contract_address()]
-    );
+    clear_event_logs(array![current_round_facade.contract_address()]);
 
     let mut obs = option_bidders_get(5);
     let mut step = 1;
@@ -251,5 +243,4 @@ fn test_bid_price_below_reserve_price_failure() {
         params.reserve_price - 1,
     );
 }
-
 
