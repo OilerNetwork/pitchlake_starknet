@@ -233,6 +233,7 @@ fn test_deposit_is_always_into_unlocked() {
     accelerate_to_auctioning(ref vault_facade);
 
     // Deposit while current is auctioning
+    // @note Using LP2 to check. Allows us to ignore premiums earned from the auction (since they did not supply liquidity in the current round)
     let (lp_locked0, lp_unlocked0) = vault_facade.get_lp_balance_spread(liquidity_provider_2());
     vault_facade.deposit(deposit_amount, liquidity_provider_2());
     let (lp_locked1, lp_unlocked1) = vault_facade.get_lp_balance_spread(liquidity_provider_2());
