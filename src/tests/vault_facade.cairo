@@ -163,11 +163,18 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     // Get lps liquidity spread (collateral, unallocated)
     fn get_all_lp_liquidity(ref self: VaultFacade, lp: ContractAddress) -> (u256, u256) {
-        let collateral = self.vault_dispatcher.get_collateral_balance_for(lp);
-        let unallocated = self.vault_dispatcher.get_unallocated_balance_for(lp);
-        (collateral, unallocated)
+        let locked = self.vault_dispatcher.get_collateral_balance_for(lp);
+        let unlocked = self.vault_dispatcher.get_unallocated_balance_for(lp);
+        (locked, unlocked)
     }
 
+    fn get_total_locked(ref self: VaultFacade) -> u256 {
+        self.vault_dispatcher.get_total_locked()
+    }
+
+    fn get_total_unlocked(ref self: VaultFacade) -> u256 {
+        self.vault_dispatcher.get_total_unlocked()
+    }
     // Get lps (multiple) liquidity (collateral, unallocated)
     fn get_all_liquidity_for_n(
         ref self: VaultFacade, lps: Span<ContractAddress>

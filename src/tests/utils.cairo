@@ -706,6 +706,7 @@ fn accelerate_to_auctioning(ref self: VaultFacade) {
     // Deposit liquidity so round 1's auction can start
     self.deposit(100 * decimals(), liquidity_provider_1());
     // Start round 1's auction
+    set_block_timestamp(starknet::get_block_timestamp()+ self.get_round_transition_period());
     self.start_auction();
 }
 
@@ -725,16 +726,6 @@ fn accelerate_to_running(ref self: VaultFacade) {
     set_block_timestamp(params.auction_end_time + 1);
     current_round.end_auction();
 }
-
-fn accelerate_to_settle(ref self: VaultFacade, base_fee: u256) {
-    let mock_maket_aggregator_setter: IMarketAggregatorSetterDispatcher =
-        IMarketAggregatorSetterDispatcher {
-        contract_address: self.get_market_aggregator()
-    };
-    mock_maket_aggregator_setter.set_current_base_fee(base_fee);
-    self.timeskip_and_settle_round();
-}
-
 
 fn accelerate_to_auctioning_custom(
     ref self: VaultFacade, lps: Span<ContractAddress>, amounts: Span<u256>
@@ -764,8 +755,8 @@ fn accelerate_to_settled(ref self: VaultFacade, base_fee: u256) {
     };
     mock_maket_aggregator_setter.set_current_base_fee(base_fee);
     self.timeskip_and_settle_round();
-}
 
+}
 
 //Create various amounts array (For bids use the function twice for price and amount)
 fn create_array_linear(amount: u256, len: u32) -> Array<u256> {
