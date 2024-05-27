@@ -4,8 +4,8 @@ use pitch_lake_starknet::tests::{
     utils::{
         setup_facade, liquidity_provider_1, liquidity_provider_2, liquidity_providers_get, decimals,
         option_bidder_buyer_1, option_bidder_buyer_2, accelerate_to_running,
-        accelerate_to_auctioning, accelerate_to_settled, create_array_gradient, accelerate_to_auctioning_custom,
-        create_array_linear, option_bidders_get,
+        accelerate_to_auctioning, accelerate_to_settled, create_array_gradient,
+        accelerate_to_auctioning_custom, create_array_linear, option_bidders_get,
         accelerate_to_running_custom
     },
     mocks::mock_market_aggregator::{
@@ -17,7 +17,6 @@ use pitch_lake_starknet::tests::{
 // Test that collected premiums do not roll over to the next round
 
 // Test that collected premiums do not roll over to the next round
-
 
 #[test]
 #[available_gas(10000000)]
@@ -41,7 +40,6 @@ fn test_premiums_and_unsold_liquidity_unlocked_amount() {
     // Withdraw from rewards
     assert(lp_unallocated == premiums_earned + deposit_amount, 'LP unallocated wrong');
 }
-
 // #[test]
 // #[available_gas(10000000)]
 // fn test_collected_liquidity_does_not_roll_over() {
@@ -211,4 +209,5 @@ fn test_premiums_and_unsold_liquidity_unlocked_amount() {
 //         'premium paid in ratio'
 //     );
 // }
+
 

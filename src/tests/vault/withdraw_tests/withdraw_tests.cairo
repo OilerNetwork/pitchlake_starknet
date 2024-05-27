@@ -97,7 +97,6 @@ fn test_withdraw_is_always_from_unallocated() {
 }
 
 
-
 #[test]
 #[available_gas(10000000)]
 #[should_panic(expected: ('Cannot withdraw more than unallocated balance', 'ENTRYPOINT_FAILED'))]
@@ -115,5 +114,5 @@ fn test_withdraw_more_than_unallocated_balance_failure() {
     let (_, lp_unallocated) = vault_facade.get_all_lp_liquidity(liquidity_provider_1());
     // Withdraw from rewards
     let collect_amount = lp_unallocated + 1;
-    vault_facade.withdraw(collect_amount,liquidity_provider_1());
+    vault_facade.withdraw(collect_amount, liquidity_provider_1());
 }
