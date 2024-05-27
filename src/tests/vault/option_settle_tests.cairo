@@ -40,7 +40,7 @@ use pitch_lake_starknet::{
             option_round_contract_address, mock_option_params, pop_log, assert_no_events_left,
             month_duration, assert_event_option_settle, assert_event_transfer, clear_event_logs,
             accelerate_to_settled, accelerate_to_auctioning, accelerate_to_running,
-            accelerate_to_auctioning_custom, liquidity_providers_get,
+            accelerate_to_auctioning_custom, liquidity_providers_get
         },
     }
 };
@@ -53,6 +53,7 @@ use pitch_lake_starknet::{
 fn test_options_settle_before_expiry_date_failure() {
     let (mut vault_facade, _) = setup_facade();
     // Deposit liquidity, start and end auction, minting all options at reserve price
+    accelerate_to_auctioning(ref vault_facade);
     accelerate_to_running(ref vault_facade);
 
     // Settle option round before expiry
@@ -66,6 +67,7 @@ fn test_options_settle_before_expiry_date_failure() {
 #[available_gas(10000000)]
 fn test_option_round_settle_updates_round_states() {
     let (mut vault_facade, _) = setup_facade();
+    accelerate_to_auctioning(ref vault_facade);
     accelerate_to_running(ref vault_facade);
     accelerate_to_settled(ref vault_facade, 0x123);
 
@@ -82,6 +84,7 @@ fn test_option_round_settle_updates_round_states() {
 #[available_gas(10000000)]
 fn test_option_round_settle_event() {
     let (mut vault_facade, _) = setup_facade();
+    accelerate_to_auctioning(ref vault_facade);
     accelerate_to_running(ref vault_facade);
     accelerate_to_settled(ref vault_facade, 0x123);
 
@@ -98,9 +101,9 @@ fn test_option_round_settle_event() {
 #[should_panic(expected: ('Round has already settled', 'ENTRYPOINT_FAILED',))]
 fn test_option_round_settle_twice_failure() {
     let (mut vault_facade, _) = setup_facade();
-    // Deposit into the next round, start and end its auction, minting all options at reserve price
+    // Deposit into the next round, start and end its auction, minting all options at reserve price, settle option round
+    accelerate_to_auctioning(ref vault_facade);
     accelerate_to_running(ref vault_facade);
-    // Jump to option expiry time and settle the round
     accelerate_to_settled(ref vault_facade, 0x123);
     // Try to settle the option round again
     vault_facade.settle_option_round();
