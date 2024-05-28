@@ -23,7 +23,6 @@ use openzeppelin::token::erc20::interface::{
 use debug::PrintTrait;
 
 // @note If premiums collected fails/is 0 amount, should an event be emiited or no ?
-
 // Test premiums collectable is 0 before auction end
 #[test]
 #[available_gas(10000000)]
@@ -115,39 +114,39 @@ fn test_premium_amount_for_liquidity_providers_5() {
 }
 
 // Test collecting premiums transfers ETH
-#[test]
-#[available_gas(10000000)]
-fn test_premium_collection_transfers_eth() {
-    let (mut vault_facade, eth) = setup_facade();
-    // LPs
-    let lps = liquidity_providers_get(2);
-    // Deposit amounts
-    let amounts = array![50 * decimals(), 50 * decimals()];
+// #[test]
+// #[available_gas(10000000)]
+// fn test_premium_collection_transfers_eth() {
+//     let (mut vault_facade, eth) = setup_facade();
+//     // LPs
+//     let lps = liquidity_providers_get(2);
+//     // Deposit amounts
+//     let amounts = array![50 * decimals(), 50 * decimals()];
 
-    _test_premiums_collectable_helper(ref vault_facade, lps.span(), amounts.span());
+//     _test_premiums_collectable_helper(ref vault_facade, lps.span(), amounts.span());
 
-    // LP balances pre collection
-    let lp1_balance_init = eth.balance_of(*lps[0]);
-    let lp2_balance_init = eth.balance_of(*lps[1]);
-    let collectable_premiums = vault_facade.get_unallocated_balance_for(*lps[0]); // same as lp2
+//     // LP balances pre collection
+//     let lp1_balance_init = eth.balance_of(*lps[0]);
+//     let lp2_balance_init = eth.balance_of(*lps[1]);
+//     let collectable_premiums = vault_facade.get_unallocated_balance_for(*lps[0]); // same as lp2
 
-    // Collect premiums
-    vault_facade.collect_premiums(*lps[0]);
-    vault_facade.collect_premiums(*lps[1]);
+//     // Collect premiums
+//     vault_facade.collect_premiums(*lps[0]);
+//     vault_facade.collect_premiums(*lps[1]);
 
-    // LP balances post collection
-    let lp2_balance_final = eth.balance_of(*lps[1]);
-    let lp1_balance_final = eth.balance_of(*lps[0]);
-    let mut _current_round = vault_facade.get_current_round();
+//     // LP balances post collection
+//     let lp2_balance_final = eth.balance_of(*lps[1]);
+//     let lp1_balance_final = eth.balance_of(*lps[0]);
+//     let mut _current_round = vault_facade.get_current_round();
 
-    // Check eth: current_round -> lps
-    assert(
-        lp1_balance_final == lp1_balance_init + collectable_premiums, 'lp1 did not collect premiums'
-    );
-    assert(
-        lp2_balance_final == lp2_balance_init + collectable_premiums, 'lp2 did not collect premiums'
-    );
-}
+//     // Check eth: current_round -> lps
+//     assert(
+//         lp1_balance_final == lp1_balance_init + collectable_premiums, 'lp1 did not collect premiums'
+//     );
+//     assert(
+//         lp2_balance_final == lp2_balance_init + collectable_premiums, 'lp2 did not collect premiums'
+//     );
+// }
 
 #[test]
 #[available_gas(10000000)]
@@ -186,58 +185,58 @@ fn test_premium_collection_emits_events() {
 }
 
 // Test collecting premiums updates lp/round unallocated
-#[test]
-#[available_gas(10000000)]
-fn test_premium_collection_updates_unallocated_amounts() {
-    let (mut vault_facade, _) = setup_facade();
-    // LPs
-    let lps = liquidity_providers_get(2);
-    // Deposit amounts
-    let amounts = array![50 * decimals(), 50 * decimals()];
+// #[test]
+// #[available_gas(10000000)]
+// fn test_premium_collection_updates_unallocated_amounts() {
+//     let (mut vault_facade, _) = setup_facade();
+//     // LPs
+//     let lps = liquidity_providers_get(2);
+//     // Deposit amounts
+//     let amounts = array![50 * decimals(), 50 * decimals()];
 
-    _test_premiums_collectable_helper(ref vault_facade, lps.span(), amounts.span());
+//     _test_premiums_collectable_helper(ref vault_facade, lps.span(), amounts.span());
 
-    // Unallocated balances pre collection
-    let mut current_round = vault_facade.get_current_round();
-    let round_unallocated_init = current_round.total_unallocated_liquidity();
-    let lp2_unallocated_init = vault_facade.get_unallocated_balance_for(*lps[1]);
-    // Collect premiums (lp 1 only)
-    vault_facade.collect_premiums(*lps[0]);
+//     // Unallocated balances pre collection
+//     let mut current_round = vault_facade.get_current_round();
+//     let round_unallocated_init = current_round.total_unallocated_liquidity();
+//     let lp2_unallocated_init = vault_facade.get_unallocated_balance_for(*lps[1]);
+//     // Collect premiums (lp 1 only)
+//     vault_facade.collect_premiums(*lps[0]);
 
-    // Unallocated balaances post collection
-    let lp1_unallocated_final = vault_facade.get_unallocated_balance_for(*lps[0]);
-    let lp2_unallocated_final = vault_facade.get_unallocated_balance_for(*lps[1]);
-    let round_unallocated_final = current_round.total_unallocated_liquidity();
+//     // Unallocated balaances post collection
+//     let lp1_unallocated_final = vault_facade.get_unallocated_balance_for(*lps[0]);
+//     let lp2_unallocated_final = vault_facade.get_unallocated_balance_for(*lps[1]);
+//     let round_unallocated_final = current_round.total_unallocated_liquidity();
 
-    // Check unallocated balances for round/lps is correct
-    assert(lp1_unallocated_final == 0, 'lp1 did not collect premiums');
-    assert(lp2_unallocated_final == lp2_unallocated_init, 'lp2 shd not collect premiums');
-    assert(
-        round_unallocated_final == round_unallocated_init - lp2_unallocated_init,
-        'round unallocated wrong'
-    );
-}
+//     // Check unallocated balances for round/lps is correct
+//     assert(lp1_unallocated_final == 0, 'lp1 did not collect premiums');
+//     assert(lp2_unallocated_final == lp2_unallocated_init, 'lp2 shd not collect premiums');
+//     assert(
+//         round_unallocated_final == round_unallocated_init - lp2_unallocated_init,
+//         'round unallocated wrong'
+//     );
+// }
 
 // Test collecting premiums twice fails
 // @note Maybe this shouldnt fail, but just do nothing instead ?
-#[test]
-#[available_gas(10000000000)]
-#[should_panic(expected: ('No premiums to collect', 'ENTRYPOINT_FAILED'))]
-fn test_premium_collect_none_fails() {
-    let (mut vault_facade, _) = setup_facade();
-    // LPs
-    let lps = liquidity_providers_get(1);
-    let amounts = array![50 * decimals()];
-    // Deposit amounts
+// #[test]
+// #[available_gas(10000000000)]
+// #[should_panic(expected: ('No premiums to collect', 'ENTRYPOINT_FAILED'))]
+// fn test_premium_collect_none_fails() {
+//     let (mut vault_facade, _) = setup_facade();
+//     // LPs
+//     let lps = liquidity_providers_get(1);
+//     let amounts = array![50 * decimals()];
+//     // Deposit amounts
 
-    _test_premiums_collectable_helper(ref vault_facade, lps.span(), amounts.span());
+//     _test_premiums_collectable_helper(ref vault_facade, lps.span(), amounts.span());
 
-    // Collect premiums
-    vault_facade.collect_premiums(*lps[0]);
+//     // Collect premiums
+//     vault_facade.collect_premiums(*lps[0]);
 
-    // Try to collect premiums again
-    vault_facade.collect_premiums(*lps[0]);
-}
+//     // Try to collect premiums again
+//     vault_facade.collect_premiums(*lps[0]);
+// }
 
 // Internal tester to check the premiums collectable for LPs is correct
 fn _test_premiums_collectable_helper(

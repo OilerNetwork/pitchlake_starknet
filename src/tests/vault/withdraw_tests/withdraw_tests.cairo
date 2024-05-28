@@ -47,7 +47,7 @@ fn test_withdraw_0_failure() {
 
 #[test]
 #[available_gas(10000000)]
-fn test_withdraw_is_always_from_unallocated() {
+fn test_withdraw_is_always_from_unlocked() {
     let (mut vault, eth_dispatcher) = setup_facade();
 
     // Deposit liquidity while current round is settled
@@ -60,39 +60,43 @@ fn test_withdraw_is_always_from_unallocated() {
     vault.deposit(deposit_amount + 1, liquidity_provider_1());
 
     let init_lp_balance = eth_dispatcher.balance_of(liquidity_provider_1());
-    let init_unallocated = vault.get_unallocated_balance_for(liquidity_provider_1());
+    let (init_locked,init_unlocked) = vault.get_all_lp_liquidity(liquidity_provider_1());
     vault.withdraw(deposit_amount, liquidity_provider_1());
 
     let final_lp_balance = eth_dispatcher.balance_of(liquidity_provider_1());
-    let final_unallocated = vault.get_unallocated_balance_for(liquidity_provider_1());
+    let (final_locked,final_unlocked) = vault.get_all_lp_liquidity(liquidity_provider_1());
 
+    assert(init_locked==final_locked, 'Locked position mismatch');
     assert(init_lp_balance == final_lp_balance - deposit_amount, 'LP balance mistmatch');
-    assert(init_unallocated == final_unallocated + deposit_amount, 'Vault balance mistmatch');
+    assert(init_unlocked == final_unlocked + deposit_amount, 'Vault balance mistmatch');
     // Deposit liquidity while current round is running
     accelerate_to_running(ref vault);
     vault.deposit(deposit_amount + 2, liquidity_provider_1());
+
     let init_lp_balance = eth_dispatcher.balance_of(liquidity_provider_1());
-    let init_unallocated = vault.get_unallocated_balance_for(liquidity_provider_1());
+    let (init_locked,init_unlocked) = vault.get_all_lp_liquidity(liquidity_provider_1());
     vault.withdraw(deposit_amount + 1, liquidity_provider_1());
 
     let final_lp_balance = eth_dispatcher.balance_of(liquidity_provider_1());
-    let final_unallocated = vault.get_unallocated_balance_for(liquidity_provider_1());
+    let (final_locked,final_unlocked) = vault.get_all_lp_liquidity(liquidity_provider_1());
 
+    assert(init_locked==final_locked, 'Locked position mismatch');
     assert(init_lp_balance == final_lp_balance - deposit_amount, 'LP balance mistmatch');
-    assert(init_unallocated == final_unallocated + deposit_amount, 'Vault balance mistmatch');
+    assert(init_unlocked == final_unlocked + deposit_amount, 'Vault balance mistmatch');
 
     vault.end_auction();
     vault.deposit(deposit_amount + 2, liquidity_provider_1());
 
     let init_lp_balance = eth_dispatcher.balance_of(liquidity_provider_1());
-    let init_unallocated = vault.get_unallocated_balance_for(liquidity_provider_1());
+    let (init_locked,init_unlocked) = vault.get_all_lp_liquidity(liquidity_provider_1());
     vault.withdraw(deposit_amount + 1, liquidity_provider_1());
 
     let final_lp_balance = eth_dispatcher.balance_of(liquidity_provider_1());
-    let final_unallocated = vault.get_unallocated_balance_for(liquidity_provider_1());
+    let (final_locked,final_unlocked) = vault.get_all_lp_liquidity(liquidity_provider_1());
 
+    assert(init_locked==final_locked, 'Locked position mismatch');
     assert(init_lp_balance == final_lp_balance - deposit_amount, 'LP balance mistmatch');
-    assert(init_unallocated == final_unallocated + deposit_amount, 'Vault balance mistmatch');
+    assert(init_unlocked == final_unlocked + deposit_amount, 'Vault balance mistmatch');
 // @note Check eth transfer without event
 }
 
@@ -100,7 +104,7 @@ fn test_withdraw_is_always_from_unallocated() {
 #[test]
 #[available_gas(10000000)]
 #[should_panic(expected: ('Cannot withdraw more than unallocated balance', 'ENTRYPOINT_FAILED'))]
-fn test_withdraw_more_than_unallocated_balance_failure() {
+fn test_withdraw_more_than_unlocked_balance_failure() {
     let (mut vault_facade, _) = setup_facade();
     // Accelerate to round 1 running
     vault_facade.start_auction();
@@ -111,8 +115,8 @@ fn test_withdraw_more_than_unallocated_balance_failure() {
     // Amount of premiums earned from the auction (plus unsold liq) for LP
     // @dev lp owns 100% of the pool, so 100% of the prmeium is theirs
     // LP unallocated is premiums earned + next round deposits
-    let (_, lp_unallocated) = vault_facade.get_all_lp_liquidity(liquidity_provider_1());
+    let lp_unlocked = vault_facade.get_unlocked_liquidity(liquidity_provider_1());
     // Withdraw from rewards
-    let collect_amount = lp_unallocated + 1;
+    let collect_amount = lp_unlocked + 1;
     vault_facade.withdraw(collect_amount, liquidity_provider_1());
 }

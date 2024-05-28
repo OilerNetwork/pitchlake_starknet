@@ -47,7 +47,7 @@ trait IVault<TContractState> {
     fn get_total_unlocked(self: @TContractState) -> u256;
     // Get the total premium LP has earned in the current round
     // @note premiums for previous rounds
-    fn get_premiums_for(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
+    fn get_premiums_for(self: @TContractState, liquidity_provider: ContractAddress, round_id:u256) -> u256;
 
     /// Writes ///
 
@@ -282,7 +282,7 @@ mod Vault {
             100
         }
 
-        fn get_premiums_for(self: @ContractState, liquidity_provider: ContractAddress) -> u256 {
+        fn get_premiums_for(self: @ContractState, liquidity_provider: ContractAddress,round_id:u256) -> u256 {
             100
         }
 
