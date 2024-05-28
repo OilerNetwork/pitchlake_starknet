@@ -113,6 +113,7 @@ fn test_premium_amount_for_liquidity_providers_5() {
     _test_premiums_collectable_helper(ref vault_facade, lps.span(), amounts.span());
 }
 
+// @note Should be a withdraw test
 // Test collecting premiums transfers ETH
 // #[test]
 // #[available_gas(10000000)]
@@ -147,6 +148,9 @@ fn test_premium_amount_for_liquidity_providers_5() {
 //         lp2_balance_final == lp2_balance_init + collectable_premiums, 'lp2 did not collect premiums'
 //     );
 // }
+
+// @note Add test that premiums earned are sent to vault (eth transfer)
+// @note Add test that premiums go to vault::unlocked & vault::lp::unlocked
 
 #[test]
 #[available_gas(10000000)]
@@ -184,6 +188,7 @@ fn test_premium_collection_emits_events() {
     );
 }
 
+// @note Test that vault::unlocked updates not round's
 // Test collecting premiums updates lp/round unallocated
 // #[test]
 // #[available_gas(10000000)]
@@ -217,6 +222,8 @@ fn test_premium_collection_emits_events() {
 //     );
 // }
 
+// @note This is essentailly testing withdraw amount > unlocked balance, so should be a withdraw test,
+// but we still should test LP cannot double collect prmeiums
 // Test collecting premiums twice fails
 // @note Maybe this shouldnt fail, but just do nothing instead ?
 // #[test]

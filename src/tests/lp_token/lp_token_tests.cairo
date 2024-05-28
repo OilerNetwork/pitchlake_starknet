@@ -80,7 +80,7 @@ fn test_convert_position_to_lp_tokens_while_settled__TODO__() {
     assert(clearing_price == option_params.reserve_price, 'clearing price wrong');
     // Settle option round
     set_block_timestamp(option_params.option_expiry_time + 1);
-    vault_facade.settle_option_round(liquidity_provider_1());
+    vault_facade.settle_option_round();
     // Convert position -> tokens while current round is Settled
     vault_facade.convert_position_to_lp_tokens(1, liquidity_provider_1());
 // @note verify expected behavior

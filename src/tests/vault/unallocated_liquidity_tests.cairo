@@ -210,4 +210,8 @@ fn test_premiums_and_unsold_liquidity_unlocked_amount() {
 //     );
 // }
 
+// @note add test for lps entering round, 1 leaves their position over mulitple rounds, 1 collects premiums each round
+//  - have other LP's join the protocol over the rounds, and make sure everyone's premiums are correct
+
+
 

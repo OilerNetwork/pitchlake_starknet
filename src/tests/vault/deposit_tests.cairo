@@ -36,7 +36,8 @@ use pitch_lake_starknet::tests::utils::{
     mock_option_params, pop_log, assert_no_events_left, create_array_gradient,
     liquidity_providers_get, clear_event_logs, assert_event_auction_start, assert_event_auction_end,
     assert_event_option_settle, assert_event_option_round_deployed, assert_event_vault_deposit,
-    assert_event_vault_withdrawal,
+    assert_event_vault_withdrawal, accelerate_to_auctioning, accelerate_to_running,
+    accelerate_to_settled,
 };
 
 
@@ -222,64 +223,40 @@ fn test_event_testers() {
     utils::assert_event_options_exercised(r.contract_address(), r.contract_address(), 100, 100);
 }
 
-
-// Test that deposits always go into the next round
-// @note Revisit
-#[test]
-#[available_gas(10000000)]
-#[ignore]
-fn test_deposit_is_always_into_next_round() {
-    let (mut vault_facade, _) = setup_facade();
-    let mut next_round = vault_facade.get_next_round();
-
-    let liquidity_providers = liquidity_providers_get(1);
-
-    utils::accelerate_to_auctioning(ref vault_facade);
-
-    next_round = vault_facade.get_next_round();
-    let deposit_amount = 50 * decimals();
-
-    //let init_liquidity = next_round.total_liquidity();
-    vault_facade.deposit(deposit_amount + 1, *liquidity_providers[0]);
-    //let final_liquidity = next_round.total_liquidity();
-
-    // assert(
-    //    final_liquidity == init_liquidity + (deposit_amount + 1), 'total liquidity should increase'
-    //    );
-
-    utils::accelerate_to_running(ref vault_facade);
-
-    //let init_liquidity = next_round.total_liquidity();
-    vault_facade.deposit(deposit_amount + 1, *liquidity_providers[0]);
-//let final_liquidity = next_round.total_liquidity();
-//assert(
-//   final_liquidity == init_liquidity + (deposit_amount + 1), 'total liquidity should increase'
-//);
-}
-
-// test that the liquidity is increasing only for the unlocked pool
+// Test deposits always go to the vault's unlocked pool
 #[test]
 #[available_gas(10000000)]
 fn test_deposit_is_always_into_unlocked() {
     let (mut vault_facade, _) = setup_facade();
-    let mut _current_round = vault_facade.get_current_round();
-    let mut _next_round = vault_facade.get_next_round();
+    let deposit_amount = 100 * decimals();
 
-    let liquidity_providers = liquidity_providers_get(1);
+    accelerate_to_auctioning(ref vault_facade);
 
-    let init_locked_liquidity = vault_facade.get_locked_liquidity(*liquidity_providers[0]);
-    let init_unlocked_liquidity = vault_facade.get_unlocked_liquidity(*liquidity_providers[0]);
+    // Deposit while current is auctioning
+    // @note Using LP2 to check. Allows us to ignore premiums earned from the auction (since they did not supply liquidity in the current round)
+    let (lp_locked0, lp_unlocked0) = vault_facade.get_lp_balance_spread(liquidity_provider_2());
+    vault_facade.deposit(deposit_amount, liquidity_provider_2());
+    let (lp_locked1, lp_unlocked1) = vault_facade.get_lp_balance_spread(liquidity_provider_2());
 
-    let deposit_amount = 50 * decimals();
-    vault_facade.deposit(deposit_amount, *liquidity_providers[0]);
+    assert(lp_locked1 == lp_locked0, 'locked shd not change');
+    assert(lp_unlocked1 == lp_unlocked0 + deposit_amount, 'unlocked wrong');
 
-    let final_locked_liquidity = vault_facade.get_locked_liquidity(*liquidity_providers[0]);
-    let final_unlocked_liquidity = vault_facade.get_unlocked_liquidity(*liquidity_providers[0]);
+    accelerate_to_running(ref vault_facade);
 
-    assert(init_locked_liquidity == final_locked_liquidity, 'Locked Liquidity Mismatch');
-    assert(
-        init_unlocked_liquidity + deposit_amount == final_unlocked_liquidity,
-        'Unlocked Liquidity Mismatch'
-    );
+    // Deposit while current is running
+    vault_facade.deposit(deposit_amount, liquidity_provider_2());
+    let (lp_locked2, lp_unlocked2) = vault_facade.get_lp_balance_spread(liquidity_provider_2());
+
+    assert(lp_locked2 == lp_locked1, 'locked shd not change');
+    assert(lp_unlocked2 == lp_unlocked1 + deposit_amount, 'unlocked wrong');
+
+    accelerate_to_settled(ref vault_facade, 0);
+
+    // Deposit while current is settled
+    vault_facade.deposit(deposit_amount, liquidity_provider_2());
+    let (lp_locked3, lp_unlocked3) = vault_facade.get_lp_balance_spread(liquidity_provider_2());
+
+    assert(lp_locked3 == lp_locked2, 'locked shd not change');
+    assert(lp_unlocked3 == lp_unlocked2 + deposit_amount, 'unlocked wrong');
 }
 

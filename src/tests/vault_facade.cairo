@@ -41,7 +41,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         self.vault_dispatcher.withdraw_liquidity(amount);
     }
 
-    // @dev might clash when repo syncs
+    // @note needs to be removed, only withdraw function
     // @note should return the amount of premiums/unsold liq. collected
     fn collect_premiums(ref self: VaultFacade, liquidity_provider: ContractAddress) -> u256 {
         set_contract_address(liquidity_provider);
@@ -61,8 +61,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         self.vault_dispatcher.end_auction()
     }
 
-    fn settle_option_round(ref self: VaultFacade, address: ContractAddress) -> bool {
-        set_contract_address(address);
+    fn settle_option_round(ref self: VaultFacade) -> bool {
         self.vault_dispatcher.settle_option_round()
     }
 
@@ -190,6 +189,48 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     ) -> u256 {
         self.vault_dispatcher.get_unallocated_balance_for(liquidity_provider)
     }
+
+    // @note Dhruv might be adding these as well
+
+    fn get_lp_locked_balance(ref self: VaultFacade, lp: ContractAddress) -> u256 {
+        // @note update vault entry point name
+        self.vault_dispatcher.get_lp_locked_balance(lp)
+    }
+
+    fn get_lp_unlocked_balance(ref self: VaultFacade, lp: ContractAddress) -> u256 {
+        // @note update vault entry point name
+        self.vault_dispatcher.get_lp_unlocked_balance(lp)
+    }
+
+    fn get_lp_total_balance(ref self: VaultFacade, lp: ContractAddress) -> u256 {
+        self.vault_dispatcher.get_lp_total_balance(lp)
+    }
+
+    fn get_lp_balance_spread(ref self: VaultFacade, lp: ContractAddress) -> (u256, u256) {
+        let locked = self.vault_dispatcher.get_lp_locked_balance(lp);
+        let unlocked = self.vault_dispatcher.get_lp_unlocked_balance(lp);
+        (locked, unlocked)
+    }
+
+    fn get_unlocked_balance(ref self: VaultFacade) -> u256 {
+        self.vault_dispatcher.get_unlocked_balance()
+    }
+
+    fn get_locked_balance(ref self: VaultFacade) -> u256 {
+        self.vault_dispatcher.get_unlocked_balance()
+    }
+
+    fn get_total_balance(ref self: VaultFacade) -> u256 {
+        self.vault_dispatcher.get_total_balance()
+    }
+
+    fn get_balance_spread(ref self: VaultFacade) -> (u256, u256) {
+        let locked = self.vault_dispatcher.get_locked_balance();
+        let unlocked = self.vault_dispatcher.get_unlocked_balance();
+        (locked, unlocked)
+    }
+
+    //
 
     fn get_market_aggregator(ref self: VaultFacade) -> ContractAddress {
         self.vault_dispatcher.get_market_aggregator()
