@@ -60,11 +60,11 @@ fn test_withdraw_is_always_from_unlocked() {
     vault.deposit(deposit_amount + 1, liquidity_provider_1());
 
     let init_lp_balance = eth_dispatcher.balance_of(liquidity_provider_1());
-    let (init_locked,init_unlocked) = vault.get_all_lp_liquidity(liquidity_provider_1());
+    let (init_locked,init_unlocked) = vault.get_lp_balance_spread(liquidity_provider_1());
     vault.withdraw(deposit_amount, liquidity_provider_1());
 
     let final_lp_balance = eth_dispatcher.balance_of(liquidity_provider_1());
-    let (final_locked,final_unlocked) = vault.get_all_lp_liquidity(liquidity_provider_1());
+    let (final_locked,final_unlocked) = vault.get_lp_balance_spread(liquidity_provider_1());
 
     assert(init_locked==final_locked, 'Locked position mismatch');
     assert(init_lp_balance == final_lp_balance - deposit_amount, 'LP balance mistmatch');
@@ -74,11 +74,11 @@ fn test_withdraw_is_always_from_unlocked() {
     vault.deposit(deposit_amount + 2, liquidity_provider_1());
 
     let init_lp_balance = eth_dispatcher.balance_of(liquidity_provider_1());
-    let (init_locked,init_unlocked) = vault.get_all_lp_liquidity(liquidity_provider_1());
+    let (init_locked,init_unlocked) = vault.get_lp_balance_spread(liquidity_provider_1());
     vault.withdraw(deposit_amount + 1, liquidity_provider_1());
 
     let final_lp_balance = eth_dispatcher.balance_of(liquidity_provider_1());
-    let (final_locked,final_unlocked) = vault.get_all_lp_liquidity(liquidity_provider_1());
+    let (final_locked,final_unlocked) = vault.get_lp_balance_spread(liquidity_provider_1());
 
     assert(init_locked==final_locked, 'Locked position mismatch');
     assert(init_lp_balance == final_lp_balance - deposit_amount, 'LP balance mistmatch');
@@ -88,11 +88,11 @@ fn test_withdraw_is_always_from_unlocked() {
     vault.deposit(deposit_amount + 2, liquidity_provider_1());
 
     let init_lp_balance = eth_dispatcher.balance_of(liquidity_provider_1());
-    let (init_locked,init_unlocked) = vault.get_all_lp_liquidity(liquidity_provider_1());
+    let (init_locked,init_unlocked) = vault.get_lp_balance_spread(liquidity_provider_1());
     vault.withdraw(deposit_amount + 1, liquidity_provider_1());
 
     let final_lp_balance = eth_dispatcher.balance_of(liquidity_provider_1());
-    let (final_locked,final_unlocked) = vault.get_all_lp_liquidity(liquidity_provider_1());
+    let (final_locked,final_unlocked) = vault.get_lp_balance_spread(liquidity_provider_1());
 
     assert(init_locked==final_locked, 'Locked position mismatch');
     assert(init_lp_balance == final_lp_balance - deposit_amount, 'LP balance mistmatch');
@@ -115,7 +115,7 @@ fn test_withdraw_more_than_unlocked_balance_failure() {
     // Amount of premiums earned from the auction (plus unsold liq) for LP
     // @dev lp owns 100% of the pool, so 100% of the prmeium is theirs
     // LP unallocated is premiums earned + next round deposits
-    let lp_unlocked = vault_facade.get_unlocked_liquidity(liquidity_provider_1());
+    let lp_unlocked = vault_facade.get_lp_unlocked_balance(liquidity_provider_1());
     // Withdraw from rewards
     let collect_amount = lp_unlocked + 1;
     vault_facade.withdraw(collect_amount, liquidity_provider_1());

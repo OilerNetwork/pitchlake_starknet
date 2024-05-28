@@ -36,7 +36,7 @@ fn test_premiums_and_unsold_liquidity_unlocked_amount() {
         * current_params
             .reserve_price; // @dev lp owns 100% of the pool, so 100% of the prmeium is theirs
     // LP unallocated is premiums earned + next round deposits
-    let (_, lp_unallocated) = vault_facade.get_all_lp_liquidity(liquidity_provider_1());
+    let (_, lp_unallocated) = vault_facade.get_lp_balance_spread(liquidity_provider_1());
     // Withdraw from rewards
     assert(lp_unallocated == premiums_earned + deposit_amount, 'LP unallocated wrong');
 }
@@ -49,7 +49,7 @@ fn test_premiums_and_unsold_liquidity_unlocked_amount() {
 //     accelerate_to_running(ref vault_facade);
 //     //Get the total allocated liquidity at this stage
 
-//     let (lp_allocated, _) = vault_facade.get_all_lp_liquidity(liquidity_provider_1());
+//     let (lp_allocated, _) = vault_facade.get_lp_balance_spread(liquidity_provider_1());
 //     // Collect premium
 //     // Since no more deposits were made, unallocated is equal to the premiums from the auction
 
@@ -79,7 +79,7 @@ fn test_premiums_and_unsold_liquidity_unlocked_amount() {
 //     accelerate_to_running(ref vault_facade);
 //     //Get liquidity balance
 //     //@note Will include the premiums is unallocated and the locked deposit in allocated at this stage
-//     let (lp_allocated, lp_unallocated) = vault_facade.get_all_lp_liquidity(liquidity_provider_1());
+//     let (lp_allocated, lp_unallocated) = vault_facade.get_lp_balance_spread(liquidity_provider_1());
 //     // Settle option round with no payout
 //     IMarketAggregatorSetterDispatcher { contract_address: vault_facade.get_market_aggregator() }
 //         .set_current_base_fee(params.strike_price - 1);

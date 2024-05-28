@@ -140,28 +140,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         (self.get_current_round(), self.get_next_round())
     }
 
-    fn get_locked_liquidity(ref self: VaultFacade, liquidity_provider: ContractAddress) -> u256 {
-        self.vault_dispatcher.get_collateral_balance_for(liquidity_provider)
-    }
-
-    fn get_unlocked_liquidity(ref self: VaultFacade, liquidity_provider: ContractAddress) -> u256 {
-        self.vault_dispatcher.get_unallocated_balance_for(liquidity_provider)
-    }
-
-    // Get lps liquidity spread (collateral, unallocated)
-    fn get_all_lp_liquidity(ref self: VaultFacade, lp: ContractAddress) -> (u256, u256) {
-        let locked = self.vault_dispatcher.get_collateral_balance_for(lp);
-        let unlocked = self.vault_dispatcher.get_unallocated_balance_for(lp);
-        (locked, unlocked)
-    }
-
-    fn get_total_locked(ref self: VaultFacade) -> u256 {
-        self.vault_dispatcher.get_total_locked()
-    }
-
-    fn get_total_unlocked(ref self: VaultFacade) -> u256 {
-        self.vault_dispatcher.get_total_unlocked()
-    }
+   
     // Get lps (multiple) liquidity (collateral, unallocated)
     fn get_all_liquidity_for_n(
         ref self: VaultFacade, lps: Span<ContractAddress>
@@ -178,17 +157,9 @@ impl VaultFacadeImpl of VaultFacadeTrait {
             };
         (arr_collateral, arr_unallocated)
     }
-    fn get_collateral_balance_for(
-        ref self: VaultFacade, liquidity_provider: ContractAddress
-    ) -> u256 {
-        self.vault_dispatcher.get_collateral_balance_for(liquidity_provider)
-    }
+ 
 
-    fn get_unallocated_balance_for(
-        ref self: VaultFacade, liquidity_provider: ContractAddress
-    ) -> u256 {
-        self.vault_dispatcher.get_unallocated_balance_for(liquidity_provider)
-    }
+   
 
     // @note Dhruv might be adding these as well
 
@@ -246,8 +217,8 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     }
 
     // might be duplicated when repo syncs
-    fn get_premiums_for(ref self: VaultFacade, lp: ContractAddress) -> u256 {
-        self.vault_dispatcher.get_premiums_for(lp)
+    fn get_premiums_for(ref self: VaultFacade, lp: ContractAddress,round_id:u256) -> u256 {
+        self.vault_dispatcher.get_premiums_for(lp,round_id)
     }
 
 

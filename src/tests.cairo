@@ -25,7 +25,7 @@ mod vault {
         mod while_current_round_is_settled;
         mod withdraw_tests;
     }
-    mod unlocked_liquidity_tests;
+    mod unallocated_liquidity_tests;
     mod auction_end_tests;
     mod auction_start_tests;
     mod deployment_tests;
