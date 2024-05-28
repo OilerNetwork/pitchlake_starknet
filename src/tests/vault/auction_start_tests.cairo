@@ -39,60 +39,52 @@ use pitch_lake_starknet::tests::option_round_facade::{OptionRoundFacade, OptionR
 use pitch_lake_starknet::option_round::{OptionRoundState};
 
 
-// Test that round and lp's unallocated becomes collateral when auction starts (multiple LPs)
+// @note should be with other roll over tests
+// Test that round and lp's unlocked balance becomes locked when auction starts (multiple LPs)
 #[test]
 #[available_gas(10000000)]
-fn test_unallocated_becomes_collateral() {
+fn test_unlocked_becomes_locked() {
     let (mut vault_facade, _) = setup_facade();
     // Get next round (open)
     let mut next_round: OptionRoundFacade = vault_facade.get_current_round();
     // Add liq. to next round (1)
     let lps = liquidity_providers_get(5);
-    let len = lps.len();
-    let mut amounts = create_array_gradient(1000 * decimals(), 5000 * decimals(), len);
-
+    let mut amounts = create_array_gradient(1000 * decimals(), 5000 * decimals(), lps.len());
     let deposit_total = vault_facade.deposit_mutltiple(lps.span(), amounts.span());
 
     // Start the auction
     vault_facade.start_auction();
+
     // Final collateral/unallocated spread
-    let (next_round_collateral, next_round_unallocated) = next_round.get_all_round_liquidity();
-    let next_round_starting_liquidity = next_round.starting_liquidity();
+    let (total_locked, total_unlocked) = vault_facade.get_balance_spread();
     // Individual spread
-    let (mut arr_collateral, mut arr_unallocated) = vault_facade
-        .get_all_liquidity_for_n(lps.span());
+    let (mut locked_arr, mut unlocked_arr) = vault_facade.get_all_liquidity_for_n(lps.span());
     loop {
-        match arr_collateral.pop_front() {
-            Option::Some(collateral) => {
-                assert(collateral == amounts.pop_front().unwrap(), 'Collateral Mismatch');
-                assert(arr_unallocated.pop_front().unwrap() == 0, 'Unallocated liquidity Mismatch');
+        match locked_arr.pop_front() {
+            Option::Some(locked_amount) => {
+                assert(locked_amount == amounts.pop_front().unwrap(), 'Locked balance mismatch');
+                assert(unlocked_arr.pop_front().unwrap() == 0, 'Unlocked balance mismatch');
             },
             Option::None => { break (); }
         }
     };
 
     //Check totals on the option round
-    assert(next_round_collateral == deposit_total, 'next round collateral wrong');
-    assert(next_round_starting_liquidity == deposit_total, 'next round total liq. wrong');
-    assert(next_round_unallocated == 0, 'next round unallocated wrong');
+    assert(total_locked == deposit_total, 'vault::locked wrong');
+    assert(total_unlocked == 0, 'vault::unlocked wrong');
 }
+
 // Test when an auction starts, it becomes the current round and the
 // next round is deployed.
 #[test]
 #[available_gas(10000000)]
-fn test_start_auction_becomes_current_round() {
+fn test_start_auction_becomes_current_round_deploys_next() {
     let (mut vault_facade, _) = setup_facade();
-    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let mut next_round_facade: OptionRoundFacade = vault_facade.get_next_round();
-    // LP deposits (into round 1) so its auction can start
-    let deposit_amount_wei: u256 = 100 * decimals();
-    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
-    // Start round 1's auction
-    vault_facade.start_auction();
-    // Get the current and next rounds
-    current_round_facade = vault_facade.get_current_round();
-    next_round_facade = vault_facade.get_next_round();
-    // Check round 1 is auctioning
+    accelerate_to_auctioning(ref vault_facade);
+
+    // Check round 1 is auctioning and round 2 is open
+    let (mut current_round_facade, mut next_round_facade) = vault_facade
+        .get_current_and_next_rounds();
     assert(vault_facade.get_current_round_id() == 1, 'current round should be 1');
     assert(
         current_round_facade.get_state() == OptionRoundState::Auctioning,
@@ -107,10 +99,12 @@ fn test_start_auction_becomes_current_round() {
 fn test_start_auction_event() {
     let (mut vault, _) = setup_facade();
     accelerate_to_auctioning(ref vault);
-    let mut current_round: OptionRoundFacade = vault.get_current_round();
-    let params = current_round.get_params();
+
     // Check that auction start event was emitted with correct total_options_available
-    assert_event_auction_start(current_round.contract_address(), params.total_options_available);
+    let mut current_round: OptionRoundFacade = vault.get_current_round();
+    assert_event_auction_start(
+        current_round.contract_address(), current_round.get_total_options_available()
+    );
 }
 
 // Test when the next round is deployed, the correct event fires
@@ -129,6 +123,7 @@ fn test_start_next_round_event() {
     // Finish round 1 and start round 2's auction
     accelerate_to_running(ref vault);
     accelerate_to_settled(ref vault, 'does not matter'.into());
+    // @note can remove once rtp skip is added to acclerate to auctioning
     set_block_timestamp(starknet::get_block_timestamp() + vault.get_round_transition_period() + 1);
     accelerate_to_auctioning(ref vault);
     let (_, mut round_3) = vault.get_current_and_next_rounds();
@@ -139,6 +134,9 @@ fn test_start_next_round_event() {
 
 
 /// Failures ///
+
+// @note these tests can all be done in 1 test once call no longer reverts and returns and option
+//  - assert the result is_err at each step, then passes once it jumps the rtp
 
 // Test the next auction cannot start before the round transition period is over
 #[test]

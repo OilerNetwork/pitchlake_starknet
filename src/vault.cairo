@@ -30,9 +30,28 @@ trait IVault<TContractState> {
     fn get_option_round_address(self: @TContractState, option_round_id: u256) -> ContractAddress;
 
     // Get the liquidity an LP has locked as collateral in the current round
+    // @note rm
     fn get_collateral_balance_for(
         self: @TContractState, liquidity_provider: ContractAddress
     ) -> u256;
+
+    // Get the liquidity an lp has locked
+    fn get_lp_locked_balance(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
+
+    // Get the liquidity an LP has unlocked
+    fn get_lp_unlocked_balance(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
+
+    // Ge the total liquidity an LP has in the protocol
+    fn get_lp_total_balance(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
+
+    // Get the total liquidity locked
+    fn get_locked_balance(self: @TContractState,) -> u256;
+
+    // Get the total liquidity unlocked
+    fn get_unlocked_balance(self: @TContractState,) -> u256;
+
+    // Ge the total liquidity in the protocol
+    fn get_total_balance(self: @TContractState,) -> u256;
 
     // Get the liqudity an LP has unallocated (unlocked), they can withdraw from this amount
     // @dev If the current round is Running, LP's share of its unallocated liquidity is uncluded (unless already withdrawn)
@@ -255,6 +274,34 @@ mod Vault {
             self: @ContractState, option_round_id: u256
         ) -> ContractAddress {
             self.round_addresses.read(option_round_id)
+        }
+
+        fn get_lp_locked_balance(
+            self: @ContractState, liquidity_provider: ContractAddress
+        ) -> u256 {
+            100
+        }
+
+        fn get_lp_unlocked_balance(
+            self: @ContractState, liquidity_provider: ContractAddress
+        ) -> u256 {
+            100
+        }
+
+        fn get_lp_total_balance(self: @ContractState, liquidity_provider: ContractAddress) -> u256 {
+            100
+        }
+
+        fn get_locked_balance(self: @ContractState,) -> u256 {
+            100
+        }
+
+        fn get_unlocked_balance(self: @ContractState,) -> u256 {
+            100
+        }
+
+        fn get_total_balance(self: @ContractState,) -> u256 {
+            100
         }
 
         fn get_collateral_balance_for(

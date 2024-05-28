@@ -704,7 +704,7 @@ fn accelerate_to_running(ref self: VaultFacade) -> u256 {
     current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
     // End auction
     set_block_timestamp(params.auction_end_time + 1);
-    current_round.end_auction()
+    self.end_auction()
 }
 
 fn accelerate_to_settled(ref self: VaultFacade, avg_base_fee: u256) {

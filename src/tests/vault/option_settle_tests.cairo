@@ -24,7 +24,6 @@ use pitch_lake_starknet::{
         IMarketAggregatorSafeDispatcher, IMarketAggregatorSafeDispatcherTrait
     },
     tests::{
-        utils, vault::{utils::{accelerate_to_auctioning, accelerate_to_running}},
         vault_facade::{VaultFacade, VaultFacadeTrait},
         option_round_facade::{
             OptionRoundParams, OptionRoundState, OptionRoundFacade, OptionRoundFacadeTrait
@@ -39,7 +38,9 @@ use pitch_lake_starknet::{
             option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
             option_bidder_buyer_4, zero_address, vault_manager, weth_owner,
             option_round_contract_address, mock_option_params, pop_log, assert_no_events_left,
-            month_duration, assert_event_option_settle, assert_event_transfer, clear_event_logs
+            month_duration, assert_event_option_settle, assert_event_transfer, clear_event_logs,
+            accelerate_to_settled, accelerate_to_auctioning, accelerate_to_running,
+            accelerate_to_auctioning_custom, liquidity_providers_get
         },
     }
 };
@@ -52,23 +53,23 @@ use pitch_lake_starknet::{
 fn test_options_settle_before_expiry_date_failure() {
     let (mut vault_facade, _) = setup_facade();
     // Deposit liquidity, start and end auction, minting all options at reserve price
+    accelerate_to_auctioning(ref vault_facade);
     accelerate_to_running(ref vault_facade);
 
     // Settle option round before expiry
     let mut current_round = vault_facade.get_current_round();
     let params = current_round.get_params();
     set_block_timestamp(params.option_expiry_time - 1);
-    vault_facade.settle_option_round(option_bidder_buyer_1());
+    vault_facade.settle_option_round();
 }
 
 #[test]
 #[available_gas(10000000)]
 fn test_option_round_settle_updates_round_states() {
     let (mut vault_facade, _) = setup_facade();
-    // Deposit liquidity, start and end auction, minting all options at reserve price
+    accelerate_to_auctioning(ref vault_facade);
     accelerate_to_running(ref vault_facade);
-    // Settle option round
-    vault_facade.timeskip_and_settle_round();
+    accelerate_to_settled(ref vault_facade, 0x123);
 
     // Check that the current round is Settled, and the next round is Open
     let (mut current_round, mut next_round) = vault_facade.get_current_and_next_rounds();
@@ -83,14 +84,13 @@ fn test_option_round_settle_updates_round_states() {
 #[available_gas(10000000)]
 fn test_option_round_settle_event() {
     let (mut vault_facade, _) = setup_facade();
-    // Deposit liquidity, start and end auction, minting all options at reserve price
+    accelerate_to_auctioning(ref vault_facade);
     accelerate_to_running(ref vault_facade);
-    // End auction with settlement price of 123
-    utils::accelerate_to_settled(ref vault_facade, 123);
+    accelerate_to_settled(ref vault_facade, 0x123);
 
     // Assert event emits correctly
     let mut current_round = vault_facade.get_current_round();
-    assert_event_option_settle(current_round.contract_address(), 123);
+    assert_event_option_settle(current_round.contract_address(), 0x123);
 }
 
 // @note If there needs to be a storage var for the settlement price, add test/facade/entrypoint for it
@@ -101,145 +101,141 @@ fn test_option_round_settle_event() {
 #[should_panic(expected: ('Round has already settled', 'ENTRYPOINT_FAILED',))]
 fn test_option_round_settle_twice_failure() {
     let (mut vault_facade, _) = setup_facade();
-    // Deposit into the next round, start and end its auction, minting all options at reserve price
+    // Deposit into the next round, start and end its auction, minting all options at reserve price, settle option round
+    accelerate_to_auctioning(ref vault_facade);
     accelerate_to_running(ref vault_facade);
-    // Jump to option expiry time and settle the round
-    vault_facade.timeskip_and_settle_round();
+    accelerate_to_settled(ref vault_facade, 0x123);
     // Try to settle the option round again
-    vault_facade.timeskip_and_settle_round();
+    vault_facade.settle_option_round();
 }
 
-// Test current round's remaining liquidity adds to the next round's unallocated when there is no payout, and no premiums collected
+// Test eth transfers from vault to option round when round settles with a payout
 #[test]
-#[available_gas(1000000000)]
-fn test_option_round_settle_moves_remaining_liquidity_to_next_round_without_payout_without_premiums_collected() {
-    _test_option_round_settle_moves_remaining_liquidity_to_next_round_with_or_without_payout_AND_with_or_without_premiums_collected(
-        false, false
-    );
-}
-
-// Test current round's remaining liquidity adds to the next round's unallocated when there is a payout,
-#[test]
-#[available_gas(1000000000)]
-fn test_option_round_settle_moves_remaining_liquidity_to_next_round_with_payout_without_premiums_collected() {
-    _test_option_round_settle_moves_remaining_liquidity_to_next_round_with_or_without_payout_AND_with_or_without_premiums_collected(
-        true, false
-    );
-}
-
-// Test current round's remaining liquidity adds to the next round's unallocated when there is no payout, and some premiums collected
-#[test]
-#[available_gas(1000000000)]
-fn test_option_round_settle_moves_remaining_liquidity_to_next_round_without_payout_with_premiums_collected() {
-    _test_option_round_settle_moves_remaining_liquidity_to_next_round_with_or_without_payout_AND_with_or_without_premiums_collected(
-        false, true
-    );
-}
-
-// Test current round's remaining liquidity adds to the next round's unallocated when there is a payout, and some premiums collected
-#[test]
-#[available_gas(1000000000)]
-fn test_option_round_settle_moves_remaining_liquidity_to_next_round_with_payout_with_premiums_collected() {
-    _test_option_round_settle_moves_remaining_liquidity_to_next_round_with_or_without_payout_AND_with_or_without_premiums_collected(
-        true, true
-    );
-}
-
-// Internal test function to be called by external tests. Tests the correcnt remaining liquidity transfers to the next round
-// and the round & lps collateral/unallocated updates correctly.
-// @dev This internal test can be used to test multiple scenarios (with or without payouts, and with or without lps collecting premiums)
-// @note Expand test to having LP1 and 2 deposit into the next round before current settles, will get better coverage
-
-// @note Total collateral will remain fixed at the starting value (for now) in case we need it for conversion rates later
-//  - Could have another variable option_round::starting_liquidity if we think setting collateral to 0 makes more sense upon settlement
-fn _test_option_round_settle_moves_remaining_liquidity_to_next_round_with_or_without_payout_AND_with_or_without_premiums_collected(
-    is_payouts: bool, is_premiums_collected: bool
-) {
+#[available_gas(10000000)]
+fn test_option_settle_sends_payout_to_round_eth_transfer() {
     let (mut vault_facade, eth_dispatcher) = setup_facade();
-    // LP2 deposits liquidity into round 1
-    // @dev The accelerator helper will deposit liquidity into the next round for LP1,
-    // so we are matching that deposit for more test coverage (multiple lps)
-    // @note Make sure this value matches lp1's deposit in the accelerate_to_auctioning function
-    let deposit_amount = 100 * decimals();
-    vault_facade.deposit(deposit_amount, liquidity_provider_1());
-    // Start and end auction, minting all options at reserve price
+    accelerate_to_auctioning(ref vault_facade);
     accelerate_to_running(ref vault_facade);
 
-    // LP1 does or does not collect their premiums
-    if is_premiums_collected {
-        vault_facade.collect_premiums(liquidity_provider_1());
-    }
+    let mut current_round = vault_facade.get_current_round();
+    let vault_balance_init = eth_dispatcher.balance_of(vault_facade.contract_address());
+    let round_balance_init = eth_dispatcher.balance_of(current_round.contract_address());
 
-    // ETH balance of current/next round before settlement
-    let (mut current_round, mut next_round) = vault_facade.get_current_and_next_rounds();
-    let current_round_eth_init = eth_dispatcher.balance_of(current_round.contract_address());
-    let next_round_eth_init = eth_dispatcher.balance_of(next_round.contract_address());
-    // Expected rollover amount for the current round and both LPs
-    let mut expected_rollover_round = deposit_amount * 2;
-    let mut expected_rollover_lp1 = deposit_amount;
-    let mut expected_rollover_lp2 = deposit_amount;
-    // Earned premiums rollover to the next round
-    expected_rollover_round += current_round.total_premiums();
-    expected_rollover_lp2 += current_round.total_premiums() / 2;
-    expected_rollover_lp1 += current_round.total_premiums() / 2;
-    // If premiums were collected, they are not included in the rollover
-    if is_premiums_collected {
-        let lp1_collected_amount = current_round.total_unallocated_liquidity_collected();
-        expected_rollover_round -= lp1_collected_amount;
-        expected_rollover_lp1 -= lp1_collected_amount;
-    }
-    // If there is a payout, it is not included in the rollover
-    if is_payouts {
-        // LPs share the round's loss
-        expected_rollover_round -= current_round.total_payout();
-        expected_rollover_lp1 -= current_round.total_payout() / 2;
-        expected_rollover_lp2 -= current_round.total_payout() / 2;
-    }
+    accelerate_to_settled(ref vault_facade, 2 * current_round.get_strike_price());
 
-    // Clear eth transfer events log
-    clear_event_logs(array![eth_dispatcher.contract_address]);
+    let payout = current_round.total_payout();
+    let vault_balance_final = eth_dispatcher.balance_of(vault_facade.contract_address());
+    let round_balance_final = eth_dispatcher.balance_of(current_round.contract_address());
 
-    // Settle option round with or without payout
-    let settlement_price = match is_payouts {
-        true => 2 * current_round.get_params().reserve_price,
-        false => 0
-    };
+    assert(vault_balance_final == vault_balance_init - payout, 'vault eth balance shd decrease');
+    assert(round_balance_final == round_balance_init + payout, 'round eth balance shd increase');
+}
 
-    utils::accelerate_to_settled(ref vault_facade, settlement_price);
-    let remaining_liquidity = current_round.get_remaining_liquidity();
 
-    // LP unallocated and round ETH balances before round settle
-    let (_, lp1_unallocated_final) = vault_facade.get_all_lp_liquidity(liquidity_provider_1());
-    let (_, lp2_unallocated_final) = vault_facade.get_all_lp_liquidity(liquidity_provider_2());
-    let (_, next_round_unallocated_final) = next_round.get_all_round_liquidity();
-    let current_round_eth_final = eth_dispatcher.balance_of(current_round.contract_address());
-    let next_round_eth_final = eth_dispatcher.balance_of(next_round.contract_address());
+// Test that when the round settles, the payout comes from the vault's (and lp's) locked balance
+#[test]
+#[available_gas(10000000)]
+fn test_option_settle_payout_comes_from_locked() {
+    let (mut vault_facade, _) = setup_facade();
+    accelerate_to_auctioning_custom(
+        ref vault_facade,
+        liquidity_providers_get(2).span(),
+        array![100 * decimals(), 200 * decimals()].span()
+    );
+    accelerate_to_running(ref vault_facade);
 
-    // Assert our get_remaining_liquidity helper is working as expected
+    let mut current_round = vault_facade.get_current_round();
+    let vault_locked_init = vault_facade.get_locked_balance();
+    let lp1_locked_init = vault_facade.get_lp_locked_balance(liquidity_provider_1());
+    let lp2_locked_init = vault_facade.get_lp_locked_balance(liquidity_provider_2());
+
+    accelerate_to_settled(ref vault_facade, 2 * current_round.get_strike_price());
+
+    // @dev Payout comes from locked balance, but once the round setltes, all liquidity is unlocked
+    let payout = current_round.total_payout();
+    let vault_unlocked_final = vault_facade.get_locked_balance();
+    let lp1_unlocked_final = vault_facade.get_lp_unlocked_balance(liquidity_provider_1());
+    let lp2_unlocked_final = vault_facade.get_lp_unlocked_balance(liquidity_provider_2());
+
+    assert(vault_unlocked_final == vault_locked_init - payout, 'vault unlocked wrong');
+    assert(lp1_unlocked_final == lp1_locked_init - payout / 3, 'lp1 unlocked wrong');
+    assert(lp2_unlocked_final == lp2_locked_init - 2 * payout / 3, 'lp2 unlocked wrong');
+}
+
+// @note This test is similar to the ones in unallocated_liquidity_tests.cairo
+// Test that when the round settles, locked and unlocked balances are updated (with additional deposits and withdraws)
+#[test]
+#[available_gas(10000000)]
+fn test_option_settle_locked_becomes_unlocked() {
+    let (mut vault_facade, _) = setup_facade();
+    accelerate_to_auctioning_custom(
+        ref vault_facade,
+        liquidity_providers_get(2).span(),
+        array![100 * decimals(), 200 * decimals()].span()
+    );
+    accelerate_to_running(ref vault_facade);
+    let mut current_round = vault_facade.get_current_round();
+
+    let vault_locked_init = vault_facade.get_locked_balance();
+    let lp1_locked_init = vault_facade.get_lp_locked_balance(liquidity_provider_1());
+    let lp2_locked_init = vault_facade.get_lp_locked_balance(liquidity_provider_2());
+
+    // LP1 deposits another 100 eth, LP2 withdraw's 1/2 of their earned premiums, then the round settles
+    let lp1_deposit_amount = 100 * decimals();
+    vault_facade.deposit(lp1_deposit_amount, liquidity_provider_1());
+    let lp2_premiums = (2 * current_round.total_premiums()) / 3;
+    let lp2_withdraw_amount = lp2_premiums / 2;
+    vault_facade.withdraw(lp2_withdraw_amount, liquidity_provider_2());
+    accelerate_to_settled(ref vault_facade, 2 * current_round.get_strike_price());
+
+    // @dev Payout comes from locked balance, but once the round setltes, all liquidity is unlocked
+    let payout = current_round.total_payout();
+    let vault_unlocked_final = vault_facade.get_locked_balance();
+    let lp1_unlocked_final = vault_facade.get_lp_unlocked_balance(liquidity_provider_1());
+    let lp2_unlocked_final = vault_facade.get_lp_unlocked_balance(liquidity_provider_2());
+
     assert(
-        expected_rollover_round == expected_rollover_lp1 + expected_rollover_lp2,
-        'remaining liquidity wrong math'
-    );
-    assert(remaining_liquidity == expected_rollover_round, 'remaining liquidity incorrect');
-    // Check rolled over liquidity becomes unallocated after settlement
-    assert(lp1_unallocated_final == expected_rollover_lp1, 'lp1 rollover incorrect');
-    assert(lp2_unallocated_final == expected_rollover_lp2, 'lp2 rollover incorrect');
-    assert(next_round_unallocated_final == remaining_liquidity, 'settle shd set next rnd unalloc');
-    // Check eth transfer
-    assert(
-        current_round_eth_final == current_round_eth_init - remaining_liquidity,
-        'current round eth shd dec.'
+        vault_unlocked_final == vault_locked_init
+            - payout
+            + lp1_deposit_amount
+            - lp2_withdraw_amount,
+        'vault unlocked wrong'
     );
     assert(
-        next_round_eth_final == next_round_eth_init + remaining_liquidity, 'next round eth shd inc.'
+        lp1_unlocked_final == lp1_locked_init - payout / 3 + lp1_deposit_amount,
+        'lp1 unlocked wrong'
     );
+    assert(
+        lp2_unlocked_final == lp2_locked_init - (2 * payout / 3) - lp2_withdraw_amount,
+        'lp2 unlocked wrong'
+    );
+}
 
-    // Assert transfer event
-    assert_event_transfer(
-        eth_dispatcher.contract_address,
-        current_round.contract_address(),
-        next_round.contract_address(),
-        remaining_liquidity
-    );
+// Test option round settles with no payout does not send eth or effect locked balances
+#[test]
+#[available_gas(10000000)]
+fn test_option_round_settle_no_payout_does_nothing() {
+    let (mut vault_facade, eth_dispatcher) = setup_facade();
+    accelerate_to_auctioning(ref vault_facade);
+    accelerate_to_running(ref vault_facade);
+
+    let mut current_round = vault_facade.get_current_round();
+    let vault_balance_init = eth_dispatcher.balance_of(vault_facade.contract_address());
+    let round_balance_init = eth_dispatcher.balance_of(current_round.contract_address());
+    let vault_locked_init = vault_facade.get_locked_balance();
+    let lp_locked_init = vault_facade.get_lp_locked_balance(liquidity_provider_1());
+
+    accelerate_to_settled(ref vault_facade, 2 * current_round.get_strike_price());
+
+    // @dev Locked balances become unlocked when round settles
+    let vault_balance_final = eth_dispatcher.balance_of(vault_facade.contract_address());
+    let round_balance_final = eth_dispatcher.balance_of(current_round.contract_address());
+    let vault_unlocked_final = vault_facade.get_locked_balance();
+    let lp_unlocked_final = vault_facade.get_lp_locked_balance(liquidity_provider_1());
+
+    assert(vault_balance_final == vault_balance_init, 'vault eth bal. shd not change');
+    assert(round_balance_final == round_balance_init, 'round eth bal. shd not change');
+    assert(vault_unlocked_final == vault_locked_init, 'vault locked shd not change');
+    assert(lp_unlocked_final == lp_locked_init, 'lp1 locked shd not change');
 }
 
