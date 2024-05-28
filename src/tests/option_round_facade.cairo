@@ -6,7 +6,7 @@ use pitch_lake_starknet::vault::{
 
 use starknet::{ContractAddress, testing::{set_contract_address}};
 use pitch_lake_starknet::option_round::{
-    IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState
+    IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState, StartAuctionParams,
 };
 
 use pitch_lake_starknet::tests::{utils::{vault_manager}, utils_new::structs::{OptionRoundParams}};
@@ -39,10 +39,19 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         result
     }
 
+    fn start_auction(ref self: OptionRoundFacade) {
+        set_contract_address(vault_manager());
+        let start_auction_params = StartAuctionParams {};
+        self.option_round_dispatcher.start_auction(start_auction_params);
+    }
 
     fn end_auction(ref self: OptionRoundFacade) -> u256 {
         set_contract_address(vault_manager());
         self.option_round_dispatcher.end_auction()
+    }
+
+    fn settle_option_round(ref self: OptionRoundFacade, settlement_price: u256) -> bool {
+        self.option_round_dispatcher.settle_option_round(settlement_price)
     }
 
     fn refund_bid(ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress) -> u256 {
