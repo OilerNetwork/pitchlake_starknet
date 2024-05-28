@@ -124,10 +124,7 @@ fn test_bid_after_auction_end_failure_2() {
     );
 }
 
-// @note This test should change.
-//  - Testing if bids are locked is already in test_option_round_refund_unused_bids_too_early_failure()
-//  - The name should change to something like test_bid_eth_transfer
-//  - Testing bid accepted events is in separate test (below, test_bid_accepted_events)
+// Test eth transfers from bidder to round when bid is placed
 #[test]
 #[available_gas(10000000)]
 fn test_bid_eth_transfer() {
@@ -155,6 +152,7 @@ fn test_bid_eth_transfer() {
     assert(round_balance_final == round_balance_init + bid_amount, 'bid did not reach round');
 }
 
+// Test bid accepted events
 #[test]
 #[available_gas(10000000)]
 fn test_bid_accepted_events() {
