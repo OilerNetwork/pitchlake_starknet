@@ -82,7 +82,7 @@ fn test_auction_end_before_end_date_failure() {
 
     // Try to end auction before the end time
     set_block_timestamp(params.auction_end_time - 1);
-    current_round.end_auction();
+    vault_facade.end_auction();
 }
 
 #[test]

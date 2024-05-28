@@ -60,8 +60,6 @@ fn accelerate_to_running(ref self: VaultFacade) {
     current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
     // End auction
     set_block_timestamp(params.auction_end_time + 1);
-    current_round.end_auction();
+    self.end_auction();
 }
-// @note Might want to add accelerate to settled with args for settlemnt price
-
 
