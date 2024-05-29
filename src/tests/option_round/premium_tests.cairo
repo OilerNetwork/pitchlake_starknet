@@ -165,8 +165,10 @@ fn test_premium_collection_emits_events() {
     // Clear events
     clear_event_logs(array![vault_facade.contract_address(), option_round.contract_address()]);
     // Initial protocol spread
-    let (lp1_collateral_init, lp1_unallocated_init) = vault_facade.get_lp_balance_spread(*lps.at(0));
-    let (lp2_collateral_init, lp2_unallocated_init) = vault_facade.get_lp_balance_spread(*lps.at(1));
+    let (lp1_collateral_init, lp1_unallocated_init) = vault_facade
+        .get_lp_balance_spread(*lps.at(0));
+    let (lp2_collateral_init, lp2_unallocated_init) = vault_facade
+        .get_lp_balance_spread(*lps.at(1));
     let lp1_total_balance_before = lp1_collateral_init + lp1_unallocated_init;
     let lp2_total_balance_before = lp2_collateral_init + lp2_unallocated_init;
 
@@ -282,8 +284,7 @@ fn _test_premiums_collectable_helper(
         }
         // @note Handle precision loss ?
         let lp_expected_premium = (*amount_span.at(i) * total_premium) / total_collateral_in_pool;
-        let lp_actual_premium = vault_facade
-            .get_lp_unlocked_balance(*liquidity_providers.at(i));
+        let lp_actual_premium = vault_facade.get_lp_unlocked_balance(*liquidity_providers.at(i));
 
         assert(lp_actual_premium == lp_expected_premium, 'LP premiums wrong');
 

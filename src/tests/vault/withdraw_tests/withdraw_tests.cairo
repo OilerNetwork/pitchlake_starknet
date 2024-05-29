@@ -60,13 +60,13 @@ fn test_withdraw_is_always_from_unlocked() {
     vault.deposit(deposit_amount + 1, liquidity_provider_1());
 
     let init_lp_balance = eth_dispatcher.balance_of(liquidity_provider_1());
-    let (init_locked,init_unlocked) = vault.get_lp_balance_spread(liquidity_provider_1());
+    let (init_locked, init_unlocked) = vault.get_lp_balance_spread(liquidity_provider_1());
     vault.withdraw(deposit_amount, liquidity_provider_1());
 
     let final_lp_balance = eth_dispatcher.balance_of(liquidity_provider_1());
-    let (final_locked,final_unlocked) = vault.get_lp_balance_spread(liquidity_provider_1());
+    let (final_locked, final_unlocked) = vault.get_lp_balance_spread(liquidity_provider_1());
 
-    assert(init_locked==final_locked, 'Locked position mismatch');
+    assert(init_locked == final_locked, 'Locked position mismatch');
     assert(init_lp_balance == final_lp_balance - deposit_amount, 'LP balance mistmatch');
     assert(init_unlocked == final_unlocked + deposit_amount, 'Vault balance mistmatch');
     // Deposit liquidity while current round is running
@@ -74,13 +74,13 @@ fn test_withdraw_is_always_from_unlocked() {
     vault.deposit(deposit_amount + 2, liquidity_provider_1());
 
     let init_lp_balance = eth_dispatcher.balance_of(liquidity_provider_1());
-    let (init_locked,init_unlocked) = vault.get_lp_balance_spread(liquidity_provider_1());
+    let (init_locked, init_unlocked) = vault.get_lp_balance_spread(liquidity_provider_1());
     vault.withdraw(deposit_amount + 1, liquidity_provider_1());
 
     let final_lp_balance = eth_dispatcher.balance_of(liquidity_provider_1());
-    let (final_locked,final_unlocked) = vault.get_lp_balance_spread(liquidity_provider_1());
+    let (final_locked, final_unlocked) = vault.get_lp_balance_spread(liquidity_provider_1());
 
-    assert(init_locked==final_locked, 'Locked position mismatch');
+    assert(init_locked == final_locked, 'Locked position mismatch');
     assert(init_lp_balance == final_lp_balance - deposit_amount, 'LP balance mistmatch');
     assert(init_unlocked == final_unlocked + deposit_amount, 'Vault balance mistmatch');
 
@@ -88,13 +88,13 @@ fn test_withdraw_is_always_from_unlocked() {
     vault.deposit(deposit_amount + 2, liquidity_provider_1());
 
     let init_lp_balance = eth_dispatcher.balance_of(liquidity_provider_1());
-    let (init_locked,init_unlocked) = vault.get_lp_balance_spread(liquidity_provider_1());
+    let (init_locked, init_unlocked) = vault.get_lp_balance_spread(liquidity_provider_1());
     vault.withdraw(deposit_amount + 1, liquidity_provider_1());
 
     let final_lp_balance = eth_dispatcher.balance_of(liquidity_provider_1());
-    let (final_locked,final_unlocked) = vault.get_lp_balance_spread(liquidity_provider_1());
+    let (final_locked, final_unlocked) = vault.get_lp_balance_spread(liquidity_provider_1());
 
-    assert(init_locked==final_locked, 'Locked position mismatch');
+    assert(init_locked == final_locked, 'Locked position mismatch');
     assert(init_lp_balance == final_lp_balance - deposit_amount, 'LP balance mistmatch');
     assert(init_unlocked == final_unlocked + deposit_amount, 'Vault balance mistmatch');
 // @note Check eth transfer without event
