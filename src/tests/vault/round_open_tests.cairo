@@ -17,8 +17,8 @@ use pitch_lake_starknet::{
                 liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
                 option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
             },
+            variables::{decimals}, setup::{setup_facade},
         },
-        utils::{setup_facade, decimals, deploy_vault,},
         vault_facade::{VaultFacade, VaultFacadeTrait},
         option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
     }

@@ -13,6 +13,7 @@ mod utils_new {
     mod accelerators;
     mod test_accounts;
     mod variables;
+    mod setup;
 }
 
 #[cfg(test)]

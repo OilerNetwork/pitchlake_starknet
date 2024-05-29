@@ -23,8 +23,8 @@ use pitch_lake_starknet::{
                 liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
                 option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
             },
+            setup::{decimals, deploy_vault, deploy_pitch_lake},
         },
-        utils::{decimals, deploy_vault, deploy_pitch_lake},
         option_round_facade::{OptionRoundFacade, OptionRoundFacadeImpl}
     },
 };

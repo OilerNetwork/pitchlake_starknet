@@ -29,8 +29,8 @@ use pitch_lake_starknet::{
                 option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
                 option_bidder_buyer_4,
             },
+            variables::{decimals}, setup::{setup_facade}
         },
-        utils::{setup_facade, decimals, deploy_vault,}
     },
 };
 use debug::PrintTrait;

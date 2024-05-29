@@ -10,7 +10,6 @@ use starknet::{
 use pitch_lake_starknet::{
     eth::Eth,
     tests::{
-        utils::{setup_facade, decimals, deploy_vault,},
         utils_new::{
             event_helpers::{pop_log, assert_no_events_left, assert_event_transfer},
             accelerators::{accelerate_to_running},
@@ -18,6 +17,7 @@ use pitch_lake_starknet::{
                 liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
                 option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4
             },
+            variables::{decimals}, setup::{setup_facade}
         },
         option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
         vault_facade::{VaultFacade, VaultFacadeTrait},

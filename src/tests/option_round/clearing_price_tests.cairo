@@ -2,7 +2,6 @@ use pitch_lake_starknet::{
     tests::{
         vault_facade::{VaultFacade, VaultFacadeTrait},
         option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundParams},
-        utils::{setup_facade, decimals,},
         utils_new::{
             accelerators::{
                 accelerate_to_auctioning, accelerate_to_running, accelerate_to_running_custom
@@ -11,6 +10,7 @@ use pitch_lake_starknet::{
                 option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
                 option_bidder_buyer_4, option_bidders_get,
             },
+            setup::{setup_facade}, variables::{decimals}
         },
     }
 };

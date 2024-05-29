@@ -11,8 +11,8 @@ use pitch_lake_starknet::tests::{
             liquidity_provider_1, liquidity_provider_2, liquidity_providers_get,
             option_bidder_buyer_1, option_bidder_buyer_2, option_bidders_get,
         },
+        variables::{decimals}, setup::{setup_facade},
     },
-    utils::{setup_facade, decimals},
     mocks::mock_market_aggregator::{
         MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
         IMarketAggregatorSetterDispatcherTrait

@@ -18,9 +18,9 @@ use pitch_lake_starknet::{
         utils_new::{
             structs::{OptionRoundParams}, event_helpers::{clear_event_logs},
             test_accounts::{liquidity_provider_1, option_bidder_buyer_1},
-            variables::{vault_manager},
+            variables::{vault_manager, decimals},
         },
-        utils::{decimals,}, option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
+        option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
         vault_facade::{VaultFacade, VaultFacadeTrait},
         mocks::mock_market_aggregator::{
             MockMarketAggregator, IMarketAggregatorSetterDispatcher,

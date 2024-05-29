@@ -26,8 +26,8 @@ use pitch_lake_starknet::{
                 option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
                 liquidity_providers_get, option_bidders_get,
             },
+            variables::{decimals}, setup::{setup_facade},
         },
-        utils::{setup_facade, decimals, deploy_vault,},
         mocks::mock_market_aggregator::{
             MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
             IMarketAggregatorSetterDispatcherTrait

@@ -18,8 +18,8 @@ use pitch_lake_starknet::{
                 liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
                 option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
             },
+            setup::{setup_facade, decimals, deploy_vault}
         },
-        utils::{setup_facade, decimals, deploy_vault}
     }
 };
 

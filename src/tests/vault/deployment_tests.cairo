@@ -34,9 +34,8 @@ use pitch_lake_starknet::{
                 liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
                 option_bidder_buyer_2,
             },
-            variables::{vault_manager},
+            variables::{vault_manager, decimals}, setup::{setup_facade},
         },
-        utils::{setup_facade, decimals, deploy_vault,},
     },
 };
 use debug::PrintTrait;
