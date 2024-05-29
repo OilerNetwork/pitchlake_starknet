@@ -9,9 +9,7 @@ use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTr
 
 use starknet::{ContractAddress, testing::{set_contract_address, set_block_timestamp}};
 
-use pitch_lake_starknet::tests::{
-    utils::{liquidity_provider_1, vault_manager, decimals, assert_event_transfer},
-};
+use pitch_lake_starknet::tests::{utils::{liquidity_provider_1, vault_manager, decimals},};
 use pitch_lake_starknet::tests::mocks::mock_market_aggregator::{
     MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
     IMarketAggregatorSetterDispatcherTrait,

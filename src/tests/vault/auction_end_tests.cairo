@@ -1,46 +1,40 @@
-use debug::PrintTrait;
-use option::OptionTrait;
-use openzeppelin::token::erc20::interface::{
-    IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
-    IERC20SafeDispatcherTrait,
-};
-
-use pitch_lake_starknet::vault::{
-    IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait,
-};
-use pitch_lake_starknet::option_round::{OptionRoundState};
-
-use result::ResultTrait;
 use starknet::{
     ClassHash, ContractAddress, contract_address_const, deploy_syscall,
     Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
     testing::{set_block_timestamp, set_contract_address}
 };
-
-use pitch_lake_starknet::tests::vault_facade::{VaultFacade, VaultFacadeTrait};
-use pitch_lake_starknet::tests::option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait};
-use starknet::contract_address::ContractAddressZeroable;
-use openzeppelin::utils::serde::SerializedAppend;
-
-use traits::Into;
-use traits::TryInto;
-use pitch_lake_starknet::eth::Eth;
-use pitch_lake_starknet::tests::utils::{
-    setup_facade, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
-    timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
-    option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
-    zero_address, vault_manager, weth_owner, option_round_contract_address, mock_option_params,
-    liquidity_providers_get, option_bidders_get, pop_log, assert_no_events_left, month_duration,
-    create_array_linear, create_array_gradient, accelerate_to_auctioning_custom,
-    accelerate_to_running_custom, accelerate_to_settled, assert_event_auction_end,
-    accelerate_to_auctioning, accelerate_to_running,
+use openzeppelin::token::erc20::interface::{
+    IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
+    IERC20SafeDispatcherTrait,
 };
-use pitch_lake_starknet::option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait};
-use pitch_lake_starknet::tests::mocks::mock_market_aggregator::{
-    MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
-    IMarketAggregatorSetterDispatcherTrait
+use pitch_lake_starknet::{
+    eth::Eth,
+    vault::{
+        IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault,
+        IVaultSafeDispatcherTrait,
+    },
+    tests::{
+        utils_new::{event_helpers::{pop_log, assert_no_events_left, assert_event_auction_end}},
+        utils::{
+            setup_facade, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
+            timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
+            option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
+            option_bidder_buyer_4, zero_address, vault_manager, weth_owner,
+            option_round_contract_address, mock_option_params, liquidity_providers_get,
+            option_bidders_get, month_duration, create_array_linear, create_array_gradient,
+            accelerate_to_auctioning_custom, accelerate_to_running_custom, accelerate_to_settled,
+            accelerate_to_auctioning, accelerate_to_running,
+        },
+        mocks::mock_market_aggregator::{
+            MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
+            IMarketAggregatorSetterDispatcherTrait
+        },
+        vault_facade::{VaultFacade, VaultFacadeTrait},
+        option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
+    },
+    option_round::{OptionRoundState, IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
 };
-
+use debug::PrintTrait;
 
 // @note these test can be put into 1 test, see not in auction_start_tests.cairo
 

@@ -1,45 +1,38 @@
-use array::ArrayTrait;
-use debug::PrintTrait;
-use option::OptionTrait;
-use openzeppelin::token::erc20::interface::{
-    IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
-    IERC20SafeDispatcherTrait,
-};
-
-use pitch_lake_starknet::vault::{Vault};
-
-use result::ResultTrait;
 use starknet::{
     ClassHash, ContractAddress, contract_address_const, deploy_syscall,
     Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
     testing::{set_block_timestamp, set_contract_address}
 };
-
-use starknet::contract_address::ContractAddressZeroable;
-use openzeppelin::utils::serde::SerializedAppend;
-
-use traits::Into;
-use traits::TryInto;
-use pitch_lake_starknet::eth::Eth;
-use pitch_lake_starknet::tests::vault_facade::{VaultFacade, VaultFacadeTrait};
-use pitch_lake_starknet::tests::option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait};
-
-use pitch_lake_starknet::option_round::{
-    IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState
+use openzeppelin::token::erc20::interface::{
+    IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
+    IERC20SafeDispatcherTrait,
 };
-use pitch_lake_starknet::tests::utils;
-use pitch_lake_starknet::tests::utils::{
-    setup_facade, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
-    assert_event_transfer, timestamp_start_month, timestamp_end_month, liquidity_provider_1,
-    liquidity_provider_2, option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
-    option_bidder_buyer_4, zero_address, vault_manager, weth_owner, option_round_contract_address,
-    mock_option_params, pop_log, assert_no_events_left, create_array_gradient,
-    liquidity_providers_get, clear_event_logs, assert_event_auction_start, assert_event_auction_end,
-    assert_event_option_settle, assert_event_option_round_deployed, assert_event_vault_deposit,
-    assert_event_vault_withdrawal, accelerate_to_auctioning, accelerate_to_running,
-    accelerate_to_settled,
+use pitch_lake_starknet::{
+    eth::Eth, vault::{Vault},
+    option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState},
+    tests::{
+        utils_new::event_helpers::{
+            assert_event_transfer, pop_log, assert_no_events_left, assert_event_option_settle,
+            assert_event_option_round_deployed, assert_event_vault_deposit,
+            assert_event_auction_start, assert_event_auction_bid_accepted,
+            assert_event_auction_bid_rejected, assert_event_auction_end,
+            assert_event_vault_withdrawal, assert_event_unused_bids_refunded,
+            assert_event_options_exercised
+        },
+        utils::{
+            setup_facade, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
+            timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
+            option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
+            option_bidder_buyer_4, zero_address, vault_manager, weth_owner,
+            option_round_contract_address, mock_option_params, create_array_gradient,
+            liquidity_providers_get, clear_event_logs, accelerate_to_auctioning,
+            accelerate_to_running, accelerate_to_settled,
+        },
+        vault_facade::{VaultFacade, VaultFacadeTrait},
+        option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
+    }
 };
-
+use debug::PrintTrait;
 
 // Test when LP deposit, tokens are getting stored in unlocked pool in vault of the next round
 #[test]
@@ -212,15 +205,15 @@ fn test_event_testers() {
     assert_event_transfer(e.contract_address, liquidity_provider_1(), liquidity_provider_2(), 100);
     r.option_round_dispatcher.rm_me(100);
     assert_event_auction_start(r.contract_address(), 100);
-    utils::assert_event_auction_bid_accepted(r.contract_address(), r.contract_address(), 100, 100);
-    utils::assert_event_auction_bid_rejected(r.contract_address(), r.contract_address(), 100, 100);
+    assert_event_auction_bid_accepted(r.contract_address(), r.contract_address(), 100, 100);
+    assert_event_auction_bid_rejected(r.contract_address(), r.contract_address(), 100, 100);
     assert_event_auction_end(r.contract_address(), 100);
     assert_event_option_settle(r.contract_address(), 100);
     assert_event_option_round_deployed(v.contract_address(), 1, v.contract_address());
     assert_event_vault_deposit(v.contract_address(), v.contract_address(), 100, 100);
     assert_event_vault_withdrawal(v.contract_address(), v.contract_address(), 100, 100);
-    utils::assert_event_unused_bids_refunded(r.contract_address(), r.contract_address(), 100);
-    utils::assert_event_options_exercised(r.contract_address(), r.contract_address(), 100, 100);
+    assert_event_unused_bids_refunded(r.contract_address(), r.contract_address(), 100);
+    assert_event_options_exercised(r.contract_address(), r.contract_address(), 100, 100);
 }
 
 // Test deposits always go to the vault's unlocked pool

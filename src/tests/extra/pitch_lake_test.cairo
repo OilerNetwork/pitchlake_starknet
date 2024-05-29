@@ -65,6 +65,11 @@
 // events: liq deployed addr round amount
 // events: liq redeemed addr round amount (base, reward)
 
+use starknet::{
+    ClassHash, ContractAddress, contract_address_const, deploy_syscall,
+    Felt252TryIntoContractAddress, get_contract_address,
+};
+use openzeppelin::utils::serde::SerializedAppend;
 use pitch_lake_starknet::{
     pitch_lake::{
         IPitchLake, IPitchLakeDispatcher, IPitchLakeDispatcherTrait, IPitchLakeSafeDispatcher,
@@ -76,13 +81,6 @@ use pitch_lake_starknet::{
     },
     tests::utils::{deploy_vault, deploy_market_aggregator, deploy_pitch_lake},
 };
-use starknet::{
-    ClassHash, ContractAddress, contract_address_const, deploy_syscall,
-    Felt252TryIntoContractAddress, get_contract_address,
-};
-use traits::TryInto;
-use openzeppelin::utils::serde::SerializedAppend;
-use starknet::contract_address::ContractAddressZeroable;
 use debug::PrintTrait;
 
 // @note Make a tests/pitchlake/ directory for this ?

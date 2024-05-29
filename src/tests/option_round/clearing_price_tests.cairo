@@ -5,9 +5,9 @@ use pitch_lake_starknet::{
         utils::{
             setup_facade, decimals, liquidity_provider_1, option_bidder_buyer_1,
             option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
-            accelerate_to_running, accelerate_to_running_custom, option_bidders_get
+            accelerate_to_running, accelerate_to_running_custom, option_bidders_get,
+            accelerate_to_auctioning
         },
-        vault::utils::{accelerate_to_auctioning}
     }
 };
 use starknet::testing::{set_block_timestamp, set_contract_address};

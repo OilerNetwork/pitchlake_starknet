@@ -1,6 +1,3 @@
-use debug::PrintTrait;
-use option::OptionTrait;
-use result::ResultTrait;
 use starknet::{
     ClassHash, ContractAddress, contract_address_const, deploy_syscall,
     Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
@@ -32,18 +29,22 @@ use pitch_lake_starknet::{
             MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
             IMarketAggregatorSetterDispatcherTrait
         },
+        utils_new::event_helpers::{
+            clear_event_logs, assert_event_option_settle, assert_event_transfer,
+            assert_no_events_left, pop_log
+        },
         utils::{
             setup_facade, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
             timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
             option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
             option_bidder_buyer_4, zero_address, vault_manager, weth_owner,
-            option_round_contract_address, mock_option_params, pop_log, assert_no_events_left,
-            month_duration, assert_event_option_settle, assert_event_transfer, clear_event_logs,
+            option_round_contract_address, mock_option_params, month_duration,
             accelerate_to_settled, accelerate_to_auctioning, accelerate_to_running,
             accelerate_to_auctioning_custom, liquidity_providers_get
         },
     }
 };
+use debug::PrintTrait;
 
 // @note move to option_round/state_transition_tests or /option_settle_tests
 // Test options cannot settle before expiry date

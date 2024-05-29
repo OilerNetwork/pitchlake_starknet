@@ -9,6 +9,7 @@ mod mocks {
 #[cfg(test)]
 mod utils_new {
     mod structs;
+    mod event_helpers;
 }
 
 #[cfg(test)]

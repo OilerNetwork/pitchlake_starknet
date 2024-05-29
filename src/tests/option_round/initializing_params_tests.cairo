@@ -1,40 +1,34 @@
-use array::ArrayTrait;
-use debug::PrintTrait;
-use option::OptionTrait;
+use starknet::{
+    ClassHash, ContractAddress, contract_address_const, deploy_syscall,
+    Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
+    testing::{set_block_timestamp, set_contract_address}, contract_address::ContractAddressZeroable
+};
 use openzeppelin::token::erc20::interface::{
     IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
     IERC20SafeDispatcherTrait,
 };
 
 use pitch_lake_starknet::{
+    eth::Eth,
     pitch_lake::{
         IPitchLakeDispatcher, IPitchLakeSafeDispatcher, IPitchLakeDispatcherTrait, PitchLake,
         IPitchLakeSafeDispatcherTrait
     },
     vault::{IVaultDispatcher, IVaultDispatcherTrait, Vault, VaultType},
-    option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait}
-};
-
-use result::ResultTrait;
-use starknet::{
-    ClassHash, ContractAddress, contract_address_const, deploy_syscall,
-    Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
-    testing::{set_block_timestamp, set_contract_address}, contract_address::ContractAddressZeroable
-};
-
-use openzeppelin::utils::serde::SerializedAppend;
-
-use pitch_lake_starknet::eth::Eth;
-use pitch_lake_starknet::tests::{
-    utils::{
-        decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
-        timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
-        option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
-        vault_manager, weth_owner, option_round_contract_address, mock_option_params, pop_log,
-        assert_no_events_left, deploy_pitch_lake
+    option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
+    tests::{
+        utils_new::event_helpers::{pop_log, assert_no_events_left},
+        utils::{
+            decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
+            timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
+            option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
+            option_bidder_buyer_4, vault_manager, weth_owner, option_round_contract_address,
+            mock_option_params, deploy_pitch_lake
+        },
+        option_round_facade::{OptionRoundFacade, OptionRoundFacadeImpl}
     },
-    option_round_facade::{OptionRoundFacade, OptionRoundFacadeImpl}
 };
+use debug::PrintTrait;
 
 // @note Need to manually initialize round 1, either
 // upon vault deployment (constructor) or through a one-time round 1 initializer entry point
