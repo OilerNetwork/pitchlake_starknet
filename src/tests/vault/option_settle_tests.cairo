@@ -44,10 +44,7 @@ use pitch_lake_starknet::{
                 liquidity_providers_get
             },
         },
-        utils::{
-            setup_facade, decimals, deploy_vault,
-            zero_address, vault_manager, weth_owner, mock_option_params, month_duration,
-        },
+        utils::{setup_facade, decimals, deploy_vault,},
     }
 };
 use debug::PrintTrait;

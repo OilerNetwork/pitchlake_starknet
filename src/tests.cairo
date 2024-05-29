@@ -12,6 +12,7 @@ mod utils_new {
     mod event_helpers;
     mod accelerators;
     mod test_accounts;
+    mod variables;
 }
 
 #[cfg(test)]

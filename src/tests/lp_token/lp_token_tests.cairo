@@ -19,10 +19,7 @@ use pitch_lake_starknet::{
                 option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
             },
         },
-        utils::{
-            setup_facade, decimals, deploy_vault,
-            vault_manager, weth_owner, mock_option_params
-        }
+        utils::{setup_facade, decimals, deploy_vault}
     }
 };
 

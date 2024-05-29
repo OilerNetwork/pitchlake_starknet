@@ -3,13 +3,14 @@ use pitch_lake_starknet::vault::{
     IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait,
     VaultType
 };
-
 use starknet::{ContractAddress, testing::{set_contract_address}};
-use pitch_lake_starknet::option_round::{
-    IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState, StartAuctionParams,
+use pitch_lake_starknet::{
+    option_round::{
+        IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState, StartAuctionParams,
+    },
+    tests::{utils_new::{variables::{vault_manager}, structs::{OptionRoundParams}}}
 };
 
-use pitch_lake_starknet::tests::{utils::{vault_manager}, utils_new::structs::{OptionRoundParams}};
 
 //@note: confirm start/end auction flow in relation to vault function and set_contract_address accordingly
 //fn start_auction(ref option_round_dispatcher: IOptionRoundDispatcher) -> bool {

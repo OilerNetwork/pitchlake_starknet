@@ -17,10 +17,10 @@ use pitch_lake_starknet::{
     tests::{
         utils_new::{
             structs::{OptionRoundParams}, event_helpers::{clear_event_logs},
-            test_accounts::{liquidity_provider_1, option_bidder_buyer_1}
+            test_accounts::{liquidity_provider_1, option_bidder_buyer_1},
+            variables::{vault_manager},
         },
-        utils::{vault_manager, decimals,},
-        option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
+        utils::{decimals,}, option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
         vault_facade::{VaultFacade, VaultFacadeTrait},
         mocks::mock_market_aggregator::{
             MockMarketAggregator, IMarketAggregatorSetterDispatcher,

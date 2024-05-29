@@ -14,7 +14,7 @@ use pitch_lake_starknet::tests::{
             option_bidder_buyer_6, option_bidders_get
         },
     },
-    utils::{setup_facade, decimals, vault_manager,}, vault_facade::{VaultFacade, VaultFacadeTrait},
+    utils::{setup_facade, decimals,}, vault_facade::{VaultFacade, VaultFacadeTrait},
     option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundParams}
 };
 
@@ -314,7 +314,7 @@ fn test_option_round_options_sold_before_auction_end_is_0() {
     let (mut vault_facade, _) = setup_facade();
 
     // Deposit liquidity and start the auction
-    set_contract_address(vault_manager());
+    //set_contract_address(vault_manager());
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();

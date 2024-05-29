@@ -10,10 +10,7 @@ use starknet::{
 use pitch_lake_starknet::{
     eth::Eth,
     tests::{
-        utils::{
-            setup_facade, decimals, deploy_vault,
-            zero_address, vault_manager, weth_owner, mock_option_params,
-        },
+        utils::{setup_facade, decimals, deploy_vault,},
         utils_new::{
             event_helpers::{pop_log, assert_no_events_left, assert_event_transfer},
             accelerators::{accelerate_to_running},

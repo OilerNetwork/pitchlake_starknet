@@ -33,12 +33,10 @@ use pitch_lake_starknet::{
             test_accounts::{
                 liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
                 option_bidder_buyer_2,
-            }
+            },
+            variables::{vault_manager},
         },
-        utils::{
-            setup_facade, decimals, deploy_vault,
-            vault_manager, weth_owner, mock_option_params,
-        },
+        utils::{setup_facade, decimals, deploy_vault,},
     },
 };
 use debug::PrintTrait;

@@ -27,10 +27,7 @@ use pitch_lake_starknet::{
                 liquidity_providers_get, option_bidders_get,
             },
         },
-        utils::{
-            setup_facade, decimals, deploy_vault,
-            zero_address, vault_manager, weth_owner, mock_option_params, month_duration,
-        },
+        utils::{setup_facade, decimals, deploy_vault,},
         mocks::mock_market_aggregator::{
             MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
             IMarketAggregatorSetterDispatcherTrait
@@ -162,7 +159,8 @@ fn test_option_round_end_auction_twice_failure() {
     let deposit_amount_wei: u256 = 10000 * decimals();
     vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
     // Start auction
-    set_contract_address(vault_manager());
+    // @note need accelerators
+    //set_contract_address(vault_manager());
     vault_facade.start_auction();
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
     // Make bid

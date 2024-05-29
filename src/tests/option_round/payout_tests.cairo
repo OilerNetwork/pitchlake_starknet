@@ -16,7 +16,7 @@ use pitch_lake_starknet::tests::{
             option_bidder_buyer_3, option_bidders_get
         },
     },
-    utils::{setup_facade, decimals, vault_manager, clear_event_logs,},
+    utils::{setup_facade, decimals, clear_event_logs,},
     mocks::mock_market_aggregator::{
         MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
         IMarketAggregatorSetterDispatcherTrait

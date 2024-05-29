@@ -35,11 +35,7 @@ use pitch_lake_starknet::{
                 option_bidders_get,
             }
         },
-        utils::{
-            setup_facade, decimals, deploy_vault,
-            zero_address, vault_manager, weth_owner, mock_option_params, month_duration,
-            clear_event_logs,
-        },
+        utils::{setup_facade, decimals, deploy_vault, clear_event_logs,},
     },
 };
 use debug::PrintTrait;

@@ -7,7 +7,8 @@ use pitch_lake_starknet::{
         MarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
     },
     tests::{
-        utils_new::{test_accounts::{liquidity_provider_1}}, utils::{vault_manager, decimals},
+        utils_new::{test_accounts::{liquidity_provider_1}, variables::{vault_manager}},
+        utils::{decimals},
         mocks::mock_market_aggregator::{
             MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
             IMarketAggregatorSetterDispatcherTrait,

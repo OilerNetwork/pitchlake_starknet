@@ -30,10 +30,7 @@ use pitch_lake_starknet::{
                 liquidity_providers_get
             },
         },
-        utils::{
-            setup_facade, decimals, deploy_vault,
-            zero_address, vault_manager, weth_owner, mock_option_params,
-        },
+        utils::{setup_facade, decimals, deploy_vault,},
         vault_facade::{VaultFacade, VaultFacadeTrait},
         option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
     }
