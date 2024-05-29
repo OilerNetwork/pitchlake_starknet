@@ -4,7 +4,7 @@ use openzeppelin::token::erc20::interface::{
     IERC20SafeDispatcherTrait,
 };
 use pitch_lake_starknet::tests::{
-    utils_new::{
+    utils::{
         event_helpers::{assert_event_unused_bids_refunded, clear_event_logs},
         accelerators::{
             accelerate_to_auctioning, accelerate_to_running_custom, accelerate_to_running,
@@ -15,9 +15,11 @@ use pitch_lake_starknet::tests::{
             option_bidder_buyer_3, option_bidders_get,
         },
         variables::{decimals}, setup::{setup_facade},
+        facades::{
+            vault_facade::{VaultFacade, VaultFacadeTrait},
+            option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait}
+        },
     },
-    vault_facade::{VaultFacade, VaultFacadeTrait},
-    option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait}
 };
 
 // @note Should event emit if collecting 0 ?

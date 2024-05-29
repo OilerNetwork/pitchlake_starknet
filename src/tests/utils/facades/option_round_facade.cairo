@@ -8,7 +8,7 @@ use pitch_lake_starknet::{
     option_round::{
         IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState, StartAuctionParams,
     },
-    tests::{utils_new::{variables::{vault_manager}, structs::{OptionRoundParams}}}
+    tests::{utils::{variables::{vault_manager}, structs::{OptionRoundParams}}}
 };
 
 

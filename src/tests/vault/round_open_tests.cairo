@@ -11,16 +11,18 @@ use openzeppelin::token::erc20::interface::{
 use pitch_lake_starknet::{
     eth::Eth, option_round::{OptionRoundState},
     tests::{
-        utils_new::{
+        utils::{
             event_helpers::{assert_event_transfer, pop_log, assert_no_events_left},
             test_accounts::{
                 liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
                 option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
             },
             variables::{decimals}, setup::{setup_facade},
+            facades::{
+                vault_facade::{VaultFacade, VaultFacadeTrait},
+                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
+            },
         },
-        vault_facade::{VaultFacade, VaultFacadeTrait},
-        option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
     }
 };
 use debug::PrintTrait;

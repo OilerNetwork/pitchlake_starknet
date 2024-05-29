@@ -1,9 +1,7 @@
 use starknet::{get_block_timestamp, testing::{set_contract_address, set_block_timestamp}};
 use pitch_lake_starknet::{
     tests::{
-        vault_facade::{VaultFacade, VaultFacadeTrait},
-        option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundParams},
-        utils_new::{
+        utils::{
             accelerators::{
                 accelerate_to_auctioning, accelerate_to_running, accelerate_to_running_custom
             },
@@ -12,6 +10,10 @@ use pitch_lake_starknet::{
                 option_bidder_buyer_3, option_bidder_buyer_4, option_bidders_get,
             },
             variables::{decimals}, setup::{setup_facade},
+            facades::{
+                vault_facade::{VaultFacade, VaultFacadeTrait},
+                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundParams},
+            },
         },
     }
 };

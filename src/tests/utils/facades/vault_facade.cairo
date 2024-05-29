@@ -7,12 +7,14 @@ use pitch_lake_starknet::{
         MarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
     },
     tests::{
-        utils_new::{test_accounts::{liquidity_provider_1}, variables::{vault_manager, decimals}},
-        mocks::mock_market_aggregator::{
-            MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
-            IMarketAggregatorSetterDispatcherTrait,
+        utils::{
+            mocks::mock_market_aggregator::{
+                MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
+                IMarketAggregatorSetterDispatcherTrait,
+            },
+            test_accounts::{liquidity_provider_1}, variables::{vault_manager, decimals},
+            facades::{option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},}
         },
-        option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
     }
 };
 

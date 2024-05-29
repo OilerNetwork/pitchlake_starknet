@@ -1,7 +1,5 @@
 use pitch_lake_starknet::tests::{
-    option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
-    vault_facade::{VaultFacade, VaultFacadeTrait},
-    utils_new::{
+    utils::{
         accelerators::{
             accelerate_to_auctioning_custom, create_array_gradient, create_array_linear,
             accelerate_to_running_custom, accelerate_to_auctioning, accelerate_to_settled,
@@ -12,10 +10,14 @@ use pitch_lake_starknet::tests::{
             option_bidder_buyer_1, option_bidder_buyer_2, option_bidders_get,
         },
         variables::{decimals}, setup::{setup_facade},
-    },
-    mocks::mock_market_aggregator::{
-        MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
-        IMarketAggregatorSetterDispatcherTrait
+        facades::{
+            option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
+            vault_facade::{VaultFacade, VaultFacadeTrait},
+        },
+        mocks::mock_market_aggregator::{
+            MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
+            IMarketAggregatorSetterDispatcherTrait
+        },
     },
 };
 

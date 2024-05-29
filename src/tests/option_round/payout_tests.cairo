@@ -1,9 +1,7 @@
 use starknet::testing::{set_block_timestamp, set_contract_address};
 use openzeppelin::token::erc20::interface::{IERC20, IERC20Dispatcher, IERC20DispatcherTrait,};
 use pitch_lake_starknet::tests::{
-    vault_facade::{VaultFacade, VaultFacadeTrait},
-    option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
-    utils_new::{
+    utils::{
         event_helpers::{
             assert_event_transfer, assert_event_vault_withdrawal, assert_event_options_exercised,
             clear_event_logs,
@@ -17,10 +15,14 @@ use pitch_lake_starknet::tests::{
             option_bidder_buyer_3, option_bidders_get
         },
         variables::decimals, setup::{setup_facade},
-    },
-    mocks::mock_market_aggregator::{
-        MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
-        IMarketAggregatorSetterDispatcherTrait
+        facades::{
+            vault_facade::{VaultFacade, VaultFacadeTrait},
+            option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
+        },
+        mocks::mock_market_aggregator::{
+            MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
+            IMarketAggregatorSetterDispatcherTrait
+        },
     },
 };
 

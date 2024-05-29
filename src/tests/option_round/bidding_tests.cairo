@@ -17,13 +17,7 @@ use pitch_lake_starknet::{
     },
     option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
     tests::{
-        vault_facade::{VaultFacade, VaultFacadeTrait},
-        option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
-        mocks::mock_market_aggregator::{
-            MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
-            IMarketAggregatorSetterDispatcherTrait
-        },
-        utils_new::{
+        utils::{
             event_helpers::{
                 assert_event_transfer, assert_event_auction_bid_accepted,
                 assert_event_auction_bid_rejected, pop_log, assert_no_events_left,
@@ -35,6 +29,14 @@ use pitch_lake_starknet::{
                 option_bidders_get,
             },
             setup::{setup_facade, decimals, deploy_vault, clear_event_logs,},
+            facades::{
+                vault_facade::{VaultFacade, VaultFacadeTrait},
+                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
+            },
+            mocks::mock_market_aggregator::{
+                MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
+                IMarketAggregatorSetterDispatcherTrait
+            },
         },
     },
 };

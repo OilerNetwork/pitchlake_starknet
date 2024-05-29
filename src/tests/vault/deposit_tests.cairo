@@ -11,7 +11,7 @@ use pitch_lake_starknet::{
     eth::Eth, vault::{Vault},
     option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState},
     tests::{
-        utils_new::{
+        utils::{
             event_helpers::{
                 assert_event_transfer, pop_log, assert_no_events_left, assert_event_option_settle,
                 assert_event_option_round_deployed, assert_event_vault_deposit,
@@ -29,10 +29,12 @@ use pitch_lake_starknet::{
                 option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
                 liquidity_providers_get
             },
-            variables::{decimals}, setup::{setup_facade}
+            variables::{decimals}, setup::{setup_facade},
+            facades::{
+                vault_facade::{VaultFacade, VaultFacadeTrait},
+                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
+            },
         },
-        vault_facade::{VaultFacade, VaultFacadeTrait},
-        option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
     }
 };
 use debug::PrintTrait;

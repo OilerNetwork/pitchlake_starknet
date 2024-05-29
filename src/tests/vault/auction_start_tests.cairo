@@ -15,9 +15,7 @@ use pitch_lake_starknet::{
     },
     option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState},
     tests::{
-        vault_facade::{VaultFacade, VaultFacadeTrait},
-        option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
-        utils_new::{
+        utils::{
             event_helpers::{assert_event_auction_start, assert_event_option_round_deployed},
             accelerators::{
                 create_array_linear, create_array_gradient, accelerate_to_auctioning,
@@ -29,7 +27,11 @@ use pitch_lake_starknet::{
                 option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
                 option_bidder_buyer_4,
             },
-            variables::{decimals}, setup::{setup_facade}
+            variables::{decimals}, setup::{setup_facade},
+            facades::{
+                vault_facade::{VaultFacade, VaultFacadeTrait},
+                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
+            },
         },
     },
 };

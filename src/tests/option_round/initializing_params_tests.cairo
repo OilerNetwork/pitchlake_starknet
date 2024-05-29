@@ -17,15 +17,15 @@ use pitch_lake_starknet::{
     vault::{IVaultDispatcher, IVaultDispatcherTrait, Vault, VaultType},
     option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
     tests::{
-        utils_new::{
+        utils::{
             event_helpers::{pop_log, assert_no_events_left},
             test_accounts::{
                 liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
                 option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
             },
             setup::{decimals, deploy_vault, deploy_pitch_lake},
+            facades::{option_round_facade::{OptionRoundFacade, OptionRoundFacadeImpl}},
         },
-        option_round_facade::{OptionRoundFacade, OptionRoundFacadeImpl}
     },
 };
 use debug::PrintTrait;

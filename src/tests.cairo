@@ -1,19 +1,19 @@
-mod utils;
-mod vault_facade;
-mod option_round_facade;
-mod lp_token_facade;
-mod mocks {
-    mod mock_market_aggregator;
-}
-
 #[cfg(test)]
-mod utils_new {
+mod utils {
     mod structs;
     mod event_helpers;
     mod accelerators;
     mod test_accounts;
     mod variables;
     mod setup;
+    mod mocks {
+        mod mock_market_aggregator;
+    }
+    mod facades {
+        mod vault_facade;
+        mod option_round_facade;
+        mod lp_token_facade;
+    }
 }
 
 #[cfg(test)]
