@@ -26,14 +26,18 @@ use pitch_lake_starknet::{
         },
         vault_facade::VaultFacadeTrait,
         option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
-        utils_new::event_helpers::{
-            assert_event_auction_start, assert_event_auction_end, assert_event_option_settle
+        utils_new::{
+            event_helpers::{
+                assert_event_auction_start, assert_event_auction_end, assert_event_option_settle
+            },
+            test_accounts::{
+                liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
+                option_bidder_buyer_2,
+            }
         },
         utils::{
-            setup_facade, decimals, option_round_test_owner, deploy_vault, allocated_pool_address,
-            unallocated_pool_address, timestamp_start_month, timestamp_end_month,
-            liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
-            option_bidder_buyer_2, vault_manager, weth_owner, mock_option_params,
+            setup_facade, decimals, deploy_vault, timestamp_start_month, timestamp_end_month,
+            vault_manager, weth_owner, mock_option_params,
         },
     },
 };

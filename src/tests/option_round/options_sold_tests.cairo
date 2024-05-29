@@ -4,13 +4,17 @@ use openzeppelin::token::erc20::interface::{
     IERC20SafeDispatcherTrait,
 };
 use pitch_lake_starknet::tests::{
-    utils::{
-        setup_facade, decimals, liquidity_provider_1, option_bidder_buyer_1, option_bidder_buyer_2,
-        option_bidder_buyer_3, option_bidder_buyer_4, option_bidder_buyer_5, option_bidder_buyer_6,
-        vault_manager, accelerate_to_auctioning, accelerate_to_running_custom, option_bidders_get,
-        accelerate_to_running
+    utils_new::{
+        accelerators::{
+            accelerate_to_auctioning, accelerate_to_running, accelerate_to_running_custom
+        },
+        test_accounts::{
+            liquidity_provider_1, option_bidder_buyer_1, option_bidder_buyer_2,
+            option_bidder_buyer_3, option_bidder_buyer_4, option_bidder_buyer_5,
+            option_bidder_buyer_6, option_bidders_get
+        },
     },
-    vault_facade::{VaultFacade, VaultFacadeTrait},
+    utils::{setup_facade, decimals, vault_manager,}, vault_facade::{VaultFacade, VaultFacadeTrait},
     option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundParams}
 };
 

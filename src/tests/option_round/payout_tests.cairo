@@ -3,15 +3,20 @@ use openzeppelin::token::erc20::interface::{IERC20, IERC20Dispatcher, IERC20Disp
 use pitch_lake_starknet::tests::{
     vault_facade::{VaultFacade, VaultFacadeTrait},
     option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
-    utils_new::event_helpers::{
-        assert_event_transfer, assert_event_vault_withdrawal, assert_event_options_exercised
+    utils_new::{
+        event_helpers::{
+            assert_event_transfer, assert_event_vault_withdrawal, assert_event_options_exercised
+        },
+        accelerators::{
+            accelerate_to_auctioning, accelerate_to_running, accelerate_to_settled,
+            accelerate_to_running_custom,
+        },
+        test_accounts::{
+            liquidity_provider_1, option_bidder_buyer_1, option_bidder_buyer_2,
+            option_bidder_buyer_3, option_bidders_get
+        },
     },
-    utils::{
-        setup_facade, liquidity_provider_1, option_bidder_buyer_1, option_bidder_buyer_2,
-        option_bidder_buyer_3, decimals, vault_manager, accelerate_to_auctioning,
-        accelerate_to_running, accelerate_to_settled, clear_event_logs, option_bidders_get,
-        accelerate_to_running_custom,
-    },
+    utils::{setup_facade, decimals, vault_manager, clear_event_logs,},
     mocks::mock_market_aggregator::{
         MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
         IMarketAggregatorSetterDispatcherTrait

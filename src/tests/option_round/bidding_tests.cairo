@@ -23,17 +23,22 @@ use pitch_lake_starknet::{
             MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
             IMarketAggregatorSetterDispatcherTrait
         },
-        utils_new::event_helpers::{
-            assert_event_transfer, assert_event_auction_bid_accepted,
-            assert_event_auction_bid_rejected, pop_log, assert_no_events_left,
+        utils_new::{
+            event_helpers::{
+                assert_event_transfer, assert_event_auction_bid_accepted,
+                assert_event_auction_bid_rejected, pop_log, assert_no_events_left,
+            },
+            accelerators::{accelerate_to_auctioning},
+            test_accounts::{
+                liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
+                option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
+                option_bidders_get,
+            }
         },
         utils::{
-            setup_facade, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
-            timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
-            option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
-            option_bidder_buyer_4, zero_address, vault_manager, weth_owner,
-            option_round_contract_address, mock_option_params, month_duration, clear_event_logs,
-            accelerate_to_auctioning, option_bidders_get,
+            setup_facade, decimals, deploy_vault, timestamp_start_month, timestamp_end_month,
+            zero_address, vault_manager, weth_owner, mock_option_params, month_duration,
+            clear_event_logs,
         },
     },
 };

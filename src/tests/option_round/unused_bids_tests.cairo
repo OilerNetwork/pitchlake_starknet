@@ -1,18 +1,23 @@
+use starknet::testing::{set_block_timestamp, set_contract_address};
 use openzeppelin::token::erc20::interface::{
     IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
     IERC20SafeDispatcherTrait,
 };
 use pitch_lake_starknet::tests::{
-    utils_new::event_helpers::{assert_event_unused_bids_refunded},
-    utils::{
-        setup_facade, decimals, liquidity_provider_1, option_bidder_buyer_1, option_bidder_buyer_2,
-        option_bidder_buyer_3, accelerate_to_auctioning, accelerate_to_running,
-        accelerate_to_settled, accelerate_to_running_custom, option_bidders_get, clear_event_logs,
+    utils_new::{
+        event_helpers::{assert_event_unused_bids_refunded, clear_event_logs},
+        accelerators::{
+            accelerate_to_auctioning, accelerate_to_running_custom, accelerate_to_running,
+            accelerate_to_settled
+        },
+        test_accounts::{
+            liquidity_provider_1, option_bidder_buyer_1, option_bidder_buyer_2,
+            option_bidder_buyer_3, option_bidders_get,
+        },
     },
-    vault_facade::{VaultFacade, VaultFacadeTrait},
+    utils::{setup_facade, decimals,}, vault_facade::{VaultFacade, VaultFacadeTrait},
     option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait}
 };
-use starknet::testing::{set_block_timestamp, set_contract_address};
 
 // @note Should event emit if collecting 0 ?
 

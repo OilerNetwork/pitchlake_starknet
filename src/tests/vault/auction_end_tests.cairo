@@ -14,16 +14,22 @@ use pitch_lake_starknet::{
         IVaultSafeDispatcherTrait,
     },
     tests::{
-        utils_new::{event_helpers::{pop_log, assert_no_events_left, assert_event_auction_end}},
+        utils_new::{
+            event_helpers::{pop_log, assert_no_events_left, assert_event_auction_end},
+            accelerators::{
+                accelerate_to_auctioning, accelerate_to_running, create_array_linear,
+                create_array_gradient, accelerate_to_auctioning_custom,
+                accelerate_to_running_custom, accelerate_to_settled
+            },
+            test_accounts::{
+                liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
+                option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
+                liquidity_providers_get, option_bidders_get,
+            },
+        },
         utils::{
-            setup_facade, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
-            timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
-            option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
-            option_bidder_buyer_4, zero_address, vault_manager, weth_owner,
-            option_round_contract_address, mock_option_params, liquidity_providers_get,
-            option_bidders_get, month_duration, create_array_linear, create_array_gradient,
-            accelerate_to_auctioning_custom, accelerate_to_running_custom, accelerate_to_settled,
-            accelerate_to_auctioning, accelerate_to_running,
+            setup_facade, decimals, deploy_vault, timestamp_start_month, timestamp_end_month,
+            zero_address, vault_manager, weth_owner, mock_option_params, month_duration,
         },
         mocks::mock_market_aggregator::{
             MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,

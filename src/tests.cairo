@@ -10,6 +10,8 @@ mod mocks {
 mod utils_new {
     mod structs;
     mod event_helpers;
+    mod accelerators;
+    mod test_accounts;
 }
 
 #[cfg(test)]
@@ -33,7 +35,6 @@ mod vault {
     mod deposit_tests;
     mod option_settle_tests;
     mod round_open_tests;
-    mod utils;
 }
 
 #[cfg(test)]

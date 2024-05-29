@@ -1,13 +1,18 @@
 use pitch_lake_starknet::tests::{
     option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
     vault_facade::{VaultFacade, VaultFacadeTrait},
-    utils::{
-        setup_facade, liquidity_provider_1, liquidity_provider_2, liquidity_providers_get, decimals,
-        option_bidder_buyer_1, option_bidder_buyer_2, accelerate_to_running,
-        accelerate_to_auctioning, accelerate_to_settled, create_array_gradient,
-        accelerate_to_auctioning_custom, create_array_linear, option_bidders_get,
-        accelerate_to_running_custom
+    utils_new::{
+        accelerators::{
+            accelerate_to_auctioning_custom, create_array_gradient, create_array_linear,
+            accelerate_to_running_custom, accelerate_to_auctioning, accelerate_to_settled,
+            accelerate_to_running
+        },
+        test_accounts::{
+            liquidity_provider_1, liquidity_provider_2, liquidity_providers_get,
+            option_bidder_buyer_1, option_bidder_buyer_2, option_bidders_get,
+        },
     },
+    utils::{setup_facade, decimals},
     mocks::mock_market_aggregator::{
         MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
         IMarketAggregatorSetterDispatcherTrait
