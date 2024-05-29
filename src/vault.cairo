@@ -41,32 +41,23 @@ trait IVault<TContractState> {
     // Get the liquidity an LP has unlocked
     fn get_lp_unlocked_balance(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
 
-    // Ge the total liquidity an LP has in the protocol
+    // Get the total liquidity an LP has in the protocol
     fn get_lp_total_balance(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
 
     // Get the total liquidity locked
-    fn get_locked_balance(self: @TContractState,) -> u256;
-
-    // Get the total liquidity unlocked
-    fn get_unlocked_balance(self: @TContractState,) -> u256;
-
-    // Ge the total liquidity in the protocol
-    fn get_total_balance(self: @TContractState,) -> u256;
-
-    // Get the liqudity an LP has unallocated (unlocked), they can withdraw from this amount
-    // @dev If the current round is Running, LP's share of its unallocated liquidity is uncluded (unless already withdrawn)
-    // @dev Includes deposits into the next round if there are any
-    // @note does include premiums
-    fn get_unallocated_balance_for(
-        self: @TContractState, liquidity_provider: ContractAddress
-    ) -> u256;
-
     fn get_total_locked(self: @TContractState) -> u256;
 
+    // Get the total liquidity unlocked
     fn get_total_unlocked(self: @TContractState) -> u256;
+
+    // Get the total liquidity in the protocol
+    fn get_total_balance(self: @TContractState,) -> u256;
+
     // Get the total premium LP has earned in the current round
     // @note premiums for previous rounds
-    fn get_premiums_for(self: @TContractState, liquidity_provider: ContractAddress, round_id:u256) -> u256;
+    fn get_premiums_for(
+        self: @TContractState, liquidity_provider: ContractAddress, round_id: u256
+    ) -> u256;
 
     /// Writes ///
 
@@ -295,11 +286,12 @@ mod Vault {
             100
         }
 
-        fn get_locked_balance(self: @ContractState,) -> u256 {
+        fn get_total_locked(self: @ContractState) -> u256 {
             100
         }
 
-        fn get_unlocked_balance(self: @ContractState,) -> u256 {
+
+        fn get_total_unlocked(self: @ContractState) -> u256 {
             100
         }
 
@@ -313,23 +305,9 @@ mod Vault {
             100
         }
 
-        fn get_unallocated_balance_for(
-            self: @ContractState, liquidity_provider: ContractAddress
+        fn get_premiums_for(
+            self: @ContractState, liquidity_provider: ContractAddress, round_id: u256
         ) -> u256 {
-            100
-        }
-
-
-        fn get_total_locked(self: @ContractState) -> u256 {
-            100
-        }
-
-
-        fn get_total_unlocked(self: @ContractState) -> u256 {
-            100
-        }
-
-        fn get_premiums_for(self: @ContractState, liquidity_provider: ContractAddress,round_id:u256) -> u256 {
             100
         }
 

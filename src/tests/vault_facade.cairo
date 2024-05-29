@@ -159,12 +159,10 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     }
 
     fn get_lp_locked_balance(ref self: VaultFacade, lp: ContractAddress) -> u256 {
-        // @note update vault entry point name
         self.vault_dispatcher.get_lp_locked_balance(lp)
     }
 
     fn get_lp_unlocked_balance(ref self: VaultFacade, lp: ContractAddress) -> u256 {
-        // @note update vault entry point name
         self.vault_dispatcher.get_lp_unlocked_balance(lp)
     }
 
@@ -179,11 +177,11 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     }
 
     fn get_unlocked_balance(ref self: VaultFacade) -> u256 {
-        self.vault_dispatcher.get_unlocked_balance()
+        self.vault_dispatcher.get_total_unlocked()
     }
 
     fn get_locked_balance(ref self: VaultFacade) -> u256 {
-        self.vault_dispatcher.get_unlocked_balance()
+        self.vault_dispatcher.get_total_locked()
     }
 
     fn get_total_balance(ref self: VaultFacade) -> u256 {
@@ -191,12 +189,10 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     }
 
     fn get_balance_spread(ref self: VaultFacade) -> (u256, u256) {
-        let locked = self.vault_dispatcher.get_locked_balance();
-        let unlocked = self.vault_dispatcher.get_unlocked_balance();
+        let locked = self.vault_dispatcher.get_total_locked();
+        let unlocked = self.vault_dispatcher.get_total_unlocked();
         (locked, unlocked)
     }
-
-    //
 
     fn get_market_aggregator(ref self: VaultFacade) -> ContractAddress {
         self.vault_dispatcher.get_market_aggregator()
@@ -212,8 +208,8 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     }
 
     // might be duplicated when repo syncs
-    fn get_premiums_for(ref self: VaultFacade, lp: ContractAddress,round_id:u256) -> u256 {
-        self.vault_dispatcher.get_premiums_for(lp,round_id)
+    fn get_premiums_for(ref self: VaultFacade, lp: ContractAddress, round_id: u256) -> u256 {
+        self.vault_dispatcher.get_premiums_for(lp, round_id)
     }
 
 
