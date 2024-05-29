@@ -24,12 +24,6 @@ mod extra {
 
 #[cfg(test)]
 mod vault {
-    mod withdraw_tests {
-        mod while_current_round_is_auctioning;
-        mod while_current_round_is_running;
-        mod while_current_round_is_settled;
-        mod withdraw_tests;
-    }
     mod unallocated_liquidity_tests;
     mod auction_end_tests;
     mod auction_start_tests;
@@ -37,6 +31,7 @@ mod vault {
     mod deposit_tests;
     mod option_settle_tests;
     mod round_open_tests;
+    mod withdraw_tests;
 }
 
 #[cfg(test)]
