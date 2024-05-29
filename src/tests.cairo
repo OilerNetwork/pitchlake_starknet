@@ -17,7 +17,7 @@ mod utils {
 }
 
 #[cfg(test)]
-mod extra {
+mod misc {
     //mod eth_test;
     mod pitch_lake_test;
 }
