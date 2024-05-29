@@ -79,7 +79,7 @@ fn accelerate_to_running_custom(
     prices: Span<u256>
 ) -> u256 {
     let mut current_round = self.get_current_round();
-    current_round.bid_multiple(bidders, max_amounts, prices);
+    current_round.place_bids(bidders, max_amounts, prices);
     let clearing_price = self.timeskip_and_end_auction();
     clearing_price
 }
