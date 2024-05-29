@@ -11,7 +11,7 @@ use pitch_lake_starknet::{
     eth::Eth,
     tests::{
         utils::{
-            setup_facade, decimals, deploy_vault, timestamp_start_month, timestamp_end_month,
+            setup_facade, decimals, deploy_vault,
             zero_address, vault_manager, weth_owner, mock_option_params,
         },
         utils_new::{

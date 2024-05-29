@@ -25,7 +25,7 @@ use pitch_lake_starknet::{
             },
         },
         utils::{
-            decimals, deploy_vault, timestamp_start_month, timestamp_end_month, vault_manager,
+            decimals, deploy_vault, vault_manager,
             weth_owner, mock_option_params, deploy_pitch_lake
         },
         option_round_facade::{OptionRoundFacade, OptionRoundFacadeImpl}

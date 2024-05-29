@@ -31,7 +31,7 @@ use pitch_lake_starknet::{
             },
         },
         utils::{
-            setup_facade, decimals, deploy_vault, timestamp_start_month, timestamp_end_month,
+            setup_facade, decimals, deploy_vault,
             vault_manager, weth_owner, mock_option_params,
         }
     },

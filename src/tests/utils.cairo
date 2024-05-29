@@ -202,7 +202,7 @@ fn mock_option_params() -> OptionRoundParams {
         reserve_price: option_reserve_price,
         total_options_available: total_options_available,
         // start_time:timestamp_start_month(),
-        option_expiry_time: timestamp_end_month(),
+        option_expiry_time: 'todo'.try_into().unwrap(),
         auction_end_time: week_duration(),
         minimum_collateral_required: 10000,
     };
@@ -217,124 +217,27 @@ fn weth_owner() -> ContractAddress {
     contract_address_const::<'weth_owner'>()
 }
 
-fn timestamp_start_month() -> u64 {
-    1
+fn minute_duration() -> u64 {
+    60
 }
 
-fn timestamp_end_month() -> u64 {
-    30 * 24 * 60 * 60
+fn hour_duration() -> u64 {
+    60 * minute_duration()
+}
+
+fn day_duration() -> u64 {
+    24 * hour_duration()
 }
 
 fn week_duration() -> u64 {
-    7 * 24 * 60 * 60
+    7 * day_duration()
 }
-
 
 fn month_duration() -> u64 {
-    30 * 24 * 60 * 60
-}
-
-fn SPENDER() -> ContractAddress {
-    contract_address_const::<'SPENDER'>()
-}
-
-fn RECIPIENT() -> ContractAddress {
-    contract_address_const::<'RECIPIENT'>()
-}
-
-fn OPERATOR() -> ContractAddress {
-    contract_address_const::<'OPERATOR'>()
-}
-
-fn user() -> ContractAddress {
-    contract_address_try_from_felt252('user').unwrap()
+    30 * day_duration()
 }
 
 fn zero_address() -> ContractAddress {
     contract_address_const::<0>()
 }
-// fn accelerate_to_auctioning_n_linear(ref self: VaultFacade, providers: u32, amount:u256){
-//     deposit_n(ref self,providers,amount);
-//     self.start_auction();
-// }
-
-// fn accelerate_to_auctioning_n_custom(ref self: VaultFacade, providers: u32, amounts: Array<u256>) {
-
-//     deposit_n_custom(ref self, providers, amounts);
-//     self.start_auction();
-// }
-
-// //Auction with linear bidding
-// fn accelerate_to_running_n_linear(ref self: VaultFacade, providers: u32, bidders: u32,amount:u256) -> u256 {
-//     let mut current_round = self.get_current_round();
-//     if (current_round.get_state() != OptionRoundState::Auctioning) {
-//         accelerate_to_auctioning(ref self);
-//     }
-//     let mut current_round = self.get_current_round();
-//     let params = current_round.get_params();
-//     let bid_amount = params.total_options_available;
-//     let bid_price = params.reserve_price;
-//     let bid_amount = bid_amount * bid_price / bidders.into();
-//     bid_n(ref self,bidders,bid_amount,bid_price);
-//     set_block_timestamp(params.auction_end_time + 1);
-//     current_round.end_auction();
-//     bid_amount
-// }
-
-// //Applies a gradient to bid price;
-
-// fn accelerate_to_running_n_custom(
-//     ref self: VaultFacade, providers: u32, bidders: u32, amounts: Array<u256>, prices: Array<u256>
-// ) {
-//     let mut current_round = self.get_current_round();
-//     if (current_round.get_state() != OptionRoundState::Auctioning) {
-//         accelerate_to_auctioning(ref self);
-//     }
-//     let params = current_round.get_params();
-//     bid_n_custom(ref self,bidders,amounts,prices);
-//     set_block_timestamp(params.auction_end_time + 1);
-//     current_round.end_auction();
-// }
-
-//Auction with partial bidding
-
-////@dev Should we create more complex helpers for creating conditions like this directly?
-//fn accelerate_to_running_n_partial(
-//   ref self: VaultFacade, providers: u32, bidders: u32
-//) -> (u256, u256) {
-//    let mut current_round = self.get_current_round();
-//   if (current_round.get_state() != OptionRoundState::Auctioning) {
-//      accelerate_to_auctioning(ref self);
-// }
-//    let params = current_round.get_params();
-//   let bid_amount = params.total_options_available;
-//  let bid_price = params.reserve_price;
-// let bid_quant = bid_amount / bidders.into() / 2;
-//    let bid_amount = bid_quant * bid_price;
-//   bid_n(ref self, bidders, bid_amount, bid_price);
-//  set_block_timestamp(params.auction_end_time + 1);
-// current_round.end_auction();
-//(bid_amount, bid_price)
-//}
-
-//fn accelerate_to_running_partial(ref self: VaultFacade) {
-//   // Bid for half the options at reserve price
-//  let mut current_round = self.get_current_round();
-// let params = current_round.get_params();
-//let bid_amount = params.total_options_available;
-//    let bid_price = params.reserve_price;
-//   let mut bid_quant = bid_amount / 2;
-//
-//   //If quant gets 0 ensure minimum bid on 1 option
-//  if bid_quant < 1 {
-//     bid_quant += 1;
-//    }
-//   let bid_amount = bid_quant * bid_price;
-//  current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
-//    // End auction
-//   set_block_timestamp(params.auction_end_time + 1);
-//  current_round.end_auction();
-//}
-// @note Might want to add accelerate to settled with args for settlemnt price
-
 
