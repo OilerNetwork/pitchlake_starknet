@@ -232,8 +232,8 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     // Set the mock market aggregators value for the period of the current round
     fn set_market_aggregator_value(ref self: VaultFacade, avg_base_fee: u256) {
         let mut current_round = self.get_current_round();
-        let start_date = current_round.round_start_date();
-        let end_date = current_round.round_end_date();
+        let start_date = current_round.get_auction_start_date();
+        let end_date = current_round.get_option_expiry_date();
         let market_aggregator = IMarketAggregatorSetterDispatcher {
             contract_address: self.get_market_aggregator(),
         };
@@ -245,8 +245,8 @@ impl VaultFacadeImpl of VaultFacadeTrait {
             contract_address: self.get_market_aggregator(),
         };
         let mut current_round = self.get_current_round();
-        let start_date = current_round.round_start_date();
-        let end_date = current_round.round_end_date();
+        let start_date = current_round.get_auction_start_date();
+        let end_date = current_round.get_option_expiry_date();
 
         match market_aggregator.get_value(start_date, end_date) {
             Result::Ok((value, _)) => value,
