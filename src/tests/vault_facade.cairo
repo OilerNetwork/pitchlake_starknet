@@ -140,28 +140,23 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         (self.get_current_round(), self.get_next_round())
     }
 
-   
-    // Get lps (multiple) liquidity (collateral, unallocated)
+
+    // Get lps (multiple) liquidity (locked, unlocked)
     fn get_all_liquidity_for_n(
         ref self: VaultFacade, lps: Span<ContractAddress>
     ) -> (Array<u256>, Array<u256>) {
         let mut index = 0;
-        let mut arr_collateral: Array<u256> = array![];
-        let mut arr_unallocated: Array<u256> = array![];
+        let mut arr_locked: Array<u256> = array![];
+        let mut arr_unlocked: Array<u256> = array![];
         while index < lps
             .len() {
-                let collateral = self.vault_dispatcher.get_collateral_balance_for(*lps[index]);
-                let unallocated = self.vault_dispatcher.get_unallocated_balance_for(*lps[index]);
-                arr_collateral.append(collateral);
-                arr_unallocated.append(unallocated);
+                let locked = self.vault_dispatcher.get_lp_locked_balance(*lps[index]);
+                let unlocked = self.vault_dispatcher.get_lp_unlocked_balance(*lps[index]);
+                arr_locked.append(locked);
+                arr_unlocked.append(unlocked);
             };
-        (arr_collateral, arr_unallocated)
+        (arr_locked, arr_unlocked)
     }
- 
-
-   
-
-    // @note Dhruv might be adding these as well
 
     fn get_lp_locked_balance(ref self: VaultFacade, lp: ContractAddress) -> u256 {
         // @note update vault entry point name
