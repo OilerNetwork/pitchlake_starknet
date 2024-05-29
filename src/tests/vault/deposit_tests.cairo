@@ -52,7 +52,7 @@ fn test_deposit_vault_unlocked_liquidity() {
     // get one liquidity provider
     let liquidity_providers = liquidity_providers_get(1);
     // get the initial liquidity of the vault
-    let init_liquidity = vault_facade.get_unlocked_liquidity(*liquidity_providers[0]);
+    let init_liquidity = vault_facade.get_lp_unlocked_balance(*liquidity_providers[0]);
     // @note test vault unlocked as well
 
     // deposit some amount in the vault
@@ -60,7 +60,7 @@ fn test_deposit_vault_unlocked_liquidity() {
     vault_facade.deposit(deposit_amount, *liquidity_providers[0]);
 
     // get the liquidity after the first deposit
-    let final_liquidity = vault_facade.get_unlocked_liquidity(*liquidity_providers[0]);
+    let final_liquidity = vault_facade.get_lp_unlocked_balance(*liquidity_providers[0]);
 
     // liquidity should increase by deposit_amount
     assert(final_liquidity == init_liquidity + deposit_amount, 'vault balance should increase');
@@ -77,8 +77,8 @@ fn test_multi_deposit_vault_unlocked_liquidity() {
     // get one liquidity provider
     let liquidity_providers = liquidity_providers_get(2);
     // get the initial liquidity of the vault
-    let init_liquidity_1 = vault_facade.get_unlocked_liquidity(*liquidity_providers[0]);
-    let init_liquidity_2 = vault_facade.get_unlocked_liquidity(*liquidity_providers[1]);
+    let init_liquidity_1 = vault_facade.get_lp_unlocked_balance(*liquidity_providers[0]);
+    let init_liquidity_2 = vault_facade.get_lp_unlocked_balance(*liquidity_providers[1]);
     // @note test vault unlocked as well
 
     // deposit some amount in the vault
@@ -87,8 +87,8 @@ fn test_multi_deposit_vault_unlocked_liquidity() {
     vault_facade.deposit(deposit_amount + 1, *liquidity_providers[1]);
 
     // get the liquidity after the first deposit
-    let final_liquidity_1 = vault_facade.get_unlocked_liquidity(*liquidity_providers[0]);
-    let final_liquidity_2 = vault_facade.get_unlocked_liquidity(*liquidity_providers[1]);
+    let final_liquidity_1 = vault_facade.get_lp_unlocked_balance(*liquidity_providers[0]);
+    let final_liquidity_2 = vault_facade.get_lp_unlocked_balance(*liquidity_providers[1]);
 
     // liquidity should increase by deposited amount
     assert(final_liquidity_1 == init_liquidity_1 + deposit_amount, 'vault balance should increase');
@@ -140,7 +140,7 @@ fn test_deposit_to_vault_event() {
     // get one liquidity provider
     let liquidity_providers = liquidity_providers_get(1);
     // get the initial liquidity of the vault
-    let init_liquidity = vault_facade.get_unlocked_liquidity(*liquidity_providers[0]);
+    let init_liquidity = vault_facade.get_lp_unlocked_balance(*liquidity_providers[0]);
 
     // deposit some amount in the vault
     let deposit_amount = 50 * decimals();
@@ -165,8 +165,8 @@ fn test_multi_deposit_to_vault_event() {
     // get one liquidity provider
     let liquidity_providers = liquidity_providers_get(2);
     // get the initial liquidity of the vault
-    let init_liquidity_1 = vault_facade.get_unlocked_liquidity(*liquidity_providers[0]);
-    let init_liquidity_2 = vault_facade.get_unlocked_liquidity(*liquidity_providers[1]);
+    let init_liquidity_1 = vault_facade.get_lp_unlocked_balance(*liquidity_providers[0]);
+    let init_liquidity_2 = vault_facade.get_lp_unlocked_balance(*liquidity_providers[1]);
 
     // deposit some amount in the vault
     let deposit_amount = 50 * decimals();

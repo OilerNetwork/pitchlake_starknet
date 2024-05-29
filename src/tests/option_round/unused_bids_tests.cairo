@@ -162,7 +162,7 @@ fn test_collect_unused_bids_events() {
     );
     // Initial balance and collectable amount
     let (lp1_collateral_before, lp1_unallocated_before) = vault_facade
-        .get_all_lp_liquidity(liquidity_provider_1());
+        .get_lp_balance_spread(liquidity_provider_1());
     let lp1_balance_before = lp1_collateral_before + lp1_unallocated_before;
     // OB 1 collects their unused bids
     let collected_amount = current_round_facade.refund_bid(option_bidder_buyer_1());

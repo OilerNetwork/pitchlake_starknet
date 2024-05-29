@@ -142,7 +142,7 @@ fn test_withdraw_from_rewards_updates_collateral_and_unallocated() {
             .reserve_price; // @dev lp owns 100% of the pool, so 100% of the prmeium is theirs
     // Initial collateral/unallocated
     let (init_lp_collateral, init_lp_unallocated) = vault_facade
-        .get_all_lp_liquidity(liquidity_provider_1());
+        .get_lp_balance_spread(liquidity_provider_1());
     let (init_current_round_collateral, init_current_round_unallocated) = current_round
         .get_all_round_liquidity();
     let (init_next_round_collateral, init_next_round_unallocated) = next_round
@@ -152,7 +152,7 @@ fn test_withdraw_from_rewards_updates_collateral_and_unallocated() {
     vault_facade.withdraw(withdraw_amount, liquidity_provider_1());
     // Final collateral/unallocated
     let (final_lp_collateral, final_lp_unallocated) = vault_facade
-        .get_all_lp_liquidity(liquidity_provider_1());
+        .get_lp_balance_spread(liquidity_provider_1());
     let (final_current_round_collateral, final_current_round_unallocated) = current_round
         .get_all_round_liquidity();
     let (final_next_round_collateral, final_next_round_unallocated) = next_round
@@ -198,7 +198,7 @@ fn test_withdraw_from_rewards_and_deposits_updates_collateral_and_unallocated() 
             .reserve_price; // @dev lp owns 100% of the pool, so 100% of the prmeium is theirs
     // Initial collateral/unallocated
     let (init_lp_collateral, init_lp_unallocated) = vault_facade
-        .get_all_lp_liquidity(liquidity_provider_1());
+        .get_lp_balance_spread(liquidity_provider_1());
     let (init_current_round_collateral, init_current_round_unallocated) = current_round
         .get_all_round_liquidity();
     let (init_next_round_collateral, init_next_round_unallocated) = next_round
@@ -208,7 +208,7 @@ fn test_withdraw_from_rewards_and_deposits_updates_collateral_and_unallocated() 
     vault_facade.withdraw(withdraw_amount, liquidity_provider_1());
     // Final collateral/unallocated
     let (final_lp_collateral, final_lp_unallocated) = vault_facade
-        .get_all_lp_liquidity(liquidity_provider_1());
+        .get_lp_balance_spread(liquidity_provider_1());
     let (final_current_round_collateral, final_current_round_unallocated) = current_round
         .get_all_round_liquidity();
     let (final_next_round_collateral, final_next_round_unallocated) = next_round

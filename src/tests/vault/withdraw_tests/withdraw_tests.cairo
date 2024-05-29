@@ -47,81 +47,76 @@ fn test_withdraw_0_failure() {
 
 #[test]
 #[available_gas(10000000)]
-fn test_withdraw_is_always_from_next_round() {
+fn test_withdraw_is_always_from_unlocked() {
     let (mut vault, eth_dispatcher) = setup_facade();
-    let mut next_round = vault.get_next_round();
 
     // Deposit liquidity while current round is settled
     let deposit_amount = 50 * decimals();
     vault.deposit(deposit_amount, liquidity_provider_1());
     // Deposit liquidity while current round is auctioning
+
     vault.start_auction();
-    let mut current_round = vault.get_current_round();
-    next_round = vault.get_next_round();
+
     vault.deposit(deposit_amount + 1, liquidity_provider_1());
+
+    let init_lp_balance = eth_dispatcher.balance_of(liquidity_provider_1());
+    let (init_locked,init_unlocked) = vault.get_lp_balance_spread(liquidity_provider_1());
     vault.withdraw(deposit_amount, liquidity_provider_1());
 
-    assert_event_transfer(
-        eth_dispatcher.contract_address,
-        next_round.contract_address(),
-        liquidity_provider_1(),
-        deposit_amount
-    );
+    let final_lp_balance = eth_dispatcher.balance_of(liquidity_provider_1());
+    let (final_locked,final_unlocked) = vault.get_lp_balance_spread(liquidity_provider_1());
 
+    assert(init_locked==final_locked, 'Locked position mismatch');
+    assert(init_lp_balance == final_lp_balance - deposit_amount, 'LP balance mistmatch');
+    assert(init_unlocked == final_unlocked + deposit_amount, 'Vault balance mistmatch');
     // Deposit liquidity while current round is running
-    let mut next_round = vault.get_next_round();
-    let params = current_round.get_params();
-    let bid_amount = params.total_options_available;
-    let bid_price = params.reserve_price;
-    let bid_amount = bid_amount * bid_price;
-    current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
-    set_block_timestamp(params.auction_end_time + 1);
+    accelerate_to_running(ref vault);
     vault.deposit(deposit_amount + 2, liquidity_provider_1());
+
+    let init_lp_balance = eth_dispatcher.balance_of(liquidity_provider_1());
+    let (init_locked,init_unlocked) = vault.get_lp_balance_spread(liquidity_provider_1());
     vault.withdraw(deposit_amount + 1, liquidity_provider_1());
+
+    let final_lp_balance = eth_dispatcher.balance_of(liquidity_provider_1());
+    let (final_locked,final_unlocked) = vault.get_lp_balance_spread(liquidity_provider_1());
+
+    assert(init_locked==final_locked, 'Locked position mismatch');
+    assert(init_lp_balance == final_lp_balance - deposit_amount, 'LP balance mistmatch');
+    assert(init_unlocked == final_unlocked + deposit_amount, 'Vault balance mistmatch');
+
     vault.end_auction();
     vault.deposit(deposit_amount + 2, liquidity_provider_1());
+
+    let init_lp_balance = eth_dispatcher.balance_of(liquidity_provider_1());
+    let (init_locked,init_unlocked) = vault.get_lp_balance_spread(liquidity_provider_1());
     vault.withdraw(deposit_amount + 1, liquidity_provider_1());
-    // @note Check eth transfer without event
-    assert_event_transfer(
-        eth_dispatcher.contract_address,
-        next_round.contract_address(),
-        liquidity_provider_1(),
-        deposit_amount
-    );
+
+    let final_lp_balance = eth_dispatcher.balance_of(liquidity_provider_1());
+    let (final_locked,final_unlocked) = vault.get_lp_balance_spread(liquidity_provider_1());
+
+    assert(init_locked==final_locked, 'Locked position mismatch');
+    assert(init_lp_balance == final_lp_balance - deposit_amount, 'LP balance mistmatch');
+    assert(init_unlocked == final_unlocked + deposit_amount, 'Vault balance mistmatch');
+// @note Check eth transfer without event
 }
+
 
 #[test]
 #[available_gas(10000000)]
-fn test_withdraw_updates_unallocated_balance() {
-    let (mut vault, eth_dispatcher) = setup_facade();
-    let mut next_round = vault.get_next_round();
-
-    // Deposit liquidity while current round is settled
-    let deposit_amount = 50 * decimals();
-    vault.deposit(deposit_amount, liquidity_provider_1());
-    // Deposit liquidity while current round is auctioning
-    vault.start_auction();
-    let mut current_round = vault.get_current_round();
-    next_round = vault.get_next_round();
-    vault.deposit(deposit_amount + 1, liquidity_provider_1());
-    vault.get_unallocated_balance_for(liquidity_provider_1());
-    vault.withdraw(deposit_amount, liquidity_provider_1());
-
-    assert_event_transfer(
-        eth_dispatcher.contract_address,
-        next_round.contract_address(),
-        liquidity_provider_1(),
-        deposit_amount
-    );
-
-    // Deposit liquidity while current round is running
-    let params = current_round.get_params();
-    let bid_amount = params.total_options_available;
-    let bid_price = params.reserve_price;
-    let bid_amount = bid_amount * bid_price;
-    current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
-    set_block_timestamp(params.auction_end_time + 1);
-    vault.end_auction();
-    vault.deposit(deposit_amount + 2, liquidity_provider_1());
-    vault.withdraw(deposit_amount + 1, liquidity_provider_1());
+#[should_panic(expected: ('Cannot withdraw more than unallocated balance', 'ENTRYPOINT_FAILED'))]
+fn test_withdraw_more_than_unlocked_balance_failure() {
+    let (mut vault_facade, _) = setup_facade();
+    // Accelerate to round 1 running
+    vault_facade.start_auction();
+    // Current round (running), next round (open)
+    // Make deposit into next round
+    let deposit_amount = 100 * decimals();
+    vault_facade.deposit(deposit_amount, liquidity_provider_1());
+    // Amount of premiums earned from the auction (plus unsold liq) for LP
+    // @dev lp owns 100% of the pool, so 100% of the prmeium is theirs
+    // LP unallocated is premiums earned + next round deposits
+    let lp_unlocked = vault_facade.get_lp_unlocked_balance(liquidity_provider_1());
+    // Withdraw from rewards
+    let collect_amount = lp_unlocked + 1;
+    vault_facade.withdraw(collect_amount, liquidity_provider_1());
 }

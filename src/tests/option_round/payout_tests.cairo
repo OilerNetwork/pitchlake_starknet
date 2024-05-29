@@ -122,9 +122,9 @@ fn test_option_payout_events() {
     utils::accelerate_to_settled(ref vault_facade, settlement_price);
     // Initial balances
     let (lp1_collateral_before, lp1_unallocated_before) = vault_facade
-        .get_all_lp_liquidity(option_bidder_buyer_1());
+        .get_lp_balance_spread(option_bidder_buyer_1());
     let (lp2_collateral_before, lp2_unallocated_before) = vault_facade
-        .get_all_lp_liquidity(option_bidder_buyer_2());
+        .get_lp_balance_spread(option_bidder_buyer_2());
     let lp1_total_balance_before = lp1_collateral_before + lp1_unallocated_before;
     let lp2_total_balance_before = lp2_collateral_before + lp2_unallocated_before;
 

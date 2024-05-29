@@ -687,6 +687,7 @@ fn accelerate_to_auctioning(ref self: VaultFacade) {
     // Deposit liquidity so round 1's auction can start
     self.deposit(100 * decimals(), liquidity_provider_1());
     // Start round 1's auction
+    set_block_timestamp(starknet::get_block_timestamp() + self.get_round_transition_period());
     self.start_auction();
 }
 
