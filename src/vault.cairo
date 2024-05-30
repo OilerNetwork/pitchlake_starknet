@@ -13,8 +13,13 @@ enum VaultType {
 // The interface for the vault contract
 #[starknet::interface]
 trait IVault<TContractState> {
+    // Being used for testing event asserters work correctly. Need to look into
+    // emitting events from our tests instead of via entry point
     fn rm_me2(ref self: TContractState);
+
     /// Reads ///
+
+    /// Misc.
 
     // Get the vault's  manaager address
     // @dev Better access control ? (oz permits ?)
@@ -23,17 +28,16 @@ trait IVault<TContractState> {
     // Get the type of vault (ITM | ATM | OTM)
     fn vault_type(self: @TContractState) -> VaultType;
 
+    // Get the market aggregator address
+    fn get_market_aggregator(self: @TContractState) -> ContractAddress;
+
     // @return the current option round id
     fn current_option_round_id(self: @TContractState) -> u256;
 
     // @return the contract address of the option round
     fn get_option_round_address(self: @TContractState, option_round_id: u256) -> ContractAddress;
 
-    // Get the liquidity an LP has locked as collateral in the current round
-    // @note rm
-    fn get_collateral_balance_for(
-        self: @TContractState, liquidity_provider: ContractAddress
-    ) -> u256;
+    /// Liquidity for LPs and Vault
 
     // Get the liquidity an lp has locked
     fn get_lp_locked_balance(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
@@ -53,13 +57,34 @@ trait IVault<TContractState> {
     // Get the total liquidity in the protocol
     fn get_total_balance(self: @TContractState,) -> u256;
 
+    /// Premiums
+
     // Get the total premium LP has earned in the current round
     // @note premiums for previous rounds
-    fn get_premiums_for(
+    fn get_premiums_earned(
         self: @TContractState, liquidity_provider: ContractAddress, round_id: u256
     ) -> u256;
 
+    // Get the amount of premium an LP collected from a round before it rolled over
+    fn is_premium_collected(self: @TContractState, lp: ContractAddress, round_id: u256) -> bool;
+
     /// Writes ///
+
+    /// State transition
+
+    // Start the auction on the next round as long as the current round is Settled and the
+    // round transition period has passed. Deploys the next next round and updates the current/next pointers.
+    fn start_auction(ref self: TContractState) -> bool;
+
+    // End the auction in the current round as long as the current round is Auctioning and the auction
+    // bidding period has ended.
+    // @return the clearing price of the auction
+    fn end_auction(ref self: TContractState) -> u256;
+
+    // Settle the current option round as long as the current round is Running and the option expiry time has passed.
+    fn settle_option_round(ref self: TContractState) -> bool;
+
+    /// LP functions
 
     // LP increments their position and sends the liquidity to the next round
     // @note do we need a return value here ?
@@ -67,6 +92,8 @@ trait IVault<TContractState> {
 
     // LP withdraws from their position while in the round transition period
     fn withdraw_liquidity(ref self: TContractState, amount: u256);
+
+    /// LP token related
 
     // LP converts their collateral into LP tokens
     // @note all at once or can LP convert a partial amount ?
@@ -91,23 +118,6 @@ trait IVault<TContractState> {
     fn convert_lp_tokens_to_newer_lp_tokens(
         ref self: TContractState, source_round: u256, target_round: u256, amount: u256
     ) -> u256;
-
-    // Settle the current option round as long as the current round is Running and the option expiry time has passed.
-    fn settle_option_round(ref self: TContractState) -> bool;
-
-    // Start the auction on the next round as long as the current round is Settled and the
-    // round transition period has passed. Deploys the next next round and updates the current/next pointers.
-    fn start_auction(ref self: TContractState) -> bool;
-
-    // End the auction in the current round as long as the current round is Auctioning and the auction
-    // bidding period has ended.
-    // @return the clearing price of the auction
-    fn end_auction(ref self: TContractState) -> u256;
-
-    // Get the market aggregator address
-    fn get_market_aggregator(self: @TContractState) -> ContractAddress;
-
-    fn is_premium_collected(self: @TContractState, lp: ContractAddress, round_id: u256) -> bool;
 }
 
 #[starknet::contract]
@@ -299,13 +309,7 @@ mod Vault {
             100
         }
 
-        fn get_collateral_balance_for(
-            self: @ContractState, liquidity_provider: ContractAddress
-        ) -> u256 {
-            100
-        }
-
-        fn get_premiums_for(
+        fn get_premiums_earned(
             self: @ContractState, liquidity_provider: ContractAddress, round_id: u256
         ) -> u256 {
             100
