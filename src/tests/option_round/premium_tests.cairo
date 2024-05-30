@@ -160,43 +160,44 @@ fn test_premium_amount_for_liquidity_providers_5() {
 // @note Add test that premiums earned are sent to vault (eth transfer)
 // @note Add test that premiums go to vault::unlocked & vault::lp::unlocked
 
-#[test]
-#[available_gas(10000000)]
-fn test_premium_collection_emits_events() {
-    let (mut vault_facade, _) = setup_facade();
-    // Deposit and start auction
-    // @note Replace with accelerators post sync
-    let lps = array![liquidity_provider_1(), liquidity_provider_2(),];
-    let amounts = array![50 * decimals(), 50 * decimals()];
-    _test_premiums_collectable_helper(ref vault_facade, lps.span(), amounts.span());
-    let mut option_round = vault_facade.get_current_round();
-    // Clear events
-    clear_event_logs(array![vault_facade.contract_address(), option_round.contract_address()]);
-    // Initial protocol spread
-    let (lp1_collateral_init, lp1_unallocated_init) = vault_facade
-        .get_lp_balance_spread(*lps.at(0));
-    let (lp2_collateral_init, lp2_unallocated_init) = vault_facade
-        .get_lp_balance_spread(*lps.at(1));
-    let lp1_total_balance_before = lp1_collateral_init + lp1_unallocated_init;
-    let lp2_total_balance_before = lp2_collateral_init + lp2_unallocated_init;
-
-    // Collect premiums
-    let collected_amount1 = vault_facade.collect_premiums(*lps.at(0));
-    let collected_amount2 = vault_facade.collect_premiums(*lps.at(1));
-
-    assert_event_vault_withdrawal(
-        vault_facade.contract_address(),
-        *lps.at(0),
-        lp1_total_balance_before,
-        lp1_total_balance_before - collected_amount1,
-    );
-    assert_event_vault_withdrawal(
-        vault_facade.contract_address(),
-        *lps.at(1),
-        lp2_total_balance_before,
-        lp2_total_balance_before - collected_amount2,
-    );
-}
+// @note Not needed since there is no longer a collect premiums function, just the single withdraw function
+//#[test]
+//#[available_gas(10000000)]
+//fn test_premium_collection_emits_events() {
+//    let (mut vault_facade, _) = setup_facade();
+//    // Deposit and start auction
+//    // @note Replace with accelerators post sync
+//    let lps = array![liquidity_provider_1(), liquidity_provider_2(),];
+//    let amounts = array![50 * decimals(), 50 * decimals()];
+//    _test_premiums_collectable_helper(ref vault_facade, lps.span(), amounts.span());
+//    let mut option_round = vault_facade.get_current_round();
+//    // Clear events
+//    clear_event_logs(array![vault_facade.contract_address(), option_round.contract_address()]);
+//    // Initial protocol spread
+//    let (lp1_locked_init, lp1_unlocked_init) = vault_facade
+//        .get_lp_balance_spread(*lps.at(0));
+//    let (lp2_locked_init, lp2_unlocked_init) = vault_facade
+//        .get_lp_balance_spread(*lps.at(1));
+//    let lp1_total_balance_before = lp1_locked_init + lp1_unlocked_init;
+//    let lp2_total_balance_before = lp2_locked_init + lp2_unlocked_init;
+//
+//    // Collect premiums
+//    let collected_amount1 = vault_facade.withdraw(*lps.at(0));
+//    let collected_amount2 = vault_facade.collect_premiums(*lps.at(1));
+//
+//    assert_event_vault_withdrawal(
+//        vault_facade.contract_address(),
+//        *lps.at(0),
+//        lp1_total_balance_before,
+//        lp1_total_balance_before - collected_amount1,
+//    );
+//    assert_event_vault_withdrawal(
+//        vault_facade.contract_address(),
+//        *lps.at(1),
+//        lp2_total_balance_before,
+//        lp2_total_balance_before - collected_amount2,
+//    );
+//}
 
 // @note Test that vault::unlocked updates not round's
 // Test collecting premiums updates lp/round unallocated
