@@ -19,7 +19,7 @@ trait IVault<TContractState> {
 
     /// Reads ///
 
-    /// Misc.
+    /// Other
 
     // Get the vault's  manaager address
     // @dev Better access control ? (oz permits ?)
@@ -31,13 +31,17 @@ trait IVault<TContractState> {
     // Get the market aggregator address
     fn get_market_aggregator(self: @TContractState) -> ContractAddress;
 
+    /// Rounds
+
     // @return the current option round id
     fn current_option_round_id(self: @TContractState) -> u256;
 
     // @return the contract address of the option round
     fn get_option_round_address(self: @TContractState, option_round_id: u256) -> ContractAddress;
 
-    /// Liquidity for LPs and Vault
+    /// Liquidity
+
+    // For LPs //
 
     // Get the liquidity an lp has locked
     fn get_lp_locked_balance(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
@@ -47,6 +51,8 @@ trait IVault<TContractState> {
 
     // Get the total liquidity an LP has in the protocol
     fn get_lp_total_balance(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
+
+    // For Vault //
 
     // Get the total liquidity locked
     fn get_total_locked(self: @TContractState) -> u256;
@@ -62,6 +68,11 @@ trait IVault<TContractState> {
     // Get the total premium LP has earned in the current round
     // @note premiums for previous rounds
     fn get_premiums_earned(
+        self: @TContractState, liquidity_provider: ContractAddress, round_id: u256
+    ) -> u256;
+
+    // Get the total premiums collected by an LP in a round
+    fn get_premiums_collected(
         self: @TContractState, liquidity_provider: ContractAddress, round_id: u256
     ) -> u256;
 
@@ -259,7 +270,11 @@ mod Vault {
                     )
                 );
         }
+
         /// Reads ///
+
+        /// Other
+
         fn vault_manager(self: @ContractState) -> ContractAddress {
             self.vault_manager.read()
         }
@@ -267,6 +282,12 @@ mod Vault {
         fn vault_type(self: @ContractState) -> VaultType {
             self.vault_type.read()
         }
+
+        fn get_market_aggregator(self: @ContractState) -> ContractAddress {
+            self.market_aggregator.read()
+        }
+
+        /// Rounds
 
         fn current_option_round_id(self: @ContractState) -> u256 {
             // (for testing; need a deployed instance of round to avoid CONTRACT_NOT_DEPLOYED errors)
@@ -278,6 +299,10 @@ mod Vault {
         ) -> ContractAddress {
             self.round_addresses.read(option_round_id)
         }
+
+        /// Liquidity
+
+        // For LPs //
 
         fn get_lp_locked_balance(
             self: @ContractState, liquidity_provider: ContractAddress
@@ -295,10 +320,11 @@ mod Vault {
             100
         }
 
+        // For Vault //
+
         fn get_total_locked(self: @ContractState) -> u256 {
             100
         }
-
 
         fn get_total_unlocked(self: @ContractState) -> u256 {
             100
@@ -308,30 +334,23 @@ mod Vault {
             100
         }
 
+        /// Premiums
+
         fn get_premiums_earned(
             self: @ContractState, liquidity_provider: ContractAddress, round_id: u256
         ) -> u256 {
             100
         }
 
-        /// Writes ///
-        fn deposit_liquidity(ref self: ContractState, amount: u256) -> u256 {
-            1
-        }
-
-        fn withdraw_liquidity(ref self: ContractState, amount: u256) {}
-
-        fn convert_position_to_lp_tokens(ref self: ContractState, amount: u256) {}
-
-        fn convert_lp_tokens_to_position(
-            ref self: ContractState, source_round: u256, amount: u256
-        ) {}
-
-        fn convert_lp_tokens_to_newer_lp_tokens(
-            ref self: ContractState, source_round: u256, target_round: u256, amount: u256
+        fn get_premiums_collected(
+            self: @ContractState, liquidity_provider: ContractAddress, round_id: u256
         ) -> u256 {
             100
         }
+
+        /// Writes ///
+
+        /// State transition
 
         fn settle_option_round(ref self: ContractState) -> bool {
             true
@@ -345,8 +364,25 @@ mod Vault {
             100
         }
 
-        fn get_market_aggregator(self: @ContractState) -> ContractAddress {
-            self.market_aggregator.read()
+        /// OB functions
+        fn deposit_liquidity(ref self: ContractState, amount: u256) -> u256 {
+            1
+        }
+
+        fn withdraw_liquidity(ref self: ContractState, amount: u256) {}
+
+        /// LP token related
+
+        fn convert_position_to_lp_tokens(ref self: ContractState, amount: u256) {}
+
+        fn convert_lp_tokens_to_position(
+            ref self: ContractState, source_round: u256, amount: u256
+        ) {}
+
+        fn convert_lp_tokens_to_newer_lp_tokens(
+            ref self: ContractState, source_round: u256, target_round: u256, amount: u256
+        ) -> u256 {
+            100
         }
     }
 }

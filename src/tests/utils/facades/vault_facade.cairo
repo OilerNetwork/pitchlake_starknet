@@ -146,7 +146,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     /// Reads ///
 
-    /// Option round related
+    /// Rounds
 
     fn get_current_round_id(ref self: VaultFacade) -> u256 {
         self.vault_dispatcher.current_option_round_id()
