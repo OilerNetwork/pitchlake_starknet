@@ -104,7 +104,6 @@ trait IOptionRound<TContractState> {
     // The total number of options available in the auction
     fn get_total_options_available(self: @TContractState) -> u256;
 
-
     /// Writes ///
 
     /// State transitions

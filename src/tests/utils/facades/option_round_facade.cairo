@@ -75,8 +75,26 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         result
     }
 
+    fn refund_bids(ref self: OptionRoundFacade, mut bidders: Span<ContractAddress>) {
+        loop {
+            match bidders.pop_front() {
+                Option::Some(bidder) => { self.refund_bid(*bidder); },
+                Option::None => { break (); }
+            }
+        };
+    }
+
     fn exercise_options(ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress) -> u256 {
         self.option_round_dispatcher.exercise_options(option_bidder_buyer)
+    }
+
+    fn exercise_options_multiple(ref self: OptionRoundFacade, mut bidders: Span<ContractAddress>) {
+        loop {
+            match bidders.pop_front() {
+                Option::Some(bidder) => { self.exercise_options(*bidder); },
+                Option::None => { break (); }
+            }
+        };
     }
 
     /// Reads ///
