@@ -106,7 +106,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     }
 
     fn total_payout(ref self: OptionRoundFacade) -> u256 {
-        self.option_round_dispatcher.total_payouts()
+        self.option_round_dispatcher.total_payout()
     }
 
     fn get_auction_clearing_price(ref self: OptionRoundFacade) -> u256 {
