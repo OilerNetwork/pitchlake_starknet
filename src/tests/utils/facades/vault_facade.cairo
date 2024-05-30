@@ -221,7 +221,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     }
 
     fn get_premiums_for(ref self: VaultFacade, lp: ContractAddress, round_id: u256) -> u256 {
-        self.vault_dispatcher.get_premiums_for(lp, round_id)
+        self.vault_dispatcher.get_premiums_earned(lp, round_id)
     }
 
     // For Vault
