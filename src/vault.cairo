@@ -65,8 +65,7 @@ trait IVault<TContractState> {
         self: @TContractState, liquidity_provider: ContractAddress, round_id: u256
     ) -> u256;
 
-    // Get the amount of premium an LP collected from a round before it rolled over
-    fn is_premium_collected(self: @TContractState, lp: ContractAddress, round_id: u256) -> bool;
+    // @note add get_premiums_collected to return how much if any an LP collects from a round (used to prevent draining premiums)
 
     /// Writes ///
 
@@ -313,10 +312,6 @@ mod Vault {
             self: @ContractState, liquidity_provider: ContractAddress, round_id: u256
         ) -> u256 {
             100
-        }
-
-        fn is_premium_collected(self: @ContractState, lp: ContractAddress, round_id: u256) -> bool {
-            self.premiums_collected.read((round_id, lp))
         }
 
         /// Writes ///
