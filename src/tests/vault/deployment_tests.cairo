@@ -52,7 +52,7 @@ use debug::PrintTrait;
 #[available_gas(10000000)]
 fn test_vault_constructor() {
     let (mut vault_facade, _) = setup_facade();
-    let current_round_id = vault_facade.current_option_round_id();
+    let current_round_id = vault_facade.get_current_round_id();
     let next_round_id = current_round_id + 1;
     // Test vault constructor values
     assert(
