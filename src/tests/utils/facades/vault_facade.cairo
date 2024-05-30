@@ -24,13 +24,30 @@ struct VaultFacade {
 }
 #[generate_trait]
 impl VaultFacadeImpl of VaultFacadeTrait {
-    fn contract_address(ref self: VaultFacade) -> ContractAddress {
-        self.vault_dispatcher.contract_address
-    }
+    /// Writes ///
 
+    /// LP functions
     fn deposit(ref self: VaultFacade, amount: u256, liquidity_provider: ContractAddress) {
         set_contract_address(liquidity_provider);
         self.vault_dispatcher.deposit_liquidity(amount);
+    }
+
+    fn deposit_mutltiple(
+        ref self: VaultFacade, mut lps: Span<ContractAddress>, mut amounts: Span<u256>
+    ) -> u256 {
+        assert(lps.len() == amounts.len(), 'Incorrect lengths');
+        let mut total = 0;
+        loop {
+            match lps.pop_front() {
+                Option::Some(lp) => {
+                    let amount = amounts.pop_front().unwrap();
+                    total += *amount;
+                    self.deposit(*amount, *lp);
+                },
+                Option::None => { break (); }
+            };
+        };
+        total
     }
 
     fn withdraw(ref self: VaultFacade, amount: u256, liquidity_provider: ContractAddress) {
@@ -38,29 +55,41 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         self.vault_dispatcher.withdraw_liquidity(amount);
     }
 
-    // @note needs to be removed, only withdraw function
-    // @note should return the amount of premiums/unsold liq. collected
-    fn collect_premiums(ref self: VaultFacade, liquidity_provider: ContractAddress) -> u256 {
-        set_contract_address(liquidity_provider);
-        //self.vault_dispatcher.collect_premiums();
-        100
+    fn withdraw_multiple(
+        ref self: VaultFacade, mut amounts: Span<u256>, mut lps: Span<ContractAddress>
+    ) {
+        assert(lps.len() == amounts.len(), 'Incorrect lengths');
+        loop {
+            match lps.pop_front() {
+                Option::Some(lp) => {
+                    let amount = amounts.pop_front().unwrap();
+                    self.withdraw(*amount, *lp);
+                },
+                Option::None => { break (); }
+            };
+        };
     }
 
-    //@note Vault manager is set as caller here so the balances are not affected for previously set addresses for provider/bidder
-    //Anyone can call this function on the vault
+    /// State transition
+
     fn start_auction(ref self: VaultFacade) -> bool {
+        // @dev Using vault manager as caller so that gas fees do not throw off balance calculations
         set_contract_address(vault_manager());
         self.vault_dispatcher.start_auction()
     }
 
     fn end_auction(ref self: VaultFacade) -> u256 {
+        // @dev Using vault manager as caller so that gas fees do not throw off balance calculations
         set_contract_address(vault_manager());
         self.vault_dispatcher.end_auction()
     }
 
     fn settle_option_round(ref self: VaultFacade) -> bool {
+        // @dev Using vault manager as caller so that gas fees do not throw off balance calculations
         self.vault_dispatcher.settle_option_round()
     }
+
+    /// State transition with additional logic
 
     fn timeskip_and_settle_round(ref self: VaultFacade) -> bool {
         set_contract_address(vault_manager());
@@ -76,6 +105,19 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         self.vault_dispatcher.end_auction();
         current_round.get_auction_clearing_price()
     }
+
+    // Set the mock market aggregator data for the period of the current round
+    fn set_market_aggregator_value(ref self: VaultFacade, avg_base_fee: u256) {
+        let mut current_round = self.get_current_round();
+        let start_date = current_round.get_auction_start_date();
+        let end_date = current_round.get_option_expiry_date();
+        let market_aggregator = IMarketAggregatorSetterDispatcher {
+            contract_address: self.get_market_aggregator(),
+        };
+        market_aggregator.set_value_without_proof(start_date, end_date, avg_base_fee);
+    }
+
+    /// LP token related
 
     fn convert_position_to_lp_tokens(ref self: VaultFacade, amount: u256, lp: ContractAddress) {
         set_contract_address(lp);
@@ -102,16 +144,16 @@ impl VaultFacadeImpl of VaultFacadeTrait {
             .convert_lp_tokens_to_newer_lp_tokens(source_round, target_round, amount);
     }
 
-    fn current_option_round_id(ref self: VaultFacade) -> u256 {
+    /// Reads ///
+
+    /// Option round related
+
+    fn get_current_round_id(ref self: VaultFacade) -> u256 {
         self.vault_dispatcher.current_option_round_id()
     }
 
     fn get_option_round_address(ref self: VaultFacade, id: u256) -> ContractAddress {
         self.vault_dispatcher.get_option_round_address(id)
-    }
-
-    fn get_current_round_id(ref self: VaultFacade) -> u256 {
-        self.vault_dispatcher.current_option_round_id()
     }
 
     fn get_current_round(ref self: VaultFacade) -> OptionRoundFacade {
@@ -122,6 +164,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
         OptionRoundFacade { option_round_dispatcher }
     }
+
     fn get_next_round(ref self: VaultFacade) -> OptionRoundFacade {
         let contract_address = self
             .vault_dispatcher
@@ -137,23 +180,9 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         (self.get_current_round(), self.get_next_round())
     }
 
+    /// Liquidity
 
-    // Get lps (multiple) liquidity (locked, unlocked)
-    fn get_all_liquidity_for_n(
-        ref self: VaultFacade, lps: Span<ContractAddress>
-    ) -> (Array<u256>, Array<u256>) {
-        let mut index = 0;
-        let mut arr_locked: Array<u256> = array![];
-        let mut arr_unlocked: Array<u256> = array![];
-        while index < lps
-            .len() {
-                let locked = self.vault_dispatcher.get_lp_locked_balance(*lps[index]);
-                let unlocked = self.vault_dispatcher.get_lp_unlocked_balance(*lps[index]);
-                arr_locked.append(locked);
-                arr_unlocked.append(unlocked);
-            };
-        (arr_locked, arr_unlocked)
-    }
+    // For LPs
 
     fn get_lp_locked_balance(ref self: VaultFacade, lp: ContractAddress) -> u256 {
         self.vault_dispatcher.get_lp_locked_balance(lp)
@@ -173,6 +202,30 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         (locked, unlocked)
     }
 
+    fn get_lp_balance_spreads(
+        ref self: VaultFacade, mut lps: Span<ContractAddress>
+    ) -> (Array<u256>, Array<u256>) {
+        let mut arr_locked: Array<u256> = array![];
+        let mut arr_unlocked: Array<u256> = array![];
+
+        match lps.pop_front() {
+            Option::Some(lp) => {
+                let (locked, unlocked) = self.get_lp_balance_spread(*lp);
+                arr_locked.append(locked);
+                arr_unlocked.append(unlocked);
+            },
+            Option::None => { return (arr_locked, arr_unlocked); }
+        };
+
+        (arr_locked, arr_unlocked)
+    }
+
+    fn get_premiums_for(ref self: VaultFacade, lp: ContractAddress, round_id: u256) -> u256 {
+        self.vault_dispatcher.get_premiums_for(lp, round_id)
+    }
+
+    // For Vault
+
     fn get_unlocked_balance(ref self: VaultFacade) -> u256 {
         self.vault_dispatcher.get_total_unlocked()
     }
@@ -191,55 +244,18 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         (locked, unlocked)
     }
 
+
+    /// Misc
+
+    // @note Would be a lot of grepping, but could match Dispatcher format by making this a struct member instead of an entry point
+    fn contract_address(ref self: VaultFacade) -> ContractAddress {
+        self.vault_dispatcher.contract_address
+    }
     fn get_market_aggregator(ref self: VaultFacade) -> ContractAddress {
         self.vault_dispatcher.get_market_aggregator()
     }
 
-
-    // Gets the round transition period in seconds, 3 hours is a random number for testing
-    // @note TODO impl this in contract later
-    fn get_round_transition_period(ref self: VaultFacade) -> u64 {
-        let minute = 60;
-        let hour = 60 * minute;
-        3 * hour
-    }
-
-    // might be duplicated when repo syncs
-    fn get_premiums_for(ref self: VaultFacade, lp: ContractAddress, round_id: u256) -> u256 {
-        self.vault_dispatcher.get_premiums_for(lp, round_id)
-    }
-
-
-    fn deposit_mutltiple(
-        ref self: VaultFacade, mut lps: Span<ContractAddress>, mut amounts: Span<u256>
-    ) -> u256 {
-        assert(lps.len() == amounts.len(), 'Incorrect lengths');
-        let mut total = 0;
-
-        loop {
-            match lps.pop_front() {
-                Option::Some(lp) => {
-                    let amount = amounts.pop_front().unwrap();
-                    total += *amount;
-                    self.deposit(*amount, *lp);
-                },
-                Option::None => { break (); }
-            };
-        };
-        total
-    }
-
-    // Set the mock market aggregators value for the period of the current round
-    fn set_market_aggregator_value(ref self: VaultFacade, avg_base_fee: u256) {
-        let mut current_round = self.get_current_round();
-        let start_date = current_round.get_auction_start_date();
-        let end_date = current_round.get_option_expiry_date();
-        let market_aggregator = IMarketAggregatorSetterDispatcher {
-            contract_address: self.get_market_aggregator(),
-        };
-        market_aggregator.set_value_without_proof(start_date, end_date, avg_base_fee);
-    }
-
+    // Get the market aggregator data for the period of the current round
     fn get_market_aggregator_value(ref self: VaultFacade) -> u256 {
         let market_aggregator = IMarketAggregatorDispatcher {
             contract_address: self.get_market_aggregator(),
@@ -252,6 +268,14 @@ impl VaultFacadeImpl of VaultFacadeTrait {
             Result::Ok((value, _)) => value,
             Result::Err(e) => panic(array![e]),
         }
+    }
+
+    // Gets the round transition period in seconds, 3 hours is a random number for testing
+    // @note TODO impl this in contract later
+    fn get_round_transition_period(ref self: VaultFacade) -> u64 {
+        let minute = 60;
+        let hour = 60 * minute;
+        3 * hour
     }
 }
 
