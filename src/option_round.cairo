@@ -1,33 +1,10 @@
 use starknet::{ContractAddress, StorePacking};
 use openzeppelin::token::erc20::interface::IERC20Dispatcher;
-use pitch_lake_starknet::market_aggregator::{
-    IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
+use pitch_lake_starknet::{
+    market_aggregator::{IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait},
+    option_round::OptionRound::{OptionRoundState, StartAuctionParams}
 };
 
-// The parameters needed to construct an option round
-// @param vault_address: The address of the vault that deployed this round
-// @param round_id: The id of the round (the first round in a vault is round 0)
-// @note Move into separate file or within contract
-#[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
-struct OptionRoundConstructorParams {
-    vault_address: ContractAddress,
-    round_id: u256,
-}
-
-#[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
-struct StartAuctionParams {}
-
-
-// The states an option round can be in
-// @note Should we move these into the contract or separate file ?
-#[derive(Copy, Drop, Serde, PartialEq, starknet::Store)]
-enum OptionRoundState {
-    Open, // Accepting deposits, waiting for auction to start
-    Auctioning, // Auction is on going, accepting bids
-    Running, // Auction has ended, waiting for option round expiry date to settle
-    Settled, // Option round has settled, remaining liquidity has rolled over to the next round
-//Initialized, // add between Open and Auctioning (round transition period) ?
-}
 
 // The option round contract interface
 // @note Should we move this into a separate file ?
@@ -152,13 +129,9 @@ trait IOptionRound<TContractState> {
 
 #[starknet::contract]
 mod OptionRound {
-    use openzeppelin::token::erc20::{ERC20Component};
-    use openzeppelin::token::erc20::interface::IERC20;
-    use starknet::ContractAddress;
-    use pitch_lake_starknet::vault::VaultType;
-    use pitch_lake_starknet::vault::{IVaultDispatcher, IVaultDispatcherTrait};
-    use openzeppelin::token::erc20::interface::IERC20Dispatcher;
-    use super::{OptionRoundConstructorParams, StartAuctionParams, OptionRoundState,};
+    use openzeppelin::token::erc20::{ERC20Component, interface::{IERC20, IERC20Dispatcher}};
+    use starknet::{ContractAddress};
+    use pitch_lake_starknet::vault::{Vault::VaultType, IVaultDispatcher, IVaultDispatcherTrait};
     use pitch_lake_starknet::market_aggregator::{
         IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
     };
@@ -173,6 +146,29 @@ mod OptionRound {
 
         constructor_params: OptionRoundConstructorParams,
         premiums_collected: LegacyMap<ContractAddress, bool>,
+    }
+
+    // The parameters needed to construct an option round
+    // @param vault_address: The address of the vault that deployed this round
+    // @param round_id: The id of the round (the first round in a vault is round 0)
+    // @note Move into separate file or within contract
+    #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
+    struct OptionRoundConstructorParams {
+        vault_address: ContractAddress,
+        round_id: u256,
+    }
+
+    #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
+    struct StartAuctionParams {}
+
+    // The states an option round can be in
+    // @note Should we move these into the contract or separate file ?
+    #[derive(Copy, Drop, Serde, PartialEq, starknet::Store)]
+    enum OptionRoundState {
+        Open, // Accepting deposits, waiting for auction to start
+        Auctioning, // Auction is on going, accepting bids
+        Running, // Auction has ended, waiting for option round expiry date to settle
+        Settled, // Option round has settled, remaining liquidity has rolled over to the next round
     }
 
     // Option round events

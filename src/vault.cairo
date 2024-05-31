@@ -140,8 +140,12 @@ mod Vault {
     use pitch_lake_starknet::{
         vault::{IVault},
         option_round::{
-            OptionRound, OptionRound::{OptionRoundErrorIntoFelt252}, OptionRoundConstructorParams,
-            StartAuctionParams, OptionRoundState, IOptionRoundDispatcher
+            OptionRound,
+            OptionRound::{
+                OptionRoundErrorIntoFelt252, OptionRoundConstructorParams, StartAuctionParams,
+                OptionRoundState
+            },
+            IOptionRoundDispatcher
         },
         market_aggregator::{IMarketAggregatorDispatcher}
     };
