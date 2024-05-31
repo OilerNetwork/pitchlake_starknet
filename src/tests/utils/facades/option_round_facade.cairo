@@ -6,7 +6,7 @@ use pitch_lake_starknet::vault::{
 use starknet::{ContractAddress, testing::{set_contract_address}};
 use pitch_lake_starknet::{
     option_round::{
-        IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState, StartAuctionParams,
+        IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState, StartAuctionParams, OptionRound::{OptionRoundErrorIntoFelt252},
     },
     tests::{utils::{variables::{vault_manager}, structs::{OptionRoundParams}}}
 };
@@ -23,19 +23,32 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
 
     /// State transition
 
-    fn start_auction(ref self: OptionRoundFacade) {
+    fn start_auction(ref self: OptionRoundFacade) -> u256 {
         set_contract_address(vault_manager());
         let start_auction_params = StartAuctionParams {};
-        self.option_round_dispatcher.start_auction(start_auction_params);
+        let res = self.option_round_dispatcher.start_auction(start_auction_params);
+        match res {
+            Result::Ok(total_options_available) => total_options_available,
+            Result::Err(e) => panic(array![e.into()]),
+
+          }
     }
 
-    fn end_auction(ref self: OptionRoundFacade) -> u256 {
+    fn end_auction(ref self: OptionRoundFacade) -> (u256, u256) {
         set_contract_address(vault_manager());
-        self.option_round_dispatcher.end_auction()
+        let res = self.option_round_dispatcher.end_auction();
+        match res {
+            Result::Ok((total_options_sold, total_premiums)) => (total_options_sold, total_premiums),
+            Result::Err(e) => panic(array![e.into()]),
+        }
     }
 
-    fn settle_option_round(ref self: OptionRoundFacade, settlement_price: u256) -> bool {
-        self.option_round_dispatcher.settle_option_round(settlement_price)
+    fn settle_option_round(ref self: OptionRoundFacade, settlement_price: u256) -> u256 {
+        let res = self.option_round_dispatcher.settle_option_round(settlement_price);
+        match res {
+            Result::Ok(total_payout) => total_payout,
+            Result::Err(e) => panic(array![e.into()]),
+        }
     }
 
     /// OB functions

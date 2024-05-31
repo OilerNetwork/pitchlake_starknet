@@ -72,39 +72,53 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     /// State transition
 
-    fn start_auction(ref self: VaultFacade) -> bool {
+    fn start_auction(ref self: VaultFacade) -> u256 {
         // @dev Using vault manager as caller so that gas fees do not throw off balance calculations
         set_contract_address(vault_manager());
-        self.vault_dispatcher.start_auction()
+        let res = self.vault_dispatcher.start_auction();
+        match res {
+            Result::Ok(total_options_available) => total_options_available,
+            Result::Err(e) => panic(array![e.into()]),
+        }
     }
 
-    fn end_auction(ref self: VaultFacade) -> u256 {
+    fn end_auction(ref self: VaultFacade) -> (u256, u256) {
         // @dev Using vault manager as caller so that gas fees do not throw off balance calculations
         set_contract_address(vault_manager());
-        self.vault_dispatcher.end_auction()
+        let res = self.vault_dispatcher.end_auction();
+        match res {
+            Result::Ok((
+                clearing_price, total_options_sold
+            )) => (clearing_price, total_options_sold),
+            Result::Err(e) => panic(array![e.into()]),
+        }
     }
 
-    fn settle_option_round(ref self: VaultFacade) -> bool {
+    fn settle_option_round(ref self: VaultFacade) -> u256 {
         // @dev Using vault manager as caller so that gas fees do not throw off balance calculations
-        self.vault_dispatcher.settle_option_round()
+        set_contract_address(vault_manager());
+        let res = self.vault_dispatcher.settle_option_round();
+        match res {
+            Result::Ok(total_payout) => total_payout,
+            Result::Err(e) => panic(array![e.into()]),
+        }
     }
 
     /// State transition with additional logic
 
-    fn timeskip_and_settle_round(ref self: VaultFacade) -> bool {
-        set_contract_address(vault_manager());
+    fn timeskip_and_settle_round(ref self: VaultFacade) -> u256 {
         let mut current_round = self.get_current_round();
         set_block_timestamp(current_round.get_params().option_expiry_time + 1);
-        self.vault_dispatcher.settle_option_round()
+        self.settle_option_round()
     }
 
-    fn timeskip_and_end_auction(ref self: VaultFacade) -> u256 {
-        set_contract_address(vault_manager());
+    fn timeskip_and_end_auction(ref self: VaultFacade) -> (u256, u256) {
         let mut current_round = self.get_current_round();
         set_block_timestamp(current_round.get_params().auction_end_time + 1);
-        self.vault_dispatcher.end_auction();
-        current_round.get_auction_clearing_price()
+        self.end_auction()
     }
+
+    /// Fossil
 
     // Set the mock market aggregator data for the period of the current round
     fn set_market_aggregator_value(ref self: VaultFacade, avg_base_fee: u256) {
