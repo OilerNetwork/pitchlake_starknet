@@ -107,21 +107,18 @@ trait IOptionRound<TContractState> {
     /// State transitions
 
     // Try to start the option round's auction
-    // @return true if the auction was started, false if the auction was already started/cannot start yet
+    // @return the total options available in the auction
     fn start_auction(
         ref self: TContractState, start_auction_params: StartAuctionParams
     ) -> Result<u256, OptionRound::OptionRoundError>;
 
     // Settle the auction if the auction time has passed
-    // @return if the auction was settled or not (0 mean no, > 0 is clearing price ?, we already have get clearing price, so just bool instead)
-    // @note there was a note in the previous version that this should return the clearing price,
-    // not sure which makes more sense at this time.
+    // @return the clearing price of the auction
+    // @return the total options sold in the auction (@note keep or drop ?)
     fn end_auction(ref self: TContractState) -> Result<(u256, u256), OptionRound::OptionRoundError>;
 
     // Settle the option round if past the expiry date and in state::Running
-    // @note This function should probably me limited to a wrapper entry point
-    // in the vault that will handle liquidity roll over
-    // @return if the option round settles or not
+    // @return The total payout of the option round
     fn settle_option_round(
         ref self: TContractState, avg_base_fee: u256
     ) -> Result<u256, OptionRound::OptionRoundError>;
