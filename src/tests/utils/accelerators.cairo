@@ -66,7 +66,7 @@ fn accelerate_to_running_custom(
     bidders: Span<ContractAddress>,
     max_amounts: Span<u256>,
     prices: Span<u256>
-) -> u256 {
+) -> (u256, u256) {
     // Place bids
     let mut current_round = self.get_current_round();
     current_round.place_bids(bidders, max_amounts, prices);

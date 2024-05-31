@@ -71,7 +71,7 @@ fn test_convert_position_to_lp_tokens_while_settled__TODO__() {
     current_round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
     // Settle auction
     set_block_timestamp(option_params.auction_end_time + 1);
-    let clearing_price: u256 = vault_facade.end_auction();
+    let (clearing_price, _) = vault_facade.end_auction();
     assert(clearing_price == option_params.reserve_price, 'clearing price wrong');
     // Settle option round
     set_block_timestamp(option_params.option_expiry_time + 1);

@@ -136,7 +136,7 @@ fn test_vault_end_auction_success_multi() {
     let bid_prices = create_array_linear(bid_price, 5);
 
     // Settle auction
-    let clearing_price = accelerate_to_running_custom(
+    let (clearing_price, _) = accelerate_to_running_custom(
         ref vault_facade, bidders.span(), bid_amounts.span(), bid_prices.span()
     );
 
