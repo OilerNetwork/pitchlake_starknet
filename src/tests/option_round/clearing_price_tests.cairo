@@ -1,13 +1,19 @@
 use pitch_lake_starknet::{
     tests::{
-        vault_facade::{VaultFacade, VaultFacadeTrait},
-        option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundParams},
         utils::{
-            setup_facade, decimals, liquidity_provider_1, option_bidder_buyer_1,
-            option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
-            accelerate_to_running, accelerate_to_running_custom, option_bidders_get
+            accelerators::{
+                accelerate_to_auctioning, accelerate_to_running, accelerate_to_running_custom
+            },
+            test_accounts::{
+                option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
+                option_bidder_buyer_4, option_bidders_get,
+            },
+            setup::{setup_facade}, variables::{decimals},
+            facades::{
+                vault_facade::{VaultFacade, VaultFacadeTrait},
+                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundParams},
+            }
         },
-        vault::utils::{accelerate_to_auctioning}
     }
 };
 use starknet::testing::{set_block_timestamp, set_contract_address};
@@ -75,7 +81,7 @@ fn test_clearing_price_2() {
     let bid_amount_user_1: u256 = bid_count_user_1 * bid_price_user_1;
     let bid_amount_user_2: u256 = bid_count_user_2 * bid_price_user_2;
 
-    let clearing_price = accelerate_to_running_custom(
+    let (clearing_price, _) = accelerate_to_running_custom(
         ref vault_facade,
         option_bidders.span(),
         array![bid_amount_user_1, bid_amount_user_2].span(),
@@ -109,7 +115,7 @@ fn test_clearing_price_3() {
     let bid_amount_user_2 = bid_count * bid_price_user_2;
     let bid_amount_user_3 = bid_count * bid_price_user_3;
 
-    let clearing_price = accelerate_to_running_custom(
+    let (clearing_price, _) = accelerate_to_running_custom(
         ref vault_facade,
         option_bidders.span(),
         array![bid_amount_user_1, bid_amount_user_2, bid_amount_user_3].span(),
@@ -143,7 +149,7 @@ fn test_clearing_price_4() {
     let bid_amount_user_1: u256 = bid_count_user_1 * bid_price_user_1 * decimals();
     let bid_amount_user_2: u256 = bid_count_user_2 * bid_price_user_2 * decimals();
 
-    let clearing_price = accelerate_to_running_custom(
+    let (clearing_price, _) = accelerate_to_running_custom(
         ref vault_facade,
         option_bidders.span(),
         array![bid_amount_user_1, bid_amount_user_2].span(),
@@ -179,7 +185,7 @@ fn test_clearing_price_5() {
     let bid_amount_user_3: u256 = bid_count_user_3 * bid_price_user_3;
     let bid_amount_user_4: u256 = bid_count_user_4 * bid_price_user_4;
 
-    let clearing_price = accelerate_to_running_custom(
+    let (clearing_price, _) = accelerate_to_running_custom(
         ref vault_facade,
         option_bidders.span(),
         array![bid_amount_user_1, bid_amount_user_2, bid_amount_user_3, bid_amount_user_4].span(),

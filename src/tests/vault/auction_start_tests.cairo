@@ -1,42 +1,41 @@
-use core::array::SpanTrait;
-use array::ArrayTrait;
-use debug::PrintTrait;
-use option::OptionTrait;
-use openzeppelin::token::erc20::interface::{
-    IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
-    IERC20SafeDispatcherTrait,
-};
-
-use pitch_lake_starknet::vault::{
-    IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait
-};
-use pitch_lake_starknet::option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait};
-
-use result::ResultTrait;
 use starknet::{
     ClassHash, ContractAddress, contract_address_const, deploy_syscall,
     Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
     testing::{set_block_timestamp, set_contract_address}
 };
-
-use starknet::contract_address::ContractAddressZeroable;
-use openzeppelin::utils::serde::SerializedAppend;
-
-use traits::Into;
-use traits::TryInto;
-use pitch_lake_starknet::eth::Eth;
-use pitch_lake_starknet::tests::utils::{
-    setup_facade, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
-    timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
-    liquidity_providers_get, option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
-    create_array_linear, create_array_gradient, option_bidder_buyer_4, vault_manager, weth_owner,
-    mock_option_params, assert_event_auction_start, accelerate_to_auctioning_custom,
-    accelerate_to_running_custom, accelerate_to_auctioning, assert_event_option_round_deployed,
-    accelerate_to_running, accelerate_to_settled,
+use openzeppelin::token::erc20::interface::{
+    IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
+    IERC20SafeDispatcherTrait,
 };
-use pitch_lake_starknet::tests::vault_facade::{VaultFacade, VaultFacadeTrait};
-use pitch_lake_starknet::tests::option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait};
-use pitch_lake_starknet::option_round::{OptionRoundState};
+use pitch_lake_starknet::{
+    eth::Eth,
+    vault::{
+        IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault,
+        IVaultSafeDispatcherTrait
+    },
+    option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState},
+    tests::{
+        utils::{
+            event_helpers::{assert_event_auction_start, assert_event_option_round_deployed},
+            accelerators::{
+                create_array_linear, create_array_gradient, accelerate_to_auctioning,
+                accelerate_to_running, accelerate_to_settled, accelerate_to_auctioning_custom,
+                accelerate_to_running_custom, timeskip_and_settle_round, timeskip_and_end_auction
+            },
+            test_accounts::{
+                liquidity_provider_1, liquidity_provider_2, liquidity_providers_get,
+                option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
+                option_bidder_buyer_4,
+            },
+            variables::{decimals}, setup::{setup_facade},
+            facades::{
+                vault_facade::{VaultFacade, VaultFacadeTrait},
+                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
+            },
+        },
+    },
+};
+use debug::PrintTrait;
 
 
 // @note should be with other roll over tests
@@ -58,7 +57,7 @@ fn test_unlocked_becomes_locked() {
     // Final collateral/unallocated spread
     let (total_locked, total_unlocked) = vault_facade.get_balance_spread();
     // Individual spread
-    let (mut locked_arr, mut unlocked_arr) = vault_facade.get_all_liquidity_for_n(lps.span());
+    let (mut locked_arr, mut unlocked_arr) = vault_facade.get_lp_balance_spreads(lps.span());
     loop {
         match locked_arr.pop_front() {
             Option::Some(locked_amount) => {
@@ -175,7 +174,7 @@ fn test_start_auction_while_current_round_running_failure() {
     let bid_amount: u256 = bid_count * bid_price;
     current_round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
     // Settle auction
-    vault_facade.timeskip_and_end_auction();
+    timeskip_and_end_auction(ref vault_facade);
     // Try to start the next auction while the current is Running
     vault_facade.start_auction();
 }
@@ -199,9 +198,9 @@ fn test_start_auction_before_round_transition_period_over_failure() {
     let bid_amount: u256 = bid_count * bid_price;
     current_round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
     // Settle auction
-    vault_facade.timeskip_and_end_auction();
+    timeskip_and_end_auction(ref vault_facade);
     // Settle option round
-    vault_facade.timeskip_and_settle_round();
+    timeskip_and_settle_round(ref vault_facade);
     // Try to start the next auction before waiting the round transition period
     // @dev add in the round transition period either in option round params or vault
     let rtp = 111;

@@ -1,16 +1,22 @@
+use starknet::{get_block_timestamp, testing::{set_contract_address, set_block_timestamp}};
 use pitch_lake_starknet::{
     tests::{
-        vault_facade::{VaultFacade, VaultFacadeTrait},
-        option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundParams},
         utils::{
-            setup_facade, decimals, liquidity_provider_1, option_bidder_buyer_1,
-            option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
-            accelerate_to_running, accelerate_to_running_custom, option_bidders_get
+            accelerators::{
+                accelerate_to_auctioning, accelerate_to_running, accelerate_to_running_custom
+            },
+            test_accounts::{
+                liquidity_provider_1, option_bidder_buyer_1, option_bidder_buyer_2,
+                option_bidder_buyer_3, option_bidder_buyer_4, option_bidders_get,
+            },
+            variables::{decimals}, setup::{setup_facade},
+            facades::{
+                vault_facade::{VaultFacade, VaultFacadeTrait},
+                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundParams},
+            },
         },
-        vault::utils::{accelerate_to_auctioning}
     }
 };
-use starknet::{get_block_timestamp, testing::{set_contract_address, set_block_timestamp}};
 
 // @note Modify to check the Result of the function to be Result::Err(e)
 // Test that only the vault can start an auction

@@ -1,24 +1,32 @@
 use starknet::testing::{set_block_timestamp, set_contract_address, ContractAddress};
-use pitch_lake_starknet::tests::{
-    option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundParams},
-    vault_facade::{VaultFacade, VaultFacadeTrait},
-    mocks::{
-        mock_market_aggregator::{
-            MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
-            IMarketAggregatorSetterDispatcherTrait
-        }
-    },
-};
-use pitch_lake_starknet::tests::utils::{
-    setup_facade, liquidity_provider_1, liquidity_provider_2, liquidity_provider_3,
-    liquidity_provider_4, liquidity_provider_5, decimals, option_bidder_buyer_1,
-    option_bidder_buyer_2, liquidity_providers_get, accelerate_to_auctioning, accelerate_to_running,
-    accelerate_to_settled, assert_event_transfer, accelerate_to_auctioning_custom,
-    assert_event_vault_withdrawal, clear_event_logs,
-};
 use openzeppelin::token::erc20::interface::{
     IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
     IERC20SafeDispatcherTrait,
+};
+use pitch_lake_starknet::tests::{
+    utils::{
+        event_helpers::{assert_event_transfer, assert_event_vault_withdrawal},
+        accelerators::{
+            accelerate_to_auctioning, accelerate_to_auctioning_custom, accelerate_to_running,
+            accelerate_to_running_custom, accelerate_to_settled, clear_event_logs
+        },
+        test_accounts::{
+            liquidity_provider_1, liquidity_provider_2, liquidity_provider_3, liquidity_provider_4,
+            liquidity_provider_5, option_bidder_buyer_1, option_bidder_buyer_2,
+            option_bidder_buyer_3, liquidity_providers_get
+        },
+        variables::{decimals}, setup::{setup_facade},
+        facades::{
+            option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundParams},
+            vault_facade::{VaultFacade, VaultFacadeTrait},
+        },
+        mocks::{
+            mock_market_aggregator::{
+                MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
+                IMarketAggregatorSetterDispatcherTrait
+            }
+        },
+    },
 };
 use debug::PrintTrait;
 
@@ -152,41 +160,44 @@ fn test_premium_amount_for_liquidity_providers_5() {
 // @note Add test that premiums earned are sent to vault (eth transfer)
 // @note Add test that premiums go to vault::unlocked & vault::lp::unlocked
 
-#[test]
-#[available_gas(10000000)]
-fn test_premium_collection_emits_events() {
-    let (mut vault_facade, _) = setup_facade();
-    // Deposit and start auction
-    // @note Replace with accelerators post sync
-    let lps = array![liquidity_provider_1(), liquidity_provider_2(),];
-    let amounts = array![50 * decimals(), 50 * decimals()];
-    _test_premiums_collectable_helper(ref vault_facade, lps.span(), amounts.span());
-    let mut option_round = vault_facade.get_current_round();
-    // Clear events
-    clear_event_logs(array![vault_facade.contract_address(), option_round.contract_address()]);
-    // Initial protocol spread
-    let (lp1_collateral_init, lp1_unallocated_init) = vault_facade.get_lp_balance_spread(*lps.at(0));
-    let (lp2_collateral_init, lp2_unallocated_init) = vault_facade.get_lp_balance_spread(*lps.at(1));
-    let lp1_total_balance_before = lp1_collateral_init + lp1_unallocated_init;
-    let lp2_total_balance_before = lp2_collateral_init + lp2_unallocated_init;
-
-    // Collect premiums
-    let collected_amount1 = vault_facade.collect_premiums(*lps.at(0));
-    let collected_amount2 = vault_facade.collect_premiums(*lps.at(1));
-
-    assert_event_vault_withdrawal(
-        vault_facade.contract_address(),
-        *lps.at(0),
-        lp1_total_balance_before,
-        lp1_total_balance_before - collected_amount1,
-    );
-    assert_event_vault_withdrawal(
-        vault_facade.contract_address(),
-        *lps.at(1),
-        lp2_total_balance_before,
-        lp2_total_balance_before - collected_amount2,
-    );
-}
+// @note Not needed since there is no longer a collect premiums function, just the single withdraw function
+//#[test]
+//#[available_gas(10000000)]
+//fn test_premium_collection_emits_events() {
+//    let (mut vault_facade, _) = setup_facade();
+//    // Deposit and start auction
+//    // @note Replace with accelerators post sync
+//    let lps = array![liquidity_provider_1(), liquidity_provider_2(),];
+//    let amounts = array![50 * decimals(), 50 * decimals()];
+//    _test_premiums_collectable_helper(ref vault_facade, lps.span(), amounts.span());
+//    let mut option_round = vault_facade.get_current_round();
+//    // Clear events
+//    clear_event_logs(array![vault_facade.contract_address(), option_round.contract_address()]);
+//    // Initial protocol spread
+//    let (lp1_locked_init, lp1_unlocked_init) = vault_facade
+//        .get_lp_balance_spread(*lps.at(0));
+//    let (lp2_locked_init, lp2_unlocked_init) = vault_facade
+//        .get_lp_balance_spread(*lps.at(1));
+//    let lp1_total_balance_before = lp1_locked_init + lp1_unlocked_init;
+//    let lp2_total_balance_before = lp2_locked_init + lp2_unlocked_init;
+//
+//    // Collect premiums
+//    let collected_amount1 = vault_facade.withdraw(*lps.at(0));
+//    let collected_amount2 = vault_facade.collect_premiums(*lps.at(1));
+//
+//    assert_event_vault_withdrawal(
+//        vault_facade.contract_address(),
+//        *lps.at(0),
+//        lp1_total_balance_before,
+//        lp1_total_balance_before - collected_amount1,
+//    );
+//    assert_event_vault_withdrawal(
+//        vault_facade.contract_address(),
+//        *lps.at(1),
+//        lp2_total_balance_before,
+//        lp2_total_balance_before - collected_amount2,
+//    );
+//}
 
 // @note Test that vault::unlocked updates not round's
 // Test collecting premiums updates lp/round unallocated
@@ -282,8 +293,7 @@ fn _test_premiums_collectable_helper(
         }
         // @note Handle precision loss ?
         let lp_expected_premium = (*amount_span.at(i) * total_premium) / total_collateral_in_pool;
-        let lp_actual_premium = vault_facade
-            .get_lp_unlocked_balance(*liquidity_providers.at(i));
+        let lp_actual_premium = vault_facade.get_lp_unlocked_balance(*liquidity_providers.at(i));
 
         assert(lp_actual_premium == lp_expected_premium, 'LP premiums wrong');
 

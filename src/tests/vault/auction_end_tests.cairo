@@ -1,46 +1,45 @@
-use debug::PrintTrait;
-use option::OptionTrait;
-use openzeppelin::token::erc20::interface::{
-    IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
-    IERC20SafeDispatcherTrait,
-};
-
-use pitch_lake_starknet::vault::{
-    IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait,
-};
-use pitch_lake_starknet::option_round::{OptionRoundState};
-
-use result::ResultTrait;
 use starknet::{
     ClassHash, ContractAddress, contract_address_const, deploy_syscall,
     Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
     testing::{set_block_timestamp, set_contract_address}
 };
-
-use pitch_lake_starknet::tests::vault_facade::{VaultFacade, VaultFacadeTrait};
-use pitch_lake_starknet::tests::option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait};
-use starknet::contract_address::ContractAddressZeroable;
-use openzeppelin::utils::serde::SerializedAppend;
-
-use traits::Into;
-use traits::TryInto;
-use pitch_lake_starknet::eth::Eth;
-use pitch_lake_starknet::tests::utils::{
-    setup_facade, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
-    timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
-    option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
-    zero_address, vault_manager, weth_owner, option_round_contract_address, mock_option_params,
-    liquidity_providers_get, option_bidders_get, pop_log, assert_no_events_left, month_duration,
-    create_array_linear, create_array_gradient, accelerate_to_auctioning_custom,
-    accelerate_to_running_custom, accelerate_to_settled, assert_event_auction_end,
-    accelerate_to_auctioning, accelerate_to_running,
+use openzeppelin::token::erc20::interface::{
+    IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
+    IERC20SafeDispatcherTrait,
 };
-use pitch_lake_starknet::option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait};
-use pitch_lake_starknet::tests::mocks::mock_market_aggregator::{
-    MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
-    IMarketAggregatorSetterDispatcherTrait
+use pitch_lake_starknet::{
+    eth::Eth,
+    vault::{
+        IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault,
+        IVaultSafeDispatcherTrait,
+    },
+    tests::{
+        utils::{
+            event_helpers::{pop_log, assert_no_events_left, assert_event_auction_end},
+            accelerators::{
+                accelerate_to_auctioning, accelerate_to_running, create_array_linear,
+                create_array_gradient, accelerate_to_auctioning_custom,
+                accelerate_to_running_custom, accelerate_to_settled
+            },
+            test_accounts::{
+                liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
+                option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
+                liquidity_providers_get, option_bidders_get,
+            },
+            variables::{decimals}, setup::{setup_facade},
+            facades::{
+                vault_facade::{VaultFacade, VaultFacadeTrait},
+                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
+            },
+            mocks::mock_market_aggregator::{
+                MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
+                IMarketAggregatorSetterDispatcherTrait
+            },
+        },
+    },
+    option_round::{OptionRoundState, IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
 };
-
+use debug::PrintTrait;
 
 // @note these test can be put into 1 test, see not in auction_start_tests.cairo
 
@@ -137,7 +136,7 @@ fn test_vault_end_auction_success_multi() {
     let bid_prices = create_array_linear(bid_price, 5);
 
     // Settle auction
-    let clearing_price = accelerate_to_running_custom(
+    let (clearing_price, _) = accelerate_to_running_custom(
         ref vault_facade, bidders.span(), bid_amounts.span(), bid_prices.span()
     );
 
@@ -162,7 +161,8 @@ fn test_option_round_end_auction_twice_failure() {
     let deposit_amount_wei: u256 = 10000 * decimals();
     vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
     // Start auction
-    set_contract_address(vault_manager());
+    // @note need accelerators
+    //set_contract_address(vault_manager());
     vault_facade.start_auction();
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
     // Make bid
@@ -195,7 +195,7 @@ fn test_premiums_sent_to_vault_eth_transfer() {
     let bid_price = current_round.get_reserve_price();
     let bid_amount = bid_count * bid_price;
     current_round
-        .bid_multiple(
+        .place_bids(
             array![option_bidder_buyer_1(), option_bidder_buyer_2()].span(),
             array![bid_amount, 2 * bid_amount].span(),
             array![bid_price, 2 * bid_price].span(),

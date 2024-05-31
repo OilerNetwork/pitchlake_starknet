@@ -13,8 +13,13 @@ enum VaultType {
 // The interface for the vault contract
 #[starknet::interface]
 trait IVault<TContractState> {
+    // Being used for testing event asserters work correctly. Need to look into
+    // emitting events from our tests instead of via entry point
     fn rm_me2(ref self: TContractState);
+
     /// Reads ///
+
+    /// Other
 
     // Get the vault's  manaager address
     // @dev Better access control ? (oz permits ?)
@@ -23,17 +28,20 @@ trait IVault<TContractState> {
     // Get the type of vault (ITM | ATM | OTM)
     fn vault_type(self: @TContractState) -> VaultType;
 
+    // Get the market aggregator address
+    fn get_market_aggregator(self: @TContractState) -> ContractAddress;
+
+    /// Rounds
+
     // @return the current option round id
     fn current_option_round_id(self: @TContractState) -> u256;
 
     // @return the contract address of the option round
     fn get_option_round_address(self: @TContractState, option_round_id: u256) -> ContractAddress;
 
-    // Get the liquidity an LP has locked as collateral in the current round
-    // @note rm
-    fn get_collateral_balance_for(
-        self: @TContractState, liquidity_provider: ContractAddress
-    ) -> u256;
+    /// Liquidity
+
+    // For LPs //
 
     // Get the liquidity an lp has locked
     fn get_lp_locked_balance(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
@@ -41,41 +49,66 @@ trait IVault<TContractState> {
     // Get the liquidity an LP has unlocked
     fn get_lp_unlocked_balance(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
 
-    // Ge the total liquidity an LP has in the protocol
+    // Get the total liquidity an LP has in the protocol
     fn get_lp_total_balance(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
 
+    // For Vault //
+
     // Get the total liquidity locked
-    fn get_locked_balance(self: @TContractState,) -> u256;
-
-    // Get the total liquidity unlocked
-    fn get_unlocked_balance(self: @TContractState,) -> u256;
-
-    // Ge the total liquidity in the protocol
-    fn get_total_balance(self: @TContractState,) -> u256;
-
-    // Get the liqudity an LP has unallocated (unlocked), they can withdraw from this amount
-    // @dev If the current round is Running, LP's share of its unallocated liquidity is uncluded (unless already withdrawn)
-    // @dev Includes deposits into the next round if there are any
-    // @note does include premiums
-    fn get_unallocated_balance_for(
-        self: @TContractState, liquidity_provider: ContractAddress
-    ) -> u256;
-
     fn get_total_locked(self: @TContractState) -> u256;
 
+    // Get the total liquidity unlocked
     fn get_total_unlocked(self: @TContractState) -> u256;
+
+    // Get the total liquidity in the protocol
+    fn get_total_balance(self: @TContractState,) -> u256;
+
+    /// Premiums
+
     // Get the total premium LP has earned in the current round
     // @note premiums for previous rounds
-    fn get_premiums_for(self: @TContractState, liquidity_provider: ContractAddress, round_id:u256) -> u256;
+    fn get_premiums_earned(
+        self: @TContractState, liquidity_provider: ContractAddress, round_id: u256
+    ) -> u256;
+
+    // Get the total premiums collected by an LP in a round
+    fn get_premiums_collected(
+        self: @TContractState, liquidity_provider: ContractAddress, round_id: u256
+    ) -> u256;
+
+    // @note add get_premiums_collected to return how much if any an LP collects from a round (used to prevent draining premiums)
 
     /// Writes ///
 
+    /// State transition
+
+    // Start the auction on the next round as long as the current round is Settled and the
+    // round transition period has passed. Deploys the next next round and updates the current/next pointers.
+    // @return the total options available in the auction
+    fn start_auction(ref self: TContractState) -> Result<u256, Vault::VaultError>;
+
+    // End the auction in the current round as long as the current round is Auctioning and the auction
+    // bidding period has ended.
+    // @return the clearing price of the auction
+    // @return the total options sold in the auction (@note keep or drop ?)
+    fn end_auction(ref self: TContractState) -> Result<(u256, u256), Vault::VaultError>;
+
+    // Settle the current option round as long as the current round is Running and the option expiry time has passed.
+    // @return The total payout of the option round
+    fn settle_option_round(ref self: TContractState) -> Result<u256, Vault::VaultError>;
+
+    /// LP functions
+
     // LP increments their position and sends the liquidity to the next round
     // @note do we need a return value here ?
-    fn deposit_liquidity(ref self: TContractState, amount: u256) -> u256;
+    fn deposit_liquidity(ref self: TContractState, amount: u256) -> Result<u256, Vault::VaultError>;
 
     // LP withdraws from their position while in the round transition period
-    fn withdraw_liquidity(ref self: TContractState, amount: u256);
+    fn withdraw_liquidity(
+        ref self: TContractState, amount: u256
+    ) -> Result<u256, Vault::VaultError>;
+
+    /// LP token related
 
     // LP converts their collateral into LP tokens
     // @note all at once or can LP convert a partial amount ?
@@ -99,24 +132,7 @@ trait IVault<TContractState> {
     // @dev move entry point to LPToken ?
     fn convert_lp_tokens_to_newer_lp_tokens(
         ref self: TContractState, source_round: u256, target_round: u256, amount: u256
-    ) -> u256;
-
-    // Settle the current option round as long as the current round is Running and the option expiry time has passed.
-    fn settle_option_round(ref self: TContractState) -> bool;
-
-    // Start the auction on the next round as long as the current round is Settled and the
-    // round transition period has passed. Deploys the next next round and updates the current/next pointers.
-    fn start_auction(ref self: TContractState) -> bool;
-
-    // End the auction in the current round as long as the current round is Auctioning and the auction
-    // bidding period has ended.
-    // @return the clearing price of the auction
-    fn end_auction(ref self: TContractState) -> u256;
-
-    // Get the market aggregator address
-    fn get_market_aggregator(self: @TContractState) -> ContractAddress;
-
-    fn is_premium_collected(self: @TContractState, lp: ContractAddress, round_id: u256) -> bool;
+    ) -> Result<u256, Vault::VaultError>;
 }
 
 #[starknet::contract]
@@ -131,13 +147,13 @@ mod Vault {
     use pitch_lake_starknet::vault::VaultType;
     use openzeppelin::utils::serde::SerializedAppend;
     use pitch_lake_starknet::option_round::{
-        OptionRound, OptionRoundConstructorParams, StartAuctionParams, OptionRoundState,
-        IOptionRoundDispatcher
+        OptionRound, OptionRound::{OptionRoundErrorIntoFelt252}, OptionRoundConstructorParams,
+        StartAuctionParams, OptionRoundState, IOptionRoundDispatcher
     };
     use pitch_lake_starknet::market_aggregator::{IMarketAggregatorDispatcher};
 
     // testing
-    use pitch_lake_starknet::tests::utils::{mock_option_params};
+    // use pitch_lake_starknet::tests::{utils::{structs::{mock_option_params},}};
 
     // Events
     #[event]
@@ -226,6 +242,22 @@ mod Vault {
         self.round_addresses.write(1, f_address);
     }
 
+    #[derive(Copy, Drop, Serde)]
+    enum VaultError {
+        // Error from OptionRound contract
+        OptionRoundError: OptionRound::OptionRoundError,
+        // Withdrawal exceeds unlocked position
+        InsufficientBalance,
+    }
+
+    impl VaultErrorIntoFelt252Trait of Into<VaultError, felt252> {
+        fn into(self: VaultError) -> felt252 {
+            match self {
+                VaultError::OptionRoundError(e) => { e.into() },
+                VaultError::InsufficientBalance => { 'Vault: Insufficient balance' }
+            }
+        }
+    }
 
     #[abi(embed_v0)]
     impl VaultImpl of super::IVault<ContractState> {
@@ -259,7 +291,11 @@ mod Vault {
                     )
                 );
         }
+
         /// Reads ///
+
+        /// Other
+
         fn vault_manager(self: @ContractState) -> ContractAddress {
             self.vault_manager.read()
         }
@@ -267,6 +303,12 @@ mod Vault {
         fn vault_type(self: @ContractState) -> VaultType {
             self.vault_type.read()
         }
+
+        fn get_market_aggregator(self: @ContractState) -> ContractAddress {
+            self.market_aggregator.read()
+        }
+
+        /// Rounds
 
         fn current_option_round_id(self: @ContractState) -> u256 {
             // (for testing; need a deployed instance of round to avoid CONTRACT_NOT_DEPLOYED errors)
@@ -278,6 +320,10 @@ mod Vault {
         ) -> ContractAddress {
             self.round_addresses.read(option_round_id)
         }
+
+        /// Liquidity
+
+        // For LPs //
 
         fn get_lp_locked_balance(
             self: @ContractState, liquidity_provider: ContractAddress
@@ -295,11 +341,13 @@ mod Vault {
             100
         }
 
-        fn get_locked_balance(self: @ContractState,) -> u256 {
+        // For Vault //
+
+        fn get_total_locked(self: @ContractState) -> u256 {
             100
         }
 
-        fn get_unlocked_balance(self: @ContractState,) -> u256 {
+        fn get_total_unlocked(self: @ContractState) -> u256 {
             100
         }
 
@@ -307,42 +355,46 @@ mod Vault {
             100
         }
 
-        fn get_collateral_balance_for(
-            self: @ContractState, liquidity_provider: ContractAddress
+        /// Premiums
+
+        fn get_premiums_earned(
+            self: @ContractState, liquidity_provider: ContractAddress, round_id: u256
         ) -> u256 {
             100
         }
 
-        fn get_unallocated_balance_for(
-            self: @ContractState, liquidity_provider: ContractAddress
+        fn get_premiums_collected(
+            self: @ContractState, liquidity_provider: ContractAddress, round_id: u256
         ) -> u256 {
             100
-        }
-
-
-        fn get_total_locked(self: @ContractState) -> u256 {
-            100
-        }
-
-
-        fn get_total_unlocked(self: @ContractState) -> u256 {
-            100
-        }
-
-        fn get_premiums_for(self: @ContractState, liquidity_provider: ContractAddress,round_id:u256) -> u256 {
-            100
-        }
-
-        fn is_premium_collected(self: @ContractState, lp: ContractAddress, round_id: u256) -> bool {
-            self.premiums_collected.read((round_id, lp))
         }
 
         /// Writes ///
-        fn deposit_liquidity(ref self: ContractState, amount: u256) -> u256 {
-            1
+
+        /// State transition
+
+        fn start_auction(ref self: ContractState) -> Result<u256, VaultError> {
+            Result::Ok(1)
         }
 
-        fn withdraw_liquidity(ref self: ContractState, amount: u256) {}
+        fn end_auction(ref self: ContractState) -> Result<(u256, u256), VaultError> {
+            Result::Ok((1, 1))
+        }
+
+        fn settle_option_round(ref self: ContractState) -> Result<u256, VaultError> {
+            Result::Ok(1)
+        }
+
+        /// OB functions
+        fn deposit_liquidity(ref self: ContractState, amount: u256) -> Result<u256, VaultError> {
+            Result::Ok(1)
+        }
+
+        fn withdraw_liquidity(ref self: ContractState, amount: u256) -> Result<u256, VaultError> {
+            Result::Ok(1)
+        }
+
+        /// LP token related
 
         fn convert_position_to_lp_tokens(ref self: ContractState, amount: u256) {}
 
@@ -352,24 +404,8 @@ mod Vault {
 
         fn convert_lp_tokens_to_newer_lp_tokens(
             ref self: ContractState, source_round: u256, target_round: u256, amount: u256
-        ) -> u256 {
-            100
-        }
-
-        fn settle_option_round(ref self: ContractState) -> bool {
-            true
-        }
-
-        fn start_auction(ref self: ContractState) -> bool {
-            true
-        }
-
-        fn end_auction(ref self: ContractState) -> u256 {
-            100
-        }
-
-        fn get_market_aggregator(self: @ContractState) -> ContractAddress {
-            self.market_aggregator.read()
+        ) -> Result<u256, VaultError> {
+            Result::Ok(1)
         }
     }
 }

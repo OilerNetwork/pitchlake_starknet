@@ -1,10 +1,13 @@
-use debug::PrintTrait;
+use starknet::{
+    ClassHash, ContractAddress, contract_address_const, deploy_syscall,
+    Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
+    testing::{set_block_timestamp, set_contract_address}
+};
 use openzeppelin::{
     token::erc20::interface::{
         IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
         IERC20SafeDispatcherTrait,
     },
-    utils::serde::SerializedAppend,
 };
 use pitch_lake_starknet::{
     eth::Eth,
@@ -14,30 +17,30 @@ use pitch_lake_starknet::{
     },
     option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
     tests::{
-        vault_facade::{VaultFacade, VaultFacadeTrait},
-        option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
-        mocks::mock_market_aggregator::{
-            MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
-            IMarketAggregatorSetterDispatcherTrait
-        },
-        utils,
         utils::{
-            setup_facade, decimals, deploy_vault, allocated_pool_address, unallocated_pool_address,
-            timestamp_start_month, timestamp_end_month, liquidity_provider_1, liquidity_provider_2,
-            option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
-            option_bidder_buyer_4, zero_address, vault_manager, weth_owner,
-            option_round_contract_address, mock_option_params, pop_log, assert_no_events_left,
-            month_duration, assert_event_transfer, clear_event_logs, accelerate_to_auctioning,
-            option_bidders_get,
+            event_helpers::{
+                assert_event_transfer, assert_event_auction_bid_accepted,
+                assert_event_auction_bid_rejected, pop_log, assert_no_events_left,
+            },
+            accelerators::{accelerate_to_auctioning, timeskip_and_end_auction},
+            test_accounts::{
+                liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
+                option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
+                option_bidders_get,
+            },
+            setup::{setup_facade, decimals, deploy_vault, clear_event_logs,},
+            facades::{
+                vault_facade::{VaultFacade, VaultFacadeTrait},
+                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
+            },
+            mocks::mock_market_aggregator::{
+                MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
+                IMarketAggregatorSetterDispatcherTrait
+            },
         },
     },
 };
-use starknet::{
-    ClassHash, ContractAddress, contract_address_const, deploy_syscall,
-    Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
-    testing::{set_block_timestamp, set_contract_address}
-};
-
+use debug::PrintTrait;
 
 // @note should just assert x = next_round.place_bid(...) == false
 // Test OB cannot bid before the auction starts
@@ -60,7 +63,7 @@ fn test_bid_before_auction_starts_failure() {
     current_round_facade.place_bid(bid_amount, option_price, option_bidder_buyer_1());
 
     // Check bid rejected event
-    utils::assert_event_auction_bid_rejected(
+    assert_event_auction_bid_rejected(
         current_round_facade.contract_address(), option_bidder_buyer_1(), bid_amount, option_price
     );
 }
@@ -79,7 +82,7 @@ fn test_bid_after_auction_ends_failure() {
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
     let params = current_round_facade.get_params();
     // End the auction
-    vault_facade.timeskip_and_end_auction();
+    timeskip_and_end_auction(ref vault_facade);
     // Clear event logs for bids
     clear_event_logs(array![current_round_facade.contract_address()]);
 
@@ -91,7 +94,7 @@ fn test_bid_after_auction_ends_failure() {
     current_round_facade.place_bid(bid_amount, option_price, option_bidder_buyer_1());
 
     // Check bid rejected event
-    utils::assert_event_auction_bid_rejected(
+    assert_event_auction_bid_rejected(
         current_round_facade.contract_address(), option_bidder_buyer_1(), bid_amount, option_price
     );
 }
@@ -119,7 +122,7 @@ fn test_bid_after_auction_end_failure_2() {
     current_round_facade.place_bid(bid_amount, option_price, option_bidder_buyer_1());
 
     // Check bid rejected event
-    utils::assert_event_auction_bid_rejected(
+    assert_event_auction_bid_rejected(
         current_round_facade.contract_address(), option_bidder_buyer_1(), bid_amount, option_price,
     );
 }
@@ -177,7 +180,7 @@ fn test_bid_accepted_events() {
                 current_round_facade.place_bid(bid_amount, bid_price, ob);
 
                 // Check bid accepted event
-                utils::assert_event_auction_bid_accepted(
+                assert_event_auction_bid_accepted(
                     current_round_facade.contract_address(),
                     option_bidder_buyer_1(),
                     bid_amount,
@@ -209,7 +212,7 @@ fn test_bid_zero_amount_failure() {
     current_round_facade.place_bid(0, params.reserve_price, option_bidder_buyer_1());
 
     // Check bid rejected event
-    utils::assert_event_auction_bid_rejected(
+    assert_event_auction_bid_rejected(
         current_round_facade.contract_address(), option_bidder_buyer_1(), 0, params.reserve_price
     );
 }
@@ -234,7 +237,7 @@ fn test_bid_price_below_reserve_price_failure() {
         );
 
     // Check bid rejected event
-    utils::assert_event_auction_bid_rejected(
+    assert_event_auction_bid_rejected(
         current_round_facade.contract_address(),
         option_bidder_buyer_1(),
         2 * (params.reserve_price - 1),

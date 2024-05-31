@@ -1,38 +1,29 @@
-// use array::ArrayTrait;
-// use debug::PrintTrait;
-// use option::OptionTrait;
-use openzeppelin::token::erc20::interface::{
-    IERC20, IERC20Dispatcher,
-    IERC20DispatcherTrait, // IERC20SafeDispatcher,IERC20SafeDispatcherTrait,
-};
-
-// use result::ResultTrait;
-// use starknet::{
-//     ClassHash, ContractAddress, contract_address_const, deploy_syscall,
-//     Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
-//     testing::{set_block_timestamp}
-// };
 use starknet::testing::{set_block_timestamp, set_contract_address};
-
-// use starknet::contract_address::ContractAddressZeroable;
-// use openzeppelin::utils::serde::SerializedAppend;
-
-// use traits::Into;
-// use traits::TryInto;
-// use pitch_lake_starknet::eth::Eth;
+use openzeppelin::token::erc20::interface::{IERC20, IERC20Dispatcher, IERC20DispatcherTrait,};
 use pitch_lake_starknet::tests::{
-    utils, vault_facade::{VaultFacade, VaultFacadeTrait},
-    option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait}
-};
-use pitch_lake_starknet::tests::utils::{
-    setup_facade, liquidity_provider_1, option_bidder_buyer_1, option_bidder_buyer_2,
-    option_bidder_buyer_3, decimals, assert_event_transfer, vault_manager, accelerate_to_auctioning,
-    accelerate_to_running, accelerate_to_settled, clear_event_logs, option_bidders_get,
-    accelerate_to_running_custom, assert_event_vault_withdrawal,
-};
-use pitch_lake_starknet::tests::mocks::mock_market_aggregator::{
-    MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
-    IMarketAggregatorSetterDispatcherTrait
+    utils::{
+        event_helpers::{
+            assert_event_transfer, assert_event_vault_withdrawal, assert_event_options_exercised,
+            clear_event_logs,
+        },
+        accelerators::{
+            accelerate_to_auctioning, accelerate_to_running, accelerate_to_settled,
+            accelerate_to_running_custom,
+        },
+        test_accounts::{
+            liquidity_provider_1, option_bidder_buyer_1, option_bidder_buyer_2,
+            option_bidder_buyer_3, option_bidders_get
+        },
+        variables::decimals, setup::{setup_facade},
+        facades::{
+            vault_facade::{VaultFacade, VaultFacadeTrait},
+            option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
+        },
+        mocks::mock_market_aggregator::{
+            MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
+            IMarketAggregatorSetterDispatcherTrait
+        },
+    },
 };
 
 // @note If collection fails/is 0, should we fire an event or no ?
@@ -119,7 +110,7 @@ fn test_option_payout_events() {
 
     // Settle option round with payout
     let settlement_price = params.strike_price + 10;
-    utils::accelerate_to_settled(ref vault_facade, settlement_price);
+    accelerate_to_settled(ref vault_facade, settlement_price);
     // Initial balances
     let (lp1_collateral_before, lp1_unallocated_before) = vault_facade
         .get_lp_balance_spread(option_bidder_buyer_1());
@@ -136,10 +127,10 @@ fn test_option_payout_events() {
     let payout2 = current_round_facade.exercise_options(option_bidder_buyer_2());
 
     // Check OptionRound events
-    utils::assert_event_options_exercised(
+    assert_event_options_exercised(
         current_round_facade.contract_address(), option_bidder_buyer_1(), bid_amount, payout1
     );
-    utils::assert_event_options_exercised(
+    assert_event_options_exercised(
         current_round_facade.contract_address(), option_bidder_buyer_2(), bid_amount, payout2
     );
 }

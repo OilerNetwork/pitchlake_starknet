@@ -1,30 +1,29 @@
-mod utils;
-mod vault_facade;
-mod option_round_facade;
-mod lp_token_facade;
-mod mocks {
-    mod mock_market_aggregator;
-}
-
 #[cfg(test)]
-mod utils_new {
+mod utils {
     mod structs;
+    mod event_helpers;
+    mod accelerators;
+    mod test_accounts;
+    mod variables;
+    mod setup;
+    mod mocks {
+        mod mock_market_aggregator;
+    }
+    mod facades {
+        mod vault_facade;
+        mod option_round_facade;
+        mod lp_token_facade;
+    }
 }
 
 #[cfg(test)]
-mod extra {
+mod misc {
     //mod eth_test;
     mod pitch_lake_test;
 }
 
 #[cfg(test)]
 mod vault {
-    mod withdraw_tests {
-        mod while_current_round_is_auctioning;
-        mod while_current_round_is_running;
-        mod while_current_round_is_settled;
-        mod withdraw_tests;
-    }
     mod unallocated_liquidity_tests;
     mod auction_end_tests;
     mod auction_start_tests;
@@ -32,7 +31,7 @@ mod vault {
     mod deposit_tests;
     mod option_settle_tests;
     mod round_open_tests;
-    mod utils;
+    mod withdraw_tests;
 }
 
 #[cfg(test)]

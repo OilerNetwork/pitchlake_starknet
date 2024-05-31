@@ -1,20 +1,12 @@
-use array::ArrayTrait;
-use debug::PrintTrait;
-use option::OptionTrait;
 use openzeppelin::token::erc20::interface::{
     IERC20, IERC20SafeDispatcher, IERC20SafeDispatcherTrait,
 };
-use result::ResultTrait;
 use starknet::{
     ClassHash, ContractAddress, contract_address_const, deploy_syscall,
     Felt252TryIntoContractAddress, get_contract_address,
 };
+use debug::PrintTrait;
 
-use starknet::contract_address::ContractAddressZeroable;
-use openzeppelin::utils::serde::SerializedAppend;
-
-use traits::Into;
-use traits::TryInto;
 use pitch_lake_starknet::eth::Eth;
 const NAME: felt252 = 111;
 const SYMBOL: felt252 = 222;
