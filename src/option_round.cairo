@@ -1,6 +1,4 @@
 use starknet::{ContractAddress, StorePacking};
-use array::{Array};
-use traits::{Into, TryInto};
 use openzeppelin::token::erc20::interface::IERC20Dispatcher;
 use pitch_lake_starknet::market_aggregator::{
     IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
@@ -110,19 +108,19 @@ trait IOptionRound<TContractState> {
 
     // Try to start the option round's auction
     // @return true if the auction was started, false if the auction was already started/cannot start yet
-    fn start_auction(ref self: TContractState, start_auction_params: StartAuctionParams);
+    fn start_auction(ref self: TContractState, start_auction_params: StartAuctionParams) -> Result<u256, OptionRound::OptionRoundError>;
 
     // Settle the auction if the auction time has passed
     // @return if the auction was settled or not (0 mean no, > 0 is clearing price ?, we already have get clearing price, so just bool instead)
     // @note there was a note in the previous version that this should return the clearing price,
     // not sure which makes more sense at this time.
-    fn end_auction(ref self: TContractState) -> u256;
+    fn end_auction(ref self: TContractState) -> Result<(u256, u256), OptionRound::OptionRoundError>;
 
     // Settle the option round if past the expiry date and in state::Running
     // @note This function should probably me limited to a wrapper entry point
     // in the vault that will handle liquidity roll over
     // @return if the option round settles or not
-    fn settle_option_round(ref self: TContractState, avg_base_fee: u256) -> bool;
+    fn settle_option_round(ref self: TContractState, avg_base_fee: u256) -> Result<u256, OptionRound::OptionRoundError>;
 
     /// OB functions
 
@@ -276,6 +274,29 @@ mod OptionRound {
             );
     }
 
+    #[derive(Copy, Drop, Serde)]
+    enum OptionRoundError {
+        // Starting auction
+        AuctionStartDateNotReached,
+        // Ending auction
+        AuctionEndDateNotReached,
+        // Settling round
+        OptionSettlementDateNotReached,
+        // Placing bids
+        BidBelowReservePrice,
+    }
+
+    impl OptionRoundErrorIntoFelt252 of Into<OptionRoundError, felt252> {
+        fn into(self: OptionRoundError) -> felt252 {
+            match self {
+                OptionRoundError::AuctionStartDateNotReached => 'OptionRound: Auction start fail',
+                OptionRoundError::AuctionEndDateNotReached => 'OptionRound: Auction end fail',
+                OptionRoundError::OptionSettlementDateNotReached => 'OptionRound: Option settle fail',
+                OptionRoundError::BidBelowReservePrice => 'OptionRound: Bid below reserve',
+            }
+        }
+    }
+
     #[abi(embed_v0)]
     impl OptionRoundImpl of super::IOptionRound<ContractState> {
         // @note This function is being used for to check event testers are working correctly
@@ -404,18 +425,19 @@ mod OptionRound {
 
         /// State transition
 
-        fn start_auction(ref self: ContractState, start_auction_params: StartAuctionParams) {
+        fn start_auction(ref self: ContractState, start_auction_params: StartAuctionParams) -> Result<u256, OptionRoundError>{
             self.state.write(OptionRoundState::Auctioning);
+            Result::Ok(100)
         }
 
-        fn end_auction(ref self: ContractState) -> u256 {
+        fn end_auction(ref self: ContractState) -> Result<(u256, u256), OptionRoundError> {
             self.state.write(OptionRoundState::Running);
-            100
+            Result::Ok((100, 100))
         }
 
-        fn settle_option_round(ref self: ContractState, avg_base_fee: u256) -> bool {
+        fn settle_option_round(ref self: ContractState, avg_base_fee: u256) -> Result<u256, OptionRoundError>{
             self.state.write(OptionRoundState::Settled);
-            true
+            Result::Ok(100)
         }
 
         /// OB functions

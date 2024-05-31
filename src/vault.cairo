@@ -84,15 +84,18 @@ trait IVault<TContractState> {
 
     // Start the auction on the next round as long as the current round is Settled and the
     // round transition period has passed. Deploys the next next round and updates the current/next pointers.
-    fn start_auction(ref self: TContractState) -> bool;
+    // @return the total options available in the auction
+    fn start_auction(ref self: TContractState) -> Result<u256, Vault::VaultError>;
 
     // End the auction in the current round as long as the current round is Auctioning and the auction
     // bidding period has ended.
     // @return the clearing price of the auction
-    fn end_auction(ref self: TContractState) -> u256;
+    // @return the total options sold in the auction (@note keep or drop ?)
+    fn end_auction(ref self: TContractState) -> Result<(u256, u256), Vault::VaultError>;
 
     // Settle the current option round as long as the current round is Running and the option expiry time has passed.
-    fn settle_option_round(ref self: TContractState) -> bool;
+    // @return The total payout of the option round
+    fn settle_option_round(ref self: TContractState) -> Result<u256, Vault::VaultError>;
 
     /// LP functions
 
@@ -142,13 +145,13 @@ mod Vault {
     use pitch_lake_starknet::vault::VaultType;
     use openzeppelin::utils::serde::SerializedAppend;
     use pitch_lake_starknet::option_round::{
-        OptionRound, OptionRoundConstructorParams, StartAuctionParams, OptionRoundState,
-        IOptionRoundDispatcher
+        OptionRound, OptionRound::{OptionRoundErrorIntoFelt252}, OptionRoundConstructorParams,
+        StartAuctionParams, OptionRoundState, IOptionRoundDispatcher
     };
     use pitch_lake_starknet::market_aggregator::{IMarketAggregatorDispatcher};
 
     // testing
-    use pitch_lake_starknet::tests::utils::structs::{mock_option_params};
+    use pitch_lake_starknet::tests::{utils::{structs::{mock_option_params},}};
 
     // Events
     #[event]
@@ -237,6 +240,41 @@ mod Vault {
         self.round_addresses.write(1, f_address);
     }
 
+    #[derive(Copy, Drop, Serde)]
+    enum VaultError {
+        // Error from OptionRound contract
+        OptionRoundError: OptionRound::OptionRoundError,
+        // Withdrawal exceeds unlocked position
+        InsufficientBalance,
+    }
+
+    impl VaultErrorIntoFelt252Trait of Into<VaultError, felt252> {
+        fn into(self: VaultError) -> felt252 {
+            match self {
+                VaultError::OptionRoundError(e) => { e.into() },
+                VaultError::InsufficientBalance => { 'Vault: Insufficient balance' }
+            }
+        }
+    }
+
+  //  impl Felt252TryIntoVaultError of TryInto<felt252, VaultError> {
+  //    fn try_into(self: felt252) -> Option<VaultError> {
+  //        match self {
+  //            'Vault: Insufficient balance' => { Option::Some(VaultError::InsufficientBalance) },
+  //            _ => { Option::None }
+  //        }
+  //    }
+  //  }
+
+//impl VaultErrorSerde of Serde<VaultError> {
+//    fn serialize(self: @VaultError, ref output: Array<felt252>) {
+//      output.append((*self).into());
+//    }
+//    fn deserialize(ref serialized: Span<felt252>) -> Option<VaultError> {
+//
+//        Option::Some(class_hash_try_from_felt252(Serde::<felt252>::deserialize(ref serialized)?)?)
+//    }
+//}
 
     #[abi(embed_v0)]
     impl VaultImpl of super::IVault<ContractState> {
@@ -352,16 +390,16 @@ mod Vault {
 
         /// State transition
 
-        fn settle_option_round(ref self: ContractState) -> bool {
-            true
+        fn start_auction(ref self: ContractState) -> Result<u256, VaultError> {
+            Result::Ok(1)
         }
 
-        fn start_auction(ref self: ContractState) -> bool {
-            true
+        fn end_auction(ref self: ContractState) -> Result<(u256, u256), VaultError> {
+            Result::Ok((1, 1))
         }
 
-        fn end_auction(ref self: ContractState) -> u256 {
-            100
+        fn settle_option_round(ref self: ContractState) -> Result<u256, VaultError> {
+            Result::Ok(1)
         }
 
         /// OB functions
