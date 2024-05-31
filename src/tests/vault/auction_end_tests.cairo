@@ -90,7 +90,7 @@ fn test_vault_end_auction_success_single() {
     let (mut vault_facade, _) = setup_facade();
     accelerate_to_auctioning(ref vault_facade);
     // Make bid and end auction
-    let clearing_price = accelerate_to_running(ref vault_facade);
+    let (clearing_price, _) = accelerate_to_running(ref vault_facade);
     // Check that state is running and clearing price set
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
     let state: OptionRoundState = current_round_facade.get_state();
@@ -107,7 +107,7 @@ fn test_vault_end_auction_event() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bid and end auction
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let clearing_price = accelerate_to_running(ref vault_facade);
+    let (clearing_price, _) = accelerate_to_running(ref vault_facade);
 
     // Assert event emitted correctly
     assert_event_auction_end(current_round_facade.contract_address(), clearing_price);
