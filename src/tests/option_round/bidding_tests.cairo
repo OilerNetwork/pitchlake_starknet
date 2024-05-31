@@ -22,7 +22,7 @@ use pitch_lake_starknet::{
                 assert_event_transfer, assert_event_auction_bid_accepted,
                 assert_event_auction_bid_rejected, pop_log, assert_no_events_left,
             },
-            accelerators::{accelerate_to_auctioning},
+            accelerators::{accelerate_to_auctioning, timeskip_and_end_auction},
             test_accounts::{
                 liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
                 option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
@@ -82,7 +82,7 @@ fn test_bid_after_auction_ends_failure() {
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
     let params = current_round_facade.get_params();
     // End the auction
-    vault_facade.timeskip_and_end_auction();
+    timeskip_and_end_auction(ref vault_facade);
     // Clear event logs for bids
     clear_event_logs(array![current_round_facade.contract_address()]);
 

@@ -81,7 +81,7 @@ fn test_clearing_price_2() {
     let bid_amount_user_1: u256 = bid_count_user_1 * bid_price_user_1;
     let bid_amount_user_2: u256 = bid_count_user_2 * bid_price_user_2;
 
-    let clearing_price = accelerate_to_running_custom(
+    let (clearing_price, _) = accelerate_to_running_custom(
         ref vault_facade,
         option_bidders.span(),
         array![bid_amount_user_1, bid_amount_user_2].span(),
@@ -115,7 +115,7 @@ fn test_clearing_price_3() {
     let bid_amount_user_2 = bid_count * bid_price_user_2;
     let bid_amount_user_3 = bid_count * bid_price_user_3;
 
-    let clearing_price = accelerate_to_running_custom(
+    let (clearing_price, _) = accelerate_to_running_custom(
         ref vault_facade,
         option_bidders.span(),
         array![bid_amount_user_1, bid_amount_user_2, bid_amount_user_3].span(),
@@ -149,7 +149,7 @@ fn test_clearing_price_4() {
     let bid_amount_user_1: u256 = bid_count_user_1 * bid_price_user_1 * decimals();
     let bid_amount_user_2: u256 = bid_count_user_2 * bid_price_user_2 * decimals();
 
-    let clearing_price = accelerate_to_running_custom(
+    let (clearing_price, _) = accelerate_to_running_custom(
         ref vault_facade,
         option_bidders.span(),
         array![bid_amount_user_1, bid_amount_user_2].span(),
@@ -185,7 +185,7 @@ fn test_clearing_price_5() {
     let bid_amount_user_3: u256 = bid_count_user_3 * bid_price_user_3;
     let bid_amount_user_4: u256 = bid_count_user_4 * bid_price_user_4;
 
-    let clearing_price = accelerate_to_running_custom(
+    let (clearing_price, _) = accelerate_to_running_custom(
         ref vault_facade,
         option_bidders.span(),
         array![bid_amount_user_1, bid_amount_user_2, bid_amount_user_3, bid_amount_user_4].span(),

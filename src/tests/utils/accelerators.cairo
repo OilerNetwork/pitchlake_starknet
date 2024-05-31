@@ -66,7 +66,7 @@ fn accelerate_to_running_custom(
     bidders: Span<ContractAddress>,
     max_amounts: Span<u256>,
     prices: Span<u256>
-) -> u256 {
+) -> (u256, u256) {
     // Place bids
     let mut current_round = self.get_current_round();
     current_round.place_bids(bidders, max_amounts, prices);
@@ -78,7 +78,7 @@ fn accelerate_to_running_custom(
 
 fn accelerate_to_settled(ref self: VaultFacade, avg_base_fee: u256) {
     self.set_market_aggregator_value(avg_base_fee);
-    self.timeskip_and_settle_round();
+    timeskip_and_settle_round(ref self);
 }
 
 
@@ -101,5 +101,19 @@ fn create_array_gradient(amount: u256, step: u256, len: u32) -> Array<u256> {
         index += 1;
     };
     arr
+}
+
+/// State transition with additional logic
+
+fn timeskip_and_settle_round(ref self: VaultFacade) -> u256 {
+    let mut current_round = self.get_current_round();
+    set_block_timestamp(current_round.get_params().option_expiry_time + 1);
+    self.settle_option_round()
+}
+
+fn timeskip_and_end_auction(ref self: VaultFacade) -> (u256, u256) {
+    let mut current_round = self.get_current_round();
+    set_block_timestamp(current_round.get_params().auction_end_time + 1);
+    self.end_auction()
 }
 

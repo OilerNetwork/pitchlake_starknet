@@ -6,7 +6,8 @@ use openzeppelin::token::erc20::interface::{
 use pitch_lake_starknet::tests::{
     utils::{
         accelerators::{
-            accelerate_to_auctioning, accelerate_to_running, accelerate_to_running_custom
+            accelerate_to_auctioning, accelerate_to_running, accelerate_to_running_custom,
+            timeskip_and_settle_round, timeskip_and_end_auction
         },
         test_accounts::{
             liquidity_provider_1, option_bidder_buyer_1, option_bidder_buyer_2,
@@ -127,7 +128,7 @@ fn test_total_options_after_auction_4() {
 
     // Make no bids
     // Settle auction
-    vault_facade.timeskip_and_end_auction();
+    timeskip_and_end_auction(ref vault_facade);
 
     // Check no options were sold if no bids
     assert(0 == current_round_facade.total_options_sold(), 'no options should sell');
