@@ -29,7 +29,7 @@ use pitch_lake_starknet::{
     tests::{
         utils::{
             structs::{OptionRoundParams}, event_helpers::{clear_event_logs},
-            test_accounts::{liquidity_providers_get, option_bidders_get},
+            test_accounts::{liquidity_providers_get, option_bidders_get, bystander},
             variables::{weth_owner, week_duration, vault_manager, decimals},
             facades::{
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
@@ -136,7 +136,7 @@ fn setup_facade() -> (VaultFacade, IERC20Dispatcher) {
     let eth_dispatcher: IERC20Dispatcher = deploy_eth();
     let vault_dispatcher: IVaultDispatcher = deploy_vault(VaultType::InTheMoney);
 
-    // Supply eth to test users
+    // Supply eth to test accounts
     set_contract_address(weth_owner());
     let mut lps = liquidity_providers_get(5);
     loop {
@@ -148,8 +148,6 @@ fn setup_facade() -> (VaultFacade, IERC20Dispatcher) {
             Option::None => { break (); },
         };
     };
-
-    // Give OBs eth
     let mut obs = option_bidders_get(5);
     loop {
         match obs.pop_front() {
@@ -161,6 +159,7 @@ fn setup_facade() -> (VaultFacade, IERC20Dispatcher) {
             Option::None => { break; },
         };
     };
+    eth_dispatcher.transfer(bystander(), 100000 * decimals());
 
     // Clear eth transfer events
     clear_event_logs(array![eth_dispatcher.contract_address]);

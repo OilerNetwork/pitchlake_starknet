@@ -1,5 +1,10 @@
 use starknet::{ContractAddress, contract_address_const};
 
+// Bystander, perform state transition functions on vault so all gas costs are on it
+fn bystander() -> ContractAddress {
+    contract_address_const::<'bystander'>()
+}
+
 // Get an array of liquiditiy providers
 fn liquidity_providers_get(number: u32) -> Array<ContractAddress> {
     let mut data: Array<ContractAddress> = array![];
