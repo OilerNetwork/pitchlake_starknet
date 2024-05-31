@@ -257,25 +257,6 @@ mod Vault {
         }
     }
 
-  //  impl Felt252TryIntoVaultError of TryInto<felt252, VaultError> {
-  //    fn try_into(self: felt252) -> Option<VaultError> {
-  //        match self {
-  //            'Vault: Insufficient balance' => { Option::Some(VaultError::InsufficientBalance) },
-  //            _ => { Option::None }
-  //        }
-  //    }
-  //  }
-
-//impl VaultErrorSerde of Serde<VaultError> {
-//    fn serialize(self: @VaultError, ref output: Array<felt252>) {
-//      output.append((*self).into());
-//    }
-//    fn deserialize(ref serialized: Span<felt252>) -> Option<VaultError> {
-//
-//        Option::Some(class_hash_try_from_felt252(Serde::<felt252>::deserialize(ref serialized)?)?)
-//    }
-//}
-
     #[abi(embed_v0)]
     impl VaultImpl of super::IVault<ContractState> {
         fn rm_me2(ref self: ContractState) {

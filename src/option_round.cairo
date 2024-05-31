@@ -108,7 +108,9 @@ trait IOptionRound<TContractState> {
 
     // Try to start the option round's auction
     // @return true if the auction was started, false if the auction was already started/cannot start yet
-    fn start_auction(ref self: TContractState, start_auction_params: StartAuctionParams) -> Result<u256, OptionRound::OptionRoundError>;
+    fn start_auction(
+        ref self: TContractState, start_auction_params: StartAuctionParams
+    ) -> Result<u256, OptionRound::OptionRoundError>;
 
     // Settle the auction if the auction time has passed
     // @return if the auction was settled or not (0 mean no, > 0 is clearing price ?, we already have get clearing price, so just bool instead)
@@ -120,7 +122,9 @@ trait IOptionRound<TContractState> {
     // @note This function should probably me limited to a wrapper entry point
     // in the vault that will handle liquidity roll over
     // @return if the option round settles or not
-    fn settle_option_round(ref self: TContractState, avg_base_fee: u256) -> Result<u256, OptionRound::OptionRoundError>;
+    fn settle_option_round(
+        ref self: TContractState, avg_base_fee: u256
+    ) -> Result<u256, OptionRound::OptionRoundError>;
 
     /// OB functions
 
@@ -129,18 +133,24 @@ trait IOptionRound<TContractState> {
     // @param price: The max price in place_bid_token per option (if the clearing price is
     // higher than this, the entire bid is unused and can be claimed back by the bidder)
     // @return if the bid was accepted or rejected
-    fn place_bid(ref self: TContractState, amount: u256, price: u256) -> bool;
+    fn place_bid(
+        ref self: TContractState, amount: u256, price: u256
+    ) -> Result<bool, OptionRound::OptionRoundError>;
 
     // Refund unused bids for an option bidder if the auction has ended
     // @param option_bidder: The bidder to refund the unused bid back to
     // @return the amount of the transfer
-    fn refund_unused_bids(ref self: TContractState, option_bidder: ContractAddress) -> u256;
+    fn refund_unused_bids(
+        ref self: TContractState, option_bidder: ContractAddress
+    ) -> Result<u256, OptionRound::OptionRoundError>;
 
     // Claim the payout for an option buyer's options if the option round has settled
     // @note the value that each option pays out might be 0 if non-exercisable
     // @param option_buyer: The option buyer to claim the payout for
     // @return the amount of the transfer
-    fn exercise_options(ref self: TContractState, option_buyer: ContractAddress) -> u256;
+    fn exercise_options(
+        ref self: TContractState, option_buyer: ContractAddress
+    ) -> Result<u256, OptionRound::OptionRoundError>;
 }
 
 #[starknet::contract]
@@ -297,6 +307,17 @@ mod OptionRound {
         }
     }
 
+//    impl OptionRoundErrorIntoByteArray of Into<OptionRoundError, ByteArray> {
+//        fn into(self: OptionRoundError) -> ByteArray {
+//            match self {
+//                OptionRoundError::AuctionStartDateNotReached => "OptionRound: Auction start fail",
+//                OptionRoundError::AuctionEndDateNotReached => "OptionRound: Auction end fail",
+//                OptionRoundError::OptionSettlementDateNotReached => "OptionRound: Option settle fail",
+//                OptionRoundError::BidBelowReservePrice => "OptionRound: Bid below reserve",
+//            }
+//        }
+//    }
+
     #[abi(embed_v0)]
     impl OptionRoundImpl of super::IOptionRound<ContractState> {
         // @note This function is being used for to check event testers are working correctly
@@ -425,7 +446,9 @@ mod OptionRound {
 
         /// State transition
 
-        fn start_auction(ref self: ContractState, start_auction_params: StartAuctionParams) -> Result<u256, OptionRoundError>{
+        fn start_auction(
+            ref self: ContractState, start_auction_params: StartAuctionParams
+        ) -> Result<u256, OptionRoundError> {
             self.state.write(OptionRoundState::Auctioning);
             Result::Ok(100)
         }
@@ -435,23 +458,31 @@ mod OptionRound {
             Result::Ok((100, 100))
         }
 
-        fn settle_option_round(ref self: ContractState, avg_base_fee: u256) -> Result<u256, OptionRoundError>{
+        fn settle_option_round(
+            ref self: ContractState, avg_base_fee: u256
+        ) -> Result<u256, OptionRoundError> {
             self.state.write(OptionRoundState::Settled);
             Result::Ok(100)
         }
 
         /// OB functions
 
-        fn place_bid(ref self: ContractState, amount: u256, price: u256) -> bool {
-            false
+        fn place_bid(
+            ref self: ContractState, amount: u256, price: u256
+        ) -> Result<bool, OptionRoundError> {
+            Result::Ok(true)
         }
 
-        fn refund_unused_bids(ref self: ContractState, option_bidder: ContractAddress) -> u256 {
-            100
+        fn refund_unused_bids(
+            ref self: ContractState, option_bidder: ContractAddress
+        ) -> Result<u256, OptionRoundError> {
+            Result::Ok(100)
         }
 
-        fn exercise_options(ref self: ContractState, option_buyer: ContractAddress) -> u256 {
-            100
+        fn exercise_options(
+            ref self: ContractState, option_buyer: ContractAddress
+        ) -> Result<u256, OptionRoundError> {
+            Result::Ok(100)
         }
     }
 }
