@@ -13,8 +13,6 @@ use pitch_lake_starknet::{
     tests::{utils::{variables::{vault_manager}, structs::{OptionRoundParams}}}
 };
 
-//use byte_array::{ByteArrayStringLiteral};
-
 #[derive(Drop)]
 struct OptionRoundFacade {
     option_round_dispatcher: IOptionRoundDispatcher,
@@ -71,8 +69,6 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         }
     }
 
-
-    
     fn place_bids(
         ref self: OptionRoundFacade,
         mut bidders: Span<ContractAddress>,
@@ -100,7 +96,6 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         }
     }
 
-    
     fn refund_bids(ref self: OptionRoundFacade, mut bidders: Span<ContractAddress>) {
         loop {
             match bidders.pop_front() {
@@ -118,7 +113,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         }
     }
 
-    
+
     fn exercise_options_multiple(ref self: OptionRoundFacade, mut bidders: Span<ContractAddress>) {
         loop {
             match bidders.pop_front() {

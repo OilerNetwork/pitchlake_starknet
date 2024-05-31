@@ -37,7 +37,6 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         }
     }
 
-    
     fn deposit_mutltiple(
         ref self: VaultFacade, mut lps: Span<ContractAddress>, mut amounts: Span<u256>
     ) -> u256 {
@@ -65,7 +64,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         }
     }
 
-    
+
     fn withdraw_multiple(
         ref self: VaultFacade, mut amounts: Span<u256>, mut lps: Span<ContractAddress>
     ) {
@@ -218,7 +217,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         (locked, unlocked)
     }
 
-    
+
     fn get_lp_balance_spreads(
         ref self: VaultFacade, mut lps: Span<ContractAddress>
     ) -> (Array<u256>, Array<u256>) {
