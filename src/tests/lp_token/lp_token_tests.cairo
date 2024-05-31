@@ -21,6 +21,7 @@ use pitch_lake_starknet::{
                 vault_facade::{VaultFacade, VaultFacadeTrait},
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
             },
+            accelerators::{timeskip_and_settle_round},
         },
     }
 };
@@ -223,7 +224,7 @@ fn test_convert_lp_tokens_to_position_is_always_deposit_into_current_round() { /
     //
     // Settle option round
     // @dev Do we need to mock the mkagg to say there is no payout for these tests ?
-    vault_facade.timeskip_and_settle_round();
+    timeskip_and_settle_round(ref vault_facade);
 
     // Convert some tokens to a position while current is Settled
     vault_facade.convert_lp_tokens_to_position(1, deposit_amount_wei / 4, liquidity_provider_1());

@@ -304,16 +304,16 @@ mod OptionRound {
         }
     }
 
-//    impl OptionRoundErrorIntoByteArray of Into<OptionRoundError, ByteArray> {
-//        fn into(self: OptionRoundError) -> ByteArray {
-//            match self {
-//                OptionRoundError::AuctionStartDateNotReached => "OptionRound: Auction start fail",
-//                OptionRoundError::AuctionEndDateNotReached => "OptionRound: Auction end fail",
-//                OptionRoundError::OptionSettlementDateNotReached => "OptionRound: Option settle fail",
-//                OptionRoundError::BidBelowReservePrice => "OptionRound: Bid below reserve",
-//            }
-//        }
-//    }
+    //    impl OptionRoundErrorIntoByteArray of Into<OptionRoundError, ByteArray> {
+    //        fn into(self: OptionRoundError) -> ByteArray {
+    //            match self {
+    //                OptionRoundError::AuctionStartDateNotReached => "OptionRound: Auction start fail",
+    //                OptionRoundError::AuctionEndDateNotReached => "OptionRound: Auction end fail",
+    //                OptionRoundError::OptionSettlementDateNotReached => "OptionRound: Option settle fail",
+    //                OptionRoundError::BidBelowReservePrice => "OptionRound: Bid below reserve",
+    //            }
+    //        }
+    //    }
 
     #[abi(embed_v0)]
     impl OptionRoundImpl of super::IOptionRound<ContractState> {

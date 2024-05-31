@@ -20,7 +20,7 @@ use pitch_lake_starknet::{
             accelerators::{
                 create_array_linear, create_array_gradient, accelerate_to_auctioning,
                 accelerate_to_running, accelerate_to_settled, accelerate_to_auctioning_custom,
-                accelerate_to_running_custom
+                accelerate_to_running_custom, timeskip_and_settle_round, timeskip_and_end_auction
             },
             test_accounts::{
                 liquidity_provider_1, liquidity_provider_2, liquidity_providers_get,
@@ -174,7 +174,7 @@ fn test_start_auction_while_current_round_running_failure() {
     let bid_amount: u256 = bid_count * bid_price;
     current_round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
     // Settle auction
-    vault_facade.timeskip_and_end_auction();
+    timeskip_and_end_auction(ref vault_facade);
     // Try to start the next auction while the current is Running
     vault_facade.start_auction();
 }
@@ -198,9 +198,9 @@ fn test_start_auction_before_round_transition_period_over_failure() {
     let bid_amount: u256 = bid_count * bid_price;
     current_round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
     // Settle auction
-    vault_facade.timeskip_and_end_auction();
+    timeskip_and_end_auction(ref vault_facade);
     // Settle option round
-    vault_facade.timeskip_and_settle_round();
+    timeskip_and_settle_round(ref vault_facade);
     // Try to start the next auction before waiting the round transition period
     // @dev add in the round transition period either in option round params or vault
     let rtp = 111;

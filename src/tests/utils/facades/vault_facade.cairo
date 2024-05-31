@@ -27,11 +27,17 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     /// Writes ///
 
     /// LP functions
-    fn deposit(ref self: VaultFacade, amount: u256, liquidity_provider: ContractAddress) {
+    fn deposit(ref self: VaultFacade, amount: u256, liquidity_provider: ContractAddress) -> u256 {
         set_contract_address(liquidity_provider);
-        self.vault_dispatcher.deposit_liquidity(amount);
+        let res = self.vault_dispatcher.deposit_liquidity(amount);
+
+        match res {
+            Result::Ok(liquidity) => liquidity,
+            Result::Err(e) => panic(array![e.into()]),
+        }
     }
 
+    
     fn deposit_mutltiple(
         ref self: VaultFacade, mut lps: Span<ContractAddress>, mut amounts: Span<u256>
     ) -> u256 {
@@ -50,11 +56,16 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         total
     }
 
-    fn withdraw(ref self: VaultFacade, amount: u256, liquidity_provider: ContractAddress) {
+    fn withdraw(ref self: VaultFacade, amount: u256, liquidity_provider: ContractAddress) -> u256 {
         set_contract_address(liquidity_provider);
-        self.vault_dispatcher.withdraw_liquidity(amount);
+        let res = self.vault_dispatcher.withdraw_liquidity(amount);
+        match res {
+            Result::Ok(liquidity) => liquidity,
+            Result::Err(e) => panic(array![e.into()]),
+        }
     }
 
+    
     fn withdraw_multiple(
         ref self: VaultFacade, mut amounts: Span<u256>, mut lps: Span<ContractAddress>
     ) {
@@ -104,20 +115,6 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         }
     }
 
-    /// State transition with additional logic
-
-    fn timeskip_and_settle_round(ref self: VaultFacade) -> u256 {
-        let mut current_round = self.get_current_round();
-        set_block_timestamp(current_round.get_params().option_expiry_time + 1);
-        self.settle_option_round()
-    }
-
-    fn timeskip_and_end_auction(ref self: VaultFacade) -> (u256, u256) {
-        let mut current_round = self.get_current_round();
-        set_block_timestamp(current_round.get_params().auction_end_time + 1);
-        self.end_auction()
-    }
-
     /// Fossil
 
     // Set the mock market aggregator data for the period of the current round
@@ -151,11 +148,16 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         target_round: u256,
         amount: u256,
         lp: ContractAddress
-    ) {
+    ) -> u256 {
         set_contract_address(lp);
-        self
+        let res = self
             .vault_dispatcher
             .convert_lp_tokens_to_newer_lp_tokens(source_round, target_round, amount);
+
+        match res {
+            Result::Ok(lp_tokens) => lp_tokens,
+            Result::Err(e) => panic(array![e.into()]),
+        }
     }
 
     /// Reads ///
@@ -216,6 +218,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         (locked, unlocked)
     }
 
+    
     fn get_lp_balance_spreads(
         ref self: VaultFacade, mut lps: Span<ContractAddress>
     ) -> (Array<u256>, Array<u256>) {
