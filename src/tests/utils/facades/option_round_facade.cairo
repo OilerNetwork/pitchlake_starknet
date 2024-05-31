@@ -72,7 +72,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     }
 
 
-    // @note: this function should be in utils
+    
     fn place_bids(
         ref self: OptionRoundFacade,
         mut bidders: Span<ContractAddress>,
@@ -100,7 +100,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         }
     }
 
-    // @note: this function should be in utils
+    
     fn refund_bids(ref self: OptionRoundFacade, mut bidders: Span<ContractAddress>) {
         loop {
             match bidders.pop_front() {
@@ -118,7 +118,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         }
     }
 
-    // @note: this function should be in utils
+    
     fn exercise_options_multiple(ref self: OptionRoundFacade, mut bidders: Span<ContractAddress>) {
         loop {
             match bidders.pop_front() {

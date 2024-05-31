@@ -110,7 +110,7 @@ fn timeskip_and_settle_round(ref self: VaultFacade) -> u256 {
     set_block_timestamp(current_round.get_params().option_expiry_time + 1);
     self.settle_option_round()
 }
-// @note: this function should be in utils
+
 fn timeskip_and_end_auction(ref self: VaultFacade) -> (u256, u256) {
     let mut current_round = self.get_current_round();
     set_block_timestamp(current_round.get_params().auction_end_time + 1);
