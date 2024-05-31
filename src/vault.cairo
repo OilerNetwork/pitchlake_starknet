@@ -101,10 +101,12 @@ trait IVault<TContractState> {
 
     // LP increments their position and sends the liquidity to the next round
     // @note do we need a return value here ?
-    fn deposit_liquidity(ref self: TContractState, amount: u256) -> u256;
+    fn deposit_liquidity(ref self: TContractState, amount: u256) -> Result<u256, Vault::VaultError>;
 
     // LP withdraws from their position while in the round transition period
-    fn withdraw_liquidity(ref self: TContractState, amount: u256);
+    fn withdraw_liquidity(
+        ref self: TContractState, amount: u256
+    ) -> Result<u256, Vault::VaultError>;
 
     /// LP token related
 
@@ -130,7 +132,7 @@ trait IVault<TContractState> {
     // @dev move entry point to LPToken ?
     fn convert_lp_tokens_to_newer_lp_tokens(
         ref self: TContractState, source_round: u256, target_round: u256, amount: u256
-    ) -> u256;
+    ) -> Result<u256, Vault::VaultError>;
 }
 
 #[starknet::contract]
@@ -384,11 +386,13 @@ mod Vault {
         }
 
         /// OB functions
-        fn deposit_liquidity(ref self: ContractState, amount: u256) -> u256 {
-            1
+        fn deposit_liquidity(ref self: ContractState, amount: u256) -> Result<u256, VaultError> {
+            Result::Ok(1)
         }
 
-        fn withdraw_liquidity(ref self: ContractState, amount: u256) {}
+        fn withdraw_liquidity(ref self: ContractState, amount: u256) -> Result<u256, VaultError> {
+            Result::Ok(1)
+        }
 
         /// LP token related
 
@@ -400,8 +404,8 @@ mod Vault {
 
         fn convert_lp_tokens_to_newer_lp_tokens(
             ref self: ContractState, source_round: u256, target_round: u256, amount: u256
-        ) -> u256 {
-            100
+        ) -> Result<u256, VaultError> {
+            Result::Ok(1)
         }
     }
 }
