@@ -6,11 +6,14 @@ use pitch_lake_starknet::vault::{
 use starknet::{ContractAddress, testing::{set_contract_address}};
 use pitch_lake_starknet::{
     option_round::{
-        IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState, StartAuctionParams, OptionRound::{OptionRoundErrorIntoFelt252},
+        IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState, StartAuctionParams,
+        OptionRound::{OptionRoundErrorIntoFelt252, //OptionRoundErrorIntoByteArray
+        }
     },
     tests::{utils::{variables::{vault_manager}, structs::{OptionRoundParams}}}
 };
 
+//use byte_array::{ByteArrayStringLiteral};
 
 #[derive(Drop)]
 struct OptionRoundFacade {
@@ -29,16 +32,17 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         let res = self.option_round_dispatcher.start_auction(start_auction_params);
         match res {
             Result::Ok(total_options_available) => total_options_available,
-            Result::Err(e) => panic(array![e.into()]),
-
-          }
+            Result::Err(e) => { panic(array![e.into()]) }
+        }
     }
 
     fn end_auction(ref self: OptionRoundFacade) -> (u256, u256) {
         set_contract_address(vault_manager());
         let res = self.option_round_dispatcher.end_auction();
         match res {
-            Result::Ok((total_options_sold, total_premiums)) => (total_options_sold, total_premiums),
+            Result::Ok((
+                total_options_sold, total_premiums
+            )) => (total_options_sold, total_premiums),
             Result::Err(e) => panic(array![e.into()]),
         }
     }
@@ -60,8 +64,11 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         option_bidder_buyer: ContractAddress,
     ) -> bool {
         set_contract_address(option_bidder_buyer);
-        let result: bool = self.option_round_dispatcher.place_bid(amount, price);
-        result
+        let res = self.option_round_dispatcher.place_bid(amount, price);
+        match res {
+            Result::Ok(_) => true,
+            Result::Err(e) => panic(array![e.into()]),
+        }
     }
 
     fn place_bids(
@@ -84,8 +91,11 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
 
     fn refund_bid(ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress) -> u256 {
         set_contract_address(option_bidder_buyer);
-        let result: u256 = self.option_round_dispatcher.refund_unused_bids(option_bidder_buyer);
-        result
+        let res = self.option_round_dispatcher.refund_unused_bids(option_bidder_buyer);
+        match res {
+            Result::Ok(amount) => amount,
+            Result::Err(e) => panic(array![e.into()]),
+        }
     }
 
     fn refund_bids(ref self: OptionRoundFacade, mut bidders: Span<ContractAddress>) {
@@ -98,7 +108,11 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     }
 
     fn exercise_options(ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress) -> u256 {
-        self.option_round_dispatcher.exercise_options(option_bidder_buyer)
+        let res = self.option_round_dispatcher.exercise_options(option_bidder_buyer);
+        match res {
+            Result::Ok(payout) => payout,
+            Result::Err(e) => panic(array![e.into()]),
+        }
     }
 
     fn exercise_options_multiple(ref self: OptionRoundFacade, mut bidders: Span<ContractAddress>) {
