@@ -196,31 +196,6 @@ fn test_deposit_zero_liquidity_failure() {
     vault_facade.deposit(0, liquidity_provider_1());
 }
 
-// Move to different file
-// Test to make sure the event testers are working as expected
-#[test]
-#[available_gas(100000000)]
-fn test_event_testers() {
-    let (mut v, e) = setup_facade();
-    /// new test, make emission come from entry point on vault,
-    let mut r = v.get_current_round();
-    set_contract_address(liquidity_provider_1());
-    clear_event_logs(array![e.contract_address, v.contract_address(), r.contract_address()]);
-    e.transfer(liquidity_provider_2(), 100);
-    assert_event_transfer(e.contract_address, liquidity_provider_1(), liquidity_provider_2(), 100);
-    r.option_round_dispatcher.rm_me(100);
-    assert_event_auction_start(r.contract_address(), 100);
-    assert_event_auction_bid_accepted(r.contract_address(), r.contract_address(), 100, 100);
-    assert_event_auction_bid_rejected(r.contract_address(), r.contract_address(), 100, 100);
-    assert_event_auction_end(r.contract_address(), 100);
-    assert_event_option_settle(r.contract_address(), 100);
-    assert_event_option_round_deployed(v.contract_address(), 1, v.contract_address());
-    assert_event_vault_deposit(v.contract_address(), v.contract_address(), 100, 100);
-    assert_event_vault_withdrawal(v.contract_address(), v.contract_address(), 100, 100);
-    assert_event_unused_bids_refunded(r.contract_address(), r.contract_address(), 100);
-    assert_event_options_exercised(r.contract_address(), r.contract_address(), 100, 100);
-}
-
 // Test deposits always go to the vault's unlocked pool
 #[test]
 #[available_gas(10000000)]
