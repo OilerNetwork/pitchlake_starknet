@@ -100,9 +100,9 @@ fn timeskip_and_end_auction(ref self: VaultFacade) -> (u256, u256) {
 /// Settling option round ///
 
 // Settle the option round with a custom settlement price (compared to strike to determine payout)
-fn accelerate_to_settled(ref self: VaultFacade, avg_base_fee: u256) {
+fn accelerate_to_settled(ref self: VaultFacade, avg_base_fee: u256) -> u256 {
     self.set_market_aggregator_value(avg_base_fee);
-    timeskip_and_settle_round(ref self);
+    timeskip_and_settle_round(ref self)
 }
 
 // Jump to the option expriry date and settle the round
