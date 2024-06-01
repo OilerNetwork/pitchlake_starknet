@@ -6,6 +6,7 @@ mod utils {
     mod test_accounts;
     mod variables;
     mod setup;
+    mod sanity_checks;
     mod mocks {
         mod mock_market_aggregator;
     }
