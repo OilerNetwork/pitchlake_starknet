@@ -162,9 +162,7 @@ fn test_start_auction_while_current_round_running_failure() {
     // LP deposits (into round 1)
     let lps = liquidity_providers_get(5);
     let amounts = create_array_linear(10000 * decimals(), 5);
-    accelerate_to_auctioning_custom(
-        ref vault_facade, lps.span(), amounts.span()
-    );
+    accelerate_to_auctioning_custom(ref vault_facade, lps.span(), amounts.span());
     // Start auction
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
     // Make bid

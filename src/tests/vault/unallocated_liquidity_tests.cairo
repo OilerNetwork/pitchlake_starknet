@@ -21,9 +21,6 @@ use pitch_lake_starknet::tests::{
     },
 };
 
-// Test that collected premiums do not roll over to the next round
-
-// Test that collected premiums do not roll over to the next round
 
 #[test]
 #[available_gas(10000000)]
