@@ -5,9 +5,7 @@ use pitch_lake_starknet::{
     option_round::OptionRound::{OptionRoundState, StartAuctionParams}
 };
 
-
 // The option round contract interface
-// @note Should we move this into a separate file ?
 #[starknet::interface]
 trait IOptionRound<TContractState> {
     // @note This function is being used for testing (event testers)
@@ -141,11 +139,7 @@ mod OptionRound {
         vault_address: ContractAddress,
         market_aggregator: ContractAddress,
         state: OptionRoundState,
-        // option round params
-        // params: OptionRoundParams,
-
         constructor_params: OptionRoundConstructorParams,
-        premiums_collected: LegacyMap<ContractAddress, bool>,
     }
 
     // The parameters needed to construct an option round
