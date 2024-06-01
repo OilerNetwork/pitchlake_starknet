@@ -112,7 +112,7 @@ fn test_premiums_and_unsold_liquidity_unlocked_amount() {
 
 //     let lps = liquidity_providers_get(5);
 //     let deposit_amounts = create_array_gradient(1000 * decimals(), 1000 * decimals(), 5);
-//     let deposit_total = accelerate_to_auctioning_custom(
+//     let total_options_available (was total_deposts before) = accelerate_to_auctioning_custom(
 //         ref vault_facade, lps.span(), deposit_amounts.span()
 //     );
 //     let params = current_round.get_params();

@@ -40,8 +40,6 @@ fn accelerate_to_auctioning(ref self: VaultFacade) -> u256 {
 }
 
 // Start the auction with custom deposits
-// @note Return should not be deposit total but should be return of entry point
-// - need to adjust tests accordingly
 fn accelerate_to_auctioning_custom(
     ref self: VaultFacade, lps: Span<ContractAddress>, amounts: Span<u256>
 ) -> u256 {
@@ -101,7 +99,6 @@ fn timeskip_and_end_auction(ref self: VaultFacade) -> (u256, u256) {
 
 /// Settling option round ///
 
-
 // Settle the option round with a custom settlement price (compared to strike to determine payout)
 fn accelerate_to_settled(ref self: VaultFacade, avg_base_fee: u256) {
     self.set_market_aggregator_value(avg_base_fee);
@@ -117,8 +114,7 @@ fn timeskip_and_settle_round(ref self: VaultFacade) -> u256 {
 }
 
 
-/// Array creation helpers ///
-
+/// Array helpers ///
 
 // Create array of length `len`, each element is `amount` (For bids use the function twice for price and amount)
 fn create_array_linear(amount: u256, len: u32) -> Array<u256> {
@@ -141,3 +137,14 @@ fn create_array_gradient(amount: u256, step: u256, len: u32) -> Array<u256> {
     };
     arr
 }
+
+// Sum all of the u256s in a given span
+fn sum_u256_span(mut arr: Span<u256>) -> u256 {
+    let mut sum = 0;
+    match arr.pop_front() {
+        Option::Some(el) => { sum += *el; },
+        Option::None => {}
+    }
+    sum
+}
+

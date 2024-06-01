@@ -19,7 +19,7 @@ use pitch_lake_starknet::{
             accelerators::{
                 accelerate_to_auctioning, accelerate_to_running, create_array_linear,
                 create_array_gradient, accelerate_to_auctioning_custom,
-                accelerate_to_running_custom, accelerate_to_settled
+                accelerate_to_running_custom, accelerate_to_settled, sum_u256_span,
             },
             test_accounts::{
                 liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
@@ -235,7 +235,8 @@ fn test_premiums_update_vault_and_lp_unlocked() {
     let (mut vault_facade, _) = setup_facade();
     let lps = liquidity_providers_get(2);
     let deposits = array![50 * decimals(), 100 * decimals()];
-    let total_deposits = accelerate_to_auctioning_custom(
+    let total_deposits = sum_u256_span(deposits.span());
+    let total_options_available = accelerate_to_auctioning_custom(
         ref vault_facade, lps.span(), deposits.span()
     );
     accelerate_to_running(ref vault_facade);
