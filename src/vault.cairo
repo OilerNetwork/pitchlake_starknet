@@ -93,10 +93,11 @@ trait IVault<TContractState> {
     /// LP functions
 
     // LP increments their position and sends the liquidity to the next round
-    // @note do we need a return value here ?
+    // @return LP's new unlocked balance after the deposit
     fn deposit_liquidity(ref self: TContractState, amount: u256) -> Result<u256, VaultError>;
 
     // LP withdraws from their position while in the round transition period
+    // @return LP's remaining unlocked balance after the withdrawal
     fn withdraw_liquidity(
         ref self: TContractState, amount: u256
     ) -> Result<u256, Vault::VaultError>;
