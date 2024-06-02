@@ -12,7 +12,7 @@ use pitch_lake_starknet::{
                 MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
                 IMarketAggregatorSetterDispatcherTrait,
             },
-            test_accounts::{liquidity_provider_1}, variables::{vault_manager, decimals},
+            test_accounts::{liquidity_provider_1, bystander}, variables::{vault_manager, decimals},
             facades::{option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},}
         },
     }
@@ -83,8 +83,8 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     /// State transition
 
     fn start_auction(ref self: VaultFacade) -> u256 {
-        // @dev Using vault manager as caller so that gas fees do not throw off balance calculations
-        set_contract_address(vault_manager());
+        // @dev Using bystander as caller so that gas fees do not throw off balance calculations
+        set_contract_address(bystander());
         let res = self.vault_dispatcher.start_auction();
         match res {
             Result::Ok(total_options_available) => total_options_available,
@@ -93,8 +93,8 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     }
 
     fn end_auction(ref self: VaultFacade) -> (u256, u256) {
-        // @dev Using vault manager as caller so that gas fees do not throw off balance calculations
-        set_contract_address(vault_manager());
+        // @dev Using bystander as caller so that gas fees do not throw off balance calculations
+        set_contract_address(bystander());
         let res = self.vault_dispatcher.end_auction();
         match res {
             Result::Ok((
@@ -105,8 +105,8 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     }
 
     fn settle_option_round(ref self: VaultFacade) -> u256 {
-        // @dev Using vault manager as caller so that gas fees do not throw off balance calculations
-        set_contract_address(vault_manager());
+        // @dev Using bystander as caller so that gas fees do not throw off balance calculations
+        set_contract_address(bystander());
         let res = self.vault_dispatcher.settle_option_round();
         match res {
             Result::Ok(total_payout) => total_payout,
@@ -118,6 +118,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     // Set the mock market aggregator data for the period of the current round
     fn set_market_aggregator_value(ref self: VaultFacade, avg_base_fee: u256) {
+        set_contract_address(bystander());
         let mut current_round = self.get_current_round();
         let start_date = current_round.get_auction_start_date();
         let end_date = current_round.get_option_expiry_date();
