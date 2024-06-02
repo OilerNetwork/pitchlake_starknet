@@ -1,3 +1,7 @@
+use openzeppelin::token::erc20::interface::{
+    IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcherTrait,
+};
+use starknet::{ContractAddress};
 /// Array helpers ///
 
 // Create array of length `len`, each element is `amount` (For bids use the function twice for price and amount)
@@ -71,4 +75,24 @@ fn split_spreads(mut spreads: Span<(u256, u256)>) -> (Array<u256>, Array<u256>) 
         }
     };
     (locked, unlocked)
+}
+
+// Get erc20 balances for an address
+fn get_erc20_balance(contract_address: ContractAddress, account_address: ContractAddress) -> u256 {
+    let contract = IERC20Dispatcher { contract_address };
+    contract.balance_of(account_address)
+}
+
+// Get erc20 balances for multiple addresses
+fn get_erc20_balances(
+    contract_address: ContractAddress, mut account_addresses: Span<ContractAddress>
+) -> Array<u256> {
+    let mut balances = array![];
+    loop {
+        match account_addresses.pop_front() {
+            Option::Some(addr) => { balances.append(get_erc20_balance(contract_address, *addr)); },
+            Option::None => { break (); }
+        }
+    };
+    balances
 }
