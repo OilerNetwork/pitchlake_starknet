@@ -139,7 +139,7 @@ fn create_array_gradient(amount: u256, step: u256, len: u32) -> Array<u256> {
 }
 
 // Sum all of the u256s in a given span
-fn sum_u256_span(mut arr: Span<u256>) -> u256 {
+fn sum_u256_array(mut arr: Span<u256>) -> u256 {
     let mut sum = 0;
     match arr.pop_front() {
         Option::Some(el) => { sum += *el; },
@@ -149,7 +149,42 @@ fn sum_u256_span(mut arr: Span<u256>) -> u256 {
 }
 
 // Assert two arrays of any type are equal
-fn assert_two_arrays_equal<T, V>(arr1: Span<T>, arr2: Span<V>) {
+fn assert_two_arrays_equal_length<T, V>(arr1: Span<T>, arr2: Span<V>) {
     assert(arr1.len() == arr2.len(), 'Arrays not equal length');
 }
 
+// Sum an array of spreads and return the total spread
+fn sum_spreads(mut spreads: Span<(u256, u256)>) -> (u256, u256) {
+    let mut total_locked: u256 = 0;
+    let mut total_unlocked: u256 = 0;
+    loop {
+        match spreads.pop_front() {
+            Option::Some((
+                locked, unlocked
+            )) => {
+                total_locked += *locked;
+                total_unlocked += *unlocked;
+            },
+            Option::None => { break (); }
+        }
+    };
+    (total_locked, total_unlocked)
+}
+
+// Split spreads into locked and unlocked arrays
+fn split_spreads(mut spreads: Span<(u256, u256)>) -> (Array<u256>, Array<u256>) {
+    let mut locked: Array<u256> = array![];
+    let mut unlocked: Array<u256> = array![];
+    loop {
+        match spreads.pop_front() {
+            Option::Some((
+                locked_amount, unlocked_amount
+            )) => {
+                locked.append(*locked_amount);
+                unlocked.append(*unlocked_amount);
+            },
+            Option::None => { break (); }
+        }
+    };
+    (locked, unlocked)
+}
