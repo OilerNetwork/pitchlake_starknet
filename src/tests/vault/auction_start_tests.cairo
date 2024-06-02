@@ -52,7 +52,7 @@ fn test_unlocked_becomes_locked() {
     let lps = liquidity_providers_get(5);
     let mut amounts = create_array_gradient(1000 * decimals(), 5000 * decimals(), lps.len());
     // Array of each depositer's spread (Array<(locked, unlocked)>)
-    let mut all_spreads = vault_facade.deposit_multiple(lps.span(), amounts.span());
+    let mut all_spreads = vault_facade.deposit_multiple(amounts.span(), lps.span());
     // Start the auction
     vault_facade.start_auction();
     // Final vault locked/unlocked spread

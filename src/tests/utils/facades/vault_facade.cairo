@@ -45,7 +45,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     }
 
     fn deposit_multiple(
-        ref self: VaultFacade, mut lps: Span<ContractAddress>, mut amounts: Span<u256>
+        ref self: VaultFacade, mut amounts: Span<u256>, mut lps: Span<ContractAddress>
     ) -> Array<(u256, u256)> {
         assert_two_arrays_equal_length(lps, amounts);
         let mut spreads = array![];

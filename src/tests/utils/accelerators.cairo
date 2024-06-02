@@ -44,7 +44,7 @@ fn accelerate_to_auctioning_custom(
     ref self: VaultFacade, lps: Span<ContractAddress>, amounts: Span<u256>
 ) -> u256 {
     // Deposit liquidity
-    self.deposit_multiple(lps, amounts);
+    self.deposit_multiple(amounts, lps);
     // Jump past round transition period and start the auction
     timeskip_and_start_auction(ref self)
 }
