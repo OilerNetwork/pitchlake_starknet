@@ -13,7 +13,8 @@ use pitch_lake_starknet::{
                 IMarketAggregatorSetterDispatcherTrait,
             },
             test_accounts::{liquidity_provider_1, bystander}, variables::{vault_manager, decimals},
-            facades::{option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},}
+            facades::{option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},},
+            sanity_checks,
         },
     }
 };
@@ -32,7 +33,9 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         let res = self.vault_dispatcher.deposit_liquidity(amount);
 
         match res {
-            Result::Ok(liquidity) => liquidity,
+            Result::Ok(liquidity) => sanity_checks::deposit(
+                ref self, liquidity_provider, liquidity
+            ),
             Result::Err(e) => panic(array![e.into()]),
         }
     }
@@ -59,7 +62,9 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         set_contract_address(liquidity_provider);
         let res = self.vault_dispatcher.withdraw_liquidity(amount);
         match res {
-            Result::Ok(liquidity) => liquidity,
+            Result::Ok(liquidity) => sanity_checks::withdraw(
+                ref self, liquidity_provider, liquidity
+            ),
             Result::Err(e) => panic(array![e.into()]),
         }
     }
@@ -87,7 +92,10 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         set_contract_address(bystander());
         let res = self.vault_dispatcher.start_auction();
         match res {
-            Result::Ok(total_options_available) => total_options_available,
+            Result::Ok(total_options_available) => {
+                let mut current_round = self.get_current_round();
+                sanity_checks::start_auction(ref current_round, total_options_available)
+            },
             Result::Err(e) => panic(array![e.into()]),
         }
     }
@@ -99,7 +107,10 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         match res {
             Result::Ok((
                 clearing_price, total_options_sold
-            )) => (clearing_price, total_options_sold),
+            )) => {
+                let mut current_round = self.get_current_round();
+                sanity_checks::end_auction(ref current_round, clearing_price, total_options_sold)
+            },
             Result::Err(e) => panic(array![e.into()]),
         }
     }
@@ -109,7 +120,10 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         set_contract_address(bystander());
         let res = self.vault_dispatcher.settle_option_round();
         match res {
-            Result::Ok(total_payout) => total_payout,
+            Result::Ok(total_payout) => {
+                let mut current_round = self.get_current_round();
+                sanity_checks::settle_option_round(ref current_round, total_payout)
+            },
             Result::Err(e) => panic(array![e.into()]),
         }
     }
