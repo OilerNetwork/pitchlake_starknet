@@ -17,10 +17,10 @@ use pitch_lake_starknet::{
         utils::{
             event_helpers::{pop_log, assert_no_events_left, assert_event_auction_end},
             accelerators::{
-                accelerate_to_auctioning, accelerate_to_running, create_array_linear,
-                create_array_gradient, accelerate_to_auctioning_custom,
-                accelerate_to_running_custom, accelerate_to_settled, sum_u256_array,
+                accelerate_to_auctioning, accelerate_to_running, accelerate_to_auctioning_custom,
+                accelerate_to_running_custom, accelerate_to_settled,
             },
+            utils::{create_array_gradient, create_array_linear, sum_u256_array},
             test_accounts::{
                 liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
                 option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,

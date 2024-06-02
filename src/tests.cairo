@@ -7,6 +7,7 @@ mod utils {
     mod variables;
     mod setup;
     mod sanity_checks;
+    mod utils;
     mod mocks {
         mod mock_market_aggregator;
     }

@@ -1,10 +1,10 @@
 use pitch_lake_starknet::tests::{
     utils::{
         accelerators::{
-            accelerate_to_auctioning_custom, create_array_gradient, create_array_linear,
-            accelerate_to_running_custom, accelerate_to_auctioning, accelerate_to_settled,
-            accelerate_to_running
+            accelerate_to_auctioning_custom, accelerate_to_running_custom, accelerate_to_auctioning,
+            accelerate_to_settled, accelerate_to_running
         },
+        utils::{create_array_gradient, create_array_linear,},
         test_accounts::{
             liquidity_provider_1, liquidity_provider_2, liquidity_providers_get,
             option_bidder_buyer_1, option_bidder_buyer_2, option_bidders_get,

@@ -18,10 +18,13 @@ use pitch_lake_starknet::{
         utils::{
             event_helpers::{assert_event_auction_start, assert_event_option_round_deployed},
             accelerators::{
-                create_array_linear, create_array_gradient, accelerate_to_auctioning,
-                accelerate_to_running, accelerate_to_settled, accelerate_to_auctioning_custom,
-                sum_u256_array, accelerate_to_running_custom, timeskip_and_settle_round,
-                timeskip_and_end_auction, sum_spreads, split_spreads,
+                accelerate_to_auctioning, accelerate_to_running, accelerate_to_settled,
+                accelerate_to_auctioning_custom, accelerate_to_running_custom,
+                timeskip_and_settle_round, timeskip_and_end_auction,
+            },
+            utils::{
+                create_array_linear, create_array_gradient, sum_spreads, split_spreads,
+                sum_u256_array,
             },
             test_accounts::{
                 liquidity_provider_1, liquidity_provider_2, liquidity_providers_get,
@@ -49,7 +52,7 @@ fn test_unlocked_becomes_locked() {
     let lps = liquidity_providers_get(5);
     let mut amounts = create_array_gradient(1000 * decimals(), 5000 * decimals(), lps.len());
     // Array of each depositer's spread (Array<(locked, unlocked)>)
-    let mut all_spreads = vault_facade.deposit_mutltiple(lps.span(), amounts.span());
+    let mut all_spreads = vault_facade.deposit_multiple(lps.span(), amounts.span());
     // Start the auction
     vault_facade.start_auction();
     // Final vault locked/unlocked spread

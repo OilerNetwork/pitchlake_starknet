@@ -13,7 +13,7 @@ use pitch_lake_starknet::{
     tests::{
         utils::{
             variables::{vault_manager}, test_accounts::{bystander}, structs::{OptionRoundParams},
-            accelerators::{assert_two_arrays_equal_length}, sanity_checks,
+            utils::{assert_two_arrays_equal_length}, sanity_checks,
         }
     }
 };

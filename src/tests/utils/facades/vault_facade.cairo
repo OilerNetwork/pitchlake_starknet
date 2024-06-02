@@ -14,7 +14,7 @@ use pitch_lake_starknet::{
             },
             test_accounts::{liquidity_provider_1, bystander}, variables::{vault_manager, decimals},
             facades::{option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},},
-            accelerators::{assert_two_arrays_equal_length}, sanity_checks,
+            utils::{assert_two_arrays_equal_length}, sanity_checks,
         },
     }
 };
@@ -44,7 +44,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         }
     }
 
-    fn deposit_mutltiple(
+    fn deposit_multiple(
         ref self: VaultFacade, mut lps: Span<ContractAddress>, mut amounts: Span<u256>
     ) -> Array<(u256, u256)> {
         assert_two_arrays_equal_length(lps, amounts);
@@ -240,7 +240,6 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         let unlocked = self.vault_dispatcher.get_lp_unlocked_balance(lp);
         (locked, unlocked)
     }
-
 
     fn get_lp_balance_spreads(
         ref self: VaultFacade, mut lps: Span<ContractAddress>
