@@ -84,7 +84,7 @@ fn accelerate_to_running_custom(
 ) -> (u256, u256) {
     // Place bids
     let mut current_round = self.get_current_round();
-    current_round.place_bids(bidders, max_amounts, prices);
+    current_round.place_bids(max_amounts, prices, bidders);
     // Jump to the auction end date and end the auction
     timeskip_and_end_auction(ref self)
 }
@@ -146,5 +146,10 @@ fn sum_u256_span(mut arr: Span<u256>) -> u256 {
         Option::None => {}
     }
     sum
+}
+
+// Assert two arrays of any type are equal
+fn assert_two_arrays_equal<T, V>(arr1: Span<T>, arr2: Span<V>) {
+    assert(arr1.len() == arr2.len(), 'Arrays not equal length');
 }
 

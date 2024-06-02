@@ -196,9 +196,9 @@ fn test_premiums_sent_to_vault_eth_transfer() {
     let bid_amount = bid_count * bid_price;
     current_round
         .place_bids(
-            array![option_bidder_buyer_1(), option_bidder_buyer_2()].span(),
             array![bid_amount, 2 * bid_amount].span(),
             array![bid_price, 2 * bid_price].span(),
+            array![option_bidder_buyer_1(), option_bidder_buyer_2()].span(),
         );
 
     // Balances before auction end
