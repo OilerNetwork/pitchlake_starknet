@@ -1,7 +1,7 @@
 use starknet::{
     ClassHash, ContractAddress, contract_address_const, deploy_syscall,
     Felt252TryIntoContractAddress, get_contract_address, contract_address_try_from_felt252, testing,
-    testing::{set_block_timestamp, set_contract_address}
+    get_block_timestamp, testing::{set_block_timestamp, set_contract_address}
 };
 use openzeppelin::{
     utils::serde::SerializedAppend,
@@ -88,9 +88,12 @@ fn deploy_vault(vault_type: VaultType) -> IVaultDispatcher {
     calldata.append_serde(vault_type);
     calldata.append_serde(deploy_market_aggregator().contract_address); // needed ?
     calldata.append_serde(OptionRound::TEST_CLASS_HASH);
+    // @dev Making salt timestamp dependent so we can easily deploy new instances for testing
+    let now = get_block_timestamp();
+    let salt = 'some salt' + now.into();
 
     let (contract_address, _) = deploy_syscall(
-        Vault::TEST_CLASS_HASH.try_into().unwrap(), 'some salt', calldata.span(), true
+        Vault::TEST_CLASS_HASH.try_into().unwrap(), salt, calldata.span(), true
     )
         .expect('DEPLOY_VAULT_FAILED');
 
