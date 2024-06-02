@@ -155,13 +155,17 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
 
     // Exercise options for multiple option buyers
     // @return: The payout amounts
-    fn exercise_options_multiple(ref self: OptionRoundFacade, mut bidders: Span<ContractAddress>) {
+    fn exercise_options_multiple(
+        ref self: OptionRoundFacade, mut bidders: Span<ContractAddress>
+    ) -> Array<u256> {
+        let mut payouts = array![];
         loop {
             match bidders.pop_front() {
-                Option::Some(bidder) => { self.exercise_options(*bidder); },
+                Option::Some(bidder) => { payouts.append(self.exercise_options(*bidder)); },
                 Option::None => { break (); }
             }
         };
+        payouts
     }
 
     /// Reads ///
