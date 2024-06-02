@@ -243,20 +243,18 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     fn get_lp_balance_spreads(
         ref self: VaultFacade, mut lps: Span<ContractAddress>
-    ) -> (Array<u256>, Array<u256>) {
-        let mut arr_locked: Array<u256> = array![];
-        let mut arr_unlocked: Array<u256> = array![];
-
-        match lps.pop_front() {
-            Option::Some(lp) => {
-                let (locked, unlocked) = self.get_lp_balance_spread(*lp);
-                arr_locked.append(locked);
-                arr_unlocked.append(unlocked);
-            },
-            Option::None => { return (arr_locked, arr_unlocked); }
+    ) -> Array<(u256, u256)> {
+        let mut spreads = array![];
+        loop {
+            match lps.pop_front() {
+                Option::Some(lp) => {
+                    let locked_and_unlocked = self.get_lp_balance_spread(*lp);
+                    spreads.append(locked_and_unlocked);
+                },
+                Option::None => { break (); }
+            };
         };
-
-        (arr_locked, arr_unlocked)
+        spreads
     }
 
     fn get_premiums_for(ref self: VaultFacade, lp: ContractAddress, round_id: u256) -> u256 {
