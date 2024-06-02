@@ -12,17 +12,18 @@ use pitch_lake_starknet::{
     option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState},
     tests::{
         utils::{
+            utils::{sum_u256_array, get_erc20_balance, get_erc20_balances, split_spreads,},
             event_helpers::{
                 assert_event_transfer, pop_log, assert_no_events_left, assert_event_option_settle,
                 assert_event_option_round_deployed, assert_event_vault_deposit,
                 assert_event_auction_start, assert_event_auction_bid_accepted,
                 assert_event_auction_bid_rejected, assert_event_auction_end,
                 assert_event_vault_withdrawal, assert_event_unused_bids_refunded,
-                assert_event_options_exercised
+                assert_event_options_exercised,
             },
             accelerators::{
                 accelerate_to_auctioning, accelerate_to_running, accelerate_to_settled,
-                create_array_gradient, clear_event_logs,
+                clear_event_logs,
             },
             test_accounts::{
                 liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
@@ -39,153 +40,140 @@ use pitch_lake_starknet::{
 };
 use debug::PrintTrait;
 
-// Test when LP deposit, tokens are getting stored in unlocked pool in vault of the next round
+// Test when LP deposits, tokens are stored in the vault's unlocked pool
 #[test]
 #[available_gas(10000000)]
 fn test_deposit_vault_unlocked_liquidity() {
     let (mut vault_facade, _) = setup_facade();
-    let mut _current_round = vault_facade.get_current_round();
-    let mut _next_round = vault_facade.get_next_round();
 
-    // get one liquidity provider
+    // Get a liquidity provider
     let liquidity_providers = liquidity_providers_get(1);
-    // get the initial liquidity of the vault
-    let init_liquidity = vault_facade.get_lp_unlocked_balance(*liquidity_providers[0]);
-    // @note test vault unlocked as well
+    let deposit_amount = 100 * decimals();
+    // Get the initial liquidity of the vault and the LP
+    let (lp_locked_init, lp_unlocked_init) = vault_facade
+        .get_lp_balance_spread(*liquidity_providers[0]);
+    let (vault_locked_init, vault_unlocked_init) = vault_facade.get_balance_spread();
 
-    // deposit some amount in the vault
-    let deposit_amount = 50 * decimals();
-    vault_facade.deposit(deposit_amount, *liquidity_providers[0]);
+    // Deposit
+    let (lp_locked_final, lp_unlocked_final) = vault_facade
+        .deposit(deposit_amount, *liquidity_providers[0]);
+    let (vault_locked_final, vault_unlocked_final) = vault_facade.get_balance_spread();
 
-    // get the liquidity after the first deposit
-    let final_liquidity = vault_facade.get_lp_unlocked_balance(*liquidity_providers[0]);
+    // Locked should not change, and unlocked should increase by deposit amount
+    assert(vault_locked_final == vault_locked_init, 'vault locked shd not change');
+    assert(vault_unlocked_final == vault_unlocked_init + deposit_amount, 'vault unlocked wrong');
 
-    // liquidity should increase by deposit_amount
-    assert(final_liquidity == init_liquidity + deposit_amount, 'vault balance should increase');
+    assert(lp_locked_final == lp_locked_init, 'lp locked shd not change');
+    assert(lp_unlocked_final == lp_unlocked_init + deposit_amount, 'lp unlocked wrong');
 }
 
-// test when LP multiple deposit, tokens are getting stored in the unlocked pool in vault of the next round
+// Test above with multiple LPs
 #[test]
 #[available_gas(10000000)]
 fn test_multi_deposit_vault_unlocked_liquidity() {
     let (mut vault_facade, _) = setup_facade();
-    let mut _current_round = vault_facade.get_current_round();
-    let mut _next_round = vault_facade.get_next_round();
 
-    // get one liquidity provider
-    let liquidity_providers = liquidity_providers_get(2);
-    // get the initial liquidity of the vault
-    let init_liquidity_1 = vault_facade.get_lp_unlocked_balance(*liquidity_providers[0]);
-    let init_liquidity_2 = vault_facade.get_lp_unlocked_balance(*liquidity_providers[1]);
-    // @note test vault unlocked as well
+    // Get multiple liquidity providers
+    let mut liquidity_providers = liquidity_providers_get(3);
+    let mut deposit_amounts = array![25 * decimals(), 50 * decimals(), 100 * decimals()];
+    let amounts_total = sum_u256_array(deposit_amounts.span());
+    // Get the initial liquidity of the vault and the LPs
+    let mut spreads_init = vault_facade.get_lp_balance_spreads(liquidity_providers.span());
+    let (vault_locked_init, vault_unlocked_init) = vault_facade.get_balance_spread();
 
-    // deposit some amount in the vault
-    let deposit_amount = 50 * decimals();
-    vault_facade.deposit(deposit_amount, *liquidity_providers[0]);
-    vault_facade.deposit(deposit_amount + 1, *liquidity_providers[1]);
+    // Deposit some amount in the vault
+    let spreads_final = vault_facade
+        .deposit_multiple(liquidity_providers.span(), deposit_amounts.span());
 
-    // get the liquidity after the first deposit
-    let final_liquidity_1 = vault_facade.get_lp_unlocked_balance(*liquidity_providers[0]);
-    let final_liquidity_2 = vault_facade.get_lp_unlocked_balance(*liquidity_providers[1]);
+    // Locked should not change, and unlocked should increase by deposit amount
+    let (vault_locked_final, vault_unlocked_final) = vault_facade.get_balance_spread();
+    assert(vault_locked_final == vault_locked_init, 'vault locked shd not change');
+    assert(vault_unlocked_final == vault_unlocked_init + amounts_total, 'vault unlocked wrong');
 
-    // liquidity should increase by deposited amount
-    assert(final_liquidity_1 == init_liquidity_1 + deposit_amount, 'vault balance should increase');
-    assert(
-        final_liquidity_2 == init_liquidity_2 + deposit_amount + 1, 'vault balance should increase'
+    let (mut lp_locked_balances_init, mut lp_unlocked_balances_init) = split_spreads(
+        spreads_init.span()
     );
+    let (mut lp_locked_balances_final, mut lp_unlocked_balances_final) = split_spreads(
+        spreads_final.span()
+    );
+    loop {
+        match liquidity_providers.pop_front() {
+            Option::Some(_) => {
+                let lp_locked_init = lp_locked_balances_init.pop_front().unwrap();
+                let lp_locked_final = lp_locked_balances_final.pop_front().unwrap();
+                assert(lp_locked_final == lp_locked_init, 'lp locked shd not change');
+
+                let lp_unlocked_init = lp_unlocked_balances_init.pop_front().unwrap();
+                let lp_unlocked_final = lp_unlocked_balances_final.pop_front().unwrap();
+                let deposit_amount = deposit_amounts.pop_front().unwrap();
+                assert(lp_unlocked_final == lp_unlocked_init + deposit_amount, 'lp unlocked wrong');
+            },
+            Option::None => { break (); }
+        }
+    }
 }
 
-// test when LP deposit, check the balance of the contracts (vault and the sender) are updating accordingly
+// Test when LP deposits, eth transfers from LP to vault
 #[test]
 #[available_gas(10000000)]
 fn test_deposit_eth_transfer() {
     let (mut vault_facade, eth_dispatcher) = setup_facade();
-    // Current round (settled) and next round (open)
-    let mut current_round = vault_facade.get_current_round();
-    let mut next_round = vault_facade.get_next_round();
-    // Initital eth balances for lp, current round, next round
-    let init_lp_balance = eth_dispatcher.balance_of(liquidity_provider_1());
-    let init_current_round_balance = eth_dispatcher.balance_of(current_round.contract_address());
-    let init_next_round_balance = eth_dispatcher.balance_of(next_round.contract_address());
-    // Deposit into next round
+    // Initital eth balances for vault and LP
+    let lp = liquidity_provider_1();
     let deposit_amount = 50 * decimals();
-    vault_facade.deposit(deposit_amount, liquidity_provider_1());
-    // Final eth balances for lp, current round, next round
-    let final_lp_balance = eth_dispatcher.balance_of(liquidity_provider_1());
-    let final_current_round_balance = eth_dispatcher.balance_of(current_round.contract_address());
-    let final_next_round_balance = eth_dispatcher.balance_of(next_round.contract_address());
-    // Check liquidity changes
-    assert(final_lp_balance == init_lp_balance - deposit_amount, 'lp shd send eth');
-    assert(final_current_round_balance == init_current_round_balance, 'current eth shd be locked');
+    let addresses = array![vault_facade.contract_address(), lp].span();
+    let mut init_eth_balances = get_erc20_balances(eth_dispatcher.contract_address, addresses);
+    // Deposit into vault
+    vault_facade.deposit(deposit_amount, lp);
+    // Final eth balances for vault and LP
+    let mut final_eth_balances = get_erc20_balances(eth_dispatcher.contract_address, addresses);
+
+    // Check eth transfer
     assert(
-        final_next_round_balance == init_next_round_balance + deposit_amount, 'next shd receive eth'
+        final_eth_balances.pop_front().unwrap() == init_eth_balances.pop_front().unwrap()
+            + deposit_amount,
+        'Vault did not receive eth'
     );
-    assert_event_transfer(
-        eth_dispatcher.contract_address,
-        liquidity_provider_1(),
-        next_round.contract_address(),
-        deposit_amount
-    );
-}
-
-// test when LP deposit, deposit events are getting fired
-#[test]
-#[available_gas(10000000)]
-fn test_deposit_to_vault_event() {
-    let (mut vault_facade, _) = setup_facade();
-    let mut _next_round = vault_facade.get_next_round();
-
-    // get one liquidity provider
-    let liquidity_providers = liquidity_providers_get(1);
-    // get the initial liquidity of the vault
-    let init_liquidity = vault_facade.get_lp_unlocked_balance(*liquidity_providers[0]);
-
-    // deposit some amount in the vault
-    let deposit_amount = 50 * decimals();
-    vault_facade.deposit(deposit_amount, *liquidity_providers[0]);
-
-    // Check vault events emit correctly
-    assert_event_vault_deposit(
-        vault_facade.contract_address(),
-        *liquidity_providers[0],
-        init_liquidity,
-        init_liquidity + deposit_amount,
+    assert(
+        final_eth_balances.pop_front().unwrap() == init_eth_balances.pop_front().unwrap()
+            - deposit_amount,
+        'LP did not send eth'
     );
 }
 
-// test when LP multiple deposit, all the events are getting fired in correct order
+// Test when LPs deposit, the correct events fire
 #[test]
 #[available_gas(10000000)]
 fn test_multi_deposit_to_vault_event() {
     let (mut vault_facade, _) = setup_facade();
     let mut _next_round = vault_facade.get_next_round();
 
-    // get one liquidity provider
-    let liquidity_providers = liquidity_providers_get(2);
-    // get the initial liquidity of the vault
-    let init_liquidity_1 = vault_facade.get_lp_unlocked_balance(*liquidity_providers[0]);
-    let init_liquidity_2 = vault_facade.get_lp_unlocked_balance(*liquidity_providers[1]);
+    // LPs
+    let mut liquidity_providers = liquidity_providers_get(3);
+    // Initial unlocked balances
+    let spreads_init = vault_facade.get_lp_balance_spreads(liquidity_providers.span());
+    // Deposit into the vault
+    let deposit_amounts = array![25 * decimals(), 50 * decimals(), 100 * decimals()];
+    let spreads_final = vault_facade
+        .deposit_multiple(liquidity_providers.span(), deposit_amounts.span());
 
-    // deposit some amount in the vault
-    let deposit_amount = 50 * decimals();
-    vault_facade.deposit(deposit_amount, *liquidity_providers[0]);
-    vault_facade.deposit(deposit_amount, *liquidity_providers[1]);
-
-    // Check vault events emit correctly
-    assert_event_vault_deposit(
-        vault_facade.contract_address(),
-        *liquidity_providers[0],
-        init_liquidity_1,
-        init_liquidity_1 + deposit_amount,
-    );
-    assert_event_vault_deposit(
-        vault_facade.contract_address(),
-        *liquidity_providers[1],
-        init_liquidity_2,
-        init_liquidity_2 + deposit_amount,
-    );
+    // Check event emission
+    let (_, mut lp_unlocked_balances_init) = split_spreads(spreads_init.span());
+    let (_, mut lp_unlocked_balances_final) = split_spreads(spreads_final.span());
+    loop {
+        match liquidity_providers.pop_front() {
+            Option::Some(lp) => {
+                assert_event_vault_deposit(
+                    vault_facade.contract_address(),
+                    lp,
+                    lp_unlocked_balances_init.pop_front().unwrap(),
+                    lp_unlocked_balances_final.pop_front().unwrap(),
+                );
+            },
+            Option::None => { break (); }
+        }
+    }
 }
-
 
 // Test that LP cannot deposit zero
 #[test]
@@ -204,32 +192,25 @@ fn test_deposit_is_always_into_unlocked() {
     let deposit_amount = 100 * decimals();
 
     accelerate_to_auctioning(ref vault_facade);
+    let (lp_locked0, lp_unlocked0) = vault_facade.get_lp_balance_spread(liquidity_provider_2());
 
     // Deposit while current is auctioning
-    // @note Using LP2 to check. Allows us to ignore premiums earned from the auction (since they did not supply liquidity in the current round)
-    let (lp_locked0, lp_unlocked0) = vault_facade.get_lp_balance_spread(liquidity_provider_2());
-    vault_facade.deposit(deposit_amount, liquidity_provider_2());
-    let (lp_locked1, lp_unlocked1) = vault_facade.get_lp_balance_spread(liquidity_provider_2());
-
-    assert(lp_locked1 == lp_locked0, 'locked shd not change');
-    assert(lp_unlocked1 == lp_unlocked0 + deposit_amount, 'unlocked wrong');
-
-    accelerate_to_running(ref vault_facade);
+    // @dev Using LP2 to allows us to ignore premiums earned from the auction (since they did not supply liquidity in the initial round)
+    let (lp_locked1, lp_unlocked1) = vault_facade.deposit(deposit_amount, liquidity_provider_2());
 
     // Deposit while current is running
-    vault_facade.deposit(deposit_amount, liquidity_provider_2());
-    let (lp_locked2, lp_unlocked2) = vault_facade.get_lp_balance_spread(liquidity_provider_2());
-
-    assert(lp_locked2 == lp_locked1, 'locked shd not change');
-    assert(lp_unlocked2 == lp_unlocked1 + deposit_amount, 'unlocked wrong');
-
-    accelerate_to_settled(ref vault_facade, 0);
+    accelerate_to_running(ref vault_facade);
+    let (lp_locked2, lp_unlocked2) = vault_facade.deposit(deposit_amount, liquidity_provider_2());
 
     // Deposit while current is settled
-    vault_facade.deposit(deposit_amount, liquidity_provider_2());
-    let (lp_locked3, lp_unlocked3) = vault_facade.get_lp_balance_spread(liquidity_provider_2());
+    accelerate_to_settled(ref vault_facade, 0);
+    let (lp_locked3, lp_unlocked3) = vault_facade.deposit(deposit_amount, liquidity_provider_2());
 
-    assert(lp_locked3 == lp_locked2, 'locked shd not change');
-    assert(lp_unlocked3 == lp_unlocked2 + deposit_amount, 'unlocked wrong');
+    assert(lp_locked1 == lp_locked0, 'locked shd not change1');
+    assert(lp_locked2 == lp_locked1, 'locked shd not change2');
+    assert(lp_locked3 == lp_locked2, 'locked shd not change3');
+    assert(lp_unlocked1 == lp_unlocked0 + deposit_amount, 'unlocked wrong1');
+    assert(lp_unlocked2 == lp_unlocked1 + deposit_amount, 'unlocked wrong2');
+    assert(lp_unlocked3 == lp_unlocked2 + deposit_amount, 'unlocked wrong3');
 }
 
