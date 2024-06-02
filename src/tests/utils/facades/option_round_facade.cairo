@@ -13,7 +13,7 @@ use pitch_lake_starknet::{
     tests::{
         utils::{
             variables::{vault_manager}, test_accounts::{bystander}, structs::{OptionRoundParams},
-            accelerators::{assert_two_arrays_equal}, sanity_checks,
+            accelerators::{assert_two_arrays_equal_length}, sanity_checks,
         }
     }
 };
@@ -89,8 +89,8 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         mut prices: Span<u256>,
         mut bidders: Span<ContractAddress>,
     ) -> Array<bool> {
-        assert_two_arrays_equal(bidders, amounts);
-        assert_two_arrays_equal(bidders, prices);
+        assert_two_arrays_equal_length(bidders, amounts);
+        assert_two_arrays_equal_length(bidders, prices);
         let mut results = array![];
         loop {
             match bidders.pop_front() {
