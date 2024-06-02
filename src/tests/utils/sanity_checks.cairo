@@ -1,4 +1,4 @@
-use starknet::{testing::{set_contract_address}};
+use starknet::{ContractAddress, testing::{set_contract_address}};
 use openzeppelin::token::erc20::interface::{IERC20DispatcherTrait,};
 use pitch_lake_starknet::{
     //vault::{IVaultDispatcherTrait},
@@ -11,7 +11,7 @@ use pitch_lake_starknet::{
             },
             setup::{setup_facade}, test_accounts::{option_bidders_get},
             facades::{
-                vault_facade::{VaultFacadeTrait},
+                vault_facade::{VaultFacade, VaultFacadeTrait},
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait}
             },
             test_accounts::{liquidity_provider_1, liquidity_provider_2}, event_helpers,
@@ -20,104 +20,66 @@ use pitch_lake_starknet::{
 };
 
 
-/// Vault ///
+/// Sanity checks ///
+// These ensure the returned values from write functions match their associated storage slot/getter
 
-#[test]
-#[available_gas(10000000)]
-fn test_auction_start_sanity_check() {
-    let (mut vault, _) = setup_facade();
-
-    let total_options_available = accelerate_to_auctioning(ref vault);
-    let mut current_round = vault.get_current_round();
-    let total_options_available_ = current_round.get_total_options_available();
-
-    assert_gt!(total_options_available, 0);
-    assert_eq!(total_options_available, total_options_available_);
+fn start_auction(ref option_round: OptionRoundFacade, total_options_available: u256) -> u256 {
+    let expected = option_round.get_total_options_available();
+    assert(expected == total_options_available, 'Auction start sanity check fail');
+    total_options_available
 }
 
-#[test]
-#[available_gas(10000000)]
-fn test_auction_end_sanity_check() {
-    let (mut vault, _) = setup_facade();
-    accelerate_to_auctioning(ref vault);
-
-    let (clearing_price, total_options_sold) = accelerate_to_running(ref vault);
-    let mut current_round = vault.get_current_round();
-
-    let clearing_price_ = current_round.get_auction_clearing_price();
-    let total_options_sold_ = current_round.total_options_sold();
-
-    assert_gt!(clearing_price, 0);
-    assert_gt!(total_options_sold, 0);
-
-    assert_eq!(clearing_price, clearing_price_);
-    assert_eq!(total_options_sold, total_options_sold_);
+fn end_auction(
+    ref option_round: OptionRoundFacade, clearing_price: u256, total_options_sold: u256
+) -> (u256, u256) {
+    let expected1 = option_round.get_auction_clearing_price();
+    let expected2 = option_round.total_options_sold();
+    assert(expected1 == clearing_price, 'Auction end sanity check fail 1');
+    assert(expected2 == total_options_sold, 'Auction end sanity check fail 2');
+    (clearing_price, total_options_sold)
 }
 
-#[test]
-#[available_gas(10000000)]
-fn test_settle_option_round_sanity_check() {
-    let (mut vault, _) = setup_facade();
+fn settle_option_round(ref option_round: OptionRoundFacade, total_payout: u256) -> u256 {
+    let expected = option_round.total_payout();
+    assert(expected == total_payout, 'Settle round sanity check fail');
+    total_payout
+}
 
-    accelerate_to_auctioning(ref vault);
-    accelerate_to_running(ref vault);
-    let mut current_round = vault.get_current_round();
+fn refund_bid(ref option_round: OptionRoundFacade, refund_amount: u256, expected: u256) -> u256 {
+    assert(refund_amount == expected, 'Refund sanity check fail');
+    refund_amount
+}
 
-    let total_payout = accelerate_to_settled(ref vault, 2 * current_round.get_strike_price());
-    let total_payout_ = current_round.total_payout();
-
-    assert_gt!(total_payout, 0);
-    assert_eq!(total_payout, total_payout_);
+fn exercise_options(
+    ref option_round: OptionRoundFacade, individual_payout: u256, expected: u256
+) -> u256 {
+    assert(individual_payout == expected, 'Exercise opts sanity check fail');
+    individual_payout
 }
 
 
-/// Option Round ///
+/// Vault
 
-#[test]
-#[available_gas(10000000)]
-fn test_refund_unused_bids_sanity_check() {
-    let (mut vault, _) = setup_facade();
-
-    let total_options_available = accelerate_to_auctioning(ref vault);
-    let mut current_round = vault.get_current_round();
-
-    let bidders = option_bidders_get(2);
-    let bid_count = total_options_available;
-    let bid_price1 = current_round.get_reserve_price();
-    let bid_price2 = 2 * bid_price1;
-    accelerate_to_running_custom(
-        ref vault,
-        bidders.span(),
-        array![bid_count * bid_price1, bid_count * bid_price2].span(),
-        array![bid_price1, bid_price2].span()
-    );
-
-    let ob1_bid_balance = current_round.get_unused_bids_for(*bidders[0]);
-    let refund_amount = current_round.refund_bid(*bidders[0]);
-
-    assert_gt!(refund_amount, 0);
-    assert_eq!(refund_amount, ob1_bid_balance);
+fn deposit(ref vault: VaultFacade, lp: ContractAddress, amount: u256) -> u256 {
+    let expected = vault.get_lp_unlocked_balance(lp);
+    assert(expected == amount, 'Deposit sanity check fail');
+    amount
 }
 
-#[test]
-#[available_gas(10000000)]
-fn test_exercise_options_sanity_check() {
-    let (mut vault, _) = setup_facade();
-
-    accelerate_to_auctioning(ref vault);
-    accelerate_to_running(ref vault);
-    let mut current_round = vault.get_current_round();
-    let total_payout = accelerate_to_settled(ref vault, 2 * current_round.get_strike_price());
-    let total_payout_ = current_round.total_payout();
-
-    assert_gt!(total_payout, 0);
-    assert_eq!(total_payout, total_payout_);
+fn withdraw(ref vault: VaultFacade, lp: ContractAddress, amount: u256) -> u256 {
+    let expected = vault.get_lp_unlocked_balance(lp);
+    assert(expected == amount, 'Withdraw sanity check fail');
+    amount
 }
-
 
 /// Event Checks ///
 
-// Test to make sure the event testers are working as expected
+// Test to make sure the event assertions are working as expected
+// @dev This is needed because we are manually constructing/popping some events in
+// our assertions and this is a sanity check for each
+// @note Currently, we are firing mock events using rm_me functions on the Vault & OptionRound
+// contracts, this is not ideal, we either need to figure out a way to emit events from this
+// test, or drop this test once we add the implementation for firing each event
 #[test]
 #[available_gas(100000000)]
 fn test_event_testers() {
@@ -145,7 +107,9 @@ fn test_event_testers() {
     event_helpers::assert_event_option_round_deployed(
         vault.contract_address(), 1, vault.contract_address()
     );
-    event_helpers::assert_event_vault_deposit(vault.contract_address(), vault.contract_address(), 100, 100);
+    event_helpers::assert_event_vault_deposit(
+        vault.contract_address(), vault.contract_address(), 100, 100
+    );
     event_helpers::assert_event_vault_withdrawal(
         vault.contract_address(), vault.contract_address(), 100, 100
     );
