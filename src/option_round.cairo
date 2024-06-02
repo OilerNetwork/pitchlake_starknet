@@ -211,7 +211,6 @@ mod OptionRound {
         price: u256
     }
 
-
     // Emiited when the auction ends
     // @param clearing_price The resulting price per each option of the batch auction
     // @note Discuss if any other params should be emitted (options sold ?)
