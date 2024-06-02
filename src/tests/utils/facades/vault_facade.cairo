@@ -14,7 +14,7 @@ use pitch_lake_starknet::{
             },
             test_accounts::{liquidity_provider_1, bystander}, variables::{vault_manager, decimals},
             facades::{option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},},
-            sanity_checks,
+            accelerators::{assert_two_arrays_equal_length}, sanity_checks,
         },
     }
 };
@@ -28,42 +28,49 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     /// Writes ///
 
     /// LP functions
-    fn deposit(ref self: VaultFacade, amount: u256, liquidity_provider: ContractAddress) -> u256 {
+    fn deposit(
+        ref self: VaultFacade, amount: u256, liquidity_provider: ContractAddress
+    ) -> (u256, u256) {
         set_contract_address(liquidity_provider);
         let res = self.vault_dispatcher.deposit_liquidity(amount);
 
         match res {
-            Result::Ok(liquidity) => sanity_checks::deposit(
-                ref self, liquidity_provider, liquidity
-            ),
+            Result::Ok((
+                locked_amount, unlocked_amount
+            )) => {
+                sanity_checks::deposit(ref self, liquidity_provider, locked_amount, unlocked_amount)
+            },
             Result::Err(e) => panic(array![e.into()]),
         }
     }
 
     fn deposit_mutltiple(
         ref self: VaultFacade, mut lps: Span<ContractAddress>, mut amounts: Span<u256>
-    ) -> u256 {
-        assert(lps.len() == amounts.len(), 'Incorrect lengths');
-        let mut total = 0;
+    ) -> Array<(u256, u256)> {
+        assert_two_arrays_equal_length(lps, amounts);
+        let mut spreads = array![];
         loop {
             match lps.pop_front() {
                 Option::Some(lp) => {
                     let amount = amounts.pop_front().unwrap();
-                    total += *amount;
-                    self.deposit(*amount, *lp);
+                    spreads.append(self.deposit(*amount, *lp));
                 },
                 Option::None => { break (); }
             };
         };
-        total
+        spreads
     }
 
-    fn withdraw(ref self: VaultFacade, amount: u256, liquidity_provider: ContractAddress) -> u256 {
+    fn withdraw(
+        ref self: VaultFacade, amount: u256, liquidity_provider: ContractAddress
+    ) -> (u256, u256) {
         set_contract_address(liquidity_provider);
         let res = self.vault_dispatcher.withdraw_liquidity(amount);
         match res {
-            Result::Ok(liquidity) => sanity_checks::withdraw(
-                ref self, liquidity_provider, liquidity
+            Result::Ok((
+                locked_amount, unlocked_amount
+            )) => sanity_checks::withdraw(
+                ref self, liquidity_provider, locked_amount, unlocked_amount
             ),
             Result::Err(e) => panic(array![e.into()]),
         }
@@ -72,17 +79,19 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     fn withdraw_multiple(
         ref self: VaultFacade, mut amounts: Span<u256>, mut lps: Span<ContractAddress>
-    ) {
-        assert(lps.len() == amounts.len(), 'Incorrect lengths');
+    ) -> Array<(u256, u256)> {
+        assert_two_arrays_equal_length(lps, amounts);
+        let mut spreads = array![];
         loop {
             match lps.pop_front() {
                 Option::Some(lp) => {
                     let amount = amounts.pop_front().unwrap();
-                    self.withdraw(*amount, *lp);
+                    spreads.append(self.withdraw(*amount, *lp));
                 },
                 Option::None => { break (); }
             };
         };
+        spreads
     }
 
     /// State transition
