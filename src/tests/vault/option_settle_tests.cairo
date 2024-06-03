@@ -24,7 +24,7 @@ use pitch_lake_starknet::{
         utils::{
             utils::{
                 get_portion_of_amount, split_spreads, create_array_linear, create_array_gradient,
-                get_erc20_balances
+                get_erc20_balances, sum_u256_array,
             },
             event_helpers::{
                 clear_event_logs, assert_event_option_settle, assert_event_transfer,
@@ -37,7 +37,7 @@ use pitch_lake_starknet::{
             test_accounts::{
                 liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
                 option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
-                liquidity_providers_get
+                liquidity_providers_get, liquidity_provider_3, liquidity_provider_4,
             },
             variables::{decimals}, setup::{setup_facade},
             facades::{
@@ -129,6 +129,8 @@ fn test_settle_option_round_event() {
 
 /// State Tests ///
 
+/// Round ids/states
+
 // Test when the option round settles the round state is updated
 // @note should this be a state transition test in option round tests
 #[test]
@@ -192,6 +194,8 @@ fn test_settle_option_round_does_not_update_current_and_next_round_ids() {
     }
 }
 
+/// Liquidity
+
 // Test eth transfers from vault to option round when round settles with a payout
 #[test]
 #[available_gas(10000000)]
@@ -235,74 +239,146 @@ fn test_settle_option_round_sends_payout_to_round_eth_transfer() {
 }
 
 
-// Test that when the round settles, the payout comes from the vault's (and lp's) locked balance
+// Test that the vualt and LP spreads update when the round settles
+// @dev This is a simple test
 #[test]
 #[available_gas(10000000)]
-fn test_settle_option_round_updates_vault_and_lp_spreads() {
-    let mut rounds_to_run: felt252 = 3;
-    let lps = liquidity_providers_get(2).span();
-    let deposit_amounts = array![100 * decimals(), 200 * decimals()].span();
-
+fn test_settle_option_round_updates_vault_and_lp_spreads_simple() {
     let (mut vault, _) = setup_facade();
+    let mut lps = liquidity_providers_get(4).span();
+    let mut deposit_amounts = create_array_gradient(100 * decimals(), 100 * decimals(), lps.len())
+        .span(); // [100, 200, 300, 400]
+    let total_deposits = sum_u256_array(deposit_amounts);
+    // Deposit and start auction
+    accelerate_to_auctioning_custom(ref vault, lps, deposit_amounts);
+    let mut round1 = vault.get_current_round();
+    // End auction
+    let (clearing_price, options_sold) = accelerate_to_running(ref vault);
+    let total_premiums = options_sold * clearing_price;
+    let mut individual_premiums = get_portion_of_amount(deposit_amounts, total_premiums).span();
+
+    // Vault and LP spreads before option round settles
+    let mut lp_spreads_before = vault.get_lp_balance_spreads(lps);
+    let vault_spread_before = vault.get_balance_spread();
+    // Settle the round with a payout
+    let total_payouts = accelerate_to_settled(ref vault, 2 * round1.get_strike_price());
+    let remaining_liquidity = total_deposits + total_premiums - total_payouts;
+    let mut individual_remaining_liquidty = get_portion_of_amount(
+        deposit_amounts, remaining_liquidity
+    )
+        .span();
+    // Vault and LP spreads after option round settles
+    let mut lp_spreads_after = vault.get_lp_balance_spreads(lps);
+    let vault_spread_after = vault.get_balance_spread();
+
+    // Check vault spreads
+    assert(vault_spread_before == (total_deposits, total_premiums), 'vault spread before wrong');
+    assert(vault_spread_after == (0, remaining_liquidity), 'vault spread after wrong');
+    // Check LP spreads
     loop {
-        match rounds_to_run {
-            0 => { break (); },
-            _ => {
-                accelerate_to_auctioning_custom(ref vault, lps, deposit_amounts);
-                let (clearing_price, options_sold) = accelerate_to_running(ref vault);
-                let total_premiums = options_sold * clearing_price;
-
-                // Vault and LP spreads before round settles
-                let mut current_round = vault.get_current_round();
-                let (vault_locked_before, _) = vault.get_balance_spread();
-                let mut lp_spreads_before = vault.get_lp_balance_spreads(lps).span();
-                // Settle the round with a payout
-                let total_payout = accelerate_to_settled(
-                    ref vault, 2 * current_round.get_strike_price()
-                );
-                // Vault and LP spreads after round settles
-                let vault_spread_after = vault.get_balance_spread();
-                let mut lp_spreads_after = vault.get_lp_balance_spreads(lps).span();
-
-                // Check vault spread
-                // @dev Once the round setltes, all liquidity is unlocked
+        match lp_spreads_before.pop_front() {
+            Option::Some(lp_spread_before) => {
+                let lp_spread_after = lp_spreads_after.pop_front().unwrap();
+                let lp_deposit_amount = deposit_amounts.pop_front().unwrap();
+                let lp_premium = individual_premiums.pop_front().unwrap();
+                let lp_remaining_liquidity = individual_remaining_liquidty.pop_front().unwrap();
                 assert(
-                    vault_spread_after == (0, vault_locked_before + total_premiums - total_payout),
-                    'vault spread wrong'
+                    lp_spread_before == (*lp_deposit_amount, *lp_premium), 'LP spread before wrong'
                 );
-                // Calculate how much premiums/payouts belong to each LP
-                let (mut lp_locked_before_arr, _) = split_spreads(lp_spreads_before);
-                let mut lp_premiums_arr = get_portion_of_amount(
-                    lp_locked_before_arr.span(), total_premiums
-                )
-                    .span();
-                let mut lp_payouts_arr = get_portion_of_amount(
-                    lp_locked_before_arr.span(), total_payout
-                )
-                    .span();
-                // Check lp spreads
-                loop {
-                    match lp_spreads_before.pop_front() {
-                        Option::Some((
-                            lp_locked_before, _
-                        )) => {
-                            let lp_spread_after = lp_spreads_after.pop_front().unwrap();
-                            let lp_premiums = lp_premiums_arr.pop_front().unwrap();
-                            let lp_payout = lp_payouts_arr.pop_front().unwrap();
-                            // Check each LP's locked balance is 0 and their unlocked balance is their remaining liquidity from the previous round
-                            assert(
-                                *lp_spread_after == (
-                                    0, *lp_locked_before + *lp_premiums - *lp_payout
-                                ),
-                                'lp spread after wrong'
-                            );
-                        },
-                        Option::None => { break (); },
-                    }
-                };
-
-                rounds_to_run -= 1;
+                assert(lp_spread_after == (0, *lp_remaining_liquidity), 'LP spread after wrong');
             },
+            Option::None => { break (); }
+        }
+    };
+}
+
+// Test that the vualt and LP spreads update when the round settles
+// @dev This is a simple test
+#[test]
+#[available_gas(10000000)]
+fn test_settle_option_round_updates_vault_and_lp_spreads_complex() {
+
+     // Accelerate through round 1 with premiums and a payout
+    let (mut vault, _) = setup_facade();
+    let mut lps = liquidity_providers_get(4).span();
+    let round1_deposits = create_array_gradient(100 * decimals(), 100 * decimals(), lps.len())
+        .span(); // (100, 200, 300, 400)
+    let starting_liquidity1 = sum_u256_array(round1_deposits);
+    accelerate_to_auctioning_custom(ref vault, lps, round1_deposits);
+    let mut round1 = vault.get_current_round();
+    let (clearing_price, options_sold) = accelerate_to_running(ref vault);
+    let total_premiums1 = clearing_price * options_sold;
+    let total_payout1 = accelerate_to_settled(ref vault, 2 * round1.get_strike_price());
+    // Total and individual remaining liquidity amounts after round 1
+    let remaining_liquidity1 = starting_liquidity1 + total_premiums1 - total_payout1;
+    let mut individual_remaining_liquidity1 = get_portion_of_amount(
+        round1_deposits, remaining_liquidity1
+    )
+        .span();
+
+    // Lp3 withdraws from premiums, lp4 adds a topup
+    let lp3 = liquidity_provider_3();
+    let lp4 = liquidity_provider_4();
+    let withdraw_amount = 1;
+    let topup_amount = 100 * decimals();
+    vault.withdraw(withdraw_amount, lp3);
+    vault.deposit(topup_amount, lp4);
+    // Start round 2' auction with no additional deposits
+    accelerate_to_auctioning_custom(ref vault, array![].span(), array![].span());
+    let mut round2 = vault.get_current_round();
+    // Create array of round2's deposits
+    let mut round2_deposits = array![
+        *individual_remaining_liquidity1[0],
+        *individual_remaining_liquidity1[1],
+        *individual_remaining_liquidity1[2] - withdraw_amount,
+        *individual_remaining_liquidity1[3] + topup_amount
+    ]
+        .span();
+        let starting_liquidity2 = sum_u256_array(round2_deposits);
+
+    // End round 2's auction
+let (clearing_price, options_sold) = accelerate_to_running(ref vault);
+    let total_premiums2 = clearing_price * options_sold;
+    let mut individual_premiums2 = get_portion_of_amount(round2_deposits, total_premiums2).span();
+
+
+    // Vault and LP spreads before round 2 settles
+    let mut lp_spreads_before = vault.get_lp_balance_spreads(lps).span();
+    let vault_spread_before = vault.get_balance_spread();
+    // Settle round 2 with a payout
+    let total_payout2 = accelerate_to_settled(ref vault, 2 * round2.get_strike_price());
+    let remaining_liquidity2 = starting_liquidity2 + total_premiums2 - total_payout2;
+    let mut individual_remaining_liquidity2 = get_portion_of_amount(
+      round2_deposits, remaining_liquidity2
+    )
+      .span();
+    // Vault and LP spreads after the round 2 settles
+    let mut lp_spreads_after = vault.get_lp_balance_spreads(lps).span();
+    let vault_spread_after = vault.get_balance_spread();
+
+    // Check vault spreads
+    assert(
+        vault_spread_before == (starting_liquidity2, total_premiums2), 'vault spread before wrong'
+    );
+    assert(
+        vault_spread_after == (0, remaining_liquidity2),
+        'vault spread after wrong'
+    );
+    // Check LP spreads
+    loop {
+        match lp_spreads_before.pop_front() {
+            Option::Some(lp_spread_before) => {
+                let lp_spread_after = lp_spreads_after.pop_front().unwrap();
+                let lp_starting_liquidity2 = round2_deposits.pop_front().unwrap();
+                let lp_premiums2 = individual_premiums2.pop_front().unwrap();
+                let lp_remaining_liquidity2 = individual_remaining_liquidity2.pop_front().unwrap();
+                assert(*lp_spread_before == (*lp_starting_liquidity2, *lp_premiums2), 'LP spread before wrong');
+                assert(
+                    *lp_spread_after == (0, *lp_remaining_liquidity2),
+                    'LP spread after wrong'
+                );
+            },
+            Option::None => { break (); }
         }
     }
 }
