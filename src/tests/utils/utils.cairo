@@ -113,3 +113,15 @@ fn get_portion_of_amount(mut arr: Span<u256>, amount: u256) -> Array<u256> {
     };
     portions
 }
+
+// Make an array from a span
+fn span_to_array<T, +Drop<T>, +Copy<T>>(mut span: Span<T>) -> Array<T> {
+    let mut arr = array![];
+    loop {
+        match span.pop_front() {
+            Option::Some(el) => { arr.append(*el); },
+            Option::None => { break (); }
+        }
+    };
+    arr
+}
