@@ -30,7 +30,7 @@ use pitch_lake_starknet::{
                 liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
                 option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
                 liquidity_providers_get, option_bidders_get, liquidity_provider_4,
-                liquidity_provider_5,
+                liquidity_provider_5, liquidity_provider_3,
             },
             variables::{decimals}, setup::{setup_facade},
             facades::{
@@ -256,9 +256,8 @@ fn test_end_auction_updates_vault_and_lp_spreads_simple() {
     };
 }
 
-// Test that the vault and LP spreads update when the auction ends
-// @dev This is a more complex example, performing the same logic as the above simpler test
-// with liquidity participants adding deposits before the next auction ends
+// Test that the vault and LP spreads update when the auction ends. Tests rollover
+// amounts with withdraw and topup
 #[test]
 #[available_gas(10000000)]
 fn test_end_auction_updates_vault_and_lp_spreads_complex() {
@@ -273,7 +272,6 @@ fn test_end_auction_updates_vault_and_lp_spreads_complex() {
     let (clearing_price, options_sold) = accelerate_to_running(ref vault);
     let total_premiums1 = clearing_price * options_sold;
     let total_payout1 = accelerate_to_settled(ref vault, 2 * round1.get_strike_price());
-
     // Total and individual remaining liquidity amounts after round 1
     let remaining_liquidity1 = starting_liquidity1 + total_premiums1 - total_payout1;
     let mut individual_remaining_liquidity1 = get_portion_of_amount(
@@ -281,15 +279,20 @@ fn test_end_auction_updates_vault_and_lp_spreads_complex() {
     )
         .span();
 
-    // LP4 makes an additional deposit before round 2's auction starts
+// Lp3 withdraws from premiums, lp4 adds a topup
+    let lp3 = liquidity_provider_3();
     let lp4 = liquidity_provider_4();
+    let withdraw_amount = 1;
     let topup_amount = 100 * decimals();
-    accelerate_to_auctioning_custom(ref vault, array![lp4].span(), array![topup_amount].span());
+    vault.withdraw(withdraw_amount, lp3);
+    vault.deposit(topup_amount, lp4);
+// Start round 2' auction with no additional deposits
+    accelerate_to_auctioning_custom(ref vault, array![].span(), array![].span());
     // Create array of round2's deposits
     let mut round2_deposits = array![
         *individual_remaining_liquidity1[0],
         *individual_remaining_liquidity1[1],
-        *individual_remaining_liquidity1[2],
+        *individual_remaining_liquidity1[2] - withdraw_amount,
         *individual_remaining_liquidity1[3] + topup_amount
     ]
         .span();
@@ -320,9 +323,7 @@ fn test_end_auction_updates_vault_and_lp_spreads_complex() {
                 let lp_spread_after = lp_spreads_after.pop_front().unwrap();
                 let lp_starting_liquidity2 = round2_deposits.pop_front().unwrap();
                 let lp_premiums2 = individual_premiums2.pop_front().unwrap();
-                assert(
-                    *lp_spread_before == (*lp_starting_liquidity2, 0), 'LP spread before wrong'
-                );
+                assert(*lp_spread_before == (*lp_starting_liquidity2, 0), 'LP spread before wrong');
                 assert(
                     *lp_spread_after == (*lp_starting_liquidity2, *lp_premiums2),
                     'LP spread after wrong'
