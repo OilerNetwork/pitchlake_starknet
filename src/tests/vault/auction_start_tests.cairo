@@ -192,13 +192,13 @@ fn test_start_auction_updates_vault_and_lp_spreads_simple() {
     let total_deposits = sum_u256_array(deposit_amounts);
 
     // Vault and LP spreads before auction start
-    let vault_spread_before = vault.get_balance_spread();
     let mut lp_spreads_before = vault.deposit_multiple(deposit_amounts, lps);
+    let vault_spread_before = vault.get_balance_spread();
     // Start auction
     vault.start_auction();
     // Vault and LP spreads after auction start
-    let vault_spread_after = vault.get_balance_spread();
     let mut lp_spreads_after = vault.get_lp_balance_spreads(lps);
+    let vault_spread_after = vault.get_balance_spread();
 
     // Check vault spreads
     assert(vault_spread_before == (0, total_deposits), 'vault spread before wrong');
@@ -209,7 +209,7 @@ fn test_start_auction_updates_vault_and_lp_spreads_simple() {
             Option::Some(lp_spread_before) => {
                 let lp_spread_after = lp_spreads_after.pop_front().unwrap();
                 let lp_deposit_amount = deposit_amounts.pop_front().unwrap();
-                assert(lp_spread_before == (0, *lp_deposit_amount), 'LP spread beforewrong');
+                assert(lp_spread_before == (0, *lp_deposit_amount), 'LP spread before wrong');
                 assert(lp_spread_after == (*lp_deposit_amount, 0), 'LP spread after wrong');
             },
             Option::None => { break (); }
@@ -250,8 +250,8 @@ fn test_start_auction_updates_vault_and_lp_spreads_complex() {
     accelerate_to_auctioning_custom(ref vault, array![lp5].span(), array![topup].span());
 
     // Vault and LPs (1-4) spreads after auction 2 starts
-    let vault_spread_after_next = vault.get_balance_spread();
     let mut lp_spreads_after_next = vault.get_lp_balance_spreads(lps).span();
+    let vault_spread_after_next = vault.get_balance_spread();
     // @dev Remove lp4 from arrays, to test separately
     let lp4_spread_after_next = *lp_spreads_after_next.pop_back().unwrap();
     let lp4_deposit_amount = *deposit_amounts.pop_back().unwrap();
