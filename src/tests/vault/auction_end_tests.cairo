@@ -116,28 +116,6 @@ fn test_end_auction_end_auction_event() {
             },
         }
     }
-//
-//    let (mut vault, _) = setup_facade();
-//    accelerate_to_auctioning(ref vault);
-//
-//    // End auction
-//    let (clearing_price1, _) = accelerate_to_running(ref vault);
-//
-//    // Assert event emitted correctly
-//    let mut round1 = vault.get_current_round();
-//    assert_event_auction_end(round1.contract_address(), clearing_price1);
-//
-//    // Check consecutive rounds
-//    accelerate_to_settled(ref vault, 0);
-//    accelerate_to_auctioning(ref vault);
-//    let (clearing_price2, _) = accelerate_to_running(ref vault);
-//    let mut round2 = vault.get_current_round();
-//    assert_event_auction_end(round2.contract_address(), clearing_price2);
-//    accelerate_to_settled(ref vault, 0);
-//    accelerate_to_auctioning(ref vault);
-//    let (clearing_price3, _) = accelerate_to_running(ref vault);
-//    let mut round3 = vault.get_current_round();
-//    assert_event_auction_end(round3.contract_address(), clearing_price3);
 }
 
 
