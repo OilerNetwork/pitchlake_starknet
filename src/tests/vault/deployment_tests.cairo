@@ -86,12 +86,13 @@ fn test_option_round_constructor() {
 
 
 // Test market aggregator is deployed
+// @note Need make sure mock has both setter & getter implementations
 #[test]
 #[available_gas(10000000)]
 fn test_market_aggregator_deployed() {
     let (mut vault_facade, _) = setup_facade();
     // Get market aggregator dispatcher
-    let mkt_agg = IMarketAggregatorDispatcher {
+    let _mkt_agg = IMarketAggregatorDispatcher {
         contract_address: vault_facade.get_market_aggregator()
     };
 
