@@ -96,3 +96,20 @@ fn get_erc20_balances(
     };
     balances
 }
+
+// Input an array and an amount, and return and array corresponding to each element's portion of the amount
+// @dev Used to determine how much premiums and payouts belong to an account
+fn get_portion_of_amount(mut arr: Span<u256>, amount: u256) -> Array<u256> {
+    let mut total = sum_u256_array(arr);
+    let mut portions = array![];
+    loop {
+        match arr.pop_front() {
+            Option::Some(el) => {
+                let portion = *el * amount / total;
+                portions.append(portion);
+            },
+            Option::None => { break (); }
+        }
+    };
+    portions
+}
