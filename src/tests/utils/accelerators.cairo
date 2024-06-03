@@ -120,7 +120,7 @@ fn timeskip_and_settle_round(ref self: VaultFacade) -> u256 {
 }
 
 
-/// Timeskip helpers
+/// Timeskip and do nothing
 
 // Jump to a specific timestamp
 fn timeskip_to_timestamp(timestamp: u64) {
