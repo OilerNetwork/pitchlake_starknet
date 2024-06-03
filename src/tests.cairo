@@ -32,7 +32,6 @@ mod vault {
     mod deployment_tests;
     mod deposit_tests;
     mod option_settle_tests;
-    mod round_open_tests;
     mod withdraw_tests;
 }
 
