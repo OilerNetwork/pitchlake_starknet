@@ -24,7 +24,7 @@ use pitch_lake_starknet::{
             },
             utils::{
                 create_array_gradient, create_array_linear, sum_u256_array, get_portion_of_amount,
-                split_spreads,
+                split_spreads, span_to_array,
             },
             test_accounts::{
                 liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
@@ -121,6 +121,8 @@ fn test_end_auction_end_auction_event() {
 
 /// State Tests ///
 
+/// Round ids/states
+
 // Test when an auction ends, the curent and next rounds do not change
 #[test]
 #[available_gas(10000000)]
@@ -170,24 +172,27 @@ fn test_end_auction_updates_current_and_next_round_states() {
     assert(round3.get_state() == OptionRoundState::Open, 'round3 shd be open');
 }
 
-// Test that premiums are sent to the vault and unused bids remain in the round
+/// Liquidity
+
+// Test that winning bids are sent from the round to the vault as premiums, and
+// unused bids remain in the round
 #[test]
 #[available_gas(10000000)]
 fn test_end_auction_premiums_eth_transfer() {
     let (mut vault_facade, eth) = setup_facade();
     accelerate_to_auctioning(ref vault_facade);
-    let mut current_round = vault_facade.get_current_round();
 
     // Balances before auction end
+    let mut current_round = vault_facade.get_current_round();
     let round_balance_before = eth.balance_of(current_round.contract_address());
     let vault_balance_before = eth.balance_of(vault_facade.contract_address());
-    // End auction
+    // End auction (2 bidders, 1's bid gets refuned, 2's is converted to premium)
     let bidders = option_bidders_get(2).span();
     let bid_count = current_round.get_total_options_available();
     let losing_price = current_round.get_reserve_price();
     let losing_amount = bid_count * losing_price;
     let winning_price = 2 * losing_price;
-    let winning_amount = bid_count * winning_price;
+    let winning_amount = 2 * bid_count * winning_price;
     accelerate_to_running_custom(
         ref vault_facade,
         bidders,
@@ -216,7 +221,7 @@ fn test_end_auction_updates_vault_and_lp_spreads_simple() {
     let (mut vault, _) = setup_facade();
     let mut lps = liquidity_providers_get(4).span();
     let mut deposit_amounts = create_array_gradient(100 * decimals(), 100 * decimals(), lps.len())
-        .span(); // (100, 200, 300, 400)
+        .span(); // [100, 200, 300, 400]
     let total_deposits = sum_u256_array(deposit_amounts);
     accelerate_to_auctioning_custom(ref vault, lps, deposit_amounts);
 
@@ -226,7 +231,7 @@ fn test_end_auction_updates_vault_and_lp_spreads_simple() {
     // End auction
     let (clearing_price, options_sold) = accelerate_to_running(ref vault);
     let total_premiums = options_sold * clearing_price;
-    let mut individual_premiums = get_portion_of_amount(deposit_amounts, total_deposits).span();
+    let mut individual_premiums = get_portion_of_amount(deposit_amounts, total_premiums).span();
     // Vault and LP spreads after auction end
     let mut lp_spreads_after = vault.get_lp_balance_spreads(lps);
     let vault_spread_after = vault.get_balance_spread();
@@ -257,43 +262,48 @@ fn test_end_auction_updates_vault_and_lp_spreads_simple() {
 #[test]
 #[available_gas(10000000)]
 fn test_end_auction_updates_vault_and_lp_spreads_complex() {
+    // Accelerate through round 1 with premiums and a payout
     let (mut vault, _) = setup_facade();
     let mut lps = liquidity_providers_get(4).span();
-    let deposit_amounts1 = create_array_gradient(100 * decimals(), 100 * decimals(), lps.len())
+    let round1_deposits = create_array_gradient(100 * decimals(), 100 * decimals(), lps.len())
         .span(); // (100, 200, 300, 400)
-    accelerate_to_auctioning_custom(ref vault, lps, deposit_amounts1);
+    let starting_liquidity1 = sum_u256_array(round1_deposits);
+    accelerate_to_auctioning_custom(ref vault, lps, round1_deposits);
     let mut round1 = vault.get_current_round();
-    accelerate_to_running(ref vault);
-    accelerate_to_settled(ref vault, 2 * round1.get_strike_price());
-    let remaining_liquidity1 = round1.starting_liquidity()
-        + round1.total_premiums()
-        - round1.total_payout();
+    let (clearing_price, options_sold) = accelerate_to_running(ref vault);
+    let total_premiums1 = clearing_price * options_sold;
+    let total_payout1 = accelerate_to_settled(ref vault, 2 * round1.get_strike_price());
+
+    // Total and individual remaining liquidity amounts after round 1
+    let remaining_liquidity1 = starting_liquidity1 + total_premiums1 - total_payout1;
     let mut individual_remaining_liquidity1 = get_portion_of_amount(
-        deposit_amounts1, remaining_liquidity1
+        round1_deposits, remaining_liquidity1
     )
         .span();
-    // LP4 makes an additional deposit before auction 2 starts, then start auction 2
+
+    // LP4 makes an additional deposit before round 2's auction starts
     let lp4 = liquidity_provider_4();
     let topup_amount = 100 * decimals();
     accelerate_to_auctioning_custom(ref vault, array![lp4].span(), array![topup_amount].span());
+    // Create array of round2's deposits
+    let mut round2_deposits = array![
+        *individual_remaining_liquidity1[0],
+        *individual_remaining_liquidity1[1],
+        *individual_remaining_liquidity1[2],
+        *individual_remaining_liquidity1[3] + topup_amount
+    ]
+        .span();
 
     // Vault and LP spreads before auction 2 ends
     let mut lp_spreads_before = vault.get_lp_balance_spreads(lps).span();
     let vault_spread_before = vault.get_balance_spread();
-    // End auction 2
+    // End round 2's auction
     let (clearing_price, options_sold) = accelerate_to_running(ref vault);
-    // Vault and LP spreads after auction 2 ends
+    let total_premiums2 = clearing_price * options_sold;
+    let mut individual_premiums2 = get_portion_of_amount(round2_deposits, total_premiums2).span();
+    // Vault and LP spreads after the auction ends
     let mut lp_spreads_after = vault.get_lp_balance_spreads(lps).span();
     let vault_spread_after = vault.get_balance_spread();
-    let (deposit_amounts2, _) = split_spreads(lp_spreads_after);
-    let total_premiums2 = clearing_price * options_sold;
-    let mut individual_premiums2 = get_portion_of_amount(deposit_amounts2.span(), total_premiums2)
-        .span();
-    // @dev Remove lp4 from arrays, to test separately
-    let lp4_spread_before = *lp_spreads_before.pop_back().unwrap();
-    let lp4_spread_after = *lp_spreads_after.pop_back().unwrap();
-    let lp4_remaining_liquidity1 = *individual_remaining_liquidity1.pop_back().unwrap();
-    let lp4_individual_premium2 = *individual_premiums2.pop_back().unwrap();
 
     // Check vault spreads
     assert(
@@ -303,31 +313,23 @@ fn test_end_auction_updates_vault_and_lp_spreads_complex() {
         vault_spread_after == (remaining_liquidity1 + topup_amount, total_premiums2),
         'vault spread after wrong'
     );
-    // Check LP 1-3's spreads
+    // Check LP spreads
     loop {
         match lp_spreads_before.pop_front() {
             Option::Some(lp_spread_before) => {
                 let lp_spread_after = lp_spreads_after.pop_front().unwrap();
+                let lp_starting_liquidity2 = round2_deposits.pop_front().unwrap();
                 let lp_premiums2 = individual_premiums2.pop_front().unwrap();
-                let lp_remaining_liquidity1 = individual_remaining_liquidity1.pop_front().unwrap();
                 assert(
-                    *lp_spread_before == (*lp_remaining_liquidity1, 0), 'LP spread before wrong'
+                    *lp_spread_before == (*lp_starting_liquidity2, 0), 'LP spread before wrong'
                 );
                 assert(
-                    *lp_spread_after == (*lp_remaining_liquidity1, *lp_premiums2),
+                    *lp_spread_after == (*lp_starting_liquidity2, *lp_premiums2),
                     'LP spread after wrong'
                 );
             },
             Option::None => { break (); }
         }
-    };
-    // Check LP4's spread
-    assert(
-        lp4_spread_before == (lp4_remaining_liquidity1 + topup_amount, 0), 'LP4 spread before wrong'
-    );
-    assert(
-        lp4_spread_after == (lp4_remaining_liquidity1 + topup_amount, lp4_individual_premium2),
-        'LP4 spread before wrong'
-    );
+    }
 }
 
