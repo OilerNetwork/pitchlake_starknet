@@ -208,14 +208,11 @@ fn test_withdrawals_always_come_from_unlocked() {
     assert(vault_spread0 == (deposit_amount, topup_amount), 'vault spread 0 wrong');
     assert(vault_spread1 == (deposit_amount, 0), 'vault spread 1 wrong');
     assert(vault_spread2 == (deposit_amount, total_premiums / 2), 'vault spread 2 wrong');
-    assert(
-        vault_spread3 == (0, deposit_amount - total_payout),
-        'vault spread 3 wrong'
-    );
+    assert(vault_spread3 == (0, deposit_amount - total_payout), 'vault spread 3 wrong');
 
     assert(lp_spread0 == (deposit_amount, topup_amount), 'lp spread 0 wrong');
     assert(lp_spread1 == (deposit_amount, 0), 'lp spread 1 wrong');
-    assert(lp_spread2 == (deposit_amount, total_premiums/2), 'lp spread 2 wrong');
+    assert(lp_spread2 == (deposit_amount, total_premiums / 2), 'lp spread 2 wrong');
     assert(lp_spread3 == (0, deposit_amount - total_payout), 'lp spread 3 wrong');
 }
 
