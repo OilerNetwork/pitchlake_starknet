@@ -60,7 +60,7 @@ fn test_start_auction_while_current_round_auctioning_fails() {
 #[test]
 #[available_gas(10000000)]
 #[should_panic(expected: ('Cannot start auction yet', 'ENTRYPOINT_FAILED',))]
-fn test_start_auction_while_current_round_running_failure() {
+fn test_start_auction_while_current_round_running_fails() {
     let (mut vault_facade, _) = setup_facade();
     accelerate_to_auctioning(ref vault_facade);
     accelerate_to_running(ref vault_facade);
@@ -73,7 +73,7 @@ fn test_start_auction_while_current_round_running_failure() {
 #[test]
 #[available_gas(10000000)]
 #[should_panic(expected: ('Cannot start auction yet', 'ENTRYPOINT_FAILED',))]
-fn test_start_auction_before_round_transition_period_over_failure() {
+fn test_start_auction_before_round_transition_period_over_fails() {
     let (mut vault_facade, _) = setup_facade();
     accelerate_to_auctioning(ref vault_facade);
     accelerate_to_running(ref vault_facade);
@@ -86,51 +86,63 @@ fn test_start_auction_before_round_transition_period_over_failure() {
 
 /// Event Tests ///
 
-// Test when the auction starts, the next round deployed event emits correctly
+// Test when the auction starts the event emits correctly
 #[test]
 #[available_gas(10000000)]
-fn test_start_auction_start_auction_event() {
+fn test_start_auction_event() {
+    let mut rounds_to_run = 3;
+
     let (mut vault, _) = setup_facade();
-    let total_options_available1 = accelerate_to_auctioning(ref vault);
+    loop {
+        match rounds_to_run {
+            0 => { break (); },
+            _ => {
+                let total_options_available = accelerate_to_auctioning(ref vault);
+                let mut current_round = vault.get_current_round();
+                // Check the event emits correctly
+                assert_event_auction_start(
+                    current_round.contract_address(), total_options_available
+                );
 
-    // Check that auction start event emits correctly
-    let (mut round1, mut round2) = vault.get_current_and_next_rounds();
-    assert_event_auction_start(round1.contract_address(), total_options_available1);
+                accelerate_to_running(ref vault);
+                accelerate_to_settled(ref vault, current_round.get_strike_price());
 
-    // Check consecutive rounds
-    accelerate_to_running(ref vault);
-    accelerate_to_settled(ref vault, 0);
-    let total_options_available2 = accelerate_to_auctioning(ref vault);
-    assert_event_auction_start(round2.contract_address(), total_options_available2);
-    accelerate_to_running(ref vault);
-    accelerate_to_settled(ref vault, 0);
-    let total_options_available3 = accelerate_to_auctioning(ref vault);
-    let mut round3 = vault.get_next_round();
-    assert_event_auction_start(round3.contract_address(), total_options_available3);
+                rounds_to_run -= 1;
+            },
+        }
+    }
 }
 
 // Test when the auction starts, the next round deployed event emits correctly
+// @dev Checks that when rounds 2, 3 & 4 deploy the events emit correctly
 #[test]
 #[available_gas(10000000)]
 fn test_start_auction_deploy_next_round_event() {
+    let rounds_to_run = 3;
+    let mut i = rounds_to_run;
     let (mut vault, _) = setup_facade();
-    accelerate_to_auctioning(ref vault);
 
-    // Check the next round deployed event emits correctly
-    let mut round2 = vault.get_next_round();
-    assert_event_option_round_deployed(vault.contract_address(), 2, round2.contract_address(),);
+    loop {
+        match i {
+            0 => { break (); },
+            _ => {
+                accelerate_to_auctioning(ref vault);
+                let mut next_round = vault.get_next_round();
+                // Check the event emits correctly
+                assert_event_option_round_deployed(
+                    vault.contract_address(),
+                    // @dev round 2 should be the first round to deploy post deployment
+                    2 + (rounds_to_run - i).into(),
+                    next_round.contract_address(),
+                );
 
-    // Check consecutive rounds
-    accelerate_to_running(ref vault);
-    accelerate_to_settled(ref vault, 0);
-    accelerate_to_auctioning(ref vault);
-    let mut round3 = vault.get_next_round();
-    assert_event_option_round_deployed(vault.contract_address(), 3, round3.contract_address());
-    accelerate_to_running(ref vault);
-    accelerate_to_settled(ref vault, 0);
-    accelerate_to_auctioning(ref vault);
-    let mut round4 = vault.get_next_round();
-    assert_event_option_round_deployed(vault.contract_address(), 4, round4.contract_address())
+                accelerate_to_running(ref vault);
+                accelerate_to_settled(ref vault, next_round.get_strike_price());
+
+                i -= 1;
+            },
+        }
+    }
 }
 
 

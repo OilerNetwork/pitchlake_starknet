@@ -66,7 +66,7 @@ fn test_end_auction_while_current_round_auctioning_too_early_fails() {
 #[test]
 #[available_gas(10000000)]
 #[should_panic(expected: ('Cannot end auction before it starts', 'ENTRYPOINT_FAILED',))]
-fn test_auction() {
+fn test_end_auction_while_current_round_running_fails() {
     let (mut vault_facade, _) = setup_facade();
     accelerate_to_auctioning(ref vault_facade);
     accelerate_to_running(ref vault_facade);
@@ -96,15 +96,48 @@ fn test_auction_end_before_end_date_failure() {
 #[test]
 #[available_gas(10000000)]
 fn test_end_auction_end_auction_event() {
-    let (mut vault_facade, _) = setup_facade();
-    accelerate_to_auctioning(ref vault_facade);
+    let mut rounds_to_run = 3;
+    let (mut vault, _) = setup_facade();
 
-    // End auction
-    let (clearing_price, _) = accelerate_to_running(ref vault_facade);
+    loop {
+        match rounds_to_run {
+            0 => { break (); },
+            _ => {
+                accelerate_to_auctioning(ref vault);
 
-    // Assert event emitted correctly
-    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    assert_event_auction_end(current_round_facade.contract_address(), clearing_price);
+                let (clearing_price, _) = accelerate_to_running(ref vault);
+                // Check the event emits correctly
+                let mut current_round = vault.get_current_round();
+                assert_event_auction_end(current_round.contract_address(), clearing_price);
+
+                accelerate_to_settled(ref vault, 0);
+
+                rounds_to_run -= 1;
+            },
+        }
+    }
+//
+//    let (mut vault, _) = setup_facade();
+//    accelerate_to_auctioning(ref vault);
+//
+//    // End auction
+//    let (clearing_price1, _) = accelerate_to_running(ref vault);
+//
+//    // Assert event emitted correctly
+//    let mut round1 = vault.get_current_round();
+//    assert_event_auction_end(round1.contract_address(), clearing_price1);
+//
+//    // Check consecutive rounds
+//    accelerate_to_settled(ref vault, 0);
+//    accelerate_to_auctioning(ref vault);
+//    let (clearing_price2, _) = accelerate_to_running(ref vault);
+//    let mut round2 = vault.get_current_round();
+//    assert_event_auction_end(round2.contract_address(), clearing_price2);
+//    accelerate_to_settled(ref vault, 0);
+//    accelerate_to_auctioning(ref vault);
+//    let (clearing_price3, _) = accelerate_to_running(ref vault);
+//    let mut round3 = vault.get_current_round();
+//    assert_event_auction_end(round3.contract_address(), clearing_price3);
 }
 
 
@@ -113,7 +146,7 @@ fn test_end_auction_end_auction_event() {
 // Test when an auction ends, the curent and next rounds do not change
 #[test]
 #[available_gas(10000000)]
-fn test_end_auction_does_not_change_current_and_next_round_ids() {
+fn test_end_auction_does_not_update_current_and_next_round_ids() {
     let (mut vault_facade, _) = setup_facade();
     accelerate_to_auctioning(ref vault_facade);
 
@@ -162,7 +195,7 @@ fn test_end_auction_updates_current_and_next_round_states() {
 // Test that premiums are sent to the vault and unused bids remain in the round
 #[test]
 #[available_gas(10000000)]
-fn test_end_auction_premiums_eth_transfer_to_vault() {
+fn test_end_auction_premiums_eth_transfer() {
     let (mut vault_facade, eth) = setup_facade();
     accelerate_to_auctioning(ref vault_facade);
     let mut current_round = vault_facade.get_current_round();
