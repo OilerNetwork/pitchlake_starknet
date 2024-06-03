@@ -32,8 +32,6 @@ use pitch_lake_starknet::{
 
 /// Accelerators ///
 
-/// Starting Auction
-
 // Start the auction with LP1 depositing 100 eth
 fn accelerate_to_auctioning(ref self: VaultFacade) -> u256 {
     accelerate_to_auctioning_custom(
@@ -51,10 +49,9 @@ fn accelerate_to_auctioning_custom(
     timeskip_and_start_auction(ref self)
 }
 
-
 /// Ending Auction
 
-// End the auction, bidding for all options at reserve price (OB1)
+// End the auction, OB1 bids for all options at reserve price
 fn accelerate_to_running(ref self: VaultFacade) -> (u256, u256) {
     let mut current_round = self.get_current_round();
     let bid_count = current_round.get_total_options_available();
@@ -82,7 +79,6 @@ fn accelerate_to_running_custom(
     timeskip_and_end_auction(ref self)
 }
 
-
 /// Settling option round
 
 // Settle the option round with a custom settlement price (compared to strike to determine payout)
@@ -93,6 +89,27 @@ fn accelerate_to_settled(ref self: VaultFacade, avg_base_fee: u256) -> u256 {
 
 
 /// Timeskips ///
+
+/// Timeskip and do nothing
+
+// Jump past the auction end date
+fn timeskip_past_auction_end_date(ref self: VaultFacade) {
+    let mut current_round = self.get_current_round();
+    set_block_timestamp(current_round.get_auction_end_date() + 1);
+}
+
+// Jump past the option expiry date
+fn timeskip_past_option_expiry_date(ref self: VaultFacade) {
+    let mut current_round = self.get_current_round();
+    set_block_timestamp(current_round.get_params().option_expiry_time + 1);
+}
+
+// Jump past the round transition period
+fn timeskip_past_round_transition_period(ref self: VaultFacade) {
+    let now = get_block_timestamp();
+    let rtp = self.get_round_transition_period();
+    set_block_timestamp(now + rtp + 1);
+}
 
 /// Timeskip and do something
 
@@ -117,32 +134,5 @@ fn timeskip_and_settle_round(ref self: VaultFacade) -> u256 {
     set_block_timestamp(current_round.get_params().option_expiry_time + 1);
     set_contract_address(bystander());
     self.settle_option_round()
-}
-
-
-/// Timeskip and do nothing
-
-// Jump to a specific timestamp
-fn timeskip_to_timestamp(timestamp: u64) {
-    set_block_timestamp(timestamp);
-}
-
-// Jump past the auction end date
-fn timeskip_past_auction_end_date(ref self: VaultFacade) {
-    let mut current_round = self.get_current_round();
-    timeskip_to_timestamp(current_round.get_auction_end_date() + 1);
-}
-
-// Jump past the option expiry date
-fn timeskip_past_option_expiry_date(ref self: VaultFacade) {
-    let mut current_round = self.get_current_round();
-    timeskip_to_timestamp(current_round.get_params().option_expiry_time + 1);
-}
-
-// Jump past the round transition period
-fn timeskip_past_round_transition_period(ref self: VaultFacade) {
-    let now = get_block_timestamp();
-    let rtp = self.get_round_transition_period();
-    timeskip_to_timestamp(now + rtp + 1);
 }
 
