@@ -279,14 +279,14 @@ fn test_end_auction_updates_vault_and_lp_spreads_complex() {
     )
         .span();
 
-// Lp3 withdraws from premiums, lp4 adds a topup
+    // Lp3 withdraws from premiums, lp4 adds a topup
     let lp3 = liquidity_provider_3();
     let lp4 = liquidity_provider_4();
     let withdraw_amount = 1;
     let topup_amount = 100 * decimals();
     vault.withdraw(withdraw_amount, lp3);
     vault.deposit(topup_amount, lp4);
-// Start round 2' auction with no additional deposits
+    // Start round 2' auction with no additional deposits
     accelerate_to_auctioning_custom(ref vault, array![].span(), array![].span());
     // Create array of round2's deposits
     let mut round2_deposits = array![
