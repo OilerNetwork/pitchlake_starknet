@@ -219,7 +219,7 @@ fn test_start_auction_updates_vault_and_lp_spreads_simple() {
     // Check vault spreads
     assert(vault_spread_before == (0, total_deposits), 'vault spread before wrong');
     assert(vault_spread_after == (total_deposits, 0), 'vault spread after wrong');
-    // Check LP1, 2, 3 & 4's spread
+    // Check LP spreads
     loop {
         match lp_spreads_before.pop_front() {
             Option::Some(lp_spread_before) => {
@@ -233,8 +233,8 @@ fn test_start_auction_updates_vault_and_lp_spreads_simple() {
     };
 }
 
-// Test that the vault and LP spreads update when the auction starts. Tests rollover
-// amounts with withdraw and topup
+// Test that the vault and LP spreads update when the auction starts.
+// @dev This is a more complex test. Tests rollover amounts with withdraw and topup
 #[test]
 #[available_gas(10000000)]
 fn test_start_auction_updates_vault_and_lp_spreads_complex() {
@@ -284,19 +284,18 @@ fn test_start_auction_updates_vault_and_lp_spreads_complex() {
     // Check vault spreads
     assert(vault_spread_before == (0, starting_liquidity2), 'vault spread before wrong');
     assert(vault_spread_after == (starting_liquidity2, 0), 'vault spread after wrong');
-
-    // Check LP
-loop {
-    match lp_spreads_before.pop_front() {
-      Option::Some(lp_spread_before) => {
-          let lp_spread_after = lp_spreads_after.pop_front().unwrap();
-          let lp_starting_liquidity2 = round2_deposits.pop_front().unwrap();
-          assert(lp_spread_before == (0, *lp_starting_liquidity2), 'LP spread before wrong');
-          assert(lp_spread_after == (*lp_starting_liquidity2, 0), 'LP spread after wrong');
-      },
-      Option::None => { break (); }
+    // Check LP spreads
+    loop {
+        match lp_spreads_before.pop_front() {
+            Option::Some(lp_spread_before) => {
+                let lp_spread_after = lp_spreads_after.pop_front().unwrap();
+                let lp_starting_liquidity2 = round2_deposits.pop_front().unwrap();
+                assert(lp_spread_before == (0, *lp_starting_liquidity2), 'LP spread before wrong');
+                assert(lp_spread_after == (*lp_starting_liquidity2, 0), 'LP spread after wrong');
+            },
+            Option::None => { break (); }
+        }
     }
-  }
 }
 // @note this should be an auction end test
 //// @note should be with other roll over tests
