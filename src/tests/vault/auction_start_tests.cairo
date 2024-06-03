@@ -24,12 +24,12 @@ use pitch_lake_starknet::{
             },
             utils::{
                 create_array_linear, create_array_gradient, sum_spreads, split_spreads,
-                sum_u256_array,
+                sum_u256_array, get_portion_of_amount,
             },
             test_accounts::{
                 liquidity_provider_1, liquidity_provider_2, liquidity_providers_get,
                 option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
-                option_bidder_buyer_4,
+                liquidity_provider_5, option_bidder_buyer_4, liquidity_provider_4,
             },
             variables::{decimals}, setup::{setup_facade},
             facades::{
@@ -42,45 +42,251 @@ use pitch_lake_starknet::{
 use debug::PrintTrait;
 
 
-// @note should be with other roll over tests, add/check for test like this but including premiums (rollover)
-// Test that the vault and LP spreads update when the auction starts
+/// Failures ///
+
+// Test an auction cannot start while the current round is auctioning
 #[test]
 #[available_gas(10000000)]
-fn test_unlocked_becomes_locked() {
-    let (mut vault, _) = setup_facade();
-    let lps = liquidity_providers_get(5);
-    let mut deposit_amounts = create_array_gradient(
-        100 * decimals(), 100 * decimals(), lps.len()
-    ); // (100, 200, 300...500)
+#[should_panic(expected: ('Cannot start auction yet', 'ENTRYPOINT_FAILED'))]
+fn test_start_auction_while_current_round_auctioning_fails() {
+    let (mut vault_facade, _) = setup_facade();
+    accelerate_to_auctioning(ref vault_facade);
 
-    // Vault and LP spreads before the auction starts (locked, unlocked)
+    // Try to start round 2's auction while round 1 is auctioning
+    vault_facade.start_auction();
+}
+
+// Test that an auction cannot start while the current round is Running
+#[test]
+#[available_gas(10000000)]
+#[should_panic(expected: ('Cannot start auction yet', 'ENTRYPOINT_FAILED',))]
+fn test_start_auction_while_current_round_running_failure() {
+    let (mut vault_facade, _) = setup_facade();
+    accelerate_to_auctioning(ref vault_facade);
+    accelerate_to_running(ref vault_facade);
+
+    // Try to start round 2's auction while round 1 is running
+    vault_facade.start_auction();
+}
+
+// Test that an auction cannot start before the round transition period is over
+#[test]
+#[available_gas(10000000)]
+#[should_panic(expected: ('Cannot start auction yet', 'ENTRYPOINT_FAILED',))]
+fn test_start_auction_before_round_transition_period_over_failure() {
+    let (mut vault_facade, _) = setup_facade();
+    accelerate_to_auctioning(ref vault_facade);
+    accelerate_to_running(ref vault_facade);
+    accelerate_to_settled(ref vault_facade, 0);
+
+    // Try to start round 2's auction while round 1 is settled but before the round transition period is over
+    vault_facade.start_auction();
+}
+
+
+/// Event Tests ///
+
+// Test when the auction starts, the next round deployed event emits correctly
+#[test]
+#[available_gas(10000000)]
+fn test_start_auction_start_auction_event() {
+    let (mut vault, _) = setup_facade();
+    let total_options_available1 = accelerate_to_auctioning(ref vault);
+
+    // Check that auction start event emits correctly
+    let (mut round1, mut round2) = vault.get_current_and_next_rounds();
+    assert_event_auction_start(round1.contract_address(), total_options_available1);
+
+    // Check consecutive rounds
+    accelerate_to_running(ref vault);
+    accelerate_to_settled(ref vault, 0);
+    let total_options_available2 = accelerate_to_auctioning(ref vault);
+    assert_event_auction_start(round2.contract_address(), total_options_available2);
+    accelerate_to_running(ref vault);
+    accelerate_to_settled(ref vault, 0);
+    let total_options_available3 = accelerate_to_auctioning(ref vault);
+    let mut round3 = vault.get_next_round();
+    assert_event_auction_start(round3.contract_address(), total_options_available3);
+}
+
+// Test when the auction starts, the next round deployed event emits correctly
+#[test]
+#[available_gas(10000000)]
+fn test_start_auction_deploy_next_round_event() {
+    let (mut vault, _) = setup_facade();
+    accelerate_to_auctioning(ref vault);
+
+    // Check the next round deployed event emits correctly
+    let mut round2 = vault.get_next_round();
+    assert_event_option_round_deployed(vault.contract_address(), 2, round2.contract_address(),);
+
+    // Check consecutive rounds
+    accelerate_to_running(ref vault);
+    accelerate_to_settled(ref vault, 0);
+    accelerate_to_auctioning(ref vault);
+    let mut round3 = vault.get_next_round();
+    assert_event_option_round_deployed(vault.contract_address(), 3, round3.contract_address());
+    accelerate_to_running(ref vault);
+    accelerate_to_settled(ref vault, 0);
+    accelerate_to_auctioning(ref vault);
+    let mut round4 = vault.get_next_round();
+    assert_event_option_round_deployed(vault.contract_address(), 4, round4.contract_address())
+}
+
+
+/// State Tests ///
+
+// Test when an auction starts, the curent and next rounds are updated
+#[test]
+#[available_gas(10000000)]
+fn test_start_auction_updates_current_and_next_round_ids() {
+    let (mut vault_facade, _) = setup_facade();
+    accelerate_to_auctioning(ref vault_facade);
+
+    // Check current round is now 1
+    assert(vault_facade.get_current_round_id() == 1, 'current shd be 1');
+
+    // Check consecutive rounds
+    accelerate_to_running(ref vault_facade);
+    accelerate_to_settled(ref vault_facade, 0);
+    accelerate_to_auctioning(ref vault_facade);
+    assert(vault_facade.get_current_round_id() == 2, 'current shd be 2');
+    accelerate_to_running(ref vault_facade);
+    accelerate_to_settled(ref vault_facade, 0);
+    accelerate_to_auctioning(ref vault_facade);
+    assert(vault_facade.get_current_round_id() == 3, 'current shd be 3');
+}
+
+// Test when an auction starts, the option round states update correctly
+// @note should this be a state transition test in option round tests
+#[test]
+#[available_gas(10000000)]
+fn test_start_auction_updates_current_and_next_round_states() {
+    let (mut vault_facade, _) = setup_facade();
+    accelerate_to_auctioning(ref vault_facade);
+
+    // Check round 1 is auctioning and round 2 is open
+    let (mut round1, mut round2) = vault_facade.get_current_and_next_rounds();
+    assert(round1.get_state() == OptionRoundState::Auctioning, 'round1 shd be auctioning');
+    assert(round2.get_state() == OptionRoundState::Open, 'round2 shd be open');
+
+    // Check consecutive rounds
+    accelerate_to_running(ref vault_facade);
+    accelerate_to_settled(ref vault_facade, 0);
+    accelerate_to_auctioning(ref vault_facade);
+    let mut round3 = vault_facade.get_next_round();
+    assert(round2.get_state() == OptionRoundState::Auctioning, 'round2 shd be auctioning');
+    assert(round3.get_state() == OptionRoundState::Open, 'round3 shd be open');
+}
+
+
+// Test that the vault and LP spreads update when the auction starts
+// @dev This is a simple example
+#[test]
+#[available_gas(10000000)]
+fn test_start_auction_updates_vault_and_lp_spreads_simple() {
+    let (mut vault, _) = setup_facade();
+    let mut lps = liquidity_providers_get(4).span();
+    let mut deposit_amounts = create_array_gradient(100 * decimals(), 100 * decimals(), lps.len())
+        .span(); // (100, 200, 300, 400)
+    let total_deposits = sum_u256_array(deposit_amounts);
+
+    // Vault and LP spreads before auction start
     let vault_spread_before = vault.get_balance_spread();
-    let mut lp_spreads_before = vault.deposit_multiple(deposit_amounts.span(), lps.span());
+    let mut lp_spreads_before = vault.deposit_multiple(deposit_amounts, lps);
     // Start auction
     vault.start_auction();
-    // Final vault and lp spreads
+    // Vault and LP spreads after auction start
     let vault_spread_after = vault.get_balance_spread();
-    let mut lp_spreads_after = vault.get_lp_balance_spreads(lps.span());
+    let mut lp_spreads_after = vault.get_lp_balance_spreads(lps);
 
-    // Check vault spread
-    let deposit_total = sum_u256_array(deposit_amounts.span());
-    assert(vault_spread_before == (0, deposit_total), 'vault spread before wrong');
-    assert(vault_spread_after == (deposit_total, 0), 'vault spread after wrong');
-    // Check LP spreads
+    // Check vault spreads
+    assert(vault_spread_before == (0, total_deposits), 'vault spread before wrong');
+    assert(vault_spread_after == (total_deposits, 0), 'vault spread after wrong');
+    // Check LP1, 2, 3 & 4's spread
     loop {
         match lp_spreads_before.pop_front() {
             Option::Some(lp_spread_before) => {
                 let lp_spread_after = lp_spreads_after.pop_front().unwrap();
                 let lp_deposit_amount = deposit_amounts.pop_front().unwrap();
-
-                assert(lp_spread_before == (0, lp_deposit_amount), 'LP locked before wrong');
-                assert(lp_spread_after == (lp_deposit_amount, 0), 'LP locked after wrong');
+                assert(lp_spread_before == (0, *lp_deposit_amount), 'LP spread beforewrong');
+                assert(lp_spread_after == (*lp_deposit_amount, 0), 'LP spread after wrong');
             },
             Option::None => { break (); }
         }
     };
 }
 
+// Test that the vault and LP spreads update when the auction starts
+// @dev This is a more complex example, performing the same logic as the above simpler test
+// with premiums being withdrawn and additional liquidity participants entering before the next auction starts
+#[test]
+#[available_gas(10000000)]
+fn test_start_auction_updates_vault_and_lp_spreads_complex() {
+    let (mut vault, _) = setup_facade();
+    let mut lps = liquidity_providers_get(4).span();
+    let mut deposit_amounts = create_array_gradient(100 * decimals(), 100 * decimals(), lps.len())
+        .span(); // (100, 200, 300, 400)
+    let total_deposits = sum_u256_array(deposit_amounts);
+    accelerate_to_auctioning_custom(ref vault, lps, deposit_amounts);
+
+    // Test the next round's auction ending with more complex behavior
+    // End round 1's auction
+    let (clearing_price, options_sold) = accelerate_to_running(ref vault);
+    let total_premiums = clearing_price * options_sold;
+    // Lp4 withdraws some of their earned premium
+    let lp4 = liquidity_provider_4();
+    let lp4_withdraw_amount = 1;
+    vault.withdraw(lp4_withdraw_amount, lp4);
+    // Settle round 1 with payout
+    let mut current_round = vault.get_current_round();
+    let total_payouts = accelerate_to_settled(ref vault, 2 * current_round.get_strike_price());
+    // LP participants share of the premiums and payouts
+    let mut individual_payouts = get_portion_of_amount(deposit_amounts, total_payouts).span();
+    let mut individual_premiums = get_portion_of_amount(deposit_amounts, total_premiums).span();
+    // LP5 joins with a deposit, then round 2's auction starts
+    let lp5 = liquidity_provider_5();
+    let topup = 100 * decimals();
+    accelerate_to_auctioning_custom(ref vault, array![lp5].span(), array![topup].span());
+
+    // Vault and LPs (1-4) spreads after auction 2 starts
+    let vault_spread_after_next = vault.get_balance_spread();
+    let mut lp_spreads_after_next = vault.get_lp_balance_spreads(lps).span();
+    // @dev Remove lp4 from arrays, to test separately
+    let lp4_spread_after_next = *lp_spreads_after_next.pop_back().unwrap();
+    let lp4_deposit_amount = *deposit_amounts.pop_back().unwrap();
+    let lp4_individual_premium = *individual_premiums.pop_back().unwrap();
+    let lp4_individual_payout = *individual_payouts.pop_back().unwrap();
+    // Check vault spreads
+    let round_remaining_liq = total_deposits + total_premiums - total_payouts - lp4_withdraw_amount;
+    assert(
+        vault_spread_after_next == (round_remaining_liq + topup, 0), 'vault spread after next wrong'
+    );
+    // Check LP1, LP2 & LP3's spread
+    loop {
+        match lp_spreads_after_next.pop_front() {
+            Option::Some(lp_spread_after_next) => {
+                let lp_deposit_amount = *deposit_amounts.pop_front().unwrap();
+                let lp_premium_share = *individual_premiums.pop_front().unwrap();
+                let lp_payout_share = *individual_payouts.pop_front().unwrap();
+                let lp_remaining_liq = lp_deposit_amount + lp_premium_share - lp_payout_share;
+                assert(
+                    *lp_spread_after_next == (lp_remaining_liq, 0), 'LP spread after next wrong'
+                );
+            },
+            Option::None => { break (); }
+        }
+    };
+    // Check LP4's spread
+    let lp4_remaining_liq = lp4_deposit_amount
+        + lp4_individual_premium
+        - lp4_individual_payout
+        - lp4_withdraw_amount;
+    assert(lp4_spread_after_next == (lp4_remaining_liq, 0), 'LP4 spread after next wrong');
+    // Check LP5's spread
+    let lp5_spread_after_next = vault.get_lp_balance_spread(lp5);
+    assert(lp5_spread_after_next == (topup, 0), 'LP5 spread after next wrong');
+}
 // @note this should be an auction end test
 //// @note should be with other roll over tests
 //// Test that round and lp's unlocked balance becomes locked when auction starts (multiple LPs)
@@ -122,161 +328,29 @@ fn test_unlocked_becomes_locked() {
 //    };
 //}
 
-// Test when an auction starts, it becomes the current round and the
-// next round is deployed.
-#[test]
-#[available_gas(10000000)]
-fn test_start_auction_becomes_current_round_deploys_next() {
-    let (mut vault_facade, _) = setup_facade();
-    accelerate_to_auctioning(ref vault_facade);
+//// Test that an auction cannot start if the minimum_collateral_required is not reached
+//// @note Tomasz said this is unneccesary, we may introduce a maximum_collateral_required.
+//// Tomasz said too much collateral leads to problems with manipulation for premium
+//// This is a much later concern
+//#[ignore]
+//#[test]
+//#[available_gas(10000000)]
+//#[should_panic(expected: ('Cannot start auction yet', 'ENTRYPOINT_FAILED',))]
+//fn test_start_auction_under_minium_collateral_required_failure() {
+//    let (mut vault_facade, _) = setup_facade();
+//
+//    // @dev Need to manually initialize round 1 unless it is initialed during the vault constructor
+//    // ... vault::_initialize_round_1()
+//
+//    // Get round 1's minium collateral requirements
+//    let mut next_round: OptionRoundFacade = vault_facade.get_next_round();
+//    let params = next_round.get_params();
+//    let minimum_collateral_required = params.minimum_collateral_required;
+//    // LP deposits (into round 1)
+//    let deposit_amount_wei: u256 = minimum_collateral_required - 1;
+//    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
+//    // Try to start auction
+//    vault_facade.start_auction();
+//}
 
-    // Check round 1 is auctioning and round 2 is open
-    let (mut current_round_facade, mut next_round_facade) = vault_facade
-        .get_current_and_next_rounds();
-    assert(vault_facade.get_current_round_id() == 1, 'current round should be 1');
-    assert(
-        current_round_facade.get_state() == OptionRoundState::Auctioning,
-        'current round should be settled'
-    );
-    assert(next_round_facade.get_state() == OptionRoundState::Open, 'next round should be open');
-}
-
-// Test when the auction starts, the auction_start event is emitted
-#[test]
-#[available_gas(10000000)]
-fn test_start_auction_event() {
-    let (mut vault, _) = setup_facade();
-    accelerate_to_auctioning(ref vault);
-
-    // Check that auction start event was emitted with correct total_options_available
-    let mut current_round: OptionRoundFacade = vault.get_current_round();
-    assert_event_auction_start(
-        current_round.contract_address(), current_round.get_total_options_available()
-    );
-}
-
-// Test when the next round is deployed, the correct event fires
-#[test]
-#[available_gas(10000000)]
-fn test_start_next_round_event() {
-    let (mut vault, _) = setup_facade();
-    // Start auction, round 1 is now auctioning
-    accelerate_to_auctioning(ref vault);
-    let (_, mut round_2) = vault.get_current_and_next_rounds();
-
-    // Check the next round deployed event emits correctly
-    assert_event_option_round_deployed(vault.contract_address(), 2, round_2.contract_address(),);
-
-    // Check consecutive rounds
-    // Finish round 1 and start round 2's auction
-    accelerate_to_running(ref vault);
-    accelerate_to_settled(ref vault, 'does not matter'.into());
-    // @note can remove once rtp skip is added to acclerate to auctioning
-    set_block_timestamp(starknet::get_block_timestamp() + vault.get_round_transition_period() + 1);
-    accelerate_to_auctioning(ref vault);
-    let (_, mut round_3) = vault.get_current_and_next_rounds();
-
-    // Check round 3 deployed event
-    assert_event_option_round_deployed(vault.contract_address(), 3, round_3.contract_address())
-}
-
-
-/// Failures ///
-
-// @note these tests can all be done in 1 test once call no longer reverts and returns and option
-//  - assert the result is_err at each step, then passes once it jumps the rtp
-
-// Test the next auction cannot start before the round transition period is over
-#[test]
-#[available_gas(10000000)]
-#[should_panic(expected: ('Cannot start auction yet', 'ENTRYPOINT_FAILED'))]
-fn test_start_auction_while_current_round_auctioning_failure() {
-    let (mut vault_facade, _) = setup_facade();
-    // LP deposits (into round 1) so its auction can start
-    let deposit_amount_wei: u256 = 10 * decimals();
-    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
-    // @dev The vault constructor already has the current round (0) settled, so we need to start round 1 first to make it Auctioning.
-    // Start round 1 (Auctioning) and deploy round 2 (Open)
-    vault_facade.start_auction();
-    // Try to start auction 2 before round 1 has settled
-    vault_facade.start_auction();
-}
-
-// Test that an auction cannot start while the current is Running
-#[test]
-#[available_gas(10000000)]
-#[should_panic(expected: ('Cannot start auction yet', 'ENTRYPOINT_FAILED',))]
-fn test_start_auction_while_current_round_running_failure() {
-    let (mut vault_facade, _) = setup_facade();
-    // LP deposits (into round 1)
-    let lps = liquidity_providers_get(5);
-    let amounts = create_array_linear(10000 * decimals(), 5);
-    accelerate_to_auctioning_custom(ref vault_facade, lps.span(), amounts.span());
-    // Start auction
-    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    // Make bid
-    let option_params = current_round_facade.get_params();
-    let bid_count: u256 = option_params.total_options_available + 10;
-    let bid_price: u256 = option_params.reserve_price;
-    let bid_amount: u256 = bid_count * bid_price;
-    current_round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
-    // Settle auction
-    timeskip_and_end_auction(ref vault_facade);
-    // Try to start the next auction while the current is Running
-    vault_facade.start_auction();
-}
-
-// Test that an auction cannot start before the round transition period is over
-#[test]
-#[available_gas(10000000)]
-#[should_panic(expected: ('Cannot start auction yet', 'ENTRYPOINT_FAILED',))]
-fn test_start_auction_before_round_transition_period_over_failure() {
-    let (mut vault_facade, _) = setup_facade();
-    // LP deposits (into round 1)
-    let deposit_amount_wei: u256 = 10000 * decimals();
-    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
-    // Start auction
-    vault_facade.start_auction();
-    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    // Make bid
-    let option_params = current_round_facade.get_params();
-    let bid_count: u256 = option_params.total_options_available + 10;
-    let bid_price: u256 = option_params.reserve_price;
-    let bid_amount: u256 = bid_count * bid_price;
-    current_round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
-    // Settle auction
-    timeskip_and_end_auction(ref vault_facade);
-    // Settle option round
-    timeskip_and_settle_round(ref vault_facade);
-    // Try to start the next auction before waiting the round transition period
-    // @dev add in the round transition period either in option round params or vault
-    let rtp = 111;
-    set_block_timestamp(option_params.option_expiry_time + rtp - 1);
-    vault_facade.start_auction();
-}
-
-// Test that an auction cannot start if the minimum_collateral_required is not reached
-// @note Tomasz said this is unneccesary, we may introduce a maximum_collateral_required.
-// Tomasz said too much collateral leads to problems with manipulation for premium
-// This is a much later concern
-#[ignore]
-#[test]
-#[available_gas(10000000)]
-#[should_panic(expected: ('Cannot start auction yet', 'ENTRYPOINT_FAILED',))]
-fn test_start_auction_under_minium_collateral_required_failure() {
-    let (mut vault_facade, _) = setup_facade();
-
-    // @dev Need to manually initialize round 1 unless it is initialed during the vault constructor
-    // ... vault::_initialize_round_1()
-
-    // Get round 1's minium collateral requirements
-    let mut next_round: OptionRoundFacade = vault_facade.get_next_round();
-    let params = next_round.get_params();
-    let minimum_collateral_required = params.minimum_collateral_required;
-    // LP deposits (into round 1)
-    let deposit_amount_wei: u256 = minimum_collateral_required - 1;
-    vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
-    // Try to start auction
-    vault_facade.start_auction();
-}
 
