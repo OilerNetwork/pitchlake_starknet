@@ -42,39 +42,85 @@ use pitch_lake_starknet::{
 use debug::PrintTrait;
 
 
-// @note should be with other roll over tests
-// Test that round and lp's unlocked balance becomes locked when auction starts (multiple LPs)
+// @note should be with other roll over tests, add/check for test like this but including premiums (rollover)
+// Test that the vault and LP spreads update when the auction starts
 #[test]
 #[available_gas(10000000)]
 fn test_unlocked_becomes_locked() {
-    let (mut vault_facade, _) = setup_facade();
-    // Add liq. to next round and start auction
+    let (mut vault, _) = setup_facade();
     let lps = liquidity_providers_get(5);
-    let mut amounts = create_array_gradient(1000 * decimals(), 5000 * decimals(), lps.len());
-    // Array of each depositer's spread (Array<(locked, unlocked)>)
-    let mut all_spreads = vault_facade.deposit_multiple(amounts.span(), lps.span());
-    // Start the auction
-    vault_facade.start_auction();
-    // Final vault locked/unlocked spread
-    let (total_locked, total_unlocked) = vault_facade.get_balance_spread();
+    let mut deposit_amounts = create_array_gradient(
+        100 * decimals(), 100 * decimals(), lps.len()
+    ); // (100, 200, 300...500)
 
-    //Check vault locked/unlocked total
-    let deposit_total = sum_u256_array(amounts.span());
-    assert(total_locked == deposit_total, 'vault::locked wrong');
-    assert(total_unlocked == 0, 'vault::unlocked wrong');
-    // Individual spread
+    // Vault and LP spreads before the auction starts (locked, unlocked)
+    let vault_spread_before = vault.get_balance_spread();
+    let mut lp_spreads_before = vault.deposit_multiple(deposit_amounts.span(), lps.span());
+    // Start auction
+    vault.start_auction();
+    // Final vault and lp spreads
+    let vault_spread_after = vault.get_balance_spread();
+    let mut lp_spreads_after = vault.get_lp_balance_spreads(lps.span());
+
+    // Check vault spread
+    let deposit_total = sum_u256_array(deposit_amounts.span());
+    assert(vault_spread_before == (0, deposit_total), 'vault spread before wrong');
+    assert(vault_spread_after == (deposit_total, 0), 'vault spread after wrong');
+    // Check LP spreads
     loop {
-        match all_spreads.pop_front() {
-            Option::Some((
-                locked_amount, unlocked_amount
-            )) => {
-                assert(locked_amount == amounts.pop_front().unwrap(), 'Locked balance mismatch');
-                assert(unlocked_amount == 0, 'Unlocked balance mismatch');
+        match lp_spreads_before.pop_front() {
+            Option::Some(lp_spread_before) => {
+                let lp_spread_after = lp_spreads_after.pop_front().unwrap();
+                let lp_deposit_amount = deposit_amounts.pop_front().unwrap();
+
+                assert(lp_spread_before == (0, lp_deposit_amount), 'LP locked before wrong');
+                assert(lp_spread_after == (lp_deposit_amount, 0), 'LP locked after wrong');
             },
             Option::None => { break (); }
         }
     };
 }
+
+// @note this should be an auction end test
+//// @note should be with other roll over tests
+//// Test that round and lp's unlocked balance becomes locked when auction starts (multiple LPs)
+//#[test]
+//#[available_gas(10000000)]
+//fn test_unlocked_becomes_locked() {
+//    let (mut vault, _) = setup_facade();
+//    // Accelerate the round to running
+//    let lps = liquidity_providers_get(5);
+//    let mut deposit_amounts = create_array_gradient(100 * decimals(), 100 * decimals(), lps.len()); // (100, 200, 300...500)
+//    accelerate_to_auctioning_custom(ref vault, lps.span(), deposit_amounts.span());
+//    accelerate_to_running(ref vault);
+//    let mut current_round = vault.get_current_round();
+//
+//    // Spreads for the vault and each lp (locked, unlocked) before option round settles
+//    let mut all_lp_spreads_before: Array<(u256, u256)> = vault.deposit_multiple(deposit_amounts.span(), lps.span());
+//    let (vault_locked_init, vault_unlocked) = vault.get_balance_spread();
+//    // Settle option round (with no payout)
+//    accelerate_to_settled(ref vault, current_round.get_strike_price(), );
+//    // Final vault locked/unlocked spread
+//    let (vault_locked_after, vault_unlocked_after) = vault.get_balance_spread();
+//    let all_lp_spreads_after = vault.get_lp_balance_spreads(lps.span());
+//
+//    // Check vault locked/unlocked total
+//    let deposit_total = sum_u256_array(deposit_amounts.span());
+//    assert(total_locked == deposit_total, 'vault::locked wrong');
+//    assert(total_unlocked == 0, 'vault::unlocked wrong');
+//    // Check LP spreads
+//    loop {
+//        match all_lp_spreads.pop_front() {
+//            Option::Some((
+//                locked_amount, unlocked_amount
+//            )) => {
+//                assert(locked_amount == deposit_amounts.pop_front().unwrap(), 'Locked balance mismatch');
+//                assert(unlocked_amount == 0, 'Unlocked balance mismatch');
+//            },
+//            Option::None => { break (); }
+//        }
+//    };
+//}
 
 // Test when an auction starts, it becomes the current round and the
 // next round is deployed.
