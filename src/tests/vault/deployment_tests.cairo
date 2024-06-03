@@ -13,7 +13,8 @@ use pitch_lake_starknet::{
         IVaultSafeDispatcherTrait
     },
     option_round::{
-        OptionRoundState, OptionRound, IOptionRoundDispatcher, IOptionRoundDispatcherTrait
+        OptionRoundState, OptionRound, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,
+        OptionRoundConstructorParams,
     },
     market_aggregator::{
         IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait,
@@ -42,52 +43,47 @@ use pitch_lake_starknet::{
 };
 use debug::PrintTrait;
 
-/// These tests deal with the lifecycle of an option round, from deployment to settlement ///
 
 /// Constructor Tests ///
+// These tests deal with the lifecycle of an option round, from deployment to settlement
 
-// @note move this to vault/deployment_tests
-// Test the vault's constructor
+// Test the vault deploys with current round 0 (settled), next round 1 (open),
+// vault manager is set
 #[test]
 #[available_gas(10000000)]
 fn test_vault_constructor() {
-    let (mut vault_facade, _) = setup_facade();
-    let current_round_id = vault_facade.get_current_round_id();
-    let next_round_id = current_round_id + 1;
-    // Test vault constructor values
-    assert(
-        vault_facade.vault_dispatcher.vault_manager() == vault_manager(), 'vault manager incorrect'
-    );
+    let (mut vault, _) = setup_facade();
+    let (mut current_round, mut next_round) = vault.get_current_and_next_rounds();
+    let current_round_id = vault.get_current_round_id();
+
+    // Check current round is 0
     assert(current_round_id == 0, 'current round should be 0');
-    assert(next_round_id == 1, 'next round should be 1');
+    // Check current round is open and next round is settled
+    assert(
+        current_round.get_state() == OptionRoundState::Settled, 'current round should be Settled'
+    );
+    assert(next_round.get_state() == OptionRoundState::Open, 'next round should be Open');
+    // Test vault constructor values
+    assert(vault.vault_dispatcher.vault_manager() == vault_manager(), 'vault manager incorrect');
 }
+
 
 // Test the option round constructor
 // Test that round 0 deploys as settled, and round 1 deploys as open.
 #[test]
 #[available_gas(10000000)]
 fn test_option_round_constructor() {
-    let (mut vault_facade, _) = setup_facade();
-    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let mut next_round_facade: OptionRoundFacade = vault_facade.get_next_round();
-    // Round 0 should be settled
-    let mut state: OptionRoundState = current_round_facade.get_state();
-    let mut expected: OptionRoundState = OptionRoundState::Settled;
-    assert(expected == state, 'round 0 should be Settled');
-    // Round 1 should be Open
-    state = next_round_facade.get_state();
-    expected = OptionRoundState::Open;
-    assert(expected == state, 'round 1 should be Open');
-    // The round's vault & market aggregator addresses should be set
-    assert(
-        current_round_facade.vault_address() == vault_facade.contract_address(),
-        'vault address should be set'
-    );
-    assert(
-        next_round_facade.vault_address() == vault_facade.contract_address(),
-        'vault address should be set'
-    );
+    let (mut vault, _) = setup_facade();
+    let mut args = OptionRoundConstructorParams {
+        vault_address: vault.contract_address(), round_id: 0
+    };
+
+    let (mut r0, mut r1) = vault.get_current_and_next_rounds();
+    assert(r0.get_constructor_params() == args, 'r0 construcutor params wrong');
+    args.round_id += 1;
+    assert(r1.get_constructor_params() == args, 'r1 construcutor params wrong');
 }
+
 
 // Test market aggregator is deployed
 #[test]
@@ -102,3 +98,4 @@ fn test_market_aggregator_deployed() {
     // Entry point will fail if contract not deployed
     assert(vault_facade.get_market_aggregator_value() == 0, 'avg basefee shd be 0');
 }
+

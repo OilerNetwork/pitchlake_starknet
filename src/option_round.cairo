@@ -2,7 +2,7 @@ use starknet::{ContractAddress, StorePacking};
 use openzeppelin::token::erc20::interface::IERC20Dispatcher;
 use pitch_lake_starknet::{
     market_aggregator::{IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait},
-    option_round::OptionRound::{OptionRoundState, StartAuctionParams}
+    option_round::OptionRound::{OptionRoundState, StartAuctionParams, OptionRoundConstructorParams},
 };
 
 // The option round contract interface
@@ -50,6 +50,9 @@ trait IOptionRound<TContractState> {
     fn get_payout_balance_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
     /// Other
+
+    // The constructor parmaeters of the option round
+    fn get_constructor_params(self: @TContractState) -> OptionRoundConstructorParams;
 
     // The state of the option round
     fn get_state(self: @TContractState) -> OptionRoundState;
@@ -393,6 +396,10 @@ mod OptionRound {
         }
 
         /// Other
+
+        fn get_constructor_params(self: @ContractState) -> OptionRoundConstructorParams {
+            self.constructor_params.read()
+        }
 
         fn get_state(self: @ContractState) -> OptionRoundState {
             self.state.read()
