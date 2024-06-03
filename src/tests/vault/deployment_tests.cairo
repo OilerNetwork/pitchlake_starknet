@@ -64,7 +64,7 @@ fn test_vault_constructor() {
     );
     assert(next_round.get_state() == OptionRoundState::Open, 'next round should be Open');
     // Test vault constructor values
-    assert(vault.vault_dispatcher.vault_manager() == vault_manager(), 'vault manager incorrect');
+    assert(vault.get_vault_manager() == vault_manager(), 'vault manager incorrect');
 }
 
 

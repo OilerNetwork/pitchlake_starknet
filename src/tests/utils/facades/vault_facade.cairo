@@ -307,6 +307,12 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         }
     }
 
+    // Manager of the vault
+    // @note implementation not discussed yet
+    fn get_vault_manager(ref self: VaultFacade) -> ContractAddress {
+    self.vault_dispatcher.vault_manager()
+    }
+
     // Gets the round transition period in seconds, 3 hours is a random number for testing
     // @note TODO impl this in contract later
     fn get_round_transition_period(ref self: VaultFacade) -> u64 {
