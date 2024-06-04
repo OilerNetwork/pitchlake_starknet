@@ -23,8 +23,6 @@ use pitch_lake_starknet::tests::{
 };
 
 
-// @note Break up into pending bids test file and refundable bids test file
-//  - Update name of refunded_bids to refundable bids in tests/contract/facade
 
 /// Setup Tests ///
 
@@ -66,84 +64,8 @@ fn place_incremental_bids_internal(
     (bid_amounts.span(), bid_prices.span(), current_round)
 }
 
-/// Failures ///
+// @note Break up into separate files
 
-// Test refunding bids before the auction ends fails
-#[test]
-#[available_gas(10000000)]
-#[should_panic(expected: ('The auction is still on-going', 'ENTRYPOINT_FAILED',))]
-fn test_refund_bids_before_auction_end_fails() {
-    let number_of_option_bidders: u256 = 3;
-    let (mut vault, _, mut option_bidders) = setup_test(number_of_option_bidders);
-
-    // Each option buyer out bids the next
-    let (_, _, mut current_round) = place_incremental_bids_internal(ref vault, option_bidders);
-
-    // Try to refund bids before auction ends
-    current_round.refund_bid(*option_bidders[0]);
-}
-
-// Test refunding 0 bids fails
-#[test]
-#[available_gas(10000000)]
-#[should_panic(expected: ('No bids to refund', 'ENTRYPOINT_FAILED',))]
-fn test_refund_0_bids_fails() {
-    let number_of_option_bidders: u256 = 3;
-    let (mut vault, _, mut option_bidders) = setup_test(number_of_option_bidders);
-
-    // Each bidder out bids the next
-    let (_, _, mut current_round) = place_incremental_bids_internal(ref vault, option_bidders);
-
-    // End auction
-    timeskip_and_end_auction(ref vault);
-
-    // Pop first bidder from array because their bids are refundable
-    match option_bidders.pop_front() {
-        Option::Some(bidder) => {
-            // Refund bids
-            current_round.refund_bid(*bidder);
-            // Refund again fails since their are 0 refundable now
-            current_round.refund_bid(*bidder);
-        },
-        Option::None => { panic!("this should not panic") }
-    }
-}
-
-/// Event Tests ///
-
-// Test refunding bids emits event correctly
-#[test]
-#[available_gas(10000000)]
-fn test_refunding_bids_events() {
-    let number_of_option_bidders: u256 = 3;
-    let (mut vault, _, mut option_bidders) = setup_test(number_of_option_bidders);
-
-    // Each bidder out bids the next
-    let (_, _, mut current_round) = place_incremental_bids_internal(ref vault, option_bidders);
-
-    // End auction
-    timeskip_and_end_auction(ref vault);
-
-    // Pop last bidder from array because their bids are not refundable
-    match option_bidders.pop_back() {
-        Option::Some(_) => {
-            // Collect unused bids
-            loop {
-                match option_bidders.pop_front() {
-                    Option::Some(bidder) => {
-                        // Check refunding bids emits the correct event
-                        let refund_amount = current_round.refund_bid(*bidder);
-                        assert_event_unused_bids_refunded(
-                            current_round.contract_address(), *bidder, refund_amount
-                        );
-                    },
-                    Option::None => { break; }
-                }
-            }
-        },
-        Option::None => { panic!("this should not panic") }
-    }
-}
 
 /// Pending Bids Tests ///
 
@@ -186,9 +108,7 @@ fn test_pending_bids_after_auction_end() {
     accelerate_to_auctioning(ref vault);
 
     // Each option buyer out bids the next
-    let (mut bid_amounts, _bid_prices, mut current_round) = place_incremental_bids_internal(
-        ref vault, option_bidders
-    );
+    let (_, _, mut current_round) = place_incremental_bids_internal(ref vault, option_bidders);
 
     // End auction
     timeskip_and_end_auction(ref vault);
@@ -221,7 +141,7 @@ fn test_refunded_bids_before_auction_end() {
     loop {
         match option_bidders.pop_front() {
             Option::Some(bidder) => {
-                let refunded_amount = current_round.get_refunded_bids_for(*bidder);
+                let refunded_amount = current_round.get_refundable_bids_for(*bidder);
                 assert(refunded_amount == 0, 'refunded bid shd be 0');
             },
             Option::None => { break; }
@@ -251,7 +171,7 @@ fn test_refunded_bids_after_auction_end() {
             loop {
                 match option_bidders.pop_front() {
                     Option::Some(bidder) => {
-                        let refunded_amount = current_round.get_refunded_bids_for(*bidder);
+                        let refunded_amount = current_round.get_refundable_bids_for(*bidder);
                         let bid_amount = bid_amounts.pop_front().unwrap();
                         assert(refunded_amount == *bid_amount, 'refunded bid balance wrong');
                     },
@@ -263,9 +183,90 @@ fn test_refunded_bids_after_auction_end() {
     }
 }
 
-/// Refunding Unused Bids Tests ///
+/// Refunding Bids Tests ///
 
-// Test refunding bids sets a
+/// Failures
+
+// Test refunding bids before the auction ends fails
+#[test]
+#[available_gas(10000000)]
+#[should_panic(expected: ('The auction is still on-going', 'ENTRYPOINT_FAILED',))]
+fn test_refunding_bids_before_auction_end_fails() {
+    let number_of_option_bidders: u256 = 3;
+    let (mut vault, _, mut option_bidders) = setup_test(number_of_option_bidders);
+
+    // Each option buyer out bids the next
+    let (_, _, mut current_round) = place_incremental_bids_internal(ref vault, option_bidders);
+
+    // Try to refund bids before auction ends
+    current_round.refund_bid(*option_bidders[0]);
+}
+
+// Test refunding 0 bids fails
+#[test]
+#[available_gas(10000000)]
+#[should_panic(expected: ('No bids to refund', 'ENTRYPOINT_FAILED',))]
+fn test_refunding_0_bids_fails() {
+    let number_of_option_bidders: u256 = 3;
+    let (mut vault, _, mut option_bidders) = setup_test(number_of_option_bidders);
+
+    // Each bidder out bids the next
+    let (_, _, mut current_round) = place_incremental_bids_internal(ref vault, option_bidders);
+
+    // End auction
+    timeskip_and_end_auction(ref vault);
+
+    // Pop first bidder from array because their bids are refundable
+    match option_bidders.pop_front() {
+        Option::Some(bidder) => {
+            // Refund bids
+            current_round.refund_bid(*bidder);
+            // Refund again fails since their are 0 refundable now
+            current_round.refund_bid(*bidder);
+        },
+        Option::None => { panic!("this should not panic") }
+    }
+}
+
+/// Event Tests
+
+// Test refunding bids emits event correctly
+#[test]
+#[available_gas(10000000)]
+fn test_refunding_bids_events() {
+    let number_of_option_bidders: u256 = 3;
+    let (mut vault, _, mut option_bidders) = setup_test(number_of_option_bidders);
+
+    // Each bidder out bids the next
+    let (_, _, mut current_round) = place_incremental_bids_internal(ref vault, option_bidders);
+
+    // End auction
+    timeskip_and_end_auction(ref vault);
+
+    // Pop last bidder from array because their bids are not refundable
+    match option_bidders.pop_back() {
+        Option::Some(_) => {
+            // Collect unused bids
+            loop {
+                match option_bidders.pop_front() {
+                    Option::Some(bidder) => {
+                        // Check refunding bids emits the correct event
+                        let refund_amount = current_round.refund_bid(*bidder);
+                        assert_event_unused_bids_refunded(
+                            current_round.contract_address(), *bidder, refund_amount
+                        );
+                    },
+                    Option::None => { break; }
+                }
+            }
+        },
+        Option::None => { panic!("this should not panic") }
+    }
+}
+
+/// State tests
+
+// Test refunding bids sets refunded balance to 0
 #[test]
 #[available_gas(10000000)]
 fn test_refund_bids_sets_refunded_balance_to_0() {
@@ -283,13 +284,13 @@ fn test_refund_bids_sets_refunded_balance_to_0() {
         Option::Some(bidder) => {
             current_round.refund_bid(*bidder);
             // Check refunded bid balance is 0 for bidder
-            assert(0 == current_round.get_refunded_bids_for(*bidder), 'refunded bid shd be 0');
+            assert(0 == current_round.get_refundable_bids_for(*bidder), 'refunded bid shd be 0');
         },
         Option::None => { panic!("this should not panic") }
     }
 }
 
-// Test eth transfer when collecting unused bids
+// Test eth transfer when refunding bids
 #[test]
 #[available_gas(10000000)]
 fn test_refund_bids_eth_transfer() {
@@ -297,7 +298,7 @@ fn test_refund_bids_eth_transfer() {
     let (mut vault, eth_dispatcher, mut option_bidders) = setup_test(number_of_option_bidders);
 
     // Each option bidder out bids the next
-    let (mut bid_amounts, _bid_prices, mut current_round) = place_incremental_bids_internal(
+    let (_, _, mut current_round) = place_incremental_bids_internal(
         ref vault, option_bidders
     );
 
@@ -312,7 +313,7 @@ fn test_refund_bids_eth_transfer() {
                 match option_bidders.pop_front() {
                     Option::Some(bidder) => {
                         let eth_balance_before = eth_dispatcher.balance_of(*bidder);
-                        let refunded_amount = current_round.get_refunded_bids_for(*bidder);
+                        let refunded_amount = current_round.get_refundable_bids_for(*bidder);
                         let eth_balance_after = eth_dispatcher.balance_of(*bidder);
                         assert(
                             eth_balance_after == eth_balance_before + refunded_amount,
