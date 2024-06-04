@@ -41,6 +41,37 @@ fn assert_two_arrays_equal_length<T, V>(arr1: Span<T>, arr2: Span<V>) {
     assert(arr1.len() == arr2.len(), 'Arrays not equal length');
 }
 
+// Multiply each element in an array by a scalar
+fn scale_array<T, +Drop<T>, +Copy<T>, +Mul<T>>(mut arr: Span<T>, scalar: T) -> Array<T> {
+    let mut scaled: Array<T> = array![];
+    loop {
+        match arr.pop_front() {
+            Option::Some(el) => { scaled.append(*el * scalar); },
+            Option::None => { break (); }
+        }
+    };
+    scaled
+}
+
+// Multiply each element in an array by the corresponding element in another array
+fn multiply_arrays<T, +Drop<T>, +Copy<T>, +Mul<T>>(
+    mut arr1: Span<T>, mut arr2: Span<T>
+) -> Array<T> {
+    assert_two_arrays_equal_length(arr1, arr2);
+    let mut multiplied: Array<T> = array![];
+    loop {
+        match arr1.pop_front() {
+            Option::Some(el1) => {
+                let el2 = arr2.pop_front().unwrap();
+                multiplied.append(*el1 * *el2);
+            },
+            Option::None => { break (); }
+        }
+    };
+    multiplied
+}
+
+
 // Sum an array of spreads and return the total spread
 fn sum_spreads(mut spreads: Span<(u256, u256)>) -> (u256, u256) {
     let mut total_locked: u256 = 0;
