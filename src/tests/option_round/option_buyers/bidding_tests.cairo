@@ -53,99 +53,109 @@ use debug::PrintTrait;
 // These tests deal with placing bids
 
 /// Failues
-// @note If facade is panicing, event test never happens, need to fix this
 
 // Test bidding 0 amount is rejected
 #[test]
 #[available_gas(10000000)]
-#[should_panic(expected: ('Bid price must be >= reserve price', 'ENTRYPOINT_FAILED',))]
 fn test_bid_amount_0_fails() {
     let (mut vault, _) = setup_facade();
     accelerate_to_auctioning(ref vault);
-    let mut current_round = vault.get_current_round();
 
     // Bid 0 amount
+    let mut current_round = vault.get_current_round();
     let reserve_price = current_round.get_reserve_price();
+    let bidder = option_bidder_buyer_1();
     let bid_price = 2 * reserve_price;
     let bid_amount = 0;
     clear_event_logs(array![current_round.contract_address()]);
-    current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
-
-    // Check bid rejected event
-    assert_event_auction_bid_rejected(
-        current_round.contract_address(), option_bidder_buyer_1(), bid_amount, bid_price
-    );
+    match current_round.place_bid_raw(bid_amount, bid_price, bidder) {
+        Result::Ok(_) => { panic!("Bid should have failed"); },
+        Result::Err(_) => {
+            // Check bid rejected event
+            assert_event_auction_bid_rejected(
+                current_round.contract_address(), bidder, bid_amount, bid_price
+            );
+        }
+    }
 }
 
 // Test bidding price < reserve fails
 #[test]
 #[available_gas(10000000)]
-#[should_panic(expected: ('Bid price must be >= reserve price', 'ENTRYPOINT_FAILED',))]
 fn test_bid_price_below_reserve_fails() {
     let (mut vault_facade, _) = setup_facade();
     let options_available = accelerate_to_auctioning(ref vault_facade);
-    let mut current_round = vault_facade.get_current_round();
 
     // Bid below reserve price
+    let mut current_round = vault_facade.get_current_round();
+    let bidder = option_bidder_buyer_1();
     let bid_price = current_round.get_reserve_price() - 1;
     let bid_amount = options_available * bid_price;
     clear_event_logs(array![current_round.contract_address()]);
-    current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
-
-    // Check bid rejected event
-    assert_event_auction_bid_rejected(
-        current_round.contract_address(), option_bidder_buyer_1(), bid_amount, bid_price
-    );
+    match current_round.place_bid_raw(bid_amount, bid_price, bidder) {
+        Result::Ok(_) => { panic!("Bid should have failed"); },
+        Result::Err(_) => {
+            // Check bid rejected event
+            assert_event_auction_bid_rejected(
+                current_round.contract_address(), bidder, bid_amount, bid_price
+            );
+        }
+    }
 }
 
 // Test bidding amount < price fails
 #[test]
 #[available_gas(10000000)]
-#[should_panic(expected: ('Bid price must be >= reserve price', 'ENTRYPOINT_FAILED',))]
 fn test_bid_amount_below_price_fails() {
     let (mut vault_facade, _) = setup_facade();
     accelerate_to_auctioning(ref vault_facade);
-    let mut current_round = vault_facade.get_current_round();
 
     // Bid below reserve price
+    let mut current_round = vault_facade.get_current_round();
     let bid_price = 2 * current_round.get_reserve_price();
     let bid_amount = bid_price - 1;
     clear_event_logs(array![current_round.contract_address()]);
-    current_round.place_bid(bid_price, bid_price, option_bidder_buyer_1());
-
-    // Check bid rejected event
-    assert_event_auction_bid_rejected(
-        current_round.contract_address(), option_bidder_buyer_1(), bid_amount, bid_price
-    );
+    match current_round.place_bid_raw(bid_amount, bid_price, option_bidder_buyer_1()) {
+        Result::Ok(_) => { panic!("Bid should have failed"); },
+        Result::Err(_) => {
+            // Check bid rejected event
+            assert_event_auction_bid_rejected(
+                current_round.contract_address(), option_bidder_buyer_1(), bid_amount, bid_price
+            );
+        }
+    }
 }
 
 // Test bidding before auction starts fails
 #[test]
 #[available_gas(10000000)]
-#[should_panic(expected: ('Cannot bid before auction starts', 'ENTRYPOINT_FAILED'))]
 fn test_bid_before_auction_starts_failure() {
     let (mut vault, _) = setup_facade();
     accelerate_to_auctioning(ref vault);
     accelerate_to_running(ref vault);
     accelerate_to_settled(ref vault, 0);
-    let (_round1, mut round2) = vault.get_current_and_next_rounds();
 
     // Try to place bid before auction starts
-    clear_event_logs(array![round2.contract_address()]);
+    let (_round1, mut round2) = vault.get_current_and_next_rounds();
     let bidder = option_bidder_buyer_1();
     let bid_count = round2.get_total_options_available();
     let bid_price = round2.get_reserve_price();
     let bid_amount = bid_count * bid_price;
-    round2.place_bid(bid_amount, bid_price, bidder);
-
-    // Check bid rejected event
-    assert_event_auction_bid_rejected(round2.contract_address(), bidder, bid_amount, bid_price);
+    clear_event_logs(array![round2.contract_address()]);
+    match round2.place_bid_raw(bid_amount, bid_price, option_bidder_buyer_1()) {
+        Result::Ok(_) => { panic!("Bid should have failed"); },
+        Result::Err(_) => {
+            // Check bid rejected event
+            assert_event_auction_bid_rejected(
+                round2.contract_address(), bidder, bid_amount, bid_price
+            );
+        }
+    }
 }
 
 // Test bidding after auction ends fails
 #[test]
 #[available_gas(10000000)]
-#[should_panic(expected: ('Auction over, cannot place bid', 'ENTRYPOINT_FAILED',))]
 fn test_bid_after_auction_ends_failure() {
     let (mut vault, _) = setup_facade();
     accelerate_to_auctioning(ref vault);
@@ -153,24 +163,28 @@ fn test_bid_after_auction_ends_failure() {
     accelerate_to_settled(ref vault, 0);
     accelerate_to_auctioning(ref vault);
     accelerate_to_running(ref vault);
-    let (mut round2, _round3) = vault.get_current_and_next_rounds();
 
     // Try to place bid after auction ends
-    clear_event_logs(array![round2.contract_address()]);
+    let (mut round2, _round3) = vault.get_current_and_next_rounds();
     let bidder = option_bidder_buyer_1();
     let bid_count = round2.get_total_options_available();
     let bid_price = round2.get_reserve_price();
     let bid_amount = bid_count * bid_price;
-    round2.place_bid(bid_amount, bid_price, bidder);
-
-    // Check bid rejected event
-    assert_event_auction_bid_rejected(round2.contract_address(), bidder, bid_amount, bid_price);
+    clear_event_logs(array![round2.contract_address()]);
+    match round2.place_bid_raw(bid_amount, bid_price, option_bidder_buyer_1()) {
+        Result::Ok(_) => { panic!("Bid should have failed"); },
+        Result::Err(_) => {
+            // Check bid rejected event
+            assert_event_auction_bid_rejected(
+                round2.contract_address(), bidder, bid_amount, bid_price
+            );
+        }
+    }
 }
 
 // Test bidding after auction end date fail (if end_auction() is not called first)
 #[test]
 #[available_gas(10000000)]
-#[should_panic(expected: ('Auction over, cannot place bid', 'ENTRYPOINT_FAILED',))]
 fn test_bid_after_auction_end_failure_2() {
     let (mut vault, _) = setup_facade();
     accelerate_to_auctioning(ref vault);
@@ -181,16 +195,58 @@ fn test_bid_after_auction_end_failure_2() {
     let (mut round2, _round3) = vault.get_current_and_next_rounds();
 
     // Try to place bid after auction end date (before entry point called)
-    clear_event_logs(array![round2.contract_address()]);
     let bidder = option_bidder_buyer_1();
     let bid_count = round2.get_total_options_available();
     let bid_price = round2.get_reserve_price();
     let bid_amount = bid_count * bid_price;
-    round2.place_bid(bid_amount, bid_price, bidder);
-
-    // Check bid rejected event
-    assert_event_auction_bid_rejected(round2.contract_address(), bidder, bid_amount, bid_price);
+    clear_event_logs(array![round2.contract_address()]);
+    match round2.place_bid_raw(bid_amount, bid_price, option_bidder_buyer_1()) {
+        Result::Ok(_) => { panic!("Bid should have failed"); },
+        Result::Err(_) => {
+            // Check bid rejected event
+            assert_event_auction_bid_rejected(
+                round2.contract_address(), bidder, bid_amount, bid_price
+            );
+        }
+    }
 }
+
+/// Event Tests ///
+// @dev bid rejected events happen in the failure tests
+
+// Test bid accepted events
+#[test]
+#[available_gas(10000000)]
+fn test_bid_accepted_events() {
+    let (mut vault_facade, _) = setup_facade();
+    let options_available = accelerate_to_auctioning(ref vault_facade);
+    let mut current_round = vault_facade.get_current_round();
+    let reserve_price = current_round.get_reserve_price();
+
+    // Place bids
+    let mut obs = option_bidders_get(3).span();
+    let scale = array![1, 2, 3].span();
+    let mut bid_prices = scale_array(scale, reserve_price).span();
+    let mut bid_amounts = scale_array(bid_prices, options_available).span();
+    clear_event_logs(array![current_round.contract_address()]);
+    current_round.place_bids(bid_amounts, bid_prices, obs);
+
+    // Check bid accepted events
+    loop {
+        match obs.pop_front() {
+            Option::Some(ob) => {
+                let bid_amount = bid_amounts.pop_front().unwrap();
+                let bid_price = bid_prices.pop_front().unwrap();
+                assert_event_auction_bid_accepted(
+                    current_round.contract_address(), *ob, *bid_amount, *bid_price
+                );
+            },
+            Option::None => { break; }
+        };
+    }
+}
+
+/// Liquidity Tests
 
 // Test bidding transfers eth from bidder to round
 #[test]
@@ -237,10 +293,8 @@ fn test_bid_eth_transfer() {
     }
 }
 
-// Test bid accepted events
-#[test]
-#[available_gas(10000000)]
-fn test_bid_accepted_events() {
+// Test accpeted bids add to OB unused bid balance while auction is still on going
+fn test_bids_go_to_unused_balance_while_auctioning() {
     let (mut vault_facade, _) = setup_facade();
     let options_available = accelerate_to_auctioning(ref vault_facade);
     let mut current_round = vault_facade.get_current_round();
@@ -249,24 +303,20 @@ fn test_bid_accepted_events() {
     // Place bids
     let mut obs = option_bidders_get(3).span();
     let scale = array![1, 2, 3].span();
-    let mut bid_prices = scale_array(scale, reserve_price).span();
+    let bid_prices = scale_array(scale, reserve_price).span();
     let mut bid_amounts = scale_array(bid_prices, options_available).span();
-    clear_event_logs(array![current_round.contract_address()]);
     current_round.place_bids(bid_amounts, bid_prices, obs);
 
-    // Check bid accepted events
+    // Check OB unused bid balances
     loop {
         match obs.pop_front() {
             Option::Some(ob) => {
+                let unused_bid_balance = current_round.get_unused_bids_for(*ob);
                 let bid_amount = bid_amounts.pop_front().unwrap();
-                let bid_price = bid_prices.pop_front().unwrap();
-                assert_event_auction_bid_accepted(
-                    current_round.contract_address(), *ob, *bid_amount, *bid_price
-                );
+                assert(unused_bid_balance == *bid_amount, 'unused bid balance wrong');
             },
             Option::None => { break; }
-        };
+        }
     }
 }
-// @note Need to fix bid rejected events, they will need to call dispatcher directly since facade panics
 
