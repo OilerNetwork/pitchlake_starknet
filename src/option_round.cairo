@@ -42,11 +42,18 @@ trait IOptionRound<TContractState> {
     // The total number of options sold in the option round
     fn total_options_sold(self: @TContractState) -> u256;
 
-    // Pre-auction, this is the amount an OB locks for bidding,
-    // Post-auction, this is the amount not used and is withdrawable by the OB
-    fn get_unused_bids_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
+    // Get total amount of funds a bidder has locked in the auction
+    // @dev During the auction this value is the bidder's total bid amount.
+    // @dev After the auction this value is 0. All pending bids are either sent the vault
+    // as premiums, or refundable to the bidder.
+    fn get_pending_bids_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
-    // Gets the amount that an option buyer can claim with their option balance
+    // Get the refundable bid amount for an account
+    // @dev During the auction this value is 0 and after
+    // the auction is the amount refundable to the bidder
+    fn get_refundable_bids_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
+
+    // Gets the amount that an option buyer can exercise with their option balance
     fn get_payout_balance_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
     /// Other
@@ -60,7 +67,7 @@ trait IOptionRound<TContractState> {
     // The address of vault that deployed this round
     fn vault_address(self: @TContractState) -> ContractAddress;
 
-    /// Previously OptionRoundParams
+    // @dev Previously OptionRoundParams
 
     // Average base fee over last few months, used to calculate strike price
     fn get_current_average_basefee(self: @TContractState) -> u256;
@@ -79,6 +86,7 @@ trait IOptionRound<TContractState> {
 
     // The total number of options available in the auction
     fn get_total_options_available(self: @TContractState) -> u256;
+
 
     /// Writes ///
 
@@ -387,7 +395,11 @@ mod OptionRound {
             100
         }
 
-        fn get_unused_bids_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
+        fn get_pending_bids_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
+            100
+        }
+
+        fn get_refunded_bids_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
             100
         }
 

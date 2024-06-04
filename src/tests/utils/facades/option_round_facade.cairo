@@ -152,7 +152,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     // @note: Call using bystander ?
     fn refund_bid(ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress) -> u256 {
         set_contract_address(option_bidder_buyer);
-        let refundable_balance = self.get_unused_bids_for(option_bidder_buyer);
+        let refundable_balance = self.get_refunded_bids_for(option_bidder_buyer);
         let res = self.option_round_dispatcher.refund_unused_bids(option_bidder_buyer);
         match res {
             Result::Ok(amount) => {
@@ -245,10 +245,16 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         self.option_round_dispatcher.total_options_sold()
     }
 
-    fn get_unused_bids_for(
+    fn get_pending_bids_for(
         ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
     ) -> u256 {
-        self.option_round_dispatcher.get_unused_bids_for(option_bidder_buyer)
+        self.option_round_dispatcher.get_pending_bids_for(option_bidder_buyer)
+    }
+
+    fn get_refunded_bids_for(
+        ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
+    ) -> u256 {
+        self.option_round_dispatcher.get_refunded_bids_for(option_bidder_buyer)
     }
 
     fn get_payout_balance_for(
