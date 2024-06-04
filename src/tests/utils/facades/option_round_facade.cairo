@@ -8,7 +8,7 @@ use pitch_lake_starknet::{
     option_round::{
         IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState, StartAuctionParams,
         OptionRoundConstructorParams,
-        OptionRound::{OptionRoundErrorIntoFelt252, //OptionRoundErrorIntoByteArray
+        OptionRound::{OptionRoundError, OptionRoundErrorIntoFelt252, //OptionRoundErrorIntoByteArray
         }
     },
     tests::{
@@ -100,6 +100,47 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
                     let bid_price = prices.pop_front().unwrap();
                     // Make bid
                     let res = self.place_bid(*bid_amount, *bid_price, *bidder);
+                    // Append result
+                    results.append(res);
+                },
+                Option::None => { break (); }
+            }
+        };
+        results
+    }
+
+    // Place a bid for an option bidder
+    // @return: An option for whether the bid was accepted or rejected
+    fn place_bid_raw(
+        ref self: OptionRoundFacade,
+        amount: u256,
+        price: u256,
+        option_bidder_buyer: ContractAddress,
+    ) -> Result<bool, OptionRoundError> {
+        set_contract_address(option_bidder_buyer);
+        self.option_round_dispatcher.place_bid(amount, price)
+    }
+
+
+  // Place multiple bids for multiple option bidders
+    // @return: An option for whether the bids were accepted or rejected
+    fn place_bids_raw(
+        ref self: OptionRoundFacade,
+        mut amounts: Span<u256>,
+        mut prices: Span<u256>,
+        mut bidders: Span<ContractAddress>,
+    ) ->
+    Array<Result<bool, OptionRoundError>> {
+        assert_two_arrays_equal_length(bidders, amounts);
+        assert_two_arrays_equal_length(bidders, prices);
+        let mut results = array![];
+        loop {
+            match bidders.pop_front() {
+                Option::Some(bidder) => {
+                    let bid_amount = amounts.pop_front().unwrap();
+                    let bid_price = prices.pop_front().unwrap();
+                    // Make bid
+                    let res = self.place_bid_raw(*bid_amount, *bid_price, *bidder);
                     // Append result
                     results.append(res);
                 },
