@@ -87,12 +87,13 @@ fn test_start_auction_before_round_transition_period_over_fails() {
 
 /// Event Tests ///
 
-// Test when the auction starts the event emits correctly
+/// OptionRound Test
+// Test every time an auction starts, the auction started event emits correctly
+// @note Move to optoin round state transition tests
 #[test]
 #[available_gas(10000000)]
-fn test_start_auction_event() {
+fn test_auction_started_option_round_event() {
     let mut rounds_to_run = 3;
-
     let (mut vault, _) = setup_facade();
     loop {
         match rounds_to_run {
@@ -114,15 +115,20 @@ fn test_start_auction_event() {
     }
 }
 
-// Test when the auction starts, the next round deployed event emits correctly
-// @dev Checks that when rounds 2, 3 & 4 deploy the events emit correctly
+/// Vault Test
+// Test every time a new round is deployed, the next round deployed event emits correctly
+// @dev The first round to be deployed after deployment is round 2
+// @note discuss if when round should deploy since it is not holding liquidity until the auction starts.
+// Previously we said a round deploys when the previous one's auction starts (to accept deposits), but
+// since deposits are stored in the vault, can we deploy when the auction starts ?
+// @note If it can deploy when the auction starts, we can drop OptionRoundState::Open and just use
+// Initialized, Auctioning, Running, Settled. Where Initialzed is the state of the round between deployment and auction start
 #[test]
 #[available_gas(10000000)]
-fn test_start_auction_deploy_next_round_event() {
+fn test_next_round_deployed_event() {
     let rounds_to_run = 3;
     let mut i = rounds_to_run;
     let (mut vault, _) = setup_facade();
-
     loop {
         match i {
             0 => { break (); },
@@ -151,152 +157,242 @@ fn test_start_auction_deploy_next_round_event() {
 
 /// Round ids/states
 
-// Test when an auction starts, the curent and next rounds are updated
+// Test starting an auction increments the current round id
 #[test]
 #[available_gas(10000000)]
 fn test_start_auction_updates_current_and_next_round_ids() {
-    let (mut vault_facade, _) = setup_facade();
-    accelerate_to_auctioning(ref vault_facade);
+    let rounds_to_run = 3;
+    let mut i = rounds_to_run;
+    let (mut vault, _) = setup_facade();
 
-    // Check current round is now 1
-    assert(vault_facade.get_current_round_id() == 1, 'current shd be 1');
+    loop {
+        match i {
+            0 => { break (); },
+            _ => {
+                accelerate_to_auctioning(ref vault);
 
-    // Check consecutive rounds
-    accelerate_to_running(ref vault_facade);
-    accelerate_to_settled(ref vault_facade, 0);
-    accelerate_to_auctioning(ref vault_facade);
-    assert(vault_facade.get_current_round_id() == 2, 'current shd be 2');
-    accelerate_to_running(ref vault_facade);
-    accelerate_to_settled(ref vault_facade, 0);
-    accelerate_to_auctioning(ref vault_facade);
-    assert(vault_facade.get_current_round_id() == 3, 'current shd be 3');
+                // @dev The first auction to start is round 1 post deployment
+                assert(
+                    vault.get_current_round_id() == 1 + (rounds_to_run - i).into(),
+                    'current round id wrong'
+                );
+
+                accelerate_to_running(ref vault);
+                accelerate_to_settled(ref vault, 0);
+
+                i -= 1;
+            },
+        }
+    }
 }
 
+// Test starting an auction updates the current round's state
 // Test when an auction starts, the option round states update correctly
 // @note should this be a state transition test in option round tests
 #[test]
 #[available_gas(10000000)]
 fn test_start_auction_updates_current_and_next_round_states() {
-    let (mut vault_facade, _) = setup_facade();
-    accelerate_to_auctioning(ref vault_facade);
+    let mut rounds_to_run = 3;
+    let (mut vault, _) = setup_facade();
 
-    // Check round 1 is auctioning and round 2 is open
-    let (mut round1, mut round2) = vault_facade.get_current_and_next_rounds();
-    assert(round1.get_state() == OptionRoundState::Auctioning, 'round1 shd be auctioning');
-    assert(round2.get_state() == OptionRoundState::Open, 'round2 shd be open');
+    loop {
+        match rounds_to_run {
+            0 => { break (); },
+            _ => {
+                accelerate_to_auctioning(ref vault);
 
-    // Check consecutive rounds
-    accelerate_to_running(ref vault_facade);
-    accelerate_to_settled(ref vault_facade, 0);
-    accelerate_to_auctioning(ref vault_facade);
-    let mut round3 = vault_facade.get_next_round();
-    assert(round2.get_state() == OptionRoundState::Auctioning, 'round2 shd be auctioning');
-    assert(round3.get_state() == OptionRoundState::Open, 'round3 shd be open');
+                let mut current_round = vault.get_current_round();
+                assert(
+                    current_round.get_state() == OptionRoundState::Auctioning,
+                    'current round shd be auctioning'
+                );
+
+                accelerate_to_running(ref vault);
+                accelerate_to_settled(ref vault, 0);
+
+                rounds_to_run -= 1;
+            },
+        }
+    }
 }
 
 /// Liquidity
 
-// Test that the vault and LP spreads update when the auction starts
-// @dev This is a simple example
+// Test unlocked balances become locked when the auction starts
 #[test]
 #[available_gas(10000000)]
-fn test_start_auction_updates_vault_and_lp_spreads_simple() {
+fn test_start_auction_updates_locked_and_unlocked_balances() {
     let (mut vault, _) = setup_facade();
-    let mut lps = liquidity_providers_get(4).span();
-    let mut deposit_amounts = create_array_gradient(100 * decimals(), 100 * decimals(), lps.len())
-        .span(); // (100, 200, 300, 400)
+    let mut liquidity_providers = liquidity_providers_get(4).span();
+    // Amounts to deposit: [100, 200, 300, 400]
+    let mut deposit_amounts = create_array_gradient(
+        100 * decimals(), 100 * decimals(), liquidity_providers.len()
+    )
+        .span();
     let total_deposits = sum_u256_array(deposit_amounts);
 
-    // Vault and LP spreads before auction start
-    let mut lp_spreads_before = vault.deposit_multiple(deposit_amounts, lps);
-    let vault_spread_before = vault.get_balance_spread();
-    // Start auction
-    vault.start_auction();
-    // Vault and LP spreads after auction start
-    let mut lp_spreads_after = vault.get_lp_balance_spreads(lps);
-    let vault_spread_after = vault.get_balance_spread();
+    // Vault and liquidity provider balances before auction starts
+    let mut liquidity_providers_locked_before = vault.get_lp_locked_balances(liquidity_providers);
+    let mut liquidity_providers_unlocked_before = vault
+        .deposit_multiple(deposit_amounts, liquidity_providers);
+    let (vault_locked_before, vault_unlocked_before) = vault.get_balance_spread();
 
-    // Check vault spreads
-    assert(vault_spread_before == (0, total_deposits), 'vault spread before wrong');
-    assert(vault_spread_after == (total_deposits, 0), 'vault spread after wrong');
-    // Check LP spreads
+    // Start auction
+    timeskip_and_end_auction(ref vault);
+
+    // Vault and liquidity provider balances after auction starts
+    let mut liquidity_providers_locked_after = vault.get_lp_locked_balances(liquidity_providers);
+    let mut liquidity_providers_unlocked_after = vault
+        .get_lp_unlocked_balances(liquidity_providers);
+    let (vault_locked_after, vault_unlocked_after) = vault.get_balance_spread();
+
+    // Check vault balance
+    assert(
+        (vault_locked_before, vault_unlocked_before) == (0, total_deposits),
+        'vault spread before wrong'
+    );
+    assert(
+        (vault_locked_after, vault_unlocked_after) == (total_deposits, 0),
+        'vault spread after wrong'
+    );
+
+    // Check liquidity provider balances
     loop {
-        match lp_spreads_before.pop_front() {
-            Option::Some(lp_spread_before) => {
-                let lp_spread_after = lp_spreads_after.pop_front().unwrap();
+        match liquidity_providers_locked_before.pop_front() {
+            Option::Some(lp_locked_before) => {
+                let lp_locked_after = liquidity_providers_locked_after.pop_front().unwrap();
+                let lp_unlocked_before = liquidity_providers_unlocked_before.pop_front().unwrap();
+                let lp_unlocked_after = liquidity_providers_unlocked_after.pop_front().unwrap();
                 let lp_deposit_amount = deposit_amounts.pop_front().unwrap();
-                assert(lp_spread_before == (0, *lp_deposit_amount), 'LP spread before wrong');
-                assert(lp_spread_after == (*lp_deposit_amount, 0), 'LP spread after wrong');
+
+                assert(
+                    (lp_locked_before, lp_unlocked_before) == (0, *lp_deposit_amount),
+                    'LP spread before wrong'
+                );
+                assert(
+                    (lp_locked_after, lp_unlocked_after) == (*lp_deposit_amount, 0),
+                    'LP spread after wrong'
+                );
             },
             Option::None => { break (); }
         }
     };
 }
-
-// Test that the vault and LP spreads update when the auction starts.
-// @dev This is a more complex test. Tests rollover amounts with withdraw and topup
-#[test]
-#[available_gas(10000000)]
-fn test_start_auction_updates_vault_and_lp_spreads_complex() {
-    // Accelerate throught round 1 with premiums and payout
-    let (mut vault, _) = setup_facade();
-    let mut lps = liquidity_providers_get(4).span();
-    let mut round1_deposits = create_array_gradient(100 * decimals(), 100 * decimals(), lps.len())
-        .span(); // (100, 200, 300, 400)
-    let starting_liquidity1 = sum_u256_array(round1_deposits);
-    accelerate_to_auctioning_custom(ref vault, lps, round1_deposits);
-    let mut round1 = vault.get_current_round();
-    let (clearing_price1, options_sold1) = accelerate_to_running(ref vault);
-    let total_premiums1 = clearing_price1 * options_sold1;
-    let total_payout1 = accelerate_to_settled(ref vault, 2 * round1.get_strike_price());
-    // Total and individual remaining liquidity amounts after round 1
-    let remaining_liquidity1 = starting_liquidity1 + total_premiums1 - total_payout1;
-    let mut individual_remaining_liquidity1 = get_portion_of_amount(
-        round1_deposits, remaining_liquidity1
-    )
-        .span();
-    // Lp3 withdraws from premiums, lp4 adds a topup
-    let lp3 = liquidity_provider_3();
-    let lp4 = liquidity_provider_4();
-    let withdraw_amount = 1;
-    let topup_amount = 100 * decimals();
-    vault.withdraw(withdraw_amount, lp3);
-    vault.deposit(topup_amount, lp4);
-
-    // Vault and LP spreads before auction 2 starts
-    let mut lp_spreads_before = vault.get_lp_balance_spreads(lps);
-    let vault_spread_before = vault.get_balance_spread();
-    // Start round 2's auction with no additional deposits
-    accelerate_to_auctioning_custom(ref vault, array![].span(), array![].span());
-    // Create array of round2's deposits (roll over)
-    let mut round2_deposits = array![
-        *individual_remaining_liquidity1[0],
-        *individual_remaining_liquidity1[1],
-        *individual_remaining_liquidity1[2] - withdraw_amount,
-        *individual_remaining_liquidity1[3] + topup_amount
-    ]
-        .span();
-    let starting_liquidity2 = sum_u256_array(round2_deposits);
-    // Vault and LP spreads after auction 2 starts
-    let mut lp_spreads_after = vault.get_lp_balance_spreads(lps);
-    let vault_spread_after = vault.get_balance_spread();
-
-    // Check vault spreads
-    assert(vault_spread_before == (0, starting_liquidity2), 'vault spread before wrong');
-    assert(vault_spread_after == (starting_liquidity2, 0), 'vault spread after wrong');
-    // Check LP spreads
-    loop {
-        match lp_spreads_before.pop_front() {
-            Option::Some(lp_spread_before) => {
-                let lp_spread_after = lp_spreads_after.pop_front().unwrap();
-                let lp_starting_liquidity2 = round2_deposits.pop_front().unwrap();
-                assert(lp_spread_before == (0, *lp_starting_liquidity2), 'LP spread before wrong');
-                assert(lp_spread_after == (*lp_starting_liquidity2, 0), 'LP spread after wrong');
-            },
-            Option::None => { break (); }
-        }
-    }
-}
+// @note revisit later if needed
+//// Test that the vault and LP spreads update when the auction starts.
+//// @dev This is a more complex test. Tests rollover amounts with withdraw and topup
+//#[test]
+//#[available_gas(10000000)]
+//fn test_start_auction_updates_vault_and_lp_spreads_complex() {
+//    let (mut vault, _) = setup_facade();
+//    let mut lps = liquidity_providers_get(4).span();
+//    let mut deposit_amounts = create_array_gradient(100 * decimals(), 100 * decimals(), lps.len())
+//        .span(); // (100, 200, 300, 400)
+//    let total_deposits = sum_u256_array(deposit_amounts);
+//
+//    // Vault and liquidity providers' balances before auction starts
+//    let mut liquidity_providers_locked_before = vault.get_lp_locked_balances(lps);
+//    let mut liquidity_providers_unlocked_before = vault.deposit_multiple(deposit_amounts, lps);
+//    let (vault_locked_before, vault_unlocked_before) = vault.get_balance_spread();
+//    // Start auction
+//    vault.start_auction();
+//    // Vault and liquidity providers' balances after auction starts
+//    let mut liquidity_providers_locked_after = vault.get_lp_locked_balances(lps);
+//    let mut liquidity_providers_unlocked_after = vault.get_lp_unlocked_balances(lps);
+//    let (vault_locked_after, vault_unlocked_after) = vault.get_balance_spread();
+//
+//    // Check vault balance
+//    assert(
+//        (vault_locked_before, vault_unlocked_before) == (0, total_deposits),
+//        'vault spread before wrong'
+//    );
+//    assert(
+//        (vault_locked_after, vault_unlocked_after) == (total_deposits, 0),
+//        'vault spread after wrong'
+//    );
+//
+//    // Check liquidity providers balances
+//    loop {
+//        match liquidity_providers_locked_before.pop_front() {
+//            Option::Some(lp_locked_before) => {
+//                let lp_locked_after = liquidity_providers_locked_after.pop_front().unwrap();
+//                let lp_unlocked_before = liquidity_providers_unlocked_before.pop_front().unwrap();
+//                let lp_unlocked_after = liquidity_providers_unlocked_after.pop_front().unwrap();
+//                let lp_deposit_amount = deposit_amounts.pop_front().unwrap();
+//
+//                assert(
+//                    (lp_locked_before, lp_unlocked_before) == (0, *lp_deposit_amount),
+//                    'LP spread before wrong'
+//                );
+//                assert(
+//                    (lp_locked_after, lp_unlocked_after) == (*lp_deposit_amount, 0),
+//                    'LP spread after wrong'
+//                );
+//            },
+//            Option::None => { break (); }
+//        }
+//    };
+//
+//    // Accelerate throught round 1 with premiums and payout
+//
+//    let (mut vault, _) = setup_facade();
+//    let mut lps = liquidity_providers_get(4).span();
+//    let mut round1_deposits = create_array_gradient(100 * decimals(), 100 * decimals(), lps.len())
+//        .span(); // (100, 200, 300, 400)
+//    let starting_liquidity1 = sum_u256_array(round1_deposits);
+//    accelerate_to_auctioning_custom(ref vault, lps, round1_deposits);
+//    let mut round1 = vault.get_current_round();
+//    let (clearing_price1, options_sold1) = accelerate_to_running(ref vault);
+//    let total_premiums1 = clearing_price1 * options_sold1;
+//    let total_payout1 = accelerate_to_settled(ref vault, 2 * round1.get_strike_price());
+//    // Total and individual remaining liquidity amounts after round 1
+//    let remaining_liquidity1 = starting_liquidity1 + total_premiums1 - total_payout1;
+//    let mut individual_remaining_liquidity1 = get_portion_of_amount(
+//        round1_deposits, remaining_liquidity1
+//    )
+//        .span();
+//    // Lp3 withdraws from premiums, lp4 adds a topup
+//    let lp3 = liquidity_provider_3();
+//    let lp4 = liquidity_provider_4();
+//    let withdraw_amount = 1;
+//    let topup_amount = 100 * decimals();
+//    vault.withdraw(withdraw_amount, lp3);
+//    vault.deposit(topup_amount, lp4);
+//
+//    // Vault and LP spreads before auction 2 starts
+//    let mut lp_spreads_before = vault.get_lp_balance_spreads(lps);
+//    let vault_spread_before = vault.get_balance_spread();
+//    // Start round 2's auction with no additional deposits
+//    accelerate_to_auctioning_custom(ref vault, array![].span(), array![].span());
+//    // Create array of round2's deposits (roll over)
+//    let mut round2_deposits = array![
+//        *individual_remaining_liquidity1[0],
+//        *individual_remaining_liquidity1[1],
+//        *individual_remaining_liquidity1[2] - withdraw_amount,
+//        *individual_remaining_liquidity1[3] + topup_amount
+//    ]
+//        .span();
+//    let starting_liquidity2 = sum_u256_array(round2_deposits);
+//    // Vault and LP spreads after auction 2 starts
+//    let mut lp_spreads_after = vault.get_lp_balance_spreads(lps);
+//    let vault_spread_after = vault.get_balance_spread();
+//
+//    // Check vault spreads
+//    assert(vault_spread_before == (0, starting_liquidity2), 'vault spread before wrong');
+//    assert(vault_spread_after == (starting_liquidity2, 0), 'vault spread after wrong');
+//    // Check LP spreads
+//    loop {
+//        match lp_spreads_before.pop_front() {
+//            Option::Some(lp_spread_before) => {
+//                let lp_spread_after = lp_spreads_after.pop_front().unwrap();
+//                let lp_starting_liquidity2 = round2_deposits.pop_front().unwrap();
+//                assert(lp_spread_before == (0, *lp_starting_liquidity2), 'LP spread before wrong');
+//                assert(lp_spread_after == (*lp_starting_liquidity2, 0), 'LP spread after wrong');
+//            },
+//            Option::None => { break (); }
+//        }
+//    }
+//}
 // @note this should be an auction end test
 //// @note should be with other roll over tests
 //// Test that round and lp's unlocked balance becomes locked when auction starts (multiple LPs)

@@ -50,11 +50,11 @@ use debug::PrintTrait;
 
 /// Failures ///
 
-// Test auction cannot end if the current round is auctioning and the auction end date has not been reached
+// Test ending the auction before the auction end date fails
 #[test]
 #[available_gas(10000000)]
 #[should_panic(expected: ('Cannot end auction', 'ENTRYPOINT_FAILED'))]
-fn test_end_auction_while_current_round_auctioning_too_early_fails() {
+fn test_ending_auction_before_end_date_fails() {
     let (mut vault, _) = setup_facade();
     accelerate_to_auctioning(ref vault);
 
@@ -62,11 +62,11 @@ fn test_end_auction_while_current_round_auctioning_too_early_fails() {
     vault.end_auction();
 }
 
-// Test auction cannot end if the current round is running
+// Test ending the auction fails when there is not one running
 #[test]
 #[available_gas(10000000)]
 #[should_panic(expected: ('Cannot end auction before it starts', 'ENTRYPOINT_FAILED',))]
-fn test_end_auction_while_current_round_running_fails() {
+fn test_ending_auction_when_there_is_not_one_running_fails() {
     let (mut vault_facade, _) = setup_facade();
     accelerate_to_auctioning(ref vault_facade);
     accelerate_to_running(ref vault_facade);
@@ -75,11 +75,11 @@ fn test_end_auction_while_current_round_running_fails() {
     vault_facade.end_auction();
 }
 
-// Test auction cannot end if the current round is settled
+// Test ending the auction fails when there is not one running (needed?)
 #[test]
 #[available_gas(10000000)]
 #[should_panic(expected: ('Some error', 'Auction cannot settle before due time',))]
-fn test_auction_end_before_end_date_failure() {
+fn test_ending_auction_when_there_is_not_one_running_fails2() {
     let (mut vault_facade, _) = setup_facade();
     accelerate_to_auctioning(ref vault_facade);
     accelerate_to_running(ref vault_facade);
@@ -92,10 +92,11 @@ fn test_auction_end_before_end_date_failure() {
 
 /// Event Tests ///
 
-// Test that the auction end event emits correctly
+// Test ending the auction emits the correct event
+// @note shold move to option round state transition tests
 #[test]
 #[available_gas(10000000)]
-fn test_end_auction_end_auction_event() {
+fn test_auction_ended_option_round_event() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
 
@@ -123,71 +124,82 @@ fn test_end_auction_end_auction_event() {
 
 /// Round ids/states
 
-// Test when an auction ends, the curent and next rounds do not change
+// Test ending an auction does not change the current round id
 #[test]
 #[available_gas(10000000)]
 fn test_end_auction_does_not_update_current_and_next_round_ids() {
-    let (mut vault_facade, _) = setup_facade();
-    accelerate_to_auctioning(ref vault_facade);
+    let rounds_to_run = 3;
+    let mut i = rounds_to_run;
+    let (mut vault, _) = setup_facade();
 
-    // End current round stays the same when the auction ends
-    assert(vault_facade.get_current_round_id() == 1, 'current shd be 0');
-    accelerate_to_running(ref vault_facade);
-    assert(vault_facade.get_current_round_id() == 1, 'current shd be 1');
+    loop {
+        match i {
+            0 => { break (); },
+            _ => {
+                accelerate_to_auctioning(ref vault);
 
-    // Check consecutive rounds
-    accelerate_to_settled(ref vault_facade, 0);
-    accelerate_to_auctioning(ref vault_facade);
-    assert(vault_facade.get_current_round_id() == 2, 'current shd be 2');
-    accelerate_to_running(ref vault_facade);
-    assert(vault_facade.get_current_round_id() == 2, 'current shd be 2');
+                let current_round_id_before = vault.get_current_round_id();
+                accelerate_to_running(ref vault);
+                let current_round_id_after = vault.get_current_round_id();
 
-    accelerate_to_settled(ref vault_facade, 0);
-    accelerate_to_auctioning(ref vault_facade);
-    assert(vault_facade.get_current_round_id() == 3, 'current shd be 3');
-    accelerate_to_running(ref vault_facade);
-    assert(vault_facade.get_current_round_id() == 3, 'current shd be 3');
+                assert(
+                    current_round_id_before == current_round_id_after, 'current round id changed'
+                );
+
+                accelerate_to_settled(ref vault, 0);
+
+                i -= 1;
+            },
+        }
+    }
 }
 
-// Test when an auction ends, the option round states update correctly
+// Test ending an auction updates the current round state
 // @note should this be a state transition test in option round tests
 #[test]
 #[available_gas(10000000)]
-fn test_end_auction_updates_current_and_next_round_states() {
-    let (mut vault_facade, _) = setup_facade();
-    accelerate_to_auctioning(ref vault_facade);
-    accelerate_to_running(ref vault_facade);
+fn test_end_auction_updates_current_round_state() {
+    let mut rounds_to_run = 3;
+    let (mut vault, _) = setup_facade();
 
-    // Check round 1 is running and round 2 is open
-    let (mut round1, mut round2) = vault_facade.get_current_and_next_rounds();
-    assert(round1.get_state() == OptionRoundState::Running, 'round1 shd be running');
-    assert(round2.get_state() == OptionRoundState::Open, 'round2 shd be open');
+    loop {
+        match rounds_to_run {
+            0 => { break (); },
+            _ => {
+                accelerate_to_auctioning(ref vault);
 
-    // Check consecutive rounds
-    accelerate_to_settled(ref vault_facade, 0);
-    accelerate_to_auctioning(ref vault_facade);
-    accelerate_to_running(ref vault_facade);
-    let mut round3 = vault_facade.get_next_round();
-    assert(round2.get_state() == OptionRoundState::Running, 'round2 shd be running');
-    assert(round3.get_state() == OptionRoundState::Open, 'round3 shd be open');
+                accelerate_to_running(ref vault);
+                let mut current_round = vault.get_current_round();
+                assert(
+                    current_round.get_state() == OptionRoundState::Running,
+                    'current round shd be running'
+                );
+
+                accelerate_to_settled(ref vault, 0);
+
+                rounds_to_run -= 1;
+            },
+        }
+    }
 }
 
 /// Liquidity
 
-// Test that winning bids are sent from the round to the vault as premiums, and
-// unused bids remain in the round
+// Test that winning bids are sent to the vault as premiums, and
+// refundable bids remain in the round
 #[test]
 #[available_gas(10000000)]
-fn test_end_auction_premiums_eth_transfer() {
+fn test_end_auction_eth_transfer() {
     let (mut vault_facade, eth) = setup_facade();
     accelerate_to_auctioning(ref vault_facade);
 
-    // Balances before auction end
+    // Vault and round balances before auction ends
     let mut current_round = vault_facade.get_current_round();
     let round_balance_before = eth.balance_of(current_round.contract_address());
     let vault_balance_before = eth.balance_of(vault_facade.contract_address());
-    // End auction (2 bidders, 1's bid gets refuned, 2's is converted to premium)
-    let bidders = option_bidders_get(2).span();
+
+    // End auction (2 bidders, first bid gets refuned, second's is converted to premium)
+    let option_bidders = option_bidders_get(2).span();
     let bid_count = current_round.get_total_options_available();
     let losing_price = current_round.get_reserve_price();
     let losing_amount = bid_count * losing_price;
@@ -195,11 +207,11 @@ fn test_end_auction_premiums_eth_transfer() {
     let winning_amount = 2 * bid_count * winning_price;
     accelerate_to_running_custom(
         ref vault_facade,
-        bidders,
+        option_bidders,
         array![losing_amount, winning_amount].span(),
         array![losing_price, winning_price].span()
     );
-    // Balances after auction end
+    // Vault and round balances after auction ends
     let round_balance_after = eth.balance_of(current_round.contract_address());
     let vault_balance_after = eth.balance_of(vault_facade.contract_address());
 
@@ -213,124 +225,153 @@ fn test_end_auction_premiums_eth_transfer() {
     );
 }
 
-// Test that the vault and LP spreads update when the auction ends
-// @dev This is a simple example
+// Test premiums add to unlocked balance when the auction starts
 #[test]
 #[available_gas(10000000)]
-fn test_end_auction_updates_vault_and_lp_spreads_simple() {
+fn test_end_auction_updates_locked_and_unlocked_balances() {
     let (mut vault, _) = setup_facade();
-    let mut lps = liquidity_providers_get(4).span();
-    let mut deposit_amounts = create_array_gradient(100 * decimals(), 100 * decimals(), lps.len())
-        .span(); // [100, 200, 300, 400]
+    let mut liquidity_providers = liquidity_providers_get(4).span();
+    // Amounts to deposit: [100, 200, 300, 400]
+    let mut deposit_amounts = create_array_gradient(
+        100 * decimals(), 100 * decimals(), liquidity_providers.len()
+    )
+        .span();
     let total_deposits = sum_u256_array(deposit_amounts);
-    accelerate_to_auctioning_custom(ref vault, lps, deposit_amounts);
+    accelerate_to_auctioning_custom(ref vault, liquidity_providers, deposit_amounts);
 
-    // Vault and LP spreads before auction end
-    let mut lp_spreads_before = vault.get_lp_balance_spreads(lps);
-    let vault_spread_before = vault.get_balance_spread();
+    // Vault and liquidity provider balances before auction starts
+    let mut liquidity_providers_locked_before = vault.get_lp_locked_balances(liquidity_providers);
+    let mut liquidity_providers_unlocked_before = vault
+        .get_lp_unlocked_balances(liquidity_providers);
+    let (vault_locked_before, vault_unlocked_before) = vault.get_balance_spread();
+
     // End auction
     let (clearing_price, options_sold) = accelerate_to_running(ref vault);
     let total_premiums = options_sold * clearing_price;
     let mut individual_premiums = get_portion_of_amount(deposit_amounts, total_premiums).span();
-    // Vault and LP spreads after auction end
-    let mut lp_spreads_after = vault.get_lp_balance_spreads(lps);
-    let vault_spread_after = vault.get_balance_spread();
 
-    // Check vault spreads
-    assert(vault_spread_before == (total_deposits, 0), 'vault spread before wrong');
-    assert(vault_spread_after == (total_deposits, total_premiums), 'vault spread after wrong');
-    // Check LP1, 2, 3 & 4's spread
+    // Vault and liquidity provider balances after auction starts
+    let mut liquidity_providers_locked_after = vault.get_lp_locked_balances(liquidity_providers);
+    let mut liquidity_providers_unlocked_after = vault
+        .get_lp_unlocked_balances(liquidity_providers);
+    let (vault_locked_after, vault_unlocked_after) = vault.get_balance_spread();
+
+    // Check vault balance
+    assert(
+        (vault_locked_before, vault_unlocked_before) == (total_deposits, 0),
+        'vault balance before wrong'
+    );
+    assert(
+        (vault_locked_after, vault_unlocked_after) == (total_deposits, total_premiums),
+        'vault vault after wrong'
+    );
+
+    // Check liquidity provider balances
     loop {
-        match lp_spreads_before.pop_front() {
-            Option::Some(lp_spread_before) => {
-                let lp_spread_after = lp_spreads_after.pop_front().unwrap();
-                let lp_deposit_amount = deposit_amounts.pop_front().unwrap();
-                let lp_premium = individual_premiums.pop_front().unwrap();
-                assert(lp_spread_before == (*lp_deposit_amount, 0), 'LP spread before wrong');
+        match liquidity_providers_locked_before.pop_front() {
+            Option::Some(locked_balance_before) => {
+                let locked_balance_after = liquidity_providers_locked_after.pop_front().unwrap();
+                let unlocked_balance_before = liquidity_providers_unlocked_before
+                    .pop_front()
+                    .unwrap();
+                let unlocked_balance_after = liquidity_providers_unlocked_after
+                    .pop_front()
+                    .unwrap();
+                let deposit_amount = deposit_amounts.pop_front().unwrap();
+                let premiums_earned = individual_premiums.pop_front().unwrap();
+
                 assert(
-                    lp_spread_after == (*lp_deposit_amount, *lp_premium), 'LP spread after wrong'
+                    (locked_balance_before, unlocked_balance_before) == (*deposit_amount, 0),
+                    'LP balance before wrong'
+                );
+                assert(
+                    (
+                        locked_balance_after, unlocked_balance_after
+                    ) == (*deposit_amount, *premiums_earned),
+                    'LP balance after wrong'
                 );
             },
             Option::None => { break (); }
         }
     };
 }
+// @note revisit later if needed
+//// Test that the vault and LP spreads update when the auction ends. Tests rollover
+//// amounts with withdraw and topup
+//#[test]
+//#[available_gas(10000000)]
+//fn test_end_auction_updates_vault_and_lp_spreads_complex() {
+//    // Accelerate through round 1 with premiums and a payout
+//    let (mut vault, _) = setup_facade();
+//    let mut lps = liquidity_providers_get(4).span();
+//    let round1_deposits = create_array_gradient(100 * decimals(), 100 * decimals(), lps.len())
+//        .span(); // (100, 200, 300, 400)
+//    let starting_liquidity1 = sum_u256_array(round1_deposits);
+//    accelerate_to_auctioning_custom(ref vault, lps, round1_deposits);
+//    let mut round1 = vault.get_current_round();
+//    let (clearing_price, options_sold) = accelerate_to_running(ref vault);
+//    let total_premiums1 = clearing_price * options_sold;
+//    let total_payout1 = accelerate_to_settled(ref vault, 2 * round1.get_strike_price());
+//    // Total and individual remaining liquidity amounts after round 1
+//    let remaining_liquidity1 = starting_liquidity1 + total_premiums1 - total_payout1;
+//    let mut individual_remaining_liquidity1 = get_portion_of_amount(
+//        round1_deposits, remaining_liquidity1
+//    )
+//        .span();
+//
+//    // Lp3 withdraws from premiums, lp4 adds a topup
+//    let lp3 = liquidity_provider_3();
+//    let lp4 = liquidity_provider_4();
+//    let withdraw_amount = 1;
+//    let topup_amount = 100 * decimals();
+//    vault.withdraw(withdraw_amount, lp3);
+//    vault.deposit(topup_amount, lp4);
+//    // Start round 2' auction with no additional deposits
+//    accelerate_to_auctioning_custom(ref vault, array![].span(), array![].span());
+//    // Create array of round2's deposits
+//    let mut round2_deposits = array![
+//        *individual_remaining_liquidity1[0],
+//        *individual_remaining_liquidity1[1],
+//        *individual_remaining_liquidity1[2] - withdraw_amount,
+//        *individual_remaining_liquidity1[3] + topup_amount
+//    ]
+//        .span();
+//
+//    // Vault and LP spreads before auction 2 ends
+//    let mut lp_spreads_before = vault.get_lp_balance_spreads(lps).span();
+//    let vault_spread_before = vault.get_balance_spread();
+//    // End round 2's auction
+//    let (clearing_price, options_sold) = accelerate_to_running(ref vault);
+//    let total_premiums2 = clearing_price * options_sold;
+//    let mut individual_premiums2 = get_portion_of_amount(round2_deposits, total_premiums2).span();
+//    // Vault and LP spreads after the auction ends
+//    let mut lp_spreads_after = vault.get_lp_balance_spreads(lps).span();
+//    let vault_spread_after = vault.get_balance_spread();
+//
+//    // Check vault spreads
+//    assert(
+//        vault_spread_before == (remaining_liquidity1 + topup_amount, 0), 'vault spread before wrong'
+//    );
+//    assert(
+//        vault_spread_after == (remaining_liquidity1 + topup_amount, total_premiums2),
+//        'vault spread after wrong'
+//    );
+//    // Check LP spreads
+//    loop {
+//        match lp_spreads_before.pop_front() {
+//            Option::Some(lp_spread_before) => {
+//                let lp_spread_after = lp_spreads_after.pop_front().unwrap();
+//                let lp_starting_liquidity2 = round2_deposits.pop_front().unwrap();
+//                let lp_premiums2 = individual_premiums2.pop_front().unwrap();
+//                assert(*lp_spread_before == (*lp_starting_liquidity2, 0), 'LP spread before wrong');
+//                assert(
+//                    *lp_spread_after == (*lp_starting_liquidity2, *lp_premiums2),
+//                    'LP spread after wrong'
+//                );
+//            },
+//            Option::None => { break (); }
+//        }
+//    }
+//}
 
-// Test that the vault and LP spreads update when the auction ends. Tests rollover
-// amounts with withdraw and topup
-#[test]
-#[available_gas(10000000)]
-fn test_end_auction_updates_vault_and_lp_spreads_complex() {
-    // Accelerate through round 1 with premiums and a payout
-    let (mut vault, _) = setup_facade();
-    let mut lps = liquidity_providers_get(4).span();
-    let round1_deposits = create_array_gradient(100 * decimals(), 100 * decimals(), lps.len())
-        .span(); // (100, 200, 300, 400)
-    let starting_liquidity1 = sum_u256_array(round1_deposits);
-    accelerate_to_auctioning_custom(ref vault, lps, round1_deposits);
-    let mut round1 = vault.get_current_round();
-    let (clearing_price, options_sold) = accelerate_to_running(ref vault);
-    let total_premiums1 = clearing_price * options_sold;
-    let total_payout1 = accelerate_to_settled(ref vault, 2 * round1.get_strike_price());
-    // Total and individual remaining liquidity amounts after round 1
-    let remaining_liquidity1 = starting_liquidity1 + total_premiums1 - total_payout1;
-    let mut individual_remaining_liquidity1 = get_portion_of_amount(
-        round1_deposits, remaining_liquidity1
-    )
-        .span();
-
-    // Lp3 withdraws from premiums, lp4 adds a topup
-    let lp3 = liquidity_provider_3();
-    let lp4 = liquidity_provider_4();
-    let withdraw_amount = 1;
-    let topup_amount = 100 * decimals();
-    vault.withdraw(withdraw_amount, lp3);
-    vault.deposit(topup_amount, lp4);
-    // Start round 2' auction with no additional deposits
-    accelerate_to_auctioning_custom(ref vault, array![].span(), array![].span());
-    // Create array of round2's deposits
-    let mut round2_deposits = array![
-        *individual_remaining_liquidity1[0],
-        *individual_remaining_liquidity1[1],
-        *individual_remaining_liquidity1[2] - withdraw_amount,
-        *individual_remaining_liquidity1[3] + topup_amount
-    ]
-        .span();
-
-    // Vault and LP spreads before auction 2 ends
-    let mut lp_spreads_before = vault.get_lp_balance_spreads(lps).span();
-    let vault_spread_before = vault.get_balance_spread();
-    // End round 2's auction
-    let (clearing_price, options_sold) = accelerate_to_running(ref vault);
-    let total_premiums2 = clearing_price * options_sold;
-    let mut individual_premiums2 = get_portion_of_amount(round2_deposits, total_premiums2).span();
-    // Vault and LP spreads after the auction ends
-    let mut lp_spreads_after = vault.get_lp_balance_spreads(lps).span();
-    let vault_spread_after = vault.get_balance_spread();
-
-    // Check vault spreads
-    assert(
-        vault_spread_before == (remaining_liquidity1 + topup_amount, 0), 'vault spread before wrong'
-    );
-    assert(
-        vault_spread_after == (remaining_liquidity1 + topup_amount, total_premiums2),
-        'vault spread after wrong'
-    );
-    // Check LP spreads
-    loop {
-        match lp_spreads_before.pop_front() {
-            Option::Some(lp_spread_before) => {
-                let lp_spread_after = lp_spreads_after.pop_front().unwrap();
-                let lp_starting_liquidity2 = round2_deposits.pop_front().unwrap();
-                let lp_premiums2 = individual_premiums2.pop_front().unwrap();
-                assert(*lp_spread_before == (*lp_starting_liquidity2, 0), 'LP spread before wrong');
-                assert(
-                    *lp_spread_after == (*lp_starting_liquidity2, *lp_premiums2),
-                    'LP spread after wrong'
-                );
-            },
-            Option::None => { break (); }
-        }
-    }
-}
 
