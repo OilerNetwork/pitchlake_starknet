@@ -8,262 +8,242 @@ use pitch_lake_starknet::tests::{
         event_helpers::{assert_event_unused_bids_refunded, clear_event_logs},
         accelerators::{
             accelerate_to_auctioning, accelerate_to_running_custom, accelerate_to_running,
-            accelerate_to_settled
+            accelerate_to_settled, timeskip_and_end_auction, accelerate_to_auctioning_custom,
+            timeskip_past_auction_end_date,
         },
         test_accounts::{
             liquidity_provider_1, option_bidder_buyer_1, option_bidder_buyer_2,
-            option_bidder_buyer_3, option_bidders_get,
+            option_bidder_buyer_3, option_bidders_get, option_bidder_buyer_4,
         },
         variables::{decimals}, setup::{setup_facade},
         facades::{
             vault_facade::{VaultFacade, VaultFacadeTrait},
             option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait}
         },
+        utils::{scale_array, get_erc20_balance, get_erc20_balances,},
     },
 };
 
-/// Un/used Bids Tests ///
-// These tests deal with bid processing
+/// Failures ///
 
-// @note Should event emit if collecting 0 ?
-
-// @note use multiple bidders
+// Test collecting 0 unused bids fails
 #[test]
 #[available_gas(10000000)]
-fn test_get_unused_bids_for_ob_during_auction() {
-    let (mut vault_facade, _) = setup_facade();
-    // Deposit liquidity and start the auction
-    accelerate_to_auctioning(ref vault_facade);
-    // Make bids
-    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params = current_round_facade.get_params();
+#[should_panic(expected: ('No unused bids to collect', 'ENTRYPOINT_FAILED',))]
+fn test_collecting_0_unused_bids_fails() {
+    let (mut vault, _) = setup_facade();
+    accelerate_to_auctioning(ref vault);
+    accelerate_to_running(ref vault);
+    let mut current_round = vault.get_current_round();
 
-    // Make bid
-    let bid_count = params.total_options_available;
-    let bid_price = params.reserve_price;
-    let bid_amount = bid_count * bid_price;
-    current_round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
-    // Check entire bid is 'unused' while still auctioning
-    let ob_unused_bid_amount = current_round_facade.get_unused_bids_for(option_bidder_buyer_1());
-    assert(ob_unused_bid_amount == bid_amount, 'unused bids wrong');
+    // Try to collect unused bids when there is none to collect (ob's entire bid converted to premium)
+    current_round.refund_bid(option_bidder_buyer_1());
 }
 
+// Test collecting bids before the auction ends fails
 #[test]
 #[available_gas(10000000)]
-fn test_unused_bids_for_ob_after_auction() {
-    let (mut vault_facade, _) = setup_facade();
-
-    // Deposit liquidity and start the auction
-    accelerate_to_auctioning(ref vault_facade);
-    // Make bids
-    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params = current_round_facade.get_params();
-
-    let bidders = option_bidders_get(2);
-    // OB 2 outbids OB 1 for all the options
-    let bid_count = params.total_options_available;
-    let bid_price = params.reserve_price;
-    let bid_price_2 = params.reserve_price + 1;
-    let bid_amount = bid_count * bid_price;
-    let bid_amount_2 = bid_count * bid_price_2;
-
-    accelerate_to_running_custom(
-        ref vault_facade,
-        bidders.span(),
-        array![bid_amount, bid_amount_2].span(),
-        array![bid_price, bid_price_2].span()
-    );
-    // Check OB 1's unused bid is their entire bid, and OB 2's is 0
-    let ob_unused_bid_amount = current_round_facade.get_unused_bids_for(option_bidder_buyer_1());
-    let ob_unused_bid_amount_2 = current_round_facade.get_unused_bids_for(option_bidder_buyer_2());
-    assert(ob_unused_bid_amount == bid_amount, 'unused bids wrong');
-    assert(ob_unused_bid_amount_2 == 0, 'unused bids wrong');
+#[should_panic(expected: ('The auction is still on-going', 'ENTRYPOINT_FAILED',))]
+fn test_option_round_refund_unused_bids_too_early_failure() {
+    let (mut vault, _) = setup_facade();
+    let options_available = accelerate_to_auctioning(ref vault);
+    let mut current_round = vault.get_current_round();
+    let reserve_price = current_round.get_reserve_price();
+    // Place bid
+    let ob = option_bidder_buyer_1();
+    let bid_price = reserve_price;
+    let bid_amount = reserve_price * options_available;
+    current_round.place_bid(bid_amount, bid_price, ob);
+    current_round.refund_bid(ob);
 }
 
-#[test]
-#[available_gas(10000000)]
-fn test_collect_unused_bids_after_auction_end_success() {
-    let (mut vault_facade, eth_dispatcher): (VaultFacade, IERC20Dispatcher) = setup_facade();
-
-    // Deposit liquidity and start the auction
-    accelerate_to_auctioning(ref vault_facade);
-    // Make bids
-    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params = current_round_facade.get_params();
-
-    let bidders = option_bidders_get(2);
-
-    // OB 2 outbids OB 1 for all the options
-    let bid_count = params.total_options_available;
-    let bid_price = params.reserve_price;
-    let bid_price_2 = bid_price + 1;
-    let bid_amount = bid_count * bid_price;
-    let bid_amount_2 = bid_count * bid_price_2;
-
-    accelerate_to_running_custom(
-        ref vault_facade,
-        bidders.span(),
-        array![bid_amount, bid_amount_2].span(),
-        array![bid_price, bid_price_2].span()
-    );
-
-    // OB 1 collects their unused bids (at any time post auction)
-    let now = starknet::get_block_timestamp();
-    set_block_timestamp(now + 10000000000);
-    let unused_amount = current_round_facade.get_unused_bids_for(option_bidder_buyer_1());
-    let ob_balance_before_collect = eth_dispatcher.balance_of(option_bidder_buyer_1());
-    current_round_facade.refund_bid(option_bidder_buyer_1());
-    let ob_balance_after_collect = eth_dispatcher.balance_of(option_bidder_buyer_1());
-    // Check OB gets their refunded depost and their amount updates to 0
-    assert(ob_balance_before_collect + unused_amount == ob_balance_after_collect, 'refund fail');
-    assert(
-        current_round_facade.get_unused_bids_for(option_bidder_buyer_1()) == 0,
-        'collect amount should be 0'
-    );
-}
-
+/// Event Tests ///
 
 // Test collecting unused bids emits event correctly
 #[test]
 #[available_gas(10000000)]
 fn test_collect_unused_bids_events() {
+    let (mut vault, _) = setup_facade();
+    let options_available = accelerate_to_auctioning(ref vault);
+    let mut current_round = vault.get_current_round();
+    let reserve_price = current_round.get_reserve_price();
+    // Place bids
+    let mut obs = option_bidders_get(3).span();
+    let scale = array![1, 2, 3].span();
+    let bid_prices = scale_array(scale, reserve_price).span();
+    let mut bid_amounts = scale_array(bid_prices, options_available).span();
+    current_round.place_bids(bid_amounts, bid_prices, obs);
+    // OB4 outbids all other OBs
+    // @dev So that OB1, 2 & 3 have unused bids to collect
+    let ob4 = option_bidder_buyer_4();
+    let bid_price4 = 4 * reserve_price;
+    let bid_amount4 = bid_price4 * options_available;
+    current_round.place_bid(bid_amount4, bid_price4, ob4);
+    timeskip_and_end_auction(ref vault);
+
+    // Collect unused bids and check event emits correctly
+    loop {
+        match obs.pop_front() {
+            Option::Some(ob) => {
+                let bid_amount = bid_amounts.pop_front().unwrap();
+                current_round.refund_bid(*ob);
+                assert_event_unused_bids_refunded(
+                    current_round.contract_address(), *ob, *bid_amount
+                );
+            },
+            Option::None => { break; }
+        }
+    }
+}
+
+/// State Tests ///
+
+/// Unused & Used Bids
+
+// Test unused bid balance before auction ends
+#[test]
+#[available_gas(10000000)]
+fn test_unused_bids_before_auction_end() {
     let (mut vault_facade, _) = setup_facade();
+    let options_available = accelerate_to_auctioning(ref vault_facade);
+    let mut current_round = vault_facade.get_current_round();
+    let reserve_price = current_round.get_reserve_price();
 
-    // Deposit liquidity and start the auction
-    accelerate_to_auctioning(ref vault_facade);
-    // Make bids
-    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params = current_round_facade.get_params();
+    // Place bids
+    let mut obs = option_bidders_get(3).span();
+    let scale = array![1, 2, 3].span();
+    let bid_prices = scale_array(scale, reserve_price).span();
+    let mut bid_amounts = scale_array(bid_prices, options_available).span();
+    current_round.place_bids(bid_amounts, bid_prices, obs);
 
-    // OB 2 outbids OB 1 for all the options
-    let bidders = option_bidders_get(2);
-    let bid_count = params.total_options_available;
-    let bid_price = params.reserve_price;
-    let bid_price_2 = params.reserve_price + 1;
-    let bid_amount = bid_count * bid_price;
-    let bid_amount_2 = bid_count * bid_price_2;
+    // Check OB unused bid balances
+    loop {
+        match obs.pop_front() {
+            Option::Some(ob) => {
+                let unused_bid_balance = current_round.get_unused_bids_for(*ob);
+                let bid_amount = bid_amounts.pop_front().unwrap();
+                assert(unused_bid_balance == *bid_amount, 'unused bid balance wrong');
+            },
+            Option::None => { break; }
+        }
+    }
+}
 
-    accelerate_to_running_custom(
-        ref vault_facade,
-        bidders.span(),
-        array![bid_amount, bid_amount_2].span(),
-        array![bid_price, bid_price_2].span()
-    );
-    // Clear event logs
-    clear_event_logs(
-        array![vault_facade.contract_address(), current_round_facade.contract_address()]
-    );
-    // Initial balance and collectable amount
-    let (lp1_collateral_before, lp1_unallocated_before) = vault_facade
-        .get_lp_balance_spread(liquidity_provider_1());
-    let lp1_balance_before = lp1_collateral_before + lp1_unallocated_before;
-    // OB 1 collects their unused bids
-    let collected_amount = current_round_facade.refund_bid(option_bidder_buyer_1());
+// Test unused bid balance after auction ends
+#[test]
+#[available_gas(10000000)]
+fn test_unused_bids_after_auction_end() {
+    let (mut vault_facade, _) = setup_facade();
+    let options_available = accelerate_to_auctioning(ref vault_facade);
+    let mut current_round = vault_facade.get_current_round();
+    let reserve_price = current_round.get_reserve_price();
 
-    // Check OptionRound event
-    assert_event_unused_bids_refunded(
-        current_round_facade.contract_address(), option_bidder_buyer_1(), bid_amount
-    )
+    // Place bids
+    let mut obs = option_bidders_get(3).span();
+    let scale = array![1, 2, 3].span();
+    let bid_prices = scale_array(scale, reserve_price).span();
+    let mut bid_amounts = scale_array(bid_prices, options_available).span();
+    current_round.place_bids(bid_amounts, bid_prices, obs);
+    // OB4 outbids all other OBs
+    let ob4 = option_bidder_buyer_4();
+    let bid_price4 = 4 * reserve_price;
+    let bid_amount4 = bid_price4 * options_available;
+    current_round.place_bid(bid_amount4, bid_price4, ob4);
+    timeskip_and_end_auction(ref vault_facade);
+
+    // Check OB 1, 2 & 3's bids are all refundable, and LP4' are not
+    assert(current_round.get_unused_bids_for(ob4) == 0, 'lp4 unused bids shd be 0');
+    loop {
+        match obs.pop_front() {
+            Option::Some(ob) => {
+                let unused_bid_balance = current_round.get_unused_bids_for(*ob);
+                let bid_amount = bid_amounts.pop_front().unwrap();
+                assert(unused_bid_balance == *bid_amount, 'unused bid balance wrong');
+            },
+            Option::None => { break; }
+        }
+    }
+}
+
+/// Collecting Unused Bids
+
+// Test collecting unused bids sets unused bid balance to 0
+#[test]
+#[available_gas(10000000)]
+fn test_collect_unused_bids_sets_unused_balance_to_0() {
+    let (mut vault, _) = setup_facade();
+    let options_available = accelerate_to_auctioning(ref vault);
+    let mut current_round = vault.get_current_round();
+    let reserve_price = current_round.get_reserve_price();
+    // Place bids
+    let mut obs = option_bidders_get(3).span();
+    let scale = array![1, 2, 3].span();
+    let bid_prices = scale_array(scale, reserve_price).span();
+    let mut bid_amounts = scale_array(bid_prices, options_available).span();
+    current_round.place_bids(bid_amounts, bid_prices, obs);
+    // OB4 outbids all other OBs
+    // @dev So that OB1, 2 & 3 have unused bids to collect
+    let ob4 = option_bidder_buyer_4();
+    let bid_price4 = 4 * reserve_price;
+    let bid_amount4 = bid_price4 * options_available;
+    current_round.place_bid(bid_amount4, bid_price4, ob4);
+    timeskip_and_end_auction(ref vault);
+    // Collect unused bids
+    loop {
+        match obs.pop_front() {
+            Option::Some(ob) => {
+                current_round.refund_bid(*ob);
+                let unused_bid_balance = current_round.get_unused_bids_for(*ob);
+                assert(unused_bid_balance == 0, 'unused bid balance should be 0');
+            },
+            Option::None => { break; }
+        }
+    }
 }
 
 // Test eth transfer when collecting unused bids
 #[test]
 #[available_gas(10000000)]
 fn test_collect_unused_bids_eth_transfer() {
-    let (mut vault_facade, eth) = setup_facade();
+    let (mut vault, eth) = setup_facade();
+    let options_available = accelerate_to_auctioning(ref vault);
+    let mut current_round = vault.get_current_round();
+    let reserve_price = current_round.get_reserve_price();
+    // Place bids
+    let mut obs = option_bidders_get(3).span();
+    let scale = array![1, 2, 3].span();
+    let bid_prices = scale_array(scale, reserve_price).span();
+    let mut bid_amounts = scale_array(bid_prices, options_available).span();
+    current_round.place_bids(bid_amounts, bid_prices, obs);
+    // OB4 outbids all other OBs
+    // @dev So that OB1, 2 & 3 have unused bids to collect
+    let ob4 = option_bidder_buyer_4();
+    let bid_price4 = 4 * reserve_price;
+    let bid_amount4 = bid_price4 * options_available;
+    current_round.place_bid(bid_amount4, bid_price4, ob4);
+    timeskip_and_end_auction(ref vault);
 
-    // Deposit liquidity and start the auction
-    accelerate_to_auctioning(ref vault_facade);
-    // Make bids
-    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params = current_round_facade.get_params();
-
-    // OB 2 outbids OB 1 for all the options
-    let bidders = option_bidders_get(2);
-    let bid_count = params.total_options_available;
-    let bid_price = params.reserve_price;
-    let bid_price_2 = params.reserve_price + 1;
-    let bid_amount = bid_count * bid_price;
-    let bid_amount_2 = bid_count * bid_price_2;
-
-    accelerate_to_running_custom(
-        ref vault_facade,
-        bidders.span(),
-        array![bid_amount, bid_amount_2].span(),
-        array![bid_price, bid_price_2].span()
+    // Collect unused bids
+    // Eth balance before
+    let mut total_unused_bids = 0;
+    let round_balance_before = get_erc20_balance(
+        eth.contract_address, current_round.contract_address()
     );
-    // Initial balance
-    let lp1_balance_before = eth.balance_of(liquidity_provider_1());
-    let round_balance_before = eth.balance_of(current_round_facade.contract_address());
-    // OB 1 collects their unused bids
-    let collected_amount = current_round_facade.refund_bid(option_bidder_buyer_1());
-
-    // Check eth transfer
-    assert(
-        eth.balance_of(liquidity_provider_1()) == lp1_balance_before + collected_amount,
-        'eth shd go to lp'
+    loop {
+        match obs.pop_front() {
+            Option::Some(ob) => {
+                let ob_balance_before = get_erc20_balance(eth.contract_address, *ob);
+                let refund_amount = current_round.get_unused_bids_for(*ob);
+                current_round.refund_bid(*ob);
+                let ob_balance_after = get_erc20_balance(eth.contract_address, *ob);
+                assert(ob_balance_after == ob_balance_before + refund_amount, 'ob shd receive eth');
+                total_unused_bids += refund_amount;
+            },
+            Option::None => { break; }
+        }
+    };
+    let round_balance_after = get_erc20_balance(
+        eth.contract_address, current_round.contract_address()
     );
-    assert(
-        eth.balance_of(current_round_facade.contract_address()) == round_balance_before
-            - collected_amount,
-        'eth come from round'
-    );
+    assert(round_balance_after == round_balance_before - total_unused_bids, 'round should lose eth')
 }
-
-#[test]
-#[available_gas(10000000)]
-fn test_collect_unused_bids_again_does_nothing() {
-    let (mut vault_facade, eth_dispatcher): (VaultFacade, IERC20Dispatcher) = setup_facade();
-
-    // Deposit liquidity and start the auction
-    accelerate_to_auctioning(ref vault_facade);
-    // Make bids
-    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params = current_round_facade.get_params();
-
-    let bidders = option_bidders_get(2);
-    // OB 2 outbids OB 1 for all the options
-    let bid_count = params.total_options_available;
-    let bid_price = params.reserve_price;
-    let bid_price_2 = bid_price + 1;
-    let bid_amount = bid_count * bid_price;
-    let bid_amount_2 = bid_count * bid_price_2;
-
-    accelerate_to_running_custom(
-        ref vault_facade,
-        bidders.span(),
-        array![bid_amount, bid_amount_2].span(),
-        array![bid_price, bid_price_2].span()
-    );
-
-    // OB 1 collects their unused bids
-    current_round_facade.refund_bid(option_bidder_buyer_1());
-    // OB 1 collects again
-    let ob_balance_before_collect = eth_dispatcher.balance_of(option_bidder_buyer_1());
-    current_round_facade.refund_bid(option_bidder_buyer_1());
-    let ob_balance_after_collect = eth_dispatcher.balance_of(option_bidder_buyer_1());
-    // Check OB gets their refunded depost and their amount updates to 0
-    assert(ob_balance_before_collect == ob_balance_after_collect, 'balance should not change');
-}
-
-// Test that OB cannot refund bids before auction settles
-#[test]
-#[available_gas(10000000)]
-#[should_panic(expected: ('The auction is still on-going', 'ENTRYPOINT_FAILED',))]
-fn test_option_round_refund_unused_bids_too_early_failure() {
-    let (mut vault_facade, _) = setup_facade();
-
-    // Deposit liquidity and start the auction
-    accelerate_to_auctioning(ref vault_facade);
-    // Make bids
-    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let option_params = current_round_facade.get_params();
-
-    let bid_count: u256 = option_params.total_options_available + 10;
-    let bid_price: u256 = option_params.reserve_price;
-    let bid_amount: u256 = bid_count * bid_price;
-    current_round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
-    // Try to refund bid before auction settles
-    current_round_facade.refund_bid(option_bidder_buyer_1());
-}
-
