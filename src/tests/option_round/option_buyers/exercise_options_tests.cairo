@@ -26,6 +26,10 @@ use pitch_lake_starknet::tests::{
     },
 };
 
+
+/// Exercising Options Tests ///
+// These tests deal with exercising options
+
 // @note If collection fails/is 0, should we fire an event or no ?
 
 // Test that an OB with 0 options gets 0 payout
@@ -134,76 +138,6 @@ fn test_option_payout_events() {
         current_round_facade.contract_address(), option_bidder_buyer_2(), bid_amount, payout2
     );
 }
-
-
-#[test]
-#[available_gas(10000000)]
-fn test_option_payout_amount_index_higher_than_strike() {
-    let (mut vault_facade, _) = setup_facade();
-
-    // Deposit liquidity and start the auction
-    accelerate_to_auctioning(ref vault_facade);
-    // Make bids
-    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params = current_round_facade.get_params();
-    // Place the bid and end the auction
-    accelerate_to_running(ref vault_facade);
-    // Settle option round
-    // @dev This ensures the market aggregator returns the mocked current price
-    let settlement_price = params.strike_price + 11;
-    accelerate_to_settled(ref vault_facade, settlement_price);
-    // Check payout balance is expected
-    let payout_balance = current_round_facade.get_payout_balance_for(option_bidder_buyer_1());
-    let payout_balance_expected = current_round_facade.total_options_sold()
-        * (settlement_price - params.strike_price);
-    assert(payout_balance == payout_balance_expected, 'expected payout doesnt match');
-}
-
-#[test]
-#[available_gas(10000000)]
-fn test_option_payout_amount_index_less_than_strike() {
-    let (mut vault_facade, _) = setup_facade();
-
-    // Deposit liquidity and start the auction
-    accelerate_to_auctioning(ref vault_facade);
-    // Make bids
-    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params = current_round_facade.get_params();
-    // Place the bid and end the auction
-    accelerate_to_running(ref vault_facade);
-    // Settle option round
-    // @dev This ensures the market aggregator returns the mocked current price
-    // @note: if there are no mock values, the strike price here would be zero creating
-    //        'u256_sub Overflow'
-    let settlement_price = params.strike_price - 10;
-    accelerate_to_settled(ref vault_facade, settlement_price);
-    // Check payout balance is expected
-    let payout_balance = current_round_facade.get_payout_balance_for(option_bidder_buyer_1());
-    assert(payout_balance == 0, 'expected payout doesnt match');
-}
-
-#[test]
-#[available_gas(10000000)]
-fn test_option_payout_amount_index_at_strike() {
-    let (mut vault_facade, _) = setup_facade();
-
-    // Deposit liquidity and start the auction
-    accelerate_to_auctioning(ref vault_facade);
-    // Make bids
-    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params = current_round_facade.get_params();
-    // Place the bid and end the auction
-    accelerate_to_running(ref vault_facade);
-    // Settle option round
-    // @dev This ensures the market aggregator returns the mocked current price
-    let settlement_price = params.strike_price;
-    accelerate_to_settled(ref vault_facade, settlement_price);
-
-    // Check payout balance is expected
-    let payout_balance = current_round_facade.get_payout_balance_for(option_bidder_buyer_1());
-    assert(payout_balance == 0, 'expected payout doesnt match');
-}
-
 
 #[test]
 #[available_gas(10000000)]

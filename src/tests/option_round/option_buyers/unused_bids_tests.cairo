@@ -22,6 +22,9 @@ use pitch_lake_starknet::tests::{
     },
 };
 
+/// Un/used Bids Tests ///
+// These tests deal with bid processing
+
 // @note Should event emit if collecting 0 ?
 
 // @note use multiple bidders

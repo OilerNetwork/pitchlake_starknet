@@ -97,15 +97,17 @@ fn get_erc20_balances(
     balances
 }
 
-// Input an array and an amount, and return and array corresponding to each element's portion of the amount
-// @dev Used to determine how much premiums and payouts belong to an account
+// Return each elements portion of the 'amount' corresponding to the total of the array
+// @dev Scaling with bps for precision
+// @dev Used to determine how many premiums and payouts belong to an account
 fn get_portion_of_amount(mut arr: Span<u256>, amount: u256) -> Array<u256> {
+    let precision_factor = 10000;
     let mut total = sum_u256_array(arr);
     let mut portions = array![];
     loop {
         match arr.pop_front() {
             Option::Some(el) => {
-                let portion = *el * amount / total;
+                let portion = ((precision_factor * *el * amount) / total) / precision_factor;
                 portions.append(portion);
             },
             Option::None => { break (); }
@@ -124,4 +126,20 @@ fn span_to_array<T, +Drop<T>, +Copy<T>>(mut span: Span<T>) -> Array<T> {
         }
     };
     arr
+}
+
+// Get the minimum of two values
+fn min<T, +PartialEq<T>, +PartialOrd<T>, +Drop<T>, +Copy<T>>(a: T, b: T) -> T {
+    match a < b {
+        true => a,
+        false => b
+    }
+}
+
+// Get the maximum of two values
+fn max<T, +PartialEq<T>, +PartialOrd<T>, +Drop<T>, +Copy<T>>(a: T, b: T) -> T {
+    match a < b {
+        true => b,
+        false => a
+    }
 }
