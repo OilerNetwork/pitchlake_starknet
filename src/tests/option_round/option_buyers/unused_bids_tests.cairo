@@ -223,12 +223,12 @@ fn test_collect_unused_bids_eth_transfer() {
     current_round.place_bid(bid_amount4, bid_price4, ob4);
     timeskip_and_end_auction(ref vault);
 
-    // Collect unused bids
     // Eth balance before
     let mut total_unused_bids = 0;
     let round_balance_before = get_erc20_balance(
         eth.contract_address, current_round.contract_address()
     );
+    // Collect unused bids
     loop {
         match obs.pop_front() {
             Option::Some(ob) => {
