@@ -48,11 +48,7 @@ use pitch_lake_starknet::{
 };
 use debug::PrintTrait;
 
-
-/// Bidding Tests ///
-// These tests deal with placing bids
-
-/// Failues
+/// Failues ///
 
 // Test bidding 0 amount is rejected
 #[test]
@@ -213,6 +209,8 @@ fn test_bid_after_auction_end_failure_2() {
 
 /// Event Tests ///
 // @dev bid rejected events happen in the failure tests
+// @dev i don't think events fire when a txn reverts, are bid rejected events needed due to this ?
+//   - our facade throws a panic if the entry point returns a Vault/OptionRoundError
 
 // Test bid accepted events
 #[test]
@@ -246,7 +244,7 @@ fn test_bid_accepted_events() {
     }
 }
 
-/// Liquidity Tests
+/// Liquidity Tests ///
 
 // Test bidding transfers eth from bidder to round
 #[test]

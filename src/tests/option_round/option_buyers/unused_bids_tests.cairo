@@ -96,9 +96,7 @@ fn test_collect_unused_bids_events() {
     }
 }
 
-/// State Tests ///
-
-/// Unused & Used Bids
+/// Unused & Used Bids Tests ///
 
 // Test unused bid balance before auction ends
 #[test]
@@ -165,12 +163,12 @@ fn test_unused_bids_after_auction_end() {
     }
 }
 
-/// Collecting Unused Bids
+/// Refunding Unused Bids Tests ///
 
 // Test collecting unused bids sets unused bid balance to 0
 #[test]
 #[available_gas(10000000)]
-fn test_collect_unused_bids_sets_unused_balance_to_0() {
+fn test_refund_unused_bids_sets_unused_balance_to_0() {
     let (mut vault, _) = setup_facade();
     let options_available = accelerate_to_auctioning(ref vault);
     let mut current_round = vault.get_current_round();
@@ -204,7 +202,7 @@ fn test_collect_unused_bids_sets_unused_balance_to_0() {
 // Test eth transfer when collecting unused bids
 #[test]
 #[available_gas(10000000)]
-fn test_collect_unused_bids_eth_transfer() {
+fn test_refund_unused_bids_eth_transfer() {
     let (mut vault, eth) = setup_facade();
     let options_available = accelerate_to_auctioning(ref vault);
     let mut current_round = vault.get_current_round();
