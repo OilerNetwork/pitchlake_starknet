@@ -8,7 +8,8 @@ use pitch_lake_starknet::{
     option_round::{
         IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState, StartAuctionParams,
         OptionRoundConstructorParams,
-        OptionRound::{OptionRoundError, OptionRoundErrorIntoFelt252, //OptionRoundErrorIntoByteArray
+        OptionRound::{
+            OptionRoundError, OptionRoundErrorIntoFelt252, //OptionRoundErrorIntoByteArray
         }
     },
     tests::{
@@ -72,11 +73,9 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         ref self: OptionRoundFacade,
         amount: u256,
         price: u256,
-        option_bidder_buyer: ContractAddress,
+        bidder: ContractAddress,
     ) -> bool {
-        set_contract_address(option_bidder_buyer);
-        let res = self.option_round_dispatcher.place_bid(amount, price);
-        match res {
+        match self.place_bid_raw(amount, price, bidder) {
             Result::Ok(_) => true,
             Result::Err(e) => panic(array![e.into()]),
         }
@@ -110,7 +109,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     }
 
     // Place a bid for an option bidder
-    // @return: An option for whether the bid was accepted or rejected
+    // @return: An result for whether the bid was accepted or rejected
     fn place_bid_raw(
         ref self: OptionRoundFacade,
         amount: u256,
@@ -122,15 +121,14 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     }
 
 
-  // Place multiple bids for multiple option bidders
-    // @return: An option for whether the bids were accepted or rejected
+    // Place multiple bids for multiple option bidders
+    // @return: An result for whether the bids were accepted or rejected
     fn place_bids_raw(
         ref self: OptionRoundFacade,
         mut amounts: Span<u256>,
         mut prices: Span<u256>,
         mut bidders: Span<ContractAddress>,
-    ) ->
-    Array<Result<bool, OptionRoundError>> {
+    ) -> Array<Result<bool, OptionRoundError>> {
         assert_two_arrays_equal_length(bidders, amounts);
         assert_two_arrays_equal_length(bidders, prices);
         let mut results = array![];
