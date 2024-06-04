@@ -399,7 +399,7 @@ mod OptionRound {
             100
         }
 
-        fn get_refunded_bids_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
+        fn get_refundable_bids_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
             100
         }
 
