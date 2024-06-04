@@ -293,30 +293,3 @@ fn test_bid_eth_transfer() {
     }
 }
 
-// Test accpeted bids add to OB unused bid balance while auction is still on going
-fn test_bids_go_to_unused_balance_while_auctioning() {
-    let (mut vault_facade, _) = setup_facade();
-    let options_available = accelerate_to_auctioning(ref vault_facade);
-    let mut current_round = vault_facade.get_current_round();
-    let reserve_price = current_round.get_reserve_price();
-
-    // Place bids
-    let mut obs = option_bidders_get(3).span();
-    let scale = array![1, 2, 3].span();
-    let bid_prices = scale_array(scale, reserve_price).span();
-    let mut bid_amounts = scale_array(bid_prices, options_available).span();
-    current_round.place_bids(bid_amounts, bid_prices, obs);
-
-    // Check OB unused bid balances
-    loop {
-        match obs.pop_front() {
-            Option::Some(ob) => {
-                let unused_bid_balance = current_round.get_unused_bids_for(*ob);
-                let bid_amount = bid_amounts.pop_front().unwrap();
-                assert(unused_bid_balance == *bid_amount, 'unused bid balance wrong');
-            },
-            Option::None => { break; }
-        }
-    }
-}
-
