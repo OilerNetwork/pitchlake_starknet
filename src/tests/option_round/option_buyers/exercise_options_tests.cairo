@@ -2,6 +2,7 @@ use starknet::testing::{set_block_timestamp, set_contract_address};
 use openzeppelin::token::erc20::interface::{IERC20, IERC20Dispatcher, IERC20DispatcherTrait,};
 use pitch_lake_starknet::tests::{
     utils::{
+        utils::{create_array_linear, get_erc20_balance, get_erc20_balances},
         event_helpers::{
             assert_event_transfer, assert_event_vault_withdrawal, assert_event_options_exercised,
             clear_event_logs,
@@ -27,134 +28,112 @@ use pitch_lake_starknet::tests::{
 };
 
 
-/// Exercising Options Tests ///
-// These tests deal with exercising options
+/// Failures ///
 
-// @note If collection fails/is 0, should we fire an event or no ?
-
-// Test that an OB with 0 options gets 0 payout
+// Test exercising 0 options fails
 #[test]
 #[available_gas(10000000)]
-fn test_user_with_no_options_gets_no_payout() {
-    let (mut vault_facade, _) = setup_facade();
+#[should_panic(expected: ('No options to exercies', 'ENTRYPOINT_FAILED',))]
+fn test_exercising_0_options() {
+    let (mut vault, _) = setup_facade();
+    accelerate_to_auctioning(ref vault);
+    accelerate_to_running(ref vault);
+    let mut current_round = vault.get_current_round();
+    accelerate_to_settled(ref vault, 2 * current_round.get_strike_price());
 
-    // Deposit liquidity and start the auction
-    accelerate_to_auctioning(ref vault_facade);
-    // Make bids
-    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params = current_round_facade.get_params();
-    // Place the bid and end the auction
-    accelerate_to_running(ref vault_facade);
-    // Settle option round
-    // @dev This ensures the market aggregator returns the mocked current price
-    accelerate_to_settled(ref vault_facade, params.strike_price + 5);
-    // OB 2 tries to claim a payout
-    let claimed_payout_amount: u256 = current_round_facade
-        .exercise_options(option_bidder_buyer_2());
-    assert(
-        claimed_payout_amount == 0, 'nothing should be claimed'
-    ); // option_bidder_buyer_2 never auction_place_bid in the auction, so should not be able to claim payout
+    // @dev OB 2 does not participate in the default accelerators
+    current_round.exercise_options(option_bidder_buyer_2());
 }
 
-#[test]
-#[available_gas(10000000)]
-fn test_option_payout_sends_eth() {
-    let (mut vault_facade, eth_dispatcher) = setup_facade();
-
-    // Deposit liquidity and start the auction
-    accelerate_to_auctioning(ref vault_facade);
-    // Make bids
-    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params = current_round_facade.get_params();
-    // Place the bid and end the auction
-    accelerate_to_running(ref vault_facade);
-    // Settle option round
-    // @dev This ensures the market aggregator returns the mocked current price
-    accelerate_to_settled(ref vault_facade, params.strike_price + 10);
-    // Collect payout
-    let ob_balance_before = eth_dispatcher.balance_of(option_bidder_buyer_1());
-    let payout = current_round_facade.exercise_options(option_bidder_buyer_1());
-    let ob_balance_after = eth_dispatcher.balance_of(option_bidder_buyer_1());
-    // Check balance updates
-    assert(payout > 0, 'payout shd be > 0');
-    assert(ob_balance_after == ob_balance_before + payout, 'payout not received');
-    // Check eth transfer to OB
-    assert_event_transfer(
-        eth_dispatcher.contract_address,
-        current_round_facade.contract_address(),
-        option_bidder_buyer_1(),
-        payout
-    );
-}
-
-// Test withdrawing payouts emits correct events
-#[test]
-#[available_gas(10000000)]
-fn test_option_payout_events() {
-    let (mut vault_facade, _) = setup_facade();
-
-    // Deposit liquidity and start auction
-    accelerate_to_auctioning(ref vault_facade);
-    // Make bids
-    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params = current_round_facade.get_params();
-
-    // Make bids
-    let option_bidders = option_bidders_get(2);
-    let bid_amount: u256 = 2;
-    let bid_price: u256 = params.reserve_price;
-    let bid_amount: u256 = bid_amount * bid_price;
-    // @note: this test is failing for different reason now because of assert in multiple bids
-    accelerate_to_running_custom(
-        ref vault_facade,
-        option_bidders.span(),
-        array![bid_amount, bid_amount].span(),
-        array![bid_price, bid_price].span()
-    );
-
-    // Settle option round with payout
-    let settlement_price = params.strike_price + 10;
-    accelerate_to_settled(ref vault_facade, settlement_price);
-    // Initial balances
-    let (lp1_collateral_before, lp1_unallocated_before) = vault_facade
-        .get_lp_balance_spread(option_bidder_buyer_1());
-    let (lp2_collateral_before, lp2_unallocated_before) = vault_facade
-        .get_lp_balance_spread(option_bidder_buyer_2());
-    let lp1_total_balance_before = lp1_collateral_before + lp1_unallocated_before;
-    let lp2_total_balance_before = lp2_collateral_before + lp2_unallocated_before;
-
-    // Collect payout
-    clear_event_logs(
-        array![vault_facade.contract_address(), current_round_facade.contract_address()]
-    );
-    let payout1 = current_round_facade.exercise_options(option_bidder_buyer_1());
-    let payout2 = current_round_facade.exercise_options(option_bidder_buyer_2());
-
-    // Check OptionRound events
-    assert_event_options_exercised(
-        current_round_facade.contract_address(), option_bidder_buyer_1(), bid_amount, payout1
-    );
-    assert_event_options_exercised(
-        current_round_facade.contract_address(), option_bidder_buyer_2(), bid_amount, payout2
-    );
-}
-
+// Test evercising options before round settles fails
 #[test]
 #[available_gas(10000000)]
 #[should_panic(expected: ('Cannot exercise before round settles ', 'ENTRYPOINT_FAILED',))]
-fn test_exercise_options_too_early_failure() {
-    let (mut vault_facade, _) = setup_facade();
+fn test_exercise_options_before_round_settles_fails() {
+    let (mut vault, _) = setup_facade();
 
-    // Deposit liquidity and start the auction
-    accelerate_to_auctioning(ref vault_facade);
-    // Make bids
-    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let _params = current_round_facade.get_params();
-    // Place the bid and end the auction
-    accelerate_to_running(ref vault_facade);
-    // Should fail as option has not settled
-    current_round_facade.exercise_options(option_bidder_buyer_1());
+    accelerate_to_auctioning(ref vault);
+    accelerate_to_running(ref vault);
+    // Try to exercise before round settles
+    let mut current_round = vault.get_current_round();
+    current_round.exercise_options(option_bidder_buyer_1());
 }
-// @note Add test that payout is capped even if index >>> strike
+
+/// Event Tests ///
+
+// Test exercising emits correct events
+#[test]
+#[available_gas(10000000)]
+fn test_exercise_options_events() {
+    let (mut vault, _) = setup_facade();
+    let options_available = accelerate_to_auctioning(ref vault);
+
+    // Place bids and start the auction, bidders split the options at the reserve price
+    let mut obs = option_bidders_get(3).span();
+    let mut current_round = vault.get_current_round();
+    let reserve_price = current_round.get_reserve_price();
+    let bid_count = options_available / obs.len().into();
+    let bid_prices = create_array_linear(reserve_price, obs.len()).span();
+    let bid_amounts = create_array_linear(bid_count, obs.len()).span();
+    accelerate_to_running_custom(ref vault, obs, bid_amounts, bid_prices);
+    accelerate_to_settled(ref vault, 2 * current_round.get_strike_price());
+
+    loop {
+        match obs.pop_front() {
+            Option::Some(ob) => {
+                let payout_amount = current_round.exercise_options(*ob);
+
+                assert_event_options_exercised(
+                    current_round.contract_address(), *ob, bid_count, payout_amount
+                );
+            },
+            Option::None => { break (); }
+        }
+    };
+}
+
+
+/// State Tests ///
+
+#[test]
+#[available_gas(10000000)]
+fn test_exercise_options_eth_transfer() {
+    let (mut vault, eth) = setup_facade();
+    let options_available = accelerate_to_auctioning(ref vault);
+
+    // Place bids and start the auction, bidders split the options at the reserve price
+    let mut obs = option_bidders_get(3).span();
+    let mut current_round = vault.get_current_round();
+    let reserve_price = current_round.get_reserve_price();
+    let bid_count = options_available / obs.len().into();
+    let bid_prices = create_array_linear(reserve_price, obs.len()).span();
+    let bid_amounts = create_array_linear(bid_count, obs.len()).span();
+    accelerate_to_running_custom(ref vault, obs, bid_amounts, bid_prices);
+    let total_payout = accelerate_to_settled(ref vault, 2 * current_round.get_strike_price());
+
+    // Eth balance before
+    let round_balance_before = get_erc20_balance(
+        eth.contract_address, current_round.contract_address()
+    );
+    loop {
+        match obs.pop_front() {
+            Option::Some(ob) => {
+                let lp_balance_before = get_erc20_balance(eth.contract_address, *ob);
+                let payout_amount = current_round.exercise_options(*ob);
+                let lp_balance_after = get_erc20_balance(eth.contract_address, *ob);
+
+                assert(
+                    lp_balance_after == lp_balance_before + payout_amount, 'lp balance after wrong'
+                );
+            },
+            Option::None => { break (); }
+        }
+    };
+    let round_balance_after = get_erc20_balance(
+        eth.contract_address, current_round.contract_address()
+    );
+    assert(round_balance_after == round_balance_before - total_payout, 'round balance after wrong');
+}
+// @note Add test that options are burned when exercised
 
 
