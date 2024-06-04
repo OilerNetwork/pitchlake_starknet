@@ -70,12 +70,11 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     // Place a bid for an option bidder
     // @return: Whether the bid was accepted or rejected
     fn place_bid(
-        ref self: OptionRoundFacade,
-        amount: u256,
-        price: u256,
-        bidder: ContractAddress,
+        ref self: OptionRoundFacade, amount: u256, price: u256, bidder: ContractAddress,
     ) -> bool {
-        match self.place_bid_raw(amount, price, bidder) {
+        set_contract_address(bidder);
+        let res = self.place_bid_raw(amount, price, bidder);
+        match res {
             Result::Ok(_) => true,
             Result::Err(e) => panic(array![e.into()]),
         }
