@@ -127,7 +127,7 @@ fn test_auction_ended_option_round_event() {
 // Test ending an auction does not change the current round id
 #[test]
 #[available_gas(10000000)]
-fn test_end_auction_does_not_update_current_and_next_round_ids() {
+fn test_ending_auction_does_not_update_current_round_id() {
     let rounds_to_run = 3;
     let mut i = rounds_to_run;
     let (mut vault, _) = setup_facade();
@@ -158,7 +158,7 @@ fn test_end_auction_does_not_update_current_and_next_round_ids() {
 // @note should this be a state transition test in option round tests
 #[test]
 #[available_gas(10000000)]
-fn test_end_auction_updates_current_round_state() {
+fn test_ending_auction_updates_current_round_state() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
 
@@ -189,11 +189,11 @@ fn test_end_auction_updates_current_round_state() {
 // refundable bids remain in the round
 #[test]
 #[available_gas(10000000)]
-fn test_end_auction_eth_transfer() {
+fn test_ending_auction_transfers_premiums_to_vault() {
     let (mut vault_facade, eth) = setup_facade();
     accelerate_to_auctioning(ref vault_facade);
 
-    // Vault and round balances before auction ends
+    // Vault and round eth balances before auction ends
     let mut current_round = vault_facade.get_current_round();
     let round_balance_before = eth.balance_of(current_round.contract_address());
     let vault_balance_before = eth.balance_of(vault_facade.contract_address());
@@ -211,7 +211,7 @@ fn test_end_auction_eth_transfer() {
         array![losing_amount, winning_amount].span(),
         array![losing_price, winning_price].span()
     );
-    // Vault and round balances after auction ends
+    // Vault and round eth balances after auction ends
     let round_balance_after = eth.balance_of(current_round.contract_address());
     let vault_balance_after = eth.balance_of(vault_facade.contract_address());
 
@@ -228,7 +228,7 @@ fn test_end_auction_eth_transfer() {
 // Test premiums add to unlocked balance when the auction starts
 #[test]
 #[available_gas(10000000)]
-fn test_end_auction_updates_locked_and_unlocked_balances() {
+fn test_ending_auction_updates_locked_and_unlocked_balances() {
     let (mut vault, _) = setup_facade();
     let mut liquidity_providers = liquidity_providers_get(4).span();
     // Amounts to deposit: [100, 200, 300, 400]

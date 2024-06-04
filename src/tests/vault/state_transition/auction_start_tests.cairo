@@ -45,11 +45,11 @@ use debug::PrintTrait;
 
 /// Failures ///
 
-// Test an auction cannot start while the current round is auctioning
+// Test starting an auction while one is already running fails
 #[test]
 #[available_gas(10000000)]
 #[should_panic(expected: ('Cannot start auction yet', 'ENTRYPOINT_FAILED'))]
-fn test_start_auction_while_current_round_auctioning_fails() {
+fn test_starting_auction_while_auction_running_fails() {
     let (mut vault_facade, _) = setup_facade();
     accelerate_to_auctioning(ref vault_facade);
 
@@ -57,11 +57,11 @@ fn test_start_auction_while_current_round_auctioning_fails() {
     vault_facade.start_auction();
 }
 
-// Test that an auction cannot start while the current round is Running
+// Test starting an auction before the next round settles fails
 #[test]
 #[available_gas(10000000)]
 #[should_panic(expected: ('Cannot start auction yet', 'ENTRYPOINT_FAILED',))]
-fn test_start_auction_while_current_round_running_fails() {
+fn test_starting_auction_before_previous_round_settled_fails() {
     let (mut vault_facade, _) = setup_facade();
     accelerate_to_auctioning(ref vault_facade);
     accelerate_to_running(ref vault_facade);
@@ -70,11 +70,11 @@ fn test_start_auction_while_current_round_running_fails() {
     vault_facade.start_auction();
 }
 
-// Test that an auction cannot start before the round transition period is over
+// Test starting an auction before the round transition period is over fails
 #[test]
 #[available_gas(10000000)]
 #[should_panic(expected: ('Cannot start auction yet', 'ENTRYPOINT_FAILED',))]
-fn test_start_auction_before_round_transition_period_over_fails() {
+fn test_starting_auction_before_round_transition_period_over_fails() {
     let (mut vault_facade, _) = setup_facade();
     accelerate_to_auctioning(ref vault_facade);
     accelerate_to_running(ref vault_facade);
@@ -160,7 +160,7 @@ fn test_next_round_deployed_event() {
 // Test starting an auction increments the current round id
 #[test]
 #[available_gas(10000000)]
-fn test_start_auction_updates_current_and_next_round_ids() {
+fn test_starting_auction_updates_current_round_id() {
     let rounds_to_run = 3;
     let mut i = rounds_to_run;
     let (mut vault, _) = setup_facade();
@@ -191,7 +191,7 @@ fn test_start_auction_updates_current_and_next_round_ids() {
 // @note should this be a state transition test in option round tests
 #[test]
 #[available_gas(10000000)]
-fn test_start_auction_updates_current_and_next_round_states() {
+fn test_starting_auction_updates_current_rounds_state() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
 
@@ -221,7 +221,7 @@ fn test_start_auction_updates_current_and_next_round_states() {
 // Test unlocked balances become locked when the auction starts
 #[test]
 #[available_gas(10000000)]
-fn test_start_auction_updates_locked_and_unlocked_balances() {
+fn test_starting_auction_updates_locked_and_unlocked_balances() {
     let (mut vault, _) = setup_facade();
     let mut liquidity_providers = liquidity_providers_get(4).span();
     // Amounts to deposit: [100, 200, 300, 400]
