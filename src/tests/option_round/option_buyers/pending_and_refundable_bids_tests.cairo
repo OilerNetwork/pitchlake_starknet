@@ -22,8 +22,14 @@ use pitch_lake_starknet::tests::{
     },
 };
 
+// @note Break up into separate files
+// - pending/refundable bids tests can be in the same file, needs to move to option_round/state_transition/auction_end/,
+// - refunding bids should be in a new file (option_round/option_buyers/refunding_bids_tests.cairo)
 
 /// Test Setup ///
+
+// @note Look for patterns in other tests to simplify using similar thinking of below technique
+// - Maybe each file could use something like these to further simplify test readability
 
 // Deploy vault and start auction
 // @return The vault facade, eth dispatcher, and span of option bidders
@@ -64,11 +70,7 @@ fn place_incremental_bids_internal(
 }
 
 
-// @note Break up into separate files
-// - pending and refunded bids can be in their own files (if it
-// makes sense to) in (.src/tests/state_transition/auction_start|end_tests),
-// but refunding bids should be in a new file (.src/tests/option_round/option_buyers/{})
-/// Pending Bids Tests ///
+/// Pending/Refundable Bids Tests ///
 
 // Test before auction ends, pending bid balance is bid amount
 #[test]
@@ -127,12 +129,13 @@ fn test_pending_bids_after_auction_end() {
 }
 
 
-/// Refunded Bids Tests ///
+/// Refundable Bids Tests ///
+// Pending bids become either premiums or refundable
 
-// Test refunded bid balance before auction ends
+// Test refundable bid balance before auction ends
 #[test]
 #[available_gas(10000000)]
-fn test_refunded_bids_before_auction_end() {
+fn test_refundable_bids_before_auction_end() {
     let number_of_option_bidders: u256 = 3;
     let (mut vault, _, mut option_bidders) = setup_test(number_of_option_bidders);
 
@@ -143,18 +146,18 @@ fn test_refunded_bids_before_auction_end() {
     loop {
         match option_bidders.pop_front() {
             Option::Some(bidder) => {
-                let refunded_amount = current_round.get_refundable_bids_for(*bidder);
-                assert(refunded_amount == 0, 'refunded bid shd be 0');
+                let refundable_amount = current_round.get_refundable_bids_for(*bidder);
+                assert(refundable_amount == 0, 'refunded bid shd be 0');
             },
             Option::None => { break; }
         }
     }
 }
 
-// Test refunded bid balance after auction ends
+// Test refundable bid balance after auction ends
 #[test]
 #[available_gas(10000000)]
-fn test_refunded_bids_after_auction_end() {
+fn test_refundable_bids_after_auction_end() {
     let number_of_option_bidders: u256 = 3;
     let (mut vault, _, mut option_bidders) = setup_test(number_of_option_bidders);
 

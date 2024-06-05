@@ -65,7 +65,20 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         }
     }
 
+
     /// OB functions
+
+    // @note Remove raw functions, add sanity check
+    //  - sanity check that the bid details in storage match the returned value
+
+    // @note Modify bid structure (max number of options, max price per option)
+    //  - Modify/add tests accordingly
+
+    // @note Discuss
+    //  - Entry points to edit a bid
+    //    - Increase price per option ?
+    //    - Increase max number of options ?
+    //    - Separate (lower) bids ?
 
     // Place a bid for an option bidder
     // @return: Whether the bid was accepted or rejected
