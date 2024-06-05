@@ -1,5 +1,5 @@
 use starknet::{testing, ContractAddress,};
-use pitch_lake_starknet::{vault::{Vault}, option_round::{OptionRound}};
+use pitch_lake_starknet::contracts::{vault::{Vault}, option_round::{OptionRound}};
 use openzeppelin::token::erc20::{ERC20Component, ERC20Component::Transfer};
 
 // Helpers

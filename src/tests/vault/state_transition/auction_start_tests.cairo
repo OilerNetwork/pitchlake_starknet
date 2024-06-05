@@ -8,12 +8,14 @@ use openzeppelin::token::erc20::interface::{
     IERC20SafeDispatcherTrait,
 };
 use pitch_lake_starknet::{
-    eth::Eth,
-    vault::{
-        IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault,
-        IVaultSafeDispatcherTrait
+    contracts::{
+        eth::Eth,
+        vault::{
+            IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault,
+            IVaultSafeDispatcherTrait
+        },
+        option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState},
     },
-    option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState},
     tests::{
         utils::{
             event_helpers::{assert_event_auction_start, assert_event_option_round_deployed},

@@ -1,5 +1,5 @@
 use starknet::{ContractAddress};
-use pitch_lake_starknet::{
+use pitch_lake_starknet::contracts::{
     option_round::{StartAuctionParams, OptionRoundState},
     market_aggregator::{IMarketAggregator, IMarketAggregatorDispatcher},
     vault::Vault::{VaultType, VaultError},
@@ -138,7 +138,7 @@ mod Vault {
     use openzeppelin::{
         utils::serde::SerializedAppend, token::erc20::{ERC20Component, interface::IERC20}
     };
-    use pitch_lake_starknet::{
+    use pitch_lake_starknet::contracts::{
         vault::{IVault},
         option_round::{
             OptionRound,

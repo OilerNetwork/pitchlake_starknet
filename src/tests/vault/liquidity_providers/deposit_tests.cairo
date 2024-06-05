@@ -8,8 +8,10 @@ use openzeppelin::token::erc20::interface::{
     IERC20SafeDispatcherTrait,
 };
 use pitch_lake_starknet::{
-    eth::Eth, vault::{Vault},
-    option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState},
+    contracts::{
+        eth::Eth, vault::{Vault},
+        option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState},
+    },
     tests::{
         utils::{
             utils::{sum_u256_array, get_erc20_balance, get_erc20_balances, split_spreads,},

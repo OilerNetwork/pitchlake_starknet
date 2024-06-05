@@ -8,7 +8,7 @@ use openzeppelin::token::erc20::interface::{
     IERC20SafeDispatcherTrait,
 };
 use pitch_lake_starknet::{
-    eth::Eth,
+    contracts::eth::Eth,
     tests::{
         utils::{
             event_helpers::{pop_log, assert_no_events_left, assert_event_transfer},

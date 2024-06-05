@@ -1,11 +1,11 @@
 //Helper functions for posterity
-use pitch_lake_starknet::vault::{
+use pitch_lake_starknet::contracts::vault::{
     IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait,
     VaultType
 };
 use starknet::{ContractAddress, testing::{set_contract_address}};
 use pitch_lake_starknet::{
-    option_round::{
+    contracts::option_round::{
         IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState, StartAuctionParams,
         OptionRoundConstructorParams,
         OptionRound::{

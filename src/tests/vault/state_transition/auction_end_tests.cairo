@@ -9,10 +9,13 @@ use openzeppelin::token::erc20::interface::{
     IERC20SafeDispatcherTrait,
 };
 use pitch_lake_starknet::{
-    eth::Eth,
-    vault::{
-        IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault,
-        IVaultSafeDispatcherTrait,
+    contracts::{
+        eth::Eth,
+        vault::{
+            IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault,
+            IVaultSafeDispatcherTrait,
+        },
+        option_round::{OptionRoundState, IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
     },
     tests::{
         utils::{
@@ -43,7 +46,6 @@ use pitch_lake_starknet::{
             },
         },
     },
-    option_round::{OptionRoundState, IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
 };
 use debug::PrintTrait;
 

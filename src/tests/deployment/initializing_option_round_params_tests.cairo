@@ -9,13 +9,15 @@ use openzeppelin::token::erc20::interface::{
 };
 
 use pitch_lake_starknet::{
-    eth::Eth,
-    pitch_lake::{
-        IPitchLakeDispatcher, IPitchLakeSafeDispatcher, IPitchLakeDispatcherTrait, PitchLake,
-        IPitchLakeSafeDispatcherTrait
+    contracts::{
+        eth::Eth,
+        pitch_lake::{
+            IPitchLakeDispatcher, IPitchLakeSafeDispatcher, IPitchLakeDispatcherTrait, PitchLake,
+            IPitchLakeSafeDispatcherTrait
+        },
+        vault::{IVaultDispatcher, IVaultDispatcherTrait, Vault, VaultType},
+        option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
     },
-    vault::{IVaultDispatcher, IVaultDispatcherTrait, Vault, VaultType},
-    option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
     tests::{
         utils::{
             event_helpers::{pop_log, assert_no_events_left},
