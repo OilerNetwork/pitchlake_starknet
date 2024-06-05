@@ -18,13 +18,15 @@ use pitch_lake_starknet::{
     }
 };
 
+const salt: u64 = 0x123;
+
 // Test that only the vault can start an auction
 #[test]
 #[available_gas(100000000)]
 #[should_panic(expected: ('todo', 'ENTRYPOINT_FAILED'))]
 fn test_only_vault_can_start_auction() {
     let (mut vault, _) = setup_facade();
-    set_block_timestamp(get_block_timestamp() + 1234);
+    set_block_timestamp(get_block_timestamp() + salt);
     let (mut other_vault, _) = setup_facade();
     let mut next_round = vault.get_next_round();
     vault.deposit(100 * decimals(), liquidity_provider_1());
@@ -39,7 +41,7 @@ fn test_only_vault_can_start_auction() {
 #[available_gas(100000000)]
 fn test_only_vault_can_end_auction() {
     let (mut vault, _) = setup_facade();
-    set_block_timestamp(get_block_timestamp() + 1234);
+    set_block_timestamp(get_block_timestamp() + salt);
     let (mut other_vault, _) = setup_facade();
     accelerate_to_auctioning(ref vault);
     let mut current_round = vault.get_current_round();
@@ -56,7 +58,7 @@ fn test_only_vault_can_end_auction() {
 #[available_gas(100000000)]
 fn test_only_vault_can_settle_option_round() {
     let (mut vault, _) = setup_facade();
-    set_block_timestamp(get_block_timestamp() + 1234);
+    set_block_timestamp(get_block_timestamp() + salt);
     let (mut other_vault, _) = setup_facade();
 
     accelerate_to_auctioning(ref vault);
