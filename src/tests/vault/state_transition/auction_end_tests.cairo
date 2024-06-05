@@ -285,7 +285,10 @@ fn test_end_auction_updates_locked_and_unlocked_balances() {
                     (*lp_locked_before, *lp_unlocked_before) == (*lp_deposit_amount, 0),
                     'LP locked before wrong'
                 );
-                assert((*lp_locked_after, *lp_unlocked_after) == (*lp_deposit_amount, *lp_premium), 'LP locked after wrong');
+                assert(
+                    (*lp_locked_after, *lp_unlocked_after) == (*lp_deposit_amount, *lp_premium),
+                    'LP locked after wrong'
+                );
             },
             Option::None => { break (); }
         }

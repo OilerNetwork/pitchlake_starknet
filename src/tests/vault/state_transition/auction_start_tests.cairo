@@ -459,3 +459,4 @@ fn test_starting_auction_updates_locked_and_unlocked_balances() {
 //    vault_facade.start_auction();
 //}
 
+
