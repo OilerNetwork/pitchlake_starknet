@@ -12,14 +12,15 @@ use pitch_lake_starknet::{
     }
 };
 
-// @dev This needs formal verification
 // @note This should move to utils
+// @dev This needs formal verification
 fn calculate_expected_payout(ref round: OptionRoundFacade, settlement_price: u256,) -> u256 {
     let k = round.get_strike_price();
     let cl = round.get_cap_level();
     max(0, min((1 + cl) * k, settlement_price) - k)
 }
 
+// @note These tests should move to ./src/tests/option_round/state_transition/option_settled_tests.cairo
 /// Total Payout Tests ///
 
 #[test]
@@ -111,5 +112,6 @@ fn test_option_payout_amount_index_barely_less_than_strike() {
 /// Individual Payout Tests ///
 
 // @note Check/add tests for OB individual payots
+// @note add tests for payout matching expected for more realistic scenarios (talk with tomasz/finn)
 
 

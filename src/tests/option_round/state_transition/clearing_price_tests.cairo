@@ -18,6 +18,8 @@ use pitch_lake_starknet::{
 };
 use starknet::testing::{set_block_timestamp, set_contract_address};
 
+// @note These tests should move to ./src/tests/option_round/state_transition/auction_end_tests.cairo
+
 // Test clearing price is 0 before auction end
 #[test]
 #[available_gas(10000000)]
