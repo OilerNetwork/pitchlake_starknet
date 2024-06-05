@@ -171,6 +171,7 @@ mod OptionRound {
     #[derive(Copy, Drop, Serde, PartialEq, starknet::Store)]
     enum OptionRoundState {
         Open, // Accepting deposits, waiting for auction to start
+        //Initialized, set parameters for auction
         Auctioning, // Auction is on going, accepting bids
         Running, // Auction has ended, waiting for option round expiry date to settle
         Settled, // Option round has settled, remaining liquidity has rolled over to the next round
