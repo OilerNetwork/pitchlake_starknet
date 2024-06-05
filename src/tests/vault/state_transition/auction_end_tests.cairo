@@ -127,7 +127,7 @@ fn test_auction_ended_option_round_event() {
 // Test ending an auction does not change the current round id
 #[test]
 #[available_gas(10000000)]
-fn test_ending_auction_does_not_update_current_round_id() {
+fn test_end_auction_does_not_update_current_and_next_round_ids() {
     let rounds_to_run = 3;
     let mut i = rounds_to_run;
     let (mut vault, _) = setup_facade();
@@ -158,7 +158,7 @@ fn test_ending_auction_does_not_update_current_round_id() {
 // @note should this be a state transition test in option round tests
 #[test]
 #[available_gas(10000000)]
-fn test_ending_auction_updates_current_round_state() {
+fn test_end_auction_updates_current_round_state() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
 
@@ -189,11 +189,11 @@ fn test_ending_auction_updates_current_round_state() {
 // refundable bids remain in the round
 #[test]
 #[available_gas(10000000)]
-fn test_ending_auction_transfers_premiums_to_vault() {
+fn test_end_auction_eth_transfer() {
     let (mut vault_facade, eth) = setup_facade();
     accelerate_to_auctioning(ref vault_facade);
 
-    // Vault and round eth balances before auction ends
+    // Vault and round balances before auction ends
     let mut current_round = vault_facade.get_current_round();
     let round_balance_before = eth.balance_of(current_round.contract_address());
     let vault_balance_before = eth.balance_of(vault_facade.contract_address());
@@ -211,7 +211,7 @@ fn test_ending_auction_transfers_premiums_to_vault() {
         array![losing_amount, winning_amount].span(),
         array![losing_price, winning_price].span()
     );
-    // Vault and round eth balances after auction ends
+    // Vault and round balances after auction ends
     let round_balance_after = eth.balance_of(current_round.contract_address());
     let vault_balance_after = eth.balance_of(vault_facade.contract_address());
 
@@ -225,10 +225,10 @@ fn test_ending_auction_transfers_premiums_to_vault() {
     );
 }
 
-// Test premiums add to unlocked balance when the auction starts
+// Test ending the auction updates the vault and liquidity provider balances
 #[test]
 #[available_gas(10000000)]
-fn test_ending_auction_updates_locked_and_unlocked_balances() {
+fn test_end_auction_updates_locked_and_unlocked_balances() {
     let (mut vault, _) = setup_facade();
     let mut liquidity_providers = liquidity_providers_get(4).span();
     // Amounts to deposit: [100, 200, 300, 400]
@@ -239,10 +239,13 @@ fn test_ending_auction_updates_locked_and_unlocked_balances() {
     let total_deposits = sum_u256_array(deposit_amounts);
     accelerate_to_auctioning_custom(ref vault, liquidity_providers, deposit_amounts);
 
-    // Vault and liquidity provider balances before auction starts
-    let mut liquidity_providers_locked_before = vault.get_lp_locked_balances(liquidity_providers);
+    // Vault and liquidity provider balances before auction ends
+    let mut liquidity_providers_locked_before = vault
+        .get_lp_locked_balances(liquidity_providers)
+        .span();
     let mut liquidity_providers_unlocked_before = vault
-        .get_lp_unlocked_balances(liquidity_providers);
+        .get_lp_unlocked_balances(liquidity_providers)
+        .span();
     let (vault_locked_before, vault_unlocked_before) = vault.get_balance_spread();
 
     // End auction
@@ -250,128 +253,120 @@ fn test_ending_auction_updates_locked_and_unlocked_balances() {
     let total_premiums = options_sold * clearing_price;
     let mut individual_premiums = get_portion_of_amount(deposit_amounts, total_premiums).span();
 
-    // Vault and liquidity provider balances after auction starts
-    let mut liquidity_providers_locked_after = vault.get_lp_locked_balances(liquidity_providers);
+    // Vault and liquidity provider balances after auction ends
+    let mut liquidity_providers_locked_after = vault
+        .get_lp_locked_balances(liquidity_providers)
+        .span();
     let mut liquidity_providers_unlocked_after = vault
-        .get_lp_unlocked_balances(liquidity_providers);
+        .get_lp_unlocked_balances(liquidity_providers)
+        .span();
     let (vault_locked_after, vault_unlocked_after) = vault.get_balance_spread();
 
-    // Check vault balance
+    // Check vault balances
     assert(
         (vault_locked_before, vault_unlocked_before) == (total_deposits, 0),
         'vault balance before wrong'
     );
     assert(
         (vault_locked_after, vault_unlocked_after) == (total_deposits, total_premiums),
-        'vault vault after wrong'
+        'vault balance after'
     );
 
     // Check liquidity provider balances
     loop {
         match liquidity_providers_locked_before.pop_front() {
-            Option::Some(locked_balance_before) => {
-                let locked_balance_after = liquidity_providers_locked_after.pop_front().unwrap();
-                let unlocked_balance_before = liquidity_providers_unlocked_before
-                    .pop_front()
-                    .unwrap();
-                let unlocked_balance_after = liquidity_providers_unlocked_after
-                    .pop_front()
-                    .unwrap();
-                let deposit_amount = deposit_amounts.pop_front().unwrap();
-                let premiums_earned = individual_premiums.pop_front().unwrap();
-
+            Option::Some(lp_locked_before) => {
+                let lp_locked_after = liquidity_providers_locked_after.pop_front().unwrap();
+                let lp_unlocked_before = liquidity_providers_unlocked_before.pop_front().unwrap();
+                let lp_unlocked_after = liquidity_providers_unlocked_after.pop_front().unwrap();
+                let lp_deposit_amount = deposit_amounts.pop_front().unwrap();
+                let lp_premium = individual_premiums.pop_front().unwrap();
                 assert(
-                    (locked_balance_before, unlocked_balance_before) == (*deposit_amount, 0),
-                    'LP balance before wrong'
+                    (*lp_locked_before, *lp_unlocked_before) == (*lp_deposit_amount, 0),
+                    'LP locked before wrong'
                 );
+                assert((*lp_locked_after, *lp_unlocked_after) == (*lp_deposit_amount, *lp_premium), 'LP locked after wrong');
+            },
+            Option::None => { break (); }
+        }
+    }
+}
+
+// Test that the vault and LP spreads update when the auction ends. Tests rollover
+// amounts with withdraw and topup
+#[test]
+#[available_gas(10000000)]
+fn test_end_auction_updates_vault_and_lp_spreads_complex() {
+    // Accelerate through round 1 with premiums and a payout
+    let (mut vault, _) = setup_facade();
+    let mut lps = liquidity_providers_get(4).span();
+    let round1_deposits = create_array_gradient(100 * decimals(), 100 * decimals(), lps.len())
+        .span(); // (100, 200, 300, 400)
+    let starting_liquidity1 = sum_u256_array(round1_deposits);
+    accelerate_to_auctioning_custom(ref vault, lps, round1_deposits);
+    let mut round1 = vault.get_current_round();
+    let (clearing_price, options_sold) = accelerate_to_running(ref vault);
+    let total_premiums1 = clearing_price * options_sold;
+    let total_payout1 = accelerate_to_settled(ref vault, 2 * round1.get_strike_price());
+    // Total and individual remaining liquidity amounts after round 1
+    let remaining_liquidity1 = starting_liquidity1 + total_premiums1 - total_payout1;
+    let mut individual_remaining_liquidity1 = get_portion_of_amount(
+        round1_deposits, remaining_liquidity1
+    )
+        .span();
+
+    // Lp3 withdraws from premiums, lp4 adds a topup
+    let lp3 = liquidity_provider_3();
+    let lp4 = liquidity_provider_4();
+    let withdraw_amount = 1;
+    let topup_amount = 100 * decimals();
+    vault.withdraw(withdraw_amount, lp3);
+    vault.deposit(topup_amount, lp4);
+    // Start round 2' auction with no additional deposits
+    accelerate_to_auctioning_custom(ref vault, array![].span(), array![].span());
+    // Create array of round2's deposits
+    let mut round2_deposits = array![
+        *individual_remaining_liquidity1[0],
+        *individual_remaining_liquidity1[1],
+        *individual_remaining_liquidity1[2] - withdraw_amount,
+        *individual_remaining_liquidity1[3] + topup_amount
+    ]
+        .span();
+
+    // Vault and LP spreads before auction 2 ends
+    let mut lp_spreads_before = vault.get_lp_balance_spreads(lps).span();
+    let vault_spread_before = vault.get_balance_spread();
+    // End round 2's auction
+    let (clearing_price, options_sold) = accelerate_to_running(ref vault);
+    let total_premiums2 = clearing_price * options_sold;
+    let mut individual_premiums2 = get_portion_of_amount(round2_deposits, total_premiums2).span();
+    // Vault and LP spreads after the auction ends
+    let mut lp_spreads_after = vault.get_lp_balance_spreads(lps).span();
+    let vault_spread_after = vault.get_balance_spread();
+
+    // Check vault spreads
+    assert(
+        vault_spread_before == (remaining_liquidity1 + topup_amount, 0), 'vault spread before wrong'
+    );
+    assert(
+        vault_spread_after == (remaining_liquidity1 + topup_amount, total_premiums2),
+        'vault spread after wrong'
+    );
+    // Check LP spreads
+    loop {
+        match lp_spreads_before.pop_front() {
+            Option::Some(lp_spread_before) => {
+                let lp_spread_after = lp_spreads_after.pop_front().unwrap();
+                let lp_starting_liquidity2 = round2_deposits.pop_front().unwrap();
+                let lp_premiums2 = individual_premiums2.pop_front().unwrap();
+                assert(*lp_spread_before == (*lp_starting_liquidity2, 0), 'LP spread before wrong');
                 assert(
-                    (
-                        locked_balance_after, unlocked_balance_after
-                    ) == (*deposit_amount, *premiums_earned),
-                    'LP balance after wrong'
+                    *lp_spread_after == (*lp_starting_liquidity2, *lp_premiums2),
+                    'LP spread after wrong'
                 );
             },
             Option::None => { break (); }
         }
-    };
+    }
 }
-// @note revisit later if needed
-//// Test that the vault and LP spreads update when the auction ends. Tests rollover
-//// amounts with withdraw and topup
-//#[test]
-//#[available_gas(10000000)]
-//fn test_end_auction_updates_vault_and_lp_spreads_complex() {
-//    // Accelerate through round 1 with premiums and a payout
-//    let (mut vault, _) = setup_facade();
-//    let mut lps = liquidity_providers_get(4).span();
-//    let round1_deposits = create_array_gradient(100 * decimals(), 100 * decimals(), lps.len())
-//        .span(); // (100, 200, 300, 400)
-//    let starting_liquidity1 = sum_u256_array(round1_deposits);
-//    accelerate_to_auctioning_custom(ref vault, lps, round1_deposits);
-//    let mut round1 = vault.get_current_round();
-//    let (clearing_price, options_sold) = accelerate_to_running(ref vault);
-//    let total_premiums1 = clearing_price * options_sold;
-//    let total_payout1 = accelerate_to_settled(ref vault, 2 * round1.get_strike_price());
-//    // Total and individual remaining liquidity amounts after round 1
-//    let remaining_liquidity1 = starting_liquidity1 + total_premiums1 - total_payout1;
-//    let mut individual_remaining_liquidity1 = get_portion_of_amount(
-//        round1_deposits, remaining_liquidity1
-//    )
-//        .span();
-//
-//    // Lp3 withdraws from premiums, lp4 adds a topup
-//    let lp3 = liquidity_provider_3();
-//    let lp4 = liquidity_provider_4();
-//    let withdraw_amount = 1;
-//    let topup_amount = 100 * decimals();
-//    vault.withdraw(withdraw_amount, lp3);
-//    vault.deposit(topup_amount, lp4);
-//    // Start round 2' auction with no additional deposits
-//    accelerate_to_auctioning_custom(ref vault, array![].span(), array![].span());
-//    // Create array of round2's deposits
-//    let mut round2_deposits = array![
-//        *individual_remaining_liquidity1[0],
-//        *individual_remaining_liquidity1[1],
-//        *individual_remaining_liquidity1[2] - withdraw_amount,
-//        *individual_remaining_liquidity1[3] + topup_amount
-//    ]
-//        .span();
-//
-//    // Vault and LP spreads before auction 2 ends
-//    let mut lp_spreads_before = vault.get_lp_balance_spreads(lps).span();
-//    let vault_spread_before = vault.get_balance_spread();
-//    // End round 2's auction
-//    let (clearing_price, options_sold) = accelerate_to_running(ref vault);
-//    let total_premiums2 = clearing_price * options_sold;
-//    let mut individual_premiums2 = get_portion_of_amount(round2_deposits, total_premiums2).span();
-//    // Vault and LP spreads after the auction ends
-//    let mut lp_spreads_after = vault.get_lp_balance_spreads(lps).span();
-//    let vault_spread_after = vault.get_balance_spread();
-//
-//    // Check vault spreads
-//    assert(
-//        vault_spread_before == (remaining_liquidity1 + topup_amount, 0), 'vault spread before wrong'
-//    );
-//    assert(
-//        vault_spread_after == (remaining_liquidity1 + topup_amount, total_premiums2),
-//        'vault spread after wrong'
-//    );
-//    // Check LP spreads
-//    loop {
-//        match lp_spreads_before.pop_front() {
-//            Option::Some(lp_spread_before) => {
-//                let lp_spread_after = lp_spreads_after.pop_front().unwrap();
-//                let lp_starting_liquidity2 = round2_deposits.pop_front().unwrap();
-//                let lp_premiums2 = individual_premiums2.pop_front().unwrap();
-//                assert(*lp_spread_before == (*lp_starting_liquidity2, 0), 'LP spread before wrong');
-//                assert(
-//                    *lp_spread_after == (*lp_starting_liquidity2, *lp_premiums2),
-//                    'LP spread after wrong'
-//                );
-//            },
-//            Option::None => { break (); }
-//        }
-//    }
-//}
-
 

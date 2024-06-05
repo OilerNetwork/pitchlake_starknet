@@ -135,5 +135,5 @@ fn test_exercise_options_eth_transfer() {
     assert(round_balance_after == round_balance_before - total_payout, 'round balance after wrong');
 }
 // @note Add test that options are burned when exercised
-
+// @note Add test that OB can send options to another account then exercise (original owner shd not have access to payout afterwards)
 

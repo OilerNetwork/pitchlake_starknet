@@ -292,6 +292,7 @@ mod OptionRound {
         OptionSettlementDateNotReached,
         // Placing bids
         BidBelowReservePrice,
+    // @note Add events for when bids are edited
     }
 
     impl OptionRoundErrorIntoFelt252 of Into<OptionRoundError, felt252> {

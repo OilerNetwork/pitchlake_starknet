@@ -9,7 +9,7 @@
 //        - Unsure if this module is needed
 //
 //      auction_end/
-//        - pending_and_refunded_bids_tests.cairo (notes inside for separating further)
+//        - pending_to_refundable_bids_tests.cairo (notes inside for separating further)
 //        - clearing_price_tests.cairo
 //        - options_minted.cairo
 //        - premiums_earned_tests.cairo

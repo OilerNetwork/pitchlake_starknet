@@ -290,4 +290,6 @@ fn test_bid_eth_transfer() {
         };
     }
 }
+// @note Test bids are placed in pending bids
+
 
