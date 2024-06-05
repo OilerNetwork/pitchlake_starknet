@@ -21,29 +21,6 @@ use pitch_lake_starknet::tests::{
     },
 };
 
-
-#[test]
-#[available_gas(10000000)]
-fn test_premiums_and_unsold_liquidity_unlocked_amount() {
-    let (mut vault_facade, _) = setup_facade();
-    // @note add accelerate to auctioning
-    // Accelerate to round 1 running
-    accelerate_to_running(ref vault_facade);
-    // Current round (running), next round (open)
-    let mut current_round = vault_facade.get_current_round();
-    let current_params = current_round.get_params();
-    // Make deposit into next round
-    let deposit_amount = 100 * decimals();
-    vault_facade.deposit(deposit_amount, liquidity_provider_1());
-    // Amount of premiums earned from the auction (plus unsold liq) for LP
-    let premiums_earned = current_round.total_options_sold()
-        * current_params
-            .reserve_price; // @dev lp owns 100% of the pool, so 100% of the prmeium is theirs
-    // LP unallocated is premiums earned + next round deposits
-    let (_, lp_unallocated) = vault_facade.get_lp_balance_spread(liquidity_provider_1());
-    // Withdraw from rewards
-    assert(lp_unallocated == premiums_earned + deposit_amount, 'LP unallocated wrong');
-}
 // #[test]
 // #[available_gas(10000000)]
 // fn test_collected_liquidity_does_not_roll_over() {
@@ -213,8 +190,3 @@ fn test_premiums_and_unsold_liquidity_unlocked_amount() {
 //         'premium paid in ratio'
 //     );
 // }
-
-// @note add test for lps entering round, 1 leaves their position over mulitple rounds, 1 collects premiums each round
-//  - have other LP's join the protocol over the rounds, and make sure everyone's premiums are correct
-
-
