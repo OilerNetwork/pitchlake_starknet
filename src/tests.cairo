@@ -19,7 +19,7 @@ mod option_round {
     mod option_buyers {
         mod bidding_tests;
         mod exercise_options_tests;
-        mod pending_and_refunded_bids_tests;
+        mod pending_and_refundable_bids_tests;
     }
     mod state_transition {
         mod auction_start_tests;

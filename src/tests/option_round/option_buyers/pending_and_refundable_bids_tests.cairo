@@ -23,7 +23,7 @@ use pitch_lake_starknet::tests::{
 };
 
 
-/// Setup Tests ///
+/// Test Setup ///
 
 // Deploy vault and start auction
 // @return The vault facade, eth dispatcher, and span of option bidders
@@ -63,11 +63,14 @@ fn place_incremental_bids_internal(
     (bid_amounts.span(), bid_prices.span(), current_round)
 }
 
-// @note Break up into separate files
 
+// @note Break up into separate files
+// - pending and refunded bids can be in their own files (if it
+// makes sense to) in (.src/tests/state_transition/auction_start|end_tests),
+// but refunding bids should be in a new file (.src/tests/option_round/option_buyers/{})
 /// Pending Bids Tests ///
 
-// Test pending bid balance before auction ends is bid amount
+// Test before auction ends, pending bid balance is bid amount
 #[test]
 #[available_gas(10000000)]
 fn test_pending_bids_before_auction_end() {
@@ -95,7 +98,7 @@ fn test_pending_bids_before_auction_end() {
     }
 }
 
-// Test pending bid balance after auction ends is 0
+// Test after auction ends, pending bid balance ends is 0
 #[test]
 #[available_gas(10000000)]
 fn test_pending_bids_after_auction_end() {
@@ -122,6 +125,7 @@ fn test_pending_bids_after_auction_end() {
         }
     }
 }
+
 
 /// Refunded Bids Tests ///
 
@@ -180,6 +184,7 @@ fn test_refunded_bids_after_auction_end() {
         Option::None => { panic!("this should not panic") }
     }
 }
+
 
 /// Refunding Bids Tests ///
 
@@ -288,7 +293,7 @@ fn test_refund_bids_sets_refunded_balance_to_0() {
     }
 }
 
-// Test eth transfer when refunding bids
+// Test refunding bids transfers eth from round to option bidder
 #[test]
 #[available_gas(10000000)]
 fn test_refund_bids_eth_transfer() {
