@@ -31,7 +31,9 @@ mod PitchLake {
     use starknet::{ContractAddress};
     use starknet::contract_address::ContractAddressZeroable;
     use pitch_lake_starknet::contracts::vault::{Vault, IVault, IVaultDispatcher};
-    use pitch_lake_starknet::contracts::market_aggregator::{IMarketAggregator, IMarketAggregatorDispatcher};
+    use pitch_lake_starknet::contracts::market_aggregator::{
+        IMarketAggregator, IMarketAggregatorDispatcher
+    };
 
     #[storage]
     struct Storage {
