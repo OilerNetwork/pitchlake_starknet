@@ -1,4 +1,46 @@
 #[cfg(test)]
+mod deployment {
+    mod constructor_tests;
+    mod initializing_option_round_params_tests;
+}
+
+#[cfg(test)]
+mod misc {
+    //mod eth_test;
+    mod pitch_lake_test;
+    mod lp_token {
+        mod lp_token_tests;
+        mod deployment_tests;
+    }
+}
+
+#[cfg(test)]
+mod option_round {
+    mod option_buyers {
+        mod bidding_tests;
+        mod exercise_options_tests;
+        mod refunding_bids_tests;
+    }
+    mod state_transition {
+        mod auction_end {
+            mod auction_end_tests;
+            mod pending_to_refundable_bids_tests;
+            mod clearing_price_tests;
+            mod options_minted_tests;
+            mod premium_earned_tests;
+        }
+        mod auction_start {
+            mod auction_start_tests;
+        }
+        mod option_settle {
+            mod calculated_payout_tests;
+            mod option_settle_tests;
+        }
+        mod caller_is_not_vault_tests;
+    }
+}
+
+#[cfg(test)]
 mod utils {
     mod structs;
     mod event_helpers;
@@ -6,6 +48,8 @@ mod utils {
     mod test_accounts;
     mod variables;
     mod setup;
+    mod sanity_checks;
+    mod utils;
     mod mocks {
         mod mock_market_aggregator;
     }
@@ -16,39 +60,20 @@ mod utils {
     }
 }
 
-#[cfg(test)]
-mod misc {
-    //mod eth_test;
-    mod pitch_lake_test;
-}
 
 #[cfg(test)]
 mod vault {
+    mod state_transition {
+        mod auction_end_tests;
+        mod auction_start_tests;
+        mod option_settle_tests;
+    }
+
+    mod liquidity_providers {
+        mod deposit_tests;
+        mod withdraw_tests;
+    }
+
     mod unallocated_liquidity_tests;
-    mod auction_end_tests;
-    mod auction_start_tests;
-    mod deployment_tests;
-    mod deposit_tests;
-    mod option_settle_tests;
-    mod round_open_tests;
-    mod withdraw_tests;
-}
-
-#[cfg(test)]
-mod option_round {
-    mod premium_tests;
-    mod bidding_tests;
-    mod clearing_price_tests;
-    mod initializing_params_tests;
-    mod options_sold_tests;
-    mod payout_tests;
-    mod state_transition_tests;
-    mod unused_bids_tests;
-}
-
-#[cfg(test)]
-mod lp_token {
-    mod lp_token_tests;
-    mod deployment_tests;
 }
 

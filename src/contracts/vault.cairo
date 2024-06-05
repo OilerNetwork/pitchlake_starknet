@@ -1,14 +1,9 @@
 use starknet::{ContractAddress};
-use pitch_lake_starknet::option_round::{StartAuctionParams, OptionRoundState};
-use pitch_lake_starknet::market_aggregator::{IMarketAggregator, IMarketAggregatorDispatcher};
-
-// The type of vault
-#[derive(starknet::Store, Copy, Drop, Serde, PartialEq)]
-enum VaultType {
-    InTheMoney,
-    AtTheMoney,
-    OutOfMoney,
-}
+use pitch_lake_starknet::contracts::{
+    option_round::{StartAuctionParams, OptionRoundState},
+    market_aggregator::{IMarketAggregator, IMarketAggregatorDispatcher},
+    vault::Vault::{VaultType, VaultError},
+};
 
 // The interface for the vault contract
 #[starknet::interface]
@@ -76,8 +71,6 @@ trait IVault<TContractState> {
         self: @TContractState, liquidity_provider: ContractAddress, round_id: u256
     ) -> u256;
 
-    // @note add get_premiums_collected to return how much if any an LP collects from a round (used to prevent draining premiums)
-
     /// Writes ///
 
     /// State transition
@@ -85,25 +78,26 @@ trait IVault<TContractState> {
     // Start the auction on the next round as long as the current round is Settled and the
     // round transition period has passed. Deploys the next next round and updates the current/next pointers.
     // @return the total options available in the auction
-    fn start_auction(ref self: TContractState) -> Result<u256, Vault::VaultError>;
+    fn start_auction(ref self: TContractState) -> Result<u256, VaultError>;
 
     // End the auction in the current round as long as the current round is Auctioning and the auction
     // bidding period has ended.
     // @return the clearing price of the auction
     // @return the total options sold in the auction (@note keep or drop ?)
-    fn end_auction(ref self: TContractState) -> Result<(u256, u256), Vault::VaultError>;
+    fn end_auction(ref self: TContractState) -> Result<(u256, u256), VaultError>;
 
     // Settle the current option round as long as the current round is Running and the option expiry time has passed.
     // @return The total payout of the option round
-    fn settle_option_round(ref self: TContractState) -> Result<u256, Vault::VaultError>;
+    fn settle_option_round(ref self: TContractState) -> Result<u256, VaultError>;
 
     /// LP functions
 
-    // LP increments their position and sends the liquidity to the next round
-    // @note do we need a return value here ?
-    fn deposit_liquidity(ref self: TContractState, amount: u256) -> Result<u256, Vault::VaultError>;
+    // Liquditiy provider deposits to the vault for the upcoming round
+    // @return The liquidity provider's updated unlocked position
+    fn deposit_liquidity(ref self: TContractState, amount: u256) -> Result<u256, VaultError>;
 
-    // LP withdraws from their position while in the round transition period
+    // Liquidity provider withdraws from the vailt
+    // @return The liquidity provider's updated unlocked position
     fn withdraw_liquidity(
         ref self: TContractState, amount: u256
     ) -> Result<u256, Vault::VaultError>;
@@ -132,28 +126,38 @@ trait IVault<TContractState> {
     // @dev move entry point to LPToken ?
     fn convert_lp_tokens_to_newer_lp_tokens(
         ref self: TContractState, source_round: u256, target_round: u256, amount: u256
-    ) -> Result<u256, Vault::VaultError>;
+    ) -> Result<u256, VaultError>;
 }
 
 #[starknet::contract]
 mod Vault {
-    use pitch_lake_starknet::vault::IVault;
-    use openzeppelin::token::erc20::ERC20Component;
-    use openzeppelin::token::erc20::interface::IERC20;
     use starknet::{
         ContractAddress, ClassHash, deploy_syscall, get_caller_address, contract_address_const,
         get_contract_address
     };
-    use pitch_lake_starknet::vault::VaultType;
-    use openzeppelin::utils::serde::SerializedAppend;
-    use pitch_lake_starknet::option_round::{
-        OptionRound, OptionRound::{OptionRoundErrorIntoFelt252}, OptionRoundConstructorParams,
-        StartAuctionParams, OptionRoundState, IOptionRoundDispatcher
+    use openzeppelin::{
+        utils::serde::SerializedAppend, token::erc20::{ERC20Component, interface::IERC20}
     };
-    use pitch_lake_starknet::market_aggregator::{IMarketAggregatorDispatcher};
+    use pitch_lake_starknet::contracts::{
+        vault::{IVault},
+        option_round::{
+            OptionRound,
+            OptionRound::{
+                OptionRoundErrorIntoFelt252, OptionRoundConstructorParams, StartAuctionParams,
+                OptionRoundState
+            },
+            IOptionRoundDispatcher
+        },
+        market_aggregator::{IMarketAggregatorDispatcher}
+    };
 
-    // testing
-    // use pitch_lake_starknet::tests::{utils::{structs::{mock_option_params},}};
+    // The type of vault
+    #[derive(starknet::Store, Copy, Drop, Serde, PartialEq)]
+    enum VaultType {
+        InTheMoney,
+        AtTheMoney,
+        OutOfMoney,
+    }
 
     // Events
     #[event]

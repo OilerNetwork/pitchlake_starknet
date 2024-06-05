@@ -30,6 +30,8 @@ use pitch_lake_starknet::tests::{
 };
 use debug::PrintTrait;
 
+// @note move these tests to ./src/tests/option_round/state_transition/auction_end_tests
+
 // @note If premiums collected fails/is 0 amount, should an event be emiited or no ?
 // Test premiums collectable is 0 before auction end
 #[test]

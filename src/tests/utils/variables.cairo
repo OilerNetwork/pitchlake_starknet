@@ -36,3 +36,7 @@ fn month_duration() -> u64 {
 fn zero_address() -> ContractAddress {
     contract_address_const::<0>()
 }
+
+fn bps() -> u256 {
+    10000
+}

@@ -1,19 +1,24 @@
 //Helper functions for posterity
-use pitch_lake_starknet::vault::{
+use pitch_lake_starknet::contracts::vault::{
     IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait,
     VaultType
 };
 use starknet::{ContractAddress, testing::{set_contract_address}};
 use pitch_lake_starknet::{
-    option_round::{
+    contracts::option_round::{
         IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState, StartAuctionParams,
-        OptionRound::{OptionRoundErrorIntoFelt252, //OptionRoundErrorIntoByteArray
+        OptionRoundConstructorParams,
+        OptionRound::{
+            OptionRoundError, OptionRoundErrorIntoFelt252, //OptionRoundErrorIntoByteArray
         }
     },
-    tests::{utils::{variables::{vault_manager}, structs::{OptionRoundParams}}}
+    tests::{
+        utils::{
+            variables::{vault_manager}, test_accounts::{bystander}, structs::{OptionRoundParams},
+            utils::{assert_two_arrays_equal_length}, sanity_checks,
+        }
+    }
 };
-
-//use byte_array::{ByteArrayStringLiteral};
 
 #[derive(Drop)]
 struct OptionRoundFacade {
@@ -25,107 +30,194 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     /// Writes ///
 
     /// State transition
+    // @dev These functions are only accesible to the vault. They are included
+    // to test this.
 
+    // Start the next option round's auction
     fn start_auction(ref self: OptionRoundFacade) -> u256 {
-        set_contract_address(vault_manager());
         let start_auction_params = StartAuctionParams {};
         let res = self.option_round_dispatcher.start_auction(start_auction_params);
         match res {
-            Result::Ok(total_options_available) => total_options_available,
+            Result::Ok(total_options_available) => sanity_checks::start_auction(
+                ref self, total_options_available
+            ),
             Result::Err(e) => { panic(array![e.into()]) }
         }
     }
 
+    // End the current option round's auction
     fn end_auction(ref self: OptionRoundFacade) -> (u256, u256) {
-        set_contract_address(vault_manager());
         let res = self.option_round_dispatcher.end_auction();
         match res {
             Result::Ok((
-                total_options_sold, total_premiums
-            )) => (total_options_sold, total_premiums),
+                clearing_price, total_options_sold
+            )) => sanity_checks::end_auction(ref self, clearing_price, total_options_sold),
             Result::Err(e) => panic(array![e.into()]),
         }
     }
 
+    // Settle the current option round
     fn settle_option_round(ref self: OptionRoundFacade, settlement_price: u256) -> u256 {
         let res = self.option_round_dispatcher.settle_option_round(settlement_price);
         match res {
-            Result::Ok(total_payout) => total_payout,
+            Result::Ok(total_payout) => sanity_checks::settle_option_round(ref self, total_payout),
             Result::Err(e) => panic(array![e.into()]),
         }
     }
 
+
     /// OB functions
 
+    // @note Remove raw functions, add sanity check
+    //  - sanity check that the bid details in storage match the returned value
+
+    // @note Modify bid structure (max number of options, max price per option)
+    //  - Modify/add tests accordingly
+
+    // @note Discuss
+    //  - Entry points to edit a bid
+    //    - Increase price per option ?
+    //    - Increase max number of options ?
+    //    - Separate (lower) bids ?
+
+    // Place a bid for an option bidder
+    // @return: Whether the bid was accepted or rejected
     fn place_bid(
-        ref self: OptionRoundFacade,
-        amount: u256,
-        price: u256,
-        option_bidder_buyer: ContractAddress,
+        ref self: OptionRoundFacade, amount: u256, price: u256, bidder: ContractAddress,
     ) -> bool {
-        set_contract_address(option_bidder_buyer);
-        let res = self.option_round_dispatcher.place_bid(amount, price);
+        set_contract_address(bidder);
+        let res = self.place_bid_raw(amount, price, bidder);
         match res {
             Result::Ok(_) => true,
             Result::Err(e) => panic(array![e.into()]),
         }
     }
 
-
-    
+    // Place multiple bids for multiple option bidders
+    // @return: Whether the bids were accepted or rejected
     fn place_bids(
         ref self: OptionRoundFacade,
-        mut bidders: Span<ContractAddress>,
         mut amounts: Span<u256>,
-        mut prices: Span<u256>
-    ) {
+        mut prices: Span<u256>,
+        mut bidders: Span<ContractAddress>,
+    ) -> Array<bool> {
+        assert_two_arrays_equal_length(bidders, amounts);
+        assert_two_arrays_equal_length(bidders, prices);
+        let mut results = array![];
         loop {
             match bidders.pop_front() {
                 Option::Some(bidder) => {
                     let bid_amount = amounts.pop_front().unwrap();
                     let bid_price = prices.pop_front().unwrap();
-                    self.place_bid(*bid_amount, *bid_price, *bidder);
+                    // Make bid
+                    let res = self.place_bid(*bid_amount, *bid_price, *bidder);
+                    // Append result
+                    results.append(res);
                 },
                 Option::None => { break (); }
             }
         };
+        results
     }
 
+    // Place a bid for an option bidder
+    // @return: An result for whether the bid was accepted or rejected
+    fn place_bid_raw(
+        ref self: OptionRoundFacade,
+        amount: u256,
+        price: u256,
+        option_bidder_buyer: ContractAddress,
+    ) -> Result<bool, OptionRoundError> {
+        set_contract_address(option_bidder_buyer);
+        self.option_round_dispatcher.place_bid(amount, price)
+    }
+
+
+    // Place multiple bids for multiple option bidders
+    // @return: An result for whether the bids were accepted or rejected
+    fn place_bids_raw(
+        ref self: OptionRoundFacade,
+        mut amounts: Span<u256>,
+        mut prices: Span<u256>,
+        mut bidders: Span<ContractAddress>,
+    ) -> Array<Result<bool, OptionRoundError>> {
+        assert_two_arrays_equal_length(bidders, amounts);
+        assert_two_arrays_equal_length(bidders, prices);
+        let mut results = array![];
+        loop {
+            match bidders.pop_front() {
+                Option::Some(bidder) => {
+                    let bid_amount = amounts.pop_front().unwrap();
+                    let bid_price = prices.pop_front().unwrap();
+                    // Make bid
+                    let res = self.place_bid_raw(*bid_amount, *bid_price, *bidder);
+                    // Append result
+                    results.append(res);
+                },
+                Option::None => { break (); }
+            }
+        };
+        results
+    }
+
+    // Refunds all unused bids of an option bidder
+    // @return: The amount refunded
+    // @note: Call using bystander ?
     fn refund_bid(ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress) -> u256 {
         set_contract_address(option_bidder_buyer);
+        let refundable_balance = self.get_refundable_bids_for(option_bidder_buyer);
         let res = self.option_round_dispatcher.refund_unused_bids(option_bidder_buyer);
         match res {
-            Result::Ok(amount) => amount,
+            Result::Ok(amount) => {
+                sanity_checks::refund_bid(ref self, amount, refundable_balance)
+            },
             Result::Err(e) => panic(array![e.into()]),
         }
     }
 
-    
-    fn refund_bids(ref self: OptionRoundFacade, mut bidders: Span<ContractAddress>) {
+    // Refunds all unused bids of multiple option bidders
+    // @return: The amounts refunded
+    fn refund_bids(ref self: OptionRoundFacade, mut bidders: Span<ContractAddress>) -> Array<u256> {
+        let mut refund_amounts = array![];
         loop {
             match bidders.pop_front() {
-                Option::Some(bidder) => { self.refund_bid(*bidder); },
+                Option::Some(bidder) => {
+                    let refund_amount = self.refund_bid(*bidder);
+                    refund_amounts.append(refund_amount)
+                },
                 Option::None => { break (); }
             }
         };
+        refund_amounts
     }
 
+    // Exercise options for an option buyer
+    // @return: The payout amount
+    // @note: Call using bystander ?
     fn exercise_options(ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress) -> u256 {
+        let individual_payout = self.get_payout_balance_for(option_bidder_buyer);
         let res = self.option_round_dispatcher.exercise_options(option_bidder_buyer);
         match res {
-            Result::Ok(payout) => payout,
+            Result::Ok(payout) => sanity_checks::exercise_options(
+                ref self, payout, individual_payout
+            ),
             Result::Err(e) => panic(array![e.into()]),
         }
     }
 
-    
-    fn exercise_options_multiple(ref self: OptionRoundFacade, mut bidders: Span<ContractAddress>) {
+    // Exercise options for multiple option buyers
+    // @return: The payout amounts
+    fn exercise_options_multiple(
+        ref self: OptionRoundFacade, mut bidders: Span<ContractAddress>
+    ) -> Array<u256> {
+        let mut payouts = array![];
         loop {
             match bidders.pop_front() {
-                Option::Some(bidder) => { self.exercise_options(*bidder); },
+                Option::Some(bidder) => { payouts.append(self.exercise_options(*bidder)); },
                 Option::None => { break (); }
             }
         };
+        payouts
     }
 
     /// Reads ///
@@ -166,10 +258,16 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         self.option_round_dispatcher.total_options_sold()
     }
 
-    fn get_unused_bids_for(
+    fn get_pending_bids_for(
         ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
     ) -> u256 {
-        self.option_round_dispatcher.get_unused_bids_for(option_bidder_buyer)
+        self.option_round_dispatcher.get_pending_bids_for(option_bidder_buyer)
+    }
+
+    fn get_refundable_bids_for(
+        ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
+    ) -> u256 {
+        self.option_round_dispatcher.get_refundable_bids_for(option_bidder_buyer)
     }
 
     fn get_payout_balance_for(
@@ -179,6 +277,9 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     }
 
     /// Other
+    fn get_constructor_params(ref self: OptionRoundFacade) -> OptionRoundConstructorParams {
+        self.option_round_dispatcher.get_constructor_params()
+    }
 
     fn get_state(ref self: OptionRoundFacade) -> OptionRoundState {
         self.option_round_dispatcher.get_state()

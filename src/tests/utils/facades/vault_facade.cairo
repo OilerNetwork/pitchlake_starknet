@@ -1,10 +1,12 @@
 use starknet::{ContractAddress, testing::{set_contract_address, set_block_timestamp}};
 use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
 use pitch_lake_starknet::{
-    vault::{IVaultDispatcher, IVaultDispatcherTrait},
-    option_round::{OptionRound, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,},
-    market_aggregator::{
-        MarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
+    contracts::{
+        vault::{IVaultDispatcher, IVaultDispatcherTrait},
+        option_round::{OptionRound, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,},
+        market_aggregator::{
+            MarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
+        },
     },
     tests::{
         utils::{
@@ -12,8 +14,9 @@ use pitch_lake_starknet::{
                 MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
                 IMarketAggregatorSetterDispatcherTrait,
             },
-            test_accounts::{liquidity_provider_1}, variables::{vault_manager, decimals},
-            facades::{option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},}
+            test_accounts::{liquidity_provider_1, bystander}, variables::{vault_manager, decimals},
+            facades::{option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},},
+            utils::{assert_two_arrays_equal_length}, sanity_checks,
         },
     }
 };
@@ -32,85 +35,100 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         let res = self.vault_dispatcher.deposit_liquidity(amount);
 
         match res {
-            Result::Ok(liquidity) => liquidity,
+            Result::Ok(updated_unlocked_position) => {
+                sanity_checks::deposit(ref self, liquidity_provider, updated_unlocked_position)
+            },
             Result::Err(e) => panic(array![e.into()]),
         }
     }
 
-    
-    fn deposit_mutltiple(
-        ref self: VaultFacade, mut lps: Span<ContractAddress>, mut amounts: Span<u256>
-    ) -> u256 {
-        assert(lps.len() == amounts.len(), 'Incorrect lengths');
-        let mut total = 0;
+    fn deposit_multiple(
+        ref self: VaultFacade,
+        mut amounts: Span<u256>,
+        mut liquidity_providers: Span<ContractAddress>
+    ) -> Array<u256> {
+        assert_two_arrays_equal_length(liquidity_providers, amounts);
+        let mut updated_unlocked_positions = array![];
         loop {
-            match lps.pop_front() {
-                Option::Some(lp) => {
+            match liquidity_providers.pop_front() {
+                Option::Some(liquidity_provider) => {
                     let amount = amounts.pop_front().unwrap();
-                    total += *amount;
-                    self.deposit(*amount, *lp);
+                    updated_unlocked_positions.append(self.deposit(*amount, *liquidity_provider));
                 },
                 Option::None => { break (); }
             };
         };
-        total
+        updated_unlocked_positions
     }
 
     fn withdraw(ref self: VaultFacade, amount: u256, liquidity_provider: ContractAddress) -> u256 {
         set_contract_address(liquidity_provider);
         let res = self.vault_dispatcher.withdraw_liquidity(amount);
         match res {
-            Result::Ok(liquidity) => liquidity,
+            Result::Ok(updated_unlocked_position) => sanity_checks::withdraw(
+                ref self, liquidity_provider, updated_unlocked_position
+            ),
             Result::Err(e) => panic(array![e.into()]),
         }
     }
 
-    
+
     fn withdraw_multiple(
         ref self: VaultFacade, mut amounts: Span<u256>, mut lps: Span<ContractAddress>
-    ) {
-        assert(lps.len() == amounts.len(), 'Incorrect lengths');
+    ) -> Array<u256> {
+        assert_two_arrays_equal_length(lps, amounts);
+        let mut spreads = array![];
         loop {
             match lps.pop_front() {
                 Option::Some(lp) => {
                     let amount = amounts.pop_front().unwrap();
-                    self.withdraw(*amount, *lp);
+                    spreads.append(self.withdraw(*amount, *lp));
                 },
                 Option::None => { break (); }
             };
         };
+        spreads
     }
 
     /// State transition
 
     fn start_auction(ref self: VaultFacade) -> u256 {
-        // @dev Using vault manager as caller so that gas fees do not throw off balance calculations
-        set_contract_address(vault_manager());
+        // @dev Using bystander as caller so that gas fees do not throw off balance calculations
+        set_contract_address(bystander());
         let res = self.vault_dispatcher.start_auction();
         match res {
-            Result::Ok(total_options_available) => total_options_available,
+            Result::Ok(total_options_available) => {
+                let mut current_round = self.get_current_round();
+                sanity_checks::start_auction(ref current_round, total_options_available)
+            },
             Result::Err(e) => panic(array![e.into()]),
         }
     }
 
     fn end_auction(ref self: VaultFacade) -> (u256, u256) {
-        // @dev Using vault manager as caller so that gas fees do not throw off balance calculations
-        set_contract_address(vault_manager());
+        // @dev Using bystander as caller so that gas fees do not throw off balance calculations
+        set_contract_address(bystander());
         let res = self.vault_dispatcher.end_auction();
         match res {
             Result::Ok((
                 clearing_price, total_options_sold
-            )) => (clearing_price, total_options_sold),
+            )) => {
+                let mut current_round = self.get_current_round();
+                sanity_checks::end_auction(ref current_round, clearing_price, total_options_sold)
+            },
             Result::Err(e) => panic(array![e.into()]),
         }
     }
 
     fn settle_option_round(ref self: VaultFacade) -> u256 {
-        // @dev Using vault manager as caller so that gas fees do not throw off balance calculations
-        set_contract_address(vault_manager());
+        // @dev Using bystander as caller so that gas fees do not throw off balance calculations
+        set_contract_address(bystander());
         let res = self.vault_dispatcher.settle_option_round();
         match res {
-            Result::Ok(total_payout) => total_payout,
+            Result::Ok(total_payout) => {
+                let mut current_round = self.get_current_round();
+                sanity_checks::settle_option_round(ref current_round, total_payout)
+            },
             Result::Err(e) => panic(array![e.into()]),
         }
     }
@@ -119,6 +137,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     // Set the mock market aggregator data for the period of the current round
     fn set_market_aggregator_value(ref self: VaultFacade, avg_base_fee: u256) {
+        set_contract_address(bystander());
         let mut current_round = self.get_current_round();
         let start_date = current_round.get_auction_start_date();
         let end_date = current_round.get_option_expiry_date();
@@ -204,57 +223,95 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         self.vault_dispatcher.get_lp_locked_balance(lp)
     }
 
+    fn get_lp_locked_balances(
+        ref self: VaultFacade, mut lps: Span<ContractAddress>
+    ) -> Array<u256> {
+        let mut balances = array![];
+        loop {
+            match lps.pop_front() {
+                Option::Some(lp) => {
+                    let balance = self.get_lp_locked_balance(*lp);
+                    balances.append(balance);
+                },
+                Option::None => { break (); }
+            };
+        };
+        balances
+    }
+
     fn get_lp_unlocked_balance(ref self: VaultFacade, lp: ContractAddress) -> u256 {
         self.vault_dispatcher.get_lp_unlocked_balance(lp)
+    }
+
+    fn get_lp_unlocked_balances(
+        ref self: VaultFacade, mut lps: Span<ContractAddress>
+    ) -> Array<u256> {
+        let mut balances = array![];
+        loop {
+            match lps.pop_front() {
+                Option::Some(lp) => {
+                    let balance = self.get_lp_unlocked_balance(*lp);
+                    balances.append(balance);
+                },
+                Option::None => { break (); }
+            };
+        };
+        balances
     }
 
     fn get_lp_total_balance(ref self: VaultFacade, lp: ContractAddress) -> u256 {
         self.vault_dispatcher.get_lp_total_balance(lp)
     }
 
+
+    // @note replace this with get_lp_locked_and_unlocked_balance
     fn get_lp_balance_spread(ref self: VaultFacade, lp: ContractAddress) -> (u256, u256) {
         let locked = self.vault_dispatcher.get_lp_locked_balance(lp);
         let unlocked = self.vault_dispatcher.get_lp_unlocked_balance(lp);
         (locked, unlocked)
     }
 
-    
+    // @note replace this with get_lp_locked_and_unlocked_balances
     fn get_lp_balance_spreads(
         ref self: VaultFacade, mut lps: Span<ContractAddress>
-    ) -> (Array<u256>, Array<u256>) {
-        let mut arr_locked: Array<u256> = array![];
-        let mut arr_unlocked: Array<u256> = array![];
-
-        match lps.pop_front() {
-            Option::Some(lp) => {
-                let (locked, unlocked) = self.get_lp_balance_spread(*lp);
-                arr_locked.append(locked);
-                arr_unlocked.append(unlocked);
-            },
-            Option::None => { return (arr_locked, arr_unlocked); }
+    ) -> Array<(u256, u256)> {
+        let mut spreads = array![];
+        loop {
+            match lps.pop_front() {
+                Option::Some(lp) => {
+                    let locked_and_unlocked = self.get_lp_balance_spread(*lp);
+                    spreads.append(locked_and_unlocked);
+                },
+                Option::None => { break (); }
+            };
         };
-
-        (arr_locked, arr_unlocked)
+        spreads
     }
 
     fn get_premiums_for(ref self: VaultFacade, lp: ContractAddress, round_id: u256) -> u256 {
         self.vault_dispatcher.get_premiums_earned(lp, round_id)
     }
 
+    // @note add get_premiums_for_multiple()
+
     // For Vault
 
-    fn get_unlocked_balance(ref self: VaultFacade) -> u256 {
-        self.vault_dispatcher.get_total_unlocked()
-    }
-
+    // @note replace this with get_vault_locked_balance
     fn get_locked_balance(ref self: VaultFacade) -> u256 {
         self.vault_dispatcher.get_total_locked()
     }
 
+    // @note replace this with get_vault_unlocked_balance
+    fn get_unlocked_balance(ref self: VaultFacade) -> u256 {
+        self.vault_dispatcher.get_total_unlocked()
+    }
+
+    // @note replace this with get_vault_locked_and_unlocked_balance
     fn get_total_balance(ref self: VaultFacade) -> u256 {
         self.vault_dispatcher.get_total_balance()
     }
 
+    // @note replace this with get_vault_locked_and_unlocked_balances
     fn get_balance_spread(ref self: VaultFacade) -> (u256, u256) {
         let locked = self.vault_dispatcher.get_total_locked();
         let unlocked = self.vault_dispatcher.get_total_unlocked();
@@ -285,6 +342,12 @@ impl VaultFacadeImpl of VaultFacadeTrait {
             Result::Ok((value, _)) => value,
             Result::Err(e) => panic(array![e]),
         }
+    }
+
+    // Manager of the vault
+    // @note implementation not discussed yet
+    fn get_vault_manager(ref self: VaultFacade) -> ContractAddress {
+        self.vault_dispatcher.vault_manager()
     }
 
     // Gets the round transition period in seconds, 3 hours is a random number for testing

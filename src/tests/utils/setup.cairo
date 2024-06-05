@@ -1,7 +1,7 @@
 use starknet::{
     ClassHash, ContractAddress, contract_address_const, deploy_syscall,
     Felt252TryIntoContractAddress, get_contract_address, contract_address_try_from_felt252, testing,
-    testing::{set_block_timestamp, set_contract_address}
+    get_block_timestamp, testing::{set_block_timestamp, set_contract_address}
 };
 use openzeppelin::{
     utils::serde::SerializedAppend,
@@ -11,25 +11,27 @@ use openzeppelin::{
     }
 };
 use pitch_lake_starknet::{
-    eth::Eth,
-    pitch_lake::{
-        IPitchLakeDispatcher, IPitchLakeSafeDispatcher, IPitchLakeDispatcherTrait, PitchLake,
-        IPitchLakeSafeDispatcherTrait
-    },
-    market_aggregator::{
-        MarketAggregator, IMarketAggregator, IMarketAggregatorDispatcher,
-        IMarketAggregatorDispatcherTrait, IMarketAggregatorSafeDispatcher,
-        IMarketAggregatorSafeDispatcherTrait
-    },
-    vault::{IVaultDispatcher, IVaultDispatcherTrait, Vault, VaultType}, option_round,
-    option_round::{
-        OptionRound, StartAuctionParams, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,
-        IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait, OptionRoundState,
+    contracts::{
+        eth::Eth,
+        pitch_lake::{
+            IPitchLakeDispatcher, IPitchLakeSafeDispatcher, IPitchLakeDispatcherTrait, PitchLake,
+            IPitchLakeSafeDispatcherTrait
+        },
+        market_aggregator::{
+            MarketAggregator, IMarketAggregator, IMarketAggregatorDispatcher,
+            IMarketAggregatorDispatcherTrait, IMarketAggregatorSafeDispatcher,
+            IMarketAggregatorSafeDispatcherTrait
+        },
+        vault::{IVaultDispatcher, IVaultDispatcherTrait, Vault, VaultType}, option_round,
+        option_round::{
+            OptionRound, StartAuctionParams, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,
+            IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait, OptionRoundState,
+        },
     },
     tests::{
         utils::{
             structs::{OptionRoundParams}, event_helpers::{clear_event_logs},
-            test_accounts::{liquidity_providers_get, option_bidders_get},
+            test_accounts::{liquidity_providers_get, option_bidders_get, bystander},
             variables::{weth_owner, week_duration, vault_manager, decimals},
             facades::{
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
@@ -88,9 +90,12 @@ fn deploy_vault(vault_type: VaultType) -> IVaultDispatcher {
     calldata.append_serde(vault_type);
     calldata.append_serde(deploy_market_aggregator().contract_address); // needed ?
     calldata.append_serde(OptionRound::TEST_CLASS_HASH);
+    // @dev Making salt timestamp dependent so we can easily deploy new instances for testing
+    let now = get_block_timestamp();
+    let salt = 'some salt' + now.into();
 
     let (contract_address, _) = deploy_syscall(
-        Vault::TEST_CLASS_HASH.try_into().unwrap(), 'some salt', calldata.span(), true
+        Vault::TEST_CLASS_HASH.try_into().unwrap(), salt, calldata.span(), true
     )
         .expect('DEPLOY_VAULT_FAILED');
 
@@ -136,7 +141,7 @@ fn setup_facade() -> (VaultFacade, IERC20Dispatcher) {
     let eth_dispatcher: IERC20Dispatcher = deploy_eth();
     let vault_dispatcher: IVaultDispatcher = deploy_vault(VaultType::InTheMoney);
 
-    // Supply eth to test users
+    // Supply eth to test accounts
     set_contract_address(weth_owner());
     let mut lps = liquidity_providers_get(5);
     loop {
@@ -148,8 +153,6 @@ fn setup_facade() -> (VaultFacade, IERC20Dispatcher) {
             Option::None => { break (); },
         };
     };
-
-    // Give OBs eth
     let mut obs = option_bidders_get(5);
     loop {
         match obs.pop_front() {
@@ -161,6 +164,7 @@ fn setup_facade() -> (VaultFacade, IERC20Dispatcher) {
             Option::None => { break; },
         };
     };
+    eth_dispatcher.transfer(bystander(), 100000 * decimals());
 
     // Clear eth transfer events
     clear_event_logs(array![eth_dispatcher.contract_address]);

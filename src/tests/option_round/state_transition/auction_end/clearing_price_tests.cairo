@@ -18,6 +18,8 @@ use pitch_lake_starknet::{
 };
 use starknet::testing::{set_block_timestamp, set_contract_address};
 
+// @note These tests should move to ./src/tests/option_round/state_transition/auction_end_tests.cairo
+
 // Test clearing price is 0 before auction end
 #[test]
 #[available_gas(10000000)]
@@ -48,7 +50,7 @@ fn test_clearing_price_1() {
 
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
 
-    let clearing_price = accelerate_to_running(ref vault_facade);
+    let (clearing_price, _) = accelerate_to_running(ref vault_facade);
     // @dev This checks that vault::end_auction returns the clearing price that is set in storage
     assert(
         clearing_price == current_round_facade.get_auction_clearing_price(),

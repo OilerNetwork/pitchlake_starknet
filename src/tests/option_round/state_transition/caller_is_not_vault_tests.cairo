@@ -18,20 +18,20 @@ use pitch_lake_starknet::{
     }
 };
 
-// @note Modify to check the Result of the function to be Result::Err(e)
+const salt: u64 = 0x123;
+
 // Test that only the vault can start an auction
 #[test]
 #[available_gas(100000000)]
+#[should_panic(expected: ('todo', 'ENTRYPOINT_FAILED'))]
 fn test_only_vault_can_start_auction() {
     let (mut vault, _) = setup_facade();
+    set_block_timestamp(get_block_timestamp() + salt);
+    let (mut other_vault, _) = setup_facade();
     let mut next_round = vault.get_next_round();
     vault.deposit(100 * decimals(), liquidity_provider_1());
 
-    set_contract_address(liquidity_provider_1());
-    next_round.start_auction();
-
-    // Should run fine
-    set_contract_address(vault.contract_address());
+    set_contract_address(other_vault.contract_address());
     next_round.start_auction();
 }
 
@@ -41,36 +41,32 @@ fn test_only_vault_can_start_auction() {
 #[available_gas(100000000)]
 fn test_only_vault_can_end_auction() {
     let (mut vault, _) = setup_facade();
+    set_block_timestamp(get_block_timestamp() + salt);
+    let (mut other_vault, _) = setup_facade();
     accelerate_to_auctioning(ref vault);
     let mut current_round = vault.get_current_round();
 
     current_round
         .place_bid(100 * decimals(), current_round.get_reserve_price(), option_bidder_buyer_1());
     set_block_timestamp(current_round.get_auction_end_date() + 1);
-    set_contract_address(liquidity_provider_1());
-    current_round.end_auction();
-
-    // Should run fine
-    set_contract_address(vault.contract_address());
+    set_contract_address(other_vault.contract_address());
     current_round.end_auction();
 }
 
-// @note Modify to check the Result of the function to be Result::Err(e)
 // Test that only the vault can settle an option round
 #[test]
 #[available_gas(100000000)]
 fn test_only_vault_can_settle_option_round() {
     let (mut vault, _) = setup_facade();
+    set_block_timestamp(get_block_timestamp() + salt);
+    let (mut other_vault, _) = setup_facade();
+
     accelerate_to_auctioning(ref vault);
     accelerate_to_running(ref vault);
     let mut current_round = vault.get_current_round();
 
     set_block_timestamp(current_round.get_option_expiry_date());
-    set_contract_address(liquidity_provider_1());
-    current_round.settle_option_round(0x123);
-
-    // Should run fine
-    set_contract_address(vault.contract_address());
+    set_contract_address(other_vault.contract_address());
     current_round.settle_option_round(0x123);
 }
 

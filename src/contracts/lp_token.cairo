@@ -4,8 +4,8 @@ use traits::{Into, TryInto};
 use openzeppelin::token::erc20::interface::IERC20Dispatcher;
 use openzeppelin::utils::serde::SerializedAppend;
 
-use pitch_lake_starknet::option_round::{OptionRoundState};
-use pitch_lake_starknet::market_aggregator::{
+use pitch_lake_starknet::contracts::option_round::{OptionRoundState};
+use pitch_lake_starknet::contracts::market_aggregator::{
     IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
 };
 
@@ -32,7 +32,7 @@ trait ILPToken<TContractState> {
 mod LpToken {
     use starknet::{ContractAddress};
     use openzeppelin::token::erc20::ERC20Component;
-    use pitch_lake_starknet::{lp_token::{ILPToken}};
+    use pitch_lake_starknet::contracts::{lp_token::{ILPToken}};
 
     // ERC20 Component
     component!(path: ERC20Component, storage: erc20, event: ERC20Event);

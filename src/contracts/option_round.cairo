@@ -1,36 +1,11 @@
 use starknet::{ContractAddress, StorePacking};
 use openzeppelin::token::erc20::interface::IERC20Dispatcher;
-use pitch_lake_starknet::market_aggregator::{
-    IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
+use pitch_lake_starknet::contracts::{
+    market_aggregator::{IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait},
+    option_round::OptionRound::{OptionRoundState, StartAuctionParams, OptionRoundConstructorParams},
 };
 
-// The parameters needed to construct an option round
-// @param vault_address: The address of the vault that deployed this round
-// @param round_id: The id of the round (the first round in a vault is round 0)
-// @note Move into separate file or within contract
-#[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
-struct OptionRoundConstructorParams {
-    vault_address: ContractAddress,
-    round_id: u256,
-}
-
-#[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
-struct StartAuctionParams {}
-
-
-// The states an option round can be in
-// @note Should we move these into the contract or separate file ?
-#[derive(Copy, Drop, Serde, PartialEq, starknet::Store)]
-enum OptionRoundState {
-    Open, // Accepting deposits, waiting for auction to start
-    Auctioning, // Auction is on going, accepting bids
-    Running, // Auction has ended, waiting for option round expiry date to settle
-    Settled, // Option round has settled, remaining liquidity has rolled over to the next round
-//Initialized, // add between Open and Auctioning (round transition period) ?
-}
-
 // The option round contract interface
-// @note Should we move this into a separate file ?
 #[starknet::interface]
 trait IOptionRound<TContractState> {
     // @note This function is being used for testing (event testers)
@@ -67,14 +42,24 @@ trait IOptionRound<TContractState> {
     // The total number of options sold in the option round
     fn total_options_sold(self: @TContractState) -> u256;
 
-    // Pre-auction, this is the amount an OB locks for bidding,
-    // Post-auction, this is the amount not used and is withdrawable by the OB
-    fn get_unused_bids_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
+    // Get total amount of funds a bidder has locked in the auction
+    // @dev During the auction this value is the bidder's total bid amount.
+    // @dev After the auction this value is 0. All pending bids are either sent the vault
+    // as premiums, or refundable to the bidder.
+    fn get_pending_bids_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
-    // Gets the amount that an option buyer can claim with their option balance
+    // Get the refundable bid amount for an account
+    // @dev During the auction this value is 0 and after
+    // the auction is the amount refundable to the bidder
+    fn get_refundable_bids_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
+
+    // Gets the amount that an option buyer can exercise with their option balance
     fn get_payout_balance_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
     /// Other
+
+    // The constructor parmaeters of the option round
+    fn get_constructor_params(self: @TContractState) -> OptionRoundConstructorParams;
 
     // The state of the option round
     fn get_state(self: @TContractState) -> OptionRoundState;
@@ -82,7 +67,7 @@ trait IOptionRound<TContractState> {
     // The address of vault that deployed this round
     fn vault_address(self: @TContractState) -> ContractAddress;
 
-    /// Previously OptionRoundParams
+    // @dev Previously OptionRoundParams
 
     // Average base fee over last few months, used to calculate strike price
     fn get_current_average_basefee(self: @TContractState) -> u256;
@@ -101,6 +86,7 @@ trait IOptionRound<TContractState> {
 
     // The total number of options available in the auction
     fn get_total_options_available(self: @TContractState) -> u256;
+
 
     /// Writes ///
 
@@ -152,14 +138,12 @@ trait IOptionRound<TContractState> {
 
 #[starknet::contract]
 mod OptionRound {
-    use openzeppelin::token::erc20::{ERC20Component};
-    use openzeppelin::token::erc20::interface::IERC20;
-    use starknet::ContractAddress;
-    use pitch_lake_starknet::vault::VaultType;
-    use pitch_lake_starknet::vault::{IVaultDispatcher, IVaultDispatcherTrait};
-    use openzeppelin::token::erc20::interface::IERC20Dispatcher;
-    use super::{OptionRoundConstructorParams, StartAuctionParams, OptionRoundState,};
-    use pitch_lake_starknet::market_aggregator::{
+    use openzeppelin::token::erc20::{ERC20Component, interface::{IERC20, IERC20Dispatcher}};
+    use starknet::{ContractAddress};
+    use pitch_lake_starknet::contracts::vault::{
+        Vault::VaultType, IVaultDispatcher, IVaultDispatcherTrait
+    };
+    use pitch_lake_starknet::contracts::market_aggregator::{
         IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
     };
 
@@ -168,11 +152,31 @@ mod OptionRound {
         vault_address: ContractAddress,
         market_aggregator: ContractAddress,
         state: OptionRoundState,
-        // option round params
-        // params: OptionRoundParams,
-
         constructor_params: OptionRoundConstructorParams,
-        premiums_collected: LegacyMap<ContractAddress, bool>,
+    }
+
+    // The parameters needed to construct an option round
+    // @param vault_address: The address of the vault that deployed this round
+    // @param round_id: The id of the round (the first round in a vault is round 0)
+    // @note Move into separate file or within contract
+    #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
+    struct OptionRoundConstructorParams {
+        vault_address: ContractAddress,
+        round_id: u256,
+    }
+
+    #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
+    struct StartAuctionParams {}
+
+    // The states an option round can be in
+    // @note Should we move these into the contract or separate file ?
+    #[derive(Copy, Drop, Serde, PartialEq, starknet::Store)]
+    enum OptionRoundState {
+        Open, // Accepting deposits, waiting for auction to start
+        //Initialized, set parameters for auction
+        Auctioning, // Auction is on going, accepting bids
+        Running, // Auction has ended, waiting for option round expiry date to settle
+        Settled, // Option round has settled, remaining liquidity has rolled over to the next round
     }
 
     // Option round events
@@ -220,7 +224,6 @@ mod OptionRound {
         amount: u256,
         price: u256
     }
-
 
     // Emiited when the auction ends
     // @param clearing_price The resulting price per each option of the batch auction
@@ -291,6 +294,7 @@ mod OptionRound {
         OptionSettlementDateNotReached,
         // Placing bids
         BidBelowReservePrice,
+    // @note Add events for when bids are edited
     }
 
     impl OptionRoundErrorIntoFelt252 of Into<OptionRoundError, felt252> {
@@ -395,7 +399,11 @@ mod OptionRound {
             100
         }
 
-        fn get_unused_bids_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
+        fn get_pending_bids_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
+            100
+        }
+
+        fn get_refundable_bids_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
             100
         }
 
@@ -404,6 +412,10 @@ mod OptionRound {
         }
 
         /// Other
+
+        fn get_constructor_params(self: @ContractState) -> OptionRoundConstructorParams {
+            self.constructor_params.read()
+        }
 
         fn get_state(self: @ContractState) -> OptionRoundState {
             self.state.read()

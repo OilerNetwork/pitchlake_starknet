@@ -1,0 +1,140 @@
+use starknet::testing::{set_block_timestamp, set_contract_address};
+use openzeppelin::token::erc20::interface::{IERC20, IERC20Dispatcher, IERC20DispatcherTrait,};
+use pitch_lake_starknet::tests::{
+    utils::{
+        utils::{create_array_linear, get_erc20_balance, get_erc20_balances},
+        event_helpers::{
+            assert_event_transfer, assert_event_vault_withdrawal, assert_event_options_exercised,
+            clear_event_logs,
+        },
+        accelerators::{
+            accelerate_to_auctioning, accelerate_to_running, accelerate_to_settled,
+            accelerate_to_running_custom,
+        },
+        test_accounts::{
+            liquidity_provider_1, option_bidder_buyer_1, option_bidder_buyer_2,
+            option_bidder_buyer_3, option_bidders_get
+        },
+        variables::decimals, setup::{setup_facade},
+        facades::{
+            vault_facade::{VaultFacade, VaultFacadeTrait},
+            option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
+        },
+        mocks::mock_market_aggregator::{
+            MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
+            IMarketAggregatorSetterDispatcherTrait
+        },
+    },
+};
+
+
+/// Failures ///
+
+// Test exercising 0 options fails
+#[test]
+#[available_gas(10000000)]
+#[should_panic(expected: ('No options to exercies', 'ENTRYPOINT_FAILED',))]
+fn test_exercising_0_options() {
+    let (mut vault, _) = setup_facade();
+    accelerate_to_auctioning(ref vault);
+    accelerate_to_running(ref vault);
+    let mut current_round = vault.get_current_round();
+    accelerate_to_settled(ref vault, 2 * current_round.get_strike_price());
+
+    // @dev OB 2 does not participate in the default accelerators
+    current_round.exercise_options(option_bidder_buyer_2());
+}
+
+// Test evercising options before round settles fails
+#[test]
+#[available_gas(10000000)]
+#[should_panic(expected: ('Cannot exercise before round settles ', 'ENTRYPOINT_FAILED',))]
+fn test_exercise_options_before_round_settles_fails() {
+    let (mut vault, _) = setup_facade();
+
+    accelerate_to_auctioning(ref vault);
+    accelerate_to_running(ref vault);
+    // Try to exercise before round settles
+    let mut current_round = vault.get_current_round();
+    current_round.exercise_options(option_bidder_buyer_1());
+}
+
+/// Event Tests ///
+
+// Test exercising emits correct events
+#[test]
+#[available_gas(10000000)]
+fn test_exercise_options_events() {
+    let (mut vault, _) = setup_facade();
+    let options_available = accelerate_to_auctioning(ref vault);
+
+    // Place bids and start the auction, bidders split the options at the reserve price
+    let mut obs = option_bidders_get(3).span();
+    let mut current_round = vault.get_current_round();
+    let reserve_price = current_round.get_reserve_price();
+    let bid_count = options_available / obs.len().into();
+    let bid_prices = create_array_linear(reserve_price, obs.len()).span();
+    let bid_amounts = create_array_linear(bid_count, obs.len()).span();
+    accelerate_to_running_custom(ref vault, obs, bid_amounts, bid_prices);
+    accelerate_to_settled(ref vault, 2 * current_round.get_strike_price());
+
+    loop {
+        match obs.pop_front() {
+            Option::Some(ob) => {
+                let payout_amount = current_round.exercise_options(*ob);
+
+                assert_event_options_exercised(
+                    current_round.contract_address(), *ob, bid_count, payout_amount
+                );
+            },
+            Option::None => { break (); }
+        }
+    };
+}
+
+
+/// State Tests ///
+
+#[test]
+#[available_gas(10000000)]
+fn test_exercise_options_eth_transfer() {
+    let (mut vault, eth) = setup_facade();
+    let options_available = accelerate_to_auctioning(ref vault);
+
+    // Place bids and start the auction, bidders split the options at the reserve price
+    let mut obs = option_bidders_get(3).span();
+    let mut current_round = vault.get_current_round();
+    let reserve_price = current_round.get_reserve_price();
+    let bid_count = options_available / obs.len().into();
+    let bid_prices = create_array_linear(reserve_price, obs.len()).span();
+    let bid_amounts = create_array_linear(bid_count, obs.len()).span();
+    accelerate_to_running_custom(ref vault, obs, bid_amounts, bid_prices);
+    let total_payout = accelerate_to_settled(ref vault, 2 * current_round.get_strike_price());
+
+    // Eth balance before
+    let round_balance_before = get_erc20_balance(
+        eth.contract_address, current_round.contract_address()
+    );
+    loop {
+        match obs.pop_front() {
+            Option::Some(ob) => {
+                let lp_balance_before = get_erc20_balance(eth.contract_address, *ob);
+                let payout_amount = current_round.exercise_options(*ob);
+                let lp_balance_after = get_erc20_balance(eth.contract_address, *ob);
+
+                assert(
+                    lp_balance_after == lp_balance_before + payout_amount, 'lp balance after wrong'
+                );
+            },
+            Option::None => { break (); }
+        }
+    };
+    let round_balance_after = get_erc20_balance(
+        eth.contract_address, current_round.contract_address()
+    );
+    assert(round_balance_after == round_balance_before - total_payout, 'round balance after wrong');
+}
+// @note Add test that options are burned when exercised
+// @note Add test that OB can send options to another account then exercise (original owner shd not have access to payout afterwards)
+
+
