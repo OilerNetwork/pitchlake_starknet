@@ -2,15 +2,17 @@ use starknet::{
     get_block_timestamp, ContractAddress, testing::{set_block_timestamp, set_contract_address}
 };
 use pitch_lake_starknet::{
-    market_aggregator::{
-        MarketAggregator, IMarketAggregator, IMarketAggregatorDispatcher,
-        IMarketAggregatorDispatcherTrait, IMarketAggregatorSafeDispatcher,
-        IMarketAggregatorSafeDispatcherTrait
-    },
-    vault::{IVaultDispatcher, IVaultDispatcherTrait, Vault, VaultType}, option_round,
-    option_round::{
-        OptionRound, StartAuctionParams, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,
-        IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait, OptionRoundState,
+    contracts::{
+        market_aggregator::{
+            MarketAggregator, IMarketAggregator, IMarketAggregatorDispatcher,
+            IMarketAggregatorDispatcherTrait, IMarketAggregatorSafeDispatcher,
+            IMarketAggregatorSafeDispatcherTrait
+        },
+        vault::{IVaultDispatcher, IVaultDispatcherTrait, Vault, VaultType}, option_round,
+        option_round::{
+            OptionRound, StartAuctionParams, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,
+            IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait, OptionRoundState,
+        },
     },
     tests::{
         utils::{

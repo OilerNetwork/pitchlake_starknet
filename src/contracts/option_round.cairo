@@ -1,6 +1,6 @@
 use starknet::{ContractAddress, StorePacking};
 use openzeppelin::token::erc20::interface::IERC20Dispatcher;
-use pitch_lake_starknet::{
+use pitch_lake_starknet::contracts::{
     market_aggregator::{IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait},
     option_round::OptionRound::{OptionRoundState, StartAuctionParams, OptionRoundConstructorParams},
 };
@@ -140,8 +140,10 @@ trait IOptionRound<TContractState> {
 mod OptionRound {
     use openzeppelin::token::erc20::{ERC20Component, interface::{IERC20, IERC20Dispatcher}};
     use starknet::{ContractAddress};
-    use pitch_lake_starknet::vault::{Vault::VaultType, IVaultDispatcher, IVaultDispatcherTrait};
-    use pitch_lake_starknet::market_aggregator::{
+    use pitch_lake_starknet::contracts::vault::{
+        Vault::VaultType, IVaultDispatcher, IVaultDispatcherTrait
+    };
+    use pitch_lake_starknet::contracts::market_aggregator::{
         IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
     };
 

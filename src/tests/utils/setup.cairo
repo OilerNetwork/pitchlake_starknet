@@ -11,20 +11,22 @@ use openzeppelin::{
     }
 };
 use pitch_lake_starknet::{
-    eth::Eth,
-    pitch_lake::{
-        IPitchLakeDispatcher, IPitchLakeSafeDispatcher, IPitchLakeDispatcherTrait, PitchLake,
-        IPitchLakeSafeDispatcherTrait
-    },
-    market_aggregator::{
-        MarketAggregator, IMarketAggregator, IMarketAggregatorDispatcher,
-        IMarketAggregatorDispatcherTrait, IMarketAggregatorSafeDispatcher,
-        IMarketAggregatorSafeDispatcherTrait
-    },
-    vault::{IVaultDispatcher, IVaultDispatcherTrait, Vault, VaultType}, option_round,
-    option_round::{
-        OptionRound, StartAuctionParams, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,
-        IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait, OptionRoundState,
+    contracts::{
+        eth::Eth,
+        pitch_lake::{
+            IPitchLakeDispatcher, IPitchLakeSafeDispatcher, IPitchLakeDispatcherTrait, PitchLake,
+            IPitchLakeSafeDispatcherTrait
+        },
+        market_aggregator::{
+            MarketAggregator, IMarketAggregator, IMarketAggregatorDispatcher,
+            IMarketAggregatorDispatcherTrait, IMarketAggregatorSafeDispatcher,
+            IMarketAggregatorSafeDispatcherTrait
+        },
+        vault::{IVaultDispatcher, IVaultDispatcherTrait, Vault, VaultType}, option_round,
+        option_round::{
+            OptionRound, StartAuctionParams, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,
+            IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait, OptionRoundState,
+        },
     },
     tests::{
         utils::{

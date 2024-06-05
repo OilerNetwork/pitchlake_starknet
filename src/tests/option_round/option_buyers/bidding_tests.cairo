@@ -10,12 +10,14 @@ use openzeppelin::{
     },
 };
 use pitch_lake_starknet::{
-    eth::Eth,
-    vault::{
-        IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault,
-        IVaultSafeDispatcherTrait
+    contracts::{
+        eth::Eth,
+        vault::{
+            IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault,
+            IVaultSafeDispatcherTrait
+        },
+        option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
     },
-    option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
     tests::{
         utils::{
             event_helpers::{

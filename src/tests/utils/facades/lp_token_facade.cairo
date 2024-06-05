@@ -1,5 +1,7 @@
 use starknet::{ContractAddress,};
-use pitch_lake_starknet::{lp_token::{ILPToken, ILPTokenDispatcher, ILPTokenDispatcherTrait},};
+use pitch_lake_starknet::contracts::{
+    lp_token::{ILPToken, ILPTokenDispatcher, ILPTokenDispatcherTrait},
+};
 
 #[derive(Drop)]
 struct LPTokenFacade {

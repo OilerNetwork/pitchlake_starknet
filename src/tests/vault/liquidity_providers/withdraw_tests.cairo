@@ -8,7 +8,7 @@ use starknet::{
     testing::{set_block_timestamp, set_contract_address}
 };
 use pitch_lake_starknet::{
-    eth::Eth,
+    contracts::eth::Eth,
     tests::{
         utils::{
             utils::{get_erc20_balances, sum_u256_array, split_spreads},

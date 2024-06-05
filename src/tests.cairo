@@ -19,15 +19,24 @@ mod option_round {
     mod option_buyers {
         mod bidding_tests;
         mod exercise_options_tests;
-        mod pending_and_refundable_bids_tests;
+        mod refunding_bids_tests;
     }
     mod state_transition {
-        mod auction_start_tests;
-        mod calculated_payout_tests;
+        mod auction_end {
+            mod auction_end_tests;
+            mod pending_to_refundable_bids_tests;
+            mod clearing_price_tests;
+            mod options_minted_tests;
+            mod premium_earned_tests;
+        }
+        mod auction_start {
+            mod auction_start_tests;
+        }
+        mod option_settle {
+            mod calculated_payout_tests;
+            mod option_settle_tests;
+        }
         mod caller_is_not_vault_tests;
-        mod clearing_price_tests;
-        mod options_minted_tests;
-        mod premium_earned_tests;
     }
 }
 

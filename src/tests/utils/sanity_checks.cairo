@@ -2,7 +2,7 @@ use starknet::{ContractAddress, testing::{set_contract_address}};
 use openzeppelin::token::erc20::interface::{IERC20DispatcherTrait,};
 use pitch_lake_starknet::{
     //vault::{IVaultDispatcherTrait},
-    option_round::{IOptionRoundDispatcherTrait},
+    contracts::option_round::{IOptionRoundDispatcherTrait},
     tests::{
         utils::{
             accelerators::{

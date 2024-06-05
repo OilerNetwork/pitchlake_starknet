@@ -71,11 +71,13 @@ use starknet::{
 };
 use openzeppelin::utils::serde::SerializedAppend;
 use pitch_lake_starknet::{
-    pitch_lake::{
-        IPitchLake, IPitchLakeDispatcher, IPitchLakeDispatcherTrait, IPitchLakeSafeDispatcher,
-        IPitchLakeSafeDispatcherTrait, PitchLake,
+    contracts::{
+        pitch_lake::{
+            IPitchLake, IPitchLakeDispatcher, IPitchLakeDispatcherTrait, IPitchLakeSafeDispatcher,
+            IPitchLakeSafeDispatcherTrait, PitchLake,
+        },
+        vault::{IVault, IVaultDispatcher, IVaultDispatcherTrait, Vault::{VaultType}},
     },
-    vault::{IVault, IVaultDispatcher, IVaultDispatcherTrait, Vault::{VaultType}},
     tests::utils::setup::{deploy_vault, deploy_market_aggregator, deploy_pitch_lake},
 };
 use debug::PrintTrait;
