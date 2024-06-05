@@ -61,22 +61,16 @@ fn exercise_options(
 
 /// Vault
 
-fn deposit(
-    ref vault: VaultFacade, lp: ContractAddress, locked_amount: u256, unlocked_amount: u256
-) -> (u256, u256) {
-    let (expected1, expected2) = vault.get_lp_balance_spread(lp);
-    //assert(locked_amount == expected1, 'Deposit sanity check fail 1');
-    //assert(unlocked_amount == expected2, 'Deposit sanity check fail 2');
-    (locked_amount, unlocked_amount)
+fn deposit(ref vault: VaultFacade, lp: ContractAddress, unlocked_amount: u256) -> u256 {
+    let expected_unlocked_amount = vault.get_lp_unlocked_balance(lp);
+    //assert(unlocked_amount == expected_unlocked_amount, 'Deposit sanity check fail');
+    expected_unlocked_amount
 }
 
-fn withdraw(
-    ref vault: VaultFacade, lp: ContractAddress, locked_amount: u256, unlocked_amount: u256
-) -> (u256, u256) {
-    let (expected1, expected2) = vault.get_lp_balance_spread(lp);
-    //assert(locked_amount == expected1, 'Withdraw sanity check fail 1');
-    //assert(unlocked_amount == expected2, 'Withdraw sanity check fail 2');
-    (locked_amount, unlocked_amount)
+fn withdraw(ref vault: VaultFacade, lp: ContractAddress, unlocked_amount: u256) -> u256 {
+    let expected_unlocked_amount = vault.get_lp_unlocked_balance(lp);
+    //assert(unlocked_amount == expected_unlocked_amount, 'Deposit sanity check fail');
+    expected_unlocked_amount
 }
 
 /// Event Checks ///

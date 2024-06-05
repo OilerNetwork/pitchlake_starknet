@@ -28,49 +28,43 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     /// Writes ///
 
     /// LP functions
-    fn deposit(
-        ref self: VaultFacade, amount: u256, liquidity_provider: ContractAddress
-    ) -> (u256, u256) {
+    fn deposit(ref self: VaultFacade, amount: u256, liquidity_provider: ContractAddress) -> u256 {
         set_contract_address(liquidity_provider);
         let res = self.vault_dispatcher.deposit_liquidity(amount);
 
         match res {
-            Result::Ok((
-                locked_amount, unlocked_amount
-            )) => {
-                sanity_checks::deposit(ref self, liquidity_provider, locked_amount, unlocked_amount)
+            Result::Ok(updated_unlocked_position) => {
+                sanity_checks::deposit(ref self, liquidity_provider, updated_unlocked_position)
             },
             Result::Err(e) => panic(array![e.into()]),
         }
     }
 
     fn deposit_multiple(
-        ref self: VaultFacade, mut amounts: Span<u256>, mut lps: Span<ContractAddress>
-    ) -> Array<(u256, u256)> {
-        assert_two_arrays_equal_length(lps, amounts);
-        let mut spreads = array![];
+        ref self: VaultFacade,
+        mut amounts: Span<u256>,
+        mut liquidity_providers: Span<ContractAddress>
+    ) -> Array<u256> {
+        assert_two_arrays_equal_length(liquidity_providers, amounts);
+        let mut updated_unlocked_positions = array![];
         loop {
-            match lps.pop_front() {
-                Option::Some(lp) => {
+            match liquidity_providers.pop_front() {
+                Option::Some(liquidity_provider) => {
                     let amount = amounts.pop_front().unwrap();
-                    spreads.append(self.deposit(*amount, *lp));
+                    updated_unlocked_positions.append(self.deposit(*amount, *liquidity_provider));
                 },
                 Option::None => { break (); }
             };
         };
-        spreads
+        updated_unlocked_positions
     }
 
-    fn withdraw(
-        ref self: VaultFacade, amount: u256, liquidity_provider: ContractAddress
-    ) -> (u256, u256) {
+    fn withdraw(ref self: VaultFacade, amount: u256, liquidity_provider: ContractAddress) -> u256 {
         set_contract_address(liquidity_provider);
         let res = self.vault_dispatcher.withdraw_liquidity(amount);
         match res {
-            Result::Ok((
-                locked_amount, unlocked_amount
-            )) => sanity_checks::withdraw(
-                ref self, liquidity_provider, locked_amount, unlocked_amount
+            Result::Ok(updated_unlocked_position) => sanity_checks::withdraw(
+                ref self, liquidity_provider, updated_unlocked_position
             ),
             Result::Err(e) => panic(array![e.into()]),
         }
@@ -79,7 +73,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     fn withdraw_multiple(
         ref self: VaultFacade, mut amounts: Span<u256>, mut lps: Span<ContractAddress>
-    ) -> Array<(u256, u256)> {
+    ) -> Array<u256> {
         assert_two_arrays_equal_length(lps, amounts);
         let mut spreads = array![];
         loop {
@@ -227,20 +221,55 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         self.vault_dispatcher.get_lp_locked_balance(lp)
     }
 
+    fn get_lp_locked_balances(
+        ref self: VaultFacade, mut lps: Span<ContractAddress>
+    ) -> Array<u256> {
+        let mut balances = array![];
+        loop {
+            match lps.pop_front() {
+                Option::Some(lp) => {
+                    let balance = self.get_lp_locked_balance(*lp);
+                    balances.append(balance);
+                },
+                Option::None => { break (); }
+            };
+        };
+        balances
+    }
+
     fn get_lp_unlocked_balance(ref self: VaultFacade, lp: ContractAddress) -> u256 {
         self.vault_dispatcher.get_lp_unlocked_balance(lp)
+    }
+
+    fn get_lp_unlocked_balances(
+        ref self: VaultFacade, mut lps: Span<ContractAddress>
+    ) -> Array<u256> {
+        let mut balances = array![];
+        loop {
+            match lps.pop_front() {
+                Option::Some(lp) => {
+                    let balance = self.get_lp_unlocked_balance(*lp);
+                    balances.append(balance);
+                },
+                Option::None => { break (); }
+            };
+        };
+        balances
     }
 
     fn get_lp_total_balance(ref self: VaultFacade, lp: ContractAddress) -> u256 {
         self.vault_dispatcher.get_lp_total_balance(lp)
     }
 
+
+    // @note replace this with get_lp_locked_and_unlocked_balance
     fn get_lp_balance_spread(ref self: VaultFacade, lp: ContractAddress) -> (u256, u256) {
         let locked = self.vault_dispatcher.get_lp_locked_balance(lp);
         let unlocked = self.vault_dispatcher.get_lp_unlocked_balance(lp);
         (locked, unlocked)
     }
 
+    // @note replace this with get_lp_locked_and_unlocked_balances
     fn get_lp_balance_spreads(
         ref self: VaultFacade, mut lps: Span<ContractAddress>
     ) -> Array<(u256, u256)> {
@@ -261,20 +290,26 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         self.vault_dispatcher.get_premiums_earned(lp, round_id)
     }
 
+    // @note add get_premiums_for_multiple()
+
     // For Vault
 
-    fn get_unlocked_balance(ref self: VaultFacade) -> u256 {
-        self.vault_dispatcher.get_total_unlocked()
-    }
-
+    // @note replace this with get_vault_locked_balance
     fn get_locked_balance(ref self: VaultFacade) -> u256 {
         self.vault_dispatcher.get_total_locked()
     }
 
+    // @note replace this with get_vault_unlocked_balance
+    fn get_unlocked_balance(ref self: VaultFacade) -> u256 {
+        self.vault_dispatcher.get_total_unlocked()
+    }
+
+    // @note replace this with get_vault_locked_and_unlocked_balance
     fn get_total_balance(ref self: VaultFacade) -> u256 {
         self.vault_dispatcher.get_total_balance()
     }
 
+    // @note replace this with get_vault_locked_and_unlocked_balances
     fn get_balance_spread(ref self: VaultFacade) -> (u256, u256) {
         let locked = self.vault_dispatcher.get_total_locked();
         let unlocked = self.vault_dispatcher.get_total_unlocked();

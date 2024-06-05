@@ -92,17 +92,15 @@ trait IVault<TContractState> {
 
     /// LP functions
 
-    // LP increments their position and sends the liquidity to the next round
-    // @return LP's locked & unlocked balance after the deposit
-    fn deposit_liquidity(
-        ref self: TContractState, amount: u256
-    ) -> Result<(u256, u256), VaultError>;
+    // Liquditiy provider deposits to the vault for the upcoming round
+    // @return The liquidity provider's updated unlocked position
+    fn deposit_liquidity(ref self: TContractState, amount: u256) -> Result<u256, VaultError>;
 
-    // LP withdraws from their position while in the round transition period
-    // @return LP's remaining locked/unlocked balance after the withdrawal
+    // Liquidity provider withdraws from the vailt
+    // @return The liquidity provider's updated unlocked position
     fn withdraw_liquidity(
         ref self: TContractState, amount: u256
-    ) -> Result<(u256, u256), Vault::VaultError>;
+    ) -> Result<u256, Vault::VaultError>;
 
     /// LP token related
 
@@ -392,16 +390,12 @@ mod Vault {
         }
 
         /// OB functions
-        fn deposit_liquidity(
-            ref self: ContractState, amount: u256
-        ) -> Result<(u256, u256), VaultError> {
-            Result::Ok((1, 1))
+        fn deposit_liquidity(ref self: ContractState, amount: u256) -> Result<u256, VaultError> {
+            Result::Ok(1)
         }
 
-        fn withdraw_liquidity(
-            ref self: ContractState, amount: u256
-        ) -> Result<(u256, u256), VaultError> {
-            Result::Ok((1, 1))
+        fn withdraw_liquidity(ref self: ContractState, amount: u256) -> Result<u256, VaultError> {
+            Result::Ok(1)
         }
 
         /// LP token related
