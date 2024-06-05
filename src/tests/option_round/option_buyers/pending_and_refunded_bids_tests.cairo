@@ -23,7 +23,6 @@ use pitch_lake_starknet::tests::{
 };
 
 
-
 /// Setup Tests ///
 
 // Deploy vault and start auction
@@ -65,7 +64,6 @@ fn place_incremental_bids_internal(
 }
 
 // @note Break up into separate files
-
 
 /// Pending Bids Tests ///
 
@@ -117,8 +115,8 @@ fn test_pending_bids_after_auction_end() {
     loop {
         match option_bidders.pop_front() {
             Option::Some(bidder) => {
-                let unused_bid_balance = current_round.get_pending_bids_for(*bidder);
-                assert(unused_bid_balance == 0, 'pending bid shd be 0');
+                let pending_bid = current_round.get_pending_bids_for(*bidder);
+                assert(pending_bid == 0, 'pending bid shd be 0');
             },
             Option::None => { break; }
         }
@@ -298,9 +296,7 @@ fn test_refund_bids_eth_transfer() {
     let (mut vault, eth_dispatcher, mut option_bidders) = setup_test(number_of_option_bidders);
 
     // Each option bidder out bids the next
-    let (_, _, mut current_round) = place_incremental_bids_internal(
-        ref vault, option_bidders
-    );
+    let (_, _, mut current_round) = place_incremental_bids_internal(ref vault, option_bidders);
 
     // End auction
     timeskip_and_end_auction(ref vault);

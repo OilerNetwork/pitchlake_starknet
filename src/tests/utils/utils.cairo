@@ -71,7 +71,6 @@ fn multiply_arrays<T, +Drop<T>, +Copy<T>, +Mul<T>>(
     multiplied
 }
 
-
 // Sum an array of spreads and return the total spread
 fn sum_spreads(mut spreads: Span<(u256, u256)>) -> (u256, u256) {
     let mut total_locked: u256 = 0;
