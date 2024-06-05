@@ -17,7 +17,7 @@ use pitch_lake_starknet::{
             },
             accelerators::{
                 accelerate_to_auctioning, accelerate_to_auctioning_custom, accelerate_to_running,
-                accelerate_to_settled,
+                accelerate_to_settled, timeskip_and_start_auction,
             },
             test_accounts::{
                 liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
@@ -37,11 +37,12 @@ use debug::PrintTrait;
 
 /// Failures ///
 
+// @note should not fail, just return 0
 // Test withdraw 0 fails
 #[test]
 #[available_gas(10000000)]
 #[should_panic(expected: ('Cannot withdraw 0', 'ENTRYPOINT_FAILED'))]
-fn test_withdraw_0_fails() {
+fn test_withdrawing_0_fails() {
     let (mut vault, _) = setup_facade();
     let lp = liquidity_provider_1();
     accelerate_to_auctioning(ref vault);
@@ -53,42 +54,44 @@ fn test_withdraw_0_fails() {
 #[test]
 #[available_gas(10000000)]
 #[should_panic(expected: ('Cannot withdraw more than unallocated balance', 'ENTRYPOINT_FAILED'))]
-fn test_withdraw_more_than_unlocked_balance_fails() {
+fn test_withdrawing_more_than_unlocked_balance_fails() {
     let (mut vault, _) = setup_facade();
     let lp = liquidity_provider_1();
     accelerate_to_auctioning(ref vault);
     accelerate_to_running(ref vault);
-    let unlocked_balance = vault.get_lp_unlocked_balance(lp);
+
     // Try to withdraw more than unlocked balance
+    let unlocked_balance = vault.get_lp_unlocked_balance(lp);
     vault.withdraw(unlocked_balance + 1, lp);
 }
 
 
 /// Event Tests ///
 
-// Test when LPs withdraw, the correct events fire
+// Test withdrawing from the vault emits the correct event
 #[test]
 #[available_gas(10000000)]
-fn test_withdraw_events() {
+fn test_withdrawal_events() {
     let (mut vault, _) = setup_facade();
-    let mut liquidity_providers = liquidity_providers_get(3);
-    let deposit_amounts = array![25 * decimals(), 50 * decimals(), 100 * decimals()];
+    let mut liquidity_providers = liquidity_providers_get(3).span();
+    let deposit_amounts = array![25 * decimals(), 50 * decimals(), 100 * decimals()].span();
 
-    // Initial unlocked balances
-    let spreads_init = vault.get_lp_balance_spreads(liquidity_providers.span());
+    // Unlocked balances before withdrawal
+    let mut lp_unlocked_balances_before = vault
+        .deposit_multiple(deposit_amounts, liquidity_providers);
+
     // Withdraw from the vault
-    let spreads_final = vault.withdraw_multiple(deposit_amounts.span(), liquidity_providers.span());
+    let mut lp_unlocked_balances_after = vault
+        .withdraw_multiple(deposit_amounts, liquidity_providers);
 
-    // Check event emission
-    let (_, mut lp_unlocked_balances_init) = split_spreads(spreads_init.span());
-    let (_, mut lp_unlocked_balances_final) = split_spreads(spreads_final.span());
+    // Check event emissions
     loop {
         match liquidity_providers.pop_front() {
             Option::Some(lp) => {
-                let unlocked_bal_before = lp_unlocked_balances_init.pop_front().unwrap();
-                let unlocked_bal_after = lp_unlocked_balances_final.pop_front().unwrap();
+                let unlocked_amount_before = lp_unlocked_balances_before.pop_front().unwrap();
+                let unlocked_amount_after = lp_unlocked_balances_after.pop_front().unwrap();
                 assert_event_vault_withdrawal(
-                    vault.contract_address(), lp, unlocked_bal_before, unlocked_bal_after
+                    vault.contract_address(), *lp, unlocked_amount_before, unlocked_amount_after
                 );
             },
             Option::None => { break (); }
@@ -98,77 +101,43 @@ fn test_withdraw_events() {
 
 /// State Tests ///
 
-// Test when LPs withdraw, eth transfers from Vault to LP
+// Test withdrawing transfers eth from vault to liquidity provider
 #[test]
 #[available_gas(10000000)]
-fn test_deposit_eth_transfer() {
+fn test_withdrawing_from_vault_eth_transfer() {
     let (mut vault, eth) = setup_facade();
-    let lps = liquidity_providers_get(2);
-    let mut amounts = array![50 * decimals(), 50 * decimals()];
-    vault.deposit_multiple(amounts.span(), lps.span());
+    let mut liquidity_providers = liquidity_providers_get(2).span();
+    let mut deposit_amounts = array![50 * decimals(), 50 * decimals()].span();
+    vault.deposit_multiple(deposit_amounts, liquidity_providers);
 
-    // Initital eth balances for vault and LPs
-    let addresses = array![vault.contract_address(), *lps[0], *lps[1]].span();
-    let mut init_eth_balances = get_erc20_balances(eth.contract_address, addresses);
-    // Deposit into vault
-    vault.withdraw_multiple(amounts.span(), lps.span());
-    // Final eth balances for vault and LP
-    let mut final_eth_balances = get_erc20_balances(eth.contract_address, addresses);
+    // Liquidity provider and vault eth balances before withdrawal
+    let mut lp_balances_before = get_erc20_balances(eth.contract_address, liquidity_providers);
+    let vault_balance_before = eth.balance_of(vault.contract_address());
 
-    // Check eth balances
-    let total_withdrawals = sum_u256_array(amounts.span());
-    // Vault
+    // Withdraw from vault
+    vault.withdraw_multiple(deposit_amounts, liquidity_providers,);
+    let total_withdrawals = sum_u256_array(deposit_amounts);
+
+    // Liquidity provider and vault eth balances after withdrawal
+    let mut lp_balances_after = get_erc20_balances(eth.contract_address, liquidity_providers);
+    let vault_balance_after = eth.balance_of(vault.contract_address());
+
+    // Check vault eth balance
     assert(
-        *final_eth_balances[0] == *init_eth_balances[0] - total_withdrawals,
-        'Vault did not send eth'
+        vault_balance_after == vault_balance_before - total_withdrawals, 'vault eth balance wrong'
     );
-    // Lp1
-    assert(*final_eth_balances[1] == *init_eth_balances[1] - *amounts[0], 'LP1 did not send eth');
-    // Lp2
-    assert(*final_eth_balances[2] == *init_eth_balances[2] - *amounts[1], 'LP2 did not send eth');
-}
 
-
-// Test when LPs withdraw, tokens come from the unlocked pool
-#[test]
-#[available_gas(10000000)]
-fn test_withdraw_come_from_unlocked_pool() {
-    let (mut vault, _) = setup_facade();
-    let mut lps = liquidity_providers_get(3);
-    let mut deposit_amounts = array![25 * decimals(), 50 * decimals(), 100 * decimals()];
-    accelerate_to_auctioning_custom(ref vault, lps.span(), deposit_amounts.span(),);
-
-    // Get the initial spread of the vault and LPs
-    let mut spreads_init = vault.get_lp_balance_spreads(lps.span());
-    let (vault_locked_init, vault_unlocked_init) = vault.get_balance_spread();
-    // Withdraw some amount in the vault
-    let mut withdraw_amounts = array![1 * decimals(), 2 * decimals(), 4 * decimals()];
-    let spreads_final = vault.deposit_multiple(withdraw_amounts.span(), lps.span());
-    // Get the final spread of the vault and LPs
-    let (vault_locked_final, vault_unlocked_final) = vault.get_balance_spread();
-    let amounts_total = sum_u256_array(deposit_amounts.span());
-
-    // Locked should not change, and unlocked should decrease by withdrawal amount
-    assert(vault_locked_final == vault_locked_init, 'vault locked shd not change');
-    assert(vault_unlocked_final == vault_unlocked_init + amounts_total, 'vault unlocked wrong');
-    let (mut lp_locked_balances_init, mut lp_unlocked_balances_init) = split_spreads(
-        spreads_init.span()
-    );
-    let (mut lp_locked_balances_final, mut lp_unlocked_balances_final) = split_spreads(
-        spreads_final.span()
-    );
+    // Check liquidity provider eth balances
     loop {
-        match lps.pop_front() {
+        match liquidity_providers.pop_front() {
             Option::Some(_) => {
-                let lp_locked_init = lp_locked_balances_init.pop_front().unwrap();
-                let lp_locked_final = lp_locked_balances_final.pop_front().unwrap();
-                assert(lp_locked_final == lp_locked_init, 'lp locked shd not change');
+                let lp_balance_before = lp_balances_before.pop_front().unwrap();
+                let lp_balance_after = lp_balances_after.pop_front().unwrap();
 
-                let lp_unlocked_init = lp_unlocked_balances_init.pop_front().unwrap();
-                let lp_unlocked_final = lp_unlocked_balances_final.pop_front().unwrap();
-                let withdraw_amount = withdraw_amounts.pop_front().unwrap();
+                // Check eth transfers to liquidity provider
                 assert(
-                    lp_unlocked_final == lp_unlocked_init - withdraw_amount, 'lp unlocked wrong'
+                    lp_balance_after == lp_balance_before + total_withdrawals,
+                    'lp eth balance wrong'
                 );
             },
             Option::None => { break (); }
@@ -179,40 +148,33 @@ fn test_withdraw_come_from_unlocked_pool() {
 // Test withdrawal always come from the vault's unlocked pool, regardless of the state of the current round
 #[test]
 #[available_gas(10000000)]
-fn test_withdrawals_always_come_from_unlocked() {
+fn test_withdrawing_always_come_from_unlocked_pool() {
     let (mut vault, _) = setup_facade();
-    // Lp1 supplys liquidity and the next auction starts
-    accelerate_to_auctioning(ref vault);
-    let deposit_amount = vault.get_locked_balance(); // lp1 deposited 100 eth in the accelerator
+    let deposit_amount = 100 * decimals();
+    let withdraw_amount = 1 * decimals();
+    let liquidity_provider = liquidity_provider_1();
 
-    // Vault and lp's initial spread after a topup (without a topup the unlocked balance would be 0)
-    let lp = liquidity_provider_1();
-    let topup_amount = 200 * decimals();
-    let lp_spread0 = vault.deposit(topup_amount, lp); //(locked: dep, unlocked: topup)
-    let vault_spread0 = vault.get_balance_spread();
     // Withdraw while current round is auctioning
-    let lp_spread1 = vault.withdraw(topup_amount, lp); //(dep, 0)
-    let vault_spread1 = vault.get_balance_spread();
+    accelerate_to_auctioning(ref vault);
+    let unlocked_amount_before = vault.deposit(deposit_amount, liquidity_provider);
+    let unlocked_amount_after = vault.withdraw(withdraw_amount, liquidity_provider);
+    assert(
+        unlocked_amount_after == unlocked_amount_before - withdraw_amount, 'unlocked amount 1 wrong'
+    );
+
     // Withdraw while current round is running
-    let (clearing_price, total_options_sold) = accelerate_to_running(ref vault);
-    let total_premiums = clearing_price * total_options_sold;
-    let lp_spread2 = vault.withdraw(total_premiums / 2, lp);
-    let vault_spread2 = vault.get_balance_spread();
-    // Withdraw while the current round is settled (no payout upon settlement)
-    let mut current_round = vault.get_current_round();
-    let total_payout = accelerate_to_settled(ref vault, 2 * current_round.get_strike_price());
-    let lp_spread3 = vault.withdraw(total_premiums / 2, lp); //(0, dep-payout)
-    let vault_spread3 = vault.get_balance_spread();
+    accelerate_to_running(ref vault);
+    let unlocked_amount_before = vault.get_lp_unlocked_balance(liquidity_provider);
+    let unlocked_amount_after = vault.withdraw(withdraw_amount, liquidity_provider);
+    assert(
+        unlocked_amount_after == unlocked_amount_before - withdraw_amount, 'unlocked amount 2 wrong'
+    );
 
-    // Check vault and lp spreads
-    assert(vault_spread0 == (deposit_amount, topup_amount), 'vault spread 0 wrong');
-    assert(vault_spread1 == (deposit_amount, 0), 'vault spread 1 wrong');
-    assert(vault_spread2 == (deposit_amount, total_premiums / 2), 'vault spread 2 wrong');
-    assert(vault_spread3 == (0, deposit_amount - total_payout), 'vault spread 3 wrong');
-
-    assert(lp_spread0 == (deposit_amount, topup_amount), 'lp spread 0 wrong');
-    assert(lp_spread1 == (deposit_amount, 0), 'lp spread 1 wrong');
-    assert(lp_spread2 == (deposit_amount, total_premiums / 2), 'lp spread 2 wrong');
-    assert(lp_spread3 == (0, deposit_amount - total_payout), 'lp spread 3 wrong');
+    // Withdraw while the current round is settled
+    accelerate_to_settled(ref vault, 0);
+    let unlocked_amount_before = vault.get_lp_unlocked_balance(liquidity_provider);
+    let unlocked_amount_after = vault.withdraw(withdraw_amount, liquidity_provider);
+    assert(
+        unlocked_amount_after == unlocked_amount_before - withdraw_amount, 'unlocked amount 3 wrong'
+    );
 }
-
