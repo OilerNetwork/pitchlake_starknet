@@ -27,6 +27,9 @@ use starknet::testing::{set_block_timestamp, set_contract_address};
 // - test when no bids have been placed
 // - we have a mock of this in python already in the code base, we should use it to generate values for
 // tests
+// @note we may consider options being factional (1 option erc20 could have 6-18 decimals, representing
+// 1,000,000 gas units. Owning 0.5000... option round tokens represent options for 500,000 gas units).
+// Whening doing 1/100 * options available, we should divide with bps, see payout_tests for examples
 
 // Test clearing price is 0 before auction end
 #[test]
