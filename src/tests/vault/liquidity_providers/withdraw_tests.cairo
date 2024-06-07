@@ -37,19 +37,6 @@ use debug::PrintTrait;
 
 /// Failures ///
 
-// @note should not fail, just return 0
-// Test withdraw 0 fails
-#[test]
-#[available_gas(10000000)]
-#[should_panic(expected: ('Cannot withdraw 0', 'ENTRYPOINT_FAILED'))]
-fn test_withdrawing_0_fails() {
-    let (mut vault, _) = setup_facade();
-    let lp = liquidity_provider_1();
-    accelerate_to_auctioning(ref vault);
-    // Try to withdraw 0
-    vault.withdraw(0, lp);
-}
-
 // Test withdrawing > unlocked balance fails
 #[test]
 #[available_gas(10000000)]
@@ -63,6 +50,20 @@ fn test_withdrawing_more_than_unlocked_balance_fails() {
     // Try to withdraw more than unlocked balance
     let unlocked_balance = vault.get_lp_unlocked_balance(lp);
     vault.withdraw(unlocked_balance + 1, lp);
+}
+
+// @note instead of testing withdrawing 0 fails or returns 0, we should just include in
+// in the the withdraw amounts in each test
+// @note can use the same array of withdraw amounts/lps for each test (0, ...)
+#[test]
+#[available_gas(10000000)]
+#[should_panic(expected: ('Cannot withdraw 0', 'ENTRYPOINT_FAILED'))]
+fn test_withdrawing_0_fails() {
+    let (mut vault, _) = setup_facade();
+    let lp = liquidity_provider_1();
+    accelerate_to_auctioning(ref vault);
+    // Try to withdraw 0
+    vault.withdraw(0, lp);
 }
 
 

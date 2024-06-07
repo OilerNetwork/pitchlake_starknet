@@ -45,8 +45,9 @@ use debug::PrintTrait;
 
 /// Failures
 
-// @note should not fail, just return 0
-// Test deposit 0 fails
+// @note instead of testing deposit 0 fails or returns 0, we should just include in
+// in the the deposited amount in each test
+// @note can use the same array of deposit amounts/lps for each test (0, 25, 50, 100, etc)
 #[test]
 #[available_gas(10000000)]
 #[should_panic(expected: ('Cannot deposit 0', 'ENTRYPOINT_FAILED'))]

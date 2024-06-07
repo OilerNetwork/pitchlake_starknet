@@ -90,6 +90,9 @@ fn test_refunding_bids_before_auction_end_fails() {
 }
 
 // Test refunding 0 bids fails
+// @note instead of returning 0 or failing, these tests should just include (not pop back) the last LP in the
+// array (auction winner), since they they can still refund, their eth balance will not change and the return
+// of refund will be 0
 #[test]
 #[available_gas(10000000)]
 #[should_panic(expected: ('No bids to refund', 'ENTRYPOINT_FAILED',))]
@@ -212,3 +215,6 @@ fn test_refund_bids_eth_transfer() {
         Option::None => { panic!("this should not panic") }
     }
 }
+
+
+
