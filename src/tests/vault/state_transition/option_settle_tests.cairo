@@ -16,7 +16,10 @@ use pitch_lake_starknet::{
             IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault,
             IVaultSafeDispatcherTrait
         },
-        eth::Eth, option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
+        eth::Eth,
+        option_round::{
+            IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRound::OptionRoundError
+        },
         market_aggregator::{
             IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait,
             IMarketAggregatorSafeDispatcher, IMarketAggregatorSafeDispatcherTrait
@@ -61,15 +64,20 @@ use debug::PrintTrait;
 /// Failures ///
 
 // Test settling an option round fails if the current round is not running
+// @note Check whether all should return the same error felt
 #[test]
 #[available_gas(10000000)]
-#[should_panic(expected: ('Some error', 'Options cannot settle before expiry',))]
 fn test_settling_option_round_while_current_round_auctioning_fails() {
     let (mut vault_facade, _) = setup_facade();
     accelerate_to_auctioning(ref vault_facade);
 
+    let expected_error: felt252 = OptionRoundError:: OptionSettlementDateNotReached.into();
+    // Try to end auction after it has already ended
+    match vault_facade.settle_option_round_raw() {
+        Result::Ok(_) => { panic!("Error expected") },
+        Result::Err(err) => { assert(err.into() == expected_error, 'Error Mismatch') }
+    }
     // Settle option round before expiry
-    vault_facade.settle_option_round();
 }
 
 // Test settling an option if the current round is not running fails
@@ -77,7 +85,6 @@ fn test_settling_option_round_while_current_round_auctioning_fails() {
 // current round is settled
 #[test]
 #[available_gas(10000000)]
-#[should_panic(expected: ('Some error', 'Options cannot settle before expiry',))]
 fn test_settling_option_round_while_current_settled_fails() {
     let (mut vault_facade, _) = setup_facade();
     accelerate_to_auctioning(ref vault_facade);
@@ -85,20 +92,29 @@ fn test_settling_option_round_while_current_settled_fails() {
     accelerate_to_settled(ref vault_facade, 0x123);
 
     // Settle option round before expiry
-    vault_facade.settle_option_round();
+    let expected_error: felt252 = OptionRoundError:: OptionSettlementDateNotReached.into();
+    // Try to end auction after it has already ended
+    match vault_facade.settle_option_round_raw() {
+        Result::Ok(_) => { panic!("Error expected") },
+        Result::Err(err) => { assert(err.into() == expected_error, 'Error Mismatch') }
+    }
 }
 
 // Test settling an option round before the option expiry date fails
 #[test]
 #[available_gas(10000000)]
-#[should_panic(expected: ('Some error', 'Options cannot settle before expiry',))]
 fn test_settling_option_round_before_settlement_date_fails() {
     let (mut vault_facade, _) = setup_facade();
     accelerate_to_auctioning(ref vault_facade);
     accelerate_to_running(ref vault_facade);
 
     // Settle option round before expiry
-    vault_facade.settle_option_round();
+    let expected_error: felt252 = OptionRoundError:: OptionSettlementDateNotReached.into();
+    // Try to end auction after it has already ended
+    match vault_facade.settle_option_round_raw() {
+        Result::Ok(_) => { panic!("Error expected") },
+        Result::Err(err) => { assert(err.into() == expected_error, 'Error Mismatch') }
+    }
 }
 
 

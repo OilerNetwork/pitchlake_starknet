@@ -205,6 +205,13 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         }
     }
 
+    fn exercise_options_raw(
+        ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
+    ) -> Result<u256, OptionRoundError> {
+        let individual_payout = self.get_payout_balance_for(option_bidder_buyer);
+        self.option_round_dispatcher.exercise_options(option_bidder_buyer)
+    }
+
     // Exercise options for multiple option buyers
     // @return: The payout amounts
     fn exercise_options_multiple(

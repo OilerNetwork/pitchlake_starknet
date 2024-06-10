@@ -1,30 +1,34 @@
+use core::traits::Into;
 use starknet::testing::{set_block_timestamp, set_contract_address};
 use openzeppelin::token::erc20::interface::{IERC20, IERC20Dispatcher, IERC20DispatcherTrait,};
-use pitch_lake_starknet::tests::{
-    utils::{
-        utils::{create_array_linear, get_erc20_balance, get_erc20_balances},
-        event_helpers::{
-            assert_event_transfer, assert_event_vault_withdrawal, assert_event_options_exercised,
-            clear_event_logs,
+use pitch_lake_starknet::{
+    contracts::option_round::OptionRound::{OptionRoundError, OptionRoundErrorIntoFelt252},
+    tests::{
+        utils::{
+            utils::{create_array_linear, get_erc20_balance, get_erc20_balances},
+            event_helpers::{
+                assert_event_transfer, assert_event_vault_withdrawal,
+                assert_event_options_exercised, clear_event_logs,
+            },
+            accelerators::{
+                accelerate_to_auctioning, accelerate_to_running, accelerate_to_settled,
+                accelerate_to_running_custom,
+            },
+            test_accounts::{
+                liquidity_provider_1, option_bidder_buyer_1, option_bidder_buyer_2,
+                option_bidder_buyer_3, option_bidders_get
+            },
+            variables::decimals, setup::{setup_facade},
+            facades::{
+                vault_facade::{VaultFacade, VaultFacadeTrait},
+                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
+            },
+            mocks::mock_market_aggregator::{
+                MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
+                IMarketAggregatorSetterDispatcherTrait
+            },
         },
-        accelerators::{
-            accelerate_to_auctioning, accelerate_to_running, accelerate_to_settled,
-            accelerate_to_running_custom,
-        },
-        test_accounts::{
-            liquidity_provider_1, option_bidder_buyer_1, option_bidder_buyer_2,
-            option_bidder_buyer_3, option_bidders_get
-        },
-        variables::decimals, setup::{setup_facade},
-        facades::{
-            vault_facade::{VaultFacade, VaultFacadeTrait},
-            option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
-        },
-        mocks::mock_market_aggregator::{
-            MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
-            IMarketAggregatorSetterDispatcherTrait
-        },
-    },
+    }
 };
 
 
@@ -33,7 +37,6 @@ use pitch_lake_starknet::tests::{
 // Test exercising 0 options fails
 #[test]
 #[available_gas(10000000)]
-#[should_panic(expected: ('No options to exercies', 'ENTRYPOINT_FAILED',))]
 fn test_exercising_0_options() {
     let (mut vault, _) = setup_facade();
     accelerate_to_auctioning(ref vault);
@@ -48,15 +51,17 @@ fn test_exercising_0_options() {
 // Test evercising options before round settles fails
 #[test]
 #[available_gas(10000000)]
-#[should_panic(expected: ('Cannot exercise before round settles ', 'ENTRYPOINT_FAILED',))]
 fn test_exercise_options_before_round_settles_fails() {
     let (mut vault, _) = setup_facade();
-
     accelerate_to_auctioning(ref vault);
     accelerate_to_running(ref vault);
     // Try to exercise before round settles
     let mut current_round = vault.get_current_round();
-    current_round.exercise_options(option_bidder_buyer_1());
+    let mut expected_error: felt252 = OptionRoundError::AuctionEndDateNotReached.into();
+    match current_round.exercise_options_raw(option_bidder_buyer_1()) {
+        Result::Ok(_) => { panic!("Error expected") },
+        Result::Err(err) => { assert(err.into() == expected_error, 'Error misMatch'); },
+    }
 }
 
 /// Event Tests ///

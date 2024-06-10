@@ -37,17 +37,25 @@ use debug::PrintTrait;
 
 /// Failures ///
 
-// @note should not fail, just return 0
-// Test withdraw 0 fails
+// Test withdraw 0 returns 0, does not fail, but balances are unchanged.
+//@note confirm if gas changes will also affect the balance, should we only check for vault balance or 
+//calculate gas amount to correct the balance.
 #[test]
 #[available_gas(10000000)]
-#[should_panic(expected: ('Cannot withdraw 0', 'ENTRYPOINT_FAILED'))]
-fn test_withdrawing_0_fails() {
-    let (mut vault, _) = setup_facade();
+fn test_withdrawing_0_returns_0() {
+    let (mut vault, eth_dispatcher) = setup_facade();
     let lp = liquidity_provider_1();
     accelerate_to_auctioning(ref vault);
+
     // Try to withdraw 0
-    vault.withdraw(0, lp);
+    let total_initial = vault.get_total_balance();
+    let lp_initial = eth_dispatcher.balance_of(liquidity_provider_1());
+    let withdraw_return = vault.withdraw(0, liquidity_provider_1());
+    let total_final = vault.get_total_balance();
+    let lp_final = eth_dispatcher.balance_of(liquidity_provider_1());
+    assert(total_initial == total_final, 'Vault eth balance wrong');
+    assert(lp_initial == lp_final, 'LP eth balance wrong');
+    assert(withdraw_return == 0, 'Deposit should return 0')
 }
 
 // Test withdrawing > unlocked balance fails

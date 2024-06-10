@@ -45,14 +45,19 @@ use debug::PrintTrait;
 
 /// Failures
 
-// @note should not fail, just return 0
-// Test deposit 0 fails
+// Test deposit 0 doesn't change anything
 #[test]
 #[available_gas(10000000)]
-#[should_panic(expected: ('Cannot deposit 0', 'ENTRYPOINT_FAILED'))]
-fn test_deposit_0_fails() {
-    let (mut vault, _) = setup_facade();
-    vault.deposit(0, liquidity_provider_1());
+fn test_deposit_0() {
+    let (mut vault, eth_dispatcher) = setup_facade();
+    let total_initial = vault.get_total_balance();
+    let lp_initial = eth_dispatcher.balance_of(liquidity_provider_1());
+    let deposit_return = vault.deposit(0, liquidity_provider_1());
+    let total_final = vault.get_total_balance();
+    let lp_final = eth_dispatcher.balance_of(liquidity_provider_1());
+    assert(total_initial == total_final, 'Vault eth balance wrong');
+    assert(lp_initial == lp_final, 'LP eth balance wrong');
+    assert(deposit_return == 0, 'Deposit should return 0')
 }
 
 /// Event Tests
