@@ -48,6 +48,7 @@ fn setup_test(
 }
 
 // Place incremental bids
+// @note Move to utils
 fn place_incremental_bids_internal(
     ref vault: VaultFacade, option_bidders: Span<ContractAddress>,
 ) -> (Span<u256>, Span<u256>, OptionRoundFacade) {
@@ -89,11 +90,10 @@ fn test_refunding_bids_before_auction_end_fails() {
     current_round.refund_bid(*option_bidders[0]);
 }
 
-// Test refunding 0 bids fails
+// Test refunding 0 bids returns zero;
 #[test]
 #[available_gas(10000000)]
-#[should_panic(expected: ('No bids to refund', 'ENTRYPOINT_FAILED',))]
-fn test_refunding_0_bids_fails() {
+fn test_refunding_0_bids_returns_0() {
     let number_of_option_bidders: u256 = 3;
     let (mut vault, _, mut option_bidders) = setup_test(number_of_option_bidders);
 
@@ -109,9 +109,11 @@ fn test_refunding_0_bids_fails() {
             // Refund bids
             current_round.refund_bid(*bidder);
             // Refund again fails since their are 0 refundable now
-            current_round.refund_bid(*bidder);
+            // Confirm where the funds reside and check the subsequent balances
+            let refund_zero = current_round.refund_bid(*bidder);
+            assert(refund_zero==0,'Should return 0')
         },
-        Option::None => { panic!("this should not panic") }
+        Option::None => { panic!("Bidder not found") }
     }
 }
 
