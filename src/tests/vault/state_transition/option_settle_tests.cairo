@@ -71,13 +71,13 @@ fn test_settling_option_round_while_current_round_auctioning_fails() {
     let (mut vault_facade, _) = setup_facade();
     accelerate_to_auctioning(ref vault_facade);
 
-    let expected_error: felt252 = OptionRoundError:: OptionSettlementDateNotReached.into();
+    let expected_error: felt252 = OptionRoundError::OptionSettlementDateNotReached.into();
     // Try to end auction after it has already ended
     match vault_facade.settle_option_round_raw() {
         Result::Ok(_) => { panic!("Error expected") },
         Result::Err(err) => { assert(err.into() == expected_error, 'Error Mismatch') }
     }
-    // Settle option round before expiry
+// Settle option round before expiry
 }
 
 // Test settling an option if the current round is not running fails
@@ -92,7 +92,7 @@ fn test_settling_option_round_while_current_settled_fails() {
     accelerate_to_settled(ref vault_facade, 0x123);
 
     // Settle option round before expiry
-    let expected_error: felt252 = OptionRoundError:: OptionSettlementDateNotReached.into();
+    let expected_error: felt252 = OptionRoundError::OptionSettlementDateNotReached.into();
     // Try to end auction after it has already ended
     match vault_facade.settle_option_round_raw() {
         Result::Ok(_) => { panic!("Error expected") },
@@ -109,7 +109,7 @@ fn test_settling_option_round_before_settlement_date_fails() {
     accelerate_to_running(ref vault_facade);
 
     // Settle option round before expiry
-    let expected_error: felt252 = OptionRoundError:: OptionSettlementDateNotReached.into();
+    let expected_error: felt252 = OptionRoundError::OptionSettlementDateNotReached.into();
     // Try to end auction after it has already ended
     match vault_facade.settle_option_round_raw() {
         Result::Ok(_) => { panic!("Error expected") },
