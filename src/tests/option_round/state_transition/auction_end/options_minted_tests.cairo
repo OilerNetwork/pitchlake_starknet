@@ -19,6 +19,7 @@ use pitch_lake_starknet::tests::{
             vault_facade::{VaultFacade, VaultFacadeTrait},
             option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundParams}
         },
+        utils::{create_default_option_amount_array},
     },
 };
 
@@ -37,11 +38,9 @@ fn test_total_options_after_auction_1() {
 
     // OB 1 and 2 bid for > the total options available at the reserve price
     let option_bidders = option_bidders_get(2);
-    let bid_count_1: u256 = params.total_options_available / 2 + 1;
-    let bid_count_2: u256 = params.total_options_available / 2;
+    let bid_amount_1: u256 = params.total_options_available / 2 + 1;
+    let bid_amount_2: u256 = params.total_options_available / 2;
     let bid_price = params.reserve_price;
-    let bid_amount_1: u256 = bid_count_1 * bid_price;
-    let bid_amount_2: u256 = bid_count_2 * bid_price;
 
     accelerate_to_running_custom(
         ref vault_facade,
@@ -71,12 +70,10 @@ fn test_total_options_after_auction_2() {
 
     // OB 1 and 2 bid for > the total options available at the reserve price
     let option_bidders = option_bidders_get(2);
-    let bid_count_1: u256 = params.total_options_available / 2 + 1;
-    let bid_count_2: u256 = params.total_options_available / 2;
+    let bid_amount_1: u256 = params.total_options_available / 2 + 1;
+    let bid_amount_2: u256 = params.total_options_available / 2;
     let bid_price_1 = params.reserve_price;
     let bid_price_2 = params.reserve_price + 1;
-    let bid_amount_1: u256 = bid_count_1 * bid_price_1;
-    let bid_amount_2: u256 = bid_count_2 * bid_price_2;
 
     accelerate_to_running_custom(
         ref vault_facade,
@@ -107,15 +104,14 @@ fn test_total_options_after_auction_3() {
     let option_bidders = option_bidders_get(1);
 
     // place bid and end the auction
-    let bid_count = 2;
+    let bid_amount = 2;
     let bid_price = params.reserve_price;
-    let bid_amount = bid_count * bid_price;
 
     accelerate_to_running_custom(
         ref vault_facade, option_bidders.span(), array![bid_amount].span(), array![bid_price].span()
     );
 
-    assert(bid_count == current_round_facade.total_options_sold(), 'options sold wrong');
+    assert(bid_amount == current_round_facade.total_options_sold(), 'options sold wrong');
 }
 
 #[test]
@@ -150,9 +146,8 @@ fn test_total_options_after_auction_5() {
     // place bid and end the auction
     let option_bidders = option_bidders_get(1);
 
-    let bid_count = params.total_options_available + 10;
+    let bid_amount = params.total_options_available + 10;
     let bid_price = params.reserve_price;
-    let bid_amount = bid_count * bid_price;
 
     accelerate_to_running_custom(
         ref vault_facade, option_bidders.span(), array![bid_amount].span(), array![bid_price].span()
@@ -180,27 +175,18 @@ fn test_option_balance_per_bidder_after_auction_1() {
     // Make bids
     let option_bidders = option_bidders_get(4);
 
-    let bid_option_count_user_1: u256 = (params.total_options_available / 3);
     let bid_price_per_unit_user_1: u256 = params.reserve_price + 1;
-    let bid_amount_user_1: u256 = bid_option_count_user_1 * bid_price_per_unit_user_1;
-
-    let bid_option_count_user_2: u256 = (params.total_options_available / 3);
     let bid_price_per_unit_user_2: u256 = params.reserve_price + 2;
-    let bid_amount_user_2: u256 = bid_option_count_user_2 * bid_price_per_unit_user_2;
-
-    let bid_option_count_user_3: u256 = (params.total_options_available / 3);
     let bid_price_per_unit_user_3: u256 = params.reserve_price + 3;
-    let bid_amount_user_3: u256 = bid_option_count_user_3 * bid_price_per_unit_user_3;
-
-    let bid_option_count_user_4: u256 = (params.total_options_available / 3);
     let bid_price_per_unit_user_4: u256 = params.reserve_price + 4;
-    let bid_amount_user_4: u256 = bid_option_count_user_4 * bid_price_per_unit_user_4;
+
+    let bid_amounts = create_default_option_amount_array(4, params.total_options_available / 3);
 
     // place bids and end the auction
     accelerate_to_running_custom(
         ref vault_facade,
         option_bidders.span(),
-        array![bid_amount_user_1, bid_amount_user_2, bid_amount_user_3, bid_amount_user_4].span(),
+        bid_amounts.span(),
         array![
             bid_price_per_unit_user_1,
             bid_price_per_unit_user_2,
@@ -228,13 +214,14 @@ fn test_option_balance_per_bidder_after_auction_1() {
     // All other OBs should get their share of options (1/3 total)
     assert(total_options_created_count == params.total_options_available, 'options shd match');
     assert(options_created_user_1_count == 0, 'options shd match');
-    assert(options_created_user_2_count == bid_option_count_user_2, 'options shd match');
-    assert(options_created_user_3_count == bid_option_count_user_3, 'options shd match');
-    assert(options_created_user_4_count == bid_option_count_user_4, 'options shd match');
+    assert(options_created_user_2_count == params.total_options_available / 3, 'options shd match');
+    assert(options_created_user_3_count == params.total_options_available / 3, 'options shd match');
+    assert(options_created_user_4_count == params.total_options_available / 3, 'options shd match');
 }
 
 
 // test where the total options available have not been exhausted
+// @note: make sure the calculation is right
 #[test]
 #[available_gas(10000000)]
 fn test_option_balance_per_bidder_after_auction_2() {
@@ -328,9 +315,8 @@ fn test_option_round_options_sold_before_auction_end_is_0() {
 
     // Make bid
     set_contract_address(option_bidder_buyer_1());
-    let bid_count: u256 = params.total_options_available + 10;
+    let bid_amount: u256 = params.total_options_available + 10;
     let bid_price: u256 = params.reserve_price;
-    let bid_amount: u256 = bid_count * bid_price;
     current_round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
 
     // Check that options_sold is 0 pre auction settlement

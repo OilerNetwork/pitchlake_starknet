@@ -202,15 +202,13 @@ fn test_end_auction_eth_transfer() {
 
     // End auction (2 bidders, first bid gets refuned, second's is converted to premium)
     let option_bidders = option_bidders_get(2).span();
-    let bid_count = current_round.get_total_options_available();
+    let bid_amount = current_round.get_total_options_available();
     let losing_price = current_round.get_reserve_price();
-    let losing_amount = bid_count * losing_price;
     let winning_price = 2 * losing_price;
-    let winning_amount = 2 * bid_count * winning_price;
     accelerate_to_running_custom(
         ref vault_facade,
         option_bidders,
-        array![losing_amount, winning_amount].span(),
+        array![bid_amount, bid_amount].span(),
         array![losing_price, winning_price].span()
     );
     // Vault and round balances after auction ends
@@ -218,12 +216,17 @@ fn test_end_auction_eth_transfer() {
     let vault_balance_after = eth.balance_of(vault_facade.contract_address());
 
     // Check premiums transfer from round to vault, and unused bids remain in round
-    assert(round_balance_before == losing_amount + winning_amount, 'round balance before wrong');
     assert(
-        round_balance_after == round_balance_before - winning_amount, 'round balance after wrong'
+        round_balance_before == bid_amount * losing_price + bid_amount * winning_price,
+        'round balance before wrong'
     );
     assert(
-        vault_balance_after == vault_balance_before + winning_amount, 'vault balance after wrong'
+        round_balance_after == round_balance_before - bid_amount * winning_price,
+        'round balance after wrong'
+    );
+    assert(
+        vault_balance_after == vault_balance_before + bid_amount * winning_price,
+        'vault balance after wrong'
     );
 }
 

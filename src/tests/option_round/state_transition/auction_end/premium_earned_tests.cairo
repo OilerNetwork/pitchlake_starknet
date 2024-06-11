@@ -48,7 +48,6 @@ fn test_premium_amount_0_before_auction_end() {
     // Bid for all options at reserve price
     let bid_amount = params.total_options_available;
     let bid_price = params.reserve_price;
-    let bid_amount = bid_amount * bid_price;
     current_round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
 
     // Check premiums collectable is 0 since auction is still on going

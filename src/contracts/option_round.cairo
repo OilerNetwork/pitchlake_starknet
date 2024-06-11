@@ -112,9 +112,10 @@ trait IOptionRound<TContractState> {
     /// OB functions
 
     // Place a bid in the auction
-    // @param amount: The max amount in place_bid_token to be used for bidding in the auction
-    // @param price: The max price in place_bid_token per option (if the clearing price is
-    // higher than this, the entire bid is unused and can be claimed back by the bidder)
+    // @param amount: The max amount of options you want to buy in the auction
+    // @param price: The max price in place_bid_token per option 
+    // @note: using both the params provided above, we would be able to get the total 
+    // amount that needs to be submitted.
     // @return if the bid was accepted or rejected
     fn place_bid(
         ref self: TContractState, amount: u256, price: u256
@@ -203,7 +204,7 @@ mod OptionRound {
 
     // Emitted when a bid is accepted
     // @param account The account that placed the bid
-    // @param amount The amount of liquidity that was bid (max amount of funds the bidder is willing to spend in total)
+    // @param amount The amount of options the bidder want in total
     // @param price The price per option that was bid (max price the bidder is willing to spend per option)
     #[derive(Drop, starknet::Event, PartialEq)]
     struct AuctionAcceptedBid {
@@ -215,7 +216,7 @@ mod OptionRound {
 
     // Emitted when a bid is rejected
     // @param account The account that placed the bid
-    // @param amount The amount of liquidity that was bid (max amount of funds the bidder is willing to spend in total)
+    // @param amount The amount of options the bidder is willing to buy in total
     // @param price The price per option that was bid (max price the bidder is willing to spend per option)
     #[derive(Drop, starknet::Event, PartialEq)]
     struct AuctionRejectedBid {

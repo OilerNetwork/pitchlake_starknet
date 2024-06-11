@@ -36,6 +36,29 @@ fn sum_u256_array(mut arr: Span<u256>) -> u256 {
     sum
 }
 
+fn create_default_option_amount_array(mut len: u32, mut options_available: u256) -> Array<u256> {
+    let mut arr: Array<u256> = array![];
+    let mut index: u32 = 0;
+    while (index < len) {
+        arr.append(options_available);
+        index += 1;
+    };
+    arr
+}
+
+// Sum the total amount paid for multiple bids.
+fn get_total_bids_amount(mut bid_prices: Span<u256>, mut bid_amounts: Span<u256>) -> u256 {
+    let mut sum = 0;
+    match bid_prices.pop_front() {
+        Option::Some(bid_price) => {
+            let bid_amount = bid_amounts.pop_front().unwrap();
+            sum += *bid_amount * *bid_price;
+        },
+        Option::None => {}
+    }
+    sum
+}
+
 // Assert two arrays of any type are equal
 fn assert_two_arrays_equal_length<T, V>(arr1: Span<T>, arr2: Span<V>) {
     assert(arr1.len() == arr2.len(), 'Arrays not equal length');

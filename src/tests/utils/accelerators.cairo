@@ -56,9 +56,8 @@ fn accelerate_to_auctioning_custom(
 // End the auction, OB1 bids for all options at reserve price
 fn accelerate_to_running(ref self: VaultFacade) -> (u256, u256) {
     let mut current_round = self.get_current_round();
-    let bid_count = current_round.get_total_options_available();
+    let bid_amount = current_round.get_total_options_available();
     let bid_price = current_round.get_reserve_price();
-    let bid_amount = bid_count * bid_price;
     accelerate_to_running_custom(
         ref self,
         array![option_bidder_buyer_1()].span(),
