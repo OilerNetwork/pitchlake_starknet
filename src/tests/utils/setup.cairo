@@ -143,9 +143,9 @@ fn setup_facade() -> (VaultFacade, IERC20Dispatcher) {
 
     // Supply eth to test accounts
     set_contract_address(weth_owner());
-    let mut lps = liquidity_providers_get(5);
+    let mut liquidity_providers = liquidity_providers_get(5);
     loop {
-        match lps.pop_front() {
+        match liquidity_providers.pop_front() {
             Option::Some(lp) => {
                 let lp_amount_wei: u256 = 1000000 * decimals(); // 1,000,000 ETH
                 eth_dispatcher.transfer(lp, lp_amount_wei);

@@ -74,12 +74,14 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
 
     fn withdraw_multiple(
-        ref self: VaultFacade, mut amounts: Span<u256>, mut lps: Span<ContractAddress>
+        ref self: VaultFacade,
+        mut amounts: Span<u256>,
+        mut liquidity_providers: Span<ContractAddress>
     ) -> Array<u256> {
-        assert_two_arrays_equal_length(lps, amounts);
+        assert_two_arrays_equal_length(liquidity_providers, amounts);
         let mut spreads = array![];
         loop {
-            match lps.pop_front() {
+            match liquidity_providers.pop_front() {
                 Option::Some(lp) => {
                     let amount = amounts.pop_front().unwrap();
                     spreads.append(self.withdraw(*amount, *lp));
@@ -224,11 +226,11 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     }
 
     fn get_lp_locked_balances(
-        ref self: VaultFacade, mut lps: Span<ContractAddress>
+        ref self: VaultFacade, mut liquidity_providers: Span<ContractAddress>
     ) -> Array<u256> {
         let mut balances = array![];
         loop {
-            match lps.pop_front() {
+            match liquidity_providers.pop_front() {
                 Option::Some(lp) => {
                     let balance = self.get_lp_locked_balance(*lp);
                     balances.append(balance);
@@ -244,11 +246,11 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     }
 
     fn get_lp_unlocked_balances(
-        ref self: VaultFacade, mut lps: Span<ContractAddress>
+        ref self: VaultFacade, mut liquidity_providers: Span<ContractAddress>
     ) -> Array<u256> {
         let mut balances = array![];
         loop {
-            match lps.pop_front() {
+            match liquidity_providers.pop_front() {
                 Option::Some(lp) => {
                     let balance = self.get_lp_unlocked_balance(*lp);
                     balances.append(balance);
@@ -273,11 +275,11 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     // @note replace this with get_lp_locked_and_unlocked_balances
     fn get_lp_balance_spreads(
-        ref self: VaultFacade, mut lps: Span<ContractAddress>
+        ref self: VaultFacade, mut liquidity_providers: Span<ContractAddress>
     ) -> Array<(u256, u256)> {
         let mut spreads = array![];
         loop {
-            match lps.pop_front() {
+            match liquidity_providers.pop_front() {
                 Option::Some(lp) => {
                     let locked_and_unlocked = self.get_lp_balance_spread(*lp);
                     spreads.append(locked_and_unlocked);

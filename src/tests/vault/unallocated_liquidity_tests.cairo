@@ -85,10 +85,10 @@ use pitch_lake_starknet::tests::{
 //     vault_facade.deposit(deposit_amount_wei_1, liquidity_provider_1());
 //     vault_facade.deposit(deposit_amount_wei_2, liquidity_provider_2());
 
-//     let lps = liquidity_providers_get(5);
+//     let liquidity_providers = liquidity_providers_get(5);
 //     let deposit_amounts = create_array_gradient(1000 * decimals(), 1000 * decimals(), 5);
 //     let total_options_available (was total_deposts before) = accelerate_to_auctioning_custom(
-//         ref vault_facade, lps.span(), deposit_amounts.span()
+//         ref vault_facade, liquidity_providers.span(), deposit_amounts.span()
 //     );
 //     let params = current_round.get_params();
 //     // Make bid (ob1)
