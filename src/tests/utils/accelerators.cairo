@@ -108,8 +108,8 @@ fn timeskip_past_option_expiry_date(ref self: VaultFacade) {
 // Jump past the round transition period
 fn timeskip_past_round_transition_period(ref self: VaultFacade) {
     let now = get_block_timestamp();
-    let rtp = self.get_round_transition_period();
-    set_block_timestamp(now + rtp + 1);
+    let round_transition_period = self.get_round_transition_period();
+    set_block_timestamp(now + round_transition_period + 1);
 }
 
 /// Timeskip and do something
