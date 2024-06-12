@@ -13,7 +13,7 @@ use pitch_lake_starknet::{
                 vault_facade::{VaultFacade, VaultFacadeTrait},
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundParams},
             },
-            utils::{create_default_option_amount_array},
+            utils::{create_linear_options_array},
         },
     }
 };
@@ -108,7 +108,7 @@ fn test_clearing_price_3() {
     let params = current_round_facade.get_params();
 
     let option_bidders = option_bidders_get(3);
-    let bid_amounts = create_default_option_amount_array(3, params.total_options_available).span();
+    let bid_amounts = create_linear_options_array(3, params.total_options_available).span();
     let bid_price_user_1 = params.reserve_price;
     let bid_price_user_2 = params.reserve_price + 1;
     let bid_price_user_3 = params.reserve_price + 2;
@@ -173,7 +173,7 @@ fn test_clearing_price_5() {
     let bid_price_user_3: u256 = params.reserve_price + 1;
     let bid_price_user_4: u256 = params.reserve_price;
 
-    let bid_amounts = create_default_option_amount_array(4, params.total_options_available / 3);
+    let bid_amounts = create_linear_options_array(4, params.total_options_available / 3);
 
     let (clearing_price, _) = accelerate_to_running_custom(
         ref vault_facade,

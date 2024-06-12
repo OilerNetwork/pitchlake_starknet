@@ -20,7 +20,7 @@ use pitch_lake_starknet::tests::{
         },
         utils::{
             scale_array, get_erc20_balance, get_erc20_balances, create_array_gradient,
-            create_default_option_amount_array
+            create_linear_options_array
         },
     },
 };
@@ -65,7 +65,7 @@ fn place_incremental_bids_internal(
     );
 
     // @dev Bid amounts are each bid price * the number of options available
-    let mut bid_amounts = create_default_option_amount_array(bid_prices.len(), options_available);
+    let mut bid_amounts = create_linear_options_array(bid_prices.len(), options_available);
 
     // Place bids
     current_round.place_bids(bid_amounts.span(), bid_prices.span(), option_bidders);

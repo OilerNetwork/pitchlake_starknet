@@ -19,7 +19,7 @@ use pitch_lake_starknet::tests::{
             vault_facade::{VaultFacade, VaultFacadeTrait},
             option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundParams}
         },
-        utils::{create_default_option_amount_array},
+        utils::{create_linear_options_array},
     },
 };
 
@@ -180,7 +180,7 @@ fn test_option_balance_per_bidder_after_auction_1() {
     let bid_price_per_unit_user_3: u256 = params.reserve_price + 3;
     let bid_price_per_unit_user_4: u256 = params.reserve_price + 4;
 
-    let bid_amounts = create_default_option_amount_array(4, params.total_options_available / 3);
+    let bid_amounts = create_linear_options_array(4, params.total_options_available / 3);
 
     // place bids and end the auction
     accelerate_to_running_custom(
