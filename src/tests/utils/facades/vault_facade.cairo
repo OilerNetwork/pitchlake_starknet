@@ -82,9 +82,9 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         let mut spreads = array![];
         loop {
             match liquidity_providers.pop_front() {
-                Option::Some(lp) => {
+                Option::Some(liquidity_provider) => {
                     let amount = amounts.pop_front().unwrap();
-                    spreads.append(self.withdraw(*amount, *lp));
+                    spreads.append(self.withdraw(*amount, *liquidity_provider));
                 },
                 Option::None => { break (); }
             };
@@ -151,15 +151,17 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     /// LP token related
 
-    fn convert_position_to_lp_tokens(ref self: VaultFacade, amount: u256, lp: ContractAddress) {
-        set_contract_address(lp);
+    fn convert_position_to_lp_tokens(
+        ref self: VaultFacade, amount: u256, liquidity_provider: ContractAddress
+    ) {
+        set_contract_address(liquidity_provider);
         self.vault_dispatcher.convert_position_to_lp_tokens(amount);
     }
 
     fn convert_lp_tokens_to_position(
-        ref self: VaultFacade, source_round: u256, amount: u256, lp: ContractAddress
+        ref self: VaultFacade, source_round: u256, amount: u256, liquidity_provider: ContractAddress
     ) {
-        set_contract_address(lp);
+        set_contract_address(liquidity_provider);
         self.vault_dispatcher.convert_lp_tokens_to_position(source_round, amount);
     }
 
@@ -168,9 +170,9 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         source_round: u256,
         target_round: u256,
         amount: u256,
-        lp: ContractAddress
+        liquidity_provider: ContractAddress
     ) -> u256 {
-        set_contract_address(lp);
+        set_contract_address(liquidity_provider);
         let res = self
             .vault_dispatcher
             .convert_lp_tokens_to_newer_lp_tokens(source_round, target_round, amount);
@@ -221,8 +223,8 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     // For LPs
 
-    fn get_lp_locked_balance(ref self: VaultFacade, lp: ContractAddress) -> u256 {
-        self.vault_dispatcher.get_lp_locked_balance(lp)
+    fn get_lp_locked_balance(ref self: VaultFacade, liquidity_provider: ContractAddress) -> u256 {
+        self.vault_dispatcher.get_lp_locked_balance(liquidity_provider)
     }
 
     fn get_lp_locked_balances(
@@ -231,8 +233,8 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         let mut balances = array![];
         loop {
             match liquidity_providers.pop_front() {
-                Option::Some(lp) => {
-                    let balance = self.get_lp_locked_balance(*lp);
+                Option::Some(liquidity_provider) => {
+                    let balance = self.get_lp_locked_balance(*liquidity_provider);
                     balances.append(balance);
                 },
                 Option::None => { break (); }
@@ -241,8 +243,8 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         balances
     }
 
-    fn get_lp_unlocked_balance(ref self: VaultFacade, lp: ContractAddress) -> u256 {
-        self.vault_dispatcher.get_lp_unlocked_balance(lp)
+    fn get_lp_unlocked_balance(ref self: VaultFacade, liquidity_provider: ContractAddress) -> u256 {
+        self.vault_dispatcher.get_lp_unlocked_balance(liquidity_provider)
     }
 
     fn get_lp_unlocked_balances(
@@ -251,8 +253,8 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         let mut balances = array![];
         loop {
             match liquidity_providers.pop_front() {
-                Option::Some(lp) => {
-                    let balance = self.get_lp_unlocked_balance(*lp);
+                Option::Some(liquidity_provider) => {
+                    let balance = self.get_lp_unlocked_balance(*liquidity_provider);
                     balances.append(balance);
                 },
                 Option::None => { break (); }
@@ -261,15 +263,17 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         balances
     }
 
-    fn get_lp_total_balance(ref self: VaultFacade, lp: ContractAddress) -> u256 {
-        self.vault_dispatcher.get_lp_total_balance(lp)
+    fn get_lp_total_balance(ref self: VaultFacade, liquidity_provider: ContractAddress) -> u256 {
+        self.vault_dispatcher.get_lp_total_balance(liquidity_provider)
     }
 
 
     // @note replace this with get_lp_locked_and_unlocked_balance
-    fn get_lp_balance_spread(ref self: VaultFacade, lp: ContractAddress) -> (u256, u256) {
-        let locked = self.vault_dispatcher.get_lp_locked_balance(lp);
-        let unlocked = self.vault_dispatcher.get_lp_unlocked_balance(lp);
+    fn get_lp_balance_spread(
+        ref self: VaultFacade, liquidity_provider: ContractAddress
+    ) -> (u256, u256) {
+        let locked = self.vault_dispatcher.get_lp_locked_balance(liquidity_provider);
+        let unlocked = self.vault_dispatcher.get_lp_unlocked_balance(liquidity_provider);
         (locked, unlocked)
     }
 
@@ -280,8 +284,8 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         let mut spreads = array![];
         loop {
             match liquidity_providers.pop_front() {
-                Option::Some(lp) => {
-                    let locked_and_unlocked = self.get_lp_balance_spread(*lp);
+                Option::Some(liquidity_provider) => {
+                    let locked_and_unlocked = self.get_lp_balance_spread(*liquidity_provider);
                     spreads.append(locked_and_unlocked);
                 },
                 Option::None => { break (); }
@@ -290,8 +294,10 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         spreads
     }
 
-    fn get_premiums_for(ref self: VaultFacade, lp: ContractAddress, round_id: u256) -> u256 {
-        self.vault_dispatcher.get_premiums_earned(lp, round_id)
+    fn get_premiums_for(
+        ref self: VaultFacade, liquidity_provider: ContractAddress, round_id: u256
+    ) -> u256 {
+        self.vault_dispatcher.get_premiums_earned(liquidity_provider, round_id)
     }
 
     // @note add get_premiums_for_multiple()

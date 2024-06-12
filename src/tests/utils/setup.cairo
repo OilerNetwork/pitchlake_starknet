@@ -146,9 +146,9 @@ fn setup_facade() -> (VaultFacade, IERC20Dispatcher) {
     let mut liquidity_providers = liquidity_providers_get(5);
     loop {
         match liquidity_providers.pop_front() {
-            Option::Some(lp) => {
+            Option::Some(liquidity_provider) => {
                 let lp_amount_wei: u256 = 1000000 * decimals(); // 1,000,000 ETH
-                eth_dispatcher.transfer(lp, lp_amount_wei);
+                eth_dispatcher.transfer(liquidity_provider, lp_amount_wei);
             },
             Option::None => { break (); },
         };
