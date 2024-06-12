@@ -153,9 +153,9 @@ fn setup_facade() -> (VaultFacade, IERC20Dispatcher) {
             Option::None => { break (); },
         };
     };
-    let mut obs = option_bidders_get(5);
+    let mut option_bidders = option_bidders_get(5);
     loop {
-        match obs.pop_front() {
+        match option_bidders.pop_front() {
             Option::Some(ob) => {
                 let ob_amount_wei: u256 = 100000 * decimals(); // 100,000 ETH
 

@@ -223,16 +223,16 @@ fn test_bid_accepted_events() {
     let reserve_price = current_round.get_reserve_price();
 
     // Place bids
-    let mut obs = option_bidders_get(3).span();
+    let mut option_bidders = option_bidders_get(3).span();
     let scale = array![1, 2, 3].span();
     let mut bid_prices = scale_array(scale, reserve_price).span();
     let mut bid_amounts = array![options_available, options_available, options_available].span();
     clear_event_logs(array![current_round.contract_address()]);
-    current_round.place_bids(bid_amounts, bid_prices, obs);
+    current_round.place_bids(bid_amounts, bid_prices, option_bidders);
 
     // Check bid accepted events
     loop {
-        match obs.pop_front() {
+        match option_bidders.pop_front() {
             Option::Some(ob) => {
                 let bid_amount = bid_amounts.pop_front().unwrap();
                 let bid_price = bid_prices.pop_front().unwrap();
@@ -257,9 +257,9 @@ fn test_bid_eth_transfer() {
     let reserve_price = current_round.get_reserve_price();
 
     // Eth balances before bid
-    let mut obs = option_bidders_get(3).span();
+    let mut option_bidders = option_bidders_get(3).span();
     let scale = array![1, 2, 3].span();
-    let mut ob_balances_before = get_erc20_balances(eth.contract_address, obs).span();
+    let mut ob_balances_before = get_erc20_balances(eth.contract_address, option_bidders).span();
     let round_balance_before = get_erc20_balance(
         eth.contract_address, current_round.contract_address()
     );
@@ -267,9 +267,9 @@ fn test_bid_eth_transfer() {
     let mut bid_prices = scale_array(scale, reserve_price).span();
     let mut bid_amounts = array![options_available, options_available, options_available].span();
     let bids_total = get_total_bids_amount(bid_prices, bid_amounts);
-    current_round.place_bids(bid_amounts, bid_prices, obs);
+    current_round.place_bids(bid_amounts, bid_prices, option_bidders);
     // Eth balances after bid
-    let mut ob_balances_after = get_erc20_balances(eth.contract_address, obs).span();
+    let mut ob_balances_after = get_erc20_balances(eth.contract_address, option_bidders).span();
     let round_balance_after = get_erc20_balance(
         eth.contract_address, current_round.contract_address()
     );

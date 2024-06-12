@@ -72,17 +72,17 @@ fn test_exercise_options_events() {
     let options_available = accelerate_to_auctioning(ref vault);
 
     // Place bids and start the auction, bidders split the options at the reserve price
-    let mut obs = option_bidders_get(3).span();
+    let mut option_bidders = option_bidders_get(3).span();
     let mut current_round = vault.get_current_round();
     let reserve_price = current_round.get_reserve_price();
-    let bid_count = options_available / obs.len().into();
+    let bid_count = options_available / option_bidders.len().into();
     let bid_amounts = create_default_option_amount_array(3, bid_count).span();
-    let bid_prices = create_array_linear(reserve_price, obs.len()).span();
-    accelerate_to_running_custom(ref vault, obs, bid_amounts, bid_prices);
+    let bid_prices = create_array_linear(reserve_price, option_bidders.len()).span();
+    accelerate_to_running_custom(ref vault, option_bidders, bid_amounts, bid_prices);
     accelerate_to_settled(ref vault, 2 * current_round.get_strike_price());
 
     loop {
-        match obs.pop_front() {
+        match option_bidders.pop_front() {
             Option::Some(ob) => {
                 let payout_amount = current_round.exercise_options(*ob);
 
@@ -105,13 +105,13 @@ fn test_exercise_options_eth_transfer() {
     let options_available = accelerate_to_auctioning(ref vault);
 
     // Place bids and start the auction, bidders split the options at the reserve price
-    let mut obs = option_bidders_get(3).span();
+    let mut option_bidders = option_bidders_get(3).span();
     let mut current_round = vault.get_current_round();
     let reserve_price = current_round.get_reserve_price();
-    let bid_count = options_available / obs.len().into();
-    let bid_prices = create_array_linear(reserve_price, obs.len()).span();
+    let bid_count = options_available / option_bidders.len().into();
+    let bid_prices = create_array_linear(reserve_price, option_bidders.len()).span();
     let bid_amounts = create_default_option_amount_array(3, bid_count).span();
-    accelerate_to_running_custom(ref vault, obs, bid_amounts, bid_prices);
+    accelerate_to_running_custom(ref vault, option_bidders, bid_amounts, bid_prices);
     let total_payout = accelerate_to_settled(ref vault, 2 * current_round.get_strike_price());
 
     // Eth balance before
@@ -119,7 +119,7 @@ fn test_exercise_options_eth_transfer() {
         eth.contract_address, current_round.contract_address()
     );
     loop {
-        match obs.pop_front() {
+        match option_bidders.pop_front() {
             Option::Some(ob) => {
                 let lp_balance_before = get_erc20_balance(eth.contract_address, *ob);
                 let payout_amount = current_round.exercise_options(*ob);
