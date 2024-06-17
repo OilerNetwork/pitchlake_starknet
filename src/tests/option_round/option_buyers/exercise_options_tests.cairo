@@ -35,6 +35,9 @@ use pitch_lake_starknet::{
 /// Failures ///
 
 // Test exercising 0 options fails
+// @note instead of returning 0 or failing, we should just include in each test an extra LP
+// that has 0 options to exercise (after placing bids append an extra LP to the array,
+// this way we know they have 0 options)
 #[test]
 #[available_gas(10000000)]
 fn test_exercising_0_options() {
@@ -139,7 +142,9 @@ fn test_exercise_options_eth_transfer() {
     );
     assert(round_balance_after == round_balance_before - total_payout, 'round balance after wrong');
 }
+
+// @note Add tests for get_payout_balance_for becoming 0 after exercise
 // @note Add test that options are burned when exercised
 // @note Add test that OB can send options to another account then exercise (original owner shd not have access to payout afterwards)
-
+// @note Add test that OB1 can exercise options, then receive more from OB2, the exerice again
 

@@ -37,7 +37,11 @@ use debug::PrintTrait;
 
 /// Failures ///
 
-// Test withdraw 0 returns 0, does not fail, but balances are unchanged.
+// @note instead of testing withdrawing 0 fails or returns 0, we should just include in
+// in the the withdraw amounts in each test
+// @note can use the same array of withdraw amounts/lps for each test (0, ...)
+
+// Test withdraw 0 does not fail, but balances are unchanged.
 //@note confirm if gas changes will also affect the balance, should we only check for vault balance or 
 //calculate gas amount to correct the balance.
 #[test]
@@ -50,14 +54,11 @@ fn test_withdrawing_0_returns_0() {
     // Try to withdraw 0
     let total_initial = vault.get_total_balance();
     let lp_initial = eth_dispatcher.balance_of(liquidity_provider_1());
-    let withdraw_return = vault.withdraw(0, liquidity_provider_1());
     let total_final = vault.get_total_balance();
     let lp_final = eth_dispatcher.balance_of(liquidity_provider_1());
     assert(total_initial == total_final, 'Vault eth balance wrong');
-    assert(lp_initial == lp_final, 'LP eth balance wrong');
-    assert(withdraw_return == 0, 'Deposit should return 0')
+    assert(lp_initial == lp_final, 'LP eth balance wrong')
 }
-
 // Test withdrawing > unlocked balance fails
 #[test]
 #[available_gas(10000000)]

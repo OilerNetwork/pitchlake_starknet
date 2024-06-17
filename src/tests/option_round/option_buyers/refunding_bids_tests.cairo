@@ -91,6 +91,9 @@ fn test_refunding_bids_before_auction_end_fails() {
 }
 
 // Test refunding 0 bids returns zero;
+// @note instead of returning 0 or failing, these tests should just include (not pop back) the last LP in the
+// array (auction winner), since they they can still refund, their eth balance will not change and the return
+// of refund will be 0
 #[test]
 #[available_gas(10000000)]
 fn test_refunding_0_bids_returns_0() {
@@ -108,7 +111,6 @@ fn test_refunding_0_bids_returns_0() {
         Option::Some(bidder) => {
             // Refund bids
             current_round.refund_bid(*bidder);
-            // Refund again fails since their are 0 refundable now
             // Confirm where the funds reside and check the subsequent balances
             let refund_zero = current_round.refund_bid(*bidder);
             assert(refund_zero==0,'Should return 0')
@@ -214,3 +216,6 @@ fn test_refund_bids_eth_transfer() {
         Option::None => { panic!("this should not panic") }
     }
 }
+
+
+
