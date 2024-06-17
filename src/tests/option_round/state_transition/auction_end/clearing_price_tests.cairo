@@ -18,7 +18,18 @@ use pitch_lake_starknet::{
 };
 use starknet::testing::{set_block_timestamp, set_contract_address};
 
-// @note These tests should move to ./src/tests/option_round/state_transition/auction_end_tests.cairo
+// @note Simplify tests:
+// - should have test for when total premiums could be higher if less < total options are sold, but
+// could sell all options for less total premiums,
+// i.e bidder 1: 1/100 total options @ reserve price & bidder 2: 99/100 total options @ 10x reserve price
+// - test same as above but if the not all options could be minted anyway
+// i.e bidder1: 1/100 total options @ reserve price & bidder 2: 98/100 total options @ 10x reserve price
+// - test when no bids have been placed
+// - we have a mock of this in python already in the code base, we should use it to generate values for
+// tests
+// @note we may consider options being factional (1 option erc20 could have 6-18 decimals, representing
+// 1,000,000 gas units. Owning 0.5000... option round tokens represent options for 500,000 gas units).
+// Whening doing 1/100 * options available, we should divide with bps, see payout_tests for examples
 
 // Test clearing price is 0 before auction end
 #[test]
