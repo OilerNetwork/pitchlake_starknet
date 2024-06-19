@@ -45,25 +45,6 @@ use pitch_lake_starknet::{
 use debug::PrintTrait;
 
 
-/// Failures
-
-// Test deposit 0 doesn't change anything
-// @note instead of testing deposit 0 fails or returns 0, we should just include in
-// in the the deposited amount in each test
-// @note can use the same array of deposit amounts/lps for each test (0, 25, 50, 100, etc)
-#[test]
-#[available_gas(10000000)]
-fn test_deposit_0() {
-    let (mut vault, eth_dispatcher) = setup_facade();
-    let total_initial = vault.get_total_balance();
-    let lp_initial = eth_dispatcher.balance_of(liquidity_provider_1());
-    vault.deposit(0, liquidity_provider_1());
-    let total_final = vault.get_total_balance();
-    let lp_final = eth_dispatcher.balance_of(liquidity_provider_1());
-    assert(total_initial == total_final, 'Vault eth balance wrong');
-    assert(lp_initial == lp_final, 'LP eth balance wrong');
-}
-
 /// Event Tests
 
 // Test depositing to the vault emits the correct events
@@ -102,6 +83,7 @@ fn test_deposit_events() {
 /// State Tests ///
 
 // Test depositing transfers eth from liquidity provider to vault
+// Also contains a test for 0 deposit
 #[test]
 #[available_gas(10000000)]
 fn test_depositing_to_vault_eth_transfer() {

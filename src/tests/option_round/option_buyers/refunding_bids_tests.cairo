@@ -90,36 +90,6 @@ fn test_refunding_bids_before_auction_end_fails() {
     current_round.refund_bid(*option_bidders[0]);
 }
 
-// Test refunding 0 bids returns zero;
-// @note instead of returning 0 or failing, these tests should just include (not pop back) the last LP in the
-// array (auction winner), since they they can still refund, their eth balance will not change and the return
-// of refund will be 0
-#[test]
-#[available_gas(10000000)]
-fn test_refunding_0_bids_returns_0() {
-    let number_of_option_bidders: u32 = 3;
-    let (mut vault, eth_dispatcher, mut option_bidders) = setup_test(number_of_option_bidders);
-
-    // Each bidder out bids the next
-    let (_, _, mut current_round) = place_incremental_bids_internal(ref vault, option_bidders);
-
-    // End auction
-    timeskip_and_end_auction(ref vault);
-
-    // Pop first bidder from array because their bids are refundable
-    match option_bidders.pop_front() {
-        Option::Some(bidder) => {
-            // Refund bids
-            current_round.refund_bid(*bidder);
-            // Confirm where the funds reside and check the subsequent balances
-            let refund_zero = current_round.refund_bid(*bidder);
-            assert(refund_zero == 0, 'Should return 0')
-        },
-        Option::None => { panic!("Bidder not found") }
-    }
-}
-
-/// Event Tests
 
 // Test refunding bids emits event correctly
 #[test]
@@ -203,6 +173,7 @@ fn test_refund_bids_eth_transfer() {
                     Option::Some(bidder) => {
                         let eth_balance_before = eth_dispatcher.balance_of(*bidder);
                         let refunded_amount = current_round.get_refundable_bids_for(*bidder);
+                        current_round.refund_bid(*bidder);
                         let eth_balance_after = eth_dispatcher.balance_of(*bidder);
                         assert(
                             eth_balance_after == eth_balance_before + refunded_amount,

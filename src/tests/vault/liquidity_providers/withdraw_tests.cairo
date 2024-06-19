@@ -98,6 +98,7 @@ fn test_withdrawal_events() {
 /// State Tests ///
 
 // Test withdrawing transfers eth from vault to liquidity provider
+// Also tests for 0 withdraw behaviour
 #[test]
 #[available_gas(10000000)]
 fn test_withdrawing_from_vault_eth_transfer() {
