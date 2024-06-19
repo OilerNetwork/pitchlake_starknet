@@ -7,7 +7,7 @@ use starknet::{ContractAddress, testing::{set_contract_address}};
 use pitch_lake_starknet::{
     contracts::option_round::{
         IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState, StartAuctionParams,
-        OptionRoundConstructorParams,
+        OptionRoundConstructorParams, Bid,
         OptionRound::{
             OptionRoundError, OptionRoundErrorIntoFelt252, //OptionRoundErrorIntoByteArray
         }
@@ -93,6 +93,18 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         }
     }
 
+    fn update_bid(
+        ref self: OptionRoundFacade,
+        id:felt252,
+        amount: u256,
+        price: u256,
+
+    ) -> Bid {
+     self.option_round_dispatcher.update_bid(id,amount,price)
+       
+    }
+
+
     // Place multiple bids for multiple option bidders
     // @return: Whether the bids were accepted or rejected
     fn place_bids(
@@ -119,6 +131,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         };
         results
     }
+    
 
     // Place a bid for an option bidder
     // @return: An result for whether the bid was accepted or rejected
@@ -264,10 +277,21 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         self.option_round_dispatcher.total_options_sold()
     }
 
+    fn get_nonce_for(ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
+    ) -> u32 {
+        self.option_round_dispatcher.get_nonce_for(option_bidder_buyer)
+    }
+
     fn get_pending_bids_for(
         ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
     ) -> u256 {
         self.option_round_dispatcher.get_pending_bids_for(option_bidder_buyer)
+    }
+
+    fn get_bids_for(
+        ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
+    ) -> Array<felt252> {
+        self.option_round_dispatcher.get_bids_for(option_bidder_buyer)
     }
 
     fn get_refundable_bids_for(

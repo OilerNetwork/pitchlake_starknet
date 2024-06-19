@@ -2,7 +2,9 @@ use starknet::{ContractAddress, StorePacking};
 use openzeppelin::token::erc20::interface::IERC20Dispatcher;
 use pitch_lake_starknet::contracts::{
     market_aggregator::{IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait},
-    option_round::OptionRound::{OptionRoundState, StartAuctionParams, OptionRoundConstructorParams},
+    option_round::OptionRound::{
+        OptionRoundState, StartAuctionParams, OptionRoundConstructorParams, Bid
+    },
 };
 
 // The option round contract interface
@@ -46,6 +48,15 @@ trait IOptionRound<TContractState> {
     // @dev During the auction this value is the bidder's total bid amount.
     // @dev After the auction this value is 0. All pending bids are either sent the vault
     // as premiums, or refundable to the bidder.
+
+    fn get_bid_details(self: @TContractState, bid_id: felt252) -> Bid;
+
+
+    //Address functions 
+
+    fn get_nonce_for(self: @TContractState, option_buyer: ContractAddress) -> u32;
+    fn get_bids_for(self: @TContractState, option_buyer: ContractAddress) -> Array<felt252>;
+
     fn get_pending_bids_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
     // Get the refundable bid amount for an account
@@ -57,6 +68,8 @@ trait IOptionRound<TContractState> {
     fn get_payout_balance_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
     fn get_option_balance_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
+
+
     /// Other
 
     // The constructor parmaeters of the option round
@@ -121,6 +134,8 @@ trait IOptionRound<TContractState> {
         ref self: TContractState, amount: u256, price: u256
     ) -> Result<bool, OptionRound::OptionRoundError>;
 
+    fn update_bid(ref self: TContractState, bid_id: felt252, amount: u256, price: u256) -> Bid;
+
     // Refund unused bids for an option bidder if the auction has ended
     // @param option_bidder: The bidder to refund the unused bid back to
     // @return the amount of the transfer
@@ -154,6 +169,11 @@ mod OptionRound {
         market_aggregator: ContractAddress,
         state: OptionRoundState,
         constructor_params: OptionRoundConstructorParams,
+        bidder_nonces: LegacyMap<ContractAddress, uint256>,
+        bid_details: LegacyMap<felt252, Bid>,
+        linked_list: LegacyMap<felt252, LinkedBids>,
+        bids_head: felt252,
+        bids_tail: felt252,
     }
 
     // The parameters needed to construct an option round
@@ -224,6 +244,20 @@ mod OptionRound {
         account: ContractAddress,
         amount: u256,
         price: u256
+    }
+
+    #[derive(Copy, Drop, Serde)]
+    struct Bid {
+        id: felt252,
+        owner: ContractAddress,
+        amount: u256,
+        price: u256,
+    }
+    #[derive(Copy, Drop)]
+    struct LinkedBids {
+        bid: felt252,
+        previous: felt252,
+        next: felt252
     }
 
     // Emiited when the auction ends
@@ -400,10 +434,21 @@ mod OptionRound {
             100
         }
 
-        fn get_pending_bids_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
+        fn get_bid_details(self: @ContractState, bid_id: felt252) -> Bid {
+            Bid { id: 'default', owner: starknet::get_caller_address(), amount: 1, price: 1 }
+        }
+
+
+        fn get_nonce_for(self: @ContractState, option_buyer: ContractAddress) -> u32 {
             100
         }
 
+        fn get_pending_bids_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
+            100
+        }
+        fn get_bids_for(self: @ContractState, option_buyer: ContractAddress) -> Array<felt252> {
+            return array!['dummy'];
+        }
         fn get_refundable_bids_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
             100
         }
@@ -416,7 +461,6 @@ mod OptionRound {
             100
         }
 
-        
 
         /// Other
 
@@ -489,6 +533,11 @@ mod OptionRound {
             Result::Ok(true)
         }
 
+        fn update_bid(
+            ref self: ContractState, bid_id: felt252, amount: u256, price: u256
+        ) -> Bid {
+            Bid { id: 'default', owner: starknet::get_caller_address(), amount: 1, price: 1 }
+        }
         fn refund_unused_bids(
             ref self: ContractState, option_bidder: ContractAddress
         ) -> Result<u256, OptionRoundError> {
