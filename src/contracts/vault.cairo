@@ -382,7 +382,7 @@ mod Vault {
         }
 
         fn end_auction(ref self: ContractState) -> Result<(u256, u256), VaultError> {
-            Result::Ok((1, 1))
+            Result::Ok((100, 100))
         }
 
         fn settle_option_round(ref self: ContractState) -> Result<u256, VaultError> {

@@ -34,12 +34,12 @@ use pitch_lake_starknet::tests::{
 // Deploy vault and start auction
 // @return The vault facade, eth dispatcher, and span of option bidders
 fn setup_test(
-    number_of_option_buyers: u256
+    number_of_option_buyers: u32
 ) -> (VaultFacade, IERC20Dispatcher, Span<ContractAddress>) {
     let (mut vault, eth) = setup_facade();
 
     // Auction participants
-    let option_bidders = option_bidders_get(3);
+    let option_bidders = option_bidders_get(number_of_option_buyers);
 
     // Start auction
     accelerate_to_auctioning(ref vault);
@@ -48,6 +48,7 @@ fn setup_test(
 }
 
 // Place incremental bids
+// @note Move to utils
 fn place_incremental_bids_internal(
     ref vault: VaultFacade, option_bidders: Span<ContractAddress>,
 ) -> (Span<u256>, Span<u256>, OptionRoundFacade) {
@@ -79,7 +80,7 @@ fn place_incremental_bids_internal(
 #[available_gas(10000000)]
 #[should_panic(expected: ('The auction is still on-going', 'ENTRYPOINT_FAILED',))]
 fn test_refunding_bids_before_auction_end_fails() {
-    let number_of_option_bidders: u256 = 3;
+    let number_of_option_bidders: u32 = 3;
     let (mut vault, _, mut option_bidders) = setup_test(number_of_option_bidders);
 
     // Each option buyer out bids the next
@@ -89,42 +90,12 @@ fn test_refunding_bids_before_auction_end_fails() {
     current_round.refund_bid(*option_bidders[0]);
 }
 
-// Test refunding 0 bids fails
-// @note instead of returning 0 or failing, these tests should just include (not pop back) the last LP in the
-// array (auction winner), since they they can still refund, their eth balance will not change and the return
-// of refund will be 0
-#[test]
-#[available_gas(10000000)]
-#[should_panic(expected: ('No bids to refund', 'ENTRYPOINT_FAILED',))]
-fn test_refunding_0_bids_fails() {
-    let number_of_option_bidders: u256 = 3;
-    let (mut vault, _, mut option_bidders) = setup_test(number_of_option_bidders);
-
-    // Each bidder out bids the next
-    let (_, _, mut current_round) = place_incremental_bids_internal(ref vault, option_bidders);
-
-    // End auction
-    timeskip_and_end_auction(ref vault);
-
-    // Pop first bidder from array because their bids are refundable
-    match option_bidders.pop_front() {
-        Option::Some(bidder) => {
-            // Refund bids
-            current_round.refund_bid(*bidder);
-            // Refund again fails since their are 0 refundable now
-            current_round.refund_bid(*bidder);
-        },
-        Option::None => { panic!("this should not panic") }
-    }
-}
-
-/// Event Tests
 
 // Test refunding bids emits event correctly
 #[test]
 #[available_gas(10000000)]
 fn test_refunding_bids_events() {
-    let number_of_option_bidders: u256 = 3;
+    let number_of_option_bidders: u32 = 3;
     let (mut vault, _, mut option_bidders) = setup_test(number_of_option_bidders);
 
     // Each bidder out bids the next
@@ -160,7 +131,7 @@ fn test_refunding_bids_events() {
 #[test]
 #[available_gas(10000000)]
 fn test_refund_bids_sets_refunded_balance_to_0() {
-    let number_of_option_bidders: u256 = 3;
+    let number_of_option_bidders: u32 = 3;
     let (mut vault, _, mut option_bidders) = setup_test(number_of_option_bidders);
 
     // Each bidder out bids the next
@@ -184,7 +155,7 @@ fn test_refund_bids_sets_refunded_balance_to_0() {
 #[test]
 #[available_gas(10000000)]
 fn test_refund_bids_eth_transfer() {
-    let number_of_option_bidders: u256 = 3;
+    let number_of_option_bidders: u32 = 3;
     let (mut vault, eth_dispatcher, mut option_bidders) = setup_test(number_of_option_bidders);
 
     // Each option bidder out bids the next
@@ -201,7 +172,7 @@ fn test_refund_bids_eth_transfer() {
                 match option_bidders.pop_front() {
                     Option::Some(bidder) => {
                         let eth_balance_before = eth_dispatcher.balance_of(*bidder);
-                        let refunded_amount = current_round.get_refundable_bids_for(*bidder);
+                        let refunded_amount = current_round.refund_bid(*bidder);
                         let eth_balance_after = eth_dispatcher.balance_of(*bidder);
                         assert(
                             eth_balance_after == eth_balance_before + refunded_amount,
@@ -215,6 +186,4 @@ fn test_refund_bids_eth_transfer() {
         Option::None => { panic!("this should not panic") }
     }
 }
-
-
 

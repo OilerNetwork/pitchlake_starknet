@@ -1,3 +1,5 @@
+use core::option::OptionTrait;
+use core::array::SpanTrait;
 use starknet::{
     ClassHash, ContractAddress, contract_address_const, deploy_syscall,
     Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
@@ -43,19 +45,6 @@ use pitch_lake_starknet::{
 use debug::PrintTrait;
 
 
-/// Failures
-
-// @note instead of testing deposit 0 fails or returns 0, we should just include in
-// in the the deposited amount in each test
-// @note can use the same array of deposit amounts/lps for each test (0, 25, 50, 100, etc)
-#[test]
-#[available_gas(10000000)]
-#[should_panic(expected: ('Cannot deposit 0', 'ENTRYPOINT_FAILED'))]
-fn test_deposit_0_fails() {
-    let (mut vault, _) = setup_facade();
-    vault.deposit(0, liquidity_provider_1());
-}
-
 /// Event Tests
 
 // Test depositing to the vault emits the correct events
@@ -94,12 +83,13 @@ fn test_deposit_events() {
 /// State Tests ///
 
 // Test depositing transfers eth from liquidity provider to vault
+// Also contains a test for 0 deposit
 #[test]
 #[available_gas(10000000)]
 fn test_depositing_to_vault_eth_transfer() {
     let (mut vault, eth) = setup_facade();
-    let mut liquidity_providers = liquidity_providers_get(2).span();
-    let mut deposit_amounts = array![50 * decimals(), 50 * decimals()].span();
+    let mut liquidity_providers = liquidity_providers_get(3).span();
+    let mut deposit_amounts = array![50 * decimals(), 50 * decimals(), 0].span();
     let total_deposits = sum_u256_array(deposit_amounts);
 
     // Liquidity provider and vault eth balances before deposit
@@ -122,9 +112,10 @@ fn test_depositing_to_vault_eth_transfer() {
             Option::Some(_) => {
                 let lp_balance_before = lp_balances_before.pop_front().unwrap();
                 let lp_balance_after = lp_balances_after.pop_front().unwrap();
+                let deposit_amount = *deposit_amounts.pop_front().unwrap();
                 // Check eth transfers to liquidity provider
                 assert(
-                    lp_balance_after == lp_balance_before - total_deposits, 'lp eth balance wrong'
+                    lp_balance_after == lp_balance_before - deposit_amount, 'lp eth balance wrong'
                 );
             },
             Option::None => { break (); }

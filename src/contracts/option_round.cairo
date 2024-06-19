@@ -56,6 +56,7 @@ trait IOptionRound<TContractState> {
     // Gets the amount that an option buyer can exercise with their option balance
     fn get_payout_balance_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
+    fn get_option_balance_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
     /// Other
 
     // The constructor parmaeters of the option round
@@ -410,6 +411,12 @@ mod OptionRound {
         fn get_payout_balance_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
             100
         }
+
+        fn get_option_balance_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
+            100
+        }
+
+        
 
         /// Other
 

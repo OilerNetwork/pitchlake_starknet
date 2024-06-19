@@ -2,7 +2,7 @@ use starknet::{ContractAddress, testing::{set_contract_address, set_block_timest
 use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
 use pitch_lake_starknet::{
     contracts::{
-        vault::{IVaultDispatcher, IVaultDispatcherTrait},
+        vault::{VaultError, IVaultDispatcher, IVaultDispatcherTrait},
         option_round::{OptionRound, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,},
         market_aggregator::{
             MarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
@@ -105,6 +105,12 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         }
     }
 
+    fn start_auction_raw(ref self: VaultFacade) -> Result<u256, VaultError> {
+        // @dev Using bystander as caller so that gas fees do not throw off balance calculations
+        set_contract_address(bystander());
+        self.vault_dispatcher.start_auction()
+    }
+
     fn end_auction(ref self: VaultFacade) -> (u256, u256) {
         // @dev Using bystander as caller so that gas fees do not throw off balance calculations
         set_contract_address(bystander());
@@ -120,6 +126,11 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         }
     }
 
+    fn end_auction_raw(ref self: VaultFacade) -> Result<(u256, u256), VaultError> {
+        set_contract_address(bystander());
+        self.vault_dispatcher.end_auction()
+    }
+
     fn settle_option_round(ref self: VaultFacade) -> u256 {
         // @dev Using bystander as caller so that gas fees do not throw off balance calculations
         set_contract_address(bystander());
@@ -133,6 +144,10 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         }
     }
 
+    fn settle_option_round_raw(ref self: VaultFacade) -> Result<u256, VaultError> {
+        set_contract_address(bystander());
+        self.vault_dispatcher.settle_option_round()
+    }
     /// Fossil
 
     // Set the mock market aggregator data for the period of the current round
@@ -325,6 +340,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     fn contract_address(ref self: VaultFacade) -> ContractAddress {
         self.vault_dispatcher.contract_address
     }
+
     fn get_market_aggregator(ref self: VaultFacade) -> ContractAddress {
         self.vault_dispatcher.get_market_aggregator()
     }

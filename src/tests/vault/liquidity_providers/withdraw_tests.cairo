@@ -1,3 +1,5 @@
+use core::option::OptionTrait;
+use core::array::SpanTrait;
 use openzeppelin::token::erc20::interface::{
     IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
     IERC20SafeDispatcherTrait,
@@ -37,6 +39,13 @@ use debug::PrintTrait;
 
 /// Failures ///
 
+// @note instead of testing withdrawing 0 fails or returns 0, we should just include in
+// in the the withdraw amounts in each test
+// @note can use the same array of withdraw amounts/lps for each test (0, ...)
+
+// Test withdraw 0 does not fail, but balances are unchanged.
+//@note confirm if gas changes will also affect the balance, should we only check for vault balance or 
+//calculate gas amount to correct the balance.
 // Test withdrawing > unlocked balance fails
 #[test]
 #[available_gas(10000000)]
@@ -50,20 +59,6 @@ fn test_withdrawing_more_than_unlocked_balance_fails() {
     // Try to withdraw more than unlocked balance
     let unlocked_balance = vault.get_lp_unlocked_balance(lp);
     vault.withdraw(unlocked_balance + 1, lp);
-}
-
-// @note instead of testing withdrawing 0 fails or returns 0, we should just include in
-// in the the withdraw amounts in each test
-// @note can use the same array of withdraw amounts/lps for each test (0, ...)
-#[test]
-#[available_gas(10000000)]
-#[should_panic(expected: ('Cannot withdraw 0', 'ENTRYPOINT_FAILED'))]
-fn test_withdrawing_0_fails() {
-    let (mut vault, _) = setup_facade();
-    let lp = liquidity_provider_1();
-    accelerate_to_auctioning(ref vault);
-    // Try to withdraw 0
-    vault.withdraw(0, lp);
 }
 
 
@@ -103,12 +98,13 @@ fn test_withdrawal_events() {
 /// State Tests ///
 
 // Test withdrawing transfers eth from vault to liquidity provider
+// Also tests for 0 withdraw behaviour
 #[test]
 #[available_gas(10000000)]
 fn test_withdrawing_from_vault_eth_transfer() {
     let (mut vault, eth) = setup_facade();
-    let mut liquidity_providers = liquidity_providers_get(2).span();
-    let mut deposit_amounts = array![50 * decimals(), 50 * decimals()].span();
+    let mut liquidity_providers = liquidity_providers_get(3).span();
+    let mut deposit_amounts = array![50 * decimals(), 50 * decimals(), 0].span();
     vault.deposit_multiple(deposit_amounts, liquidity_providers);
 
     // Liquidity provider and vault eth balances before withdrawal
@@ -134,11 +130,11 @@ fn test_withdrawing_from_vault_eth_transfer() {
             Option::Some(_) => {
                 let lp_balance_before = lp_balances_before.pop_front().unwrap();
                 let lp_balance_after = lp_balances_after.pop_front().unwrap();
+                let withdraw_amount = *deposit_amounts.pop_front().unwrap();
 
                 // Check eth transfers to liquidity provider
                 assert(
-                    lp_balance_after == lp_balance_before + total_withdrawals,
-                    'lp eth balance wrong'
+                    lp_balance_after == lp_balance_before + withdraw_amount, 'lp eth balance wrong'
                 );
             },
             Option::None => { break (); }
