@@ -172,8 +172,7 @@ fn test_refund_bids_eth_transfer() {
                 match option_bidders.pop_front() {
                     Option::Some(bidder) => {
                         let eth_balance_before = eth_dispatcher.balance_of(*bidder);
-                        let refunded_amount = current_round.get_refundable_bids_for(*bidder);
-                        current_round.refund_bid(*bidder);
+                        let refunded_amount = current_round.refund_bid(*bidder);
                         let eth_balance_after = eth_dispatcher.balance_of(*bidder);
                         assert(
                             eth_balance_after == eth_balance_before + refunded_amount,
