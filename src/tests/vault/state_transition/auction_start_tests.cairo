@@ -50,34 +50,31 @@ use debug::PrintTrait;
 
 /// Failures ///
 
-// Test starting an auction while one is already running fails
-// @note Check whether all these cases should throw the same error felt
+// Test starting an auction while one is already on-going fails
 #[test]
 #[available_gas(10000000)]
-fn test_starting_auction_while_auction_running_fails() {
+fn test_starting_auction_while_round_auctioning_fails() {
     let (mut vault_facade, _) = setup_facade();
     accelerate_to_auctioning(ref vault_facade);
 
-    // Try to start round 2's auction while round 1 is auctioning
-    let expected_error: felt252 = OptionRoundError::AuctionStartDateNotReached.into();
-    // Try to end auction after it has already ended
+    // Try to start auction while round is Auctioning
+    let expected_error: felt252 = OptionRoundError::AuctionAlreadyStarted.into();
     match vault_facade.start_auction_raw() {
         Result::Ok(_) => { panic!("Error expected") },
         Result::Err(err) => { assert(err.into() == expected_error, 'Error Mismatch') }
     }
 }
 
-// Test starting an auction before the next round settles fails
+// Test starting an auction after one ends fails
 #[test]
 #[available_gas(10000000)]
-fn test_starting_auction_before_previous_round_settled_fails() {
+fn test_starting_auction_while_round_running_fails() {
     let (mut vault_facade, _) = setup_facade();
     accelerate_to_auctioning(ref vault_facade);
     accelerate_to_running(ref vault_facade);
 
-    // Try to start round 2's auction while round 1 is running
-    let expected_error: felt252 = OptionRoundError::AuctionStartDateNotReached.into();
-    // Try to end auction after it has already ended
+    // Try to start auction while round is Running
+    let expected_error: felt252 = OptionRoundError::AuctionAlreadyStarted.into();
     match vault_facade.start_auction_raw() {
         Result::Ok(_) => { panic!("Error expected") },
         Result::Err(err) => { assert(err.into() == expected_error, 'Error Mismatch') }
@@ -87,15 +84,14 @@ fn test_starting_auction_before_previous_round_settled_fails() {
 // Test starting an auction before the round transition period is over fails
 #[test]
 #[available_gas(10000000)]
-fn test_starting_auction_before_round_transition_period_over_fails() {
+fn test_starting_auction_while_round_settled_before_round_transition_period_over_fails() {
     let (mut vault_facade, _) = setup_facade();
     accelerate_to_auctioning(ref vault_facade);
     accelerate_to_running(ref vault_facade);
     accelerate_to_settled(ref vault_facade, 0);
 
-    // Try to start round 2's auction while round 1 is settled but before the round transition period is over
+    // Try to start auction while round is Settled, before round transition period is over
     let expected_error: felt252 = OptionRoundError::AuctionStartDateNotReached.into();
-    // Try to end auction after it has already ended
     match vault_facade.start_auction_raw() {
         Result::Ok(_) => { panic!("Error expected") },
         Result::Err(err) => { assert(err.into() == expected_error, 'Error Mismatch') }
