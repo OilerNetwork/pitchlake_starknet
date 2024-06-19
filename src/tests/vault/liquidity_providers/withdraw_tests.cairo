@@ -1,3 +1,5 @@
+use core::option::OptionTrait;
+use core::array::SpanTrait;
 use openzeppelin::token::erc20::interface::{
     IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
     IERC20SafeDispatcherTrait,
@@ -44,21 +46,6 @@ use debug::PrintTrait;
 // Test withdraw 0 does not fail, but balances are unchanged.
 //@note confirm if gas changes will also affect the balance, should we only check for vault balance or 
 //calculate gas amount to correct the balance.
-#[test]
-#[available_gas(10000000)]
-fn test_withdrawing_0_returns_0() {
-    let (mut vault, eth_dispatcher) = setup_facade();
-    let lp = liquidity_provider_1();
-    accelerate_to_auctioning(ref vault);
-
-    // Try to withdraw 0
-    let total_initial = vault.get_total_balance();
-    let lp_initial = eth_dispatcher.balance_of(liquidity_provider_1());
-    let total_final = vault.get_total_balance();
-    let lp_final = eth_dispatcher.balance_of(liquidity_provider_1());
-    assert(total_initial == total_final, 'Vault eth balance wrong');
-    assert(lp_initial == lp_final, 'LP eth balance wrong')
-}
 // Test withdrawing > unlocked balance fails
 #[test]
 #[available_gas(10000000)]
@@ -115,8 +102,8 @@ fn test_withdrawal_events() {
 #[available_gas(10000000)]
 fn test_withdrawing_from_vault_eth_transfer() {
     let (mut vault, eth) = setup_facade();
-    let mut liquidity_providers = liquidity_providers_get(2).span();
-    let mut deposit_amounts = array![50 * decimals(), 50 * decimals()].span();
+    let mut liquidity_providers = liquidity_providers_get(3).span();
+    let mut deposit_amounts = array![50 * decimals(), 50 * decimals(), 0].span();
     vault.deposit_multiple(deposit_amounts, liquidity_providers);
 
     // Liquidity provider and vault eth balances before withdrawal
@@ -142,11 +129,11 @@ fn test_withdrawing_from_vault_eth_transfer() {
             Option::Some(_) => {
                 let lp_balance_before = lp_balances_before.pop_front().unwrap();
                 let lp_balance_after = lp_balances_after.pop_front().unwrap();
+                let withdraw_amount = *deposit_amounts.pop_front().unwrap();
 
                 // Check eth transfers to liquidity provider
                 assert(
-                    lp_balance_after == lp_balance_before + total_withdrawals,
-                    'lp eth balance wrong'
+                    lp_balance_after == lp_balance_before + withdraw_amount, 'lp eth balance wrong'
                 );
             },
             Option::None => { break (); }

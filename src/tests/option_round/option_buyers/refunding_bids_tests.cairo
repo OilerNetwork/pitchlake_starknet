@@ -34,12 +34,12 @@ use pitch_lake_starknet::tests::{
 // Deploy vault and start auction
 // @return The vault facade, eth dispatcher, and span of option bidders
 fn setup_test(
-    number_of_option_buyers: u256
+    number_of_option_buyers: u32
 ) -> (VaultFacade, IERC20Dispatcher, Span<ContractAddress>) {
     let (mut vault, eth) = setup_facade();
 
     // Auction participants
-    let option_bidders = option_bidders_get(3);
+    let option_bidders = option_bidders_get(number_of_option_buyers);
 
     // Start auction
     accelerate_to_auctioning(ref vault);
@@ -80,7 +80,7 @@ fn place_incremental_bids_internal(
 #[available_gas(10000000)]
 #[should_panic(expected: ('The auction is still on-going', 'ENTRYPOINT_FAILED',))]
 fn test_refunding_bids_before_auction_end_fails() {
-    let number_of_option_bidders: u256 = 3;
+    let number_of_option_bidders: u32 = 3;
     let (mut vault, _, mut option_bidders) = setup_test(number_of_option_bidders);
 
     // Each option buyer out bids the next
@@ -97,8 +97,8 @@ fn test_refunding_bids_before_auction_end_fails() {
 #[test]
 #[available_gas(10000000)]
 fn test_refunding_0_bids_returns_0() {
-    let number_of_option_bidders: u256 = 3;
-    let (mut vault, _, mut option_bidders) = setup_test(number_of_option_bidders);
+    let number_of_option_bidders: u32 = 3;
+    let (mut vault, eth_dispatcher, mut option_bidders) = setup_test(number_of_option_bidders);
 
     // Each bidder out bids the next
     let (_, _, mut current_round) = place_incremental_bids_internal(ref vault, option_bidders);
@@ -113,7 +113,7 @@ fn test_refunding_0_bids_returns_0() {
             current_round.refund_bid(*bidder);
             // Confirm where the funds reside and check the subsequent balances
             let refund_zero = current_round.refund_bid(*bidder);
-            assert(refund_zero==0,'Should return 0')
+            assert(refund_zero == 0, 'Should return 0')
         },
         Option::None => { panic!("Bidder not found") }
     }
@@ -125,7 +125,7 @@ fn test_refunding_0_bids_returns_0() {
 #[test]
 #[available_gas(10000000)]
 fn test_refunding_bids_events() {
-    let number_of_option_bidders: u256 = 3;
+    let number_of_option_bidders: u32 = 3;
     let (mut vault, _, mut option_bidders) = setup_test(number_of_option_bidders);
 
     // Each bidder out bids the next
@@ -161,7 +161,7 @@ fn test_refunding_bids_events() {
 #[test]
 #[available_gas(10000000)]
 fn test_refund_bids_sets_refunded_balance_to_0() {
-    let number_of_option_bidders: u256 = 3;
+    let number_of_option_bidders: u32 = 3;
     let (mut vault, _, mut option_bidders) = setup_test(number_of_option_bidders);
 
     // Each bidder out bids the next
@@ -185,7 +185,7 @@ fn test_refund_bids_sets_refunded_balance_to_0() {
 #[test]
 #[available_gas(10000000)]
 fn test_refund_bids_eth_transfer() {
-    let number_of_option_bidders: u256 = 3;
+    let number_of_option_bidders: u32 = 3;
     let (mut vault, eth_dispatcher, mut option_bidders) = setup_test(number_of_option_bidders);
 
     // Each option bidder out bids the next
@@ -216,6 +216,4 @@ fn test_refund_bids_eth_transfer() {
         Option::None => { panic!("this should not panic") }
     }
 }
-
-
 
