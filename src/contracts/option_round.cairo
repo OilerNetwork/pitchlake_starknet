@@ -173,7 +173,7 @@ mod OptionRound {
         market_aggregator: ContractAddress,
         state: OptionRoundState,
         constructor_params: OptionRoundConstructorParams,
-        bidder_nonces: LegacyMap<ContractAddress, uint256>,
+        bidder_nonces: LegacyMap<ContractAddress, u256>,
         bid_details: LegacyMap<felt252, Bid>,
         linked_list: LegacyMap<felt252, LinkedBids>,
         bids_head: felt252,
@@ -250,14 +250,14 @@ mod OptionRound {
         price: u256
     }
 
-    #[derive(Copy, Drop, Serde)]
+    #[derive(Copy, Drop, Serde, starknet::Store)]
     struct Bid {
         id: felt252,
         owner: ContractAddress,
         amount: u256,
         price: u256,
     }
-    #[derive(Copy, Drop)]
+    #[derive(Copy, Drop, starknet::Store)]
     struct LinkedBids {
         bid: felt252,
         previous: felt252,
