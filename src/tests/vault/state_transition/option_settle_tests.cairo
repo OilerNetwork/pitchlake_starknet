@@ -28,7 +28,7 @@ use pitch_lake_starknet::{
     tests::{
         utils::{
             utils::{
-                get_portion_of_amount, split_spreads, create_array_linear, create_array_gradient,
+                get_portion_of_amount, create_array_linear, create_array_gradient,
                 get_erc20_balances, sum_u256_array,
             },
             event_helpers::{

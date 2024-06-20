@@ -30,7 +30,7 @@ use pitch_lake_starknet::{
             },
             utils::{
                 create_array_gradient, create_array_linear, sum_u256_array, get_portion_of_amount,
-                split_spreads, span_to_array,
+                span_to_array,
             },
             test_accounts::{
                 liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,

@@ -28,8 +28,7 @@ use pitch_lake_starknet::{
                 timeskip_and_settle_round, timeskip_and_end_auction,
             },
             utils::{
-                create_array_linear, create_array_gradient, sum_spreads, split_spreads,
-                sum_u256_array, get_portion_of_amount,
+                create_array_linear, create_array_gradient, sum_u256_array, get_portion_of_amount,
             },
             test_accounts::{
                 liquidity_provider_1, liquidity_provider_2, liquidity_providers_get,

@@ -16,7 +16,7 @@ use pitch_lake_starknet::{
     },
     tests::{
         utils::{
-            utils::{sum_u256_array, get_erc20_balance, get_erc20_balances, split_spreads,},
+            utils::{sum_u256_array, get_erc20_balance, get_erc20_balances,},
             event_helpers::{
                 assert_event_transfer, pop_log, assert_no_events_left, assert_event_option_settle,
                 assert_event_option_round_deployed, assert_event_vault_deposit,
