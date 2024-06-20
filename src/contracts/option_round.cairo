@@ -134,9 +134,11 @@ trait IOptionRound<TContractState> {
     // @note check all tests match new format (option amount, option price)
     fn place_bid(
         ref self: TContractState, amount: u256, price: u256
-    ) -> Result<bool, OptionRound::OptionRoundError>;
+    ) -> Result<felt252, OptionRound::OptionRoundError>;
 
-    fn update_bid(ref self: TContractState, bid_id: felt252, amount: u256, price: u256) -> Bid;
+    fn update_bid(
+        ref self: TContractState, bid_id: felt252, amount: u256, price: u256
+    ) -> Result<Bid, OptionRound::OptionRoundError>;
 
     // Refund unused bids for an option bidder if the auction has ended
     // @param option_bidder: The bidder to refund the unused bid back to
@@ -335,8 +337,7 @@ mod OptionRound {
         // Placing bids
         BidBelowReservePrice,
         // Editing bids
-        BidAmountCanOnlyBeIncreased,
-        BidPriceCanOnlyBeIncreased,
+        BidCannotBeDecreased: felt252,
     }
 
     impl OptionRoundErrorIntoFelt252 of Into<OptionRoundError, felt252> {
@@ -349,9 +350,11 @@ mod OptionRound {
                 OptionRoundError::OptionSettlementDateNotReached => 'OptionRound: Option settle fail',
                 OptionRoundError::OptionRoundAlreadySettled => 'OptionRound: Option settle fail',
                 OptionRoundError::BidBelowReservePrice => 'OptionRound: Bid below reserve',
-                OptionRoundError::BidAmountCanOnlyBeIncreased => 'OptionRound: Bid increase fail',
-                OptionRoundError::BidPriceCanOnlyBeIncreased => 'OptionRound: Bid increase fail',
-
+                OptionRoundError::BidCannotBeDecreased(input) => if input == 'amount' {
+                    'OptionRound: Bid amount too low'
+                } else {
+                    'OptionRound: Bid Price too low'
+                }
             }
         }
     }
@@ -542,14 +545,16 @@ mod OptionRound {
 
         fn place_bid(
             ref self: ContractState, amount: u256, price: u256
-        ) -> Result<bool, OptionRoundError> {
-            Result::Ok(true)
+        ) -> Result<felt252, OptionRoundError> {
+            Result::Ok('default')
         }
 
         fn update_bid(
             ref self: ContractState, bid_id: felt252, amount: u256, price: u256
-        ) -> Bid {
-            Bid { id: 'default', owner: starknet::get_caller_address(), amount: 1, price: 1 }
+        ) -> Result<Bid, OptionRoundError> {
+            Result::Ok(
+                Bid { id: 'default', owner: starknet::get_caller_address(), amount: 1, price: 1 }
+            )
         }
         fn refund_unused_bids(
             ref self: ContractState, option_bidder: ContractAddress

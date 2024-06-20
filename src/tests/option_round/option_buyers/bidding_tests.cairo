@@ -328,7 +328,7 @@ fn test_failed_bid_nonce_unchanged() {
     let nonce_before = current_round.get_nonce_for(option_bidder_buyer_1());
 
     // Place bids
-    let bid_price = reserve_price-1;
+    let bid_price = reserve_price - 1;
     let mut bid_amount = options_available;
     current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
 
