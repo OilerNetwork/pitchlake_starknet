@@ -20,6 +20,7 @@ mod option_round {
         mod bidding_tests;
         mod exercise_options_tests;
         mod refunding_bids_tests;
+        mod update_bids_tests;
     }
     mod state_transition {
         mod auction_end {

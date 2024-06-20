@@ -7,7 +7,7 @@ use starknet::{ContractAddress, testing::{set_contract_address}};
 use pitch_lake_starknet::{
     contracts::option_round::{
         IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState, StartAuctionParams,
-        OptionRoundConstructorParams,
+        OptionRoundConstructorParams, Bid,
         OptionRound::{
             OptionRoundError, OptionRoundErrorIntoFelt252, //OptionRoundErrorIntoByteArray
         }
@@ -84,14 +84,15 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     // @return: Whether the bid was accepted or rejected
     fn place_bid(
         ref self: OptionRoundFacade, amount: u256, price: u256, bidder: ContractAddress,
-    ) -> bool {
+    ) -> felt252 {
         set_contract_address(bidder);
         let res = self.place_bid_raw(amount, price, bidder);
         match res {
-            Result::Ok(_) => true,
+            Result::Ok(bid_id) => bid_id,
             Result::Err(e) => panic(array![e.into()]),
         }
     }
+
 
     // Place multiple bids for multiple option bidders
     // @return: Whether the bids were accepted or rejected
@@ -100,7 +101,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         mut amounts: Span<u256>,
         mut prices: Span<u256>,
         mut bidders: Span<ContractAddress>,
-    ) -> Array<bool> {
+    ) -> Array<felt252> {
         assert_two_arrays_equal_length(bidders, amounts);
         assert_two_arrays_equal_length(bidders, prices);
         let mut results = array![];
@@ -127,7 +128,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         amount: u256,
         price: u256,
         option_bidder_buyer: ContractAddress,
-    ) -> Result<bool, OptionRoundError> {
+    ) -> Result<felt252, OptionRoundError> {
         set_contract_address(option_bidder_buyer);
         self.option_round_dispatcher.place_bid(amount, price)
     }
@@ -140,7 +141,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         mut amounts: Span<u256>,
         mut prices: Span<u256>,
         mut bidders: Span<ContractAddress>,
-    ) -> Array<Result<bool, OptionRoundError>> {
+    ) -> Array<Result<felt252, OptionRoundError>> {
         assert_two_arrays_equal_length(bidders, amounts);
         assert_two_arrays_equal_length(bidders, prices);
         let mut results = array![];
@@ -160,6 +161,20 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         results
     }
 
+
+    fn update_bid(ref self: OptionRoundFacade, id: felt252, amount: u256, price: u256) -> Bid {
+        let res = self.option_round_dispatcher.update_bid(id, amount, price);
+        match res {
+            Result::Ok(Bid) => Bid,
+            Result::Err(e) => panic(array![e.into()])
+        }
+    }
+
+    fn update_bid_raw(
+        ref self: OptionRoundFacade, id: felt252, amount: u256, price: u256,
+    ) -> Result<Bid, OptionRoundError> {
+        self.option_round_dispatcher.update_bid(id, amount, price)
+    }
     // Refunds all unused bids of an option bidder
     // @return: The amount refunded
     // @note: Call using bystander ?
@@ -264,10 +279,24 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         self.option_round_dispatcher.total_options_sold()
     }
 
+    fn get_bid_details(ref self: OptionRoundFacade, bid_id: felt252) -> Bid {
+        self.option_round_dispatcher.get_bid_details(bid_id)
+    }
+
+    fn get_nonce_for(ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress) -> u32 {
+        self.option_round_dispatcher.get_nonce_for(option_bidder_buyer)
+    }
+
     fn get_pending_bids_for(
         ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
     ) -> u256 {
         self.option_round_dispatcher.get_pending_bids_for(option_bidder_buyer)
+    }
+
+    fn get_bids_for(
+        ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
+    ) -> Array<felt252> {
+        self.option_round_dispatcher.get_bids_for(option_bidder_buyer)
     }
 
     fn get_refundable_bids_for(
