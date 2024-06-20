@@ -186,4 +186,6 @@ fn test_refund_bids_eth_transfer() {
         Option::None => { panic!("this should not panic") }
     }
 }
+// @note Add test for bidder having a portion of their bid refundable
+
 
