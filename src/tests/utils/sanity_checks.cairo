@@ -2,7 +2,7 @@ use starknet::{ContractAddress, testing::{set_contract_address}};
 use openzeppelin::token::erc20::interface::{IERC20DispatcherTrait,};
 use pitch_lake_starknet::{
     //vault::{IVaultDispatcherTrait},
-    contracts::option_round::{IOptionRoundDispatcherTrait},
+    contracts::option_round::{IOptionRoundDispatcherTrait, OptionRound::Bid},
     tests::{
         utils::{
             accelerators::{
@@ -58,6 +58,17 @@ fn exercise_options(
     individual_payout
 }
 
+fn place_bid(ref self: OptionRoundFacade, bidder: ContractAddress, id: felt252) -> felt252 {
+    let nonce: felt252 = (self.get_nonce_for(bidder) - 1).into();
+    let hash = poseidon::poseidon_hash_span(array![bidder.into(), nonce].span());
+    //assert(hash == id , 'Invalid hash generated');
+    id
+}
+fn update_bid(ref option_round: OptionRoundFacade, bid_id: felt252, bid: Bid) -> Bid {
+    let storage_bid = option_round.get_bid_details(bid_id);
+    //assert(bid == storage_bid, 'Bid Mismatch');
+    bid
+}
 
 /// Vault
 

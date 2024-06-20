@@ -294,6 +294,57 @@ fn test_bid_eth_transfer() {
 }
 // @note Test bids are placed in pending bids
 
+// Nonce Tests //
+#[test]
+#[available_gas(10000000)]
+fn test_bid_updates_nonce() {
+    let (mut vault_facade, _) = setup_facade();
+    let options_available = accelerate_to_auctioning(ref vault_facade);
+    let mut current_round = vault_facade.get_current_round();
+    let reserve_price = current_round.get_reserve_price();
+
+    // Bid parameters
+    let bid_price = reserve_price;
+    let mut bid_amount = options_available;
+
+    let mut i: u256 = 0;
+    while i < 3 {
+        let nonce_before = current_round.get_nonce_for(option_bidder_buyer_1());
+        current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
+        let nonce_after = current_round.get_nonce_for(option_bidder_buyer_1());
+        assert(nonce_before + 1 == nonce_after, 'Nonce Mismatch');
+        i += 1;
+    };
+// Nonce after bid
+
+}
+
+
+fn test_failed_bid_nonce_unchanged() {
+    let (mut vault_facade, _) = setup_facade();
+    let options_available = accelerate_to_auctioning(ref vault_facade);
+    let mut current_round = vault_facade.get_current_round();
+    let reserve_price = current_round.get_reserve_price();
+
+    // Bid parameters
+    let bid_price = reserve_price;
+    let mut bid_amount = options_available;
+
+    let mut i: u256 = 0;
+    while i < 10 {
+        let nonce_before = current_round.get_nonce_for(option_bidder_buyer_1());
+        if (i % 2 == 1) {
+            //Failed bid in alternate rounds and check nonce update
+            current_round.place_bid(bid_amount, bid_price - 1, option_bidder_buyer_1());
+            let nonce_after = current_round.get_nonce_for(option_bidder_buyer_1());
+            assert(nonce_before == nonce_after, 'Nonce Mismatch');
+        } else {
+            current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
+        }
+
+        i += 1;
+    };
+}
 
 
 // Nonce Tests //

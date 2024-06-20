@@ -249,8 +249,8 @@ mod OptionRound {
         amount: u256,
         price: u256
     }
+    #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
 
-    #[derive(Copy, Drop, Serde, starknet::Store)]
     struct Bid {
         id: felt252,
         owner: ContractAddress,
@@ -258,7 +258,7 @@ mod OptionRound {
         price: u256,
         valid: bool,
     }
-    #[derive(Copy, Drop, starknet::Store)]
+    #[derive(Copy, Drop, starknet::Store, PartialEq)]
     struct LinkedBids {
         bid: felt252,
         previous: felt252,
@@ -353,8 +353,10 @@ mod OptionRound {
                 OptionRoundError::BidBelowReservePrice => 'OptionRound: Bid below reserve',
                 OptionRoundError::BidCannotBeDecreased(input) => if input == 'amount' {
                     'OptionRound: Bid amount too low'
+                } else if input == 'price' {
+                    'OptionRound: Bid price too low'
                 } else {
-                    'OptionRound: Bid Price too low'
+                    'OptionRound: Bid too low'
                 }
             }
         }

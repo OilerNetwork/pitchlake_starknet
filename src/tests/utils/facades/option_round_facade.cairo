@@ -88,7 +88,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         set_contract_address(bidder);
         let res = self.place_bid_raw(amount, price, bidder);
         match res {
-            Result::Ok(bid_id) => bid_id,
+            Result::Ok(bid_id) => { sanity_checks::place_bid(ref self, bidder, bid_id) },
             Result::Err(e) => panic(array![e.into()]),
         }
     }
@@ -165,7 +165,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     fn update_bid(ref self: OptionRoundFacade, id: felt252, amount: u256, price: u256) -> Bid {
         let res = self.option_round_dispatcher.update_bid(id, amount, price);
         match res {
-            Result::Ok(Bid) => Bid,
+            Result::Ok(bid) => { sanity_checks::update_bid(ref self, id, bid) },
             Result::Err(e) => panic(array![e.into()])
         }
     }
