@@ -60,10 +60,7 @@ fn test_total_options_after_auction_1() {
     );
 
     // Check total options sold is the total options available
-    assert(
-        total_options_available == current_round.total_options_sold(),
-        'options sold wrong'
-    );
+    assert(total_options_available == current_round.total_options_sold(), 'options sold wrong');
 }
 
 
@@ -96,10 +93,7 @@ fn test_total_options_after_auction_2() {
     );
 
     // Check total options sold is the total options available
-    assert(
-        total_options_available == current_round.total_options_sold(),
-        'options sold wrong'
-    );
+    assert(total_options_available == current_round.total_options_sold(), 'options sold wrong');
 }
 
 // @note This test makes no sense
@@ -170,8 +164,7 @@ fn test_total_options_after_auction_5() {
 
     // Check all options sell
     assert(
-        total_options_available == current_round.total_options_sold(),
-        'max options should sell'
+        total_options_available == current_round.total_options_sold(), 'max options should sell'
     );
 }
 
@@ -188,7 +181,6 @@ fn test_option_balance_per_bidder_after_auction_1() {
 
     let reserve_price = current_round.get_reserve_price();
     let total_options_available = current_round.get_total_options_available();
-
 
     // Make bids
     let option_bidders = option_bidders_get(4);
@@ -338,7 +330,7 @@ fn test_option_round_options_sold_before_auction_end_is_0() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
-    
+
     let reserve_price = current_round.get_reserve_price();
     let total_options_available = current_round.get_total_options_available();
 

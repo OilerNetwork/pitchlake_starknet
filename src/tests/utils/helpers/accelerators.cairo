@@ -106,7 +106,7 @@ fn timeskip_past_auction_end_date(ref self: VaultFacade) {
 // Jump past the option expiry date
 fn timeskip_past_option_expiry_date(ref self: VaultFacade) {
     let mut current_round = self.get_current_round();
-    set_block_timestamp(current_round.get_option_expiry_date()+ 1);
+    set_block_timestamp(current_round.get_option_expiry_date() + 1);
 }
 
 // Jump past the round transition period

@@ -48,7 +48,7 @@ fn test_option_round_clearing_price_0_before_auction_end() {
     let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
 
     //Option Round params
-    
+
     let reserve_price = current_round.get_reserve_price();
     let total_options_available = current_round.get_total_options_available();
 
@@ -73,10 +73,7 @@ fn test_clearing_price_1() {
 
     let (clearing_price, _) = accelerate_to_running(ref vault_facade);
     // @dev This checks that vault::end_auction returns the clearing price that is set in storage
-    assert(
-        clearing_price == current_round.get_auction_clearing_price(),
-        'clearing price not set'
-    );
+    assert(clearing_price == current_round.get_auction_clearing_price(), 'clearing price not set');
     assert(clearing_price == current_round.get_reserve_price(), 'clearing price wrong');
 }
 
@@ -93,8 +90,7 @@ fn test_clearing_price_2() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
-    
-    
+
     let reserve_price = current_round.get_reserve_price();
     let total_options_available = current_round.get_total_options_available();
 
@@ -114,10 +110,7 @@ fn test_clearing_price_2() {
         array![bid_price_user_1, bid_price_user_2].span()
     );
     // @dev This tests that vault::end_auction returns the clearing price that gets set
-    assert(
-        clearing_price == current_round.get_auction_clearing_price(),
-        'clearing price not set'
-    );
+    assert(clearing_price == current_round.get_auction_clearing_price(), 'clearing price not set');
     assert(clearing_price == reserve_price, 'clearing price wrong');
 }
 
@@ -197,7 +190,7 @@ fn test_clearing_price_5() {
     // Deposit liquidity and start the auction
     accelerate_to_auctioning(ref vault_facade);
     let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
-    
+
     let reserve_price = current_round.get_reserve_price();
     let total_options_available = current_round.get_total_options_available();
     // Three OBs bid for the more than the total amount of options,

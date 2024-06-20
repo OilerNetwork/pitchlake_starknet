@@ -203,14 +203,12 @@ fn test_convert_lp_tokens_to_position_is_always_deposit_into_current_round() { /
     // Start auction
     vault_facade.start_auction();
     let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
-   
-
 
     let reserve_price = current_round.get_reserve_price();
     let total_options_available = current_round.get_total_options_available();
     let auction_end_time = current_round.get_auction_end_date();
 
-     // Make bid
+    // Make bid
     let bid_count: u256 = total_options_available;
     let bid_price: u256 = reserve_price;
     let bid_amount: u256 = bid_count * bid_price;
