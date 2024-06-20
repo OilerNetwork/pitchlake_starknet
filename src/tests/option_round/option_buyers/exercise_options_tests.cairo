@@ -2,9 +2,7 @@ use starknet::testing::{set_block_timestamp, set_contract_address};
 use openzeppelin::token::erc20::interface::{IERC20, IERC20Dispatcher, IERC20DispatcherTrait,};
 use pitch_lake_starknet::tests::{
     utils::{
-        utils::{
-            create_array_linear, get_erc20_balance, get_erc20_balances, create_linear_options_array
-        },
+        utils::{create_array_linear, get_erc20_balance, get_erc20_balances},
         event_helpers::{
             assert_event_transfer, assert_event_vault_withdrawal, assert_event_options_exercised,
             clear_event_logs,
@@ -75,7 +73,7 @@ fn test_exercise_options_events() {
     let mut current_round = vault.get_current_round();
     let reserve_price = current_round.get_reserve_price();
     let bid_count = options_available / option_bidders.len().into();
-    let bid_amounts = create_linear_options_array(3, bid_count).span();
+    let bid_amounts = create_array_linear(bid_count, 3).span();
     let bid_prices = create_array_linear(reserve_price, option_bidders.len()).span();
     accelerate_to_running_custom(ref vault, option_bidders, bid_amounts, bid_prices);
     accelerate_to_settled(ref vault, 2 * current_round.get_strike_price());
@@ -109,7 +107,7 @@ fn test_exercise_options_eth_transfer() {
     let reserve_price = current_round.get_reserve_price();
     let bid_count = options_available / option_bidders.len().into();
     let bid_prices = create_array_linear(reserve_price, option_bidders.len()).span();
-    let bid_amounts = create_linear_options_array(3, bid_count).span();
+    let bid_amounts = create_array_linear(bid_count, 3).span();
     accelerate_to_running_custom(ref vault, option_bidders, bid_amounts, bid_prices);
     let total_payout = accelerate_to_settled(ref vault, 2 * current_round.get_strike_price());
 
