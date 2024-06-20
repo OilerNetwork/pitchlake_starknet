@@ -113,10 +113,12 @@ trait IOptionRound<TContractState> {
     /// OB functions
 
     // Place a bid in the auction
-    // @param amount: The max amount in place_bid_token to be used for bidding in the auction
-    // @param price: The max price in place_bid_token per option (if the clearing price is
+    // @param amount: The max amount of options being bid for
+    // @param price: The max price per option being bid (if the clearing price is
     // higher than this, the entire bid is unused and can be claimed back by the bidder)
     // @return if the bid was accepted or rejected
+
+    // @note check all tests match new format (option amount, option price)
     fn place_bid(
         ref self: TContractState, amount: u256, price: u256
     ) -> Result<bool, OptionRound::OptionRoundError>;
@@ -288,23 +290,34 @@ mod OptionRound {
     #[derive(Copy, Drop, Serde)]
     enum OptionRoundError {
         // Starting auction
+        AuctionAlreadyStarted,
         AuctionStartDateNotReached,
         // Ending auction
+        AuctionAlreadyEnded,
         AuctionEndDateNotReached,
         // Settling round
+        OptionRoundAlreadySettled,
         OptionSettlementDateNotReached,
         // Placing bids
         BidBelowReservePrice,
-    // @note Add events for when bids are edited
+        // Editing bids
+        BidAmountCanOnlyBeIncreased,
+        BidPriceCanOnlyBeIncreased,
     }
 
     impl OptionRoundErrorIntoFelt252 of Into<OptionRoundError, felt252> {
         fn into(self: OptionRoundError) -> felt252 {
             match self {
                 OptionRoundError::AuctionStartDateNotReached => 'OptionRound: Auction start fail',
+                OptionRoundError::AuctionAlreadyStarted => 'OptionRound: Auction start fail',
                 OptionRoundError::AuctionEndDateNotReached => 'OptionRound: Auction end fail',
+                OptionRoundError::AuctionAlreadyEnded => 'OptionRound: Auction end fail',
                 OptionRoundError::OptionSettlementDateNotReached => 'OptionRound: Option settle fail',
+                OptionRoundError::OptionRoundAlreadySettled => 'OptionRound: Option settle fail',
                 OptionRoundError::BidBelowReservePrice => 'OptionRound: Bid below reserve',
+                OptionRoundError::BidAmountCanOnlyBeIncreased => 'OptionRound: Bid increase fail',
+                OptionRoundError::BidPriceCanOnlyBeIncreased => 'OptionRound: Bid increase fail',
+
             }
         }
     }
@@ -416,7 +429,7 @@ mod OptionRound {
             100
         }
 
-        
+
 
         /// Other
 

@@ -55,42 +55,55 @@ use debug::PrintTrait;
 
 /// Failures ///
 
-// Test ending the auction before the auction end date fails and throws the right error
+// Test ending the auction before it starts fails
 #[test]
 #[available_gas(10000000)]
-fn test_ending_auction_before_end_date_fails() {
-    let (mut vault, _) = setup_facade();
-    let expected_error: felt252 = OptionRoundError::AuctionEndDateNotReached.into();
-    accelerate_to_auctioning(ref vault);
-
-    // Try to end auction before auction end date
-    match vault.end_auction_raw() {
-        Result::Ok(_) => { panic!("Error expected") },
-        Result::Err(err) => { assert(err.into() == expected_error, 'Error Mismatch') }
-    }
-}
-
-// Test ending the auction fails when there is not one running
-// @note Check whether all these conditions will throw the EndDateNotReached error
-#[test]
-#[available_gas(10000000)]
-fn test_ending_auction_when_there_is_not_one_running_fails() {
+fn test_ending_auction_before_it_starts_fails() {
     let (mut vault_facade, _) = setup_facade();
-    accelerate_to_auctioning(ref vault_facade);
-    accelerate_to_running(ref vault_facade);
 
+    // Try to end auction before it starts
     let expected_error: felt252 = OptionRoundError::AuctionEndDateNotReached.into();
-    // Try to end auction after it has already ended
     match vault_facade.end_auction_raw() {
         Result::Ok(_) => { panic!("Error expected") },
         Result::Err(err) => { assert(err.into() == expected_error, 'Error Mismatch') }
     }
 }
 
-// Test ending the auction fails when there is not one running (needed?)
+// Test ending the auction before the auction end date fails
 #[test]
 #[available_gas(10000000)]
-fn test_ending_auction_when_there_is_not_one_running_fails2() {
+fn test_ending_auction_before_auction_end_date_fails() {
+    let (mut vault, _) = setup_facade();
+    accelerate_to_auctioning(ref vault);
+
+    // Try to end auction before auction end date
+    let expected_error: felt252 = OptionRoundError::AuctionEndDateNotReached.into();
+    match vault.end_auction_raw() {
+        Result::Ok(_) => { panic!("Error expected") },
+        Result::Err(err) => { assert(err.into() == expected_error, 'Error Mismatch') }
+    }
+}
+
+// Test ending the auction after it already ended fails
+#[test]
+#[available_gas(10000000)]
+fn test_ending_auction_while_round_running_fails() {
+    let (mut vault_facade, _) = setup_facade();
+    accelerate_to_auctioning(ref vault_facade);
+    accelerate_to_running(ref vault_facade);
+
+    // Try to end auction after it has already ended
+    let expected_error: felt252 = OptionRoundError::AuctionEndDateNotReached.into();
+    match vault_facade.end_auction_raw() {
+        Result::Ok(_) => { panic!("Error expected") },
+        Result::Err(err) => { assert(err.into() == expected_error, 'Error Mismatch') }
+    }
+}
+
+// Test ending the auction after the auction ends fails (next state)
+#[test]
+#[available_gas(10000000)]
+fn test_ending_auction_while_round_settled_fails() {
     let (mut vault_facade, _) = setup_facade();
     accelerate_to_auctioning(ref vault_facade);
     accelerate_to_running(ref vault_facade);
