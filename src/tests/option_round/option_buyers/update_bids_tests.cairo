@@ -3,8 +3,10 @@ use pitch_lake_starknet::{
     contracts::{option_round::{OptionRound::OptionRoundError}},
     tests::{
         utils::{
-            test_accounts::{option_bidder_buyer_1}, accelerators::{accelerate_to_auctioning,},
-            test_accounts::{option_bidders_get}, variables::{decimals}, setup::{setup_facade},
+            helpers::{setup::{setup_facade}, accelerators::{accelerate_to_auctioning},},
+            lib::{
+                test_accounts::{option_bidders_get, option_bidder_buyer_1}, variables::{decimals},
+            },
             facades::{
                 vault_facade::{VaultFacade, VaultFacadeTrait},
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait}

@@ -250,7 +250,6 @@ mod OptionRound {
         price: u256
     }
     #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
-
     struct Bid {
         id: felt252,
         owner: ContractAddress,

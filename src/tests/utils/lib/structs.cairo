@@ -1,4 +1,4 @@
-use pitch_lake_starknet::{tests::{utils::{variables::{decimals, week_duration}}}};
+use pitch_lake_starknet::{tests::{utils::lib::{variables::{decimals, week_duration}}}};
 
 #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
 struct OptionRoundParams {

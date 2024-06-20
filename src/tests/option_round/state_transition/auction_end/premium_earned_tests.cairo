@@ -5,17 +5,22 @@ use openzeppelin::token::erc20::interface::{
 };
 use pitch_lake_starknet::tests::{
     utils::{
-        event_helpers::{assert_event_transfer, assert_event_vault_withdrawal},
-        accelerators::{
-            accelerate_to_auctioning, accelerate_to_auctioning_custom, accelerate_to_running,
-            accelerate_to_running_custom, accelerate_to_settled, clear_event_logs
+        helpers::{
+            event_helpers::{assert_event_transfer, assert_event_vault_withdrawal},
+            accelerators::{
+                accelerate_to_auctioning, accelerate_to_auctioning_custom, accelerate_to_running,
+                accelerate_to_running_custom, accelerate_to_settled, clear_event_logs
+            },
+            setup::{setup_facade},
         },
-        test_accounts::{
-            liquidity_provider_1, liquidity_provider_2, liquidity_provider_3, liquidity_provider_4,
-            liquidity_provider_5, option_bidder_buyer_1, option_bidder_buyer_2,
-            option_bidder_buyer_3, liquidity_providers_get
+        lib::{
+            test_accounts::{
+                liquidity_provider_1, liquidity_provider_2, liquidity_provider_3,
+                liquidity_provider_4, liquidity_provider_5, option_bidder_buyer_1,
+                option_bidder_buyer_2, option_bidder_buyer_3, liquidity_providers_get
+            },
+            variables::{decimals},
         },
-        variables::{decimals}, setup::{setup_facade},
         facades::{
             option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundParams},
             vault_facade::{VaultFacade, VaultFacadeTrait},
@@ -42,14 +47,15 @@ fn test_premium_amount_0_before_auction_end() {
     // Deposit liquidity and start the auction
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
-    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let params: OptionRoundParams = current_round_facade.get_params();
+    let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
+    let reserve_price = current_round.get_reserve_price();
+    let total_options_available = current_round.get_total_options_available();
 
     // Bid for all options at reserve price
-    let bid_amount = params.total_options_available;
-    let bid_price = params.reserve_price;
+    let bid_amount = total_options_available;
+    let bid_price = reserve_price;
     let bid_amount = bid_amount * bid_price;
-    current_round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
+    current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
 
     // Check premiums collectable is 0 since auction is still on going
     let premiums_collectable = vault_facade.get_lp_unlocked_balance(liquidity_provider_1());

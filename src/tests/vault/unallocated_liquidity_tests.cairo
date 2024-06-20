@@ -1,15 +1,19 @@
 use pitch_lake_starknet::tests::{
     utils::{
-        accelerators::{
-            accelerate_to_auctioning_custom, accelerate_to_running_custom, accelerate_to_auctioning,
-            accelerate_to_settled, accelerate_to_running
+        helpers::{
+            accelerators::{
+                accelerate_to_auctioning_custom, accelerate_to_running_custom,
+                accelerate_to_auctioning, accelerate_to_settled, accelerate_to_running
+            },
+            general_helpers::{create_array_gradient, create_array_linear,}, setup::{setup_facade},
         },
-        utils::{create_array_gradient, create_array_linear,},
-        test_accounts::{
-            liquidity_provider_1, liquidity_provider_2, liquidity_providers_get,
-            option_bidder_buyer_1, option_bidder_buyer_2, option_bidders_get,
+        lib::{
+            test_accounts::{
+                liquidity_provider_1, liquidity_provider_2, liquidity_providers_get,
+                option_bidder_buyer_1, option_bidder_buyer_2, option_bidders_get,
+            },
+            variables::{decimals},
         },
-        variables::{decimals}, setup::{setup_facade},
         facades::{
             option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
             vault_facade::{VaultFacade, VaultFacadeTrait},

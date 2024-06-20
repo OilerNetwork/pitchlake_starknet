@@ -14,8 +14,11 @@ use pitch_lake_starknet::{
     },
     tests::{
         utils::{
-            variables::{vault_manager}, test_accounts::{bystander}, structs::{OptionRoundParams},
-            utils::{assert_two_arrays_equal_length}, sanity_checks,
+            helpers::general_helpers::{assert_two_arrays_equal_length},
+            lib::{
+                variables::{vault_manager}, test_accounts::{bystander}, structs::{OptionRoundParams}
+            },
+            facades::sanity_checks,
         }
     }
 };
@@ -326,21 +329,6 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
 
     fn contract_address(ref self: OptionRoundFacade) -> ContractAddress {
         self.option_round_dispatcher.contract_address
-    }
-
-    fn get_params(ref self: OptionRoundFacade) -> OptionRoundParams {
-        OptionRoundParams {
-            current_average_basefee: self.get_current_average_basefee(),
-            standard_deviation: self.get_standard_deviation(),
-            strike_price: self.get_strike_price(),
-            cap_level: self.get_cap_level(),
-            collateral_level: 0,
-            reserve_price: self.get_reserve_price(),
-            total_options_available: self.get_total_options_available(),
-            minimum_collateral_required: 0,
-            auction_end_time: self.get_auction_end_date(),
-            option_expiry_time: self.get_option_expiry_date(),
-        }
     }
 
     /// Previously OptionRoundParms

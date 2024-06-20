@@ -5,16 +5,19 @@ use pitch_lake_starknet::{
     contracts::option_round::{IOptionRoundDispatcherTrait, OptionRound::Bid},
     tests::{
         utils::{
-            accelerators::{
-                accelerate_to_auctioning, accelerate_to_running, accelerate_to_running_custom,
-                accelerate_to_settled
+            helpers::{
+                event_helpers,
+                accelerators::{
+                    accelerate_to_auctioning, accelerate_to_running, accelerate_to_running_custom,
+                    accelerate_to_settled,
+                },
+                setup::{setup_facade},
             },
-            setup::{setup_facade}, test_accounts::{option_bidders_get},
+            lib::test_accounts::{option_bidders_get, liquidity_provider_1, liquidity_provider_2},
             facades::{
                 vault_facade::{VaultFacade, VaultFacadeTrait},
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait}
             },
-            test_accounts::{liquidity_provider_1, liquidity_provider_2}, event_helpers,
         }
     }
 };
