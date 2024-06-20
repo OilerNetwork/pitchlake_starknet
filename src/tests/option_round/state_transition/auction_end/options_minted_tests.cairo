@@ -23,6 +23,8 @@ use pitch_lake_starknet::tests::{
 };
 
 // @note move these tests to ./src/tests/option_round/state_transition/auction_end_tests
+// @note should clean these tests up, one makes no sense, the assertions should lead with options_sold == , not ... == options_sold
+// @note should break tests up into options sold tests and options distributed tests
 
 #[test]
 #[available_gas(10000000)]
@@ -92,7 +94,7 @@ fn test_total_options_after_auction_2() {
     );
 }
 
-
+// @note This test makes no sense
 #[test]
 #[available_gas(10000000)]
 fn test_total_options_after_auction_3() {

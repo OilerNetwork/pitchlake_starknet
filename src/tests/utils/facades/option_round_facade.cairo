@@ -170,7 +170,6 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         }
     }
 
-
     fn update_bid_raw(
         ref self: OptionRoundFacade, id: felt252, amount: u256, price: u256,
     ) -> Result<Bid, OptionRoundError> {
