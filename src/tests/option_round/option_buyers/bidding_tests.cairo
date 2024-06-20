@@ -294,6 +294,7 @@ fn test_bid_eth_transfer() {
 }
 // @note Test bids are placed in pending bids
 
+// Nonce Tests //
 #[test]
 #[available_gas(10000000)]
 fn test_bid_updates_nonce() {

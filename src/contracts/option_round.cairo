@@ -256,6 +256,7 @@ mod OptionRound {
         owner: ContractAddress,
         amount: u256,
         price: u256,
+        valid: bool,
     }
     #[derive(Copy, Drop, starknet::Store)]
     struct LinkedBids {
@@ -451,7 +452,13 @@ mod OptionRound {
         }
 
         fn get_bid_details(self: @ContractState, bid_id: felt252) -> Bid {
-            Bid { id: 'default', owner: starknet::get_caller_address(), amount: 1, price: 1 }
+            Bid {
+                id: 'default',
+                owner: starknet::get_caller_address(),
+                amount: 1,
+                price: 1,
+                valid: true
+            }
         }
 
 
@@ -553,7 +560,13 @@ mod OptionRound {
             ref self: ContractState, bid_id: felt252, amount: u256, price: u256
         ) -> Result<Bid, OptionRoundError> {
             Result::Ok(
-                Bid { id: 'default', owner: starknet::get_caller_address(), amount: 1, price: 1 }
+                Bid {
+                    id: 'default',
+                    owner: starknet::get_caller_address(),
+                    amount: 1,
+                    price: 1,
+                    valid: true
+                }
             )
         }
         fn refund_unused_bids(
