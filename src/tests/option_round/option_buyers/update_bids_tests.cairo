@@ -74,8 +74,7 @@ fn test_update_bids_price_amount() {
     let bid_id = current_round.place_bid(bid_amount, bid_price, option_buyer);
 
     // Update bid
-    current_round.update_bid(bid_id, bid_amount + 1, bid_price + 5 * decimals());
-    let updated_bid = current_round.get_bid_details(bid_id);
+    let updated_bid = current_round.update_bid(bid_id, bid_amount + 1, bid_price + 5 * decimals());
     assert(updated_bid.amount == bid_amount + 1, 'Updated amount incorrect');
     assert(updated_bid.price == bid_price + 5 * decimals(), 'Updated price incorrect');
 }
