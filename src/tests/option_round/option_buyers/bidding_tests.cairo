@@ -294,6 +294,8 @@ fn test_bid_eth_transfer() {
 }
 // @note Test bids are placed in pending bids
 
+
+
 // Nonce Tests //
 #[test]
 #[available_gas(10000000)]
@@ -338,4 +340,24 @@ fn test_failed_bid_nonce_unchanged() {
     // Check round balance
     // Check ob balances
     assert(nonce_before == nonce_after, 'Nonce Mismatch')
+}
+
+#[test]
+#[available_gas(10000000)]
+fn test_place_bid_id() {
+    let (mut vault_facade, _) = setup_facade();
+    let options_available = accelerate_to_auctioning(ref vault_facade);
+    let mut current_round = vault_facade.get_current_round();
+    let reserve_price = current_round.get_reserve_price();
+
+    // Nonce before bid
+    let nonce:felt252 = current_round.get_nonce_for(option_bidder_buyer_1()).into();
+
+    // Place bids
+    let bid_price = reserve_price;
+    let mut bid_amount = options_available;
+    let bid_id = current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
+    let hash = poseidon::poseidon_hash_span(array![option_bidder_buyer_1().into(),nonce].span());
+    assert (nonce==hash,'Bid Id Incorrect');
+
 }
