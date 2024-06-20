@@ -27,24 +27,29 @@ use pitch_lake_starknet::{
     },
     tests::{
         utils::{
-            utils::{
-                get_portion_of_amount, split_spreads, create_array_linear, create_array_gradient,
-                get_erc20_balances, sum_u256_array,
+            helpers::{
+                general_helpers::{
+                    get_portion_of_amount, split_spreads, create_array_linear,
+                    create_array_gradient, get_erc20_balances, sum_u256_array,
+                },
+                event_helpers::{
+                    clear_event_logs, assert_event_option_settle, assert_event_transfer,
+                    assert_no_events_left, pop_log
+                },
+                accelerators::{
+                    accelerate_to_auctioning, accelerate_to_running, accelerate_to_settled,
+                    accelerate_to_auctioning_custom
+                },
+                setup::{setup_facade},
             },
-            event_helpers::{
-                clear_event_logs, assert_event_option_settle, assert_event_transfer,
-                assert_no_events_left, pop_log
+            lib::{
+                test_accounts::{
+                    liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
+                    option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
+                    liquidity_providers_get, liquidity_provider_3, liquidity_provider_4,
+                },
+                variables::{decimals},
             },
-            accelerators::{
-                accelerate_to_auctioning, accelerate_to_running, accelerate_to_settled,
-                accelerate_to_auctioning_custom
-            },
-            test_accounts::{
-                liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
-                option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
-                liquidity_providers_get, liquidity_provider_3, liquidity_provider_4,
-            },
-            variables::{decimals}, setup::{setup_facade},
             facades::{
                 vault_facade::{VaultFacade, VaultFacadeTrait},
                 option_round_facade::{

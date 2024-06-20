@@ -14,9 +14,14 @@ use pitch_lake_starknet::{
                 MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
                 IMarketAggregatorSetterDispatcherTrait,
             },
-            test_accounts::{liquidity_provider_1, bystander}, variables::{vault_manager, decimals},
-            facades::{option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},},
-            utils::{assert_two_arrays_equal_length}, sanity_checks,
+            lib::{
+                test_accounts::{liquidity_provider_1, bystander},
+                variables::{vault_manager, decimals},
+            },
+            facades::{
+                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait}, sanity_checks,
+            },
+            helpers::general_helpers::{assert_two_arrays_equal_length},
         },
     }
 };

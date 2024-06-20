@@ -43,14 +43,6 @@ mod option_round {
 
 #[cfg(test)]
 mod utils {
-    mod structs;
-    mod event_helpers;
-    mod accelerators;
-    mod test_accounts;
-    mod variables;
-    mod setup;
-    mod sanity_checks;
-    mod utils;
     mod mocks {
         mod mock_market_aggregator;
     }
@@ -58,6 +50,20 @@ mod utils {
         mod vault_facade;
         mod option_round_facade;
         mod lp_token_facade;
+        mod sanity_checks;
+    }
+
+    mod helpers {
+        mod accelerators;
+        mod event_helpers;
+        mod general_helpers;
+        mod setup;
+    }
+
+    mod lib {
+        mod structs;
+        mod test_accounts;
+        mod variables;
     }
 }
 

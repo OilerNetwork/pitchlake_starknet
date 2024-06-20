@@ -13,20 +13,26 @@ use pitch_lake_starknet::{
     contracts::eth::Eth,
     tests::{
         utils::{
-            utils::{get_erc20_balances, sum_u256_array, split_spreads},
-            event_helpers::{
-                pop_log, assert_no_events_left, assert_event_transfer, assert_event_vault_withdrawal
+            helpers::{
+                general_helpers::{get_erc20_balances, sum_u256_array, split_spreads},
+                event_helpers::{
+                    pop_log, assert_no_events_left, assert_event_transfer,
+                    assert_event_vault_withdrawal
+                },
+                accelerators::{
+                    accelerate_to_auctioning, accelerate_to_auctioning_custom,
+                    accelerate_to_running, accelerate_to_settled, timeskip_and_start_auction,
+                },
+                setup::{setup_facade},
             },
-            accelerators::{
-                accelerate_to_auctioning, accelerate_to_auctioning_custom, accelerate_to_running,
-                accelerate_to_settled, timeskip_and_start_auction,
+            lib::{
+                test_accounts::{
+                    liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
+                    option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
+                    liquidity_providers_get,
+                },
+                variables::{decimals},
             },
-            test_accounts::{
-                liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
-                option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
-                liquidity_providers_get,
-            },
-            variables::{decimals}, setup::{setup_facade},
             facades::{
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
                 vault_facade::{VaultFacade, VaultFacadeTrait},

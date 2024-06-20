@@ -11,17 +11,19 @@ use pitch_lake_starknet::{
     contracts::eth::Eth,
     tests::{
         utils::{
-            event_helpers::{pop_log, assert_no_events_left, assert_event_transfer},
-            test_accounts::{
+            helpers::{
+                accelerators::{timeskip_and_settle_round},
+                setup::{setup_facade, decimals, deploy_vault},
+                event_helpers::{pop_log, assert_no_events_left, assert_event_transfer}
+            },
+            lib::test_accounts::{
                 liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
                 option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
             },
-            setup::{setup_facade, decimals, deploy_vault},
             facades::{
                 vault_facade::{VaultFacade, VaultFacadeTrait},
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
             },
-            accelerators::{timeskip_and_settle_round},
         },
     }
 };
@@ -63,19 +65,25 @@ fn test_convert_position_to_lp_tokens_while_settled__TODO__() {
     vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
     // Start auction
     vault_facade.start_auction();
-    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
+    let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
     // Make bid
-    let option_params = current_round_facade.get_params();
-    let bid_count: u256 = option_params.total_options_available;
-    let bid_price: u256 = option_params.reserve_price;
+
+    //Option Round params
+    let reserve_price = current_round.get_reserve_price();
+    let total_options_available = current_round.get_total_options_available();
+    let auction_end_time = current_round.get_auction_end_date();
+    let option_expiry_time = current_round.get_option_expiry_date();
+
+    let bid_count: u256 = total_options_available;
+    let bid_price: u256 = reserve_price;
     let bid_amount: u256 = bid_count * bid_price;
-    current_round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
+    current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
     // Settle auction
-    set_block_timestamp(option_params.auction_end_time + 1);
+    set_block_timestamp(auction_end_time + 1);
     let (clearing_price, _) = vault_facade.end_auction();
-    assert(clearing_price == option_params.reserve_price, 'clearing price wrong');
+    assert(clearing_price == reserve_price, 'clearing price wrong');
     // Settle option round
-    set_block_timestamp(option_params.option_expiry_time + 1);
+    set_block_timestamp(option_expiry_time + 1);
     vault_facade.settle_option_round();
     // Convert position -> tokens while current round is Settled
     vault_facade.convert_position_to_lp_tokens(1, liquidity_provider_1());
@@ -99,13 +107,17 @@ fn test_convert_position_to_lp_tokens_success() { //
     let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
     let mut next_round = vault_facade.get_next_round();
     // Make bid
-    let option_params = current_round.get_params();
-    let bid_count: u256 = option_params.total_options_available;
-    let bid_price: u256 = option_params.reserve_price;
+
+    let reserve_price = current_round.get_reserve_price();
+    let total_options_available = current_round.get_total_options_available();
+    let auction_end_time = current_round.get_auction_end_date();
+
+    let bid_count: u256 = total_options_available;
+    let bid_price: u256 = reserve_price;
     let bid_amount: u256 = bid_count * bid_price;
     current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
     // Settle auction
-    set_block_timestamp(option_params.auction_end_time + 1);
+    set_block_timestamp(auction_end_time + 1);
     // Get initial states before conversion
     let lp1_premiums_init = vault_facade.get_premiums_for(liquidity_provider_1(), 'todo'.into());
     let lp2_premiums_init = vault_facade.get_premiums_for(liquidity_provider_2(), 'todo'.into());
@@ -190,16 +202,19 @@ fn test_convert_lp_tokens_to_position_is_always_deposit_into_current_round() { /
     vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
     // Start auction
     vault_facade.start_auction();
-    let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
-    let mut next_round_facade: OptionRoundFacade = vault_facade.get_next_round();
+    let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
+
+    let reserve_price = current_round.get_reserve_price();
+    let total_options_available = current_round.get_total_options_available();
+    let auction_end_time = current_round.get_auction_end_date();
+
     // Make bid
-    let option_params = current_round_facade.get_params();
-    let bid_count: u256 = option_params.total_options_available;
-    let bid_price: u256 = option_params.reserve_price;
+    let bid_count: u256 = total_options_available;
+    let bid_price: u256 = reserve_price;
     let bid_amount: u256 = bid_count * bid_price;
-    current_round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
+    current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
     // Settle auction
-    set_block_timestamp(option_params.auction_end_time + 1);
+    set_block_timestamp(auction_end_time + 1);
     vault_facade.end_auction();
 
     // Convert position -> tokens (while current is Running)
@@ -207,7 +222,7 @@ fn test_convert_lp_tokens_to_position_is_always_deposit_into_current_round() { /
     // Initial state
     let (lp_collateral_init, lp_unallocated_init) = vault_facade
         .get_lp_balance_spread(liquidity_provider_1());
-    //    let (current_round_collateral_init, current_round_unallocated_init) = current_round_facade
+    //    let (current_round_collateral_init, current_round_unallocated_init) = current_round
     //        .get_all_round_liquidity();
     //    let (next_round_collateral_init, next_round_unallocated_init) = next_round_facade
     //        .get_all_round_liquidity();
@@ -217,7 +232,7 @@ fn test_convert_lp_tokens_to_position_is_always_deposit_into_current_round() { /
     // Get states after conversion1
     let (lp_collateral1, lp_unallocated1) = vault_facade
         .get_lp_balance_spread(liquidity_provider_1());
-    //    let (current_round_collateral1, current_round_unallocated1) = current_round_facade
+    //    let (current_round_collateral1, current_round_unallocated1) = current_round
     //        .get_all_round_liquidity();
     //    let (next_round_collateral1, next_round_unallocated1) = next_round_facade
     //        .get_all_round_liquidity();
@@ -231,7 +246,7 @@ fn test_convert_lp_tokens_to_position_is_always_deposit_into_current_round() { /
     // Get states after conversion2
     let (lp_collateral2, lp_unallocated2) = vault_facade
         .get_lp_balance_spread(liquidity_provider_1());
-    //    let (current_round_collateral2, current_round_unallocated2) = current_round_facade
+    //    let (current_round_collateral2, current_round_unallocated2) = current_round
     //        .get_all_round_liquidity();
     //    let (next_round_collateral2, next_round_unallocated2) = next_round_facade
     //        .get_all_round_liquidity();
@@ -246,7 +261,7 @@ fn test_convert_lp_tokens_to_position_is_always_deposit_into_current_round() { /
     // Get states after conversion3
     let (lp_collateral3, lp_unallocated3) = vault_facade
         .get_lp_balance_spread(liquidity_provider_1());
-    //    let (current_round_collateral3, current_round_unallocated3) = current_round_facade
+    //    let (current_round_collateral3, current_round_unallocated3) = current_round
     //        .get_all_round_liquidity();
     //    let (next_round_collateral3, next_round_unallocated3) = next_round_facade
     //        .get_all_round_liquidity();

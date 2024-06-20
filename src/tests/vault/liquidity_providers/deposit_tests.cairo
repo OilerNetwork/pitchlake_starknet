@@ -16,25 +16,32 @@ use pitch_lake_starknet::{
     },
     tests::{
         utils::{
-            utils::{sum_u256_array, get_erc20_balance, get_erc20_balances, split_spreads,},
-            event_helpers::{
-                assert_event_transfer, pop_log, assert_no_events_left, assert_event_option_settle,
-                assert_event_option_round_deployed, assert_event_vault_deposit,
-                assert_event_auction_start, assert_event_auction_bid_accepted,
-                assert_event_auction_bid_rejected, assert_event_auction_end,
-                assert_event_vault_withdrawal, assert_event_unused_bids_refunded,
-                assert_event_options_exercised,
+            helpers::{
+                general_helpers::{
+                    sum_u256_array, get_erc20_balance, get_erc20_balances, split_spreads,
+                },
+                event_helpers::{
+                    assert_event_transfer, pop_log, assert_no_events_left,
+                    assert_event_option_settle, assert_event_option_round_deployed,
+                    assert_event_vault_deposit, assert_event_auction_start,
+                    assert_event_auction_bid_accepted, assert_event_auction_bid_rejected,
+                    assert_event_auction_end, assert_event_vault_withdrawal,
+                    assert_event_unused_bids_refunded, assert_event_options_exercised,
+                },
+                accelerators::{
+                    accelerate_to_auctioning, accelerate_to_running, accelerate_to_settled,
+                    clear_event_logs,
+                },
+                setup::{setup_facade},
             },
-            accelerators::{
-                accelerate_to_auctioning, accelerate_to_running, accelerate_to_settled,
-                clear_event_logs,
+            lib::{
+                test_accounts::{
+                    liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
+                    option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
+                    liquidity_providers_get
+                },
+                variables::{decimals},
             },
-            test_accounts::{
-                liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
-                option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
-                liquidity_providers_get
-            },
-            variables::{decimals}, setup::{setup_facade},
             facades::{
                 vault_facade::{VaultFacade, VaultFacadeTrait},
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},

@@ -30,9 +30,12 @@ use pitch_lake_starknet::{
     },
     tests::{
         utils::{
-            structs::{OptionRoundParams}, event_helpers::{clear_event_logs},
-            test_accounts::{liquidity_providers_get, option_bidders_get, bystander},
-            variables::{weth_owner, week_duration, vault_manager, decimals},
+            lib::{
+                structs::{OptionRoundParams},
+                test_accounts::{liquidity_providers_get, option_bidders_get, bystander},
+                variables::{weth_owner, week_duration, vault_manager, decimals},
+            },
+            helpers::event_helpers::{clear_event_logs},
             facades::{
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
                 vault_facade::{VaultFacade, VaultFacadeTrait},

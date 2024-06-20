@@ -16,9 +16,12 @@ use pitch_lake_starknet::{
     },
     tests::{
         utils::{
-            structs::{OptionRoundParams}, event_helpers::{clear_event_logs},
-            test_accounts::{liquidity_provider_1, option_bidder_buyer_1, bystander},
-            variables::{vault_manager, decimals},
+            lib::{
+                structs::{OptionRoundParams},
+                test_accounts::{liquidity_provider_1, option_bidder_buyer_1, bystander},
+                variables::{vault_manager, decimals},
+            },
+            helpers::event_helpers::{clear_event_logs},
             facades::{
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
                 vault_facade::{VaultFacade, VaultFacadeTrait},
@@ -103,7 +106,7 @@ fn timeskip_past_auction_end_date(ref self: VaultFacade) {
 // Jump past the option expiry date
 fn timeskip_past_option_expiry_date(ref self: VaultFacade) {
     let mut current_round = self.get_current_round();
-    set_block_timestamp(current_round.get_params().option_expiry_time + 1);
+    set_block_timestamp(current_round.get_option_expiry_date() + 1);
 }
 
 // Jump past the round transition period
@@ -125,7 +128,7 @@ fn timeskip_and_start_auction(ref self: VaultFacade) -> u256 {
 // Jump to the auction end date and end the auction
 fn timeskip_and_end_auction(ref self: VaultFacade) -> (u256, u256) {
     let mut current_round = self.get_current_round();
-    set_block_timestamp(current_round.get_params().auction_end_time + 1);
+    set_block_timestamp(current_round.get_auction_end_date() + 1);
     set_contract_address(bystander());
     self.end_auction()
 }
@@ -133,7 +136,7 @@ fn timeskip_and_end_auction(ref self: VaultFacade) -> (u256, u256) {
 // Jump to the option expriry date and settle the round
 fn timeskip_and_settle_round(ref self: VaultFacade) -> u256 {
     let mut current_round = self.get_current_round();
-    set_block_timestamp(current_round.get_params().option_expiry_time + 1);
+    set_block_timestamp(current_round.get_option_expiry_date() + 1);
     set_contract_address(bystander());
     self.settle_option_round()
 }

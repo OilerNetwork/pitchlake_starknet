@@ -21,23 +21,28 @@ use pitch_lake_starknet::{
     },
     tests::{
         utils::{
-            event_helpers::{assert_event_auction_start, assert_event_option_round_deployed},
-            accelerators::{
-                accelerate_to_auctioning, accelerate_to_running, accelerate_to_settled,
-                accelerate_to_auctioning_custom, accelerate_to_running_custom,
-                timeskip_and_settle_round, timeskip_and_end_auction,
+            helpers::{
+                event_helpers::{assert_event_auction_start, assert_event_option_round_deployed},
+                accelerators::{
+                    accelerate_to_auctioning, accelerate_to_running, accelerate_to_settled,
+                    accelerate_to_auctioning_custom, accelerate_to_running_custom,
+                    timeskip_and_settle_round, timeskip_and_end_auction,
+                },
+                general_helpers::{
+                    create_array_linear, create_array_gradient, sum_spreads, split_spreads,
+                    sum_u256_array, get_portion_of_amount,
+                },
+                setup::{setup_facade},
             },
-            utils::{
-                create_array_linear, create_array_gradient, sum_spreads, split_spreads,
-                sum_u256_array, get_portion_of_amount,
+            lib::{
+                test_accounts::{
+                    liquidity_provider_1, liquidity_provider_2, liquidity_providers_get,
+                    option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
+                    liquidity_provider_5, option_bidder_buyer_4, liquidity_provider_4,
+                    liquidity_provider_3,
+                },
+                variables::{decimals},
             },
-            test_accounts::{
-                liquidity_provider_1, liquidity_provider_2, liquidity_providers_get,
-                option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
-                liquidity_provider_5, option_bidder_buyer_4, liquidity_provider_4,
-                liquidity_provider_3,
-            },
-            variables::{decimals}, setup::{setup_facade},
             facades::{
                 vault_facade::{VaultFacade, VaultFacadeTrait},
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},

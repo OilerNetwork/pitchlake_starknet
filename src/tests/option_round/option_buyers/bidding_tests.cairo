@@ -20,20 +20,26 @@ use pitch_lake_starknet::{
     },
     tests::{
         utils::{
-            event_helpers::{
-                assert_event_transfer, assert_event_auction_bid_accepted,
-                assert_event_auction_bid_rejected, pop_log, assert_no_events_left,
+            helpers::{
+                general_helpers::{
+                    multiply_arrays, scale_array, sum_u256_array, get_erc20_balance,
+                    get_erc20_balances
+                },
+                setup::{setup_facade, decimals, deploy_vault, clear_event_logs,},
+                accelerators::{
+                    accelerate_to_auctioning, timeskip_and_end_auction, accelerate_to_running,
+                    accelerate_to_settled, timeskip_past_auction_end_date,
+                },
+                event_helpers::{
+                    assert_event_transfer, assert_event_auction_bid_accepted,
+                    assert_event_auction_bid_rejected, pop_log, assert_no_events_left,
+                }
             },
-            accelerators::{
-                accelerate_to_auctioning, timeskip_and_end_auction, accelerate_to_running,
-                accelerate_to_settled, timeskip_past_auction_end_date,
-            },
-            test_accounts::{
+            lib::test_accounts::{
                 liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
                 option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
                 option_bidders_get,
             },
-            setup::{setup_facade, decimals, deploy_vault, clear_event_logs,},
             facades::{
                 vault_facade::{VaultFacade, VaultFacadeTrait},
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
@@ -41,9 +47,6 @@ use pitch_lake_starknet::{
             mocks::mock_market_aggregator::{
                 MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
                 IMarketAggregatorSetterDispatcherTrait
-            },
-            utils::{
-                multiply_arrays, scale_array, sum_u256_array, get_erc20_balance, get_erc20_balances
             },
         },
     },
@@ -347,52 +350,6 @@ fn test_failed_bid_nonce_unchanged() {
 }
 
 
-// Nonce Tests //
-#[test]
-#[available_gas(10000000)]
-fn test_bid_updates_nonce() {
-    let (mut vault_facade, _) = setup_facade();
-    let options_available = accelerate_to_auctioning(ref vault_facade);
-    let mut current_round = vault_facade.get_current_round();
-    let reserve_price = current_round.get_reserve_price();
-
-    // Nonce before bid
-    let nonce_before = current_round.get_nonce_for(option_bidder_buyer_1());
-
-    // Place bids
-    let bid_price = reserve_price;
-    let mut bid_amount = options_available;
-    current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
-
-    // Nonce after bid
-    let nonce_after = current_round.get_nonce_for(option_bidder_buyer_1());
-    // Check round balance
-    // Check ob balances
-    assert(nonce_before + 1 == nonce_after, 'Nonce Mismatch')
-}
-
-
-fn test_failed_bid_nonce_unchanged() {
-    let (mut vault_facade, _) = setup_facade();
-    let options_available = accelerate_to_auctioning(ref vault_facade);
-    let mut current_round = vault_facade.get_current_round();
-    let reserve_price = current_round.get_reserve_price();
-
-    // Nonce before bid
-    let nonce_before = current_round.get_nonce_for(option_bidder_buyer_1());
-
-    // Place bids
-    let bid_price = reserve_price - 1;
-    let mut bid_amount = options_available;
-    current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
-
-    // Nonce after bid
-    let nonce_after = current_round.get_nonce_for(option_bidder_buyer_1());
-    // Check round balance
-    // Check ob balances
-    assert(nonce_before == nonce_after, 'Nonce Mismatch')
-}
-
 #[test]
 #[available_gas(10000000)]
 fn test_place_bid_id() {
@@ -402,13 +359,12 @@ fn test_place_bid_id() {
     let reserve_price = current_round.get_reserve_price();
 
     // Nonce before bid
-    let nonce:felt252 = current_round.get_nonce_for(option_bidder_buyer_1()).into();
+    let nonce: felt252 = current_round.get_nonce_for(option_bidder_buyer_1()).into();
 
     // Place bids
     let bid_price = reserve_price;
     let mut bid_amount = options_available;
     let bid_id = current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
-    let hash = poseidon::poseidon_hash_span(array![option_bidder_buyer_1().into(),nonce].span());
-    assert (nonce==hash,'Bid Id Incorrect');
-
+    let hash = poseidon::poseidon_hash_span(array![option_bidder_buyer_1().into(), nonce].span());
+    assert(nonce == hash, 'Bid Id Incorrect');
 }

@@ -1,3 +1,4 @@
+use pitch_lake_starknet::tests::utils::facades::option_round_facade::OptionRoundFacadeTrait;
 use starknet::{
     ClassHash, ContractAddress, contract_address_const, deploy_syscall,
     Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
@@ -20,12 +21,14 @@ use pitch_lake_starknet::{
     },
     tests::{
         utils::{
-            event_helpers::{pop_log, assert_no_events_left},
-            test_accounts::{
+            helpers::{
+                setup::{decimals, deploy_vault, deploy_pitch_lake},
+                event_helpers::{pop_log, assert_no_events_left},
+            },
+            lib::test_accounts::{
                 liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
                 option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
             },
-            setup::{decimals, deploy_vault, deploy_pitch_lake},
             facades::{option_round_facade::{OptionRoundFacade, OptionRoundFacadeImpl}},
         },
     },
@@ -101,13 +104,16 @@ fn test_strike_price_based_on_vault_types() {
     };
 
     // Get each round's params
-    let atm_params = atm.get_params();
-    let itm_params = itm.get_params();
-    let otm_params = otm.get_params();
+    let atm_strike_price = atm.get_strike_price();
+    let atm_avg_basefee = atm.get_current_average_basefee();
+    let itm_strike_price = itm.get_strike_price();
+    let itm_avg_basefee = itm.get_current_average_basefee();
+    let otm_strike_price = otm.get_strike_price();
+    let otm_avg_basefee = otm.get_current_average_basefee();
     // Check the strike price of each vault's round 1
-    assert(atm_params.strike_price == atm_params.current_average_basefee, 'ATM stike wrong');
-    assert(itm_params.strike_price > itm_params.current_average_basefee, 'ITM stike wrong');
-    assert(otm_params.strike_price < otm_params.current_average_basefee, 'OTM stike wrong');
+    assert(atm_strike_price == atm_avg_basefee, 'ATM stike wrong');
+    assert(itm_strike_price > itm_avg_basefee, 'ITM stike wrong');
+    assert(otm_strike_price < otm_avg_basefee, 'OTM stike wrong');
 }
 // @note Add tests for other init params. Reserve price, cap levels etc.
 // @note Add test that option round params are logical (auction start time < auction end time < option settlement time)
