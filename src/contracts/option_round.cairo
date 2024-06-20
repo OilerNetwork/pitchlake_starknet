@@ -52,7 +52,7 @@ trait IOptionRound<TContractState> {
     fn get_bid_details(self: @TContractState, bid_id: felt252) -> Bid;
 
 
-    //Address functions 
+    //Address functions
 
     fn get_nonce_for(self: @TContractState, option_buyer: ContractAddress) -> u32;
     fn get_bids_for(self: @TContractState, option_buyer: ContractAddress) -> Array<felt252>;
@@ -353,9 +353,11 @@ mod OptionRound {
                 OptionRoundError::BidBelowReservePrice => 'OptionRound: Bid below reserve',
                 OptionRoundError::BidCannotBeDecreased(input) => if input == 'amount' {
                     'OptionRound: Bid amount too low'
-                } else {
+                } else if input == 'price' {
                     'OptionRound: Bid Price too low'
-                }
+                } else {
+                    'OptionRound: Edit bid xyz error'
+                },
             }
         }
     }
