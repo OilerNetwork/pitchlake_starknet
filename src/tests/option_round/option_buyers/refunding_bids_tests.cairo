@@ -66,7 +66,7 @@ fn place_incremental_bids_internal(
 
     // @dev Bids start at reserve price and increment by reserve price
     let bid_prices = create_array_gradient(
-        option_reserve_price, option_reserve_price, number_of_option_bidders
+        option_reserve_price, option_reserve_price, number_of_option_bidders, false
     );
 
     // @dev Bid amounts are each bid price * the number of options available

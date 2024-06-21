@@ -16,13 +16,20 @@ fn create_array_linear(amount: u256, len: u32) -> Array<u256> {
 }
 
 // Create array of length `len`, each element is `amount + index * step` (For bids use the function twice for price and amount)
-fn create_array_gradient(amount: u256, step: u256, len: u32) -> Array<u256> {
+fn create_array_gradient(amount: u256, step: u256, len: u32, negative: bool) -> Array<u256> {
     let mut arr: Array<u256> = array![];
     let mut index: u32 = 0;
-    while (index < len) {
-        arr.append(amount + index.into() * step);
-        index += 1;
-    };
+
+    match negative {
+        true => { while (index < len) {
+            arr.append(amount - (index.into() * step));
+            index += 1;
+        } },
+        false => { while (index < len) {
+            arr.append(amount + index.into() * step);
+            index += 1;
+        } }
+    }
     arr
 }
 

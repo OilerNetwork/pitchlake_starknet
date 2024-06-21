@@ -35,7 +35,7 @@ use pitch_lake_starknet::{
                 test_accounts::{liquidity_providers_get, option_bidders_get, bystander},
                 variables::{weth_owner, week_duration, vault_manager, decimals},
             },
-            helpers::event_helpers::{clear_event_logs},
+            helpers::{accelerators::{accelerate_to_auctioning}, event_helpers::{clear_event_logs}},
             facades::{
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
                 vault_facade::{VaultFacade, VaultFacadeTrait},
@@ -175,3 +175,16 @@ fn setup_facade() -> (VaultFacade, IERC20Dispatcher) {
     return (VaultFacade { vault_dispatcher }, eth_dispatcher);
 }
 
+fn setup_test_bidders(
+    number_of_option_buyers: u32
+) -> (VaultFacade, IERC20Dispatcher, Span<ContractAddress>) {
+    let (mut vault, eth) = setup_facade();
+
+    // Auction participants
+    let option_bidders = option_bidders_get(number_of_option_buyers);
+
+    // Start auction
+    accelerate_to_auctioning(ref vault);
+
+    return (vault, eth, option_bidders.span());
+}
