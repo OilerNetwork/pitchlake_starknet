@@ -1,5 +1,6 @@
 use starknet::{get_block_timestamp, testing::{set_contract_address, set_block_timestamp}};
 use pitch_lake_starknet::{
+    contracts::{option_round::{StartAuctionParams}},
     tests::{
         utils::{
             helpers::{
@@ -37,7 +38,8 @@ fn test_only_vault_can_start_auction() {
     vault.deposit(100 * decimals(), liquidity_provider_1());
 
     set_contract_address(other_vault.contract_address());
-    next_round.start_auction();
+    next_round
+        .start_auction(StartAuctionParams { total_options_available: 100, reserve_price: 100 });
 }
 
 // @note Modify to check the Result of the function to be Result::Err(e)

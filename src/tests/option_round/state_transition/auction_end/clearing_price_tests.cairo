@@ -3,7 +3,8 @@ use pitch_lake_starknet::{
         utils::{
             helpers::{
                 accelerators::{
-                    accelerate_to_auctioning, accelerate_to_running, accelerate_to_running_custom
+                    accelerate_to_auctioning, accelerate_to_running, accelerate_to_running_custom,
+                    timeskip_and_end_auction,
                 },
                 setup::{setup_facade}, general_helpers::{create_array_linear},
             },
@@ -39,26 +40,35 @@ use starknet::testing::{set_block_timestamp, set_contract_address};
 // Test clearing price is 0 before auction end
 #[test]
 #[available_gas(10000000)]
-fn test_option_round_clearing_price_0_before_auction_end() {
+fn test_clearing_price_0_before_auction_end() {
     let (mut vault_facade, _) = setup_facade();
-    // Deposit liquidity and start the auction
     let total_options_available = accelerate_to_auctioning(ref vault_facade);
 
-    // Bid for option but do not end the auction
+    // Place bids but not end auction
     let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
-
-    //Option Round params
-
-    let reserve_price = current_round.get_reserve_price();
-
     let bid_amount: u256 = total_options_available;
-    let bid_price: u256 = reserve_price;
-    // let bid_amount: u256 = bid_count * bid_price;
+    let bid_price: u256 = current_round.get_reserve_price();
     current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
-    // Check that clearing price is 0 pre auction end
+
+    // Check that clearing price is 0 before auction end
     let clearing_price = current_round.get_auction_clearing_price();
     assert(clearing_price == 0, 'should be 0 pre auction end');
 }
+
+// Test clearing price is 0 if no bids are placed
+#[test]
+#[available_gas(10000000)]
+fn test_clearing_price_is_0_when_no_bids() {
+    let (mut vault_facade, _) = setup_facade();
+    accelerate_to_auctioning(ref vault_facade);
+
+    // Make no bids and end auction
+    let (clearing_price, _) = timeskip_and_end_auction(ref vault_facade);
+
+    // Check clearing price is 0 if no bids were placed
+    assert(clearing_price == 0, 'clearing price sold shd be 0');
+}
+
 
 // Test clearing price is the only bid price minting < total options
 #[test]

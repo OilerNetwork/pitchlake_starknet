@@ -26,6 +26,17 @@ fn create_array_gradient(amount: u256, step: u256, len: u32) -> Array<u256> {
     arr
 }
 
+// Create array of length `len`, each element is `amount - index * step` (For bids use the function twice for price and amount)
+fn create_array_gradient_reverse(amount: u256, step: u256, len: u32) -> Array<u256> {
+    let mut arr: Array<u256> = array![];
+    let mut index: u32 = 0;
+    while (index < len) {
+        arr.append(amount - index.into() * step);
+        index += 1;
+    };
+    arr
+}
+
 // Sum all of the u256s in a given span
 fn sum_u256_array(mut arr: Span<u256>) -> u256 {
     let mut sum = 0;
