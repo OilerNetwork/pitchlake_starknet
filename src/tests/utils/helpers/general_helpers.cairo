@@ -11,7 +11,7 @@ fn create_array_linear(amount: u256, len: u32) -> Array<u256> {
     while (index < len) {
         arr.append(amount);
         index += 1;
-    };xz
+    };
     arr
 }
 

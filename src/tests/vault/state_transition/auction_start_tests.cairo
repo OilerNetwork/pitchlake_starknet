@@ -245,7 +245,7 @@ fn test_starting_auction_updates_locked_and_unlocked_balances() {
     let mut liquidity_providers = liquidity_providers_get(4).span();
     // Amounts to deposit: [100, 200, 300, 400]
     let mut deposit_amounts = create_array_gradient(
-        100 * decimals(), 100 * decimals(), liquidity_providers.len()
+        100 * decimals(), 100 * decimals(), liquidity_providers.len(), false
     )
         .span();
     let total_deposits = sum_u256_array(deposit_amounts);

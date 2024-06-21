@@ -11,7 +11,7 @@ use pitch_lake_starknet::tests::{
                 timeskip_past_auction_end_date,
             },
 
-            setup::{setup_facade},
+            setup::{setup_facade,setup_test_bidders},
             general_helpers::{
                 scale_array, get_erc20_balance, get_erc20_balances, create_array_gradient,
                 create_array_linear
