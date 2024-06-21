@@ -21,7 +21,9 @@ use pitch_lake_starknet::{
                 test_accounts::{liquidity_provider_1, option_bidder_buyer_1, bystander},
                 variables::{vault_manager, decimals},
             },
-            helpers::event_helpers::{clear_event_logs},
+            helpers::{ // accelerators::{accelerate_to_auction_custom_auction_params},
+                event_helpers::{clear_event_logs},
+            },
             facades::{
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
                 vault_facade::{VaultFacade, VaultFacadeTrait},
@@ -52,6 +54,18 @@ fn accelerate_to_auctioning_custom(
     self.deposit_multiple(amounts, liquidity_providers);
     // Jump past round transition period and start the auction
     timeskip_and_start_auction(ref self)
+}
+
+// Start the auction with a basic deposit with custom auction params
+fn accelerate_to_auctioning_custom_auction_params(
+    ref self: VaultFacade, total_options_available: u256, reserve_price: u256
+) -> u256 {
+    let auction_params = StartAuctionParams { total_options_available, reserve_price, };
+    set_contract_address(self.contract_address());
+    timeskip_past_round_transition_period(ref self);
+
+    let mut upcoming_round = self.get_next_round();
+    upcoming_round.start_auction(auction_params)
 }
 
 /// Ending Auction

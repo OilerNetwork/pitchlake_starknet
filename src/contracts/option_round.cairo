@@ -52,7 +52,7 @@ trait IOptionRound<TContractState> {
     fn get_bid_details(self: @TContractState, bid_id: felt252) -> Bid;
 
 
-    //Address functions 
+    //Address functions
 
     fn get_nonce_for(self: @TContractState, option_buyer: ContractAddress) -> u32;
     fn get_bids_for(self: @TContractState, option_buyer: ContractAddress) -> Array<felt252>;
@@ -190,8 +190,13 @@ mod OptionRound {
         round_id: u256,
     }
 
+
+    // The parameters sent from the vault (fossil) to start the auction
     #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
-    struct StartAuctionParams {}
+    struct StartAuctionParams {
+        total_options_available: u256,
+        reserve_price: u256,
+    }
 
     // The states an option round can be in
     // @note Should we move these into the contract or separate file ?
