@@ -18,7 +18,7 @@ use pitch_lake_starknet::{
             facades::{
                 vault_facade::{VaultFacade, VaultFacadeTrait},
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundParams},
-            }
+            },
         },
     }
 };
@@ -45,7 +45,7 @@ use starknet::{ContractAddress, testing::{set_block_timestamp, set_contract_addr
 fn test_option_round_clearing_price_0_before_auction_end() {
     let (mut vault_facade, _) = setup_facade();
     // Deposit liquidity and start the auction
-    accelerate_to_auctioning(ref vault_facade);
+    let total_options_available = accelerate_to_auctioning(ref vault_facade);
 
     // Bid for option but do not end the auction
     let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
@@ -53,10 +53,11 @@ fn test_option_round_clearing_price_0_before_auction_end() {
     //Option Round params
 
     let reserve_price = current_round.get_reserve_price();
-    let total_options_available = current_round.get_total_options_available();
+
 
     let bid_amount: u256 = total_options_available;
     let bid_price: u256 = reserve_price;
+
     current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
     // Check that clearing price is 0 pre auction end
     let clearing_price = current_round.get_auction_clearing_price();
@@ -87,11 +88,13 @@ fn test_clearing_price_1() {
 #[test]
 #[available_gas(10000000)]
 fn test_clearing_price_2() {
+
     let (mut vault_facade, _, option_bidders) = setup_test_bidders(2);
     let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
 
     let reserve_price = current_round.get_reserve_price();
     let total_options_available = current_round.get_total_options_available();
+
 
     let bid_amounts: Span<u256> = array![1, total_options_available - 2].span();
     let bid_prices: Span<u256> = array![reserve_price, reserve_price * 10].span();
@@ -99,7 +102,7 @@ fn test_clearing_price_2() {
         ref vault_facade, option_bidders, bid_amounts, bid_prices
     );
     // @dev This tests that vault::end_auction returns the clearing price that gets set
-    assert(clearing_price == current_round.get_auction_clearing_price(), 'clearing price not set');
+    assert(clearing_price == current_round.get_auction_clearing_price(), 'clearing price not set'); //Should be a sanity check
     assert(clearing_price == reserve_price, 'clearing price wrong');
 }
 
@@ -144,12 +147,11 @@ fn test_clearing_price_3() {
 fn test_clearing_price_4() {
     let (mut vault_facade, _, option_bidders) = setup_test_bidders(2);
     // Deposit liquidity and start the auction
-    accelerate_to_auctioning(ref vault_facade);
+    let total_options_available = accelerate_to_auctioning(ref vault_facade);
     // Two OBs bid for the combined total amount of options, OB 1 outbids OB 2
     let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
 
     let reserve_price = current_round.get_reserve_price();
-    let total_options_available = current_round.get_total_options_available();
 
     let bid_amounts: Span<u256> = array![1, total_options_available - 1].span();
     let bid_prices: Span<u256> = array![reserve_price, 10 * reserve_price].span();

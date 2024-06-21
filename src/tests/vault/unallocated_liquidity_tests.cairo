@@ -89,20 +89,20 @@ use pitch_lake_starknet::tests::{
 //     vault_facade.deposit(deposit_amount_wei_1, liquidity_provider_1());
 //     vault_facade.deposit(deposit_amount_wei_2, liquidity_provider_2());
 
-//     let lps = liquidity_providers_get(5);
+//     let liquidity_providers = liquidity_providers_get(5);
 //     let deposit_amounts = create_array_gradient(1000 * decimals(), 1000 * decimals(), 5);
 //     let total_options_available (was total_deposts before) = accelerate_to_auctioning_custom(
-//         ref vault_facade, lps.span(), deposit_amounts.span()
+//         ref vault_facade, liquidity_providers.span(), deposit_amounts.span()
 //     );
 //     let params = current_round.get_params();
 //     // Make bid (ob1)
 //     let bid_amount: u256 = params.total_options_available;
 
-//     let obs = option_bidders_get(5);
+//     let option_bidders = option_bidders_get(5);
 //     let bid_prices = create_array_linear(params.reserve_price, 5);
 //     let bid_amounts = create_array_linear(params.reserve_price * bid_amount, 5);
 //     let clearing_price = accelerate_to_running_custom(
-//         ref vault_facade, obs.span(), bid_prices.span(), bid_amounts.span()
+//         ref vault_facade, option_bidders.span(), bid_prices.span(), bid_amounts.span()
 //     );
 
 //     // Premium comes from unallocated pool

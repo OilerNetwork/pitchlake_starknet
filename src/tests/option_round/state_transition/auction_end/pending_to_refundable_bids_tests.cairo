@@ -10,9 +10,11 @@ use pitch_lake_starknet::tests::{
                 accelerate_to_settled, timeskip_and_end_auction, accelerate_to_auctioning_custom,
                 timeskip_past_auction_end_date,
             },
-            setup::{setup_facade,setup_test_bidders},
+
+            setup::{setup_facade},
             general_helpers::{
-                scale_array, get_erc20_balance, get_erc20_balances, create_array_gradient
+                scale_array, get_erc20_balance, get_erc20_balances, create_array_gradient,
+                create_array_linear
             },
         },
         lib::{
@@ -40,7 +42,7 @@ fn place_incremental_bids_internal(
 ) -> (Span<u256>, Span<u256>, OptionRoundFacade) {
     let mut current_round = vault.get_current_round();
     let number_of_option_bidders = option_bidders.len();
-    let number_of_options_available = current_round.get_total_options_available();
+    let options_available = current_round.get_total_options_available();
     let option_reserve_price = current_round.get_reserve_price();
 
     // @dev Bids start at reserve price and increment by reserve price
@@ -49,7 +51,7 @@ fn place_incremental_bids_internal(
     );
 
     // @dev Bid amounts are each bid price * the number of options available
-    let mut bid_amounts = scale_array(bid_prices.span(), number_of_options_available);
+    let mut bid_amounts = create_array_linear(options_available, bid_prices.len());
 
     // Place bids
     current_round.place_bids(bid_amounts.span(), bid_prices.span(), option_bidders);

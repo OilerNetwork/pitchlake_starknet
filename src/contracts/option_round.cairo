@@ -228,7 +228,7 @@ mod OptionRound {
 
     // Emitted when a bid is accepted
     // @param account The account that placed the bid
-    // @param amount The amount of liquidity that was bid (max amount of funds the bidder is willing to spend in total)
+    // @param amount The amount of options the bidder want in total
     // @param price The price per option that was bid (max price the bidder is willing to spend per option)
     #[derive(Drop, starknet::Event, PartialEq)]
     struct AuctionAcceptedBid {
@@ -240,7 +240,7 @@ mod OptionRound {
 
     // Emitted when a bid is rejected
     // @param account The account that placed the bid
-    // @param amount The amount of liquidity that was bid (max amount of funds the bidder is willing to spend in total)
+    // @param amount The amount of options the bidder is willing to buy in total
     // @param price The price per option that was bid (max price the bidder is willing to spend per option)
     #[derive(Drop, starknet::Event, PartialEq)]
     struct AuctionRejectedBid {

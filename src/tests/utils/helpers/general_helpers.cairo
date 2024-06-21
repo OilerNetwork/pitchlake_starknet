@@ -11,7 +11,7 @@ fn create_array_linear(amount: u256, len: u32) -> Array<u256> {
     while (index < len) {
         arr.append(amount);
         index += 1;
-    };
+    };xz
     arr
 }
 
@@ -38,6 +38,19 @@ fn sum_u256_array(mut arr: Span<u256>) -> u256 {
     let mut sum = 0;
     match arr.pop_front() {
         Option::Some(el) => { sum += *el; },
+        Option::None => {}
+    }
+    sum
+}
+
+// Sum the total amount paid for multiple bids.
+fn get_total_bids_amount(mut bid_prices: Span<u256>, mut bid_amounts: Span<u256>) -> u256 {
+    let mut sum = 0;
+    match bid_prices.pop_front() {
+        Option::Some(bid_price) => {
+            let bid_amount = bid_amounts.pop_front().unwrap();
+            sum += *bid_amount * *bid_price;
+        },
         Option::None => {}
     }
     sum

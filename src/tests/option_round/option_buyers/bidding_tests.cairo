@@ -23,7 +23,8 @@ use pitch_lake_starknet::{
             helpers::{
                 general_helpers::{
                     multiply_arrays, scale_array, sum_u256_array, get_erc20_balance,
-                    get_erc20_balances
+
+                    get_erc20_balances, get_total_bids_amount, create_array_linear
                 },
                 setup::{setup_facade, decimals, deploy_vault, clear_event_logs,},
                 accelerators::{
@@ -55,12 +56,12 @@ use debug::PrintTrait;
 
 /// Failues ///
 
-// Test bidding 0 amount is rejected
+// Test bidding when total options to buy is 0 is rejected
 #[test]
 #[available_gas(10000000)]
 fn test_bid_amount_0_fails() {
     let (mut vault, _) = setup_facade();
-    accelerate_to_auctioning(ref vault);
+    let _options_available = accelerate_to_auctioning(ref vault);
 
     // Bid 0 amount
     let mut current_round = vault.get_current_round();
@@ -91,7 +92,7 @@ fn test_bid_price_below_reserve_fails() {
     let mut current_round = vault_facade.get_current_round();
     let bidder = option_bidder_buyer_1();
     let bid_price = current_round.get_reserve_price() - 1;
-    let bid_amount = options_available * bid_price;
+    let bid_amount = options_available;
     clear_event_logs(array![current_round.contract_address()]);
     match current_round.place_bid_raw(bid_amount, bid_price, bidder) {
         Result::Ok(_) => { panic!("Bid should have failed"); },
@@ -99,29 +100,6 @@ fn test_bid_price_below_reserve_fails() {
             // Check bid rejected event
             assert_event_auction_bid_rejected(
                 current_round.contract_address(), bidder, bid_amount, bid_price
-            );
-        }
-    }
-}
-
-// Test bidding amount < price fails
-#[test]
-#[available_gas(10000000)]
-fn test_bid_amount_below_price_fails() {
-    let (mut vault_facade, _) = setup_facade();
-    accelerate_to_auctioning(ref vault_facade);
-
-    // Bid below reserve price
-    let mut current_round = vault_facade.get_current_round();
-    let bid_price = 2 * current_round.get_reserve_price();
-    let bid_amount = bid_price - 1;
-    clear_event_logs(array![current_round.contract_address()]);
-    match current_round.place_bid_raw(bid_amount, bid_price, option_bidder_buyer_1()) {
-        Result::Ok(_) => { panic!("Bid should have failed"); },
-        Result::Err(_) => {
-            // Check bid rejected event
-            assert_event_auction_bid_rejected(
-                current_round.contract_address(), option_bidder_buyer_1(), bid_amount, bid_price
             );
         }
     }
@@ -139,9 +117,9 @@ fn test_bid_before_auction_starts_failure() {
     // Try to place bid before auction starts
     let (_round1, mut round2) = vault.get_current_and_next_rounds();
     let bidder = option_bidder_buyer_1();
-    let bid_count = round2.get_total_options_available();
+    // let bid_count = round2.get_total_options_available();
     let bid_price = round2.get_reserve_price();
-    let bid_amount = bid_count * bid_price;
+    let bid_amount = round2.get_total_options_available();
     clear_event_logs(array![round2.contract_address()]);
     match round2.place_bid_raw(bid_amount, bid_price, option_bidder_buyer_1()) {
         Result::Ok(_) => { panic!("Bid should have failed"); },
@@ -168,9 +146,8 @@ fn test_bid_after_auction_ends_failure() {
     // Try to place bid after auction ends
     let (mut round2, _round3) = vault.get_current_and_next_rounds();
     let bidder = option_bidder_buyer_1();
-    let bid_count = round2.get_total_options_available();
     let bid_price = round2.get_reserve_price();
-    let bid_amount = bid_count * bid_price;
+    let bid_amount = round2.get_total_options_available();
     clear_event_logs(array![round2.contract_address()]);
     match round2.place_bid_raw(bid_amount, bid_price, option_bidder_buyer_1()) {
         Result::Ok(_) => { panic!("Bid should have failed"); },
@@ -197,9 +174,8 @@ fn test_bid_after_auction_end_failure_2() {
 
     // Try to place bid after auction end date (before entry point called)
     let bidder = option_bidder_buyer_1();
-    let bid_count = round2.get_total_options_available();
     let bid_price = round2.get_reserve_price();
-    let bid_amount = bid_count * bid_price;
+    let bid_amount = round2.get_total_options_available();
     clear_event_logs(array![round2.contract_address()]);
     match round2.place_bid_raw(bid_amount, bid_price, option_bidder_buyer_1()) {
         Result::Ok(_) => { panic!("Bid should have failed"); },
@@ -227,16 +203,16 @@ fn test_bid_accepted_events() {
     let reserve_price = current_round.get_reserve_price();
 
     // Place bids
-    let mut obs = option_bidders_get(3).span();
+    let mut option_bidders = option_bidders_get(3).span();
     let scale = array![1, 2, 3].span();
     let mut bid_prices = scale_array(scale, reserve_price).span();
-    let mut bid_amounts = scale_array(bid_prices, options_available).span();
+    let mut bid_amounts = create_array_linear(options_available, 3).span();
     clear_event_logs(array![current_round.contract_address()]);
-    current_round.place_bids(bid_amounts, bid_prices, obs);
+    current_round.place_bids(bid_amounts, bid_prices, option_bidders);
 
     // Check bid accepted events
     loop {
-        match obs.pop_front() {
+        match option_bidders.pop_front() {
             Option::Some(ob) => {
                 let bid_amount = bid_amounts.pop_front().unwrap();
                 let bid_price = bid_prices.pop_front().unwrap();
@@ -261,33 +237,34 @@ fn test_bid_eth_transfer() {
     let reserve_price = current_round.get_reserve_price();
 
     // Eth balances before bid
-    let mut obs = option_bidders_get(3).span();
+    let mut option_bidders = option_bidders_get(3).span();
     let scale = array![1, 2, 3].span();
-    let mut ob_balances_before = get_erc20_balances(eth.contract_address, obs).span();
+    let mut ob_balances_before = get_erc20_balances(eth.contract_address, option_bidders).span();
     let round_balance_before = get_erc20_balance(
         eth.contract_address, current_round.contract_address()
     );
     // Place bids
-    let bid_prices = scale_array(scale, reserve_price).span();
-    let mut bid_amounts = scale_array(bid_prices, options_available).span();
-    let bid_total = sum_u256_array(bid_amounts);
-    current_round.place_bids(bid_amounts, bid_prices, obs);
+    let mut bid_prices = scale_array(scale, reserve_price).span();
+    let mut bid_amounts = create_array_linear(options_available, 3).span();
+    let bids_total = get_total_bids_amount(bid_prices, bid_amounts);
+    current_round.place_bids(bid_amounts, bid_prices, option_bidders);
     // Eth balances after bid
-    let mut ob_balances_after = get_erc20_balances(eth.contract_address, obs).span();
+    let mut ob_balances_after = get_erc20_balances(eth.contract_address, option_bidders).span();
     let round_balance_after = get_erc20_balance(
         eth.contract_address, current_round.contract_address()
     );
 
     // Check round balance
-    assert(round_balance_after == round_balance_before + bid_total, 'round balance after wrong');
+    assert(round_balance_after == round_balance_before + bids_total, 'round balance after wrong');
     // Check ob balances
     loop {
         match ob_balances_before.pop_front() {
             Option::Some(ob_balance_before) => {
-                let ob_bid_amount = bid_amounts.pop_front().unwrap();
+                let ob_bid_price = bid_prices.pop_front().unwrap();
                 let ob_balance_after = ob_balances_after.pop_front().unwrap();
+                let ob_amount = bid_amounts.pop_front().unwrap();
                 assert(
-                    *ob_balance_after == *ob_balance_before - *ob_bid_amount,
+                    *ob_balance_after == *ob_balance_before - (*ob_bid_price * *ob_amount),
                     'ob balance after wrong'
                 );
             },

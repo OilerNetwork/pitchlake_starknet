@@ -58,13 +58,13 @@ use debug::PrintTrait;
 #[should_panic(expected: ('Cannot withdraw more than unallocated balance', 'ENTRYPOINT_FAILED'))]
 fn test_withdrawing_more_than_unlocked_balance_fails() {
     let (mut vault, _) = setup_facade();
-    let lp = liquidity_provider_1();
+    let liquidity_provider = liquidity_provider_1();
     accelerate_to_auctioning(ref vault);
     accelerate_to_running(ref vault);
 
     // Try to withdraw more than unlocked balance
-    let unlocked_balance = vault.get_lp_unlocked_balance(lp);
-    vault.withdraw(unlocked_balance + 1, lp);
+    let unlocked_balance = vault.get_lp_unlocked_balance(liquidity_provider);
+    vault.withdraw(unlocked_balance + 1, liquidity_provider);
 }
 
 
@@ -89,11 +89,14 @@ fn test_withdrawal_events() {
     // Check event emissions
     loop {
         match liquidity_providers.pop_front() {
-            Option::Some(lp) => {
+            Option::Some(liquidity_provider) => {
                 let unlocked_amount_before = lp_unlocked_balances_before.pop_front().unwrap();
                 let unlocked_amount_after = lp_unlocked_balances_after.pop_front().unwrap();
                 assert_event_vault_withdrawal(
-                    vault.contract_address(), *lp, unlocked_amount_before, unlocked_amount_after
+                    vault.contract_address(),
+                    *liquidity_provider,
+                    unlocked_amount_before,
+                    unlocked_amount_after
                 );
             },
             Option::None => { break (); }

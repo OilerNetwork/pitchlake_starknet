@@ -67,23 +67,15 @@ fn test_convert_position_to_lp_tokens_while_settled__TODO__() {
     vault_facade.start_auction();
     let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
     // Make bid
-
-    //Option Round params
-    let reserve_price = current_round.get_reserve_price();
-    let total_options_available = current_round.get_total_options_available();
-    let auction_end_time = current_round.get_auction_end_date();
-    let option_expiry_time = current_round.get_option_expiry_date();
-
-    let bid_count: u256 = total_options_available;
-    let bid_price: u256 = reserve_price;
-    let bid_amount: u256 = bid_count * bid_price;
+    let bid_amount: u256 = current_round.get_total_options_available();
+    let bid_price: u256 = current_round.get_reserve_price();
     current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
     // Settle auction
-    set_block_timestamp(auction_end_time + 1);
+    set_block_timestamp(current_round.get_auction_end_date() + 1);
     let (clearing_price, _) = vault_facade.end_auction();
-    assert(clearing_price == reserve_price, 'clearing price wrong');
+    assert(clearing_price == bid_price, 'clearing price wrong');
     // Settle option round
-    set_block_timestamp(option_expiry_time + 1);
+    set_block_timestamp(current_round.get_option_expiry_date() + 1);
     vault_facade.settle_option_round();
     // Convert position -> tokens while current round is Settled
     vault_facade.convert_position_to_lp_tokens(1, liquidity_provider_1());
@@ -103,18 +95,16 @@ fn test_convert_position_to_lp_tokens_success() { //
     vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());
     vault_facade.deposit(deposit_amount_wei, liquidity_provider_2());
     // Start auction
-    vault_facade.start_auction();
+    let total_options_available = vault_facade.start_auction();
     let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
     let mut next_round = vault_facade.get_next_round();
     // Make bid
 
     let reserve_price = current_round.get_reserve_price();
-    let total_options_available = current_round.get_total_options_available();
     let auction_end_time = current_round.get_auction_end_date();
 
-    let bid_count: u256 = total_options_available;
+    let bid_amount: u256 = total_options_available;
     let bid_price: u256 = reserve_price;
-    let bid_amount: u256 = bid_count * bid_price;
     current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
     // Settle auction
     set_block_timestamp(auction_end_time + 1);
@@ -209,9 +199,9 @@ fn test_convert_lp_tokens_to_position_is_always_deposit_into_current_round() { /
     let auction_end_time = current_round.get_auction_end_date();
 
     // Make bid
-    let bid_count: u256 = total_options_available;
+
+    let bid_amount: u256 = total_options_available;
     let bid_price: u256 = reserve_price;
-    let bid_amount: u256 = bid_count * bid_price;
     current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
     // Settle auction
     set_block_timestamp(auction_end_time + 1);

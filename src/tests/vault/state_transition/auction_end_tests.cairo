@@ -234,15 +234,13 @@ fn test_end_auction_eth_transfer() {
 
     // End auction (2 bidders, first bid gets refuned, second's is converted to premium)
     let option_bidders = option_bidders_get(2).span();
-    let bid_count = current_round.get_total_options_available();
+    let bid_amount = current_round.get_total_options_available();
     let losing_price = current_round.get_reserve_price();
-    let losing_amount = bid_count * losing_price;
     let winning_price = 2 * losing_price;
-    let winning_amount = 2 * bid_count * winning_price;
     accelerate_to_running_custom(
         ref vault_facade,
         option_bidders,
-        array![losing_amount, winning_amount].span(),
+        array![bid_amount, bid_amount].span(),
         array![losing_price, winning_price].span()
     );
     // Vault and round balances after auction ends
@@ -250,12 +248,17 @@ fn test_end_auction_eth_transfer() {
     let vault_balance_after = eth.balance_of(vault_facade.contract_address());
 
     // Check premiums transfer from round to vault, and unused bids remain in round
-    assert(round_balance_before == losing_amount + winning_amount, 'round balance before wrong');
     assert(
-        round_balance_after == round_balance_before - winning_amount, 'round balance after wrong'
+        round_balance_before == bid_amount * losing_price + bid_amount * winning_price,
+        'round balance before wrong'
     );
     assert(
-        vault_balance_after == vault_balance_before + winning_amount, 'vault balance after wrong'
+        round_balance_after == round_balance_before - bid_amount * winning_price,
+        'round balance after wrong'
+    );
+    assert(
+        vault_balance_after == vault_balance_before + bid_amount * winning_price,
+        'vault balance after wrong'
     );
 }
 
@@ -336,11 +339,13 @@ fn test_end_auction_updates_locked_and_unlocked_balances() {
 fn test_end_auction_updates_vault_and_lp_spreads_complex() {
     // Accelerate through round 1 with premiums and a payout
     let (mut vault, _) = setup_facade();
-    let mut lps = liquidity_providers_get(4).span();
-    let round1_deposits = create_array_gradient(100 * decimals(), 100 * decimals(), lps.len())
+    let mut liquidity_providers = liquidity_providers_get(4).span();
+    let round1_deposits = create_array_gradient(
+        100 * decimals(), 100 * decimals(), liquidity_providers.len()
+    )
         .span(); // (100, 200, 300, 400)
     let starting_liquidity1 = sum_u256_array(round1_deposits);
-    accelerate_to_auctioning_custom(ref vault, lps, round1_deposits);
+    accelerate_to_auctioning_custom(ref vault, liquidity_providers, round1_deposits);
     let mut round1 = vault.get_current_round();
     let (clearing_price, options_sold) = accelerate_to_running(ref vault);
     let total_premiums1 = clearing_price * options_sold;
@@ -371,14 +376,14 @@ fn test_end_auction_updates_vault_and_lp_spreads_complex() {
         .span();
 
     // Vault and LP spreads before auction 2 ends
-    let mut lp_spreads_before = vault.get_lp_balance_spreads(lps).span();
+    let mut lp_spreads_before = vault.get_lp_balance_spreads(liquidity_providers).span();
     let vault_spread_before = vault.get_balance_spread();
     // End round 2's auction
     let (clearing_price, options_sold) = accelerate_to_running(ref vault);
     let total_premiums2 = clearing_price * options_sold;
     let mut individual_premiums2 = get_portion_of_amount(round2_deposits, total_premiums2).span();
     // Vault and LP spreads after the auction ends
-    let mut lp_spreads_after = vault.get_lp_balance_spreads(lps).span();
+    let mut lp_spreads_after = vault.get_lp_balance_spreads(liquidity_providers).span();
     let vault_spread_after = vault.get_balance_spread();
 
     // Check vault spreads
