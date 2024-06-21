@@ -66,9 +66,8 @@ fn test_convert_position_to_lp_tokens_while_settled__TODO__() {
     let mut current_round_facade: OptionRoundFacade = vault_facade.get_current_round();
     // Make bid
     let option_params = current_round_facade.get_params();
-    let bid_count: u256 = option_params.total_options_available;
+    let bid_amount: u256 = option_params.total_options_available;
     let bid_price: u256 = option_params.reserve_price;
-    let bid_amount: u256 = bid_count * bid_price;
     current_round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
     // Settle auction
     set_block_timestamp(option_params.auction_end_time + 1);
@@ -100,9 +99,8 @@ fn test_convert_position_to_lp_tokens_success() { //
     let mut next_round = vault_facade.get_next_round();
     // Make bid
     let option_params = current_round.get_params();
-    let bid_count: u256 = option_params.total_options_available;
+    let bid_amount: u256 = option_params.total_options_available;
     let bid_price: u256 = option_params.reserve_price;
-    let bid_amount: u256 = bid_count * bid_price;
     current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
     // Settle auction
     set_block_timestamp(option_params.auction_end_time + 1);
@@ -194,9 +192,8 @@ fn test_convert_lp_tokens_to_position_is_always_deposit_into_current_round() { /
     let mut next_round_facade: OptionRoundFacade = vault_facade.get_next_round();
     // Make bid
     let option_params = current_round_facade.get_params();
-    let bid_count: u256 = option_params.total_options_available;
+    let bid_amount: u256 = option_params.total_options_available;
     let bid_price: u256 = option_params.reserve_price;
-    let bid_amount: u256 = bid_count * bid_price;
     current_round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
     // Settle auction
     set_block_timestamp(option_params.auction_end_time + 1);
