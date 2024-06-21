@@ -75,14 +75,18 @@ fn update_bid(ref option_round: OptionRoundFacade, bid_id: felt252, bid: Bid) ->
 
 /// Vault
 
-fn deposit(ref vault: VaultFacade, lp: ContractAddress, unlocked_amount: u256) -> u256 {
-    let expected_unlocked_amount = vault.get_lp_unlocked_balance(lp);
+fn deposit(
+    ref vault: VaultFacade, liquidity_provider: ContractAddress, unlocked_amount: u256
+) -> u256 {
+    let expected_unlocked_amount = vault.get_lp_unlocked_balance(liquidity_provider);
     //assert(unlocked_amount == expected_unlocked_amount, 'Deposit sanity check fail');
     expected_unlocked_amount
 }
 
-fn withdraw(ref vault: VaultFacade, lp: ContractAddress, unlocked_amount: u256) -> u256 {
-    let expected_unlocked_amount = vault.get_lp_unlocked_balance(lp);
+fn withdraw(
+    ref vault: VaultFacade, liquidity_provider: ContractAddress, unlocked_amount: u256
+) -> u256 {
+    let expected_unlocked_amount = vault.get_lp_unlocked_balance(liquidity_provider);
     //assert(unlocked_amount == expected_unlocked_amount, 'Deposit sanity check fail');
     expected_unlocked_amount
 }

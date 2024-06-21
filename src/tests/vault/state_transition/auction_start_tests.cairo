@@ -304,20 +304,20 @@ fn test_starting_auction_updates_locked_and_unlocked_balances() {
 //#[available_gas(10000000)]
 //fn test_start_auction_updates_vault_and_lp_spreads_complex() {
 //    let (mut vault, _) = setup_facade();
-//    let mut lps = liquidity_providers_get(4).span();
-//    let mut deposit_amounts = create_array_gradient(100 * decimals(), 100 * decimals(), lps.len())
+//    let mut liquidity_providers = liquidity_providers_get(4).span();
+//    let mut deposit_amounts = create_array_gradient(100 * decimals(), 100 * decimals(), liquidity_providers.len())
 //        .span(); // (100, 200, 300, 400)
 //    let total_deposits = sum_u256_array(deposit_amounts);
 //
 //    // Vault and liquidity providers' balances before auction starts
-//    let mut liquidity_providers_locked_before = vault.get_lp_locked_balances(lps);
-//    let mut liquidity_providers_unlocked_before = vault.deposit_multiple(deposit_amounts, lps);
+//    let mut liquidity_providers_locked_before = vault.get_lp_locked_balances(liquidity_providers);
+//    let mut liquidity_providers_unlocked_before = vault.deposit_multiple(deposit_amounts, liquidity_providers);
 //    let (vault_locked_before, vault_unlocked_before) = vault.get_balance_spread();
 //    // Start auction
 //    vault.start_auction();
 //    // Vault and liquidity providers' balances after auction starts
-//    let mut liquidity_providers_locked_after = vault.get_lp_locked_balances(lps);
-//    let mut liquidity_providers_unlocked_after = vault.get_lp_unlocked_balances(lps);
+//    let mut liquidity_providers_locked_after = vault.get_lp_locked_balances(liquidity_providers);
+//    let mut liquidity_providers_unlocked_after = vault.get_lp_unlocked_balances(liquidity_providers);
 //    let (vault_locked_after, vault_unlocked_after) = vault.get_balance_spread();
 //
 //    // Check vault balance
@@ -355,11 +355,11 @@ fn test_starting_auction_updates_locked_and_unlocked_balances() {
 //    // Accelerate throught round 1 with premiums and payout
 //
 //    let (mut vault, _) = setup_facade();
-//    let mut lps = liquidity_providers_get(4).span();
-//    let mut round1_deposits = create_array_gradient(100 * decimals(), 100 * decimals(), lps.len())
+//    let mut liquidity_providers = liquidity_providers_get(4).span();
+//    let mut round1_deposits = create_array_gradient(100 * decimals(), 100 * decimals(), liquidity_providers.len())
 //        .span(); // (100, 200, 300, 400)
 //    let starting_liquidity1 = sum_u256_array(round1_deposits);
-//    accelerate_to_auctioning_custom(ref vault, lps, round1_deposits);
+//    accelerate_to_auctioning_custom(ref vault, liquidity_providers, round1_deposits);
 //    let mut round1 = vault.get_current_round();
 //    let (clearing_price1, options_sold1) = accelerate_to_running(ref vault);
 //    let total_premiums1 = clearing_price1 * options_sold1;
@@ -379,7 +379,7 @@ fn test_starting_auction_updates_locked_and_unlocked_balances() {
 //    vault.deposit(topup_amount, lp4);
 //
 //    // Vault and LP spreads before auction 2 starts
-//    let mut lp_spreads_before = vault.get_lp_balance_spreads(lps);
+//    let mut lp_spreads_before = vault.get_lp_balance_spreads(liquidity_providers);
 //    let vault_spread_before = vault.get_balance_spread();
 //    // Start round 2's auction with no additional deposits
 //    accelerate_to_auctioning_custom(ref vault, array![].span(), array![].span());
@@ -393,7 +393,7 @@ fn test_starting_auction_updates_locked_and_unlocked_balances() {
 //        .span();
 //    let starting_liquidity2 = sum_u256_array(round2_deposits);
 //    // Vault and LP spreads after auction 2 starts
-//    let mut lp_spreads_after = vault.get_lp_balance_spreads(lps);
+//    let mut lp_spreads_after = vault.get_lp_balance_spreads(liquidity_providers);
 //    let vault_spread_after = vault.get_balance_spread();
 //
 //    // Check vault spreads
@@ -420,20 +420,20 @@ fn test_starting_auction_updates_locked_and_unlocked_balances() {
 //fn test_unlocked_becomes_locked() {
 //    let (mut vault, _) = setup_facade();
 //    // Accelerate the round to running
-//    let lps = liquidity_providers_get(5);
-//    let mut deposit_amounts = create_array_gradient(100 * decimals(), 100 * decimals(), lps.len()); // (100, 200, 300...500)
-//    accelerate_to_auctioning_custom(ref vault, lps.span(), deposit_amounts.span());
+//    let liquidity_providers = liquidity_providers_get(5);
+//    let mut deposit_amounts = create_array_gradient(100 * decimals(), 100 * decimals(), liquidity_providers.len()); // (100, 200, 300...500)
+//    accelerate_to_auctioning_custom(ref vault, liquidity_providers.span(), deposit_amounts.span());
 //    accelerate_to_running(ref vault);
 //    let mut current_round = vault.get_current_round();
 //
 //    // Spreads for the vault and each lp (locked, unlocked) before option round settles
-//    let mut all_lp_spreads_before: Array<(u256, u256)> = vault.deposit_multiple(deposit_amounts.span(), lps.span());
+//    let mut all_lp_spreads_before: Array<(u256, u256)> = vault.deposit_multiple(deposit_amounts.span(), liquidity_providers.span());
 //    let (vault_locked_init, vault_unlocked) = vault.get_balance_spread();
 //    // Settle option round (with no payout)
 //    accelerate_to_settled(ref vault, current_round.get_strike_price(), );
 //    // Final vault locked/unlocked spread
 //    let (vault_locked_after, vault_unlocked_after) = vault.get_balance_spread();
-//    let all_lp_spreads_after = vault.get_lp_balance_spreads(lps.span());
+//    let all_lp_spreads_after = vault.get_lp_balance_spreads(liquidity_providers.span());
 //
 //    // Check vault locked/unlocked total
 //    let deposit_total = sum_u256_array(deposit_amounts.span());

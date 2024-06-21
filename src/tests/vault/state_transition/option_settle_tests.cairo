@@ -351,11 +351,11 @@ fn test_settling_option_round_updates_locked_and_unlocked_balances() {
 //fn test_settle_option_round_updates_vault_and_lp_spreads_complex() {
 //    // Accelerate through round 1 with premiums and a payout
 //    let (mut vault, _) = setup_facade();
-//    let mut lps = liquidity_providers_get(4).span();
-//    let round1_deposits = create_array_gradient(100 * decimals(), 100 * decimals(), lps.len())
+//    let mut liquidity_providers = liquidity_providers_get(4).span();
+//    let round1_deposits = create_array_gradient(100 * decimals(), 100 * decimals(), liquidity_providers.len())
 //        .span(); // (100, 200, 300, 400)
 //    let starting_liquidity1 = sum_u256_array(round1_deposits);
-//    accelerate_to_auctioning_custom(ref vault, lps, round1_deposits);
+//    accelerate_to_auctioning_custom(ref vault, liquidity_providers, round1_deposits);
 //    let mut round1 = vault.get_current_round();
 //    let (clearing_price, options_sold) = accelerate_to_running(ref vault);
 //    let total_premiums1 = clearing_price * options_sold;
@@ -393,7 +393,7 @@ fn test_settling_option_round_updates_locked_and_unlocked_balances() {
 //    let mut individual_premiums2 = get_portion_of_amount(round2_deposits, total_premiums2).span();
 //
 //    // Vault and LP spreads before round 2 settles
-//    let mut lp_spreads_before = vault.get_lp_balance_spreads(lps).span();
+//    let mut lp_spreads_before = vault.get_lp_balance_spreads(liquidity_providers).span();
 //    let vault_spread_before = vault.get_balance_spread();
 //    // Settle round 2 with a payout
 //    let total_payout2 = accelerate_to_settled(ref vault, 2 * round2.get_strike_price());
@@ -403,7 +403,7 @@ fn test_settling_option_round_updates_locked_and_unlocked_balances() {
 //    )
 //        .span();
 //    // Vault and LP spreads after the round 2 settles
-//    let mut lp_spreads_after = vault.get_lp_balance_spreads(lps).span();
+//    let mut lp_spreads_after = vault.get_lp_balance_spreads(liquidity_providers).span();
 //    let vault_spread_after = vault.get_balance_spread();
 //
 //    // Check vault spreads

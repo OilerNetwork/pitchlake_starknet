@@ -46,10 +46,10 @@ fn accelerate_to_auctioning(ref self: VaultFacade) -> u256 {
 
 // Start the auction with custom deposits
 fn accelerate_to_auctioning_custom(
-    ref self: VaultFacade, lps: Span<ContractAddress>, amounts: Span<u256>
+    ref self: VaultFacade, liquidity_providers: Span<ContractAddress>, amounts: Span<u256>
 ) -> u256 {
     // Deposit liquidity
-    self.deposit_multiple(amounts, lps);
+    self.deposit_multiple(amounts, liquidity_providers);
     // Jump past round transition period and start the auction
     timeskip_and_start_auction(ref self)
 }
@@ -59,9 +59,8 @@ fn accelerate_to_auctioning_custom(
 // End the auction, OB1 bids for all options at reserve price
 fn accelerate_to_running(ref self: VaultFacade) -> (u256, u256) {
     let mut current_round = self.get_current_round();
-    let bid_count = current_round.get_total_options_available();
+    let bid_amount = current_round.get_total_options_available();
     let bid_price = current_round.get_reserve_price();
-    let bid_amount = bid_count * bid_price;
     accelerate_to_running_custom(
         ref self,
         array![option_bidder_buyer_1()].span(),
@@ -112,8 +111,8 @@ fn timeskip_past_option_expiry_date(ref self: VaultFacade) {
 // Jump past the round transition period
 fn timeskip_past_round_transition_period(ref self: VaultFacade) {
     let now = get_block_timestamp();
-    let rtp = self.get_round_transition_period();
-    set_block_timestamp(now + rtp + 1);
+    let round_transition_period = self.get_round_transition_period();
+    set_block_timestamp(now + round_transition_period + 1);
 }
 
 /// Timeskip and do something
