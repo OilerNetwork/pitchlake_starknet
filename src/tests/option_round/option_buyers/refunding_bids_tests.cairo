@@ -64,7 +64,7 @@ fn place_incremental_bids_internal(
         option_reserve_price, option_reserve_price, number_of_option_bidders
     );
 
-    // @dev Bid amounts are each bid price * the number of options available
+    // @dev Bid amounts are the number of options available
     let mut bid_amounts = create_array_linear(options_available, bid_prices.len());
 
     // Place bids
