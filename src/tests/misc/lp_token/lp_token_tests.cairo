@@ -69,7 +69,7 @@ fn test_convert_position_to_lp_tokens_while_settled__TODO__() {
     // Make bid
     let bid_amount: u256 = current_round.get_total_options_available();
     let bid_price: u256 = current_round.get_reserve_price();
-    current_round_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
+    current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
     // Settle auction
     set_block_timestamp(current_round.get_auction_end_date() + 1);
     let (clearing_price, _) = vault_facade.end_auction();

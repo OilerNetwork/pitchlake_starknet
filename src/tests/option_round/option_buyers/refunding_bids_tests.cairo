@@ -6,7 +6,8 @@ use pitch_lake_starknet::tests::{
         helpers::{
             setup::{setup_facade},
             general_helpers::{
-                scale_array, get_erc20_balance, get_erc20_balances, create_array_gradient
+                scale_array, get_erc20_balance, get_erc20_balances, create_array_gradient,
+                create_array_linear,
             },
             event_helpers::{assert_event_unused_bids_refunded, clear_event_logs},
             accelerators::{
@@ -25,10 +26,6 @@ use pitch_lake_starknet::tests::{
         facades::{
             vault_facade::{VaultFacade, VaultFacadeTrait},
             option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait}
-        },
-        utils::{
-            scale_array, get_erc20_balance, get_erc20_balances, create_array_gradient,
-            create_array_linear
         },
     },
 };

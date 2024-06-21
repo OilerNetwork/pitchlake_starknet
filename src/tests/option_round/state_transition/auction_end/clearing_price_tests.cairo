@@ -5,7 +5,7 @@ use pitch_lake_starknet::{
                 accelerators::{
                     accelerate_to_auctioning, accelerate_to_running, accelerate_to_running_custom
                 },
-                setup::{setup_facade},
+                setup::{setup_facade}, general_helpers::{create_array_linear},
             },
             lib::{
                 test_accounts::{
@@ -18,7 +18,6 @@ use pitch_lake_starknet::{
                 vault_facade::{VaultFacade, VaultFacadeTrait},
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundParams},
             },
-            utils::{create_array_linear},
         },
     }
 };
@@ -92,14 +91,13 @@ fn test_clearing_price_2() {
     let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
 
     let reserve_price = current_round.get_reserve_price();
-    let total_options_available = current_round.get_total_options_available();
 
     let option_bidders = option_bidders_get(2);
 
     let bid_amount_user_1: u256 = 1;
-    let bid_amount_user_2: u256 = params.total_options_available - 2;
-    let bid_price_user_1: u256 = params.reserve_price;
-    let bid_price_user_2: u256 = params.reserve_price * 10;
+    let bid_amount_user_2: u256 = current_round.get_total_options_available() - 2;
+    let bid_price_user_1: u256 = current_round.get_reserve_price();
+    let bid_price_user_2: u256 = current_round.get_reserve_price() * 10;
 
     let (clearing_price, _) = accelerate_to_running_custom(
         ref vault_facade,
@@ -126,10 +124,10 @@ fn test_clearing_price_3() {
     let total_options_available = current_round.get_total_options_available();
 
     let option_bidders = option_bidders_get(3);
-    let bid_amounts = create_array_linear(params.total_options_available, 3).span();
-    let bid_price_user_1 = params.reserve_price;
-    let bid_price_user_2 = params.reserve_price + 1;
-    let bid_price_user_3 = params.reserve_price + 2;
+    let bid_amounts = create_array_linear(total_options_available, 3).span();
+    let bid_price_user_1 = reserve_price;
+    let bid_price_user_2 = reserve_price + 1;
+    let bid_price_user_3 = reserve_price + 2;
 
     let (clearing_price, _) = accelerate_to_running_custom(
         ref vault_facade,
@@ -189,12 +187,12 @@ fn test_clearing_price_5() {
     // OB1 outbids OB2, OB2 outbids OB3
     let option_bidders = option_bidders_get(4);
 
-    let bid_price_user_1: u256 = params.reserve_price + 3;
-    let bid_price_user_2: u256 = params.reserve_price + 2;
-    let bid_price_user_3: u256 = params.reserve_price + 1;
-    let bid_price_user_4: u256 = params.reserve_price;
+    let bid_price_user_1: u256 = reserve_price + 3;
+    let bid_price_user_2: u256 = reserve_price + 2;
+    let bid_price_user_3: u256 = reserve_price + 1;
+    let bid_price_user_4: u256 = reserve_price;
 
-    let bid_amounts = create_array_linear(params.total_options_available / 3, 4);
+    let bid_amounts = create_array_linear(total_options_available / 3, 4);
 
     let (clearing_price, _) = accelerate_to_running_custom(
         ref vault_facade,

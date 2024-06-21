@@ -23,7 +23,7 @@ use pitch_lake_starknet::{
             helpers::{
                 general_helpers::{
                     multiply_arrays, scale_array, sum_u256_array, get_erc20_balance,
-                    get_erc20_balances
+                    get_erc20_balances, get_total_bids_amount, create_array_linear
                 },
                 setup::{setup_facade, decimals, deploy_vault, clear_event_logs,},
                 accelerators::{
@@ -47,10 +47,6 @@ use pitch_lake_starknet::{
             mocks::mock_market_aggregator::{
                 MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
                 IMarketAggregatorSetterDispatcherTrait
-            },
-            utils::{
-                multiply_arrays, scale_array, sum_u256_array, get_erc20_balance, get_erc20_balances,
-                get_total_bids_amount, create_array_linear
             },
         },
     },
