@@ -27,7 +27,7 @@ mod option_round {
             mod auction_end_tests;
             mod pending_to_refundable_bids_tests;
             mod clearing_price_tests;
-            mod options_minted_tests;
+            mod option_distribution_tests;
             mod premium_earned_tests;
         }
         mod auction_start {
