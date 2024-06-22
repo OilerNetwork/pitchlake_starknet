@@ -52,7 +52,7 @@ trait IOptionRound<TContractState> {
 
     // Get the bid nonce for an account
     // @note change this to get_bid_nonce_for
-    fn get_nonce_for(self: @TContractState, option_buyer: ContractAddress) -> u32;
+    fn get_bidding_nonce_for(self: @TContractState, option_buyer: ContractAddress) -> u32;
 
     // Get the bid ids for an account
     fn get_bids_for(self: @TContractState, option_buyer: ContractAddress) -> Array<felt252>;
@@ -473,7 +473,7 @@ mod OptionRound {
         }
 
 
-        fn get_nonce_for(self: @ContractState, option_buyer: ContractAddress) -> u32 {
+        fn get_bidding_nonce_for(self: @ContractState, option_buyer: ContractAddress) -> u32 {
             100
         }
 

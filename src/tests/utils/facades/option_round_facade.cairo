@@ -275,8 +275,10 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         self.option_round_dispatcher.get_bid_details(bid_id)
     }
 
-    fn get_nonce_for(ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress) -> u32 {
-        self.option_round_dispatcher.get_nonce_for(option_bidder_buyer)
+    fn get_bidding_nonce_for(
+        ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
+    ) -> u32 {
+        self.option_round_dispatcher.get_bidding_nonce_for(option_bidder_buyer)
     }
 
     fn get_pending_bids_for(
