@@ -91,6 +91,7 @@ fn test_ending_auction_before_auction_end_date_fails() {
 }
 
 // Test ending the auction after it already ended fails
+// @note Add OptionRoundError::AUctionAlreadyEnded and use here
 #[test]
 #[available_gas(10000000)]
 fn test_ending_auction_while_round_running_fails() {
@@ -107,6 +108,7 @@ fn test_ending_auction_while_round_running_fails() {
 }
 
 // Test ending the auction after the auction ends fails (next state)
+// @note Use same new error from above
 #[test]
 #[available_gas(10000000)]
 fn test_ending_auction_while_round_settled_fails() {
@@ -200,17 +202,16 @@ fn test_end_auction_updates_current_round_state() {
         match rounds_to_run {
             0 => { break (); },
             _ => {
-                accelerate_to_auctioning(ref vault);
-
-                accelerate_to_running(ref vault);
                 let mut current_round = vault.get_current_round();
+                accelerate_to_auctioning(ref vault);
+                accelerate_to_running(ref vault);
+
                 assert(
                     current_round.get_state() == OptionRoundState::Running,
                     'current round shd be running'
                 );
 
                 accelerate_to_settled(ref vault, 0);
-
                 rounds_to_run -= 1;
             },
         }
@@ -225,10 +226,10 @@ fn test_end_auction_updates_current_round_state() {
 #[available_gas(10000000)]
 fn test_end_auction_eth_transfer() {
     let (mut vault_facade, eth) = setup_facade();
+    let mut current_round = vault_facade.get_current_round();
     accelerate_to_auctioning(ref vault_facade);
 
     // Vault and round balances before auction ends
-    let mut current_round = vault_facade.get_current_round();
     let round_balance_before = eth.balance_of(current_round.contract_address());
     let vault_balance_before = eth.balance_of(vault_facade.contract_address());
 
