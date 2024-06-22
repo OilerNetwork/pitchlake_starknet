@@ -230,7 +230,7 @@ fn test_over_bids_are_refundable() {
     let total_options_available = accelerate_to_auctioning(ref vault);
     let mut current_round = vault.get_current_round();
 
-    // 2 bidders bid for combined all options, the with the higher price should get a refund
+    // 2 bidders bid for combined all options, the bidder with the higher price should get a refund
     let mut bidders = option_bidders_get(2).span();
     let reserve_price = current_round.get_reserve_price();
     let bid_amounts = create_array_linear(total_options_available / 2, 2).span();
