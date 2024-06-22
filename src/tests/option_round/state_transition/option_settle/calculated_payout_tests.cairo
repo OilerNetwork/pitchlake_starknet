@@ -25,16 +25,15 @@ fn calculate_expected_payout(ref round: OptionRoundFacade, settlement_price: u25
     max(0, min((1 + cl) * k, settlement_price) - k)
 }
 
-// @note These tests should move to ./src/tests/option_round/state_transition/option_settled_tests.cairo
 /// Total Payout Tests ///
 
 #[test]
 #[available_gas(10000000)]
 fn test_option_payout_amount_index_at_strike() {
     let (mut vault_facade, _) = setup_facade();
+    let mut current_round = vault_facade.get_current_round();
 
     accelerate_to_auctioning(ref vault_facade);
-    let mut current_round = vault_facade.get_current_round();
     accelerate_to_running(ref vault_facade);
     let total_payout = accelerate_to_settled(ref vault_facade, current_round.get_strike_price());
 
@@ -46,9 +45,9 @@ fn test_option_payout_amount_index_at_strike() {
 #[available_gas(10000000)]
 fn test_option_payout_amount_index_higher_than_strike() {
     let (mut vault, _) = setup_facade();
+    let mut current_round = vault.get_current_round();
 
     accelerate_to_auctioning(ref vault);
-    let mut current_round = vault.get_current_round();
     accelerate_to_running(ref vault);
 
     let K = current_round.get_strike_price();
@@ -65,9 +64,9 @@ fn test_option_payout_amount_index_higher_than_strike() {
 #[available_gas(10000000)]
 fn test_option_payout_amount_index_higher_than_strike_and_cap_level() {
     let (mut vault, _) = setup_facade();
+    let mut current_round = vault.get_current_round();
 
     accelerate_to_auctioning(ref vault);
-    let mut current_round = vault.get_current_round();
     accelerate_to_running(ref vault);
 
     let K = current_round.get_strike_price();
@@ -84,9 +83,9 @@ fn test_option_payout_amount_index_higher_than_strike_and_cap_level() {
 #[available_gas(10000000)]
 fn test_option_payout_amount_index_less_than_strike() {
     let (mut vault, _) = setup_facade();
+    let mut current_round = vault.get_current_round();
 
     accelerate_to_auctioning(ref vault);
-    let mut current_round = vault.get_current_round();
     accelerate_to_running(ref vault);
 
     let K = current_round.get_strike_price();
@@ -102,9 +101,9 @@ fn test_option_payout_amount_index_less_than_strike() {
 #[available_gas(10000000)]
 fn test_option_payout_amount_index_barely_less_than_strike() {
     let (mut vault, _) = setup_facade();
+    let mut current_round = vault.get_current_round();
 
     accelerate_to_auctioning(ref vault);
-    let mut current_round = vault.get_current_round();
     accelerate_to_running(ref vault);
 
     let K = current_round.get_strike_price();
@@ -116,7 +115,7 @@ fn test_option_payout_amount_index_barely_less_than_strike() {
 }
 /// Individual Payout Tests ///
 
-// @note Check/add tests for OB individual payots
+// @note Check/add tests for OB individual payouts
 // @note add tests for payout matching expected for more realistic scenarios (talk with tomasz/finn)
 
 

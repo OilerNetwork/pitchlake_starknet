@@ -312,7 +312,8 @@ fn test_settling_option_round_updates_locked_and_unlocked_balances() {
     let mut liquidity_providers_locked_before = vault.get_lp_locked_balances(liquidity_providers);
     let mut liquidity_providers_unlocked_before = vault
         .get_lp_unlocked_balances(liquidity_providers);
-    let (vault_locked_before, vault_unlocked_before) = vault.get_balance_spread();
+    let (vault_locked_before, vault_unlocked_before) = vault
+        .get_total_locked_and_unlocked_balance();
 
     // Settle the round with a payout
     let total_payouts = accelerate_to_settled(ref vault, 2 * current_round.get_strike_price());
@@ -326,7 +327,7 @@ fn test_settling_option_round_updates_locked_and_unlocked_balances() {
     let mut liquidity_providers_locked_after = vault.get_lp_locked_balances(liquidity_providers);
     let mut liquidity_providers_unlocked_after = vault
         .get_lp_unlocked_balances(liquidity_providers);
-    let (vault_locked_after, vault_unlocked_after) = vault.get_balance_spread();
+    let (vault_locked_after, vault_unlocked_after) = vault.get_total_locked_and_unlocked_balance();
 
     // Check vault balance
     assert(

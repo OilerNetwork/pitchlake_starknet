@@ -243,10 +243,12 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     // For LPs
 
+    // Get the locked balance of a liquidity provider
     fn get_lp_locked_balance(ref self: VaultFacade, liquidity_provider: ContractAddress) -> u256 {
         self.vault_dispatcher.get_lp_locked_balance(liquidity_provider)
     }
 
+    // Get the locked balances of multiple liquidity providers
     fn get_lp_locked_balances(
         ref self: VaultFacade, mut liquidity_providers: Span<ContractAddress>
     ) -> Array<u256> {
@@ -263,10 +265,12 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         balances
     }
 
+    // Get the unlocked balance of a liquidity provider
     fn get_lp_unlocked_balance(ref self: VaultFacade, liquidity_provider: ContractAddress) -> u256 {
         self.vault_dispatcher.get_lp_unlocked_balance(liquidity_provider)
     }
 
+    // Get the unlocked balances of multiple liquidity providers
     fn get_lp_unlocked_balances(
         ref self: VaultFacade, mut liquidity_providers: Span<ContractAddress>
     ) -> Array<u256> {
@@ -283,12 +287,29 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         balances
     }
 
+    // Get the total balance of a liquidity provider (locked + unlocked)
     fn get_lp_total_balance(ref self: VaultFacade, liquidity_provider: ContractAddress) -> u256 {
         self.vault_dispatcher.get_lp_total_balance(liquidity_provider)
     }
 
+    // Get the total balances of multiple liquidity providers (locked + unlocked)
+    fn get_lp_total_balances(
+        ref self: VaultFacade, mut liquidity_providers: Span<ContractAddress>
+    ) -> Array<u256> {
+        let mut balances = array![];
+        loop {
+            match liquidity_providers.pop_front() {
+                Option::Some(liquidity_provider) => {
+                    let balance = self.get_lp_total_balance(*liquidity_provider);
+                    balances.append(balance);
+                },
+                Option::None => { break (); }
+            };
+        };
+        balances
+    }
 
-    // @note replace this with get_lp_locked_and_unlocked_balance
+    // Get the locked and unlocked balance of a liquidity provider
     fn get_lp_locked_and_unlocked_balance(
         ref self: VaultFacade, liquidity_provider: ContractAddress
     ) -> (u256, u256) {
@@ -297,7 +318,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         (locked, unlocked)
     }
 
-    // @note replace this with get_lp_locked_and_unlocked_balances
+    // Get the locked and unlocked balances of multiple liquidity providers
     fn get_lp_locked_and_unlocked_balances(
         ref self: VaultFacade, mut liquidity_providers: Span<ContractAddress>
     ) -> Array<(u256, u256)> {
@@ -315,38 +336,48 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         spreads
     }
 
+    // Get the total premium earned for a liquidity provider in a round
     fn get_premiums_for(
         ref self: VaultFacade, liquidity_provider: ContractAddress, round_id: u256
     ) -> u256 {
         self.vault_dispatcher.get_premiums_earned(liquidity_provider, round_id)
     }
 
-    // @note add get_premiums_for_multiple()
+    // Get the total premiums earned for multiple liquidity providers in a round
+    fn get_premiums_for_multiple(
+        ref self: VaultFacade, mut liquidity_providers: Span<ContractAddress>, round_id: u256
+    ) -> Array<u256> {
+        let mut premiums = array![];
+        loop {
+            match liquidity_providers.pop_front() {
+                Option::Some(liquidity_provider) => {
+                    let premium = self.get_premiums_for(*liquidity_provider, round_id);
+                    premiums.append(premium);
+                },
+                Option::None => { break (); }
+            };
+        };
+        premiums
+    }
 
     // For Vault
 
-    // @note replace this with get_vault_locked_balance
-    fn get_locked_balance(ref self: VaultFacade) -> u256 {
+    // Get the locked balance of the vault
+    fn get_total_locked_balance(ref self: VaultFacade) -> u256 {
         self.vault_dispatcher.get_total_locked()
     }
 
-    // @note replace this with get_vault_unlocked_balance
-    fn get_unlocked_balance(ref self: VaultFacade) -> u256 {
+    // Get the unlocked balance of the vault
+    fn get_total_unlocked_balance(ref self: VaultFacade) -> u256 {
         self.vault_dispatcher.get_total_unlocked()
     }
 
-    // @note replace this with get_vault_locked_and_unlocked_balance
+    // Get the total balance of the vault (locked + unlocked)
     fn get_total_balance(ref self: VaultFacade) -> u256 {
         self.vault_dispatcher.get_total_balance()
     }
 
-    // @note replace this with get_vault_locked_and_unlocked_balances
-    fn get_balance_spread(ref self: VaultFacade) -> (u256, u256) {
-        let locked = self.vault_dispatcher.get_total_locked();
-        let unlocked = self.vault_dispatcher.get_total_unlocked();
-        (locked, unlocked)
-    }
-
+    // Get the locked and unlocked balance of the vault
     fn get_total_locked_and_unlocked_balance(ref self: VaultFacade) -> (u256, u256) {
         let locked = self.vault_dispatcher.get_total_locked();
         let unlocked = self.vault_dispatcher.get_total_unlocked();
