@@ -503,18 +503,17 @@ fn test_losing_bid_gets_no_options() {
 // @note Use python script to generate the expected outcomes, verify correct script (1:2), generate
 // a few test cases
 
-// Test where the total options available have not been exhausted
-// @note make sure calculation/numbers are right, and from correct py script
+// Test where the total options available have been exhausted
 #[test]
 #[available_gas(10000000)]
 fn test_option_distribution_real_numbers_1() {
-    let options_available = 300;
+    let options_available = 200;
     let reserve_price = 2;
     let number_of_option_bidders = 6;
     let bid_amounts = array![50, 142, 235, 222, 75, 35].span();
     let bid_prices = array![20, 11, 11, 2, 1, 1].span();
-    let expected_options_sold = 275;
-    let mut expected_option_distribution = array![25, 71, 117, 86, 0, 0].span();
+    let expected_options_sold = 200;
+    let mut expected_option_distribution = array![50, 142, 8, 0, 0, 0].span();
 
     auction_real_numbers_test_helper(
         options_available,
@@ -527,6 +526,52 @@ fn test_option_distribution_real_numbers_1() {
     )
 }
 
+// Test where the total options available have not been exhausted
+#[test]
+#[available_gas(10000000)]
+fn test_option_distribution_real_numbers_2() {
+    let options_available = 200;
+    let reserve_price = 2;
+    let number_of_option_bidders = 6;
+    let bid_amounts = array![25, 20, 60, 40, 75, 35].span();
+    let bid_prices = array![25, 24, 15, 2, 1, 1].span();
+    let expected_options_sold = 145;
+    let mut expected_option_distribution = array![25, 20, 60, 40, 0, 0].span();
+
+    auction_real_numbers_test_helper(
+        options_available,
+        reserve_price,
+        number_of_option_bidders,
+        bid_amounts,
+        bid_prices,
+        expected_options_sold,
+        expected_option_distribution
+    )
+}
+
+#[test]
+#[available_gas(10000000)]
+fn test_option_distribution_real_numbers_3() {
+    let options_available = 500;
+    let reserve_price = 2;
+    let number_of_option_bidders = 6;
+    let bid_amounts = array![400, 50, 30, 50, 75, 30].span();
+    let bid_prices = array![50, 40, 30, 20, 2, 2].span();
+    let expected_options_sold = 500;
+    let mut expected_option_distribution = array![400, 50, 30, 20, 0, 0].span();
+
+    auction_real_numbers_test_helper(
+        options_available,
+        reserve_price,
+        number_of_option_bidders,
+        bid_amounts,
+        bid_prices,
+        expected_options_sold,
+        expected_option_distribution
+    )
+}
+
+// @note Need to make sure rejected bids do not revert here, switch to using raw calls
 fn auction_real_numbers_test_helper(
     options_available: u256,
     reserve_price: u256,
