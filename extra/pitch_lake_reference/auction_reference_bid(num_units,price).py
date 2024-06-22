@@ -3,13 +3,35 @@
 # num_units is the total num of options that the bid wants to buy
 # pice is the price of one call option
 # ## The total amount of money in a bid is given by num_units * price
+
+# options_available = 200 # total number of options available
+# bids = [
+#     {"id": 1, "num_units": 50, "price": 20},
+#     {"id": 2, "num_units": 142, "price": 11},
+#     {"id": 3, "num_units": 235, "price": 11},
+#     {"id": 4, "num_units": 222, "price": 2},
+#     {"id": 5, "num_units": 75, "price": 1},
+#     {"id": 6, "num_units": 35, "price": 1},
+# ]
+
+# options_available = 200
+# bids = [
+#     {"id": 1, "num_units": 25, "price": 25},
+#     {"id": 2, "num_units": 20, "price": 24},
+#     {"id": 3, "num_units": 60, "price": 15},
+#     {"id": 4, "num_units": 40, "price": 2},
+#     {"id": 5, "num_units": 75, "price": 1},
+#     {"id": 6, "num_units": 35, "price": 1},
+# ]
+
+options_available = 500
 bids = [
-    {"id": 1, "num_units": 50, "price": 20},
-    {"id": 2, "num_units": 142, "price": 11},
-    {"id": 3, "num_units": 235, "price": 11},
-    {"id": 4, "num_units": 222, "price": 2},
-    {"id": 5, "num_units": 75, "price": 1},
-    {"id": 6, "num_units": 35, "price": 1},
+     {"id": 1, "num_units": 400, "price": 50},
+     {"id": 2, "num_units": 50, "price": 40},
+     {"id": 3, "num_units": 30, "price": 30},
+     {"id": 4, "num_units": 50, "price": 20},
+     {"id": 5, "num_units": 75, "price": 2},
+     {"id": 6, "num_units": 35, "price": 2},
 ]
 
 RESERVE_PRICE = 2
@@ -26,7 +48,6 @@ print()
 # If there are bids with the same price, sort them from low bid amount to high bid amount and then the bid id(signifying the time of the bid, from earliest to latest)
 bids = sorted(bids, key=lambda x: (-x['price'], x['num_units'], x['id']))
 
-options_available = 200  # total number of options available
 
 def distribute_options(options_available, bids):
     total_distributed = 0
@@ -50,7 +71,7 @@ for i in range(idx + 1):
     options_to_give = min(options_left, bid['num_units'])
     options_left -= options_to_give
     print(f"Bidder {bid['id']} gets {options_to_give:.2f} options")
-    
+
 for i in range(idx + 1, len(bids)):
     bid = bids[i]
     print(f"Bidder {bid['id']} doesn't get any options (and full bidding token refund)")

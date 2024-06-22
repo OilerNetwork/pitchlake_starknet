@@ -15,9 +15,7 @@ use pitch_lake_starknet::{
     tests::{
         utils::{
             helpers::general_helpers::{assert_two_arrays_equal_length},
-            lib::{
-                variables::{vault_manager}, test_accounts::{bystander}, structs::{OptionRoundParams}
-            },
+            lib::{test_accounts::{vault_manager, bystander}, structs::{OptionRoundParams}},
             facades::sanity_checks,
         }
     }
@@ -72,20 +70,8 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
 
     /// OB functions
 
-    // @note Remove raw functions, add sanity check
-    //  - sanity check that the bid details in storage match the returned value
-
-    // @note Modify bid structure (max number of options, max price per option)
-    //  - Modify/add tests accordingly
-
-    // @note Discuss
-    //  - Entry points to edit a bid
-    //    - Increase price per option ?
-    //    - Increase max number of options ?
-    //    - Separate (lower) bids ?
-
     // Place a bid for an option bidder
-    // @return: Whether the bid was accepted or rejected
+    // @return: The bid id
     fn place_bid(
         ref self: OptionRoundFacade, amount: u256, price: u256, bidder: ContractAddress,
     ) -> felt252 {
@@ -99,7 +85,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
 
 
     // Place multiple bids for multiple option bidders
-    // @return: Whether the bids were accepted or rejected
+    // @return: Array of bid ids
     fn place_bids(
         ref self: OptionRoundFacade,
         mut amounts: Span<u256>,
@@ -287,13 +273,15 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         self.option_round_dispatcher.get_bid_details(bid_id)
     }
 
-    fn get_nonce_for(ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress) -> u32 {
-        self.option_round_dispatcher.get_nonce_for(option_bidder_buyer)
+    fn get_bidding_nonce_for(
+        ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
+    ) -> u32 {
+        self.option_round_dispatcher.get_bidding_nonce_for(option_bidder_buyer)
     }
 
     fn get_pending_bids_for(
         ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
-    ) -> u256 {
+    ) -> Array<felt252> {
         self.option_round_dispatcher.get_pending_bids_for(option_bidder_buyer)
     }
 

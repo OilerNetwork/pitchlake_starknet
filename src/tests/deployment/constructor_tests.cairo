@@ -39,10 +39,10 @@ use pitch_lake_starknet::{
                 IMarketAggregatorSetterDispatcherTrait
             },
             lib::{
-                variables::{vault_manager, decimals},
+                variables::{decimals},
                 test_accounts::{
                     liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
-                    option_bidder_buyer_2,
+                    option_bidder_buyer_2, vault_manager
                 },
             }
         },

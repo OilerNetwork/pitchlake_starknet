@@ -32,8 +32,11 @@ use pitch_lake_starknet::{
         utils::{
             lib::{
                 structs::{OptionRoundParams},
-                test_accounts::{liquidity_providers_get, option_bidders_get, bystander},
-                variables::{weth_owner, week_duration, vault_manager, decimals},
+                test_accounts::{
+                    weth_owner, vault_manager, liquidity_providers_get, option_bidders_get,
+                    bystander
+                },
+                variables::{week_duration, decimals},
             },
             helpers::event_helpers::{clear_event_logs},
             facades::{

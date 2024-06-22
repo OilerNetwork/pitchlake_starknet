@@ -1,5 +1,13 @@
 use starknet::{ContractAddress, contract_address_const};
 
+fn vault_manager() -> ContractAddress {
+    contract_address_const::<'vault_manager'>()
+}
+
+fn weth_owner() -> ContractAddress {
+    contract_address_const::<'weth_owner'>()
+}
+
 // Bystander, perform state transition functions on vault so all gas costs are on it
 fn bystander() -> ContractAddress {
     contract_address_const::<'bystander'>()

@@ -6,7 +6,10 @@ use pitch_lake_starknet::{
                     accelerate_to_auctioning, accelerate_to_running, accelerate_to_running_custom,
                     timeskip_and_end_auction,
                 },
-                setup::{setup_facade}, general_helpers::{create_array_linear},
+                setup::{setup_facade},
+                general_helpers::{
+                    create_array_linear, create_array_gradient, create_array_gradient_reverse
+                },
             },
             lib::{
                 test_accounts::{
@@ -24,18 +27,6 @@ use pitch_lake_starknet::{
 };
 use starknet::testing::{set_block_timestamp, set_contract_address};
 
-// @note Simplify tests:
-// - should have test for when total premiums could be higher if less < total options are sold, but
-// could sell all options for less total premiums,
-// i.e bidder 1: 1/100 total options @ reserve price & bidder 2: 99/100 total options @ 10x reserve price
-// - test same as above but if the not all options could be minted anyway
-// i.e bidder1: 1/100 total options @ reserve price & bidder 2: 98/100 total options @ 10x reserve price
-// - test when no bids have been placed
-// - we have a mock of this in python already in the code base, we should use it to generate values for
-// tests
-// @note we may consider options being factional (1 option erc20 could have 6-18 decimals, representing
-// 1,000,000 gas units. Owning 0.5000... option round tokens represent options for 500,000 gas units).
-// Whening doing 1/100 * options available, we should divide with bps, see payout_tests for examples
 
 // Test clearing price is 0 before auction end
 #[test]
@@ -69,148 +60,96 @@ fn test_clearing_price_is_0_when_no_bids() {
     assert(clearing_price == 0, 'clearing price sold shd be 0');
 }
 
-
-// Test clearing price is the only bid price minting < total options
+// Test clearing price is the only bid price
 #[test]
 #[available_gas(10000000)]
-fn test_clearing_price_1() {
-    let (mut vault_facade, _) = setup_facade();
+fn test_clearing_price_is_only_bid_price() {
+    let (mut vault, _) = setup_facade();
     // Deposit liquidity and start the auction
-    accelerate_to_auctioning(ref vault_facade);
+    let total_options_available = accelerate_to_auctioning(ref vault);
+    let mut current_round = vault.get_current_round();
 
-    let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
+    // Make bid
+    let bidder = option_bidders_get(1).span();
+    let bid_amount = array![total_options_available].span();
+    let bid_price = array![current_round.get_reserve_price() + 1].span();
+    let (clearing_price, _) = accelerate_to_running_custom(
+        ref vault, bidder, bid_amount, bid_price
+    );
 
-    let (clearing_price, _) = accelerate_to_running(ref vault_facade);
-    // @dev This checks that vault::end_auction returns the clearing price that is set in storage
-    assert(clearing_price == current_round.get_auction_clearing_price(), 'clearing price not set');
-    assert(clearing_price == current_round.get_reserve_price(), 'clearing price wrong');
+    assert(clearing_price == *bid_price[0], 'clearing price wrong');
 }
 
-// Test clearing price is the lower bid price when minting < total options, to mint more
-// @note The auction should mint as many options as possible, even if all do not mint,
-// even if premiums could be higher selling even fewer ?
-// - In this case, the clearing price sells total_options_available - 1 @ reserve price, but could sell
-//    total_options_available - 2 @ 10x reserve price ?
+// Test clearing price is max price to sell all options
 #[test]
 #[available_gas(10000000)]
-fn test_clearing_price_2() {
-    let (mut vault_facade, _) = setup_facade();
+fn test_clearing_price_is_highest_price_to_sell_all_options() {
+    let (mut vault, _) = setup_facade();
     // Deposit liquidity and start the auction
-    accelerate_to_auctioning(ref vault_facade);
-    // Make bids
-    let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
+    let total_options_available = accelerate_to_auctioning(ref vault);
+    let mut current_round = vault.get_current_round();
 
-    let reserve_price = current_round.get_reserve_price();
-
-    let option_bidders = option_bidders_get(2);
-
-    let bid_amount_user_1: u256 = 1;
-    let bid_amount_user_2: u256 = current_round.get_total_options_available() - 2;
-    let bid_price_user_1: u256 = current_round.get_reserve_price();
-    let bid_price_user_2: u256 = current_round.get_reserve_price() * 10;
+    // Make bids, 4 bidders bid for 1/3 total options each, each bidder outbidding the previous one's price
+    let bidders = option_bidders_get(4).span();
+    let bid_amounts = create_array_linear(total_options_available / 3, bidders.len()).span();
+    let bid_prices = create_array_gradient(current_round.get_reserve_price(), 1, bidders.len())
+        .span();
 
     let (clearing_price, _) = accelerate_to_running_custom(
-        ref vault_facade,
-        option_bidders.span(),
-        array![bid_amount_user_1, bid_amount_user_2].span(),
-        array![bid_price_user_1, bid_price_user_2].span()
+        ref vault, bidders, bid_amounts, bid_prices
     );
-    // @dev This tests that vault::end_auction returns the clearing price that gets set
-    assert(clearing_price == current_round.get_auction_clearing_price(), 'clearing price not set');
+
+    // Check that clearing price is the 2nd bid price (max price to sell all options)
+    assert(clearing_price == *bid_prices[1], 'clearing price wrong');
+}
+
+// Test clearing price is the lowest bid price to sell the most options
+// - In this case, the auction sells total_options_available - 1 @ reserve price, but could sell
+//    total_options_available - 2 @ 10x reserve price
+#[test]
+#[available_gas(10000000)]
+fn test_clearing_price_is_lowest_price_when_selling_less_than_total_options() {
+    let (mut vault_facade, _) = setup_facade();
+    accelerate_to_auctioning(ref vault_facade);
+
+    // Make bids
+    let mut current_round = vault_facade.get_current_round();
+    let option_bidders = option_bidders_get(2).span();
+    let reserve_price = current_round.get_reserve_price();
+    let bid_amounts = array![1, current_round.get_total_options_available() - 2].span();
+    let bid_prices = array![reserve_price, 10 * reserve_price].span();
+
+    let (clearing_price, _) = accelerate_to_running_custom(
+        ref vault_facade, option_bidders, bid_amounts, bid_prices,
+    );
+
+    // Check clearing price is the lowest bid price, to sell the max number of options
     assert(clearing_price == reserve_price, 'clearing price wrong');
 }
 
-// Test clearing price is the higher bid price when able to mint all options
+// Test clearing price is the lowest bid price to sell the most options
+// - In this case, the auction sells total_options_available @ reserve price, but could sell
+//    total_options_available - 1 @ 10x reserve price
 #[test]
 #[available_gas(10000000)]
-fn test_clearing_price_3() {
+fn test_clearing_price_is_lowest_price_when_selling_total_options() {
     let (mut vault_facade, _) = setup_facade();
-    // Deposit liquidity and start the auction
     accelerate_to_auctioning(ref vault_facade);
-    // Two OBs bid for all options with different prices
-    let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
 
+    // Make bids
+    let mut current_round = vault_facade.get_current_round();
+    let option_bidders = option_bidders_get(2).span();
     let reserve_price = current_round.get_reserve_price();
-    let total_options_available = current_round.get_total_options_available();
-
-    let option_bidders = option_bidders_get(3);
-    let bid_amounts = create_array_linear(total_options_available, 3).span();
-    let bid_price_user_1 = reserve_price;
-    let bid_price_user_2 = reserve_price + 1;
-    let bid_price_user_3 = reserve_price + 2;
+    let bid_amounts = array![1, current_round.get_total_options_available() - 1].span();
+    let bid_prices = array![reserve_price, 10 * reserve_price].span();
 
     let (clearing_price, _) = accelerate_to_running_custom(
-        ref vault_facade,
-        option_bidders.span(),
-        bid_amounts,
-        array![bid_price_user_1, bid_price_user_2, bid_price_user_3].span()
+        ref vault_facade, option_bidders, bid_amounts, bid_prices,
     );
-    // OB 3's price should be the clearing price
-    assert(clearing_price == bid_price_user_3, 'clearing price wrong');
+
+    // Check clearing price is the lowest bid price, to sell the max number of options
+    assert(clearing_price == reserve_price, 'clearing price wrong');
 }
+// @dev See option_distribution_tests.cairo for real number tests (using python scripts)
 
-
-// Test clearing price is the lower bid price in order to mint all of the total options
-// @note The auction should mint as many options as possible,
-// even if premiums could be higher selling < all ?
-// - In this case, the clearing price sells total_options_available @ reserve price, but could sell
-//    total_options_available - 1 @ 10x reserve price ?
-#[test]
-#[available_gas(10000000)]
-fn test_clearing_price_4() {
-    let (mut vault_facade, _) = setup_facade();
-    // Deposit liquidity and start the auction
-    let total_options_available = accelerate_to_auctioning(ref vault_facade);
-    // Two OBs bid for the combined total amount of options, OB 1 outbids OB 2
-    let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
-
-    let reserve_price = current_round.get_reserve_price();
-
-    let option_bidders = option_bidders_get(2);
-    let bid_amount_user_1: u256 = 1;
-    let bid_amount_user_2: u256 = total_options_available - 1;
-    let bid_price_user_1: u256 = reserve_price;
-    let bid_price_user_2: u256 = 10 * reserve_price;
-
-    let (clearing_price, _) = accelerate_to_running_custom(
-        ref vault_facade,
-        option_bidders.span(),
-        array![bid_amount_user_1, bid_amount_user_2].span(),
-        array![bid_price_user_1, bid_price_user_2].span()
-    );
-    // OB 1's price should be the clearing price to mint all options
-    assert(clearing_price == bid_price_user_1, 'clearing price shd be ob1 price');
-}
-
-// Test clearing price is the highest price able to mint the most options
-#[test]
-#[available_gas(10000000)]
-fn test_clearing_price_5() {
-    let (mut vault_facade, _) = setup_facade();
-    // Deposit liquidity and start the auction
-    accelerate_to_auctioning(ref vault_facade);
-    let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
-
-    let reserve_price = current_round.get_reserve_price();
-    let total_options_available = current_round.get_total_options_available();
-    // Three OBs bid for the more than the total amount of options,
-    // OB1 outbids OB2, OB2 outbids OB3
-    let option_bidders = option_bidders_get(4);
-
-    let bid_price_user_1: u256 = reserve_price + 3;
-    let bid_price_user_2: u256 = reserve_price + 2;
-    let bid_price_user_3: u256 = reserve_price + 1;
-    let bid_price_user_4: u256 = reserve_price;
-
-    let bid_amounts = create_array_linear(total_options_available / 3, 4);
-
-    let (clearing_price, _) = accelerate_to_running_custom(
-        ref vault_facade,
-        option_bidders.span(),
-        bid_amounts.span(),
-        array![bid_price_user_1, bid_price_user_2, bid_price_user_3, bid_price_user_4].span()
-    );
-    // OB3's price will be the clearing price since. Higher would not mint all the options, and less would not optimze premium total
-    assert(clearing_price == bid_price_user_3, 'clear price equal reserve price');
-}
 

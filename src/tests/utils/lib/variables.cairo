@@ -5,14 +5,6 @@ fn decimals() -> u256 {
     1000000000000000000
 }
 
-fn vault_manager() -> ContractAddress {
-    contract_address_const::<'vault_manager'>()
-}
-
-fn weth_owner() -> ContractAddress {
-    contract_address_const::<'weth_owner'>()
-}
-
 fn minute_duration() -> u64 {
     60
 }

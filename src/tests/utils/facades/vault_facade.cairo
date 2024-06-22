@@ -15,8 +15,8 @@ use pitch_lake_starknet::{
                 IMarketAggregatorSetterDispatcherTrait,
             },
             lib::{
-                test_accounts::{liquidity_provider_1, bystander},
-                variables::{vault_manager, decimals},
+                test_accounts::{vault_manager, liquidity_provider_1, bystander},
+                variables::{decimals},
             },
             facades::{
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait}, sanity_checks,
