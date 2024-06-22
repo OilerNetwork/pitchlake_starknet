@@ -44,24 +44,29 @@ trait IOptionRound<TContractState> {
     // The total number of options sold in the option round
     fn total_options_sold(self: @TContractState) -> u256;
 
-    // Get total amount of funds a bidder has locked in the auction
-    // @dev During the auction this value is the bidder's total bid amount.
-    // @dev After the auction this value is 0. All pending bids are either sent the vault
-    // as premiums, or refundable to the bidder.
-
+    // Get the details of a bid
     fn get_bid_details(self: @TContractState, bid_id: felt252) -> Bid;
 
 
     //Address functions
 
+    // Get the bid nonce for an account
+    // @note change this to get_bid_nonce_for
     fn get_nonce_for(self: @TContractState, option_buyer: ContractAddress) -> u32;
+
+    // Get the bid ids for an account
     fn get_bids_for(self: @TContractState, option_buyer: ContractAddress) -> Array<felt252>;
 
+    // Previously this was the amount of eth locked in the auction
+    // @note Consider changing this to returning an array of bid ids
     fn get_pending_bids_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
     // Get the refundable bid amount for an account
     // @dev During the auction this value is 0 and after
     // the auction is the amount refundable to the bidder
+    // @note This should sum all refundable bid amounts and return the total
+    // - i.e if a bidder places 4 bids, 2 fully used, 1 partially used, and 1 fully refundable, the
+    // refundable amount should be the value of the last bid + the remaining amount of the partial bid
     fn get_refundable_bids_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
     // Gets the amount that an option buyer can exercise with their option balance
