@@ -5,8 +5,8 @@ use starknet::{ContractAddress};
 /// Array helpers ///
 
 // Create array of length `len`, each element is `amount` (For bids use the function twice for price and amount)
-fn create_array_linear(amount: u256, len: u32) -> Array<u256> {
-    let mut arr: Array<u256> = array![];
+fn create_array_linear<T, +Drop<T>, +Copy<T>>(amount: T, len: u32) -> Array<T> {
+    let mut arr = array![];
     let mut index = 0;
     while (index < len) {
         arr.append(amount);
