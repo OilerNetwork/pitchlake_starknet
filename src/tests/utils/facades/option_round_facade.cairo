@@ -15,9 +15,7 @@ use pitch_lake_starknet::{
     tests::{
         utils::{
             helpers::general_helpers::{assert_two_arrays_equal_length},
-            lib::{
-                variables::{vault_manager}, test_accounts::{bystander}, structs::{OptionRoundParams}
-            },
+            lib::{test_accounts::{vault_manager, bystander}, structs::{OptionRoundParams}},
             facades::sanity_checks,
         }
     }

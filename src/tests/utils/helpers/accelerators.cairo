@@ -18,8 +18,10 @@ use pitch_lake_starknet::{
         utils::{
             lib::{
                 structs::{OptionRoundParams},
-                test_accounts::{liquidity_provider_1, option_bidder_buyer_1, bystander},
-                variables::{vault_manager, decimals},
+                test_accounts::{
+                    vault_manager, liquidity_provider_1, option_bidder_buyer_1, bystander
+                },
+                variables::{decimals},
             },
             helpers::{ // accelerators::{accelerate_to_auction_custom_auction_params},
                 event_helpers::{clear_event_logs},
