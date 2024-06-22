@@ -11,7 +11,7 @@ use pitch_lake_starknet::tests::{
                 timeskip_and_settle_round, timeskip_and_end_auction,
                 accelerate_to_auctioning_custom_auction_params,
             },
-            setup::setup_facade,
+            setup::{setup_facade, setup_test_auctioning_bidders},
             general_helpers::{
                 sum_u256_array, create_array_linear, create_array_gradient,
                 create_array_gradient_reverse, assert_two_arrays_equal_length,
@@ -31,7 +31,7 @@ use pitch_lake_starknet::tests::{
         },
     },
 };
-
+use core::option::Option::{Some,None};
 // @note should clean these tests up, one makes no sense, the assertions should lead with options_sold == , not ... == options_sold
 // @note should break tests up into options sold tests and options distributed tests
 
@@ -74,20 +74,17 @@ fn test_options_sold_is_0_when_no_bids() {
 #[test]
 #[available_gas(10000000)]
 fn test_bidding_for_more_than_total_options_available() {
-    let (mut vault, _) = setup_facade();
-    let total_options_available = accelerate_to_auctioning(ref vault);
-    let mut current_round = vault.get_current_round();
-
-    // Each option bidder bids for >= the total number of options
     let number_of_option_bidders = 3;
-    let option_bidders = option_bidders_get(number_of_option_bidders);
+    let (mut vault, _, option_bidders, total_options_available) = setup_test_auctioning_bidders(number_of_option_bidders);
+
+    let mut current_round = vault.get_current_round();
+    // Each option bidder bids for >= the total number of options
+
     let bid_amounts = create_array_gradient(total_options_available, 1, number_of_option_bidders);
     let bid_prices = create_array_linear(
         current_round.get_reserve_price(), number_of_option_bidders
     );
-    accelerate_to_running_custom(
-        ref vault, option_bidders.span(), bid_amounts.span(), bid_prices.span()
-    );
+    accelerate_to_running_custom(ref vault, option_bidders, bid_amounts.span(), bid_prices.span());
 
     // Check total options sold is the total options available
     assert(current_round.total_options_sold() == total_options_available, 'options sold wrong');
@@ -97,19 +94,17 @@ fn test_bidding_for_more_than_total_options_available() {
 #[test]
 #[available_gas(10000000)]
 fn test_bidding_for_less_than_total_options_available() {
-    let (mut vault, _) = setup_facade();
-    accelerate_to_auctioning(ref vault);
+    let number_of_option_bidders = 3;
+    let (mut vault, _, option_bidders, _) = setup_test_auctioning_bidders(number_of_option_bidders);
     let mut current_round = vault.get_current_round();
 
     // Each option bidder bids for < the total number of options (combined)
-    let number_of_option_bidders = 3;
-    let option_bidders = option_bidders_get(number_of_option_bidders);
     let bid_amounts = create_array_linear(1, number_of_option_bidders);
     let bid_prices = create_array_linear(
         current_round.get_reserve_price(), number_of_option_bidders
     );
     let (_, options_sold) = accelerate_to_running_custom(
-        ref vault, option_bidders.span(), bid_amounts.span(), bid_prices.span(),
+        ref vault, option_bidders, bid_amounts.span(), bid_prices.span(),
     );
 
     // Check total options sold is the total options available
@@ -120,19 +115,18 @@ fn test_bidding_for_less_than_total_options_available() {
 #[test]
 #[available_gas(10000000)]
 fn test_bidding_for_less_than_total_options_available_different_prices() {
-    let (mut vault, _) = setup_facade();
-    accelerate_to_auctioning(ref vault);
+    let number_of_option_bidders = 3;
+    let (mut vault, _, option_bidders, _) = setup_test_auctioning_bidders(number_of_option_bidders);
     let mut current_round = vault.get_current_round();
 
     // Each option bidder bids for < the total number of options (combined)
-    let number_of_option_bidders = 3;
-    let option_bidders = option_bidders_get(number_of_option_bidders);
+
     let bid_amounts = create_array_linear(1, number_of_option_bidders);
     let bid_prices = create_array_gradient(
         current_round.get_reserve_price(), 1, number_of_option_bidders
     );
     let (_, options_sold) = accelerate_to_running_custom(
-        ref vault, option_bidders.span(), bid_amounts.span(), bid_prices.span(),
+        ref vault, option_bidders, bid_amounts.span(), bid_prices.span(),
     );
 
     // Check total options sold is the total options available
@@ -143,13 +137,14 @@ fn test_bidding_for_less_than_total_options_available_different_prices() {
 #[test]
 #[available_gas(10000000)]
 fn test_bidding_same_amount_higher_price_wins() {
-    let (mut vault, _) = setup_facade();
-    let total_options_available = accelerate_to_auctioning(ref vault);
+    let number_of_option_bidders = 3;
+    let (mut vault, _, mut option_bidders, total_options_available) = setup_test_auctioning_bidders(
+        number_of_option_bidders
+    );
     let mut current_round = vault.get_current_round();
 
     // Each bidder bids for the same amount with incrementally higher bids
-    let number_of_option_bidders = 3;
-    let mut option_bidders = option_bidders_get(number_of_option_bidders).span();
+
     let bid_amounts = create_array_linear(total_options_available, number_of_option_bidders);
     let bid_prices = create_array_gradient(
         current_round.get_reserve_price(), 1, number_of_option_bidders
@@ -181,13 +176,14 @@ fn test_bidding_same_amount_higher_price_wins() {
 #[test]
 #[available_gas(10000000)]
 fn test_bidding_same_price_higher_amount_wins() {
-    let (mut vault, _) = setup_facade();
-    let total_options_available = accelerate_to_auctioning(ref vault);
+    let number_of_option_bidders = 3;
+    let (mut vault, _, mut option_bidders, total_options_available) = setup_test_auctioning_bidders(
+        number_of_option_bidders
+    );
     let mut current_round = vault.get_current_round();
 
     // Each bidder bids for the same amount with incrementally higher bids
-    let number_of_option_bidders = 3;
-    let mut option_bidders = option_bidders_get(number_of_option_bidders).span();
+
     let bid_amounts = create_array_gradient(total_options_available, 1, number_of_option_bidders);
     let bid_prices = create_array_linear(
         current_round.get_reserve_price(), number_of_option_bidders
@@ -219,14 +215,15 @@ fn test_bidding_same_price_higher_amount_wins() {
 #[test]
 #[available_gas(10000000)]
 fn test_bidding_higher_price_beats_higher_total_bid_amount() {
-    let (mut vault, _) = setup_facade();
-    let total_options_available = accelerate_to_auctioning(ref vault);
+    let number_of_option_bidders = 3;
+    let (mut vault, _, mut option_bidders, total_options_available) = setup_test_auctioning_bidders(
+        number_of_option_bidders
+    );
     let mut current_round = vault.get_current_round();
 
     // Each bidder out bids the other's price, but with a lower amount
     // @dev i.e The last bidder bids the highest price, but the other bidders bid a higher total eth (amount * price)
-    let number_of_option_bidders = 3;
-    let mut option_bidders = option_bidders_get(number_of_option_bidders).span();
+
     let bid_amounts = create_array_gradient_reverse(
         total_options_available + 10, 1, number_of_option_bidders
     );
@@ -259,14 +256,14 @@ fn test_bidding_higher_price_beats_higher_total_bid_amount() {
 #[test]
 #[available_gas(10000000)]
 fn test_remaining_bids_go_to_last_bidder() {
-    let (mut vault, _) = setup_facade();
-    let total_options_available = accelerate_to_auctioning(ref vault);
+    let number_of_option_bidders = 3;
+    let (mut vault, _, mut option_bidders, total_options_available) = setup_test_auctioning_bidders(
+        number_of_option_bidders
+    );
     let mut current_round = vault.get_current_round();
 
     // Each bidder bids the same price for a portion of the bids
     // the last bidder should get some of their bid amount
-    let number_of_option_bidders = 3;
-    let mut option_bidders = option_bidders_get(number_of_option_bidders).span();
     let bid_amounts = array![
         total_options_available / 2, total_options_available / 3, total_options_available / 3
     ]
@@ -412,14 +409,15 @@ fn test_remaining_bids_go_to_last_bidder() {
 #[test]
 #[available_gas(10000000)]
 fn test_the_last_bidder_gets_no_options_if_none_left() {
-    let (mut vault_facade, _) = setup_facade();
+    let number_of_option_bidders = 4;
+    let (mut vault_facade, _, mut option_bidders, total_options_available) =
+        setup_test_auctioning_bidders(
+        number_of_option_bidders
+    );
     accelerate_to_auctioning(ref vault_facade);
     let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
 
     // Make bids, end auction
-    let number_of_option_bidders = 4;
-    let mut option_bidders = option_bidders_get(number_of_option_bidders).span();
-    let total_options_available = current_round.get_total_options_available();
     let bid_amount = total_options_available / (number_of_option_bidders.into() - 1);
     let bid_amounts = create_array_linear(bid_amount, number_of_option_bidders);
     let bid_prices = create_array_linear(
@@ -457,28 +455,32 @@ fn test_the_last_bidder_gets_no_options_if_none_left() {
 #[test]
 #[available_gas(10000000)]
 fn test_losing_bid_gets_no_options() {
-    let (mut vault, _) = setup_facade();
+    let number_of_option_bidders = 4;
+    let (mut vault, _, mut option_bidders, total_options_available) = setup_test_auctioning_bidders(
+        number_of_option_bidders
+    );
     // Deposit liquidity and start the auction
-    let total_options_available = accelerate_to_auctioning(ref vault);
     let mut current_round = vault.get_current_round();
 
     // Make bids, 4 bidders bid for 1/3 total options each, each bidder outbidding the previous one's price
-    let mut bidders = option_bidders_get(4).span();
-    let mut bid_amounts = create_array_linear(total_options_available / 3, bidders.len()).span();
-    let bid_prices = create_array_gradient(current_round.get_reserve_price(), 1, bidders.len())
+    let mut bid_amounts = create_array_linear(total_options_available / 3, option_bidders.len())
+        .span();
+    let bid_prices = create_array_gradient(
+        current_round.get_reserve_price(), 1, option_bidders.len()
+    )
         .span();
 
-    accelerate_to_running_custom(ref vault, bidders, bid_amounts, bid_prices);
+    accelerate_to_running_custom(ref vault, option_bidders, bid_amounts, bid_prices);
 
     // Check that the first bidder gets no options, and the rest get their bid amounts
-    match bidders.pop_front() {
+    match option_bidders.pop_front() {
         Option::Some(losing_bidder) => {
             assert(
                 current_round.get_option_balance_for(*losing_bidder) == 0,
                 'losing bidder shd get 0 options'
             );
             loop {
-                match bidders.pop_front() {
+                match option_bidders.pop_front() {
                     Option::Some(bidder) => {
                         // @dev Each bidder bids for the same amount so we can use [0] for all here
                         let bid_amount = *bid_amounts[0];

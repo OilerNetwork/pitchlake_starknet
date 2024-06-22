@@ -32,7 +32,7 @@ use pitch_lake_starknet::{
                     create_array_linear, create_array_gradient, sum_spreads, split_spreads,
                     sum_u256_array, get_portion_of_amount,
                 },
-                setup::{setup_facade},
+                setup::{setup_facade, setup_test_auctioning_providers},
             },
             lib::{
                 test_accounts::{
@@ -241,14 +241,14 @@ fn test_starting_auction_updates_current_rounds_state() {
 #[test]
 #[available_gas(10000000)]
 fn test_starting_auction_updates_locked_and_unlocked_balances() {
-    let (mut vault, _) = setup_facade();
-    let mut liquidity_providers = liquidity_providers_get(4).span();
-    // Amounts to deposit: [100, 200, 300, 400]
+    let number_of_liquidity_providers = 4;
     let mut deposit_amounts = create_array_gradient(
-        100 * decimals(), 100 * decimals(), liquidity_providers.len()
+        100 * decimals(), 100 * decimals(), number_of_liquidity_providers
     )
         .span();
     let total_deposits = sum_u256_array(deposit_amounts);
+    let (mut vault, _, liquidity_providers,_) = setup_test_auctioning_providers(4,deposit_amounts);
+    // Amounts to deposit: [100, 200, 300, 400]
 
     // Vault and liquidity provider balances before auction starts
     let mut liquidity_providers_locked_before = vault.get_lp_locked_balances(liquidity_providers);
