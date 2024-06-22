@@ -453,6 +453,49 @@ fn test_the_last_bidder_gets_no_options_if_none_left() {
     }
 }
 
+// Test losing bidder gets no options
+#[test]
+#[available_gas(10000000)]
+fn test_losing_bid_gets_no_options() {
+    let (mut vault, _) = setup_facade();
+    // Deposit liquidity and start the auction
+    let total_options_available = accelerate_to_auctioning(ref vault);
+    let mut current_round = vault.get_current_round();
+
+    // Make bids, 4 bidders bid for 1/3 total options each, each bidder outbidding the previous one's price
+    let mut bidders = option_bidders_get(4).span();
+    let mut bid_amounts = create_array_linear(total_options_available / 3, bidders.len()).span();
+    let bid_prices = create_array_gradient(current_round.get_reserve_price(), 1, bidders.len())
+        .span();
+
+    accelerate_to_running_custom(ref vault, bidders, bid_amounts, bid_prices);
+
+    // Check that the first bidder gets no options, and the rest get their bid amounts
+    match bidders.pop_front() {
+        Option::Some(losing_bidder) => {
+            assert(
+                current_round.get_option_balance_for(*losing_bidder) == 0,
+                'losing bidder shd get 0 options'
+            );
+            loop {
+                match bidders.pop_front() {
+                    Option::Some(bidder) => {
+                        // @dev Each bidder bids for the same amount so we can use [0] for all here
+                        let bid_amount = *bid_amounts[0];
+                        assert(
+                            current_round.get_option_balance_for(*bidder) == bid_amount,
+                            'bidder should get bid amount'
+                        );
+                    },
+                    Option::None => { break (); }
+                }
+            }
+        },
+        Option::None => { panic!("This shd not revert here") }
+    }
+}
+
+
 /// Real number tests
 
 // @note These tests require the auction start params struct to be modified to set auction params
