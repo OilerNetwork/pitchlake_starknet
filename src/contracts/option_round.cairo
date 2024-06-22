@@ -59,7 +59,7 @@ trait IOptionRound<TContractState> {
 
     // Previously this was the amount of eth locked in the auction
     // @note Consider changing this to returning an array of bid ids
-    fn get_pending_bids_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
+    fn get_pending_bids_for(self: @TContractState, option_buyer: ContractAddress) -> Array<felt252>;
 
     // Get the refundable bid amount for an account
     // @dev During the auction this value is 0 and after
@@ -477,9 +477,12 @@ mod OptionRound {
             100
         }
 
-        fn get_pending_bids_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
-            100
+        fn get_pending_bids_for(
+            self: @ContractState, option_buyer: ContractAddress
+        ) -> Array<felt252> {
+            array!['asdf']
         }
+
         fn get_bids_for(self: @ContractState, option_buyer: ContractAddress) -> Array<felt252> {
             return array!['dummy'];
         }

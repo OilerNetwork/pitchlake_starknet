@@ -50,7 +50,7 @@ fn setup_test(
 // Place incremental bids
 fn place_incremental_bids_internal(
     ref vault: VaultFacade, option_bidders: Span<ContractAddress>,
-) -> (Span<u256>, Span<u256>, OptionRoundFacade) {
+) -> (Span<u256>, Span<u256>, OptionRoundFacade, Span<felt252>) {
     let mut current_round = vault.get_current_round();
     let number_of_option_bidders = option_bidders.len();
     let options_available = current_round.get_total_options_available();
@@ -65,13 +65,13 @@ fn place_incremental_bids_internal(
     let mut bid_amounts = create_array_linear(options_available, bid_prices.len());
 
     // Place bids
-    current_round.place_bids(bid_amounts.span(), bid_prices.span(), option_bidders);
-    (bid_amounts.span(), bid_prices.span(), current_round)
+    let bid_ids = current_round.place_bids(bid_amounts.span(), bid_prices.span(), option_bidders);
+    (bid_amounts.span(), bid_prices.span(), current_round, bid_ids.span())
 }
 
 /// Pending/Refundable Bids Tests ///
 
-// Test after auction ends, pending bid balance is 0
+// Test after auction ends, pending bids array is empty
 #[test]
 #[available_gas(10000000)]
 fn test_pending_bids_after_auction_end() {
@@ -82,7 +82,7 @@ fn test_pending_bids_after_auction_end() {
     accelerate_to_auctioning(ref vault);
 
     // Each option buyer out bids the next
-    let (_, _, mut current_round) = place_incremental_bids_internal(ref vault, option_bidders);
+    let (_, _, mut current_round, _) = place_incremental_bids_internal(ref vault, option_bidders);
 
     // End auction
     timeskip_and_end_auction(ref vault);
@@ -91,15 +91,15 @@ fn test_pending_bids_after_auction_end() {
     loop {
         match option_bidders.pop_front() {
             Option::Some(bidder) => {
-                let pending_bid = current_round.get_pending_bids_for(*bidder);
-                assert(pending_bid == 0, 'pending bid shd be 0');
+                let pending_bids = current_round.get_pending_bids_for(*bidder);
+                assert(pending_bids.len() == 0, 'shd have 0 pending bids');
             },
             Option::None => { break; }
         }
     }
 }
 
-// Test before auction ends, pending bid balance is bid amount
+// Test before auction ends, each bid is a pending bid
 #[test]
 #[available_gas(10000000)]
 fn test_pending_bids_before_auction_end() {
@@ -110,17 +110,20 @@ fn test_pending_bids_before_auction_end() {
     accelerate_to_auctioning(ref vault);
 
     // Each option buyer out bids the next
-    let (mut bid_amounts, _, mut current_round) = place_incremental_bids_internal(
+    let (_, _, mut current_round, mut bid_ids) = place_incremental_bids_internal(
         ref vault, option_bidders
     );
 
-    // Check pending bid balance is bid amount for each option bidder
+    // Check each bid id is a pending bid
     loop {
         match option_bidders.pop_front() {
             Option::Some(bidder) => {
-                let pending_bid = current_round.get_pending_bids_for(*bidder);
-                let bid_amount = bid_amounts.pop_front().unwrap();
-                assert(pending_bid == *bid_amount, 'pending bid shd be bid amount');
+                let actual_bid_id_for_bidder = bid_ids.pop_front().unwrap();
+                let pending_bid_ids_for_bidder = current_round.get_pending_bids_for(*bidder).span();
+                assert(
+                    *pending_bid_ids_for_bidder[0] == *actual_bid_id_for_bidder,
+                    'bid id shd be a pending bid'
+                );
             },
             Option::None => { break; }
         }
@@ -139,7 +142,7 @@ fn test_refundable_bids_before_auction_end() {
     let (mut vault, _, mut option_bidders) = setup_test(number_of_option_bidders);
 
     // Each option buyer out bids the next
-    let (_, _, mut current_round) = place_incremental_bids_internal(ref vault, option_bidders);
+    let (_, _, mut current_round, _) = place_incremental_bids_internal(ref vault, option_bidders);
 
     // Check refunded bid balance is 0 for each bidder
     loop {
@@ -161,7 +164,7 @@ fn test_refundable_bids_after_auction_end() {
     let (mut vault, _, mut option_bidders) = setup_test(number_of_option_bidders);
 
     // Each option buyer out bids the next
-    let (mut bid_amounts, _, mut current_round) = place_incremental_bids_internal(
+    let (mut bid_amounts, _, mut current_round, _) = place_incremental_bids_internal(
         ref vault, option_bidders
     );
 
