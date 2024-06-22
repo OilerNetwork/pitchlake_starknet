@@ -27,15 +27,6 @@ use pitch_lake_starknet::{
 };
 use starknet::testing::{set_block_timestamp, set_contract_address};
 
-// @note Simplify tests:
-// - should have test for when total premiums could be higher if less < total options are sold, but
-// could sell all options for less total premiums,
-// i.e bidder 1: 1/100 total options @ reserve price & bidder 2: 99/100 total options @ 10x reserve price
-// - test same as above but if the not all options could be minted anyway
-// i.e bidder1: 1/100 total options @ reserve price & bidder 2: 98/100 total options @ 10x reserve price
-// - test when no bids have been placed
-// - we have a mock of this in python already in the code base, we should use it to generate values for
-// tests
 
 // Test clearing price is 0 before auction end
 #[test]
@@ -68,7 +59,6 @@ fn test_clearing_price_is_0_when_no_bids() {
     // Check clearing price is 0 if no bids were placed
     assert(clearing_price == 0, 'clearing price sold shd be 0');
 }
-
 
 // Test clearing price is the only bid price
 #[test]
@@ -112,7 +102,6 @@ fn test_clearing_price_is_highest_price_to_sell_all_options() {
     // Check that clearing price is the 2nd bid price (max price to sell all options)
     assert(clearing_price == *bid_prices[1], 'clearing price wrong');
 }
-
 
 // Test clearing price is the lowest bid price to sell the most options
 // - In this case, the auction sells total_options_available - 1 @ reserve price, but could sell
@@ -161,5 +150,6 @@ fn test_clearing_price_is_lowest_price_when_selling_total_options() {
     // Check clearing price is the lowest bid price, to sell the max number of options
     assert(clearing_price == reserve_price, 'clearing price wrong');
 }
+
 // @dev See option_distribution_tests.cairo for real number tests (using python scripts)
 
