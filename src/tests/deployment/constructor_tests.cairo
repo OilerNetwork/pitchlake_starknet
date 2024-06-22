@@ -28,7 +28,10 @@ use pitch_lake_starknet::{
                 setup::{setup_facade},
                 event_helpers::{
                     assert_event_auction_start, assert_event_auction_end, assert_event_option_settle
-                }
+                },
+                accelerators::{
+                    accelerate_to_auctioning, accelerate_to_running, accelerate_to_settled
+                },
             },
             facades::{
                 vault_facade::VaultFacadeTrait,
@@ -51,44 +54,57 @@ use pitch_lake_starknet::{
 use debug::PrintTrait;
 
 
-/// Constructor Tests ///
-// These tests deal with the lifecycle of an option round, from deployment to settlement
+/// @note Important update to lifecycle
+// Previously, the current round was either auctioning/running/settled, and the next round was always open. Updating when the auction starts
+// Since liquidity is held by the vault, the round does not need to deploy until the current one settles
+// Therefore, the new lifecylce is: At deployment, the current round is 1 and it is open. Once round 1 settles, round 2 becomes the new current round
+// and is open until the auction starts
+// Making it so that the current round is either open/auctioning/running. Once it settles we update the current round, and shortly after (after rtp)
+// does the auction start
 
-// Test the vault deploys with current round 0 (settled), next round 1 (open),
+/// Constructor Tests ///
+
+// Test the vault deploys with the current round 1, and the vault manager is set
 // vault manager is set
 #[test]
 #[available_gas(10000000)]
 fn test_vault_constructor() {
     let (mut vault, _) = setup_facade();
-    let (mut current_round, mut next_round) = vault.get_current_and_next_rounds();
+    let mut current_round = vault.get_current_round();
     let current_round_id = vault.get_current_round_id();
 
-    // Check current round is 0
-    assert(current_round_id == 0, 'current round should be 0');
-    // Check current round is open and next round is settled
-    assert(
-        current_round.get_state() == OptionRoundState::Settled, 'current round should be Settled'
-    );
-    assert(next_round.get_state() == OptionRoundState::Open, 'next round should be Open');
+    // Check current round is 1
+    assert(current_round_id == 1, 'current round should be 1');
+    // Check current round is open
+    assert(current_round.get_state() == OptionRoundState::Open, 'current round should be Open');
     // Test vault constructor values
     assert(vault.get_vault_manager() == vault_manager(), 'vault manager incorrect');
 }
 
 
-// Test the option round constructor
-// Test that round 0 deploys as settled, and round 1 deploys as open.
+// Test each time an option round is deployed its constructor params are correct
+// @note Settling the round will deploy the next round and make it the current
 #[test]
 #[available_gas(10000000)]
 fn test_option_round_constructor() {
     let (mut vault, _) = setup_facade();
-    let mut args = OptionRoundConstructorParams {
-        vault_address: vault.contract_address(), round_id: 0
-    };
+    let mut i: u32 = 3;
+    while i > 0 {
+        let mut current_round = vault.get_current_round();
+        let mut args = OptionRoundConstructorParams {
+            vault_address: vault.contract_address(), round_id: 1
+        };
 
-    let (mut r0, mut r1) = vault.get_current_and_next_rounds();
-    assert(r0.get_constructor_params() == args, 'r0 construcutor params wrong');
-    args.round_id += 1;
-    assert(r1.get_constructor_params() == args, 'r1 construcutor params wrong');
+        // Check the current round arg's and state are correct
+        assert(current_round.get_constructor_params() == args, 'round construcutor params wrong');
+        assert(current_round.get_state() == OptionRoundState::Open, 'round init state wrong');
+
+        accelerate_to_auctioning(ref vault);
+        accelerate_to_running(ref vault);
+        accelerate_to_settled(ref vault, current_round.get_strike_price());
+        args.round_id += 1;
+        i -= 1;
+    }
 }
 
 
