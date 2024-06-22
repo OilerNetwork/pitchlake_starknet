@@ -358,8 +358,6 @@ fn test_place_bid_id() {
         i -= 1;
     };
 }
-
-
 // @note Test bids are placed in pending bids
 // - Might need to revist pending bids entry point, shd return array of bid ids/hashes now
 
