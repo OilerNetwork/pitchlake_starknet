@@ -335,6 +335,7 @@ fn test_end_auction_updates_locked_and_unlocked_balances() {
 
 // Test that the vault and LP spreads update when the auction ends. Tests rollover
 // amounts with withdraw and topup
+// @note Remove use of spread here
 #[test]
 #[available_gas(10000000)]
 fn test_end_auction_updates_vault_and_lp_spreads_complex() {
@@ -377,34 +378,44 @@ fn test_end_auction_updates_vault_and_lp_spreads_complex() {
         .span();
 
     // Vault and LP spreads before auction 2 ends
-    let mut lp_spreads_before = vault.get_lp_balance_spreads(liquidity_providers).span();
-    let vault_spread_before = vault.get_balance_spread();
+    let mut liquidity_provider_locked_and_unlocked_amounts_before = vault
+        .get_lp_locked_and_unlocked_balances(liquidity_providers);
+    let vault_locked_and_unlocked_before = vault.get_total_locked_and_unlocked_balance();
     // End round 2's auction
     let (clearing_price, options_sold) = accelerate_to_running(ref vault);
     let total_premiums2 = clearing_price * options_sold;
     let mut individual_premiums2 = get_portion_of_amount(round2_deposits, total_premiums2).span();
     // Vault and LP spreads after the auction ends
-    let mut lp_spreads_after = vault.get_lp_balance_spreads(liquidity_providers).span();
-    let vault_spread_after = vault.get_balance_spread();
+    let mut liquidity_provider_locked_and_unlocked_amounts_after = vault
+        .get_lp_locked_and_unlocked_balances(liquidity_providers);
+    let vault_locked_and_unlocked_after = vault.get_total_locked_and_unlocked_balance();
 
     // Check vault spreads
+
     assert(
-        vault_spread_before == (remaining_liquidity1 + topup_amount, 0), 'vault spread before wrong'
+        vault_locked_and_unlocked_before == (remaining_liquidity1 + topup_amount, 0),
+        'vault spread before wrong'
     );
     assert(
-        vault_spread_after == (remaining_liquidity1 + topup_amount, total_premiums2),
+        vault_locked_and_unlocked_after == (remaining_liquidity1 + topup_amount, total_premiums2),
         'vault spread after wrong'
     );
     // Check LP spreads
     loop {
-        match lp_spreads_before.pop_front() {
-            Option::Some(lp_spread_before) => {
-                let lp_spread_after = lp_spreads_after.pop_front().unwrap();
+        match liquidity_provider_locked_and_unlocked_amounts_before.pop_front() {
+            Option::Some(lp_locked_and_unlocked_before) => {
+                let lp_locked_and_unlocked_after =
+                    liquidity_provider_locked_and_unlocked_amounts_after
+                    .pop_front()
+                    .unwrap();
                 let lp_starting_liquidity2 = round2_deposits.pop_front().unwrap();
                 let lp_premiums2 = individual_premiums2.pop_front().unwrap();
-                assert(*lp_spread_before == (*lp_starting_liquidity2, 0), 'LP spread before wrong');
                 assert(
-                    *lp_spread_after == (*lp_starting_liquidity2, *lp_premiums2),
+                    lp_locked_and_unlocked_before == (*lp_starting_liquidity2, 0),
+                    'LP spread before wrong'
+                );
+                assert(
+                    lp_locked_and_unlocked_after == (*lp_starting_liquidity2, *lp_premiums2),
                     'LP spread after wrong'
                 );
             },

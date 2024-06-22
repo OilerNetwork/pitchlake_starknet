@@ -112,9 +112,9 @@ fn test_convert_position_to_lp_tokens_success() { //
     let lp1_premiums_init = vault_facade.get_premiums_for(liquidity_provider_1(), 'todo'.into());
     let lp2_premiums_init = vault_facade.get_premiums_for(liquidity_provider_2(), 'todo'.into());
     let (lp1_collateral_init, _lp1_unallocated_init) = vault_facade
-        .get_lp_balance_spread(liquidity_provider_1());
+        .get_lp_locked_and_unlocked_balance(liquidity_provider_1());
     let (lp2_collateral_init, lp2_unallocated_init) = vault_facade
-        .get_lp_balance_spread(liquidity_provider_2());
+        .get_lp_locked_and_unlocked_balance(liquidity_provider_2());
     //    let (current_round_collateral_init, _current_round_unallocated_init) = current_round
     //        .get_all_round_liquidity();
     //    let (next_round_collateral_init, next_round_unallocated_init) = next_round
@@ -126,9 +126,9 @@ fn test_convert_position_to_lp_tokens_success() { //
     let lp1_premiums_final = vault_facade.get_premiums_for(liquidity_provider_1(), 'todo'.into());
     let lp2_premiums_final = vault_facade.get_premiums_for(liquidity_provider_2(), 'todo'.into());
     let (lp1_collateral_final, lp1_unallocated_final) = vault_facade
-        .get_lp_balance_spread(liquidity_provider_1());
+        .get_lp_locked_and_unlocked_balance(liquidity_provider_1());
     let (lp2_collateral_final, lp2_unallocated_final) = vault_facade
-        .get_lp_balance_spread(liquidity_provider_2());
+        .get_lp_locked_and_unlocked_balance(liquidity_provider_2());
     //    let (current_round_collateral_final, current_round_unallocated_final) = current_round
     //        .get_all_round_liquidity();
     //    let (next_round_collateral_final, next_round_unallocated_final) = next_round
@@ -210,7 +210,7 @@ fn test_convert_lp_tokens_to_position_is_always_deposit_into_current_round() { /
     vault_facade.convert_position_to_lp_tokens(deposit_amount_wei, liquidity_provider_1());
     // Initial state
     let (lp_collateral_init, lp_unallocated_init) = vault_facade
-        .get_lp_balance_spread(liquidity_provider_1());
+        .get_lp_locked_and_unlocked_balance(liquidity_provider_1());
     //    let (current_round_collateral_init, current_round_unallocated_init) = current_round
     //        .get_all_round_liquidity();
     //    let (next_round_collateral_init, next_round_unallocated_init) = next_round_facade
@@ -220,7 +220,7 @@ fn test_convert_lp_tokens_to_position_is_always_deposit_into_current_round() { /
     vault_facade.convert_lp_tokens_to_position(1, deposit_amount_wei / 4, liquidity_provider_1());
     // Get states after conversion1
     let (lp_collateral1, lp_unallocated1) = vault_facade
-        .get_lp_balance_spread(liquidity_provider_1());
+        .get_lp_locked_and_unlocked_balance(liquidity_provider_1());
     //    let (current_round_collateral1, current_round_unallocated1) = current_round
     //        .get_all_round_liquidity();
     //    let (next_round_collateral1, next_round_unallocated1) = next_round_facade
@@ -234,7 +234,7 @@ fn test_convert_lp_tokens_to_position_is_always_deposit_into_current_round() { /
     vault_facade.convert_lp_tokens_to_position(1, deposit_amount_wei / 4, liquidity_provider_1());
     // Get states after conversion2
     let (lp_collateral2, lp_unallocated2) = vault_facade
-        .get_lp_balance_spread(liquidity_provider_1());
+        .get_lp_locked_and_unlocked_balance(liquidity_provider_1());
     //    let (current_round_collateral2, current_round_unallocated2) = current_round
     //        .get_all_round_liquidity();
     //    let (next_round_collateral2, next_round_unallocated2) = next_round_facade
@@ -249,7 +249,7 @@ fn test_convert_lp_tokens_to_position_is_always_deposit_into_current_round() { /
     vault_facade.convert_lp_tokens_to_position(1, deposit_amount_wei / 4, liquidity_provider_1());
     // Get states after conversion3
     let (lp_collateral3, lp_unallocated3) = vault_facade
-        .get_lp_balance_spread(liquidity_provider_1());
+        .get_lp_locked_and_unlocked_balance(liquidity_provider_1());
     //    let (current_round_collateral3, current_round_unallocated3) = current_round
     //        .get_all_round_liquidity();
     //    let (next_round_collateral3, next_round_unallocated3) = next_round_facade

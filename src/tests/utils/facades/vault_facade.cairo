@@ -289,7 +289,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
 
     // @note replace this with get_lp_locked_and_unlocked_balance
-    fn get_lp_balance_spread(
+    fn get_lp_locked_and_unlocked_balance(
         ref self: VaultFacade, liquidity_provider: ContractAddress
     ) -> (u256, u256) {
         let locked = self.vault_dispatcher.get_lp_locked_balance(liquidity_provider);
@@ -298,14 +298,15 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     }
 
     // @note replace this with get_lp_locked_and_unlocked_balances
-    fn get_lp_balance_spreads(
+    fn get_lp_locked_and_unlocked_balances(
         ref self: VaultFacade, mut liquidity_providers: Span<ContractAddress>
     ) -> Array<(u256, u256)> {
         let mut spreads = array![];
         loop {
             match liquidity_providers.pop_front() {
                 Option::Some(liquidity_provider) => {
-                    let locked_and_unlocked = self.get_lp_balance_spread(*liquidity_provider);
+                    let locked_and_unlocked = self
+                        .get_lp_locked_and_unlocked_balance(*liquidity_provider);
                     spreads.append(locked_and_unlocked);
                 },
                 Option::None => { break (); }
@@ -341,6 +342,12 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     // @note replace this with get_vault_locked_and_unlocked_balances
     fn get_balance_spread(ref self: VaultFacade) -> (u256, u256) {
+        let locked = self.vault_dispatcher.get_total_locked();
+        let unlocked = self.vault_dispatcher.get_total_unlocked();
+        (locked, unlocked)
+    }
+
+    fn get_total_locked_and_unlocked_balance(ref self: VaultFacade) -> (u256, u256) {
         let locked = self.vault_dispatcher.get_total_locked();
         let unlocked = self.vault_dispatcher.get_total_unlocked();
         (locked, unlocked)
