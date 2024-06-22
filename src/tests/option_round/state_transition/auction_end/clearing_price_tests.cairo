@@ -150,6 +150,6 @@ fn test_clearing_price_is_lowest_price_when_selling_total_options() {
     // Check clearing price is the lowest bid price, to sell the max number of options
     assert(clearing_price == reserve_price, 'clearing price wrong');
 }
-
 // @dev See option_distribution_tests.cairo for real number tests (using python scripts)
+
 
