@@ -1,3 +1,4 @@
+use core::array::ArrayTrait;
 use starknet::{
     ClassHash, ContractAddress, contract_address_const, deploy_syscall,
     Felt252TryIntoContractAddress, get_contract_address, contract_address_try_from_felt252, testing,
@@ -38,7 +39,12 @@ use pitch_lake_starknet::{
                 },
                 variables::{week_duration, decimals},
             },
-            helpers::event_helpers::{clear_event_logs},
+            helpers::{
+                accelerators::{
+                    accelerate_to_auctioning, accelerate_to_auctioning_custom, accelerate_to_running
+                },
+                event_helpers::{clear_event_logs}
+            },
             facades::{
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
                 vault_facade::{VaultFacade, VaultFacadeTrait},
@@ -178,3 +184,37 @@ fn setup_facade() -> (VaultFacade, IERC20Dispatcher) {
     return (VaultFacade { vault_dispatcher }, eth_dispatcher);
 }
 
+fn setup_test_auctioning_bidders(
+    number_of_option_buyers: u32
+) -> (VaultFacade, IERC20Dispatcher, Span<ContractAddress>, u256) {
+    let (mut vault, eth) = setup_facade();
+
+    // Auction participants
+    let mut option_bidders = option_bidders_get(number_of_option_buyers);
+
+    // Start auction
+    let total_options_available = accelerate_to_auctioning(ref vault);
+
+    (vault, eth, option_bidders.span(), total_options_available)
+}
+
+fn setup_test_running() -> (VaultFacade, OptionRoundFacade) {
+    let (mut vault, _) = setup_facade();
+
+    accelerate_to_auctioning(ref vault);
+    let mut current_round = vault.get_current_round();
+    accelerate_to_running(ref vault);
+    (vault, current_round)
+}
+
+fn setup_test_auctioning_providers(
+    number_of_option_buyers: u32, deposit_amounts: Span<u256>
+) -> (VaultFacade, IERC20Dispatcher, Span<ContractAddress>, u256) {
+    let (mut vault, eth) = setup_facade();
+    let mut liquidity_providers = liquidity_providers_get(number_of_option_buyers).span();
+    // Amounts to deposit: [100, 200, 300, 400]
+    let total_options_available = accelerate_to_auctioning_custom(
+        ref vault, liquidity_providers, deposit_amounts
+    );
+    (vault, eth, liquidity_providers, total_options_available)
+}

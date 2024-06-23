@@ -10,7 +10,7 @@ use pitch_lake_starknet::tests::{
                 accelerate_to_settled, timeskip_and_end_auction, accelerate_to_auctioning_custom,
                 timeskip_past_auction_end_date,
             },
-            setup::{setup_facade},
+            setup::{setup_facade, setup_test_auctioning_bidders},
             general_helpers::{
                 scale_array, get_erc20_balance, get_erc20_balances, create_array_gradient,
                 create_array_linear
@@ -33,19 +33,6 @@ use pitch_lake_starknet::tests::{
 
 // Deploy vault and start auction
 // @return The vault facade, eth dispatcher, and span of option bidders
-fn setup_test(
-    number_of_option_buyers: u256
-) -> (VaultFacade, IERC20Dispatcher, Span<ContractAddress>) {
-    let (mut vault, eth) = setup_facade();
-
-    // Auction participants
-    let option_bidders = option_bidders_get(3);
-
-    // Start auction
-    accelerate_to_auctioning(ref vault);
-
-    return (vault, eth, option_bidders.span());
-}
 
 // Place incremental bids
 fn place_incremental_bids_internal(
@@ -75,8 +62,10 @@ fn place_incremental_bids_internal(
 #[test]
 #[available_gas(10000000)]
 fn test_pending_bids_after_auction_end() {
-    let number_of_option_bidders: u256 = 3;
-    let (mut vault, _, mut option_bidders) = setup_test(number_of_option_bidders);
+    let number_of_option_bidders = 3;
+    let (mut vault, _, mut option_bidders, _) = setup_test_auctioning_bidders(
+        number_of_option_bidders
+    );
 
     // Start auction
     accelerate_to_auctioning(ref vault);
@@ -103,8 +92,10 @@ fn test_pending_bids_after_auction_end() {
 #[test]
 #[available_gas(10000000)]
 fn test_pending_bids_before_auction_end() {
-    let number_of_option_bidders: u256 = 3;
-    let (mut vault, _, mut option_bidders) = setup_test(number_of_option_bidders);
+    let number_of_option_bidders = 3;
+    let (mut vault, _, mut option_bidders, _) = setup_test_auctioning_bidders(
+        number_of_option_bidders
+    );
 
     // Start auction
     accelerate_to_auctioning(ref vault);
@@ -138,8 +129,10 @@ fn test_pending_bids_before_auction_end() {
 #[test]
 #[available_gas(10000000)]
 fn test_refundable_bids_before_auction_end() {
-    let number_of_option_bidders: u256 = 3;
-    let (mut vault, _, mut option_bidders) = setup_test(number_of_option_bidders);
+    let number_of_option_bidders = 3;
+    let (mut vault, _, mut option_bidders, _) = setup_test_auctioning_bidders(
+        number_of_option_bidders
+    );
 
     // Each option buyer out bids the next
     let (_, _, mut current_round, _) = place_incremental_bids_internal(ref vault, option_bidders);
@@ -160,8 +153,10 @@ fn test_refundable_bids_before_auction_end() {
 #[test]
 #[available_gas(10000000)]
 fn test_refundable_bids_after_auction_end() {
-    let number_of_option_bidders: u256 = 3;
-    let (mut vault, _, mut option_bidders) = setup_test(number_of_option_bidders);
+    let number_of_option_bidders = 3;
+    let (mut vault, _, mut option_bidders, _) = setup_test_auctioning_bidders(
+        number_of_option_bidders
+    );
 
     // Each option buyer out bids the next
     let (mut bid_amounts, _, mut current_round, _) = place_incremental_bids_internal(

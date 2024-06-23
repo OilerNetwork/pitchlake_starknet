@@ -40,7 +40,7 @@ use pitch_lake_starknet::{
                     accelerate_to_auctioning, accelerate_to_running, accelerate_to_settled,
                     accelerate_to_auctioning_custom
                 },
-                setup::{setup_facade},
+                setup::{setup_facade, setup_test_auctioning_providers,setup_test_running},
             },
             lib::{
                 test_accounts::{
@@ -87,9 +87,7 @@ fn test_settling_option_round_while_round_auctioning_fails() {
 #[test]
 #[available_gas(10000000)]
 fn test_settling_option_round_before_settlement_date_fails() {
-    let (mut vault_facade, _) = setup_facade();
-    accelerate_to_auctioning(ref vault_facade);
-    accelerate_to_running(ref vault_facade);
+    let (mut vault_facade, _) = setup_test_running();
 
     // Settle option round before expiry
     let expected_error: felt252 = OptionRoundError::OptionSettlementDateNotReached.into();
@@ -265,14 +263,14 @@ fn test_settling_option_round_transfers_payout() {
 #[test]
 #[available_gas(10000000)]
 fn test_settling_option_round_updates_locked_and_unlocked_balances() {
-    let (mut vault, _) = setup_facade();
-    let mut liquidity_providers = liquidity_providers_get(4).span();
-    // Amounts to deposit: [100, 200, 300, 400]
+    let number_of_liquidity_providers =4;
     let mut deposit_amounts = create_array_gradient(
-        100 * decimals(), 100 * decimals(), liquidity_providers.len()
+        100 * decimals(), 100 * decimals(), number_of_liquidity_providers
     )
         .span();
     let total_deposits = sum_u256_array(deposit_amounts);
+    let (mut vault, _,liquidity_providers,_) = setup_test_auctioning_providers(number_of_liquidity_providers,deposit_amounts);
+    // Amounts to deposit: [100, 200, 300, 400]
     accelerate_to_auctioning_custom(ref vault, liquidity_providers, deposit_amounts);
 
     // End auction

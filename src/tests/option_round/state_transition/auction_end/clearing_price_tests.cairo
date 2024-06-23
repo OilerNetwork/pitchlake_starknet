@@ -6,7 +6,7 @@ use pitch_lake_starknet::{
                     accelerate_to_auctioning, accelerate_to_running, accelerate_to_running_custom,
                     timeskip_and_end_auction,
                 },
-                setup::{setup_facade},
+                setup::{setup_facade, setup_test_auctioning_bidders},
                 general_helpers::{
                     create_array_linear, create_array_gradient, create_array_gradient_reverse
                 },
@@ -28,6 +28,7 @@ use pitch_lake_starknet::{
 use starknet::testing::{set_block_timestamp, set_contract_address};
 
 
+use core::option::Option::{Some,None};
 // Test clearing price is 0 before auction end
 #[test]
 #[available_gas(10000000)]
@@ -109,12 +110,10 @@ fn test_clearing_price_is_highest_price_to_sell_all_options() {
 #[test]
 #[available_gas(10000000)]
 fn test_clearing_price_is_lowest_price_when_selling_less_than_total_options() {
-    let (mut vault_facade, _) = setup_facade();
-    accelerate_to_auctioning(ref vault_facade);
+    let (mut vault_facade, _, option_bidders, _) = setup_test_auctioning_bidders(2);
 
     // Make bids
     let mut current_round = vault_facade.get_current_round();
-    let option_bidders = option_bidders_get(2).span();
     let reserve_price = current_round.get_reserve_price();
     let bid_amounts = array![1, current_round.get_total_options_available() - 2].span();
     let bid_prices = array![reserve_price, 10 * reserve_price].span();
@@ -133,12 +132,10 @@ fn test_clearing_price_is_lowest_price_when_selling_less_than_total_options() {
 #[test]
 #[available_gas(10000000)]
 fn test_clearing_price_is_lowest_price_when_selling_total_options() {
-    let (mut vault_facade, _) = setup_facade();
-    accelerate_to_auctioning(ref vault_facade);
+    let (mut vault_facade, _, option_bidders, _) = setup_test_auctioning_bidders(2);
 
     // Make bids
     let mut current_round = vault_facade.get_current_round();
-    let option_bidders = option_bidders_get(2).span();
     let reserve_price = current_round.get_reserve_price();
     let bid_amounts = array![1, current_round.get_total_options_available() - 1].span();
     let bid_prices = array![reserve_price, 10 * reserve_price].span();

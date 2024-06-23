@@ -34,7 +34,7 @@ use pitch_lake_starknet::{
                     create_array_gradient, create_array_linear, sum_u256_array,
                     get_portion_of_amount, split_spreads, span_to_array,
                 },
-                setup::{setup_facade},
+                setup::{setup_facade, setup_test_auctioning_providers, setup_test_running},
             },
             lib::{
                 test_accounts::{
@@ -94,9 +94,7 @@ fn test_ending_auction_before_auction_end_date_fails() {
 #[test]
 #[available_gas(10000000)]
 fn test_ending_auction_while_round_running_fails() {
-    let (mut vault_facade, _) = setup_facade();
-    accelerate_to_auctioning(ref vault_facade);
-    accelerate_to_running(ref vault_facade);
+    let (mut vault_facade, _) = setup_test_running();
 
     // Try to end auction after it has already ended
     let expected_error: felt252 = OptionRoundError::AuctionEndDateNotReached.into();
@@ -266,15 +264,16 @@ fn test_end_auction_eth_transfer() {
 #[test]
 #[available_gas(10000000)]
 fn test_end_auction_updates_locked_and_unlocked_balances() {
-    let (mut vault, _) = setup_facade();
-    let mut liquidity_providers = liquidity_providers_get(4).span();
-    // Amounts to deposit: [100, 200, 300, 400]
+    let number_of_liquidity_providers = 4;
     let mut deposit_amounts = create_array_gradient(
-        100 * decimals(), 100 * decimals(), liquidity_providers.len()
+        100 * decimals(), 100 * decimals(), number_of_liquidity_providers
     )
         .span();
     let total_deposits = sum_u256_array(deposit_amounts);
-    accelerate_to_auctioning_custom(ref vault, liquidity_providers, deposit_amounts);
+    let (mut vault, _, liquidity_providers, _) = setup_test_auctioning_providers(
+        number_of_liquidity_providers, deposit_amounts
+    );
+    // Amounts to deposit: [100, 200, 300, 400]
 
     // Vault and liquidity provider balances before auction ends
     let mut liquidity_providers_locked_before = vault
@@ -337,15 +336,16 @@ fn test_end_auction_updates_locked_and_unlocked_balances() {
 #[test]
 #[available_gas(10000000)]
 fn test_end_auction_updates_vault_and_lp_spreads_complex() {
-    // Accelerate through round 1 with premiums and a payout
-    let (mut vault, _) = setup_facade();
-    let mut liquidity_providers = liquidity_providers_get(4).span();
+    let number_of_liquidity_providers =4;
     let round1_deposits = create_array_gradient(
-        100 * decimals(), 100 * decimals(), liquidity_providers.len()
-    )
-        .span(); // (100, 200, 300, 400)
+        100 * decimals(), 100 * decimals(), number_of_liquidity_providers
+    ).span();
     let starting_liquidity1 = sum_u256_array(round1_deposits);
-    accelerate_to_auctioning_custom(ref vault, liquidity_providers, round1_deposits);
+    // Accelerate through round 1 with premiums and a payout
+    let (mut vault, _,liquidity_providers,_) = setup_test_auctioning_providers(number_of_liquidity_providers,round1_deposits);
+    
+         // (100, 200, 300, 400)
+   
     let mut round1 = vault.get_current_round();
     let (clearing_price, options_sold) = accelerate_to_running(ref vault);
     let total_premiums1 = clearing_price * options_sold;
