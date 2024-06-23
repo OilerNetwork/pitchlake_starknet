@@ -27,8 +27,6 @@ use pitch_lake_starknet::{
 };
 use starknet::testing::{set_block_timestamp, set_contract_address};
 
-
-use core::option::Option::{Some,None};
 // Test clearing price is 0 before auction end
 #[test]
 #[available_gas(10000000)]
