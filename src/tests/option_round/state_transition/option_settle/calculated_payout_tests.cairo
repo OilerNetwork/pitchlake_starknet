@@ -18,7 +18,6 @@ use pitch_lake_starknet::{
 };
 
 
-
 // @note This should move to utils
 // @dev This needs formal verification
 fn calculate_expected_payout(ref round: OptionRoundFacade, settlement_price: u256,) -> u256 {
