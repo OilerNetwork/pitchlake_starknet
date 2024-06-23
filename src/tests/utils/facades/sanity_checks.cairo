@@ -11,7 +11,7 @@ use pitch_lake_starknet::{
                     accelerate_to_auctioning, accelerate_to_running, accelerate_to_running_custom,
                     accelerate_to_settled,
                 },
-                setup::{setup_facade},
+                general_helpers::{get_erc20_balance}, setup::{setup_facade},
             },
             lib::test_accounts::{option_bidders_get, liquidity_provider_1, liquidity_provider_2},
             facades::{
@@ -72,6 +72,23 @@ fn update_bid(ref option_round: OptionRoundFacade, bid_id: felt252, bid: Bid) ->
     //assert(bid == storage_bi, 'Bid Mismatch');
     bid
 }
+
+fn tokenize_options(
+    ref option_round: OptionRoundFacade,
+    option_bidder: ContractAddress,
+    option_erc20_balance_before: u256,
+    options_minted: u256
+) -> u256 {
+    let option_erc20_balance_after = get_erc20_balance(
+        option_round.contract_address(), option_bidder
+    );
+    //    assert(
+    //      option_erc20_balance_after == option_erc20_balance_before + options_minted,
+    //      'ERC20 Balance Mismatch'
+    //    );
+    options_minted
+}
+
 
 /// Vault
 

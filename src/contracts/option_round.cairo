@@ -159,6 +159,11 @@ trait IOptionRound<TContractState> {
     fn exercise_options(
         ref self: TContractState, option_buyer: ContractAddress
     ) -> Result<u256, OptionRound::OptionRoundError>;
+
+    // Convert options won from auction into erc20 tokens
+    fn tokenize_options(
+        ref self: TContractState, option_buyer: ContractAddress
+    ) -> Result<u256, OptionRound::OptionRoundError>;
 }
 
 #[starknet::contract]
@@ -590,6 +595,12 @@ mod OptionRound {
         }
 
         fn exercise_options(
+            ref self: ContractState, option_buyer: ContractAddress
+        ) -> Result<u256, OptionRoundError> {
+            Result::Ok(100)
+        }
+
+        fn tokenize_options(
             ref self: ContractState, option_buyer: ContractAddress
         ) -> Result<u256, OptionRoundError> {
             Result::Ok(100)

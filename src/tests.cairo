@@ -21,6 +21,7 @@ mod option_round {
         mod exercise_options_tests;
         mod refunding_bids_tests;
         mod update_bids_tests;
+        mod tokenizing_options_tests;
     }
     mod state_transition {
         mod auction_end {
