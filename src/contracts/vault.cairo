@@ -94,7 +94,9 @@ trait IVault<TContractState> {
 
     // Liquditiy provider deposits to the vault for the upcoming round
     // @return The liquidity provider's updated unlocked position
-    fn deposit_liquidity(ref self: TContractState, amount: u256) -> Result<u256, VaultError>;
+    fn deposit_liquidity(
+        ref self: TContractState, amount: u256, liquidity_provider: ContractAddress
+    ) -> Result<u256, VaultError>;
 
     // Liquidity provider withdraws from the vailt
     // @return The liquidity provider's updated unlocked position
@@ -390,7 +392,9 @@ mod Vault {
         }
 
         /// OB functions
-        fn deposit_liquidity(ref self: ContractState, amount: u256) -> Result<u256, VaultError> {
+        fn deposit_liquidity(
+            ref self: ContractState, amount: u256, liquidity_provider: ContractAddress
+        ) -> Result<u256, VaultError> {
             Result::Ok(1)
         }
 

@@ -36,8 +36,8 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     /// LP functions
     fn deposit(ref self: VaultFacade, amount: u256, liquidity_provider: ContractAddress) -> u256 {
-        set_contract_address(liquidity_provider);
-        let res = self.vault_dispatcher.deposit_liquidity(amount);
+        set_contract_address(bystander());
+        let res = self.vault_dispatcher.deposit_liquidity(amount, liquidity_provider);
 
         match res {
             Result::Ok(updated_unlocked_position) => {
