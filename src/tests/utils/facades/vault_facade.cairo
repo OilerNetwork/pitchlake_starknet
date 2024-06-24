@@ -326,12 +326,12 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     // @note replace this with get_vault_locked_balance
     fn get_locked_balance(ref self: VaultFacade) -> u256 {
-        self.vault_dispatcher.get_total_locked()
+        self.vault_dispatcher.get_total_locked_balance()
     }
 
     // @note replace this with get_vault_unlocked_balance
     fn get_unlocked_balance(ref self: VaultFacade) -> u256 {
-        self.vault_dispatcher.get_total_unlocked()
+        self.vault_dispatcher.get_total_unlocked_balance()
     }
 
     // @note replace this with get_vault_locked_and_unlocked_balance
@@ -341,8 +341,8 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     // @note replace this with get_vault_locked_and_unlocked_balances
     fn get_balance_spread(ref self: VaultFacade) -> (u256, u256) {
-        let locked = self.vault_dispatcher.get_total_locked();
-        let unlocked = self.vault_dispatcher.get_total_unlocked();
+        let locked = self.vault_dispatcher.get_total_locked_balance();
+        let unlocked = self.vault_dispatcher.get_total_unlocked_balance();
         (locked, unlocked)
     }
 

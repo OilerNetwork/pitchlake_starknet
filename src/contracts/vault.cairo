@@ -50,10 +50,10 @@ trait IVault<TContractState> {
     // For Vault //
 
     // Get the total liquidity locked
-    fn get_total_locked(self: @TContractState) -> u256;
+    fn get_total_locked_balance(self: @TContractState) -> u256;
 
     // Get the total liquidity unlocked
-    fn get_total_unlocked(self: @TContractState) -> u256;
+    fn get_total_unlocked_balance(self: @TContractState) -> u256;
 
     // Get the total liquidity in the protocol
     fn get_total_balance(self: @TContractState,) -> u256;
@@ -349,11 +349,11 @@ mod Vault {
 
         // For Vault //
 
-        fn get_total_locked(self: @ContractState) -> u256 {
+        fn get_total_locked_balance(self: @ContractState) -> u256 {
             100
         }
 
-        fn get_total_unlocked(self: @ContractState) -> u256 {
+        fn get_total_unlocked_balance(self: @ContractState) -> u256 {
             100
         }
 
