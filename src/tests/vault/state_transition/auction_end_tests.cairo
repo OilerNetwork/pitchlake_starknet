@@ -336,16 +336,19 @@ fn test_end_auction_updates_locked_and_unlocked_balances() {
 #[test]
 #[available_gas(10000000)]
 fn test_end_auction_updates_vault_and_lp_spreads_complex() {
-    let number_of_liquidity_providers =4;
+    let number_of_liquidity_providers = 4;
     let round1_deposits = create_array_gradient(
         100 * decimals(), 100 * decimals(), number_of_liquidity_providers
-    ).span();
+    )
+        .span();
     let starting_liquidity1 = sum_u256_array(round1_deposits);
     // Accelerate through round 1 with premiums and a payout
-    let (mut vault, _,liquidity_providers,_) = setup_test_auctioning_providers(number_of_liquidity_providers,round1_deposits);
-    
-         // (100, 200, 300, 400)
-   
+    let (mut vault, _, liquidity_providers, _) = setup_test_auctioning_providers(
+        number_of_liquidity_providers, round1_deposits
+    );
+
+    // (100, 200, 300, 400)
+
     let mut round1 = vault.get_current_round();
     let (clearing_price, options_sold) = accelerate_to_running(ref vault);
     let total_premiums1 = clearing_price * options_sold;

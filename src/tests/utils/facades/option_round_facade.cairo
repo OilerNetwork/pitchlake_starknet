@@ -14,7 +14,7 @@ use pitch_lake_starknet::{
     },
     tests::{
         utils::{
-            helpers::general_helpers::{assert_two_arrays_equal_length},
+            helpers::general_helpers::{assert_two_arrays_equal_length, get_erc20_balance},
             lib::{test_accounts::{vault_manager, bystander}, structs::{OptionRoundParams}},
             facades::sanity_checks,
         }
@@ -229,6 +229,19 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
             }
         };
         payouts
+    }
+
+    fn tokenize_options(ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress) -> u256 {
+        let option_erc20_balance_before = get_erc20_balance(
+            self.contract_address(), option_bidder_buyer
+        );
+        let res = self.option_round_dispatcher.tokenize_options(option_bidder_buyer);
+        match res {
+            Result::Ok(options_minted) => sanity_checks::tokenize_options(
+                ref self, option_bidder_buyer, option_erc20_balance_before, options_minted,
+            ),
+            Result::Err(e) => panic(array![e.into()]),
+        }
     }
 
     /// Reads ///

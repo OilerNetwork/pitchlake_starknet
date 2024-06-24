@@ -40,7 +40,7 @@ use pitch_lake_starknet::{
                     accelerate_to_auctioning, accelerate_to_running, accelerate_to_settled,
                     accelerate_to_auctioning_custom
                 },
-                setup::{setup_facade, setup_test_auctioning_providers,setup_test_running},
+                setup::{setup_facade, setup_test_auctioning_providers, setup_test_running},
             },
             lib::{
                 test_accounts::{
@@ -263,13 +263,15 @@ fn test_settling_option_round_transfers_payout() {
 #[test]
 #[available_gas(10000000)]
 fn test_settling_option_round_updates_locked_and_unlocked_balances() {
-    let number_of_liquidity_providers =4;
+    let number_of_liquidity_providers = 4;
     let mut deposit_amounts = create_array_gradient(
         100 * decimals(), 100 * decimals(), number_of_liquidity_providers
     )
         .span();
     let total_deposits = sum_u256_array(deposit_amounts);
-    let (mut vault, _,liquidity_providers,_) = setup_test_auctioning_providers(number_of_liquidity_providers,deposit_amounts);
+    let (mut vault, _, liquidity_providers, _) = setup_test_auctioning_providers(
+        number_of_liquidity_providers, deposit_amounts
+    );
     // Amounts to deposit: [100, 200, 300, 400]
     accelerate_to_auctioning_custom(ref vault, liquidity_providers, deposit_amounts);
 

@@ -31,13 +31,7 @@ use pitch_lake_starknet::tests::{
         },
     },
 };
-use core::option::Option::{Some,None};
-// @note should clean these tests up, one makes no sense, the assertions should lead with options_sold == , not ... == options_sold
-// @note should break tests up into options sold tests and options distributed tests
 
-// @note Should have total options available tests, then regular distribution tests
-
-// @note Does this belong in auction end tests
 // Test that options sold is 0 pre auction end
 #[test]
 #[available_gas(10000000)]
@@ -75,7 +69,9 @@ fn test_options_sold_is_0_when_no_bids() {
 #[available_gas(10000000)]
 fn test_bidding_for_more_than_total_options_available() {
     let number_of_option_bidders = 3;
-    let (mut vault, _, option_bidders, total_options_available) = setup_test_auctioning_bidders(number_of_option_bidders);
+    let (mut vault, _, option_bidders, total_options_available) = setup_test_auctioning_bidders(
+        number_of_option_bidders
+    );
 
     let mut current_round = vault.get_current_round();
     // Each option bidder bids for >= the total number of options
