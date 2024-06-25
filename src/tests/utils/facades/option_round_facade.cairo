@@ -35,10 +35,8 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     // to test this.
 
     // Start the next option round's auction
-    fn start_auction(
-        ref self: OptionRoundFacade, start_auction_params: StartAuctionParams
-    ) -> u256 {
-        let res = self.option_round_dispatcher.start_auction(start_auction_params);
+    fn start_auction(ref self: OptionRoundFacade, starting_liquidity: u256,) -> u256 {
+        let res = self.option_round_dispatcher.start_auction(starting_liquidity);
         match res {
             Result::Ok(total_options_available) => sanity_checks::start_auction(
                 ref self, total_options_available

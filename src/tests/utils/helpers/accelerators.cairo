@@ -59,16 +59,16 @@ fn accelerate_to_auctioning_custom(
 }
 
 // Start the auction with a basic deposit with custom auction params
-fn accelerate_to_auctioning_custom_auction_params(
-    ref self: VaultFacade, total_options_available: u256, reserve_price: u256
-) -> u256 {
-    let auction_params = StartAuctionParams { total_options_available, reserve_price, };
-    set_contract_address(self.contract_address());
-    timeskip_past_round_transition_period(ref self);
-
-    let mut upcoming_round = self.get_next_round();
-    upcoming_round.start_auction(auction_params)
-}
+//fn accelerate_to_auctioning_custom_auction_params(
+//    ref self: VaultFacade, total_options_available: u256, reserve_price: u256
+//) -> u256 {
+//    let auction_params = StartAuctionParams { total_options_available, reserve_price, };
+//    set_contract_address(self.contract_address());
+//    timeskip_past_round_transition_period(ref self);
+//
+//    let mut upcoming_round = self.get_next_round();
+//    upcoming_round.start_auction(123)
+//}
 
 /// Ending Auction
 

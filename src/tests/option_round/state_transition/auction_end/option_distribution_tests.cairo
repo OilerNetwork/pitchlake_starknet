@@ -1,4 +1,6 @@
-use starknet::testing::{set_block_timestamp, set_contract_address};
+use starknet::{
+    contract_address_const, ContractAddress, testing::{set_block_timestamp, set_contract_address}
+};
 use openzeppelin::token::erc20::interface::{
     IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
     IERC20SafeDispatcherTrait,
@@ -9,9 +11,8 @@ use pitch_lake_starknet::tests::{
             accelerators::{
                 accelerate_to_auctioning, accelerate_to_running, accelerate_to_running_custom,
                 timeskip_and_settle_round, timeskip_and_end_auction,
-                accelerate_to_auctioning_custom_auction_params,
             },
-            setup::{setup_facade, setup_test_auctioning_bidders},
+            setup::{setup_facade, setup_test_auctioning_bidders, deploy_custom_option_round},
             general_helpers::{
                 sum_u256_array, create_array_linear, create_array_gradient,
                 create_array_gradient_reverse, assert_two_arrays_equal_length,
@@ -507,7 +508,6 @@ fn test_losing_bid_gets_no_options() {
 fn test_option_distribution_real_numbers_1() {
     let options_available = 200;
     let reserve_price = 2;
-    let number_of_option_bidders = 6;
     let bid_amounts = array![50, 142, 235, 222, 75, 35].span();
     let bid_prices = array![20, 11, 11, 2, 1, 1].span();
     let expected_options_sold = 200;
@@ -516,7 +516,6 @@ fn test_option_distribution_real_numbers_1() {
     auction_real_numbers_test_helper(
         options_available,
         reserve_price,
-        number_of_option_bidders,
         bid_amounts,
         bid_prices,
         expected_options_sold,
@@ -530,7 +529,6 @@ fn test_option_distribution_real_numbers_1() {
 fn test_option_distribution_real_numbers_2() {
     let options_available = 200;
     let reserve_price = 2;
-    let number_of_option_bidders = 6;
     let bid_amounts = array![25, 20, 60, 40, 75, 35].span();
     let bid_prices = array![25, 24, 15, 2, 1, 1].span();
     let expected_options_sold = 145;
@@ -539,7 +537,6 @@ fn test_option_distribution_real_numbers_2() {
     auction_real_numbers_test_helper(
         options_available,
         reserve_price,
-        number_of_option_bidders,
         bid_amounts,
         bid_prices,
         expected_options_sold,
@@ -552,7 +549,6 @@ fn test_option_distribution_real_numbers_2() {
 fn test_option_distribution_real_numbers_3() {
     let options_available = 500;
     let reserve_price = 2;
-    let number_of_option_bidders = 6;
     let bid_amounts = array![400, 50, 30, 50, 75, 30].span();
     let bid_prices = array![50, 40, 30, 20, 2, 2].span();
     let expected_options_sold = 500;
@@ -561,7 +557,6 @@ fn test_option_distribution_real_numbers_3() {
     auction_real_numbers_test_helper(
         options_available,
         reserve_price,
-        number_of_option_bidders,
         bid_amounts,
         bid_prices,
         expected_options_sold,
@@ -573,35 +568,48 @@ fn test_option_distribution_real_numbers_3() {
 fn auction_real_numbers_test_helper(
     options_available: u256,
     reserve_price: u256,
-    number_of_option_bidders: u32,
     bid_amounts: Span<u256>,
     bid_prices: Span<u256>,
     expected_options_sold: u256,
     mut expected_option_distribution: Span<u256>,
 ) {
     // Check array lenghts match
-    assert(number_of_option_bidders == bid_amounts.len(), 'bid amounts length should match');
     assert_two_arrays_equal_length(bid_amounts, bid_prices);
 
-    // Deploy vault
-    let (mut vault, _) = setup_facade();
+    // Deploy custom option round
+    let vault_address = contract_address_const::<'vault address'>();
+    let auction_start_date: u64 = 1;
+    let auction_end_date: u64 = 2;
+    let option_settlement_date: u64 = 3;
 
-    // Start auction with custom auction params
-    accelerate_to_auctioning_custom_auction_params(ref vault, options_available, reserve_price);
-    let mut current_round = vault.get_current_round();
-
-    // Make bids and end auction
-    let mut option_bidders = option_bidders_get(number_of_option_bidders).span();
-    let (_, options_sold) = accelerate_to_running_custom(
-        ref vault, option_bidders, bid_amounts, bid_prices
+    let mut option_round = deploy_custom_option_round(
+        vault_address,
+        1_u256,
+        auction_start_date,
+        auction_end_date,
+        option_settlement_date,
+        reserve_price,
+        'cap_level',
+        'strike price'
     );
+
+    // Start auction
+    set_block_timestamp(auction_start_date + 1);
+
+    // Make bids
+    let mut option_bidders = option_bidders_get(bid_amounts.len()).span();
+    option_round.place_bids(bid_amounts, bid_prices, option_bidders);
+
+    // End auction
+    set_block_timestamp(auction_end_date + 1);
+    let (_, options_sold) = option_round.end_auction();
 
     // Check that the correct number of options were sold and distributed
     assert(options_sold == expected_options_sold, 'options sold should match');
     loop {
         match option_bidders.pop_front() {
             Option::Some(bidder) => {
-                let options = current_round.get_option_balance_for(*bidder);
+                let options = option_round.get_option_balance_for(*bidder);
                 let expected_options = expected_option_distribution.pop_front().unwrap();
                 assert(options == *expected_options, 'options should match');
             },

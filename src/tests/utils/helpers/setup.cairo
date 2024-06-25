@@ -184,6 +184,40 @@ fn setup_facade() -> (VaultFacade, IERC20Dispatcher) {
     return (VaultFacade { vault_dispatcher }, eth_dispatcher);
 }
 
+fn deploy_custom_option_round(
+    vault_address: ContractAddress,
+    option_round_id: u256,
+    auction_start_date: u64,
+    auction_end_date: u64,
+    option_settlement_date: u64,
+    reserve_price: u256,
+    cap_level: u256,
+    strike_price: u256
+) -> OptionRoundFacade {
+    let mut calldata = array![];
+    calldata.append_serde(vault_address);
+    calldata.append_serde(option_round_id);
+    calldata.append_serde(auction_start_date);
+    calldata.append_serde(auction_end_date);
+    calldata.append_serde(option_settlement_date);
+    calldata.append_serde(reserve_price);
+    calldata.append_serde(cap_level);
+    calldata.append_serde(strike_price);
+
+    let now = get_block_timestamp();
+    let salt = 'some salt' + now.into();
+
+    let (contract_address, _) = deploy_syscall(
+        OptionRound::TEST_CLASS_HASH.try_into().unwrap(), salt, calldata.span(), true
+    )
+        .expect('DEPLOY_VAULT_FAILED');
+
+    // Clear the event log
+    clear_event_logs(array![contract_address]);
+
+    OptionRoundFacade { option_round_dispatcher: IOptionRoundDispatcher { contract_address } }
+}
+
 fn setup_test_auctioning_bidders(
     number_of_option_buyers: u32
 ) -> (VaultFacade, IERC20Dispatcher, Span<ContractAddress>, u256) {

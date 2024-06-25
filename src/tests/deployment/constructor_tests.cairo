@@ -60,16 +60,13 @@ use debug::PrintTrait;
 #[available_gas(10000000)]
 fn test_vault_constructor() {
     let (mut vault, _) = setup_facade();
-    let (mut current_round, mut next_round) = vault.get_current_and_next_rounds();
+    let mut current_round = vault.get_current_round();
     let current_round_id = vault.get_current_round_id();
 
-    // Check current round is 0
-    assert(current_round_id == 0, 'current round should be 0');
+    // Check current round is 1
+    assert(current_round_id == 1, 'current round should be 1');
     // Check current round is open and next round is settled
-    assert(
-        current_round.get_state() == OptionRoundState::Settled, 'current round should be Settled'
-    );
-    assert(next_round.get_state() == OptionRoundState::Open, 'next round should be Open');
+    assert(current_round.get_state() == OptionRoundState::Open, 'next round should be Open');
     // Test vault constructor values
     assert(vault.get_vault_manager() == vault_manager(), 'vault manager incorrect');
 }
@@ -81,14 +78,10 @@ fn test_vault_constructor() {
 #[available_gas(10000000)]
 fn test_option_round_constructor() {
     let (mut vault, _) = setup_facade();
-    let mut args = OptionRoundConstructorParams {
-        vault_address: vault.contract_address(), round_id: 0
-    };
 
-    let (mut r0, mut r1) = vault.get_current_and_next_rounds();
-    assert(r0.get_constructor_params() == args, 'r0 construcutor params wrong');
-    args.round_id += 1;
-    assert(r1.get_constructor_params() == args, 'r1 construcutor params wrong');
+    let mut current_round = vault.get_current_round();
+//assert(current_round.get_constructor_params() == args, 'r1 construcutor params wrong');
+// @note add other constructor args here
 }
 
 

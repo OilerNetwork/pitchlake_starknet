@@ -205,6 +205,9 @@ mod Vault {
         market_aggregator: ContractAddress,
         round_addresses: LegacyMap<u256, ContractAddress>,
         premiums_collected: LegacyMap<(u256, ContractAddress), bool>,
+        round_transition_period: u64,
+        auction_run_time: u64,
+        option_run_time: u64,
     // liquidity_positions: LegacyMap<((ContractAddress, u256), u256)>,
     }
 
@@ -214,38 +217,36 @@ mod Vault {
         vault_manager: ContractAddress,
         vault_type: VaultType,
         market_aggregator: ContractAddress,
-        //market_aggregator: IMarketAggregatorDispatcher,
         option_round_class_hash: ClassHash,
     ) {
         self.vault_manager.write(vault_manager);
         self.vault_type.write(vault_type);
         self.market_aggregator.write(market_aggregator);
-        // @dev Deploy the 0th round as current (Settled) and deploy the 1st round (Open)
-        let round_zero_constructor_args: OptionRoundConstructorParams =
-            OptionRoundConstructorParams {
-            vault_address: starknet::get_contract_address(), round_id: 0
-        };
-        let round_one_constructor_args: OptionRoundConstructorParams =
-            OptionRoundConstructorParams {
-            vault_address: starknet::get_contract_address(), round_id: 1
-        };
-        // Deploy 0th round
-        let mut calldata = array![market_aggregator.into()];
-        calldata.append_serde(round_zero_constructor_args);
-        let (z_address, _) = deploy_syscall(
+
+        // @dev Deploy the 1st option round
+        let mut calldata: Array<felt252> = array![];
+        calldata.append_serde(starknet::get_contract_address()); // vault address
+        calldata.append_serde(1_u256); // option round id
+        let now = starknet::get_block_timestamp();
+        let auction_start_date = now + self.round_transition_period.read();
+        let auction_end_date = auction_start_date + self.auction_run_time.read();
+        let option_settlement_date = auction_end_date + self.option_run_time.read();
+        calldata.append_serde(auction_start_date); // auction start date
+        calldata.append_serde(auction_end_date);
+        calldata.append_serde(option_settlement_date);
+
+        calldata.append_serde(1000000000_u256); // reserve price
+        calldata.append_serde(5000_u256); // cap level
+        calldata.append_serde(1000000000_u256); // strike price
+
+        let (round_1_address, _) = deploy_syscall(
             option_round_class_hash, 'some salt', calldata.span(), false
         )
             .unwrap();
-        // Deploy 1st round
-        let mut calldata = array![market_aggregator.into()];
-        calldata.append_serde(round_one_constructor_args);
-        let (f_address, _) = deploy_syscall(
-            option_round_class_hash, 'some salt', calldata.span(), false
-        )
-            .unwrap();
+
         // Set round addressess
-        self.round_addresses.write(0, z_address);
-        self.round_addresses.write(1, f_address);
+        self.round_addresses.write(1, round_1_address);
+        self.current_option_round_id.write(1);
     }
 
     #[derive(Copy, Drop, Serde)]
@@ -317,8 +318,7 @@ mod Vault {
         /// Rounds
 
         fn current_option_round_id(self: @ContractState) -> u256 {
-            // (for testing; need a deployed instance of round to avoid CONTRACT_NOT_DEPLOYED errors)
-            0
+            self.current_option_round_id.read()
         }
 
         fn get_option_round_address(
