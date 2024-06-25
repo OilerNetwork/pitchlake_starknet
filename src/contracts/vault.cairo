@@ -50,10 +50,10 @@ trait IVault<TContractState> {
     // For Vault //
 
     // Get the total liquidity locked
-    fn get_total_locked(self: @TContractState) -> u256;
+    fn get_total_locked_balance(self: @TContractState) -> u256;
 
     // Get the total liquidity unlocked
-    fn get_total_unlocked(self: @TContractState) -> u256;
+    fn get_total_unlocked_balance(self: @TContractState) -> u256;
 
     // Get the total liquidity in the protocol
     fn get_total_balance(self: @TContractState,) -> u256;
@@ -94,7 +94,9 @@ trait IVault<TContractState> {
 
     // Liquditiy provider deposits to the vault for the upcoming round
     // @return The liquidity provider's updated unlocked position
-    fn deposit_liquidity(ref self: TContractState, amount: u256) -> Result<u256, VaultError>;
+    fn deposit_liquidity(
+        ref self: TContractState, amount: u256, liquidity_provider: ContractAddress
+    ) -> Result<u256, VaultError>;
 
     // Liquidity provider withdraws from the vailt
     // @return The liquidity provider's updated unlocked position
@@ -347,11 +349,11 @@ mod Vault {
 
         // For Vault //
 
-        fn get_total_locked(self: @ContractState) -> u256 {
+        fn get_total_locked_balance(self: @ContractState) -> u256 {
             100
         }
 
-        fn get_total_unlocked(self: @ContractState) -> u256 {
+        fn get_total_unlocked_balance(self: @ContractState) -> u256 {
             100
         }
 
@@ -390,7 +392,9 @@ mod Vault {
         }
 
         /// OB functions
-        fn deposit_liquidity(ref self: ContractState, amount: u256) -> Result<u256, VaultError> {
+        fn deposit_liquidity(
+            ref self: ContractState, amount: u256, liquidity_provider: ContractAddress
+        ) -> Result<u256, VaultError> {
             Result::Ok(1)
         }
 

@@ -27,7 +27,7 @@ use pitch_lake_starknet::{
             },
             lib::test_accounts::{
                 liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
-                option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
+                option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4, bystander,
             },
             facades::{option_round_facade::{OptionRoundFacade, OptionRoundFacadeImpl}},
         },
@@ -40,7 +40,7 @@ use debug::PrintTrait;
 // @note Add test that all rounds, r > 1 are initialized automatically once
 // the round (r-1) settles
 
-// Test that the strik price is set correctly based on the vault type
+// Test that the strike price is set correctly based on the vault type
 #[test]
 #[available_gas(10000000)]
 fn test_strike_price_based_on_vault_types() {
@@ -56,12 +56,12 @@ fn test_strike_price_based_on_vault_types() {
 
     // LP deposits (into each round 1) (cannot initialize round params if there is no liquidity)
     let deposit_amount_wei: u256 = 100 * decimals();
-    set_contract_address(liquidity_provider_1());
+    set_contract_address(bystander());
 
     // @note For some reason this is throwing ENTRYPOINT_NOT_FOUND
-    vault_dispatcher_at_the_money.deposit_liquidity(deposit_amount_wei);
-    vault_dispatcher_in_the_money.deposit_liquidity(deposit_amount_wei);
-    vault_dispatcher_out_the_money.deposit_liquidity(deposit_amount_wei);
+    vault_dispatcher_at_the_money.deposit_liquidity(deposit_amount_wei, liquidity_provider_1());
+    vault_dispatcher_in_the_money.deposit_liquidity(deposit_amount_wei, liquidity_provider_1());
+    vault_dispatcher_out_the_money.deposit_liquidity(deposit_amount_wei, liquidity_provider_1());
 
     'does not'.print();
 
