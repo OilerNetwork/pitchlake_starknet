@@ -114,7 +114,7 @@ trait IOptionRound<TContractState> {
     // Try to start the option round's auction
     // @return the total options available in the auction
     fn start_auction(
-        ref self: TContractState, total_options_available: u256,
+        ref self: TContractState, total_options_available: u256, starting_liquidity: u256
     ) -> Result<u256, OptionRound::OptionRoundError>;
 
     // Settle the auction if the auction time has passed
@@ -548,7 +548,7 @@ mod OptionRound {
         /// State transition
 
         fn start_auction(
-            ref self: ContractState, total_options_available: u256
+            ref self: ContractState, total_options_available: u256, starting_liquidity: u256,
         ) -> Result<u256, OptionRoundError> {
             self.state.write(OptionRoundState::Auctioning);
             Result::Ok(100)

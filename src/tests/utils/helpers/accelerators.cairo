@@ -135,7 +135,7 @@ fn accelerate_to_running_custom_option_round(
     // Start auction
     set_contract_address(vault_address);
     set_block_timestamp(auction_start_date + 1);
-    option_round.start_auction(total_options_available);
+    option_round.start_auction(total_options_available, 100 * decimals());
 
     // Make bids
     let mut option_bidders = option_bidders_get(bid_amounts.len()).span();
