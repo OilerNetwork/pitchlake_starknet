@@ -95,42 +95,6 @@ fn multiply_arrays<T, +Drop<T>, +Copy<T>, +Mul<T>>(
     multiplied
 }
 
-// Sum an array of spreads and return the total spread
-fn sum_spreads(mut spreads: Span<(u256, u256)>) -> (u256, u256) {
-    let mut total_locked: u256 = 0;
-    let mut total_unlocked: u256 = 0;
-    loop {
-        match spreads.pop_front() {
-            Option::Some((
-                locked, unlocked
-            )) => {
-                total_locked += *locked;
-                total_unlocked += *unlocked;
-            },
-            Option::None => { break (); }
-        }
-    };
-    (total_locked, total_unlocked)
-}
-
-// Split spreads into locked and unlocked arrays
-fn split_spreads(mut spreads: Span<(u256, u256)>) -> (Array<u256>, Array<u256>) {
-    let mut locked: Array<u256> = array![];
-    let mut unlocked: Array<u256> = array![];
-    loop {
-        match spreads.pop_front() {
-            Option::Some((
-                locked_amount, unlocked_amount
-            )) => {
-                locked.append(*locked_amount);
-                unlocked.append(*unlocked_amount);
-            },
-            Option::None => { break (); }
-        }
-    };
-    (locked, unlocked)
-}
-
 // Get erc20 balances for an address
 fn get_erc20_balance(contract_address: ContractAddress, account_address: ContractAddress) -> u256 {
     let contract = IERC20Dispatcher { contract_address };

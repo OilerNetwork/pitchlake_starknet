@@ -29,8 +29,8 @@ use pitch_lake_starknet::{
         utils::{
             helpers::{
                 general_helpers::{
-                    get_portion_of_amount, split_spreads, create_array_linear,
-                    create_array_gradient, get_erc20_balances, sum_u256_array,
+                    get_portion_of_amount, create_array_linear, create_array_gradient,
+                    get_erc20_balances, sum_u256_array,
                 },
                 event_helpers::{
                     clear_event_logs, assert_event_option_settle, assert_event_transfer,
