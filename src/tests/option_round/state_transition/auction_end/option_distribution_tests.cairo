@@ -595,6 +595,7 @@ fn auction_real_numbers_test_helper(
 
     // Start auction
     set_block_timestamp(auction_start_date + 1);
+    option_round.start_auction(options_available);
 
     // Make bids
     let mut option_bidders = option_bidders_get(bid_amounts.len()).span();
