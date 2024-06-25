@@ -198,7 +198,8 @@ fn test_starting_auction_updates_locked_and_unlocked_balances() {
     let mut liquidity_providers_locked_before = vault.get_lp_locked_balances(liquidity_providers);
     let mut liquidity_providers_unlocked_before = vault
         .deposit_multiple(deposit_amounts, liquidity_providers);
-    let (vault_locked_before, vault_unlocked_before) = vault.get_balance_spread();
+    let (vault_locked_before, vault_unlocked_before) = vault
+        .get_total_locked_and_unlocked_balance();
 
     // Start auction
     timeskip_and_end_auction(ref vault);
@@ -207,7 +208,7 @@ fn test_starting_auction_updates_locked_and_unlocked_balances() {
     let mut liquidity_providers_locked_after = vault.get_lp_locked_balances(liquidity_providers);
     let mut liquidity_providers_unlocked_after = vault
         .get_lp_unlocked_balances(liquidity_providers);
-    let (vault_locked_after, vault_unlocked_after) = vault.get_balance_spread();
+    let (vault_locked_after, vault_unlocked_after) = vault.get_total_locked_and_unlocked_balance();
 
     // Check vault balance
     assert(

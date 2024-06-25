@@ -260,7 +260,8 @@ fn test_end_auction_updates_locked_and_unlocked_balances() {
     let mut liquidity_providers_unlocked_before = vault
         .get_lp_unlocked_balances(liquidity_providers)
         .span();
-    let (vault_locked_before, vault_unlocked_before) = vault.get_balance_spread();
+    let (vault_locked_before, vault_unlocked_before) = vault
+        .get_total_locked_and_unlocked_balance();
 
     // End auction
     let (clearing_price, options_sold) = accelerate_to_running(ref vault);
@@ -274,7 +275,7 @@ fn test_end_auction_updates_locked_and_unlocked_balances() {
     let mut liquidity_providers_unlocked_after = vault
         .get_lp_unlocked_balances(liquidity_providers)
         .span();
-    let (vault_locked_after, vault_unlocked_after) = vault.get_balance_spread();
+    let (vault_locked_after, vault_unlocked_after) = vault.get_total_locked_and_unlocked_balance();
 
     // Check vault balances
     assert(
@@ -357,15 +358,19 @@ fn test_end_auction_updates_vault_and_lp_spreads_complex() {
         .span();
 
     // Vault and LP spreads before auction 2 ends
-    let mut lp_spreads_before = vault.get_lp_balance_spreads(liquidity_providers).span();
-    let vault_spread_before = vault.get_balance_spread();
+    let mut lp_spreads_before = vault
+        .get_lp_locked_and_unlocked_balances(liquidity_providers)
+        .span();
+    let vault_spread_before = vault.get_total_locked_and_unlocked_balance();
     // End round 2's auction
     let (clearing_price, options_sold) = accelerate_to_running(ref vault);
     let total_premiums2 = clearing_price * options_sold;
     let mut individual_premiums2 = get_portion_of_amount(round2_deposits, total_premiums2).span();
     // Vault and LP spreads after the auction ends
-    let mut lp_spreads_after = vault.get_lp_balance_spreads(liquidity_providers).span();
-    let vault_spread_after = vault.get_balance_spread();
+    let mut lp_spreads_after = vault
+        .get_lp_locked_and_unlocked_balances(liquidity_providers)
+        .span();
+    let vault_spread_after = vault.get_total_locked_and_unlocked_balance();
 
     // Check vault spreads
     assert(
