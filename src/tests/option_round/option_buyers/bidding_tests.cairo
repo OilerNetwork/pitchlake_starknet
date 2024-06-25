@@ -295,9 +295,7 @@ fn test_bidding_updates_bid_nonce() {
     let bid_price = current_round.get_reserve_price();
 
     let mut i: u256 = 0;
-    while
-    i < 3
-    {
+    while i < 3 {
         let nonce_before = current_round.get_bidding_nonce_for(bidder);
         current_round.place_bid(bid_amount, bid_price, bidder);
         let nonce_after = current_round.get_bidding_nonce_for(bidder);
@@ -319,9 +317,7 @@ fn test_failed_bid_nonce_unchanged() {
     let mut bid_amount = options_available;
 
     let mut i: u256 = 0;
-    while
-    i < 10
-    {
+    while i < 10 {
         let nonce_before = current_round.get_bidding_nonce_for(bidder);
         if (i % 2 == 1) {
             //Failed bid in alternate rounds and check nonce update
@@ -352,9 +348,7 @@ fn test_place_bid_id() {
 
     // Place bids and check bid hashes
     let mut i = 3_u32;
-    while
-    i > 0
-    {
+    while i > 0 {
         let bid_nonce = current_round.get_bidding_nonce_for(bidder);
         let expected_hash = poseidon::poseidon_hash_span(
             array![bidder.into(), bid_nonce.into()].span()

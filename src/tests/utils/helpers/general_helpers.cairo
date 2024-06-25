@@ -164,4 +164,3 @@ fn get_portion_of_amount(mut arr: Span<u256>, amount: u256) -> Array<u256> {
     portions
 }
 
-
