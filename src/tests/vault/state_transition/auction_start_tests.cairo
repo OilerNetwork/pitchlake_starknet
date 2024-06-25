@@ -114,23 +114,17 @@ fn test_starting_auction_while_round_settled_before_round_transition_period_over
 fn test_auction_started_option_round_event() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
-    loop {
-        match rounds_to_run {
-            0 => { break (); },
-            _ => {
-                let mut current_round = vault.get_current_round();
-                let total_options_available = accelerate_to_auctioning(ref vault);
-                // Check the event emits correctly
-                assert_event_auction_start(
-                    current_round.contract_address(), total_options_available
-                );
 
-                accelerate_to_running(ref vault);
-                accelerate_to_settled(ref vault, current_round.get_strike_price());
+    while rounds_to_run > 0_u32 {
+        let mut current_round = vault.get_current_round();
+        let total_options_available = accelerate_to_auctioning(ref vault);
+        // Check the event emits correctly
+        assert_event_auction_start(current_round.contract_address(), total_options_available);
 
-                rounds_to_run -= 1;
-            },
-        }
+        accelerate_to_running(ref vault);
+        accelerate_to_settled(ref vault, current_round.get_strike_price());
+
+        rounds_to_run -= 1;
     }
 }
 
@@ -143,25 +137,19 @@ fn test_auction_started_option_round_event() {
 #[test]
 #[available_gas(10000000)]
 fn test_starting_auction_does_not_update_current_and_next_round_ids() {
-    let rounds_to_run: felt252 = 3;
-    let mut i = rounds_to_run;
+    let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
-    loop {
-        match i {
-            0 => { break (); },
-            _ => {
-                let current_round_id = vault.get_current_round_id();
-                accelerate_to_auctioning(ref vault);
-                let new_current_round_id = vault.get_current_round_id();
+    while rounds_to_run > 0_u32 {
+        let current_round_id = vault.get_current_round_id();
+        accelerate_to_auctioning(ref vault);
+        let new_current_round_id = vault.get_current_round_id();
 
-                assert(new_current_round_id == current_round_id, 'current round id shd not change');
+        assert(new_current_round_id == current_round_id, 'current round id shd not change');
 
-                accelerate_to_running(ref vault);
-                accelerate_to_settled(ref vault, 0);
+        accelerate_to_running(ref vault);
+        accelerate_to_settled(ref vault, 0);
 
-                i -= 1;
-            },
-        }
+        rounds_to_run -= 1;
     }
 }
 
@@ -175,24 +163,19 @@ fn test_starting_auction_updates_current_rounds_state() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
 
-    loop {
-        match rounds_to_run {
-            0 => { break (); },
-            _ => {
-                accelerate_to_auctioning(ref vault);
+    while rounds_to_run > 0_u32 {
+        accelerate_to_auctioning(ref vault);
 
-                let mut current_round = vault.get_current_round();
-                assert(
-                    current_round.get_state() == OptionRoundState::Auctioning,
-                    'current round shd be auctioning'
-                );
+        let mut current_round = vault.get_current_round();
+        assert(
+            current_round.get_state() == OptionRoundState::Auctioning,
+            'current round shd be auctioning'
+        );
 
-                accelerate_to_running(ref vault);
-                accelerate_to_settled(ref vault, 0);
+        accelerate_to_running(ref vault);
+        accelerate_to_settled(ref vault, 0);
 
-                rounds_to_run -= 1;
-            },
-        }
+        rounds_to_run -= 1;
     }
 }
 

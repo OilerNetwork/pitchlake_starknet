@@ -126,22 +126,17 @@ fn test_option_round_settled_event() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
 
-    loop {
-        match rounds_to_run {
-            0 => { break (); },
-            _ => {
-                accelerate_to_auctioning(ref vault);
-                accelerate_to_running(ref vault);
+    while rounds_to_run > 0_u32 {
+        accelerate_to_auctioning(ref vault);
+        accelerate_to_running(ref vault);
 
-                let mut round = vault.get_current_round();
-                let settlement_price = round.get_strike_price() + rounds_to_run.into();
-                accelerate_to_settled(ref vault, settlement_price);
-                // Check the event emits correctly
-                assert_event_option_settle(round.contract_address(), settlement_price);
+        let mut round = vault.get_current_round();
+        let settlement_price = round.get_strike_price() + rounds_to_run.into();
+        accelerate_to_settled(ref vault, settlement_price);
+        // Check the event emits correctly
+        assert_event_option_settle(round.contract_address(), settlement_price);
 
-                rounds_to_run -= 1;
-            },
-        }
+        rounds_to_run -= 1;
     }
 }
 
@@ -152,29 +147,26 @@ fn test_option_round_settled_event() {
 #[test]
 #[available_gas(10000000)]
 fn test_next_round_deployed_event() {
-    let rounds_to_run = 3;
-    let mut i = rounds_to_run;
+    let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
-    loop {
-        match i {
-            0 => { break (); },
-            _ => {
-                accelerate_to_auctioning(ref vault);
-                let mut next_round = vault.get_next_round();
-                // Check the event emits correctly
-                assert_event_option_round_deployed(
-                    vault.contract_address(),
-                    // @dev round 2 should be the first round to deploy post deployment
-                    2 + (rounds_to_run - i).into(),
-                    next_round.contract_address(),
-                );
 
-                accelerate_to_running(ref vault);
-                accelerate_to_settled(ref vault, next_round.get_strike_price());
+    while rounds_to_run > 0_u32 {
+        let mut current_round = vault.get_current_round();
+        let current_round_id = vault.get_current_round_id();
+        accelerate_to_auctioning(ref vault);
 
-                i -= 1;
-            },
-        }
+        accelerate_to_running(ref vault);
+        accelerate_to_settled(ref vault, current_round.get_strike_price());
+
+        // Check the event emits correctly
+        assert_event_option_round_deployed(
+            vault
+                .contract_address(), // @dev round 2 should be the first round to deploy post deployment
+            current_round_id,
+            current_round.contract_address(),
+        );
+
+        rounds_to_run -= 1;
     }
 }
 
@@ -213,6 +205,7 @@ fn test_settling_option_round_updates_current_round_id() {
 fn test_settle_option_round_updates_round_state() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
+
     while rounds_to_run > 0_u32 {
         accelerate_to_auctioning(ref vault);
         accelerate_to_running(ref vault);
@@ -238,42 +231,30 @@ fn test_settle_option_round_updates_round_state() {
 #[test]
 #[available_gas(10000000)]
 fn test_settling_option_round_transfers_payout() {
-    let mut rounds_to_run: felt252 = 3;
+    let mut rounds_to_run = 3;
     let (mut vault, eth) = setup_facade();
-    loop {
-        match rounds_to_run {
-            0 => { break (); },
-            _ => {
-                accelerate_to_auctioning(ref vault);
-                accelerate_to_running(ref vault);
 
-                // Vault and round eth balances before the round settles
-                let mut current_round = vault.get_current_round();
-                let round_balance_before = eth.balance_of(current_round.contract_address());
-                let vault_balance_before = eth.balance_of(vault.contract_address());
+    while rounds_to_run > 0_u32 {
+        accelerate_to_auctioning(ref vault);
+        accelerate_to_running(ref vault);
 
-                // Settle the round with a payout
-                let total_payout = accelerate_to_settled(
-                    ref vault, 2 * current_round.get_strike_price()
-                );
+        // Vault and round eth balances before the round settles
+        let mut current_round = vault.get_current_round();
+        let round_balance_before = eth.balance_of(current_round.contract_address());
+        let vault_balance_before = eth.balance_of(vault.contract_address());
 
-                // Vault and round eth balances after auction ends
-                let round_balance_after = eth.balance_of(current_round.contract_address());
-                let vault_balance_after = eth.balance_of(vault.contract_address());
+        // Settle the round with a payout
+        let total_payout = accelerate_to_settled(ref vault, 2 * current_round.get_strike_price());
 
-                // Check the payout transfers from vault to round
-                assert(
-                    round_balance_after == round_balance_before + total_payout,
-                    'round eth bal. wrong'
-                );
-                assert(
-                    vault_balance_after == vault_balance_before - total_payout,
-                    'vault eth bal. wrong'
-                );
+        // Vault and round eth balances after auction ends
+        let round_balance_after = eth.balance_of(current_round.contract_address());
+        let vault_balance_after = eth.balance_of(vault.contract_address());
 
-                rounds_to_run -= 1;
-            },
-        }
+        // Check the payout transfers from vault to round
+        assert(round_balance_after == round_balance_before + total_payout, 'round eth bal. wrong');
+        assert(vault_balance_after == vault_balance_before - total_payout, 'vault eth bal. wrong');
+
+        rounds_to_run -= 1;
     }
 }
 
