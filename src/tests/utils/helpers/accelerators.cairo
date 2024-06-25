@@ -1,5 +1,6 @@
 use starknet::{
-    get_block_timestamp, ContractAddress, testing::{set_block_timestamp, set_contract_address}
+    contract_address_const, get_block_timestamp, ContractAddress,
+    testing::{set_block_timestamp, set_contract_address}
 };
 use pitch_lake_starknet::{
     contracts::{
@@ -19,12 +20,15 @@ use pitch_lake_starknet::{
             lib::{
                 structs::{OptionRoundParams},
                 test_accounts::{
-                    vault_manager, liquidity_provider_1, option_bidder_buyer_1, bystander
+                    vault_manager, liquidity_provider_1, option_bidder_buyer_1, bystander,
+                    option_bidders_get,
                 },
                 variables::{decimals},
             },
             helpers::{ // accelerators::{accelerate_to_auction_custom_auction_params},
-                event_helpers::{clear_event_logs},
+                event_helpers::{clear_event_logs,},
+                general_helpers::{assert_two_arrays_equal_length},
+                setup::{deploy_custom_option_round},
             },
             facades::{
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
@@ -59,16 +63,16 @@ fn accelerate_to_auctioning_custom(
 }
 
 // Start the auction with a basic deposit with custom auction params
-fn accelerate_to_auctioning_custom_auction_params(
-    ref self: VaultFacade, total_options_available: u256, reserve_price: u256
-) -> u256 {
-    let auction_params = StartAuctionParams { total_options_available, reserve_price, };
-    set_contract_address(self.contract_address());
-    timeskip_past_round_transition_period(ref self);
-
-    let mut upcoming_round = self.get_next_round();
-    upcoming_round.start_auction(auction_params)
-}
+//fn accelerate_to_auctioning_custom_auction_params(
+//    ref self: VaultFacade, total_options_available: u256, reserve_price: u256
+//) -> u256 {
+//    let auction_params = StartAuctionParams { total_options_available, reserve_price, };
+//    set_contract_address(self.contract_address());
+//    timeskip_past_round_transition_period(ref self);
+//
+//    let mut upcoming_round = self.get_next_round();
+//    upcoming_round.start_auction(123)
+//}
 
 /// Ending Auction
 
@@ -97,6 +101,52 @@ fn accelerate_to_running_custom(
     current_round.place_bids(max_amounts, prices, bidders);
     // Jump to the auction end date and end the auction
     timeskip_and_end_auction(ref self)
+}
+
+// Helper function to deploy custom option round, start auction, place bids,
+// then end auction
+// Used to test real number outcomes for option distributions
+fn accelerate_to_running_custom_option_round(
+    total_options_available: u256,
+    reserve_price: u256,
+    bid_amounts: Span<u256>,
+    bid_prices: Span<u256>,
+) -> (u256, u256, OptionRoundFacade) {
+    // Check amounts and prices array lengths are equal
+    assert_two_arrays_equal_length(bid_amounts, bid_prices);
+
+    // Deploy custom option round
+    let vault_address = contract_address_const::<'vault address'>();
+    let auction_start_date: u64 = 1;
+    let auction_end_date: u64 = 2;
+    let option_settlement_date: u64 = 3;
+
+    let mut option_round = deploy_custom_option_round(
+        vault_address,
+        1_u256,
+        auction_start_date,
+        auction_end_date,
+        option_settlement_date,
+        reserve_price,
+        'cap_level',
+        'strike price'
+    );
+
+    // Start auction
+    set_contract_address(vault_address);
+    set_block_timestamp(auction_start_date + 1);
+    option_round.start_auction(total_options_available, 100 * decimals());
+
+    // Make bids
+    let mut option_bidders = option_bidders_get(bid_amounts.len()).span();
+    option_round.place_bids(bid_amounts, bid_prices, option_bidders);
+
+    // End auction
+    set_contract_address(vault_address);
+    set_block_timestamp(auction_end_date + 1);
+    let (clearing_price, options_sold) = option_round.end_auction();
+
+    (clearing_price, options_sold, option_round)
 }
 
 /// Settling option round

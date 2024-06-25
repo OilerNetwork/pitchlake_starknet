@@ -114,7 +114,7 @@ trait IOptionRound<TContractState> {
     // Try to start the option round's auction
     // @return the total options available in the auction
     fn start_auction(
-        ref self: TContractState, start_auction_params: StartAuctionParams
+        ref self: TContractState, total_options_available: u256, starting_liquidity: u256
     ) -> Result<u256, OptionRound::OptionRoundError>;
 
     // Settle the auction if the auction time has passed
@@ -320,22 +320,21 @@ mod OptionRound {
     #[constructor]
     fn constructor(
         ref self: ContractState,
-        market_aggregator: ContractAddress,
-        constructor_params: OptionRoundConstructorParams
+        vault_address: ContractAddress,
+        option_round_id: u256,
+        auction_start_date: u64,
+        auction_end_date: u64,
+        option_settlement_date: u64,
+        reserve_price: u256,
+        cap_level: u256,
+        strike_price: u256,
     ) {
-        // Set market aggregator's address
-        self.market_aggregator.write(market_aggregator);
-        // Set the vault address
-        self.vault_address.write(constructor_params.vault_address);
-        // Set round state to open unless this is round 0
-        self
-            .state
-            .write(
-                match constructor_params.round_id == 0_u256 {
-                    true => OptionRoundState::Settled,
-                    false => OptionRoundState::Open,
-                }
-            );
+        // Set the vault address and round id
+        self.vault_address.write(vault_address);
+
+        // Set round state to open
+        self.state.write(OptionRoundState::Open);
+    // Write other params to storage
     }
 
     #[derive(Copy, Drop, Serde)]
@@ -549,7 +548,7 @@ mod OptionRound {
         /// State transition
 
         fn start_auction(
-            ref self: ContractState, start_auction_params: StartAuctionParams
+            ref self: ContractState, total_options_available: u256, starting_liquidity: u256,
         ) -> Result<u256, OptionRoundError> {
             self.state.write(OptionRoundState::Auctioning);
             Result::Ok(100)

@@ -114,60 +114,17 @@ fn test_starting_auction_while_round_settled_before_round_transition_period_over
 fn test_auction_started_option_round_event() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
-    loop {
-        match rounds_to_run {
-            0 => { break (); },
-            _ => {
-                let total_options_available = accelerate_to_auctioning(ref vault);
-                let mut current_round = vault.get_current_round();
-                // Check the event emits correctly
-                assert_event_auction_start(
-                    current_round.contract_address(), total_options_available
-                );
 
-                accelerate_to_running(ref vault);
-                accelerate_to_settled(ref vault, current_round.get_strike_price());
+    while rounds_to_run > 0_u32 {
+        let mut current_round = vault.get_current_round();
+        let total_options_available = accelerate_to_auctioning(ref vault);
+        // Check the event emits correctly
+        assert_event_auction_start(current_round.contract_address(), total_options_available);
 
-                rounds_to_run -= 1;
-            },
-        }
-    }
-}
+        accelerate_to_running(ref vault);
+        accelerate_to_settled(ref vault, current_round.get_strike_price());
 
-/// Vault Test
-// Test every time a new round is deployed, the next round deployed event emits correctly
-// @dev The first round to be deployed after deployment is round 2
-// @note discuss if when round should deploy since it is not holding liquidity until the auction starts.
-// Previously we said a round deploys when the previous one's auction starts (to accept deposits), but
-// since deposits are stored in the vault, can we deploy when the auction starts ?
-// @note If it can deploy when the auction starts, we can drop OptionRoundState::Open and just use
-// Initialized, Auctioning, Running, Settled. Where Initialzed is the state of the round between deployment and auction start
-#[test]
-#[available_gas(10000000)]
-fn test_next_round_deployed_event() {
-    let rounds_to_run = 3;
-    let mut i = rounds_to_run;
-    let (mut vault, _) = setup_facade();
-    loop {
-        match i {
-            0 => { break (); },
-            _ => {
-                accelerate_to_auctioning(ref vault);
-                let mut next_round = vault.get_next_round();
-                // Check the event emits correctly
-                assert_event_option_round_deployed(
-                    vault.contract_address(),
-                    // @dev round 2 should be the first round to deploy post deployment
-                    2 + (rounds_to_run - i).into(),
-                    next_round.contract_address(),
-                );
-
-                accelerate_to_running(ref vault);
-                accelerate_to_settled(ref vault, next_round.get_strike_price());
-
-                i -= 1;
-            },
-        }
+        rounds_to_run -= 1;
     }
 }
 
@@ -176,34 +133,26 @@ fn test_next_round_deployed_event() {
 
 /// Round ids/states
 
-// Test starting an auction increments the current round id
+// Test starting an auction does not update the current round id
 #[test]
 #[available_gas(10000000)]
-fn test_starting_auction_updates_current_round_id() {
-    let rounds_to_run = 3;
-    let mut i = rounds_to_run;
+fn test_starting_auction_does_not_update_current_and_next_round_ids() {
+    let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
+    while rounds_to_run > 0_u32 {
+        let current_round_id = vault.get_current_round_id();
+        accelerate_to_auctioning(ref vault);
+        let new_current_round_id = vault.get_current_round_id();
 
-    loop {
-        match i {
-            0 => { break (); },
-            _ => {
-                accelerate_to_auctioning(ref vault);
+        assert(new_current_round_id == current_round_id, 'current round id shd not change');
 
-                // @dev The first auction to start is round 1 post deployment
-                assert(
-                    vault.get_current_round_id() == 1 + (rounds_to_run - i).into(),
-                    'current round id wrong'
-                );
+        accelerate_to_running(ref vault);
+        accelerate_to_settled(ref vault, 0);
 
-                accelerate_to_running(ref vault);
-                accelerate_to_settled(ref vault, 0);
-
-                i -= 1;
-            },
-        }
+        rounds_to_run -= 1;
     }
 }
+
 
 // Test starting an auction updates the current round's state
 // Test when an auction starts, the option round states update correctly
@@ -214,24 +163,19 @@ fn test_starting_auction_updates_current_rounds_state() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
 
-    loop {
-        match rounds_to_run {
-            0 => { break (); },
-            _ => {
-                accelerate_to_auctioning(ref vault);
+    while rounds_to_run > 0_u32 {
+        accelerate_to_auctioning(ref vault);
 
-                let mut current_round = vault.get_current_round();
-                assert(
-                    current_round.get_state() == OptionRoundState::Auctioning,
-                    'current round shd be auctioning'
-                );
+        let mut current_round = vault.get_current_round();
+        assert(
+            current_round.get_state() == OptionRoundState::Auctioning,
+            'current round shd be auctioning'
+        );
 
-                accelerate_to_running(ref vault);
-                accelerate_to_settled(ref vault, 0);
+        accelerate_to_running(ref vault);
+        accelerate_to_settled(ref vault, 0);
 
-                rounds_to_run -= 1;
-            },
-        }
+        rounds_to_run -= 1;
     }
 }
 
@@ -254,7 +198,8 @@ fn test_starting_auction_updates_locked_and_unlocked_balances() {
     let mut liquidity_providers_locked_before = vault.get_lp_locked_balances(liquidity_providers);
     let mut liquidity_providers_unlocked_before = vault
         .deposit_multiple(deposit_amounts, liquidity_providers);
-    let (vault_locked_before, vault_unlocked_before) = vault.get_balance_spread();
+    let (vault_locked_before, vault_unlocked_before) = vault
+        .get_total_locked_and_unlocked_balance();
 
     // Start auction
     timeskip_and_end_auction(ref vault);
@@ -263,7 +208,7 @@ fn test_starting_auction_updates_locked_and_unlocked_balances() {
     let mut liquidity_providers_locked_after = vault.get_lp_locked_balances(liquidity_providers);
     let mut liquidity_providers_unlocked_after = vault
         .get_lp_unlocked_balances(liquidity_providers);
-    let (vault_locked_after, vault_unlocked_after) = vault.get_balance_spread();
+    let (vault_locked_after, vault_unlocked_after) = vault.get_total_locked_and_unlocked_balance();
 
     // Check vault balance
     assert(

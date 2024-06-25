@@ -132,22 +132,16 @@ fn test_auction_ended_option_round_event() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
 
-    loop {
-        match rounds_to_run {
-            0 => { break (); },
-            _ => {
-                accelerate_to_auctioning(ref vault);
+    while rounds_to_run > 0_u32 {
+        let mut current_round = vault.get_current_round();
+        accelerate_to_auctioning(ref vault);
+        let (clearing_price, _) = accelerate_to_running(ref vault);
 
-                let (clearing_price, _) = accelerate_to_running(ref vault);
-                // Check the event emits correctly
-                let mut current_round = vault.get_current_round();
-                assert_event_auction_end(current_round.contract_address(), clearing_price);
+        // Check the event emits correctly
+        assert_event_auction_end(current_round.contract_address(), clearing_price);
 
-                accelerate_to_settled(ref vault, 0);
-
-                rounds_to_run -= 1;
-            },
-        }
+        accelerate_to_settled(ref vault, 0);
+        rounds_to_run -= 1;
     }
 }
 
@@ -160,29 +154,19 @@ fn test_auction_ended_option_round_event() {
 #[test]
 #[available_gas(10000000)]
 fn test_end_auction_does_not_update_current_and_next_round_ids() {
-    let rounds_to_run = 3;
-    let mut i = rounds_to_run;
+    let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
 
-    loop {
-        match i {
-            0 => { break (); },
-            _ => {
-                accelerate_to_auctioning(ref vault);
+    while rounds_to_run > 0_u32 {
+        accelerate_to_auctioning(ref vault);
+        let current_round_id = vault.get_current_round_id();
+        accelerate_to_running(ref vault);
+        let new_current_round_id = vault.get_current_round_id();
 
-                let current_round_id_before = vault.get_current_round_id();
-                accelerate_to_running(ref vault);
-                let current_round_id_after = vault.get_current_round_id();
+        assert(new_current_round_id == current_round_id, 'current round id changed');
 
-                assert(
-                    current_round_id_before == current_round_id_after, 'current round id changed'
-                );
-
-                accelerate_to_settled(ref vault, 0);
-
-                i -= 1;
-            },
-        }
+        accelerate_to_settled(ref vault, 0);
+        rounds_to_run -= 1;
     }
 }
 
@@ -194,24 +178,18 @@ fn test_end_auction_updates_current_round_state() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
 
-    loop {
-        match rounds_to_run {
-            0 => { break (); },
-            _ => {
-                accelerate_to_auctioning(ref vault);
+    while rounds_to_run > 0_u32 {
+        accelerate_to_auctioning(ref vault);
 
-                accelerate_to_running(ref vault);
-                let mut current_round = vault.get_current_round();
-                assert(
-                    current_round.get_state() == OptionRoundState::Running,
-                    'current round shd be running'
-                );
+        accelerate_to_running(ref vault);
+        let mut current_round = vault.get_current_round();
+        assert(
+            current_round.get_state() == OptionRoundState::Running, 'current round shd be running'
+        );
 
-                accelerate_to_settled(ref vault, 0);
+        accelerate_to_settled(ref vault, 0);
 
-                rounds_to_run -= 1;
-            },
-        }
+        rounds_to_run -= 1;
     }
 }
 
@@ -282,7 +260,8 @@ fn test_end_auction_updates_locked_and_unlocked_balances() {
     let mut liquidity_providers_unlocked_before = vault
         .get_lp_unlocked_balances(liquidity_providers)
         .span();
-    let (vault_locked_before, vault_unlocked_before) = vault.get_balance_spread();
+    let (vault_locked_before, vault_unlocked_before) = vault
+        .get_total_locked_and_unlocked_balance();
 
     // End auction
     let (clearing_price, options_sold) = accelerate_to_running(ref vault);
@@ -296,7 +275,7 @@ fn test_end_auction_updates_locked_and_unlocked_balances() {
     let mut liquidity_providers_unlocked_after = vault
         .get_lp_unlocked_balances(liquidity_providers)
         .span();
-    let (vault_locked_after, vault_unlocked_after) = vault.get_balance_spread();
+    let (vault_locked_after, vault_unlocked_after) = vault.get_total_locked_and_unlocked_balance();
 
     // Check vault balances
     assert(
@@ -379,15 +358,19 @@ fn test_end_auction_updates_vault_and_lp_spreads_complex() {
         .span();
 
     // Vault and LP spreads before auction 2 ends
-    let mut lp_spreads_before = vault.get_lp_balance_spreads(liquidity_providers).span();
-    let vault_spread_before = vault.get_balance_spread();
+    let mut lp_spreads_before = vault
+        .get_lp_locked_and_unlocked_balances(liquidity_providers)
+        .span();
+    let vault_spread_before = vault.get_total_locked_and_unlocked_balance();
     // End round 2's auction
     let (clearing_price, options_sold) = accelerate_to_running(ref vault);
     let total_premiums2 = clearing_price * options_sold;
     let mut individual_premiums2 = get_portion_of_amount(round2_deposits, total_premiums2).span();
     // Vault and LP spreads after the auction ends
-    let mut lp_spreads_after = vault.get_lp_balance_spreads(liquidity_providers).span();
-    let vault_spread_after = vault.get_balance_spread();
+    let mut lp_spreads_after = vault
+        .get_lp_locked_and_unlocked_balances(liquidity_providers)
+        .span();
+    let vault_spread_after = vault.get_total_locked_and_unlocked_balance();
 
     // Check vault spreads
     assert(
