@@ -11,6 +11,7 @@ use pitch_lake_starknet::tests::{
             accelerators::{
                 accelerate_to_auctioning, accelerate_to_running, accelerate_to_running_custom,
                 timeskip_and_settle_round, timeskip_and_end_auction,
+                accelerate_to_running_custom_option_round,
             },
             setup::{setup_facade, setup_test_auctioning_bidders, deploy_custom_option_round},
             general_helpers::{
@@ -573,40 +574,13 @@ fn auction_real_numbers_test_helper(
     expected_options_sold: u256,
     mut expected_option_distribution: Span<u256>,
 ) {
-    // Check array lenghts match
-    assert_two_arrays_equal_length(bid_amounts, bid_prices);
-
-    // Deploy custom option round
-    let vault_address = contract_address_const::<'vault address'>();
-    let auction_start_date: u64 = 1;
-    let auction_end_date: u64 = 2;
-    let option_settlement_date: u64 = 3;
-
-    let mut option_round = deploy_custom_option_round(
-        vault_address,
-        1_u256,
-        auction_start_date,
-        auction_end_date,
-        option_settlement_date,
-        reserve_price,
-        'cap_level',
-        'strike price'
+    let (_, options_sold, mut option_round) = accelerate_to_running_custom_option_round(
+        options_available, reserve_price, bid_amounts, bid_prices
     );
-
-    // Start auction
-    set_block_timestamp(auction_start_date + 1);
-    option_round.start_auction(options_available);
-
-    // Make bids
-    let mut option_bidders = option_bidders_get(bid_amounts.len()).span();
-    option_round.place_bids(bid_amounts, bid_prices, option_bidders);
-
-    // End auction
-    set_block_timestamp(auction_end_date + 1);
-    let (_, options_sold) = option_round.end_auction();
 
     // Check that the correct number of options were sold and distributed
     assert(options_sold == expected_options_sold, 'options sold should match');
+    let mut option_bidders = option_bidders_get(bid_amounts.len()).span();
     loop {
         match option_bidders.pop_front() {
             Option::Some(bidder) => {
