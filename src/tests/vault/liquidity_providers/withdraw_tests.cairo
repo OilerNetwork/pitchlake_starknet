@@ -14,7 +14,7 @@ use pitch_lake_starknet::{
     tests::{
         utils::{
             helpers::{
-                general_helpers::{get_erc20_balances, sum_u256_array, split_spreads},
+                general_helpers::{get_erc20_balances, sum_u256_array},
                 event_helpers::{
                     pop_log, assert_no_events_left, assert_event_transfer,
                     assert_event_vault_withdrawal
@@ -50,7 +50,7 @@ use debug::PrintTrait;
 // @note can use the same array of withdraw amounts/lps for each test (0, ...)
 
 // Test withdraw 0 does not fail, but balances are unchanged.
-//@note confirm if gas changes will also affect the balance, should we only check for vault balance or 
+//@note confirm if gas changes will also affect the balance, should we only check for vault balance or
 //calculate gas amount to correct the balance.
 // Test withdrawing > unlocked balance fails
 #[test]

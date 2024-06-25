@@ -32,7 +32,7 @@ use pitch_lake_starknet::{
                 },
                 general_helpers::{
                     create_array_gradient, create_array_linear, sum_u256_array,
-                    get_portion_of_amount, split_spreads, span_to_array,
+                    get_portion_of_amount, span_to_array,
                 },
                 setup::{setup_facade, setup_test_auctioning_providers, setup_test_running},
             },
