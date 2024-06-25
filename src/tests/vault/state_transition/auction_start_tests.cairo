@@ -118,8 +118,8 @@ fn test_auction_started_option_round_event() {
         match rounds_to_run {
             0 => { break (); },
             _ => {
-                let total_options_available = accelerate_to_auctioning(ref vault);
                 let mut current_round = vault.get_current_round();
+                let total_options_available = accelerate_to_auctioning(ref vault);
                 // Check the event emits correctly
                 assert_event_auction_start(
                     current_round.contract_address(), total_options_available
@@ -134,67 +134,27 @@ fn test_auction_started_option_round_event() {
     }
 }
 
-/// Vault Test
-// Test every time a new round is deployed, the next round deployed event emits correctly
-// @dev The first round to be deployed after deployment is round 2
-// @note discuss if when round should deploy since it is not holding liquidity until the auction starts.
-// Previously we said a round deploys when the previous one's auction starts (to accept deposits), but
-// since deposits are stored in the vault, can we deploy when the auction starts ?
-// @note If it can deploy when the auction starts, we can drop OptionRoundState::Open and just use
-// Initialized, Auctioning, Running, Settled. Where Initialzed is the state of the round between deployment and auction start
-#[test]
-#[available_gas(10000000)]
-fn test_next_round_deployed_event() {
-    let rounds_to_run = 3;
-    let mut i = rounds_to_run;
-    let (mut vault, _) = setup_facade();
-    loop {
-        match i {
-            0 => { break (); },
-            _ => {
-                accelerate_to_auctioning(ref vault);
-                let mut next_round = vault.get_next_round();
-                // Check the event emits correctly
-                assert_event_option_round_deployed(
-                    vault.contract_address(),
-                    // @dev round 2 should be the first round to deploy post deployment
-                    2 + (rounds_to_run - i).into(),
-                    next_round.contract_address(),
-                );
-
-                accelerate_to_running(ref vault);
-                accelerate_to_settled(ref vault, next_round.get_strike_price());
-
-                i -= 1;
-            },
-        }
-    }
-}
-
 
 /// State Tests ///
 
 /// Round ids/states
 
-// Test starting an auction increments the current round id
+// Test starting an auction does not update the current round id
 #[test]
 #[available_gas(10000000)]
-fn test_starting_auction_updates_current_round_id() {
-    let rounds_to_run = 3;
+fn test_starting_auction_does_not_update_current_and_next_round_ids() {
+    let rounds_to_run: felt252 = 3;
     let mut i = rounds_to_run;
     let (mut vault, _) = setup_facade();
-
     loop {
         match i {
             0 => { break (); },
             _ => {
+                let current_round_id = vault.get_current_round_id();
                 accelerate_to_auctioning(ref vault);
+                let new_current_round_id = vault.get_current_round_id();
 
-                // @dev The first auction to start is round 1 post deployment
-                assert(
-                    vault.get_current_round_id() == 1 + (rounds_to_run - i).into(),
-                    'current round id wrong'
-                );
+                assert(new_current_round_id == current_round_id, 'current round id shd not change');
 
                 accelerate_to_running(ref vault);
                 accelerate_to_settled(ref vault, 0);
@@ -204,6 +164,7 @@ fn test_starting_auction_updates_current_round_id() {
         }
     }
 }
+
 
 // Test starting an auction updates the current round's state
 // Test when an auction starts, the option round states update correctly
