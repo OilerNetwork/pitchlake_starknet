@@ -22,7 +22,7 @@ trait IOptionRound<TContractState> {
     // Auction end time
     fn get_auction_end_date(self: @TContractState) -> u64;
 
-    fn get_option_settlement_date(self: @TContractState)-> u64;
+    fn get_option_settlement_date(self: @TContractState) -> u64;
     // Option expiry time
     fn get_option_expiry_date(self: @TContractState) -> u64;
 
@@ -172,9 +172,10 @@ mod OptionRound {
         ERC20Component, interface::{IERC20, IERC20Dispatcher, IERC20DispatcherTrait,}
     };
     use starknet::{ContractAddress, get_caller_address, get_block_timestamp};
-    use pitch_lake_starknet::contracts::{vault::{
-        Vault::VaultType, IVaultDispatcher, IVaultDispatcherTrait
-    }, option_round::IOptionRound};
+    use pitch_lake_starknet::contracts::{
+        vault::{Vault::VaultType, IVaultDispatcher, IVaultDispatcherTrait},
+        option_round::IOptionRound
+    };
     use pitch_lake_starknet::contracts::market_aggregator::{
         IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
     };
@@ -211,7 +212,7 @@ mod OptionRound {
         bids_tail: felt252,
         auction_start_date: u64,
         auction_end_date: u64,
-        option_expiry_date:u64,
+        option_expiry_date: u64,
         option_settlement_date: u64,
     }
 
@@ -476,7 +477,7 @@ mod OptionRound {
             self.auction_end_date.read()
         }
 
-        fn get_option_settlement_date(self: @ContractState)->u64 {
+        fn get_option_settlement_date(self: @ContractState) -> u64 {
             self.option_settlement_date.read()
         }
         fn get_option_expiry_date(self: @ContractState) -> u64 {
@@ -670,25 +671,45 @@ mod OptionRound {
         fn settle_option_round(
             ref self: ContractState, settlement_price: u256
         ) -> Result<u256, OptionRoundError> {
-            // Assert caller is Vault
+            match self.is_caller_the_vault() {
+                true => {
+                    match self.state.read() {
+                        OptionRoundState::Settled => {
+                            Result::Err(OptionRoundError::OptionRoundAlreadySettled)
+                        },
+                        OptionRoundState::Running => {
+                            if (self.get_option_settlement_date() > get_block_timestamp()) {
+                                Result::Err(OptionRoundError::OptionSettlementDateNotReached)
+                            } else {
+                                let total_payout = self.calculate_expected_payout(settlement_price);
+                                self.total_payout.write(total_payout);
+                                self.emit(Event::OptionSettle(OptionSettle { settlement_price }));
+                                self.state.write(OptionRoundState::Settled);
+                                Result::Ok(total_payout)
+                            }
+                        },
+                        _ => { Result::Err(OptionRoundError::OptionSettlementDateNotReached) }
+                    }
+                },
+                false => { return Result::Err(OptionRoundError::CallerIsNotVault); }
+            }
+        // Assert caller is Vault
 
-            // Assert state is Running
+        // Assert state is Running
 
-            // Assert block timestamp is >= option settlement date
+        // Assert block timestamp is >= option settlement date
 
-            // Update state to Settled
-            self.state.write(OptionRoundState::Settled);
+        // Update state to Settled
 
-            // Calculate total_payout
-            //  - There is an example helper function in the test suite named `calculate_expected_payout`
+        // Calculate total_payout
+        //  - There is an example helper function in the test suite named `calculate_expected_payout`
 
-            // Set total_payout
+        // Set total_payout
 
-            // Emit option settled event
+        // Emit option settled event
 
-            // Return total payout
+        // Return total payout
 
-            Result::Ok(100)
         }
 
         /// OB functions
@@ -754,6 +775,13 @@ mod OptionRound {
 
         fn calculate_options(ref self: ContractState, starting_liquidity: u256) -> u256 {
             //Calculate total options accordingly
+            1
+        }
+
+        fn calculate_expected_payout(ref self: ContractState, settlement_price: u256,) -> u256 {
+            let k = self.get_strike_price();
+            let cl = self.get_cap_level();
+            //max(0, min((1 + cl) * k, settlement_price) - k)
             1
         }
 
