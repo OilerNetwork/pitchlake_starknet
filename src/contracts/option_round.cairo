@@ -125,7 +125,7 @@ trait IOptionRound<TContractState> {
     // Settle the option round if past the expiry date and in state::Running
     // @return The total payout of the option round
     fn settle_option_round(
-        ref self: TContractState, avg_base_fee: u256
+        ref self: TContractState, settlement_price: u256
     ) -> Result<u256, OptionRound::OptionRoundError>;
 
     /// OB functions
@@ -179,9 +179,26 @@ mod OptionRound {
 
     #[storage]
     struct Storage {
+        // The address of the vault that deployed this round
         vault_address: ContractAddress,
+        // The address of the contract to fetch fossil values from
         market_aggregator: ContractAddress,
+        // The state of the option round
         state: OptionRoundState,
+        // The round's id
+        round_id: u256,
+        // Total number of options available to sell in the auction
+        total_options_available: u256,
+        // The amount of liquidity this round starts with (locked upon auction starting)
+        starting_liquidity: u256,
+        // The amount the option round pays out upon settlemnt
+        total_payout: u256,
+        // The total number of options sold in the auction
+        total_options_sold: u256,
+        // The clearing price of the auction (the price each option sells for)
+        clearing_price: u256,
+        ///////////
+        ///////////
         constructor_params: OptionRoundConstructorParams,
         bidder_nonces: LegacyMap<ContractAddress, u256>,
         bid_details: LegacyMap<felt252, Bid>,
@@ -321,7 +338,7 @@ mod OptionRound {
     fn constructor(
         ref self: ContractState,
         vault_address: ContractAddress,
-        option_round_id: u256,
+        round_id: u256,
         auction_start_date: u64,
         auction_end_date: u64,
         option_settlement_date: u64,
@@ -331,6 +348,7 @@ mod OptionRound {
     ) {
         // Set the vault address and round id
         self.vault_address.write(vault_address);
+        self.round_id.write(round_id);
 
         // Set round state to open
         self.state.write(OptionRoundState::Open);
@@ -550,19 +568,66 @@ mod OptionRound {
         fn start_auction(
             ref self: ContractState, total_options_available: u256, starting_liquidity: u256,
         ) -> Result<u256, OptionRoundError> {
+            // Assert caller is Vault
+
+            // Assert state is Open
+
+            // Assert block timestamp is >= auction start date
+
+            // Update state to Auctioning
             self.state.write(OptionRoundState::Auctioning);
+
+            // Set total_options_available and starting_liquidity
+
+            // Emit auction started event
+
+            // Return total options available
             Result::Ok(100)
         }
 
         fn end_auction(ref self: ContractState) -> Result<(u256, u256), OptionRoundError> {
+            // Assert caller is Vault
+
+            // Assert state is Auctioning
+
+            // Assert block timestamp is >= auction end date
+
+            // Update state to Running
             self.state.write(OptionRoundState::Running);
+
+            // Calculate clearing price & total options sold
+            //  - An empty helper function is fine for now, we will discuss the
+            //  implementation of this function later
+
+            // Set clearing price & total options sold
+
+            // Send eth (total_premiums) to Vault
+
+            // Emit auction ended event
             Result::Ok((100, 100))
         }
 
         fn settle_option_round(
-            ref self: ContractState, avg_base_fee: u256
+            ref self: ContractState, settlement_price: u256
         ) -> Result<u256, OptionRoundError> {
+            // Assert caller is Vault
+
+            // Assert state is Running
+
+            // Assert block timestamp is >= option settlement date
+
+            // Update state to Settled
             self.state.write(OptionRoundState::Settled);
+
+            // Calculate total_payout
+            //  - There is an example helper function in the test suite named `calculate_expected_payout`
+
+            // Set total_payout
+
+            // Emit option settled event
+
+            // Return total payout
+
             Result::Ok(100)
         }
 

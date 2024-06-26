@@ -198,13 +198,25 @@ mod Vault {
 
     #[storage]
     struct Storage {
+        // The amount liquidity providers deposit into each round: (liquidity_provider, round_id) -> deposit_amount
+        positions: LegacyMap<(ContractAddress, u256), u256>,
+        // Withdraw checkpoints: (liquidity_provider) -> round_id
+        withdraw_checkpoints: LegacyMap<ContractAddress, u256>,
+        // Total unlocked liquidity
+        total_unlocked_balance: u256,
+        // Total locked liquidity
+        total_locked_balance: u256,
+        // The amount of premiums a liquidity provider collects from each round: (liquidity_provider, round_id) -> collected_amount
+        premiums_collected: LegacyMap<(ContractAddress, u256), bool>,
+        // The amount of liquidity not sold during each round's auction (if any): (round_id) -> unsold_liquidity
+        unsold_liquidity: LegacyMap<u256, u256>,
+        ///////
+        ///////
         vault_manager: ContractAddress,
         vault_type: VaultType,
-        //current_option_round_params: OptionRoundParams,
         current_option_round_id: u256,
         market_aggregator: ContractAddress,
         round_addresses: LegacyMap<u256, ContractAddress>,
-        premiums_collected: LegacyMap<(u256, ContractAddress), bool>,
         round_transition_period: u64,
         auction_run_time: u64,
         option_run_time: u64,
@@ -380,14 +392,82 @@ mod Vault {
         /// State transition
 
         fn start_auction(ref self: ContractState) -> Result<u256, VaultError> {
+            // Copy total_unlocked_liquidity to total_locked_liquidty
+
+            // Set total_unlocked_liquidity to 0
+
+            // Calculate total_options_available
+            // - see official pitchlake paper for formula
+
+            // Call OptionRound::start_auction()
+            //  - Pass in the total_options_available and starting liquidity (now total_locked_liquidity)
+
+            // Return the total_options_available
+
             Result::Ok(1)
         }
 
         fn end_auction(ref self: ContractState) -> Result<(u256, u256), VaultError> {
+            // Call OptionRound::end_auction() (returns clearing_price & total_options_sold)
+
+            // Increment total_unlocked_balance by premiums earned (clearing_price * total_options_sold)
+
+            // If total_options_sold < total_options_available, we need to handle the unsold liquidity
+            // - Set unsold_liquidty to the amount of unsold liquidity
+            //  - i.e. If total options == 100, and only 60 were sold, then 40% of the locked liquidity
+            //  goes unsold
+            // - Decrement total_locked_balance by unsold_liquidity
+            // - Increment total_unlocked_balance by unsold_liquidity
+
+            // Return clearing price and total options sold
+
             Result::Ok((100, 100))
         }
 
         fn settle_option_round(ref self: ContractState) -> Result<u256, VaultError> {
+            // Fetch the settlement_price from fossil
+            //  - An empty helper function is fine for now, we will discuss the
+            //  implementation of this function later
+
+            // Call OptionRound::settle_option_round() with the settlement_price (returns total_payout)
+
+            // Send eth (total_payout) from this contract to the just settled option round (if > 0)
+
+            // Decrement total_locked_balance by total_payout
+
+            // Add total_locked_balance to total_unlocked_balance
+
+            // Set total_locked_balance to 0
+
+            // Increment the current_round_id
+
+            // Fetch reserve_price, cap_level, and strike_price from fossil
+            // - An empty helper function is fine for now, we will discuss the
+            // implementation of this function later
+
+            // Calculate auction_start_date, auction_end_date, and option_settlement_date
+            // - auction_state_date = now + round_transition_period
+            // - auction_end_date = auction_start_date + auction_run_time
+            // - option_settlement_date = auction_end_date + option_run_time
+
+            // Deploy the new current option round with the above params
+
+            // Emit new round deployed event
+
+            //2.0) Vault::{settle_option_round}
+            //- Add function to fetch the settlement price from fossil
+            //	- let settlement_price = fetch_settlement_price()
+            //		- just the ghost function is fine for now
+            //- call OptionRound::settle_option_round using the above settlement_price
+            //- increment the current round id
+            //- Add function to retrieve reserve price, cap level & strike price from fossil
+            //	 - let (reserve price, cap_level, strike_price) = fetch_round_start_params()
+            //		  - Just the ghost function is fine for now
+            //- deploy the new current option round with the above params
+            //
+            //
+            //make sure to update unlocked/locked balance during the state transition functions too
+
             Result::Ok(1)
         }
 
@@ -395,10 +475,63 @@ mod Vault {
         fn deposit_liquidity(
             ref self: ContractState, amount: u256, liquidity_provider: ContractAddress
         ) -> Result<u256, VaultError> {
+            // Add amount to positions
+            // - If current round Open, values goes into thte current round id slot (the round id about to start)
+            //  - Else (Auctioning|Running), value goes into the next round id slot (the round id starting next)
+
+            // Increment total_unlocked_balance ()
+
+            // Transfer ETH from caller to this contract
+
+            // Emit event
+
+            // Return the liquidity provider's unlocked liquidity balance after the deposit
+
             Result::Ok(1)
         }
 
         fn withdraw_liquidity(ref self: ContractState, amount: u256) -> Result<u256, VaultError> {
+            // Calculate the value of the caller's unlocked position from their checkpoint -> the current round
+            // - If the current round is Open, this value should be the caller's portion of the previous round's
+            //  remaining liquidity, plus the value of the caller's deposit into the next round
+            // - If the current round is Auctioning, this value should just include any deposits for the next round
+            // - If the current round is Running, this value should only be the caller's portion of the premiums earned
+            //  in the current round, plus the value of the caller's deposit into the next round
+            // @dev Remember each we need to calculate the value of the caller's position across each round. Each round
+            // the caller's liquidity is == their portion of the remaining liquidity (deposits + premiums - payouts) -
+            // any premiums from the round that they may have already collected
+            // - See crash course for more details
+
+            // Assert amount <= this value
+
+            // Update the caller's withdraw_checkpoint
+            // - If the current round is Open, the checkpoint should be set to the current round
+            // - Else (Auctioning|Running), the checkpoint should not be updated
+
+            // Update the caller's position in storage
+            // - If the current round is Open, set the value in the mapping to `value - amount`, at slot current_round_id
+            // - If the current round is Auctioning, set the value in the mapping to `value - amount`, at slot next_round_id
+            // - If the current round is Running, that means the user is withdrawing (possibly) from their premiums earned
+            // in the current round, and from their deposits into the next round. This means we may or may not need to update the
+            // position mapping. If value <= premiums earned in the current round, then we do not need to update the position mapping.
+            // However, if value > premiums earned in this round, then we need to update the positions value in the mapping with this
+            // difference at slot next_round_id
+            //  - i.e Say the caller could collect 10 in premiums in the current round, and has a deposit of 10 into the next round.
+            // They withdraw 15. This means we set the value of their position at slot next_round_id to 10 - 5 = 5 (and update premiums collected to 10 for
+            // the current round, see below)
+
+            // Update premiums collected in the current round
+            // - If the current round is Open | Running, we need to increment the amount of premiums collected in the current round
+            // - If the current round is Auctioning, then we do not update this value (since the premiums have not been earned yet the user will not be withdrawing from them)
+
+            // Decrement total_unlocked_balance by amount
+
+            // Transfer eth from Vault to caller
+
+            // Emit withdrawal event
+
+            // Return the value of the caller's unlocked position after the withdrawal
+
             Result::Ok(1)
         }
 

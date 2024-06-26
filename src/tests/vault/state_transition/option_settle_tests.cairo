@@ -196,8 +196,6 @@ fn test_settling_option_round_updates_current_round_id() {
     }
 }
 
-// Test settling an option round does not change the current round id
-
 // Test settling an option round updates the current round's state
 // @note should this be a state transition test in option round tests
 #[test]
@@ -258,8 +256,7 @@ fn test_settling_option_round_transfers_payout() {
     }
 }
 
-// Test l
-// Test that the vualt and LP spreads update when the round settles
+// Test that the vault and LP locked/unlocked balances update when the round settles
 #[test]
 #[available_gas(10000000)]
 fn test_settling_option_round_updates_locked_and_unlocked_balances() {
