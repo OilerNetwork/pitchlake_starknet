@@ -476,7 +476,7 @@ mod OptionRound {
         }
 
         fn total_premiums(self: @ContractState) -> u256 {
-            100
+            self.get_auction_clearing_price() * self.total_options_sold()
         }
 
         fn total_payout(self: @ContractState) -> u256 {
@@ -484,11 +484,11 @@ mod OptionRound {
         }
 
         fn get_auction_clearing_price(self: @ContractState) -> u256 {
-            100
+            self.clearing_price.read()
         }
 
         fn total_options_sold(self: @ContractState) -> u256 {
-            100
+            self.total_options_sold.read()
         }
 
         fn get_bid_details(self: @ContractState, bid_id: felt252) -> Bid {
