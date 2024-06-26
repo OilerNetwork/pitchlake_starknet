@@ -208,6 +208,8 @@ mod OptionRound {
         bids_head: felt252,
         bids_tail: felt252,
         auction_start_date: u64,
+        auction_end_date: u64,
+        auction_expiry_date:u64,
     }
 
     // The parameters needed to construct an option round
@@ -458,18 +460,18 @@ mod OptionRound {
         }
 
         fn get_auction_end_date(self: @ContractState) -> u64 {
-            100
+            self.auction_end_date.read()
         }
 
         fn get_option_expiry_date(self: @ContractState) -> u64 {
-            100
+            self.auction_expiry_date.read()
         }
 
 
         /// $
 
         fn starting_liquidity(self: @ContractState) -> u256 {
-            100
+            self.starting_liquidity.read()
         }
 
         fn total_premiums(self: @ContractState) -> u256 {
@@ -477,15 +479,15 @@ mod OptionRound {
         }
 
         fn total_payout(self: @ContractState) -> u256 {
-            100
+            self.total_payout.read()
         }
 
         fn get_auction_clearing_price(self: @ContractState) -> u256 {
-            100
+            self.clearing_price.read()
         }
 
         fn total_options_sold(self: @ContractState) -> u256 {
-            100
+            self.total_options_sold.read()
         }
 
         fn get_bid_details(self: @ContractState, bid_id: felt252) -> Bid {
@@ -554,15 +556,15 @@ mod OptionRound {
         }
 
         fn get_cap_level(self: @ContractState) -> u256 {
-            100
+            self.cap_level.read()
         }
 
         fn get_reserve_price(self: @ContractState) -> u256 {
-            100
+            self.reserve_price.read()
         }
 
         fn get_total_options_available(self: @ContractState) -> u256 {
-            100
+            self.total_options_available.read()
         }
 
         /// Writes ///
