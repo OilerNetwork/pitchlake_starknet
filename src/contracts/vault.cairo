@@ -133,6 +133,7 @@ trait IVault<TContractState> {
 
 #[starknet::contract]
 mod Vault {
+    use pitch_lake_starknet::contracts::option_round::IOptionRoundDispatcherTrait;
     use starknet::{
         ContractAddress, ClassHash, deploy_syscall, get_caller_address, contract_address_const,
         get_contract_address
@@ -392,19 +393,33 @@ mod Vault {
         /// State transition
 
         fn start_auction(ref self: ContractState) -> Result<u256, VaultError> {
-            // Copy total_unlocked_liquidity to total_locked_liquidty
+            let unlocked_balance = self.total_unlocked_balance.read();
+            self.total_locked_balance.write(unlocked_balance);
+            self.total_unlocked_balance.write(0);
+            let current_round_address = self
+                .round_addresses
+                .read(self.current_option_round_id.read());
 
-            // Set total_unlocked_liquidity to 0
+            let current_round = IOptionRoundDispatcher { contract_address: current_round_address };
 
-            // Calculate total_options_available
-            // - see official pitchlake paper for formula
+            //Check reserve_price calculation and update accordingly
+            let reserve_price = 1;
+            let res = current_round.start_auction(reserve_price, unlocked_balance);
+            match res {
+                Result::Ok(value) => { Result::Ok(value) },
+                Result::Err(err) => { Result::Err(VaultError::OptionRoundError(err)) }
+            }
+        // Copy total_unlocked_liquidity to total_locked_liquidty
 
-            // Call OptionRound::start_auction()
-            //  - Pass in the total_options_available and starting liquidity (now total_locked_liquidity)
+        // Set total_unlocked_liquidity to 0
 
-            // Return the total_options_available
+        // Calculate total_options_available
+        // - see official pitchlake paper for formula
 
-            Result::Ok(1)
+        // Call OptionRound::start_auction()
+        //  - Pass in the total_options_available and starting liquidity (now total_locked_liquidity)
+
+        // Return the total_options_available
         }
 
         fn end_auction(ref self: ContractState) -> Result<(u256, u256), VaultError> {
