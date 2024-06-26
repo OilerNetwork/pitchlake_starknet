@@ -588,7 +588,8 @@ mod Vault {
                     )
                 );
 
-            Result::Ok(self.get_lp_unlocked_balance(liquidity_provider))
+            // Return the liquidity provider's updated unlocked balance
+            Result::Ok(lp_unlocked_balance_after)
         }
 
         fn withdraw_liquidity(ref self: ContractState, amount: u256) -> Result<u256, VaultError> {

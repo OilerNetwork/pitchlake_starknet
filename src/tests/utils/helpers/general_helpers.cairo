@@ -52,7 +52,7 @@ fn sum_u256_array(mut arr: Span<u256>) -> u256 {
 
 // Sum the total amount paid for multiple bids.
 fn get_total_bids_amount(mut bid_prices: Span<u256>, mut bid_amounts: Span<u256>) -> u256 {
-  assert_two_arrays_equal_length(bid_prices, bid_amounts);
+    assert_two_arrays_equal_length(bid_prices, bid_amounts);
     let mut sum = 0;
     loop {
         match bid_prices.pop_front() {
