@@ -22,6 +22,7 @@ trait IOptionRound<TContractState> {
     // The auction end date
     fn get_auction_end_date(self: @TContractState) -> u64;
 
+
     // The option settlement date
     fn get_option_settlement_date(self: @TContractState) -> u64;
 
@@ -217,6 +218,7 @@ mod OptionRound {
         linked_list: LegacyMap<felt252, LinkedBids>,
         bids_head: felt252,
         bids_tail: felt252,
+        option_expiry_date: u64,
     }
 
     // The parameters needed to construct an option round
@@ -371,6 +373,11 @@ mod OptionRound {
         // Write option round params to storage now or once auction starts
         self.reserve_price.write(reserve_price);
         self.cap_level.write(cap_level);
+        self.auction_start_date.write(auction_start_date);
+        self.auction_end_date.write(auction_end_date);
+        self.option_settlement_date.write(option_settlement_date);
+        // Write other params to storage
+
         self.strike_price.write(strike_price);
     }
 
@@ -674,23 +681,40 @@ mod OptionRound {
         ) -> Result<u256, OptionRoundError> {
             // Assert caller is Vault
 
-            // Assert state is Running
+            match self.is_caller_the_vault() {
+                true => {
+                    // Assert state is Running
+                    match self.state.read() {
+                        OptionRoundState::Settled => {
+                            Result::Err(OptionRoundError::OptionRoundAlreadySettled)
+                        },
+                        OptionRoundState::Running => {
+                            // Assert block timestamp is >= option settlement date
+                            if (self.get_option_settlement_date() > get_block_timestamp()) {
+                                Result::Err(OptionRoundError::OptionSettlementDateNotReached)
+                            } else {
+                                // Calculate total_payout
+                                let total_payout = self.calculate_expected_payout(settlement_price);
 
-            // Assert block timestamp is >= option settlement date
+                                // Update state to Settled
+                                self.state.write(OptionRoundState::Settled);
 
-            // Update state to Settled
-            self.state.write(OptionRoundState::Settled);
+                                // Set total_payout
+                                self.total_payout.write(total_payout);
 
-            // Calculate total_payout
-            //  - There is an example helper function in the test suite named `calculate_expected_payout`
+                                // Emit option settled event
+                                self.emit(Event::OptionSettle(OptionSettle { settlement_price }));
 
-            // Set total_payout
+                                Result::Ok(total_payout)
+                            }
+                        },
+                        _ => { Result::Err(OptionRoundError::OptionSettlementDateNotReached) }
+                    }
+                },
+                false => { return Result::Err(OptionRoundError::CallerIsNotVault); }
+            }
+        // Return total payout
 
-            // Emit option settled event
-
-            // Return total payout
-
-            Result::Ok(100)
         }
 
         /// OB functions
@@ -756,6 +780,13 @@ mod OptionRound {
 
         fn calculate_options(ref self: ContractState, starting_liquidity: u256) -> u256 {
             //Calculate total options accordingly
+            1
+        }
+
+        fn calculate_expected_payout(ref self: ContractState, settlement_price: u256,) -> u256 {
+            let k = self.get_strike_price();
+            let cl = self.get_cap_level();
+            //max(0, min((1 + cl) * k, settlement_price) - k)
             1
         }
 
