@@ -666,7 +666,6 @@ mod Vault {
         }
 
         fn deploy_round(ref self: ContractState, round_id: u256) -> ContractAddress {
-
             // Calculate fossil data for reserve price, cap level, strike price etc. here
             let mut calldata: Array<felt252> = array![];
             calldata.append_serde(starknet::get_contract_address()); // vault address

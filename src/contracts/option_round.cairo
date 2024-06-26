@@ -671,20 +671,32 @@ mod OptionRound {
         fn settle_option_round(
             ref self: ContractState, settlement_price: u256
         ) -> Result<u256, OptionRoundError> {
+            // Assert caller is Vault
+
             match self.is_caller_the_vault() {
                 true => {
+                    // Assert state is Running
                     match self.state.read() {
                         OptionRoundState::Settled => {
                             Result::Err(OptionRoundError::OptionRoundAlreadySettled)
                         },
                         OptionRoundState::Running => {
+                            // Assert block timestamp is >= option settlement date
                             if (self.get_option_settlement_date() > get_block_timestamp()) {
                                 Result::Err(OptionRoundError::OptionSettlementDateNotReached)
                             } else {
+                                // Calculate total_payout
                                 let total_payout = self.calculate_expected_payout(settlement_price);
-                                self.total_payout.write(total_payout);
-                                self.emit(Event::OptionSettle(OptionSettle { settlement_price }));
+
+                                // Update state to Settled
                                 self.state.write(OptionRoundState::Settled);
+
+                                // Set total_payout
+                                self.total_payout.write(total_payout);
+
+                                // Emit option settled event
+                                self.emit(Event::OptionSettle(OptionSettle { settlement_price }));
+
                                 Result::Ok(total_payout)
                             }
                         },
@@ -693,21 +705,6 @@ mod OptionRound {
                 },
                 false => { return Result::Err(OptionRoundError::CallerIsNotVault); }
             }
-        // Assert caller is Vault
-
-        // Assert state is Running
-
-        // Assert block timestamp is >= option settlement date
-
-        // Update state to Settled
-
-        // Calculate total_payout
-        //  - There is an example helper function in the test suite named `calculate_expected_payout`
-
-        // Set total_payout
-
-        // Emit option settled event
-
         // Return total payout
 
         }
