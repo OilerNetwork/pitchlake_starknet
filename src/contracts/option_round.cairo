@@ -759,7 +759,7 @@ mod OptionRound {
 
         // End the auction and calculate the clearing price and total options sold
         fn end_auction_internal(ref self: ContractState) -> (u256, u256) {
-            (100, 100)
+            (1, 1)
         }
 
         // Get a dispatcher for the ETH contract
@@ -777,7 +777,15 @@ mod OptionRound {
         fn calculate_expected_payout(ref self: ContractState, settlement_price: u256,) -> u256 {
             let k = self.get_strike_price();
             let cl = self.get_cap_level();
-            max(0, min((1 + cl) * k, settlement_price) - k)
+            //max(0, min((1 + cl) * k, settlement_price) - k)
+            // remove sub overflow possibility
+            let min = min((1 + cl) * k, settlement_price);
+            if min > k {
+                min - k
+            } else {
+                0
+            }
+
         }
 
         // Get a dispatcher for the Vault
