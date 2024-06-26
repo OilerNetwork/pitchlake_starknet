@@ -169,7 +169,8 @@ trait IOptionRound<TContractState> {
 #[starknet::contract]
 mod OptionRound {
     use openzeppelin::token::erc20::{
-        ERC20Component, ERC20Component::{ERC20}, interface::{IERC20, IERC20Dispatcher}
+        ERC20Component,
+        interface::{IERC20, IERC20Dispatcher, IERC20DispatcherTrait,}
     };
     use starknet::{ContractAddress, get_caller_address, get_block_timestamp};
     use pitch_lake_starknet::contracts::vault::{
@@ -625,7 +626,7 @@ mod OptionRound {
             // Send eth (total_premiums) to Vault
             let eth = self.get_eth_dispatcher();
             let total_premiums = clearing_price * total_options_sold;
-            //eth.transfer(self.vault_address(), total_premiums);
+            eth.transfer(self.vault_address(), total_premiums);
 
             // Emit auction ended event
             Result::Ok((100, 100))
