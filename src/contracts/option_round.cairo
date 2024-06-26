@@ -171,6 +171,7 @@ mod OptionRound {
     };
     use starknet::{ContractAddress, get_caller_address, get_block_timestamp};
     use pitch_lake_starknet::contracts::{
+        utils::utils::{min, max},
         vault::{Vault::VaultType, IVaultDispatcher, IVaultDispatcherTrait},
         option_round::IOptionRound
     };
@@ -218,7 +219,6 @@ mod OptionRound {
         linked_list: LegacyMap<felt252, LinkedBids>,
         bids_head: felt252,
         bids_tail: felt252,
-        option_expiry_date: u64,
     }
 
     // The parameters needed to construct an option round
@@ -786,8 +786,7 @@ mod OptionRound {
         fn calculate_expected_payout(ref self: ContractState, settlement_price: u256,) -> u256 {
             let k = self.get_strike_price();
             let cl = self.get_cap_level();
-            //max(0, min((1 + cl) * k, settlement_price) - k)
-            1
+            max(0, min((1 + cl) * k, settlement_price) - k)
         }
 
         // Get a dispatcher for the Vault

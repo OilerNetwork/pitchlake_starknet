@@ -1,4 +1,7 @@
 mod contracts {
+    mod utils {
+        mod utils;
+    }
     mod eth;
     mod pitch_lake;
     mod vault;
