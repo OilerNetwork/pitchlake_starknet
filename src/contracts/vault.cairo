@@ -26,6 +26,9 @@ trait IVault<TContractState> {
     // Get the market aggregator address
     fn get_market_aggregator(self: @TContractState) -> ContractAddress;
 
+    // Get the ETH address
+    fn eth_address(self: @TContractState) -> ContractAddress;
+
     /// Rounds
 
     // @return the current option round id
@@ -198,6 +201,8 @@ mod Vault {
 
     #[storage]
     struct Storage {
+        // The address for the ETH contract
+        eth_address: ContractAddress,
         // The amount liquidity providers deposit into each round: (liquidity_provider, round_id) -> deposit_amount
         positions: LegacyMap<(ContractAddress, u256), u256>,
         // Withdraw checkpoints: (liquidity_provider) -> round_id
@@ -223,6 +228,8 @@ mod Vault {
     // liquidity_positions: LegacyMap<((ContractAddress, u256), u256)>,
     }
 
+    // @note Need to add eth address as a param here
+    //  - Will need to update setup functions to accomodate
     #[constructor]
     fn constructor(
         ref self: ContractState,
@@ -231,6 +238,8 @@ mod Vault {
         market_aggregator: ContractAddress,
         option_round_class_hash: ClassHash,
     ) {
+        // Set eth address
+        // self.eth_address.write(...)
         self.vault_manager.write(vault_manager);
         self.vault_type.write(vault_type);
         self.market_aggregator.write(market_aggregator);
@@ -325,6 +334,10 @@ mod Vault {
 
         fn get_market_aggregator(self: @ContractState) -> ContractAddress {
             self.market_aggregator.read()
+        }
+
+        fn eth_address(self: @ContractState) -> ContractAddress {
+            self.eth_address.read()
         }
 
         /// Rounds
