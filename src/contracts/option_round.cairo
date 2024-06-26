@@ -586,10 +586,12 @@ mod OptionRound {
                         //Currently set to take value directly from the vault
                         let total_options_available = self.calculate_options(starting_liquidity);
 
-                        self.total_options_available.write(total_options_available);
+                       
                         match self.state.read() {
                             OptionRoundState::Open => {
                                 self.state.write(OptionRoundState::Auctioning);
+                                self.starting_liquidity.write(starting_liquidity);
+                                self.total_options_available.write(total_options_available);
                                 self
                                     .emit(
                                         Event::AuctionStart(
