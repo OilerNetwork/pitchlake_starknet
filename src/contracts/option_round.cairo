@@ -379,10 +379,9 @@ mod OptionRound {
         self.auction_start_date.write(auction_start_date);
         self.auction_end_date.write(auction_end_date);
         self.option_settlement_date.write(option_settlement_date);
-    // Write other params to storage
+        // Write other params to storage
 
         self.strike_price.write(strike_price);
-
     }
 
     // @note Need to handle CallerIsNotVault errors in tests
@@ -704,7 +703,9 @@ mod OptionRound {
                                 self.state.write(OptionRoundState::Settled);
 
                                 // Set total_payout
-                                self.total_payout.write(total_payout);
+                                if (total_payout > 0) {
+                                    self.total_payout.write(total_payout);
+                                }
 
                                 // Emit option settled event
                                 self.emit(Event::OptionSettle(OptionSettle { settlement_price }));
