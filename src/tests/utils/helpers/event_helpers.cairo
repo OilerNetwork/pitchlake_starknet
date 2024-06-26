@@ -51,13 +51,15 @@ fn pop_event_details(address: ContractAddress) -> Option<(Span<felt252>, Span<fe
 // OptionRound Events
 
 // Check AuctionStart emits correctly
-// @dev Example of Result type
 fn assert_event_auction_start(
     option_round_address: ContractAddress, total_options_available: u256
 ) {
-    match pop_log::<OptionRound::AuctionStart>(option_round_address) {
+    // @note Confirm this works (fix from discord), then work into other event assertions (should handle manual ones as well)
+    // @note Reminder to clear event logs at the end of the accelerators
+    //match pop_log::<OptionRound::AuctionStart>(option_round_address) {
+    match pop_log::<OptionRound::Event>(option_round_address) {
         Option::Some(e) => {
-            let e = OptionRound::Event::AuctionStart(e);
+            //let e = OptionRound::Event::AuctionStart(e);
             let expected = OptionRound::Event::AuctionStart(
                 OptionRound::AuctionStart { total_options_available }
             );
@@ -71,31 +73,41 @@ fn assert_event_auction_start(
 fn assert_event_auction_bid_accepted(
     contract: ContractAddress, account: ContractAddress, amount: u256, price: u256,
 ) {
-    match pop_event_details(contract) {
-        Option::Some((
-            keys, data
-        )) => {
+    match pop_log::<OptionRound::Event>(contract) {
+        Option::Some(e) => {
+            //let e = OptionRound::Event::AuctionStart(e);
             let expected = OptionRound::Event::AuctionAcceptedBid(
                 OptionRound::AuctionAcceptedBid { account, amount, price }
             );
-            let e = OptionRound::Event::AuctionAcceptedBid(
-                OptionRound::AuctionAcceptedBid {
-                    account: (*keys.at(1)).try_into().unwrap(),
-                    amount: u256 {
-                        low: (*data.at(0)).try_into().unwrap(),
-                        high: (*data.at(1)).try_into().unwrap(),
-                    },
-                    price: u256 {
-                        low: (*data.at(2)).try_into().unwrap(),
-                        high: (*data.at(3)).try_into().unwrap(),
-                    },
-                }
-            );
-            // Assert events are equal
             assert_events_equal(e, expected);
         },
-        Option::None => { panic(array!['No events found']); }
-    };
+        Option::None => { panic(array!['Could not find event']); },
+    }
+//    match pop_event_details(contract) {
+//        Option::Some((
+//            keys, data
+//        )) => {
+//            let expected = OptionRound::Event::AuctionAcceptedBid(
+//                OptionRound::AuctionAcceptedBid { account, amount, price }
+//            );
+//            let e = OptionRound::Event::AuctionAcceptedBid(
+//                OptionRound::AuctionAcceptedBid {
+//                    account: (*keys.at(1)).try_into().unwrap(),
+//                    amount: u256 {
+//                        low: (*data.at(0)).try_into().unwrap(),
+//                        high: (*data.at(1)).try_into().unwrap(),
+//                    },
+//                    price: u256 {
+//                        low: (*data.at(2)).try_into().unwrap(),
+//                        high: (*data.at(3)).try_into().unwrap(),
+//                    },
+//                }
+//            );
+//            // Assert events are equal
+//            assert_events_equal(e, expected);
+//        },
+//        Option::None => { panic(array!['No events found']); }
+//    };
 }
 
 // Check AuctionRejectedBid emits correctly
