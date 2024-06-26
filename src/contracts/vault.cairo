@@ -136,6 +136,7 @@ trait IVault<TContractState> {
 
 #[starknet::contract]
 mod Vault {
+    use pitch_lake_starknet::contracts::option_round::IOptionRoundDispatcherTrait;
     use starknet::{
         ContractAddress, ClassHash, deploy_syscall, get_caller_address, contract_address_const,
         get_contract_address
@@ -409,19 +410,33 @@ mod Vault {
         /// State transition
 
         fn start_auction(ref self: ContractState) -> Result<u256, VaultError> {
-            // Copy total_unlocked_liquidity to total_locked_liquidty
+            let unlocked_balance = self.total_unlocked_balance.read();
+            self.total_locked_balance.write(unlocked_balance);
+            self.total_unlocked_balance.write(0);
+            let current_round_address = self
+                .round_addresses
+                .read(self.current_option_round_id.read());
 
-            // Set total_unlocked_liquidity to 0
+            let current_round = IOptionRoundDispatcher { contract_address: current_round_address };
 
-            // Calculate total_options_available
-            // - see official pitchlake paper for formula
+            //Check reserve_price calculation and update accordingly
+            let total_options_available = self.calculate_options(unlocked_balance);
+            let res = current_round.start_auction(total_options_available, unlocked_balance);
+            match res {
+                Result::Ok(value) => { Result::Ok(value) },
+                Result::Err(err) => { Result::Err(VaultError::OptionRoundError(err)) }
+            }
+        // Copy total_unlocked_liquidity to total_locked_liquidty
 
-            // Call OptionRound::start_auction()
-            //  - Pass in the total_options_available and starting liquidity (now total_locked_liquidity)
+        // Set total_unlocked_liquidity to 0
 
-            // Return the total_options_available
+        // Calculate total_options_available
+        // - see official pitchlake paper for formula
 
-            Result::Ok(1)
+        // Call OptionRound::start_auction()
+        //  - Pass in the total_options_available and starting liquidity (now total_locked_liquidity)
+
+        // Return the total_options_available
         }
 
         fn end_auction(ref self: ContractState) -> Result<(u256, u256), VaultError> {
@@ -610,7 +625,7 @@ mod Vault {
 
     // Internal Functions
     #[generate_trait]
-    impl InternalImpl of OptionRoundInternalTrait {
+    impl InternalImpl of VaultInternalTrait {
         // Get a dispatcher for the ETH contract
         fn get_eth_dispatcher(self: @ContractState) -> IERC20Dispatcher {
             let eth_address: ContractAddress = self.eth_address();
@@ -621,6 +636,11 @@ mod Vault {
         fn get_round_dispatcher(self: @ContractState, round_id: u256) -> IOptionRoundDispatcher {
             let round_address = self.get_option_round_address(round_id);
             IOptionRoundDispatcher { contract_address: round_address }
+        }
+
+        fn calculate_options(ref self: ContractState, starting_liquidity: u256) -> u256 {
+            //Calculate total options accordingly
+            1
         }
     }
 }
