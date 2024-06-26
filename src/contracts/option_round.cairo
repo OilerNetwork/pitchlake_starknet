@@ -218,10 +218,7 @@ mod OptionRound {
         linked_list: LegacyMap<felt252, LinkedBids>,
         bids_head: felt252,
         bids_tail: felt252,
-        auction_start_date: u64,
-        auction_end_date: u64,
         option_expiry_date: u64,
-        option_settlement_date: u64,
     }
 
     // The parameters needed to construct an option round
@@ -703,9 +700,7 @@ mod OptionRound {
                                 self.state.write(OptionRoundState::Settled);
 
                                 // Set total_payout
-                                if (total_payout > 0) {
-                                    self.total_payout.write(total_payout);
-                                }
+                                self.total_payout.write(total_payout);
 
                                 // Emit option settled event
                                 self.emit(Event::OptionSettle(OptionSettle { settlement_price }));
