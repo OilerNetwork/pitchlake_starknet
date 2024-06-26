@@ -159,13 +159,17 @@ fn setup_facade() -> (VaultFacade, IERC20Dispatcher) {
     );
 
     // Supply eth to test accounts
-    set_contract_address(weth_owner());
     let mut liquidity_providers = liquidity_providers_get(5);
     loop {
         match liquidity_providers.pop_front() {
             Option::Some(liquidity_provider) => {
+                set_contract_address(weth_owner());
                 let lp_amount_wei: u256 = 1000000 * decimals(); // 1,000,000 ETH
+                // make the lps as the caller 
+                // then call approve, in order to make vault to set bid
                 eth_dispatcher.transfer(liquidity_provider, lp_amount_wei);
+                set_contract_address(liquidity_provider);
+                eth_dispatcher.approve(vault_dispatcher.contract_address, lp_amount_wei);
             },
             Option::None => { break (); },
         };
@@ -174,9 +178,12 @@ fn setup_facade() -> (VaultFacade, IERC20Dispatcher) {
     loop {
         match option_bidders.pop_front() {
             Option::Some(ob) => {
+                set_contract_address(weth_owner());
                 let ob_amount_wei: u256 = 100000 * decimals(); // 100,000 ETH
 
                 eth_dispatcher.transfer(ob, ob_amount_wei);
+                set_contract_address(ob);
+                eth_dispatcher.approve(vault_dispatcher.get_option_round_address(1), ob_amount_wei);
             },
             Option::None => { break; },
         };

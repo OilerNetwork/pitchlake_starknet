@@ -41,10 +41,12 @@ fn create_array_gradient_reverse(amount: u256, step: u256, len: u32) -> Array<u2
 // Sum all of the u256s in a given span
 fn sum_u256_array(mut arr: Span<u256>) -> u256 {
     let mut sum = 0;
-    match arr.pop_front() {
-        Option::Some(el) => { sum += *el; },
-        Option::None => {}
-    }
+    loop {
+        match arr.pop_front() {
+            Option::Some(el) => { sum += *el; },
+            Option::None => { break; }
+        }
+    };
     sum
 }
 

@@ -54,6 +54,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     ) -> Array<u256> {
         assert_two_arrays_equal_length(liquidity_providers, amounts);
         let mut updated_unlocked_positions = array![];
+        println!("deposit multiple");
         loop {
             match liquidity_providers.pop_front() {
                 Option::Some(liquidity_provider) => {
@@ -381,7 +382,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     // Eth contract address
     fn get_eth_address(ref self: VaultFacade) -> ContractAddress {
-      self.vault_dispatcher.eth_address()
+        self.vault_dispatcher.eth_address()
     }
 
     // Gets the round transition period in seconds, 3 hours is a random number for testing

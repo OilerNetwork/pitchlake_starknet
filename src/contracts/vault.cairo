@@ -136,7 +136,7 @@ trait IVault<TContractState> {
 
 #[starknet::contract]
 mod Vault {
-    use pitch_lake_starknet::contracts::option_round::IOptionRoundDispatcherTrait;
+    // use pitch_lake_starknet::contracts::option_round::IOptionRoundDispatcherTrait;
     use starknet::{
         ContractAddress, ClassHash, deploy_syscall, get_caller_address, contract_address_const,
         get_contract_address
@@ -547,19 +547,40 @@ mod Vault {
         fn deposit_liquidity(
             ref self: ContractState, amount: u256, liquidity_provider: ContractAddress
         ) -> Result<u256, VaultError> {
-            // Add amount to positions
-            // - If current round Open, values goes into thte current round id slot (the round id about to start)
-            //  - Else (Auctioning|Running), value goes into the next round id slot (the round id starting next)
+            let current_round_id = self.current_option_round_id.read();
+            let current_round_address = self.round_addresses.read(current_round_id);
 
-            // Increment total_unlocked_balance ()
+            let current_round = IOptionRoundDispatcher { contract_address: current_round_address };
 
-            // Transfer ETH from caller to this contract
+            let current_round_state = current_round.get_state();
 
-            // Emit event
+            let option_round_id = if (current_round_state == OptionRoundState::Open) {
+                current_round_id
+            } else {
+                current_round_id + 1
+            };
 
-            // Return the liquidity provider's unlocked liquidity balance after the deposit
+            let eth_dispatcher = self.get_eth_dispatcher();
 
-            Result::Ok(1)
+            let vault_contract_address = get_contract_address();
+
+            let current_deposit = self.positions.read((liquidity_provider, option_round_id));
+            let total_unlocked_balance_before = self.total_unlocked_balance.read();
+            self.positions.write((liquidity_provider, option_round_id), current_deposit + amount);
+            eth_dispatcher.transfer_from(liquidity_provider, vault_contract_address, amount);
+            self.total_unlocked_balance.write(total_unlocked_balance_before + amount);
+            self
+                .emit(
+                    Event::Deposit(
+                        Deposit {
+                            account: liquidity_provider,
+                            position_balance_before: current_deposit,
+                            position_balance_after: current_deposit + amount
+                        }
+                    )
+                );
+
+            Result::Ok(current_deposit + amount)
         }
 
         fn withdraw_liquidity(ref self: ContractState, amount: u256) -> Result<u256, VaultError> {

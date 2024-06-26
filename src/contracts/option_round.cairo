@@ -171,9 +171,10 @@ mod OptionRound {
         ERC20Component, interface::{IERC20, IERC20Dispatcher, IERC20DispatcherTrait,}
     };
     use starknet::{ContractAddress, get_caller_address, get_block_timestamp};
-    use pitch_lake_starknet::contracts::{vault::{
-        Vault::VaultType, IVaultDispatcher, IVaultDispatcherTrait
-    }, option_round::IOptionRound};
+    use pitch_lake_starknet::contracts::{
+        vault::{Vault::VaultType, IVaultDispatcher, IVaultDispatcherTrait},
+        option_round::IOptionRound
+    };
     use pitch_lake_starknet::contracts::market_aggregator::{
         IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
     };
