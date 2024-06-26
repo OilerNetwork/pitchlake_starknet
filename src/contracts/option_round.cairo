@@ -16,14 +16,14 @@ trait IOptionRound<TContractState> {
 
     /// Dates
 
-    // Auction start time
+    // The auction start date
     fn get_auction_start_date(self: @TContractState) -> u64;
 
-    // Auction end time
+    // The auction end date
     fn get_auction_end_date(self: @TContractState) -> u64;
 
-    // Option expiry time
-    fn get_option_expiry_date(self: @TContractState) -> u64;
+    // The option settlement date
+    fn get_option_settlement_date(self: @TContractState) -> u64;
 
 
     /// $
@@ -48,7 +48,7 @@ trait IOptionRound<TContractState> {
     fn get_bid_details(self: @TContractState, bid_id: felt252) -> Bid;
 
 
-    //Address functions
+    /// Address functions
 
     // Get the bid nonce for an account
     // @note change this to get_bid_nonce_for
@@ -77,16 +77,14 @@ trait IOptionRound<TContractState> {
 
     /// Other
 
+    // The address of vault that deployed this round
+    fn vault_address(self: @TContractState) -> ContractAddress;
+
     // The constructor parmaeters of the option round
     fn get_constructor_params(self: @TContractState) -> OptionRoundConstructorParams;
 
     // The state of the option round
     fn get_state(self: @TContractState) -> OptionRoundState;
-
-    // The address of vault that deployed this round
-    fn vault_address(self: @TContractState) -> ContractAddress;
-
-    // @dev Previously OptionRoundParams
 
     // Average base fee over last few months, used to calculate strike price
     fn get_current_average_basefee(self: @TContractState) -> u256;
@@ -127,7 +125,7 @@ trait IOptionRound<TContractState> {
         ref self: TContractState, settlement_price: u256
     ) -> Result<u256, OptionRound::OptionRoundError>;
 
-    /// OB functions
+    /// Option bidder functions
 
     // Place a bid in the auction
     // @param amount: The max amount of options being bid for
@@ -191,8 +189,12 @@ mod OptionRound {
         round_id: u256,
         // Total number of options available to sell in the auction
         total_options_available: u256,
+        // The cap level of the potential payout
         cap_level: u256,
+        // The minimum bid price per option
         reserve_price: u256,
+        // The strike price of the options
+        strike_price: u256,
         // The amount of liquidity this round starts with (locked upon auction starting)
         starting_liquidity: u256,
         // The amount the option round pays out upon settlemnt
@@ -201,6 +203,12 @@ mod OptionRound {
         total_options_sold: u256,
         // The clearing price of the auction (the price each option sells for)
         clearing_price: u256,
+        // The auction start date
+        auction_start_date: u64,
+        // The auction end date
+        auction_end_date: u64,
+        // The option settlement date
+        option_settlement_date: u64,
         ///////////
         ///////////
         constructor_params: OptionRoundConstructorParams,
@@ -209,15 +217,11 @@ mod OptionRound {
         linked_list: LegacyMap<felt252, LinkedBids>,
         bids_head: felt252,
         bids_tail: felt252,
-        auction_start_date: u64,
-        auction_end_date: u64,
-        auction_expiry_date: u64,
     }
 
     // The parameters needed to construct an option round
     // @param vault_address: The address of the vault that deployed this round
     // @param round_id: The id of the round (the first round in a vault is round 0)
-    // @note Move into separate file or within contract
     #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
     struct OptionRoundConstructorParams {
         vault_address: ContractAddress,
@@ -356,11 +360,18 @@ mod OptionRound {
         self.vault_address.write(vault_address);
         self.round_id.write(round_id);
 
+        // Set dates
+        self.auction_start_date.write(auction_start_date);
+        self.auction_end_date.write(auction_end_date);
+        self.option_settlement_date.write(option_settlement_date);
+
         // Set round state to open
         self.state.write(OptionRoundState::Open);
+
+        // Write option round params to storage now or once auction starts
         self.reserve_price.write(reserve_price);
         self.cap_level.write(cap_level);
-    // Write other params to storage
+        self.strike_price.write(strike_price);
     }
 
     // @note Need to handle CallerIsNotVault errors in tests
@@ -472,8 +483,8 @@ mod OptionRound {
             self.auction_end_date.read()
         }
 
-        fn get_option_expiry_date(self: @ContractState) -> u64 {
-            self.auction_expiry_date.read()
+        fn get_option_settlement_date(self: @ContractState) -> u64 {
+            self.option_settlement_date.read()
         }
 
 
@@ -561,7 +572,7 @@ mod OptionRound {
         }
 
         fn get_strike_price(self: @ContractState) -> u256 {
-            100
+            self.strike_price.read()
         }
 
         fn get_cap_level(self: @ContractState) -> u256 {
@@ -580,43 +591,42 @@ mod OptionRound {
 
         /// State transition
 
-        //Check if cap level needs to be passed from the vault here
+        // @note Do we need to set cap level/reserve price/strike price here, or is during deployment fine ? (~1-8 hours earlier)
         fn start_auction(
             ref self: ContractState, total_options_available: u256, starting_liquidity: u256
         ) -> Result<u256, OptionRoundError> {
-            if (self.get_auction_start_date() > get_block_timestamp()) {
-                Result::Err(OptionRoundError::AuctionStartDateNotReached)
-            } else {
-                match self.vault_address.read() == starknet::get_caller_address() {
-                    true => {
-                        //Confirm calculation of options and update this accordingly
-                        //Currently set to take value directly from the vault
-                        let total_options_available = self.calculate_options(starting_liquidity);
-
-                        match self.state.read() {
-                            OptionRoundState::Open => {
-                                self.state.write(OptionRoundState::Auctioning);
-                                self.starting_liquidity.write(starting_liquidity);
-                                self.total_options_available.write(total_options_available);
-                                self
-                                    .emit(
-                                        Event::AuctionStart(
-                                            AuctionStart {
-                                                total_options_available: total_options_available
-                                            }
-                                        )
-                                    );
-                                Result::Ok(total_options_available)
-                            },
-                            _ => { Result::Err(OptionRoundError::AuctionAlreadyStarted) },
-                        }
-                    },
-                    false => {
-                        //Return the correct error
-                        Result::Ok(100)
-                    },
-                }
+            // Assert caller is Vault
+            if (!self.is_caller_the_vault()) {
+                return Result::Err(OptionRoundError::CallerIsNotVault);
             }
+
+            // Assert state is Open
+            if (self.state.read() != OptionRoundState::Open) {
+                return Result::Err(OptionRoundError::AuctionAlreadyStarted);
+            }
+
+            // Assert block timestamp is >= auction start date
+            if (get_block_timestamp() < self.get_auction_start_date()) {
+                return Result::Err(OptionRoundError::AuctionStartDateNotReached);
+            }
+
+            // Set starting liquidity & total options available
+            self.starting_liquidity.write(starting_liquidity);
+            self.total_options_available.write(total_options_available);
+
+            // Update state to Auctioning
+            self.state.write(OptionRoundState::Auctioning);
+
+            // Emit auction start event
+            self
+                .emit(
+                    Event::AuctionStart(
+                        AuctionStart { total_options_available: total_options_available }
+                    )
+                );
+
+            // Return the total options available
+            Result::Ok(total_options_available)
         }
 
         fn end_auction(ref self: ContractState) -> Result<(u256, u256), OptionRoundError> {
@@ -647,10 +657,9 @@ mod OptionRound {
             self.clearing_price.write(clearing_price);
             self.total_options_sold.write(total_options_sold);
 
-            // Send eth total_premiums to Vault
+            // Send premiums earned from the auction to Vault
             let eth = self.get_eth_dispatcher();
-            let total_premiums = clearing_price * total_options_sold;
-            eth.transfer(self.vault_address(), total_premiums);
+            eth.transfer(self.vault_address(), self.total_premiums());
 
             // Emit auction ended event
             // @note Should we emit total options sold ?
