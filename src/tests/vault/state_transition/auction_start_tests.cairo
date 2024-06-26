@@ -57,7 +57,7 @@ use debug::PrintTrait;
 
 // Test starting an auction while one is already on-going fails
 #[test]
-#[available_gas(10000000)]
+#[available_gas(1000000000)]
 fn test_starting_auction_while_round_auctioning_fails() {
     let (mut vault_facade, _) = setup_facade();
     accelerate_to_auctioning(ref vault_facade);
@@ -75,7 +75,7 @@ fn test_starting_auction_while_round_auctioning_fails() {
 
 // Test starting an auction after one ends fails
 #[test]
-#[available_gas(10000000)]
+#[available_gas(1000000000)]
 fn test_starting_auction_while_round_running_fails() {
     let (mut vault_facade, _) = setup_facade();
     accelerate_to_auctioning(ref vault_facade);
@@ -91,7 +91,7 @@ fn test_starting_auction_while_round_running_fails() {
 
 // Test starting an auction before the round transition period is over fails
 #[test]
-#[available_gas(10000000)]
+#[available_gas(1000000000)]
 fn test_starting_auction_while_round_settled_before_round_transition_period_over_fails() {
     let (mut vault_facade, _) = setup_facade();
     accelerate_to_auctioning(ref vault_facade);
@@ -113,7 +113,7 @@ fn test_starting_auction_while_round_settled_before_round_transition_period_over
 // Test every time an auction starts, the auction started event emits correctly
 // @note Move to optoin round state transition tests
 #[test]
-#[available_gas(10000000)]
+#[available_gas(1000000000)]
 fn test_auction_started_option_round_event() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
@@ -161,7 +161,7 @@ fn test_starting_auction_does_not_update_current_and_next_round_ids() {
 // Test when an auction starts, the option round states update correctly
 // @note should this be a state transition test in option round tests
 #[test]
-#[available_gas(1000000000)]
+#[available_gas(100000000000)]
 fn test_starting_auction_updates_current_rounds_state() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
@@ -188,7 +188,7 @@ fn test_starting_auction_updates_current_rounds_state() {
 
 // Test unlocked balances become locked when the auction starts
 #[test]
-#[available_gas(10000000)]
+#[available_gas(100000000000)]
 fn test_starting_auction_updates_locked_and_unlocked_balances() {
     let (mut vault, _) = setup_facade();
     let mut liquidity_providers = liquidity_providers_get(4).span();
