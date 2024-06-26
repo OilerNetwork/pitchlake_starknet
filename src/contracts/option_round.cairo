@@ -657,7 +657,6 @@ mod OptionRound {
             self.clearing_price.write(clearing_price);
             self.total_options_sold.write(total_options_sold);
 
-
             // Send premiums earned from the auction to Vault
             let eth = self.get_eth_dispatcher();
             eth.transfer(self.vault_address(), self.total_premiums());
