@@ -41,23 +41,28 @@ fn create_array_gradient_reverse(amount: u256, step: u256, len: u32) -> Array<u2
 // Sum all of the u256s in a given span
 fn sum_u256_array(mut arr: Span<u256>) -> u256 {
     let mut sum = 0;
-    match arr.pop_front() {
-        Option::Some(el) => { sum += *el; },
-        Option::None => {}
-    }
+    loop {
+        match arr.pop_front() {
+            Option::Some(el) => { sum += *el; },
+            Option::None => { break; }
+        }
+    };
     sum
 }
 
 // Sum the total amount paid for multiple bids.
 fn get_total_bids_amount(mut bid_prices: Span<u256>, mut bid_amounts: Span<u256>) -> u256 {
+    assert_two_arrays_equal_length(bid_prices, bid_amounts);
     let mut sum = 0;
-    match bid_prices.pop_front() {
-        Option::Some(bid_price) => {
-            let bid_amount = bid_amounts.pop_front().unwrap();
-            sum += *bid_amount * *bid_price;
-        },
-        Option::None => {}
-    }
+    loop {
+        match bid_prices.pop_front() {
+            Option::Some(bid_price) => {
+                let bid_amount = bid_amounts.pop_front().unwrap();
+                sum += *bid_amount * *bid_price;
+            },
+            Option::None => { break (); }
+        }
+    };
     sum
 }
 

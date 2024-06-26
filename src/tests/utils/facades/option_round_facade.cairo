@@ -259,7 +259,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     }
 
     fn get_option_expiry_date(ref self: OptionRoundFacade) -> u64 {
-        self.option_round_dispatcher.get_option_expiry_date()
+        self.option_round_dispatcher.get_option_settlement_date()
     }
 
     /// $

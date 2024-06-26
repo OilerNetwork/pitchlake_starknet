@@ -158,30 +158,41 @@ fn setup_facade() -> (VaultFacade, IERC20Dispatcher) {
         VaultType::InTheMoney, eth_dispatcher.contract_address
     );
 
-    // Supply eth to test accounts
-    set_contract_address(weth_owner());
+    // Supply eth to test accounts and approve vault to transfer lp eth
     let mut liquidity_providers = liquidity_providers_get(5);
     loop {
         match liquidity_providers.pop_front() {
             Option::Some(liquidity_provider) => {
                 let lp_amount_wei: u256 = 1000000 * decimals(); // 1,000,000 ETH
+                set_contract_address(weth_owner());
                 eth_dispatcher.transfer(liquidity_provider, lp_amount_wei);
+                set_contract_address(liquidity_provider);
+                eth_dispatcher.approve(vault_dispatcher.contract_address, lp_amount_wei);
             },
             Option::None => { break (); },
         };
     };
+
+    // Supply eth to test accounts and approve option round 1 to spend ob eth
     let mut option_bidders = option_bidders_get(5);
     loop {
         match option_bidders.pop_front() {
             Option::Some(ob) => {
+                set_contract_address(weth_owner());
                 let ob_amount_wei: u256 = 100000 * decimals(); // 100,000 ETH
 
                 eth_dispatcher.transfer(ob, ob_amount_wei);
+                set_contract_address(ob);
+                eth_dispatcher.approve(vault_dispatcher.get_option_round_address(1), ob_amount_wei);
             },
             Option::None => { break; },
         };
     };
+    // Supply bystander with eth and approve vault to transfer eth
+    set_contract_address(weth_owner());
     eth_dispatcher.transfer(bystander(), 100000 * decimals());
+    set_contract_address(bystander());
+    eth_dispatcher.approve(vault_dispatcher.contract_address, 100000 * decimals());
 
     // Clear eth transfer events
     clear_event_logs(array![eth_dispatcher.contract_address]);
