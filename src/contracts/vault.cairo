@@ -136,7 +136,6 @@ trait IVault<TContractState> {
 
 #[starknet::contract]
 mod Vault {
-
     use starknet::{
         ContractAddress, ClassHash, deploy_syscall, get_caller_address, contract_address_const,
         get_contract_address
@@ -443,14 +442,12 @@ mod Vault {
             let current_round_id = self.current_option_round_id.read();
             let current_round = self.get_round_dispatcher(current_round_id);
 
-
             // Try to end the auction on the option round
             let res = current_round.end_auction();
             match res {
                 Result::Ok((
                     clearing_price, total_options_sold
                 )) => {
-
                     // Amount of liquidity currently locked and unlocked
                     let mut locked_liquidity = self.total_locked_balance.read();
                     let mut unlocked_liquidity = self.total_unlocked_balance.read();
@@ -542,40 +539,56 @@ mod Vault {
         fn deposit_liquidity(
             ref self: ContractState, amount: u256, liquidity_provider: ContractAddress
         ) -> Result<u256, VaultError> {
+            // Get a dispatcher for the current round
             let current_round_id = self.current_option_round_id.read();
-            let current_round_address = self.round_addresses.read(current_round_id);
+            let current_round = self.get_round_dispatcher(current_round_id);
 
-            let current_round = IOptionRoundDispatcher { contract_address: current_round_address };
+            // Transfer the deposit to this contract (from caller to vault)
+            let eth = self.get_eth_dispatcher();
+            eth.transfer_from(get_caller_address(), get_contract_address(), amount);
 
-            let current_round_state = current_round.get_state();
-
-            let option_round_id = if (current_round_state == OptionRoundState::Open) {
-                current_round_id
-            } else {
-                current_round_id + 1
+            // The index to store the liquidity provider's deposit in `positions`
+            let upcoming_round_id = match current_round.get_state() {
+                // @dev If the current round is Open, we are in the round transition period and the
+                // deposit is for the current round (about to start)
+                OptionRoundState::Open => current_round_id,
+                // @dev Else, the current round is either Auctioning or Running, and the
+                // deposit is for the next round
+                _ => current_round_id + 1
             };
 
-            let eth_dispatcher = self.get_eth_dispatcher();
+            // The total unlocked balance of the Vault before the deposit
+            let total_unlocked_balance_before = self.get_total_unlocked_balance();
 
-            let vault_contract_address = get_contract_address();
+            // The liquidity provider's total unlocked balance before the deposit (postion's value + premiums)
+            let lp_unlocked_balance_before = self.get_lp_unlocked_balance(liquidity_provider);
 
-            let current_deposit = self.positions.read((liquidity_provider, option_round_id));
-            let total_unlocked_balance_before = self.total_unlocked_balance.read();
-            self.positions.write((liquidity_provider, option_round_id), current_deposit + amount);
-            eth_dispatcher.transfer_from(liquidity_provider, vault_contract_address, amount);
-            self.total_unlocked_balance.write(total_unlocked_balance_before + amount);
+            // The liquidity provider's deposit value in the mapping at the upcoming round
+            let lp_position_value_before = self
+                .positions
+                .read((liquidity_provider, upcoming_round_id));
+
+            // Update the total unlocked balance and the liquidity provider's value in the
+            // positions mapping at the upcoming round
+            let total_unlocked_balance_after = total_unlocked_balance_before + amount;
+            let lp_unlocked_balance_after = lp_unlocked_balance_before + amount;
+            let lp_position_value_after = lp_position_value_before + amount;
+            self.total_unlocked_balance.write(total_unlocked_balance_after);
+            self.positions.write((liquidity_provider, upcoming_round_id), lp_position_value_after);
+
+            // Emit deposit event
             self
                 .emit(
                     Event::Deposit(
                         Deposit {
                             account: liquidity_provider,
-                            position_balance_before: current_deposit,
-                            position_balance_after: current_deposit + amount
+                            position_balance_before: lp_unlocked_balance_before,
+                            position_balance_after: lp_unlocked_balance_after
                         }
                     )
                 );
 
-            Result::Ok(current_deposit + amount)
+            Result::Ok(self.get_lp_unlocked_balance(liquidity_provider))
         }
 
         fn withdraw_liquidity(ref self: ContractState, amount: u256) -> Result<u256, VaultError> {
@@ -646,7 +659,6 @@ mod Vault {
         fn get_eth_dispatcher(self: @ContractState) -> IERC20Dispatcher {
             let eth_address: ContractAddress = self.eth_address();
             IERC20Dispatcher { contract_address: eth_address }
-
         }
 
         // Get a dispatcher for the Vault
