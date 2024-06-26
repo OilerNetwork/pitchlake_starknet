@@ -112,21 +112,6 @@ fn span_to_array<T, +Drop<T>, +Copy<T>>(mut span: Span<T>) -> Array<T> {
     arr
 }
 
-// Get the minimum of two values
-fn min<T, +PartialEq<T>, +PartialOrd<T>, +Drop<T>, +Copy<T>>(a: T, b: T) -> T {
-    match a < b {
-        true => a,
-        false => b
-    }
-}
-
-// Get the maximum of two values
-fn max<T, +PartialEq<T>, +PartialOrd<T>, +Drop<T>, +Copy<T>>(a: T, b: T) -> T {
-    match a < b {
-        true => b,
-        false => a
-    }
-}
 
 /// ERC20 Helpers ///
 
