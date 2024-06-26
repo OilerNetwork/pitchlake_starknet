@@ -237,13 +237,13 @@ mod Vault {
     #[constructor]
     fn constructor(
         ref self: ContractState,
+        eth_address: ContractAddress,
         vault_manager: ContractAddress,
         vault_type: VaultType,
         market_aggregator: ContractAddress,
         option_round_class_hash: ClassHash,
     ) {
-        // Set eth address
-        // self.eth_address.write(...)
+        self.eth_address.write(eth_address);
         self.vault_manager.write(vault_manager);
         self.vault_type.write(vault_type);
         self.market_aggregator.write(market_aggregator);

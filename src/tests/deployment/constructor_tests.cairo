@@ -59,7 +59,7 @@ use debug::PrintTrait;
 #[test]
 #[available_gas(10000000)]
 fn test_vault_constructor() {
-    let (mut vault, _) = setup_facade();
+    let (mut vault, eth) = setup_facade();
     let mut current_round = vault.get_current_round();
     let current_round_id = vault.get_current_round_id();
 
@@ -69,6 +69,7 @@ fn test_vault_constructor() {
     assert(current_round.get_state() == OptionRoundState::Open, 'next round should be Open');
     // Test vault constructor values
     assert(vault.get_vault_manager() == vault_manager(), 'vault manager incorrect');
+    assert(vault.get_eth_address() == eth.contract_address, 'eth address incorrect');
 }
 
 

@@ -96,8 +96,9 @@ fn deploy_market_aggregator() -> IMarketAggregatorDispatcher {
 }
 
 // Deploy the vault and market aggregator
-fn deploy_vault(vault_type: VaultType) -> IVaultDispatcher {
+fn deploy_vault(vault_type: VaultType, eth_address: ContractAddress) -> IVaultDispatcher {
     let mut calldata = array![];
+    calldata.append_serde(eth_address);
     calldata.append_serde(vault_manager());
     calldata.append_serde(vault_type);
     calldata.append_serde(deploy_market_aggregator().contract_address); // needed ?
@@ -119,10 +120,12 @@ fn deploy_vault(vault_type: VaultType) -> IVaultDispatcher {
 
 fn deploy_pitch_lake() -> IPitchLakeDispatcher {
     let mut calldata = array![];
+    let eth_dispatcher: IERC20Dispatcher = deploy_eth();
+    let eth_address = eth_dispatcher.contract_address;
 
-    let ITM: IVaultDispatcher = deploy_vault(VaultType::InTheMoney);
-    let OTM: IVaultDispatcher = deploy_vault(VaultType::OutOfMoney);
-    let ATM: IVaultDispatcher = deploy_vault(VaultType::AtTheMoney);
+    let ITM: IVaultDispatcher = deploy_vault(VaultType::InTheMoney, eth_address);
+    let OTM: IVaultDispatcher = deploy_vault(VaultType::OutOfMoney, eth_address);
+    let ATM: IVaultDispatcher = deploy_vault(VaultType::AtTheMoney, eth_address);
     let mkagg = deploy_market_aggregator();
 
     calldata.append_serde(ITM.contract_address);
@@ -151,7 +154,9 @@ fn deploy_pitch_lake() -> IPitchLakeDispatcher {
 
 fn setup_facade() -> (VaultFacade, IERC20Dispatcher) {
     let eth_dispatcher: IERC20Dispatcher = deploy_eth();
-    let vault_dispatcher: IVaultDispatcher = deploy_vault(VaultType::InTheMoney);
+    let vault_dispatcher: IVaultDispatcher = deploy_vault(
+        VaultType::InTheMoney, eth_dispatcher.contract_address
+    );
 
     // Supply eth to test accounts
     set_contract_address(weth_owner());
