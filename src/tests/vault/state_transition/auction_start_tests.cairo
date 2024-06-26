@@ -64,12 +64,10 @@ fn test_starting_auction_while_round_auctioning_fails() {
 
     // Try to start auction while round is Auctioning
     let expected_error: felt252 = OptionRoundError::AuctionAlreadyStarted.into();
-    println!("EXPECTED ERROR {}", expected_error);
     match vault_facade.start_auction_raw() {
         Result::Ok(_) => { panic!("Error expected") },
         Result::Err(err) => {
             let felt:felt252 = err.into();
-            println!("EXPECTED2 {}", felt);
             assert(err.into() == expected_error, 'Error Mismatch')
         }
     }
@@ -148,7 +146,6 @@ fn test_starting_auction_does_not_update_current_and_next_round_ids() {
         let current_round_id = vault.get_current_round_id();
         accelerate_to_auctioning(ref vault);
         let new_current_round_id = vault.get_current_round_id();
-        println!("HERE {} {}",current_round_id,new_current_round_id);
 
         assert(new_current_round_id == current_round_id, 'current round id shd not change');
 
@@ -218,7 +215,6 @@ fn test_starting_auction_updates_locked_and_unlocked_balances() {
         .get_lp_unlocked_balances(liquidity_providers);
     let (vault_locked_after, vault_unlocked_after) = vault.get_total_locked_and_unlocked_balance();
 
-    println!("VA {} {}",vault_locked_before,vault_unlocked_before);
     // Check vault balance
     assert(
         (vault_locked_before, vault_unlocked_before) == (0, total_deposits),
