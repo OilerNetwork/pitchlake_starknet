@@ -402,7 +402,7 @@ mod Vault {
             // Try to start the auction on the current round
             let res = current_round.start_auction(total_options_available, starting_liquidity);
             match res {
-                Result::Ok(value) => {
+                Result::Ok(total_options_available) => {
                     // Update total_locked_liquidity
                     self.total_locked_balance.write(starting_liquidity);
 
@@ -410,7 +410,7 @@ mod Vault {
                     self.total_unlocked_balance.write(0);
 
                     // Return the total options available
-                    Result::Ok(value)
+                    Result::Ok(total_options_available)
                 },
                 Result::Err(err) => { Result::Err(VaultError::OptionRoundError(err)) }
             }
@@ -648,7 +648,7 @@ mod Vault {
         }
 
         fn fetch_settlement_price(ref self: ContractState) -> u256 {
-            1
+            0
         }
 
         fn fetch_settlement_data(ref self: ContractState) -> (u256, u256, u256) {
