@@ -169,7 +169,7 @@ trait IOptionRound<TContractState> {
 #[starknet::contract]
 mod OptionRound {
     use openzeppelin::token::erc20::{ERC20Component, interface::{IERC20, IERC20Dispatcher}};
-    use starknet::{ContractAddress};
+    use starknet::{ContractAddress, get_caller_address};
     use pitch_lake_starknet::contracts::vault::{
         Vault::VaultType, IVaultDispatcher, IVaultDispatcherTrait
     };
@@ -587,6 +587,7 @@ mod OptionRound {
 
         fn end_auction(ref self: ContractState) -> Result<(u256, u256), OptionRoundError> {
             // Assert caller is Vault
+            self.assert_caller_is_vault();
 
             // Assert state is Auctioning
 
@@ -668,6 +669,16 @@ mod OptionRound {
             ref self: ContractState, option_buyer: ContractAddress
         ) -> Result<u256, OptionRoundError> {
             Result::Ok(100)
+        }
+    }
+
+
+    // Internal Functions
+    #[generate_trait]
+    impl InternalImpl of OptionRoundInternalTrait {
+        // Assert the caller is the Vault
+        fn assert_caller_is_vault(self: @ContractState) {
+            assert(get_caller_address() == self.vault_address.read(), 'Caller must be the Vault');
         }
     }
 }
