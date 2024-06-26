@@ -22,6 +22,7 @@ trait IOptionRound<TContractState> {
     // Auction end time
     fn get_auction_end_date(self: @TContractState) -> u64;
 
+    fn get_option_settlement_date(self: @TContractState)-> u64;
     // Option expiry time
     fn get_option_expiry_date(self: @TContractState) -> u64;
 
@@ -210,7 +211,8 @@ mod OptionRound {
         bids_tail: felt252,
         auction_start_date: u64,
         auction_end_date: u64,
-        auction_expiry_date: u64,
+        option_expiry_date:u64,
+        option_settlement_date: u64,
     }
 
     // The parameters needed to construct an option round
@@ -359,6 +361,9 @@ mod OptionRound {
         self.state.write(OptionRoundState::Open);
         self.reserve_price.write(reserve_price);
         self.cap_level.write(cap_level);
+        self.auction_start_date.write(auction_start_date);
+        self.auction_end_date.write(auction_end_date);
+        self.option_settlement_date.write(option_settlement_date);
     // Write other params to storage
     }
 
@@ -471,8 +476,11 @@ mod OptionRound {
             self.auction_end_date.read()
         }
 
+        fn get_option_settlement_date(self: @ContractState)->u64 {
+            self.option_settlement_date.read()
+        }
         fn get_option_expiry_date(self: @ContractState) -> u64 {
-            self.auction_expiry_date.read()
+            self.option_expiry_date.read()
         }
 
 
