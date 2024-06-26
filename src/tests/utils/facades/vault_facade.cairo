@@ -381,7 +381,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     // Eth contract address
     fn get_eth_address(ref self: VaultFacade) -> ContractAddress {
-      self.vault_dispatcher.eth_address()
+        self.vault_dispatcher.eth_address()
     }
 
     // Gets the round transition period in seconds, 3 hours is a random number for testing
