@@ -54,7 +54,6 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     ) -> Array<u256> {
         assert_two_arrays_equal_length(liquidity_providers, amounts);
         let mut updated_unlocked_positions = array![];
-        println!("deposit multiple");
         loop {
             match liquidity_providers.pop_front() {
                 Option::Some(liquidity_provider) => {
