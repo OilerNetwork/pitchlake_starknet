@@ -785,7 +785,6 @@ mod OptionRound {
             } else {
                 0
             }
-
         }
 
         // Get a dispatcher for the Vault
