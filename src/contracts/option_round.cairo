@@ -113,7 +113,7 @@ trait IOptionRound<TContractState> {
     // Try to start the option round's auction
     // @return the total options available in the auction
     fn start_auction(
-        ref self: TContractState, reserve_price: u256, starting_liquidity: u256
+        ref self: TContractState, total_options_available: u256, starting_liquidity: u256
     ) -> Result<u256, OptionRound::OptionRoundError>;
 
     // Settle the auction if the auction time has passed
@@ -209,7 +209,7 @@ mod OptionRound {
         bids_tail: felt252,
         auction_start_date: u64,
         auction_end_date: u64,
-        auction_expiry_date:u64,
+        auction_expiry_date: u64,
     }
 
     // The parameters needed to construct an option round
@@ -357,6 +357,8 @@ mod OptionRound {
 
         // Set round state to open
         self.state.write(OptionRoundState::Open);
+        self.reserve_price.write(reserve_price);
+        self.cap_level.write(cap_level);
     // Write other params to storage
     }
 
@@ -573,15 +575,15 @@ mod OptionRound {
 
         //Check if cap level needs to be passed from the vault here
         fn start_auction(
-            ref self: ContractState, reserve_price: u256, starting_liquidity: u256
+            ref self: ContractState, total_options_available: u256, starting_liquidity: u256
         ) -> Result<u256, OptionRoundError> {
             if (self.get_auction_start_date() > get_block_timestamp()) {
                 Result::Err(OptionRoundError::AuctionStartDateNotReached)
             } else {
-                self.reserve_price.write(reserve_price);
                 match self.vault_address.read() == starknet::get_caller_address() {
                     true => {
                         //Confirm calculation of options and update this accordingly
+                        //Currently set to take value directly from the vault
                         let total_options_available = self.calculate_options(starting_liquidity);
 
                         self.total_options_available.write(total_options_available);
@@ -598,15 +600,7 @@ mod OptionRound {
                                     );
                                 Result::Ok(total_options_available)
                             },
-                            OptionRoundState::Auctioning => {
-                                Result::Err(OptionRoundError::AuctionAlreadyStarted)
-                            },
-                            OptionRoundState::Running => {
-                                Result::Err(OptionRoundError::AuctionAlreadyEnded)
-                            },
-                            OptionRoundState::Settled => {
-                                Result::Err(OptionRoundError::OptionRoundAlreadySettled)
-                            }
+                            _ => { Result::Err(OptionRoundError::AuctionAlreadyStarted) },
                         }
                     },
                     false => {

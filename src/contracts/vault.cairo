@@ -403,8 +403,8 @@ mod Vault {
             let current_round = IOptionRoundDispatcher { contract_address: current_round_address };
 
             //Check reserve_price calculation and update accordingly
-            let reserve_price = 1;
-            let res = current_round.start_auction(reserve_price, unlocked_balance);
+            let total_options_available = self.calculate_options(unlocked_balance);
+            let res = current_round.start_auction(total_options_available, unlocked_balance);
             match res {
                 Result::Ok(value) => { Result::Ok(value) },
                 Result::Err(err) => { Result::Err(VaultError::OptionRoundError(err)) }
@@ -563,5 +563,21 @@ mod Vault {
         ) -> Result<u256, VaultError> {
             Result::Ok(1)
         }
+    }
+    #[generate_trait]
+    impl InternalImpl of VaultInternalTrait {
+        fn calculate_options(ref self: ContractState, starting_liquidity: u256) -> u256 {
+            //Calculate total options accordingly
+            1
+        }
+    // // Get a dispatcher for the ETH contract
+    // fn get_eth_dispatcher(self: @ContractState) -> IERC20Dispatcher {
+    //     let vault = self.get_vault_dispatcher();
+    //     let eth_address = vault.eth_address();
+    //     IERC20Dispatcher { contract_address: eth_address }
+    // }
+
+    // Get a dispatcher for the Vault
+
     }
 }
