@@ -680,44 +680,35 @@ mod OptionRound {
             ref self: ContractState, settlement_price: u256
         ) -> Result<u256, OptionRoundError> {
             // Assert caller is Vault
-
-            match self.is_caller_the_vault() {
-                true => {
-                    // Assert state is Running
-                    match self.state.read() {
-                        OptionRoundState::Settled => {
-                            Result::Err(OptionRoundError::OptionRoundAlreadySettled)
-                        },
-                        OptionRoundState::Running => {
-                            // Assert block timestamp is >= option settlement date
-                            if (self.get_option_settlement_date() > get_block_timestamp()) {
-                                Result::Err(OptionRoundError::OptionSettlementDateNotReached)
-                            } else {
-                                // Calculate total_payout
-                                let total_payout = self.calculate_expected_payout(settlement_price);
-
-                                // Update state to Settled
-                                self.state.write(OptionRoundState::Settled);
-
-                                // Set total_payout
-                                self.total_payout.write(total_payout);
-
-                                // Emit option settled event
-                                self.emit(Event::OptionSettle(OptionSettle { settlement_price }));
-
-                                Result::Ok(total_payout)
-                            }
-                        },
-                        _ => { Result::Err(OptionRoundError::OptionSettlementDateNotReached) }
-                    }
-                },
-                false => { return Result::Err(OptionRoundError::CallerIsNotVault); }
+            if (!self.is_caller_the_vault()) {
+                return Result::Err(OptionRoundError::CallerIsNotVault);
             }
-        // Return total payout
 
+            // Assert block timestamp is >= option settlement date
+            if (get_block_timestamp() < self.get_option_settlement_date()) {
+                return Result::Err(OptionRoundError::OptionSettlementDateNotReached);
+            }
+
+            // Assert state is Running
+            if (self.state.read() != OptionRoundState::Running) {
+                return Result::Err(OptionRoundError::OptionRoundAlreadySettled);
+            }
+
+            // Update state to Settled
+            self.state.write(OptionRoundState::Settled);
+
+            // Calculate and set total payout
+            let total_payout = self.calculate_expected_payout(settlement_price);
+            self.total_payout.write(total_payout);
+
+            // Emit option settled event
+            self.emit(Event::OptionSettle(OptionSettle { settlement_price }));
+
+            // Return total payout
+            Result::Ok(total_payout)
         }
 
-        /// OB functions
+        /// Option bidder functions
 
         fn place_bid(
             ref self: ContractState, amount: u256, price: u256

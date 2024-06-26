@@ -250,12 +250,7 @@ mod Vault {
         self.market_aggregator.write(market_aggregator);
         self.option_round_class_hash.write(option_round_class_hash);
         // @dev Deploy the 1st option round
-
-        let round_1_address = self.deploy_round(1);
-
-        // Set round addressess
-        self.round_addresses.write(1, round_1_address);
-        self.current_option_round_id.write(1);
+        self.deploy_next_round();
     }
 
     #[derive(Copy, Drop, Serde)]
@@ -473,81 +468,43 @@ mod Vault {
         }
 
         fn settle_option_round(ref self: ContractState) -> Result<u256, VaultError> {
-            // Fetch the settlement_price from fossil
-            //  - An empty helper function is fine for now, we will discuss the
-            //  implementation of this function later
+            // Get a dispatcher for the current option round
+            let current_round_id = self.current_option_round_id();
+            let current_round_dispatcher = self.get_round_dispatcher(current_round_id);
 
-            let settle_price = self.fetch_settlement_price();
-            let round_id = self.current_option_round_id();
-            let current_round_dispatcher = self.get_round_dispatcher(round_id);
+            // Fetch the price to settle the option round
+            let settlement_price = self.fetch_settlement_price();
 
-            let eth_dispatcher = self.get_eth_dispatcher();
-            let total_payout = current_round_dispatcher.settle_option_round(settle_price);
-
-            match total_payout {
-                Result::Err(err) => { Result::Err(VaultError::OptionRoundError(err)) },
-                Result::Ok(value) => {
-                    if (value > 0) {
-                        eth_dispatcher.transfer(self.get_option_round_address(round_id), value);
+            // Try to settle the option round
+            let res = current_round_dispatcher.settle_option_round(settlement_price);
+            match res {
+                Result::Ok(total_payout) => {
+                    // @dev Checking if payout > 0 to save gas if there is no payout
+                    let mut remaining_liquidity = self.get_total_locked_balance();
+                    if (total_payout > 0) {
+                        // Transfer total payout from the vault to the settled option round
+                        let eth_dispatcher = self.get_eth_dispatcher();
+                        eth_dispatcher
+                            .transfer(current_round_dispatcher.contract_address, total_payout);
+                        // The remaining liquidity for a round is how much was locked minus the total payout
+                        remaining_liquidity -= total_payout;
                     }
-                    let updated_unlocked_liquidity = self.get_total_locked_balance() - value;
-                    self.total_unlocked_balance.write(updated_unlocked_liquidity);
+
+                    // The locked liquidity becomes 0 and the remaining liquidity becomes unlocked
                     self.total_locked_balance.write(0);
-
-                    //Fetch fossil data within the deploy round function
-                    let next_round_address = self.deploy_round(round_id + 1);
-                    self.round_addresses.write(round_id + 1, next_round_address);
-                    self.current_option_round_id.write(round_id + 1);
+                    let total_unlocked_balance_before = self.get_total_unlocked_balance();
                     self
-                        .emit(
-                            Event::OptionRoundDeployed(
-                                OptionRoundDeployed {
-                                    round_id: round_id + 1, address: next_round_address
-                                }
-                            )
-                        );
-                    Result::Ok(value)
+                        .total_unlocked_balance
+                        .write(remaining_liquidity + total_unlocked_balance_before);
+
+                    // Deploy next option round contract, update current round id & round address mapping
+                    self.deploy_next_round();
+
+                    // Return the total payout of the option round
+                    Result::Ok(total_payout)
                 },
+                Result::Err(err) => { Result::Err(VaultError::OptionRoundError(err)) },
             }
-        // Call OptionRound::settle_option_round() with the settlement_price (returns total_payout)
-
-        // Send eth (total_payout) from this contract to the just settled option round (if > 0)
-
-        // Decrement total_locked_balance by total_payout
-
-        // Add total_locked_balance to total_unlocked_balance
-
-        // Set total_locked_balance to 0
-
-        // Increment the current_round_id
-
-        // Fetch reserve_price, cap_level, and strike_price from fossil
-        // - An empty helper function is fine for now, we will discuss the
-        // implementation of this function later
-
-        // Calculate auction_start_date, auction_end_date, and option_settlement_date
-        // - auction_state_date = now + round_transition_period
-        // - auction_end_date = auction_start_date + auction_run_time
-        // - option_settlement_date = auction_end_date + option_run_time
-
-        // Deploy the new current option round with the above params
-
-        // Emit new round deployed event
-
-        //2.0) Vault::{settle_option_round}
-        //- Add function to fetch the settlement price from fossil
-        //	- let settlement_price = fetch_settlement_price()
-        //		- just the ghost function is fine for now
-        //- call OptionRound::settle_option_round using the above settlement_price
-        //- increment the current round id
-        //- Add function to retrieve reserve price, cap level & strike price from fossil
-        //	 - let (reserve price, cap_level, strike_price) = fetch_round_start_params()
-        //		  - Just the ghost function is fine for now
-        //- deploy the new current option round with the above params
-        //
-        //
-        //make sure to update unlocked/locked balance during the state transition functions too
-
         }
 
         /// OB functions
@@ -698,11 +655,17 @@ mod Vault {
             (1, 1, 1)
         }
 
-        fn deploy_round(ref self: ContractState, round_id: u256) -> ContractAddress {
-            // Calculate fossil data for reserve price, cap level, strike price etc. here
+        // Deploy the next option round contract, update the current round id & round address mapping
+        fn deploy_next_round(ref self: ContractState) {
+            // The round id for the next round
+            let next_round_id = self.current_option_round_id.read() + 1;
+
+            // The constructor params for the next round
             let mut calldata: Array<felt252> = array![];
+            // Vault address & round id
             calldata.append_serde(starknet::get_contract_address()); // vault address
-            calldata.append_serde(round_id); // option round id
+            calldata.append_serde(next_round_id); // option round id
+            // Dates
             let now = starknet::get_block_timestamp();
             let auction_start_date = now + self.round_transition_period.read();
             let auction_end_date = auction_start_date + self.auction_run_time.read();
@@ -710,16 +673,29 @@ mod Vault {
             calldata.append_serde(auction_start_date); // auction start date
             calldata.append_serde(auction_end_date);
             calldata.append_serde(option_settlement_date);
-
+            // Reserve price, cap level, & strike price
+            // @note Calculate fossil data for reserve price, cap level, strike price etc. here
             calldata.append_serde(1000000000_u256); // reserve price
             calldata.append_serde(5000_u256); // cap level
             calldata.append_serde(1000000000_u256); // strike price
 
-            let (round_address, _) = deploy_syscall(
+            // Deploy the next option round contract
+            let (next_round_address, _) = deploy_syscall(
                 self.option_round_class_hash.read(), 'some salt', calldata.span(), false
             )
                 .unwrap();
-            round_address
+
+            // Update the current round id & round address mapping
+            self.current_option_round_id.write(next_round_id);
+            self.round_addresses.write(next_round_id, next_round_address);
+
+            // Emit option round deployed event
+            self
+                .emit(
+                    Event::OptionRoundDeployed(
+                        OptionRoundDeployed { round_id: next_round_id, address: next_round_address }
+                    )
+                );
         }
     }
 }
