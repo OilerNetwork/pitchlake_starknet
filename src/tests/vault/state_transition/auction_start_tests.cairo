@@ -67,7 +67,7 @@ fn test_starting_auction_while_round_auctioning_fails() {
     match vault_facade.start_auction_raw() {
         Result::Ok(_) => { panic!("Error expected") },
         Result::Err(err) => {
-            let felt:felt252 = err.into();
+            let felt: felt252 = err.into();
             assert(err.into() == expected_error, 'Error Mismatch')
         }
     }
@@ -171,7 +171,7 @@ fn test_starting_auction_updates_current_rounds_state() {
 
         let mut current_round = vault.get_current_round();
         let stat = current_round.get_state();
-        
+
         assert(
             current_round.get_state() == OptionRoundState::Auctioning,
             'current round shd be auctioning'
