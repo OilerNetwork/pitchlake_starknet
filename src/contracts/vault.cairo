@@ -141,7 +141,10 @@ mod Vault {
         get_contract_address
     };
     use openzeppelin::{
-        utils::serde::SerializedAppend, token::erc20::{ERC20Component, interface::IERC20}
+        token::erc20::{
+            ERC20Component, interface::{IERC20, IERC20Dispatcher, IERC20DispatcherTrait,}
+        },
+        utils::serde::SerializedAppend
     };
     use pitch_lake_starknet::contracts::{
         vault::{IVault},
@@ -151,7 +154,7 @@ mod Vault {
                 OptionRoundErrorIntoFelt252, OptionRoundConstructorParams, StartAuctionParams,
                 OptionRoundState
             },
-            IOptionRoundDispatcher
+            IOptionRoundDispatcher, IOptionRoundDispatcherTrait,
         },
         market_aggregator::{IMarketAggregatorDispatcher}
     };
@@ -215,11 +218,12 @@ mod Vault {
         premiums_collected: LegacyMap<(ContractAddress, u256), bool>,
         // The amount of liquidity not sold during each round's auction (if any): (round_id) -> unsold_liquidity
         unsold_liquidity: LegacyMap<u256, u256>,
+        // The id of the current option round
+        current_option_round_id: u256,
         ///////
         ///////
         vault_manager: ContractAddress,
         vault_type: VaultType,
-        current_option_round_id: u256,
         market_aggregator: ContractAddress,
         round_addresses: LegacyMap<u256, ContractAddress>,
         round_transition_period: u64,
@@ -421,20 +425,60 @@ mod Vault {
         }
 
         fn end_auction(ref self: ContractState) -> Result<(u256, u256), VaultError> {
-            // Call OptionRound::end_auction() (returns clearing_price & total_options_sold)
+            // Get a dispatcher for the current round
+            let current_round_id = self.current_option_round_id.read();
+            let current_round = self.get_round_dispatcher(current_round_id);
 
-            // Increment total_unlocked_balance by premiums earned (clearing_price * total_options_sold)
+            // End the auction on the option round
+            let res = current_round.end_auction();
+            match res {
+                Result::Ok((
+                    clearing_price, total_options_sold
+                )) => {
+                    // Amount of liquidity currently locked
+                    let mut locked_liquidity = self.total_locked_balance.read();
+                    // Amount of liquidity currently unlocked
+                    let mut unlocked_liquidity = self.total_unlocked_balance.read();
 
-            // If total_options_sold < total_options_available, we need to handle the unsold liquidity
-            // - Set unsold_liquidty to the amount of unsold liquidity
-            //  - i.e. If total options == 100, and only 60 were sold, then 40% of the locked liquidity
-            //  goes unsold
-            // - Decrement total_locked_balance by unsold_liquidity
-            // - Increment total_unlocked_balance by unsold_liquidity
+                    // Increment the total_unlocked_balance by the total premium
+                    let total_preimums = clearing_price * total_options_sold;
+                    unlocked_liquidity += total_preimums;
 
-            // Return clearing price and total options sold
+                    //self
+                    //   .total_unlocked_balance
+                    //  .write(self.total_unlocked_balance.read() + total_preimums);
 
-            Result::Ok((100, 100))
+                    // Handle unsold liquidity
+                    let total_options_available = current_round.get_total_options_available();
+                    if (total_options_sold < total_options_available) {
+                        // Number of options that did not sell
+                        let unsold_options = total_options_available - total_options_sold;
+
+                        // Portion of the locked liquidity these unsold options represent
+                        // @note Consider adding precision factor
+                        let unsold_liquidity = (locked_liquidity * unsold_options)
+                            / total_options_available;
+
+                        // Decrement locked liquidity by the unsold liquidity and
+                        // update the storage variable
+                        locked_liquidity -= unsold_liquidity;
+                        self.total_locked_balance.write(locked_liquidity);
+
+                        // Increment unlocked liquidity by the unsold liquidity
+                        unlocked_liquidity += unsold_liquidity;
+
+                        // Store how much liquidity did not sell this round for future calculations
+                        self.unsold_liquidity.write(current_round_id, unsold_liquidity);
+                    }
+
+                    // Update the total_unlocked_balance storage variable
+                    self.total_unlocked_balance.write(unlocked_liquidity);
+
+                    // Return the clearing_price & total_options_sold
+                    return Result::Ok((clearing_price, total_options_sold));
+                },
+                Result::Err(e) => { return Result::Err(VaultError::OptionRoundError(e)); }
+            }
         }
 
         fn settle_option_round(ref self: ContractState) -> Result<u256, VaultError> {
@@ -560,6 +604,23 @@ mod Vault {
             ref self: ContractState, source_round: u256, target_round: u256, amount: u256
         ) -> Result<u256, VaultError> {
             Result::Ok(1)
+        }
+    }
+
+
+    // Internal Functions
+    #[generate_trait]
+    impl InternalImpl of OptionRoundInternalTrait {
+        // Get a dispatcher for the ETH contract
+        fn get_eth_dispatcher(self: @ContractState) -> IERC20Dispatcher {
+            let eth_address: ContractAddress = self.eth_address();
+            IERC20Dispatcher { contract_address: eth_address }
+        }
+
+        // Get a dispatcher for the Vault
+        fn get_round_dispatcher(self: @ContractState, round_id: u256) -> IOptionRoundDispatcher {
+            let round_address = self.get_option_round_address(round_id);
+            IOptionRoundDispatcher { contract_address: round_address }
         }
     }
 }

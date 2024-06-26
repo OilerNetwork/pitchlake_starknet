@@ -68,13 +68,16 @@ fn test_ending_auction_before_it_starts_fails() {
     let (mut vault_facade, _) = setup_facade();
 
     // Try to end auction before it starts
-    let expected_error: felt252 = OptionRoundError::AuctionEndDateNotReached.into();
+    let expected_error: felt252 = OptionRoundError::NoAuctionToEnd.into();
     match vault_facade.end_auction_raw() {
         Result::Ok(_) => { panic!("Error expected") },
         Result::Err(err) => { assert(err.into() == expected_error, 'Error Mismatch') }
     }
 }
 
+/// @note All below tests will continue to fail until auction start and option settle is implemented
+
+// @note This test will not pass until auction start is implemented
 // Test ending the auction before the auction end date fails
 #[test]
 #[available_gas(10000000)]
@@ -86,7 +89,10 @@ fn test_ending_auction_before_auction_end_date_fails() {
     let expected_error: felt252 = OptionRoundError::AuctionEndDateNotReached.into();
     match vault.end_auction_raw() {
         Result::Ok(_) => { panic!("Error expected") },
-        Result::Err(err) => { assert(err.into() == expected_error, 'Error Mismatch') }
+        Result::Err(err) => {
+            let err_msg: felt252 = err.into();
+            assert(err.into() == expected_error, 'Error Mismatch')
+        }
     }
 }
 
@@ -97,7 +103,7 @@ fn test_ending_auction_while_round_running_fails() {
     let (mut vault_facade, _) = setup_test_running();
 
     // Try to end auction after it has already ended
-    let expected_error: felt252 = OptionRoundError::AuctionEndDateNotReached.into();
+    let expected_error: felt252 = OptionRoundError::NoAuctionToEnd.into();
     match vault_facade.end_auction_raw() {
         Result::Ok(_) => { panic!("Error expected") },
         Result::Err(err) => { assert(err.into() == expected_error, 'Error Mismatch') }
@@ -114,7 +120,7 @@ fn test_ending_auction_while_round_settled_fails() {
     accelerate_to_settled(ref vault_facade, 0);
 
     // Try to end auction before round transition period is over
-    let expected_error: felt252 = OptionRoundError::AuctionEndDateNotReached.into();
+    let expected_error: felt252 = OptionRoundError::NoAuctionToEnd.into();
     match vault_facade.end_auction_raw() {
         Result::Ok(_) => { panic!("Error expected") },
         Result::Err(err) => { assert(err.into() == expected_error, 'Error Mismatch') }

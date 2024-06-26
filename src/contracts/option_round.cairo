@@ -169,8 +169,7 @@ trait IOptionRound<TContractState> {
 #[starknet::contract]
 mod OptionRound {
     use openzeppelin::token::erc20::{
-        ERC20Component,
-        interface::{IERC20, IERC20Dispatcher, IERC20DispatcherTrait,}
+        ERC20Component, interface::{IERC20, IERC20Dispatcher, IERC20DispatcherTrait,}
     };
     use starknet::{ContractAddress, get_caller_address, get_block_timestamp};
     use pitch_lake_starknet::contracts::vault::{
@@ -369,7 +368,6 @@ mod OptionRound {
         AuctionStartDateNotReached,
         // Ending auction
         NoAuctionToEnd,
-        AuctionAlreadyEnded,
         AuctionEndDateNotReached,
         // Settling round
         OptionRoundAlreadySettled,
@@ -388,7 +386,6 @@ mod OptionRound {
                 OptionRoundError::AuctionAlreadyStarted => 'OptionRound: Auction start fail',
                 OptionRoundError::AuctionEndDateNotReached => 'OptionRound: Auction end fail',
                 OptionRoundError::NoAuctionToEnd => 'OptionRound: No auction to end',
-                OptionRoundError::AuctionAlreadyEnded => 'OptionRound: Auction end fail',
                 OptionRoundError::OptionSettlementDateNotReached => 'OptionRound: Option settle fail',
                 OptionRoundError::OptionRoundAlreadySettled => 'OptionRound: Option settle fail',
                 OptionRoundError::BidBelowReservePrice => 'OptionRound: Bid below reserve',
@@ -623,13 +620,17 @@ mod OptionRound {
             self.clearing_price.write(clearing_price);
             self.total_options_sold.write(total_options_sold);
 
-            // Send eth (total_premiums) to Vault
+            // Send eth total_premiums to Vault
             let eth = self.get_eth_dispatcher();
             let total_premiums = clearing_price * total_options_sold;
             eth.transfer(self.vault_address(), total_premiums);
 
             // Emit auction ended event
-            Result::Ok((100, 100))
+            // @note Should we emit total options sold ?
+            self.emit(Event::AuctionEnd(AuctionEnd { clearing_price }));
+
+            // Return clearing price & total options sold
+            Result::Ok((clearing_price, total_options_sold))
         }
 
         fn settle_option_round(
