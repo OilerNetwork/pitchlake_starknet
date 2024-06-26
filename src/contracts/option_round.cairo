@@ -355,8 +355,12 @@ mod OptionRound {
     // Write other params to storage
     }
 
+    // @note Need to handle CallerIsNotVault errors in tests
+
     #[derive(Copy, Drop, Serde)]
     enum OptionRoundError {
+        // All state transitions
+        CallerIsNotVault,
         // Starting auction
         AuctionAlreadyStarted,
         AuctionStartDateNotReached,
@@ -375,6 +379,7 @@ mod OptionRound {
     impl OptionRoundErrorIntoFelt252 of Into<OptionRoundError, felt252> {
         fn into(self: OptionRoundError) -> felt252 {
             match self {
+                OptionRoundError::CallerIsNotVault => 'OptionRound: Caller not Vault',
                 OptionRoundError::AuctionStartDateNotReached => 'OptionRound: Auction start fail',
                 OptionRoundError::AuctionAlreadyStarted => 'OptionRound: Auction start fail',
                 OptionRoundError::AuctionEndDateNotReached => 'OptionRound: Auction end fail',
@@ -587,7 +592,9 @@ mod OptionRound {
 
         fn end_auction(ref self: ContractState) -> Result<(u256, u256), OptionRoundError> {
             // Assert caller is Vault
-            self.assert_caller_is_vault();
+            if (!self.is_caller_the_vault()) {
+                return Result::Err(OptionRoundError::CallerIsNotVault);
+            }
 
             // Assert state is Auctioning
 
@@ -676,9 +683,9 @@ mod OptionRound {
     // Internal Functions
     #[generate_trait]
     impl InternalImpl of OptionRoundInternalTrait {
-        // Assert the caller is the Vault
-        fn assert_caller_is_vault(self: @ContractState) {
-            assert(get_caller_address() == self.vault_address.read(), 'Caller must be the Vault');
+        // Return if the caller is the Vault or not
+        fn is_caller_the_vault(self: @ContractState) -> bool {
+            get_caller_address() == self.vault_address.read()
         }
     }
 }
