@@ -167,12 +167,13 @@ trait IOptionRound<TContractState> {
 
 #[starknet::contract]
 mod OptionRound {
-    use pitch_lake_starknet::contracts::option_round::IOptionRound;
-    use openzeppelin::token::erc20::{ERC20Component, interface::{IERC20, IERC20Dispatcher}};
-    use starknet::{ContractAddress, get_caller_address, get_block_timestamp};
-    use pitch_lake_starknet::contracts::vault::{
-        Vault::VaultType, IVaultDispatcher, IVaultDispatcherTrait
+    use openzeppelin::token::erc20::{
+        ERC20Component, interface::{IERC20, IERC20Dispatcher, IERC20DispatcherTrait,}
     };
+    use starknet::{ContractAddress, get_caller_address, get_block_timestamp};
+    use pitch_lake_starknet::contracts::{vault::{
+        Vault::VaultType, IVaultDispatcher, IVaultDispatcherTrait
+    }, option_round::IOptionRound};
     use pitch_lake_starknet::contracts::market_aggregator::{
         IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
     };
@@ -235,7 +236,6 @@ mod OptionRound {
     #[derive(Copy, Drop, Serde, PartialEq, starknet::Store)]
     enum OptionRoundState {
         Open, // Accepting deposits, waiting for auction to start
-        //Initialized, set parameters for auction
         Auctioning, // Auction is on going, accepting bids
         Running, // Auction has ended, waiting for option round expiry date to settle
         Settled, // Option round has settled, remaining liquidity has rolled over to the next round
@@ -362,13 +362,18 @@ mod OptionRound {
     // Write other params to storage
     }
 
+    // @note Need to handle CallerIsNotVault errors in tests
+    // @note Need to update end auction error handling in tests (NoAuctionToEnd)
+
     #[derive(Copy, Drop, Serde)]
     enum OptionRoundError {
+        // All state transitions
+        CallerIsNotVault,
         // Starting auction
         AuctionAlreadyStarted,
         AuctionStartDateNotReached,
         // Ending auction
-        AuctionAlreadyEnded,
+        NoAuctionToEnd,
         AuctionEndDateNotReached,
         // Settling round
         OptionRoundAlreadySettled,
@@ -382,10 +387,11 @@ mod OptionRound {
     impl OptionRoundErrorIntoFelt252 of Into<OptionRoundError, felt252> {
         fn into(self: OptionRoundError) -> felt252 {
             match self {
+                OptionRoundError::CallerIsNotVault => 'OptionRound: Caller not Vault',
                 OptionRoundError::AuctionStartDateNotReached => 'OptionRound: Auction start fail',
                 OptionRoundError::AuctionAlreadyStarted => 'OptionRound: Auction start fail',
                 OptionRoundError::AuctionEndDateNotReached => 'OptionRound: Auction end fail',
-                OptionRoundError::AuctionAlreadyEnded => 'OptionRound: Auction end fail',
+                OptionRoundError::NoAuctionToEnd => 'OptionRound: No auction to end',
                 OptionRoundError::OptionSettlementDateNotReached => 'OptionRound: Option settle fail',
                 OptionRoundError::OptionRoundAlreadySettled => 'OptionRound: Option settle fail',
                 OptionRoundError::BidBelowReservePrice => 'OptionRound: Bid below reserve',
@@ -477,7 +483,7 @@ mod OptionRound {
         }
 
         fn total_premiums(self: @ContractState) -> u256 {
-            100
+            self.get_auction_clearing_price() * self.total_options_sold()
         }
 
         fn total_payout(self: @ContractState) -> u256 {
@@ -614,10 +620,19 @@ mod OptionRound {
 
         fn end_auction(ref self: ContractState) -> Result<(u256, u256), OptionRoundError> {
             // Assert caller is Vault
+            if (!self.is_caller_the_vault()) {
+                return Result::Err(OptionRoundError::CallerIsNotVault);
+            }
 
             // Assert state is Auctioning
+            if (self.state.read() != OptionRoundState::Auctioning) {
+                return Result::Err(OptionRoundError::NoAuctionToEnd);
+            }
 
             // Assert block timestamp is >= auction end date
+            if (get_block_timestamp() < self.get_auction_end_date()) {
+                return Result::Err(OptionRoundError::AuctionEndDateNotReached);
+            }
 
             // Update state to Running
             self.state.write(OptionRoundState::Running);
@@ -625,13 +640,23 @@ mod OptionRound {
             // Calculate clearing price & total options sold
             //  - An empty helper function is fine for now, we will discuss the
             //  implementation of this function later
+            let (clearing_price, total_options_sold) = self.end_auction_internal();
 
             // Set clearing price & total options sold
+            self.clearing_price.write(clearing_price);
+            self.total_options_sold.write(total_options_sold);
 
-            // Send eth (total_premiums) to Vault
+            // Send eth total_premiums to Vault
+            let eth = self.get_eth_dispatcher();
+            let total_premiums = clearing_price * total_options_sold;
+            eth.transfer(self.vault_address(), total_premiums);
 
             // Emit auction ended event
-            Result::Ok((100, 100))
+            // @note Should we emit total options sold ?
+            self.emit(Event::AuctionEnd(AuctionEnd { clearing_price }));
+
+            // Return clearing price & total options sold
+            Result::Ok((clearing_price, total_options_sold))
         }
 
         fn settle_option_round(
@@ -698,6 +723,8 @@ mod OptionRound {
         }
     }
 
+
+    // Internal Functions
     #[generate_trait]
     impl InternalImpl of OptionRoundInternalTrait {
         // Return if the caller is the Vault or not
@@ -710,16 +737,17 @@ mod OptionRound {
             (100, 100)
         }
 
+        // Get a dispatcher for the ETH contract
+        fn get_eth_dispatcher(self: @ContractState) -> IERC20Dispatcher {
+            let vault = self.get_vault_dispatcher();
+            let eth_address = vault.eth_address();
+            IERC20Dispatcher { contract_address: eth_address }
+        }
+
         fn calculate_options(ref self: ContractState, starting_liquidity: u256) -> u256 {
             //Calculate total options accordingly
             1
         }
-        // // Get a dispatcher for the ETH contract
-        // fn get_eth_dispatcher(self: @ContractState) -> IERC20Dispatcher {
-        //     let vault = self.get_vault_dispatcher();
-        //     let eth_address = vault.eth_address();
-        //     IERC20Dispatcher { contract_address: eth_address }
-        // }
 
         // Get a dispatcher for the Vault
         fn get_vault_dispatcher(self: @ContractState) -> IVaultDispatcher {
