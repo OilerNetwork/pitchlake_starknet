@@ -163,10 +163,8 @@ fn setup_facade() -> (VaultFacade, IERC20Dispatcher) {
     loop {
         match liquidity_providers.pop_front() {
             Option::Some(liquidity_provider) => {
-                set_contract_address(weth_owner());
                 let lp_amount_wei: u256 = 1000000 * decimals(); // 1,000,000 ETH
-                // make the lps as the caller
-                // then call approve, in order to make vault to set bid
+                set_contract_address(weth_owner());
                 eth_dispatcher.transfer(liquidity_provider, lp_amount_wei);
                 set_contract_address(liquidity_provider);
                 eth_dispatcher.approve(vault_dispatcher.contract_address, lp_amount_wei);
