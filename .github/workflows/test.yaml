@@ -4,10 +4,10 @@ name: Tests
 on:
   push:
     branches:
-      - main
+      - "*"
   pull_request:
     branches:
-      - main
+      - "*"
 
 jobs:
   main:
@@ -18,9 +18,10 @@ jobs:
 
       - name: Setup Scarb
         uses: software-mansion/setup-scarb@v1
-        with: 
+        with:
           tool-versions: .tool-versions
 
       - name: Test the code
         run: |
           scarb test
+
