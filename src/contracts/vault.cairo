@@ -371,15 +371,15 @@ mod Vault {
             let next_round_id = current_round_id + 1;
             let next_round_deposit = self.positions.read((liquidity_provider, next_round_id));
 
+            // No matter the state of the current round, the liquidity provider's deposit for the next round
+            // is always unlocked
+            let mut unlocked_balance = next_round_deposit;
+
             // @dev If current round is Auctioning, the liquidity provider's unlocked balance is just
             // the value of their deposit for the next round, the rest of their liquidity (if any) is locked
             if (current_round.get_state() == OptionRoundState::Auctioning) {
-                return next_round_deposit;
+                return unlocked_balance;
             } else {
-                // @dev If the current round is Open | Running, the deposit for the next round is
-                // included in the liquidity provider's unlocked balance
-                let mut unlocked_balance = next_round_deposit;
-
                 // The liquidity provider's position value at the end of the previous round
                 let previous_round_id = current_round_id - 1;
                 let lp_remaining_balance = self
