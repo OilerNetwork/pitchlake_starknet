@@ -759,7 +759,7 @@ mod OptionRound {
 
         // End the auction and calculate the clearing price and total options sold
         fn end_auction_internal(ref self: ContractState) -> (u256, u256) {
-            (1, 1)
+            (0, 0)
         }
 
         // Get a dispatcher for the ETH contract
@@ -771,7 +771,7 @@ mod OptionRound {
 
         fn calculate_options(ref self: ContractState, starting_liquidity: u256) -> u256 {
             //Calculate total options accordingly
-            1
+            0
         }
 
         fn calculate_expected_payout(ref self: ContractState, settlement_price: u256,) -> u256 {
