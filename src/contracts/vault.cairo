@@ -342,15 +342,22 @@ mod Vault {
         fn get_lp_locked_balance(
             self: @ContractState, liquidity_provider: ContractAddress
         ) -> u256 {
-            // todo
-            // helper function to calcualte value of position from checkpoint to end of input round
-            // - shd check that input round is settled
-            // use this value and optionally check the current round is input round != current round
-            // checkpoint to -> previous round := value
-            // if current open, locked is 0
-            // if current auctioning|running, locked is value - premiums/unsold collected
-            // if current running, locked is value
-            100
+            // Get a dispatcher for the current round
+            let current_round_id = self.current_option_round_id.read();
+            let current_round = self.get_round_dispatcher(current_round_id);
+
+            // The liquidity provider's position value at the end of the previous round
+            // @dev If the current round is Open, no liquidity is locked
+            if (current_round.get_state() == OptionRoundState::Open) {
+                0
+            } else {
+                let previous_round_id = current_round_id - 1;
+                let lp_remaining_balance = self
+                    .calculate_value_of_position_from_checkpoint_to_round(
+                        liquidity_provider, previous_round_id
+                    );
+                lp_remaining_balance
+            }
         }
 
         fn get_lp_unlocked_balance(
