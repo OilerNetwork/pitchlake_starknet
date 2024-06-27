@@ -342,17 +342,26 @@ mod Vault {
         fn get_lp_locked_balance(
             self: @ContractState, liquidity_provider: ContractAddress
         ) -> u256 {
+            // todo
+            // helper function to calcualte value of position from checkpoint to end of input round
+            // - shd check that input round is settled
+            // use this value and optionally check the current round is input round != current round
+            // checkpoint to -> previous round := value
+            // if current open, locked is 0
+            // if current auctioning|running, locked is value - premiums/unsold collected
+            // if current running, locked is value
             100
         }
 
         fn get_lp_unlocked_balance(
             self: @ContractState, liquidity_provider: ContractAddress
         ) -> u256 {
+            // todo
             100
         }
 
         fn get_lp_total_balance(self: @ContractState, liquidity_provider: ContractAddress) -> u256 {
-            100
+            self.get_lp_locked_balance(liquidity_provider) + self.get_lp_unlocked_balance(liquidity_provider)
         }
 
         // For Vault //
@@ -696,6 +705,15 @@ mod Vault {
                         OptionRoundDeployed { round_id: next_round_id, address: next_round_address }
                     )
                 );
+        }
+
+        fn calculate_value_of_position_from_checkpoint_to_round(
+            ref self: ContractState, liquidity_provider: ContractAddress, ending_round_id: u256
+        ) -> u256 {
+          // see crash course for details
+          // update premiums_colllected to also account for unsold liquidity collected
+          // remember to account of premiums/unsold liquidity collected by the lp for each round
+            100
         }
     }
 }
