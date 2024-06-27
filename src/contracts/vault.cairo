@@ -216,7 +216,7 @@ mod Vault {
         // Total locked liquidity
         total_locked_balance: u256,
         // The amount of premiums a liquidity provider collects from each round: (liquidity_provider, round_id) -> collected_amount
-        premiums_collected: LegacyMap<(ContractAddress, u256), bool>,
+        premiums_collected: LegacyMap<(ContractAddress, u256), u256>,
         // The amount of liquidity not sold during each round's auction (if any): (round_id) -> unsold_liquidity
         unsold_liquidity: LegacyMap<u256, u256>,
         // The id of the current option round
@@ -595,6 +595,166 @@ mod Vault {
             // any premiums from the round that they may have already collected
             // - See crash course for more details
 
+            let current_round_id = self.current_option_round_id.read();
+            let current_round = self.get_round_dispatcher(current_round_id);
+            let current_round_state = current_round.get_state();
+            let liquidity_provider = get_caller_address();
+            let eth_dispatcher = self.get_eth_dispatcher();
+
+            // The liquidity provider's deposit for the next round
+            let next_round_id = current_round_id + 1;
+
+            // No matter the state of the current round, the liquidity provider's deposit for the next round
+            // is always unlocked
+            let mut unlocked_balance = match current_round_state {
+                OptionRoundState::Open => self
+                    .positions
+                    .read((liquidity_provider, current_round_id)),
+                _ => self.positions.read((liquidity_provider, next_round_id))
+            };
+
+            // @note: here we are withdrawing with the liquidity provided for the next/current round first
+            //        and then we are withdrawing from the premiums collected
+            let total_unlocked_before = self.total_unlocked_balance.read();
+            if (current_round_state == OptionRoundState::Auctioning) {
+                if (amount <= unlocked_balance) {
+                    eth_dispatcher.transfer(liquidity_provider, amount);
+                    self
+                        .positions
+                        .write((liquidity_provider, next_round_id), unlocked_balance - amount);
+                    self.total_unlocked_balance.write(total_unlocked_before - amount);
+                    self
+                        .emit(
+                            Event::Withdrawal(
+                                Withdrawal {
+                                    account: liquidity_provider,
+                                    position_balance_before: unlocked_balance,
+                                    position_balance_after: unlocked_balance - amount
+                                }
+                            )
+                        );
+
+                    return Result::Ok(unlocked_balance - amount);
+                }
+            } else {
+                let previous_round_id = current_round_id - 1;
+                let lp_remaining_balance = self
+                    .calculate_value_of_position_from_checkpoint_to_round(
+                        liquidity_provider, previous_round_id
+                    );
+                let total_collectable_balance = current_round.total_premiums()
+                    + self.unsold_liquidity.read(current_round_id);
+
+                // Calculate the liquidity provider's share of the total collectable balance,
+                // accounting for any premiums/unsold liquidity they have already collected
+                let lp_portion_of_collectable_balance = (total_collectable_balance
+                    * lp_remaining_balance)
+                    / current_round.starting_liquidity();
+                let lp_collected_balance = self
+                    .get_premiums_collected(liquidity_provider, current_round_id);
+
+                let premiums = (lp_portion_of_collectable_balance - lp_collected_balance);
+                if (current_round_state == OptionRoundState::Running) {
+                    if (amount <= unlocked_balance) {
+                        eth_dispatcher.transfer(liquidity_provider, amount);
+                        self
+                            .positions
+                            .write((liquidity_provider, next_round_id), unlocked_balance - amount);
+                        self.total_unlocked_balance.write(total_unlocked_before - amount);
+                        self
+                            .emit(
+                                Event::Withdrawal(
+                                    Withdrawal {
+                                        account: liquidity_provider,
+                                        position_balance_before: unlocked_balance + premiums,
+                                        position_balance_after: unlocked_balance + premiums - amount
+                                    }
+                                )
+                            );
+
+                        return Result::Ok(unlocked_balance + premiums - amount);
+                    } else {
+                        if (amount <= unlocked_balance + premiums) {
+                            eth_dispatcher.transfer(liquidity_provider, amount);
+                            self.positions.write((liquidity_provider, next_round_id), 0);
+                            self
+                                .premiums_collected
+                                .write(
+                                    (liquidity_provider, current_round_id),
+                                    premiums - (amount - unlocked_balance)
+                                );
+                            self.total_unlocked_balance.write(total_unlocked_before - amount);
+                            self
+                                .emit(
+                                    Event::Withdrawal(
+                                        Withdrawal {
+                                            account: liquidity_provider,
+                                            position_balance_before: unlocked_balance + premiums,
+                                            position_balance_after: unlocked_balance
+                                                + premiums
+                                                - amount
+                                        }
+                                    )
+                                );
+
+                            return Result::Ok(unlocked_balance + premiums - amount);
+                        }
+                    }
+                }
+
+                if (current_round_state == OptionRoundState::Open) {
+                    // let current_round_deposit = self
+                    //     .positions
+                    //     .read((liquidity_provider, current_round_id));
+                    if (amount <= unlocked_balance) {
+                        eth_dispatcher.transfer(liquidity_provider, amount);
+                        self
+                            .positions
+                            .write(
+                                (liquidity_provider, current_round_id), unlocked_balance - amount
+                            );
+                        self.total_unlocked_balance.write(total_unlocked_before - amount);
+                        self
+                            .emit(
+                                Event::Withdrawal(
+                                    Withdrawal {
+                                        account: liquidity_provider,
+                                        position_balance_before: unlocked_balance
+                                            + lp_remaining_balance,
+                                        position_balance_after: unlocked_balance
+                                            + lp_remaining_balance
+                                            - amount
+                                    }
+                                )
+                            );
+
+                        return Result::Ok(unlocked_balance + lp_remaining_balance - amount);
+                    } else {
+                        if (amount <= unlocked_balance + lp_remaining_balance) {
+                            eth_dispatcher.transfer(liquidity_provider, amount);
+                            self.positions.write((liquidity_provider, current_round_id), 0);
+
+                            self.withdraw_checkpoints.write(liquidity_provider, current_round_id);
+                            self.total_unlocked_balance.write(total_unlocked_before - amount);
+                            self
+                                .emit(
+                                    Event::Withdrawal(
+                                        Withdrawal {
+                                            account: liquidity_provider,
+                                            position_balance_before: unlocked_balance
+                                                + lp_remaining_balance,
+                                            position_balance_after: unlocked_balance
+                                                + lp_remaining_balance
+                                                - amount
+                                        }
+                                    )
+                                );
+
+                            return Result::Ok(unlocked_balance + lp_remaining_balance - amount);
+                        }
+                    }
+                }
+            }
             // Assert amount <= this value
 
             // Update the caller's withdraw_checkpoint
@@ -624,8 +784,7 @@ mod Vault {
             // Emit withdrawal event
 
             // Return the value of the caller's unlocked position after the withdrawal
-
-            Result::Ok(1)
+            Result::Err(VaultError::InsufficientBalance)
         }
 
         /// LP token related
@@ -662,6 +821,66 @@ mod Vault {
         fn calculate_options(ref self: ContractState, starting_liquidity: u256) -> u256 {
             //Calculate total options accordingly
             1
+        }
+
+        fn calculate_value_of_position_from_checkpoint_to_round(
+            self: @ContractState, liquidity_provider: ContractAddress, ending_round_id: u256
+        ) -> u256 {
+            // Ending round must be Settled to calculate the value of the position at the end of it
+            // @dev If the ending round is 0, it means the first round of the protocol is Open,
+            // and therefore the value of the position is 0
+            if (ending_round_id == 0) {
+                0
+            } else {
+                // Assert the ending round is Settled
+                if (self
+                    .get_round_dispatcher(ending_round_id)
+                    .get_state() != OptionRoundState::Settled) {
+                    panic!(
+                        "Vault: Ending round must be Settled to calculate the value of the position at the end of it"
+                    );
+                }
+                // Last round the liquidity provider withdrew from
+                let checkpoint = self.withdraw_checkpoints.read(liquidity_provider);
+                // @dev The first round of the protocol is 1, therefore if the checkpoint is 0
+                // we need to start at round 1
+                let mut i = match checkpoint == 0 {
+                    true => 1,
+                    false => checkpoint
+                };
+
+                // Value of the position at the end of each round
+                let mut ending_amount = 0;
+
+                loop {
+                    if (i > ending_round_id) {
+                        // Now ending amount is equal to the value of the position at the end of the ending round
+                        break (ending_amount);
+                    } else {
+                        ending_amount += self.positions.read((liquidity_provider, i));
+
+                        let this_round = self.get_round_dispatcher(i);
+
+                        // How much liquidity remained in this round
+                        let remaininig_liquidity = this_round.starting_liquidity()
+                            + this_round.total_premiums()
+                            - this_round.total_payout()
+                            - self.unsold_liquidity.read(i);
+
+                        // What portion of the remaining liquidity the liquidity provider owned
+                        let mut lp_portion_of_remaining_liquidity = (remaininig_liquidity
+                            * ending_amount)
+                            / this_round.starting_liquidity();
+
+                        // Subtract out any premiums and unsold liquidity the liquidity provider
+                        // already collected from this round
+                        ending_amount = lp_portion_of_remaining_liquidity
+                            - self.get_premiums_collected(liquidity_provider, i);
+
+                        i += 1;
+                    }
+                }
+            }
         }
     }
 }
