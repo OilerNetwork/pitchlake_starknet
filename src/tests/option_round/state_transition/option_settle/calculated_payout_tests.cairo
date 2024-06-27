@@ -18,8 +18,9 @@ use pitch_lake_starknet::{
 };
 
 
-// @note This should move to utils
 // @dev This needs formal verification
+// @note this function should match the implementation in the option round internal functions,
+// need to refactor to remove risk of sub overflow
 fn calculate_expected_payout(ref round: OptionRoundFacade, settlement_price: u256,) -> u256 {
     let k = round.get_strike_price();
     let cl = round.get_cap_level();

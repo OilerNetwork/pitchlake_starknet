@@ -118,7 +118,7 @@ fn test_depositing_to_vault_eth_transfer() {
                 let lp_balance_before = lp_balances_before.pop_front().unwrap();
                 let lp_balance_after = lp_balances_after.pop_front().unwrap();
                 let deposit_amount = *deposit_amounts.pop_front().unwrap();
-                // Check eth transfers to liquidity provider
+                // Check eth transfers from liquidity provider
                 assert(
                     lp_balance_after == lp_balance_before - deposit_amount, 'lp eth balance wrong'
                 );
@@ -130,7 +130,7 @@ fn test_depositing_to_vault_eth_transfer() {
 
 // Test deposits always go to the vault's unlocked pool, regardless of the state of the current round
 #[test]
-#[available_gas(100000000)]
+#[available_gas(1000000000)]
 fn test_deposits_always_go_to_unlocked_pool() {
     let (mut vault, _) = setup_facade();
     let deposit_amount = 100 * decimals();

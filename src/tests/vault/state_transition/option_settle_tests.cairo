@@ -199,7 +199,7 @@ fn test_settling_option_round_updates_current_round_id() {
 // Test settling an option round updates the current round's state
 // @note should this be a state transition test in option round tests
 #[test]
-#[available_gas(10000000)]
+#[available_gas(100000000)]
 fn test_settle_option_round_updates_round_state() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
@@ -258,7 +258,7 @@ fn test_settling_option_round_transfers_payout() {
 
 // Test that the vault and LP locked/unlocked balances update when the round settles
 #[test]
-#[available_gas(10000000)]
+#[available_gas(100000000)]
 fn test_settling_option_round_updates_locked_and_unlocked_balances() {
     let number_of_liquidity_providers = 4;
     let mut deposit_amounts = create_array_gradient(
