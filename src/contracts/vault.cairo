@@ -780,6 +780,9 @@ mod Vault {
                 );
         }
 
+
+        // Calculate the value of the liquidity provider's position from
+        // their checkpoint to the end of the the ending round
         fn calculate_value_of_position_from_checkpoint_to_round(
             self: @ContractState, liquidity_provider: ContractAddress, ending_round_id: u256
         ) -> u256 {
@@ -789,6 +792,14 @@ mod Vault {
             if (ending_round_id == 0) {
                 0
             } else {
+                // Assert the ending round is Settled
+                if (self
+                    .get_round_dispatcher(ending_round_id)
+                    .get_state() != OptionRoundState::Settled) {
+                    panic!(
+                        "Vault: Ending round must be Settled to calculate the value of the position at the end of it"
+                    );
+                }
                 // Last round the liquidity provider withdrew from
                 let checkpoint = self.withdraw_checkpoints.read(liquidity_provider);
                 // @dev The first round of the protocol is 1, therefore if the checkpoint is 0
@@ -803,7 +814,8 @@ mod Vault {
 
                 loop {
                     if (i > ending_round_id) {
-                        break ();
+                        // Now ending amount is equal to the value of the position at the end of the ending round
+                        break (ending_amount);
                     } else {
                         ending_amount += self.positions.read((liquidity_provider, i));
 
@@ -827,10 +839,7 @@ mod Vault {
 
                         i += 1;
                     }
-                };
-
-                // Now ending amount is equal to the value of the position at the end of the ending round
-                ending_amount
+                }
             }
         }
     }

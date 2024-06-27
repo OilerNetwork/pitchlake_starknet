@@ -82,6 +82,5 @@ mod vault {
         mod deposit_tests;
         mod withdraw_tests;
     }
-
 }
 
