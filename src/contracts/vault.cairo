@@ -783,49 +783,55 @@ mod Vault {
         fn calculate_value_of_position_from_checkpoint_to_round(
             self: @ContractState, liquidity_provider: ContractAddress, ending_round_id: u256
         ) -> u256 {
-            //assert(ending_round_id >= self.withdraw_checkpoints.read(liquidity_provider)
-            let ending_round = self.get_round_dispatcher(ending_round_id);
-
             // Ending round must be Settled to calculate the value of the position at the end of it
-            assert(
-                ending_round.get_state() == OptionRoundState::Settled,
-                'Ending round must be settled'
-            );
+            // @dev If the ending round is 0, it means the first round of the protocol is Open,
+            // and therefore the value of the position is 0
+            if (ending_round_id == 0) {
+                0
+            } else {
+                // Last round the liquidity provider withdrew from
+                let checkpoint = self.withdraw_checkpoints.read(liquidity_provider);
+                // @dev The first round of the protocol is 1, therefore if the checkpoint is 0
+                // we need to start at round 1
+                let mut i = match checkpoint == 0 {
+                    true => 1,
+                    false => checkpoint
+                };
 
-            // Value of the position at the end of each round
-            let mut ending_amount = 0;
+                // Value of the position at the end of each round
+                let mut ending_amount = 0;
 
-            // Last round the liquidity provider withdrew from
-            let checkpoint = self.withdraw_checkpoints.read(liquidity_provider);
-            let mut i = checkpoint;
-            loop {
-                if (i > ending_round_id) {
-                    break ();
-                } else {
-                    ending_amount += self.positions.read((liquidity_provider, i));
+                loop {
+                    if (i > ending_round_id) {
+                        break ();
+                    } else {
+                        ending_amount += self.positions.read((liquidity_provider, i));
 
-                    let this_round = self.get_round_dispatcher(i);
+                        let this_round = self.get_round_dispatcher(i);
 
-                    // How much liquidity remained in this round
-                    let remaininig_liquidity = this_round.starting_liquidity()
-                        + this_round.total_premiums()
-                        - this_round.total_payout()
-                        - self.unsold_liquidity.read(i);
+                        // How much liquidity remained in this round
+                        let remaininig_liquidity = this_round.starting_liquidity()
+                            + this_round.total_premiums()
+                            - this_round.total_payout()
+                            - self.unsold_liquidity.read(i);
 
-                    // What portion of the remaining liquidity the liquidity provider owned
-                    let mut lp_portion_of_remaining_liquidity = (remaininig_liquidity
-                        * ending_amount)
-                        / this_round.starting_liquidity();
+                        // What portion of the remaining liquidity the liquidity provider owned
+                        let mut lp_portion_of_remaining_liquidity = (remaininig_liquidity
+                            * ending_amount)
+                            / this_round.starting_liquidity();
 
-                    // Subtract out any premiums and unsold liquidity the liquidity provider
-                    // already collected from this round
-                    ending_amount = lp_portion_of_remaining_liquidity
-                        - self.get_premiums_collected(liquidity_provider, i);
-                }
-            };
+                        // Subtract out any premiums and unsold liquidity the liquidity provider
+                        // already collected from this round
+                        ending_amount = lp_portion_of_remaining_liquidity
+                            - self.get_premiums_collected(liquidity_provider, i);
 
-            // Now ending amount is equal to the value of the position at the end of the ending round
-            ending_amount
+                        i += 1;
+                    }
+                };
+
+                // Now ending amount is equal to the value of the position at the end of the ending round
+                ending_amount
+            }
         }
     }
 }
