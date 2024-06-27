@@ -356,8 +356,66 @@ mod Vault {
         fn get_lp_unlocked_balance(
             self: @ContractState, liquidity_provider: ContractAddress
         ) -> u256 {
-            // todo
-            100
+            // Get a dispatcher for the current round
+            let current_round_id = self.current_option_round_id.read();
+            let current_round = self.get_round_dispatcher(current_round_id);
+
+            // The liquidity provider's deposit for the next round
+            let next_round_id = current_round_id + 1;
+            let next_round_deposit = self.positions.read((liquidity_provider, next_round_id));
+
+            // @dev If current round is Auctioning, the liquidity provider's unlocked balance is just
+            // the value of their deposit for the next round, the rest of their liquidity (if any) is locked
+            if (current_round.get_state() == OptionRoundState::Auctioning) {
+                return next_round_deposit;
+            } else {
+                // @dev If the current round is Open | Running, the deposit for the next round is
+                // included in the liquidity provider's unlocked balance
+                let mut unlocked_balance = next_round_deposit;
+
+                // The liquidity provider's position value at the end of the previous round
+                let previous_round_id = current_round_id - 1;
+                let lp_remaining_balance = self
+                    .calculate_value_of_position_from_checkpoint_to_round(
+                        liquidity_provider, previous_round_id
+                    );
+
+                // @dev If current round is Running, the liquidity provider's unlocked balance includes
+                // their portion of the current round's total premiums/unsold liquidity (minus any
+                // premiums/unsold liquidity they have already collected)
+                if (current_round.get_state() == OptionRoundState::Running) {
+                    // The total collectable balance for the current round
+                    // @dev It is the total premiums plus the unsold liquidity
+                    // @note Add getter for unsold liquidity, use here instead of the storage read
+                    // and add tests accordingly
+                    let total_collectable_balance = current_round.total_premiums()
+                        + self.unsold_liquidity.read(current_round_id);
+
+                    // Calculate the liquidity provider's share of the total collectable balance,
+                    // accounting for any premiums/unsold liquidity they have already collected
+                    let lp_portion_of_collectable_balance = (total_collectable_balance
+                        * lp_remaining_balance)
+                        / current_round.starting_liquidity();
+                    let lp_collected_balance = self
+                        .get_premiums_collected(liquidity_provider, current_round_id);
+
+                    unlocked_balance += (lp_portion_of_collectable_balance - lp_collected_balance);
+                }
+
+                // @dev If current round is Open, the liquidity provider's unlocked balance includes
+                // the value of their portion of the remaining liquidity from the previous round, plus
+                // the value of their deposit for the current round
+                if (current_round.get_state() == OptionRoundState::Open) {
+                    // The liquidity provider's deposit for the current round
+                    let current_round_deposit = self
+                        .positions
+                        .read((liquidity_provider, current_round_id));
+
+                    unlocked_balance += lp_remaining_balance + current_round_deposit;
+                }
+
+                unlocked_balance
+            }
         }
 
         fn get_lp_total_balance(self: @ContractState, liquidity_provider: ContractAddress) -> u256 {
@@ -575,6 +633,12 @@ mod Vault {
         }
 
         fn withdraw_liquidity(ref self: ContractState, amount: u256) -> Result<u256, VaultError> {
+            // Get a dispatcher for the current round
+            let current_round_id = self.current_option_round_id.read();
+            let current_round = self.get_round_dispatcher(current_round_id);
+
+            //let
+
             // Calculate the value of the caller's unlocked position from their checkpoint -> the current round
             // - If the current round is Open, this value should be the caller's portion of the previous round's
             //  remaining liquidity, plus the value of the caller's deposit into the next round
