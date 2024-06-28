@@ -947,7 +947,7 @@ mod Vault {
                 // @dev The auction has not started so there are no premiums/unsold liquidity to collect
                 if (current_round.get_state() == OptionRoundState::Open) {
                     (previous_round_remaining_balance, 0, upcoming_round_deposit)
-                }// @dev If the current round is Running, then the liquidity provider's unlocked balance is
+                } // @dev If the current round is Running, then the liquidity provider's unlocked balance is
                 // their deposit for the upcoming round and their share of the current round's collectable balance
                 // (premiums and unsold liquidity)
                 // @dev Their remaining balance from the previous round is locked in the current round
