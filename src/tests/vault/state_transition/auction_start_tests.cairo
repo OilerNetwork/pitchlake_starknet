@@ -161,7 +161,7 @@ fn test_starting_auction_does_not_update_current_and_next_round_ids() {
 // Test when an auction starts, the option round states update correctly
 // @note should this be a state transition test in option round tests
 #[test]
-#[available_gas(100000000000)]
+#[available_gas(10000000000)]
 fn test_starting_auction_updates_current_rounds_state() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
@@ -188,7 +188,7 @@ fn test_starting_auction_updates_current_rounds_state() {
 
 // Test unlocked balances become locked when the auction starts
 #[test]
-#[available_gas(100000000000)]
+#[available_gas(10000000000)]
 fn test_starting_auction_updates_locked_and_unlocked_balances() {
     let (mut vault, _) = setup_facade();
     let mut liquidity_providers = liquidity_providers_get(4).span();

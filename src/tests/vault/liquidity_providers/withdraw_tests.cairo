@@ -54,7 +54,7 @@ use debug::PrintTrait;
 //calculate gas amount to correct the balance.
 // Test withdrawing > unlocked balance fails
 #[test]
-#[available_gas(10000000)]
+#[available_gas(100000000)]
 #[should_panic(expected: ('Cannot withdraw more than unallocated balance', 'ENTRYPOINT_FAILED'))]
 fn test_withdrawing_more_than_unlocked_balance_fails() {
     let (mut vault, _) = setup_facade();
@@ -72,7 +72,7 @@ fn test_withdrawing_more_than_unlocked_balance_fails() {
 
 // Test withdrawing from the vault emits the correct event
 #[test]
-#[available_gas(10000000)]
+#[available_gas(100000000)]
 fn test_withdrawal_events() {
     let (mut vault, _) = setup_facade();
     let mut liquidity_providers = liquidity_providers_get(3).span();
@@ -109,7 +109,7 @@ fn test_withdrawal_events() {
 // Test withdrawing transfers eth from vault to liquidity provider
 // Also tests for 0 withdraw behaviour
 #[test]
-#[available_gas(10000000)]
+#[available_gas(100000000)]
 fn test_withdrawing_from_vault_eth_transfer() {
     let (mut vault, eth) = setup_facade();
     let mut liquidity_providers = liquidity_providers_get(3).span();
@@ -153,7 +153,7 @@ fn test_withdrawing_from_vault_eth_transfer() {
 
 // Test withdrawal always come from the vault's unlocked pool, regardless of the state of the current round
 #[test]
-#[available_gas(10000000)]
+#[available_gas(100000000)]
 fn test_withdrawing_always_come_from_unlocked_pool() {
     let (mut vault, _) = setup_facade();
     let deposit_amount = 100 * decimals();

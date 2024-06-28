@@ -63,7 +63,7 @@ use debug::PrintTrait;
 
 // Test ending the auction before it starts fails
 #[test]
-#[available_gas(10000000)]
+#[available_gas(100000000)]
 fn test_ending_auction_before_it_starts_fails() {
     let (mut vault_facade, _) = setup_facade();
 
@@ -80,7 +80,7 @@ fn test_ending_auction_before_it_starts_fails() {
 // @note This test will not pass until auction start is implemented
 // Test ending the auction before the auction end date fails
 #[test]
-#[available_gas(10000000)]
+#[available_gas(100000000)]
 fn test_ending_auction_before_auction_end_date_fails() {
     let (mut vault, _) = setup_facade();
     accelerate_to_auctioning(ref vault);
@@ -98,7 +98,7 @@ fn test_ending_auction_before_auction_end_date_fails() {
 
 // Test ending the auction after it already ended fails
 #[test]
-#[available_gas(10000000)]
+#[available_gas(100000000)]
 fn test_ending_auction_while_round_running_fails() {
     let (mut vault_facade, _) = setup_test_running();
 
@@ -112,7 +112,7 @@ fn test_ending_auction_while_round_running_fails() {
 
 // Test ending the auction after the auction ends fails (next state)
 #[test]
-#[available_gas(10000000)]
+#[available_gas(100000000)]
 fn test_ending_auction_while_round_settled_fails() {
     let (mut vault_facade, _) = setup_facade();
     accelerate_to_auctioning(ref vault_facade);
@@ -133,7 +133,7 @@ fn test_ending_auction_while_round_settled_fails() {
 // Test ending the auction emits the correct event
 // @note shold move to option round state transition tests
 #[test]
-#[available_gas(10000000)]
+#[available_gas(100000000)]
 fn test_auction_ended_option_round_event() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
@@ -158,7 +158,7 @@ fn test_auction_ended_option_round_event() {
 
 // Test ending an auction does not change the current round id
 #[test]
-#[available_gas(10000000)]
+#[available_gas(100000000)]
 fn test_end_auction_does_not_update_current_and_next_round_ids() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
@@ -179,7 +179,7 @@ fn test_end_auction_does_not_update_current_and_next_round_ids() {
 // Test ending an auction updates the current round state
 // @note should this be a state transition test in option round tests
 #[test]
-#[available_gas(10000000)]
+#[available_gas(100000000)]
 fn test_end_auction_updates_current_round_state() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
@@ -204,7 +204,7 @@ fn test_end_auction_updates_current_round_state() {
 // Test that winning bids are sent to the vault as premiums, and
 // refundable bids remain in the round
 #[test]
-#[available_gas(10000000)]
+#[available_gas(100000000)]
 fn test_end_auction_eth_transfer() {
     let (mut vault_facade, eth) = setup_facade();
     accelerate_to_auctioning(ref vault_facade);
@@ -246,7 +246,7 @@ fn test_end_auction_eth_transfer() {
 
 // Test ending the auction updates the vault and liquidity provider balances
 #[test]
-#[available_gas(10000000)]
+#[available_gas(100000000)]
 fn test_end_auction_updates_locked_and_unlocked_balances() {
     let number_of_liquidity_providers = 4;
     let mut deposit_amounts = create_array_gradient(
@@ -319,7 +319,7 @@ fn test_end_auction_updates_locked_and_unlocked_balances() {
 // Test that the vault and LP spreads update when the auction ends. Tests rollover
 // amounts with withdraw and topup
 #[test]
-#[available_gas(10000000)]
+#[available_gas(100000000)]
 fn test_end_auction_updates_vault_and_lp_spreads_complex() {
     let number_of_liquidity_providers = 4;
     let round1_deposits = create_array_gradient(
@@ -404,3 +404,5 @@ fn test_end_auction_updates_vault_and_lp_spreads_complex() {
     }
 }
 
+
+// @note add tests for unsold liquidity

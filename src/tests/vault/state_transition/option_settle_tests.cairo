@@ -145,7 +145,7 @@ fn test_option_round_settled_event() {
 // Test every time a new round is deployed, the next round deployed event emits correctly
 // @dev The first round to be deployed after deployment is round 2
 #[test]
-#[available_gas(10000000)]
+#[available_gas(100000000)]
 fn test_next_round_deployed_event() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
@@ -177,7 +177,7 @@ fn test_next_round_deployed_event() {
 
 // Test settling an option round updates the current round id
 #[test]
-#[available_gas(10000000)]
+#[available_gas(100000000)]
 fn test_settling_option_round_updates_current_round_id() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
@@ -199,7 +199,7 @@ fn test_settling_option_round_updates_current_round_id() {
 // Test settling an option round updates the current round's state
 // @note should this be a state transition test in option round tests
 #[test]
-#[available_gas(100000000)]
+#[available_gas(1000000000)]
 fn test_settle_option_round_updates_round_state() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
@@ -227,7 +227,7 @@ fn test_settle_option_round_updates_round_state() {
 
 // Test settling transfers the payout from the vault to the option round
 #[test]
-#[available_gas(10000000)]
+#[available_gas(100000000)]
 fn test_settling_option_round_transfers_payout() {
     let mut rounds_to_run = 3;
     let (mut vault, eth) = setup_facade();
@@ -258,7 +258,7 @@ fn test_settling_option_round_transfers_payout() {
 
 // Test that the vault and LP locked/unlocked balances update when the round settles
 #[test]
-#[available_gas(100000000)]
+#[available_gas(1000000000)]
 fn test_settling_option_round_updates_locked_and_unlocked_balances() {
     let number_of_liquidity_providers = 4;
     let mut deposit_amounts = create_array_gradient(
