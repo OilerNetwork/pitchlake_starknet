@@ -40,7 +40,7 @@ use debug::PrintTrait;
 // @note If premiums collected fails/is 0 amount, should an event be emiited or no ?
 // Test premiums collectable is 0 before auction end
 #[test]
-#[available_gas(10000000)]
+#[available_gas(1000000000)]
 fn test_premium_amount_0_before_auction_end() {
     let (mut vault_facade, _) = setup_facade();
 

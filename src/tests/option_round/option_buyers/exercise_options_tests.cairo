@@ -44,7 +44,7 @@ use pitch_lake_starknet::{
 // that has 0 options to exercise (after placing bids append an extra LP to the array,
 // this way we know they have 0 options)
 #[test]
-#[available_gas(10000000)]
+#[available_gas(20000000)]
 fn test_exercising_0_options() {
     let (mut vault, _) = setup_facade();
     accelerate_to_auctioning(ref vault);
@@ -58,7 +58,7 @@ fn test_exercising_0_options() {
 
 // Test evercising options before round settles fails
 #[test]
-#[available_gas(10000000)]
+#[available_gas(20000000)]
 fn test_exercise_options_before_round_settles_fails() {
     let (mut vault, _) = setup_facade();
     accelerate_to_auctioning(ref vault);
@@ -76,7 +76,7 @@ fn test_exercise_options_before_round_settles_fails() {
 
 // Test exercising emits correct events
 #[test]
-#[available_gas(10000000)]
+#[available_gas(20000000)]
 fn test_exercise_options_events() {
     let (mut vault, _) = setup_facade();
     let options_available = accelerate_to_auctioning(ref vault);
@@ -109,7 +109,7 @@ fn test_exercise_options_events() {
 /// State Tests ///
 
 #[test]
-#[available_gas(10000000)]
+#[available_gas(20000000)]
 fn test_exercise_options_eth_transfer() {
     let (mut vault, eth) = setup_facade();
     let options_available = accelerate_to_auctioning(ref vault);

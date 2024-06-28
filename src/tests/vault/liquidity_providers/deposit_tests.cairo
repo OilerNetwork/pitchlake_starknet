@@ -54,7 +54,7 @@ use debug::PrintTrait;
 
 // Test depositing to the vault emits the correct events
 #[test]
-#[available_gas(100000000)]
+#[available_gas(20000000)]
 fn test_deposit_events() {
     let (mut vault, _) = setup_facade();
     let mut liquidity_providers = liquidity_providers_get(3).span();

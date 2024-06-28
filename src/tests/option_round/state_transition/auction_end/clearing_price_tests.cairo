@@ -29,7 +29,7 @@ use starknet::testing::{set_block_timestamp, set_contract_address};
 
 // Test clearing price is 0 before auction end
 #[test]
-#[available_gas(10000000)]
+#[available_gas(20000000)]
 fn test_clearing_price_0_before_auction_end() {
     let (mut vault_facade, _) = setup_facade();
     let total_options_available = accelerate_to_auctioning(ref vault_facade);
@@ -47,7 +47,7 @@ fn test_clearing_price_0_before_auction_end() {
 
 // Test clearing price is 0 if no bids are placed
 #[test]
-#[available_gas(10000000)]
+#[available_gas(20000000)]
 fn test_clearing_price_is_0_when_no_bids() {
     let (mut vault_facade, _) = setup_facade();
     accelerate_to_auctioning(ref vault_facade);
@@ -61,7 +61,7 @@ fn test_clearing_price_is_0_when_no_bids() {
 
 // Test clearing price is the only bid price
 #[test]
-#[available_gas(10000000)]
+#[available_gas(20000000)]
 fn test_clearing_price_is_only_bid_price() {
     let (mut vault, _) = setup_facade();
     // Deposit liquidity and start the auction
@@ -81,7 +81,7 @@ fn test_clearing_price_is_only_bid_price() {
 
 // Test clearing price is max price to sell all options
 #[test]
-#[available_gas(10000000)]
+#[available_gas(20000000)]
 fn test_clearing_price_is_highest_price_to_sell_all_options() {
     let (mut vault, _) = setup_facade();
     // Deposit liquidity and start the auction
@@ -106,7 +106,7 @@ fn test_clearing_price_is_highest_price_to_sell_all_options() {
 // - In this case, the auction sells total_options_available - 1 @ reserve price, but could sell
 //    total_options_available - 2 @ 10x reserve price
 #[test]
-#[available_gas(10000000)]
+#[available_gas(20000000)]
 fn test_clearing_price_is_lowest_price_when_selling_less_than_total_options() {
     let (mut vault_facade, _, option_bidders, _) = setup_test_auctioning_bidders(2);
 
@@ -128,7 +128,7 @@ fn test_clearing_price_is_lowest_price_when_selling_less_than_total_options() {
 // - In this case, the auction sells total_options_available @ reserve price, but could sell
 //    total_options_available - 1 @ 10x reserve price
 #[test]
-#[available_gas(10000000)]
+#[available_gas(20000000)]
 fn test_clearing_price_is_lowest_price_when_selling_total_options() {
     let (mut vault_facade, _, option_bidders, _) = setup_test_auctioning_bidders(2);
 

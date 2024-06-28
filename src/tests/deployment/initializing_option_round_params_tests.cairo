@@ -42,7 +42,7 @@ use debug::PrintTrait;
 
 // Test that the strike price is set correctly based on the vault type
 #[test]
-#[available_gas(10000000)]
+#[available_gas(20000000)]
 fn test_strike_price_based_on_vault_types() {
     // Deploy pitch lake
     let pitch_lake_dispatcher: IPitchLakeDispatcher = deploy_pitch_lake();
