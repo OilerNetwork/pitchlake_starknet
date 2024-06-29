@@ -419,7 +419,7 @@ mod Vault {
 
         fn end_auction(ref self: ContractState) -> Result<(u256, u256), VaultError> {
             // Get a dispatcher for the current round
-            let current_round_id = self.current_option_round_id.read();
+            let current_round_id = self.current_option_round_id();
             let current_round = self.get_round_dispatcher(current_round_id);
 
             // Try to end the auction on the option round
@@ -429,8 +429,8 @@ mod Vault {
                     clearing_price, total_options_sold
                 )) => {
                     // Amount of liquidity currently locked and unlocked
-                    let mut locked_liquidity = self.total_locked_balance.read();
-                    let mut unlocked_liquidity = self.total_unlocked_balance.read();
+                    let mut locked_liquidity = self.get_total_locked_balance();
+                    let mut unlocked_liquidity = self.get_total_unlocked_balance();
 
                     // Premiums earned from the auction are unlocked for liquidity providers to withdraw
                     unlocked_liquidity += current_round.total_premiums();
@@ -513,7 +513,7 @@ mod Vault {
             ref self: ContractState, amount: u256, liquidity_provider: ContractAddress
         ) -> Result<u256, VaultError> {
             // Get a dispatcher for the current round
-            let current_round_id = self.current_option_round_id.read();
+            let current_round_id = self.current_option_round_id();
             let current_round = self.get_round_dispatcher(current_round_id);
 
             // Transfer the deposit to this contract (from caller to vault)
@@ -659,7 +659,7 @@ mod Vault {
         // Deploy the next option round contract, update the current round id & round address mapping
         fn deploy_next_round(ref self: ContractState) {
             // The round id for the next round
-            let next_round_id = self.current_option_round_id.read() + 1;
+            let next_round_id = self.current_option_round_id() + 1;
 
             // The constructor params for the next round
             let mut calldata: Array<felt252> = array![];
