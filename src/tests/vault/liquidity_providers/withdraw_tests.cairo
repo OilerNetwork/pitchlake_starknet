@@ -10,14 +10,14 @@ use starknet::{
     testing::{set_block_timestamp, set_contract_address}
 };
 use pitch_lake_starknet::{
-    contracts::eth::Eth,
+    contracts::{eth::Eth, vault::{Vault, VaultError}},
     tests::{
         utils::{
             helpers::{
                 general_helpers::{get_erc20_balances, sum_u256_array},
                 event_helpers::{
                     pop_log, assert_no_events_left, assert_event_transfer,
-                    assert_event_vault_withdrawal
+                    assert_event_vault_withdrawal, clear_event_logs,
                 },
                 accelerators::{
                     accelerate_to_auctioning, accelerate_to_auctioning_custom,
@@ -54,8 +54,7 @@ use debug::PrintTrait;
 //calculate gas amount to correct the balance.
 // Test withdrawing > unlocked balance fails
 #[test]
-#[available_gas(100000000)]
-#[should_panic(expected: ('Cannot withdraw more than unallocated balance', 'ENTRYPOINT_FAILED'))]
+#[available_gas(50000000)]
 fn test_withdrawing_more_than_unlocked_balance_fails() {
     let (mut vault, _) = setup_facade();
     let liquidity_provider = liquidity_provider_1();
@@ -64,7 +63,11 @@ fn test_withdrawing_more_than_unlocked_balance_fails() {
 
     // Try to withdraw more than unlocked balance
     let unlocked_balance = vault.get_lp_unlocked_balance(liquidity_provider);
-    vault.withdraw(unlocked_balance + 1, liquidity_provider);
+    let expected_error: felt252 = VaultError::InsufficientBalance.into();
+    match vault.withdraw_raw(unlocked_balance + 1, liquidity_provider) {
+        Result::Ok(_) => { panic!("Error expected") },
+        Result::Err(e) => { assert(e.into() == expected_error, 'Error mismatch'); }
+    }
 }
 
 
@@ -72,7 +75,7 @@ fn test_withdrawing_more_than_unlocked_balance_fails() {
 
 // Test withdrawing from the vault emits the correct event
 #[test]
-#[available_gas(100000000)]
+#[available_gas(50000000)]
 fn test_withdrawal_events() {
     let (mut vault, _) = setup_facade();
     let mut liquidity_providers = liquidity_providers_get(3).span();
@@ -81,6 +84,9 @@ fn test_withdrawal_events() {
     // Unlocked balances before withdrawal
     let mut lp_unlocked_balances_before = vault
         .deposit_multiple(deposit_amounts, liquidity_providers);
+
+    // Clear deposit events from log
+    clear_event_logs(array![vault.contract_address()]);
 
     // Withdraw from the vault
     let mut lp_unlocked_balances_after = vault
@@ -109,7 +115,7 @@ fn test_withdrawal_events() {
 // Test withdrawing transfers eth from vault to liquidity provider
 // Also tests for 0 withdraw behaviour
 #[test]
-#[available_gas(100000000)]
+#[available_gas(50000000)]
 fn test_withdrawing_from_vault_eth_transfer() {
     let (mut vault, eth) = setup_facade();
     let mut liquidity_providers = liquidity_providers_get(3).span();
@@ -153,7 +159,7 @@ fn test_withdrawing_from_vault_eth_transfer() {
 
 // Test withdrawal always come from the vault's unlocked pool, regardless of the state of the current round
 #[test]
-#[available_gas(100000000)]
+#[available_gas(50000000)]
 fn test_withdrawing_always_come_from_unlocked_pool() {
     let (mut vault, _) = setup_facade();
     let deposit_amount = 100 * decimals();
