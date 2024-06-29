@@ -112,7 +112,7 @@ trait IOptionRound<TContractState> {
     // Try to start the option round's auction
     // @return the total options available in the auction
     fn start_auction(
-        ref self: TContractState, total_options_available: u256, starting_liquidity: u256
+        ref self: TContractState, params: StartAuctionParams
     ) -> Result<u256, OptionRound::OptionRoundError>;
 
     // Settle the auction if the auction time has passed
@@ -166,6 +166,7 @@ trait IOptionRound<TContractState> {
 
 #[starknet::contract]
 mod OptionRound {
+    use core::traits::Destruct;
     use openzeppelin::token::erc20::{
         ERC20Component, interface::{IERC20, IERC20Dispatcher, IERC20DispatcherTrait,}
     };
@@ -235,8 +236,14 @@ mod OptionRound {
     #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
     struct StartAuctionParams {
         total_options_available: u256,
-        reserve_price: u256,
+        starting_liquidity: u256
     }
+
+    #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
+    struct SettleOptionRound {
+        settlement_price: u256
+    }
+
 
     // The states an option round can be in
     // @note Should we move these into the contract or separate file ?
@@ -600,7 +607,7 @@ mod OptionRound {
 
         // @note Do we need to set cap level/reserve price/strike price here, or is during deployment fine ? (~1-8 hours earlier)
         fn start_auction(
-            ref self: ContractState, total_options_available: u256, starting_liquidity: u256
+            ref self: ContractState, params: StartAuctionParams
         ) -> Result<u256, OptionRoundError> {
             // Assert caller is Vault
             if (!self.is_caller_the_vault()) {
@@ -618,8 +625,8 @@ mod OptionRound {
             }
 
             // Set starting liquidity & total options available
-            self.starting_liquidity.write(starting_liquidity);
-            self.total_options_available.write(total_options_available);
+            self.starting_liquidity.write(params.starting_liquidity);
+            self.total_options_available.write(params.total_options_available);
 
             // Update state to Auctioning
             self.state.write(OptionRoundState::Auctioning);
@@ -628,12 +635,12 @@ mod OptionRound {
             self
                 .emit(
                     Event::AuctionStart(
-                        AuctionStart { total_options_available: total_options_available }
+                        AuctionStart { total_options_available: params.total_options_available }
                     )
                 );
 
             // Return the total options available
-            Result::Ok(total_options_available)
+            Result::Ok(params.total_options_available)
         }
 
         fn end_auction(ref self: ContractState) -> Result<(u256, u256), OptionRoundError> {
