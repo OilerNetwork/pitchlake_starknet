@@ -69,7 +69,9 @@ mod RedBlackTree {
     impl InternalImpl of RedBlackTreeInternalTrait {
         // Get a dispatcher for the ETH contract
         fn compare(self: @ContractState, a: felt252, b: felt252) -> u256 {
-            return 2;
+            let a_data = self.bid_details.read(a);
+            let b_data = self.bid_details.read(b);
+            return a_data.price-b_data.price;
         }
 
         //may not be needed, may be gas intensive
@@ -79,7 +81,7 @@ mod RedBlackTree {
                 return 0;
             }
             let mut node_root = self.list.read(root);
-            let cmp = self.compare(self.root.read(), bid.id);
+            let cmp = self.compare(root, bid.id);
             if (cmp < 0) {
                 let left = self._delete(node_root.left,node_root.id, bid);
                 if (left != node_root.left) {
