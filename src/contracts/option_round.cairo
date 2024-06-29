@@ -105,6 +105,10 @@ trait IOptionRound<TContractState> {
     // The total number of options available in the auction
     fn get_total_options_available(self: @TContractState) -> u256;
 
+    // Get option round id
+    // @note add to facade and tests
+    fn get_round_id(self: @TContractState) -> u256;
+
     /// Writes ///
 
     /// State transitions
@@ -373,11 +377,6 @@ mod OptionRound {
         // Write option round params to storage now or once auction starts
         self.reserve_price.write(reserve_price);
         self.cap_level.write(cap_level);
-        self.auction_start_date.write(auction_start_date);
-        self.auction_end_date.write(auction_end_date);
-        self.option_settlement_date.write(option_settlement_date);
-        // Write other params to storage
-
         self.strike_price.write(strike_price);
     }
 
@@ -553,6 +552,9 @@ mod OptionRound {
             100
         }
 
+        fn get_round_id(self: @ContractState) -> u256 {
+            self.round_id.read()
+        }
 
         /// Other
 

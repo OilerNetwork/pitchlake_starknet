@@ -341,6 +341,10 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         self.option_round_dispatcher.contract_address
     }
 
+    fn get_round_id(ref self: OptionRoundFacade) -> u256 {
+        self.option_round_dispatcher.get_round_id()
+    }
+
     /// Previously OptionRoundParms
 
     fn get_current_average_basefee(ref self: OptionRoundFacade) -> u256 {
