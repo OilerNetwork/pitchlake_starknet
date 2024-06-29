@@ -26,7 +26,9 @@ mod RedBlackTree {
         id: felt252,
         right: felt252,
         left: felt252,
-        is_red: bool
+        end:felt252,
+        next:felt252,
+        is_red: bool,
     }
 
 
@@ -70,6 +72,7 @@ mod RedBlackTree {
             return 2;
         }
 
+        //may not be needed, may be gas intensive
         fn _delete(ref self: ContractState, root: felt252, parent: felt252, bid: Bid)->felt252{
             if(root == 0)
             {
@@ -91,39 +94,9 @@ mod RedBlackTree {
                     node_root.right = right;
                     self.list.write(node_root.id, node_root)
                 } //x.right = this._put(x.right, key, value);
-            } else { //Create a bucket
+            } else { //Delete from the bucket
             // x.value = value;
-            }
-            return 1;
-        }
-        fn _insert(ref self: ContractState, root: felt252, parent: felt252, bid: Bid) -> felt252 {
-            if (root == 0) {
-                self
-                    .list
-                    .write(
-                        bid.id, Node { id: bid.id, parent, right: 0, left: 0, is_red: true }
-                    );
-                return bid.id;
-            }
 
-            let mut node_root = self.list.read(root);
-            let cmp = self.compare(self.root.read(), bid.id);
-            if (cmp < 0) {
-                let left = self._insert(node_root.left,node_root.id, bid);
-                if (left != node_root.left) {
-                    node_root.left = left;
-                    self.list.write(node_root.id, node_root)
-                }
-                { //let x.left = this._put(x.left, key, value);
-                }
-            } else if (cmp > 0) {
-                let right = self._insert(node_root.right,node_root.id, bid);
-                if (right != node_root.right) {
-                    node_root.right = right;
-                    self.list.write(node_root.id, node_root)
-                } //x.right = this._put(x.right, key, value);
-            } else { //Create a bucket
-            // x.value = value;
             }
             let mut node_right= self.list.read(node_root.right);
             let mut node_left = self.list.read(node_root.left);
@@ -147,7 +120,66 @@ mod RedBlackTree {
                 self.list.write(node_right.id,node_right);
                 self.list.write(node_root.id,node_root);
             }
-            self.root.read()
+            node_root.id
+        }
+        fn _insert(ref self: ContractState, root: felt252, parent: felt252, bid: Bid) -> felt252 {
+            if (root == 0) {
+                self
+                    .list
+                    .write(
+                        bid.id, Node { id: bid.id, parent, right: 0, left: 0, is_red: true, end:bid.id, next:0 }
+                    );
+                return bid.id;
+            }
+
+            let mut node_root = self.list.read(root);
+            let cmp = self.compare(root, bid.id);
+            if (cmp < 0) {
+                let left = self._insert(node_root.left,node_root.id, bid);
+                if (left != node_root.left) {
+                    node_root.left = left;
+                    self.list.write(node_root.id, node_root)
+                }
+                { //let x.left = this._put(x.left, key, value);
+                }
+            } else if (cmp > 0) {
+                let right = self._insert(node_root.right,node_root.id, bid);
+                if (right != node_root.right) {
+                    node_root.right = right;
+                    self.list.write(node_root.id, node_root)
+                } //x.right = this._put(x.right, key, value);
+            } else { //Create a bucket
+            // x.value = value;
+                let mut end_node = self.list.read(node_root.end);
+                end_node.next = bid.id;
+                node_root.end=bid.id;
+                self.list.write(end_node.id,end_node);
+                self.list.write(node_root.id,node_root);
+                
+            }
+            let mut node_right= self.list.read(node_root.right);
+            let mut node_left = self.list.read(node_root.left);
+            if(node_right.is_red==true &&  node_left.is_red!=true){
+
+                node_root = self.rotate_left(node_root,node_left,node_right);
+                node_right = self.list.read(node_root.right);
+                node_left = self.list.read(node_root.left);
+
+            };
+            if(node_left.is_red==true && self.list.read(node_left.left).is_red==true){
+                node_root = self.rotate_right(node_root, node_left, node_right);
+                node_right = self.list.read(node_root.right);
+                node_left = self.list.read(node_root.left);
+            }
+            if(node_left.is_red && node_right.is_red) {
+                node_left.is_red==false;
+                node_right.is_red==false;
+                node_root.is_red == true;
+                self.list.write(node_left.id,node_left);
+                self.list.write(node_right.id,node_right);
+                self.list.write(node_root.id,node_root);
+            }
+            node_root.id
         }
 
         fn rotate_left(ref self: ContractState,mut node_root:Node,node_left:Node,node_right:Node) -> Node{
