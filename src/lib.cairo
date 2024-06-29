@@ -1,6 +1,7 @@
 mod contracts {
     mod utils {
         mod utils;
+        mod rbtree;
     }
     mod eth;
     mod pitch_lake;
