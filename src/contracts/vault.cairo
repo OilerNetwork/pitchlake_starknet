@@ -418,7 +418,7 @@ mod Vault {
 
         fn end_auction(ref self: ContractState) -> Result<(u256, u256), VaultError> {
             // Get a dispatcher for the current round
-            let current_round_id = self.current_option_round_id.read();
+            let current_round_id = self.current_option_round_id();
             let current_round = self.get_round_dispatcher(current_round_id);
 
             // Try to end the auction on the option round

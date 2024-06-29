@@ -42,7 +42,9 @@ mod RedBlackTree {
     // @note Need to add eth address as a param here
     //  - Will need to update setup functions to accomodate
     #[constructor]
-    fn constructor(ref self: ContractState,) {}
+    fn constructor(ref self: ContractState,) {
+        
+    }
 
     #[abi(embed_v0)]
     impl RedBlackTreeImpl of super::IRedBlackTree<ContractState> {
