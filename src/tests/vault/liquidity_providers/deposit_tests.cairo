@@ -54,7 +54,7 @@ use debug::PrintTrait;
 
 // Test depositing to the vault emits the correct events
 #[test]
-#[available_gas(20000000)]
+#[available_gas(50000000)]
 fn test_deposit_events() {
     let (mut vault, _) = setup_facade();
     let mut liquidity_providers = liquidity_providers_get(3).span();
@@ -90,7 +90,7 @@ fn test_deposit_events() {
 // Test depositing transfers eth from liquidity provider to vault
 // Also contains a test for 0 deposit
 #[test]
-#[available_gas(100000000)]
+#[available_gas(50000000)]
 fn test_depositing_to_vault_eth_transfer() {
     let (mut vault, eth) = setup_facade();
     let mut liquidity_providers = liquidity_providers_get(3).span();
@@ -130,7 +130,7 @@ fn test_depositing_to_vault_eth_transfer() {
 
 // Test deposits always go to the vault's unlocked pool, regardless of the state of the current round
 #[test]
-#[available_gas(1000000000)]
+#[available_gas(50000000)]
 fn test_deposits_always_go_to_unlocked_pool() {
     let (mut vault, _) = setup_facade();
     let deposit_amount = 100 * decimals();

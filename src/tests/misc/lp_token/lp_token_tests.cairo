@@ -35,7 +35,7 @@ use pitch_lake_starknet::{
 // Test converting position->lp tokens fails if the auction has not ended
 #[ignore]
 #[test]
-#[available_gas(10000000)]
+#[available_gas(50000000)]
 #[should_panic(expected: ('Cannot tokenize until auction ends', 'ENTRYPOINT_FAILED',))]
 fn test_convert_position_to_lp_tokens_while_auctioning_failure() {
     let (mut vault_facade, _) = setup_facade();
@@ -56,7 +56,7 @@ fn test_convert_position_to_lp_tokens_while_auctioning_failure() {
 //  next round, we can mark the current round's premiums collected, and leave the amount sitting in the next round
 #[ignore]
 #[test]
-#[available_gas(10000000)]
+#[available_gas(50000000)]
 #[should_panic(expected: ('Cannot tokenize when round is settled?', 'ENTRYPOINT_FAILED',))]
 fn test_convert_position_to_lp_tokens_while_settled__TODO__() {
     let (mut vault_facade, _) = setup_facade();
@@ -87,7 +87,7 @@ fn test_convert_position_to_lp_tokens_while_settled__TODO__() {
 // @dev Is this test suffice for knowing withdrawCheckpoint and current_roundPosition is updated correctly? If lp_collateral is correct then withdrawCheckpoint must be right ?
 #[ignore]
 #[test]
-#[available_gas(10000000)]
+#[available_gas(50000000)]
 fn test_convert_position_to_lp_tokens_success() { //
     let (mut vault_facade, eth) = setup_facade();
     // LPs deposit 50/50 into the next round (round 1)
@@ -184,7 +184,7 @@ fn test_convert_position_to_lp_tokens_success() { //
 // and the round target-1 must be settled.
 #[ignore]
 #[test]
-#[available_gas(10000000)]
+#[available_gas(50000000)]
 fn test_convert_lp_tokens_to_position_is_always_deposit_into_current_round() { //
     let (mut vault_facade, _) = setup_facade();
     // LP deposits (into round 1)
@@ -301,7 +301,7 @@ fn test_convert_lp_tokens_to_position_is_always_deposit_into_current_round() { /
 
 // Test converting lp tokens into a position does not count the premiums earned in the source round
 #[test]
-#[available_gas(10000000)]
+#[available_gas(50000000)]
 #[ignore]
 fn test_convert_lp_tokens_to_position_does_not_count_source_round_premiums() { //
 // Deploy vault

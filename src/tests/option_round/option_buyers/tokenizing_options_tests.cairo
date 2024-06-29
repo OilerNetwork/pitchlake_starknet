@@ -21,7 +21,7 @@ use starknet::{contract_address_const, testing::{set_block_timestamp}};
 
 // Test tokenizing options mints option tokens
 #[test]
-#[available_gas(20000000)]
+#[available_gas(50000000)]
 fn test_tokenizing_options_mints_option_tokens() {
     let (mut vault, _) = setup_facade();
     let mut current_round = vault.get_current_round();
@@ -67,7 +67,7 @@ fn test_tokenizing_options_mints_option_tokens() {
 // Test user cannot tokenize options again
 // @dev This call should not fail, simply do nothing the second time
 #[test]
-#[available_gas(20000000)]
+#[available_gas(50000000)]
 fn test_tokenizing_options_twice_does_nothing() {
     let (mut vault, _) = setup_facade();
     let mut current_round = vault.get_current_round();
@@ -115,7 +115,7 @@ fn test_tokenizing_options_twice_does_nothing() {
 // Test tokenizing options sets option_balance to 0
 // @note Discuss if this is the expected behavior, or if option_balance shd include storage + erc20 balances ?
 #[test]
-#[available_gas(20000000)]
+#[available_gas(50000000)]
 fn test_tokenizing_options_sets_option_storage_balance_to_0() {
     let (mut vault, _) = setup_facade();
     let mut current_round = vault.get_current_round();

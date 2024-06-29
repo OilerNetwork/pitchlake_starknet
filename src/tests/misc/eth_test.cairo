@@ -44,7 +44,7 @@ fn deploy() -> IERC20SafeDispatcher {
 }
 
 #[test]
-#[available_gas(20000000)]
+#[available_gas(50000000)]
 fn test_name() {
     let safe_dispatcher = deploy();
     let name: felt252 = safe_dispatcher.name().unwrap();
@@ -52,7 +52,7 @@ fn test_name() {
 }
 
 #[test]
-#[available_gas(20000000)]
+#[available_gas(50000000)]
 fn test_symbol() {
     let safe_dispatcher = deploy();
     let symbol: felt252 = safe_dispatcher.symbol().unwrap();
@@ -60,7 +60,7 @@ fn test_symbol() {
 }
 
 #[test]
-#[available_gas(20000000)]
+#[available_gas(50000000)]
 fn test_decimals() {
     let safe_dispatcher = deploy();
     let decimals: u8 = safe_dispatcher.decimals().unwrap();
@@ -68,8 +68,7 @@ fn test_decimals() {
 }
 
 #[test]
-#[available_gas(10000000)]
-#[available_gas(20000000)]
+#[available_gas(50000000)]
 fn test_balanceOf() {
     let safe_dispatcher = deploy();
     let account: ContractAddress = ContractAddressZeroable::zero();
@@ -78,7 +77,7 @@ fn test_balanceOf() {
 }
 
 #[test]
-#[available_gas(20000000)]
+#[available_gas(50000000)]
 fn test_allowance() {
     let safe_dispatcher = deploy();
     let owner: ContractAddress = ContractAddressZeroable::zero();
@@ -88,7 +87,7 @@ fn test_allowance() {
 }
 
 #[test]
-#[available_gas(20000000)]
+#[available_gas(50000000)]
 fn test_transfer_zero() {
     let safe_dispatcher = deploy();
     let recipient: ContractAddress = ContractAddressZeroable::zero();
@@ -98,7 +97,7 @@ fn test_transfer_zero() {
 }
 
 #[test]
-#[available_gas(20000000)]
+#[available_gas(50000000)]
 fn test_transfer_insufficient_balance() {
     let safe_dispatcher = deploy();
     let recipient: ContractAddress = ContractAddressZeroable::zero();
@@ -109,7 +108,7 @@ fn test_transfer_insufficient_balance() {
 }
 
 #[test]
-#[available_gas(20000000)]
+#[available_gas(50000000)]
 fn test_transfer_from_zero() {
     let safe_dispatcher = deploy();
     let owner: ContractAddress = ContractAddressZeroable::zero();
@@ -120,7 +119,7 @@ fn test_transfer_from_zero() {
 }
 
 #[test]
-#[available_gas(20000000)]
+#[available_gas(50000000)]
 fn test_transfer_from_insufficient_allowance() {
     let safe_dispatcher = deploy();
     let owner: ContractAddress = ContractAddressZeroable::zero();
@@ -131,7 +130,7 @@ fn test_transfer_from_insufficient_allowance() {
 }
 
 #[test]
-#[available_gas(20000000)]
+#[available_gas(50000000)]
 fn test_transfer_from_insufficient_balance() {
     let safe_dispatcher = deploy();
     let owner: ContractAddress = ContractAddressZeroable::zero();
@@ -142,7 +141,7 @@ fn test_transfer_from_insufficient_balance() {
 }
 
 #[test]
-#[available_gas(20000000)]
+#[available_gas(50000000)]
 fn test_approve() {
     let safe_dispatcher = deploy();
     let spender: ContractAddress = ContractAddressZeroable::zero();
@@ -152,7 +151,7 @@ fn test_approve() {
 }
 
 #[test]
-#[available_gas(20000000)]
+#[available_gas(50000000)]
 fn test_approve_update() {
     let safe_dispatcher = deploy();
     let spender: ContractAddress = ContractAddressZeroable::zero();

@@ -15,7 +15,7 @@ use pitch_lake_starknet::{
     }
 };
 #[test]
-#[available_gas(20000000)]
+#[available_gas(50000000)]
 fn test_update_bids_amount_cannot_be_decreased() {
     let (mut vault_facade, eth) = setup_facade();
     let options_available = accelerate_to_auctioning(ref vault_facade);
@@ -39,7 +39,7 @@ fn test_update_bids_amount_cannot_be_decreased() {
 
 
 #[test]
-#[available_gas(20000000)]
+#[available_gas(50000000)]
 fn test_update_bids_price_cannot_be_decreased() {
     let (mut vault_facade, _) = setup_facade();
     let options_available = accelerate_to_auctioning(ref vault_facade);
@@ -62,7 +62,7 @@ fn test_update_bids_price_cannot_be_decreased() {
 }
 
 #[test]
-#[available_gas(20000000)]
+#[available_gas(50000000)]
 fn test_update_bids_price_amount() {
     let (mut vault_facade, eth) = setup_facade();
     let options_available = accelerate_to_auctioning(ref vault_facade);
@@ -86,7 +86,7 @@ fn test_update_bids_price_amount() {
 // - @note They are purposefully using default errors so we do not forget to discuss this point
 
 #[test]
-#[available_gas(20000000)]
+#[available_gas(50000000)]
 fn test_update_bids_amount_cannot_be_decreased_event_if_price_is_increased() {
     let (mut vault_facade, _) = setup_facade();
     let options_available = accelerate_to_auctioning(ref vault_facade);
@@ -112,7 +112,7 @@ fn test_update_bids_amount_cannot_be_decreased_event_if_price_is_increased() {
 }
 
 #[test]
-#[available_gas(20000000)]
+#[available_gas(50000000)]
 fn test_update_bids_price_cannot_be_decreased_event_if_amount_is_increased() {
     let (mut vault_facade, _) = setup_facade();
     let options_available = accelerate_to_auctioning(ref vault_facade);

@@ -31,7 +31,7 @@ fn calculate_expected_payout(ref round: OptionRoundFacade, settlement_price: u25
 /// Total Payout Tests ///
 
 #[test]
-#[available_gas(20000000)]
+#[available_gas(50000000)]
 fn test_option_payout_amount_index_at_strike() {
     let (mut vault_facade, mut current_round) = setup_test_running();
 
@@ -42,7 +42,7 @@ fn test_option_payout_amount_index_at_strike() {
 }
 
 #[test]
-#[available_gas(20000000)]
+#[available_gas(50000000)]
 fn test_option_payout_amount_index_higher_than_strike() {
     let (mut vault, mut current_round) = setup_test_running();
 
@@ -57,7 +57,7 @@ fn test_option_payout_amount_index_higher_than_strike() {
 }
 
 #[test]
-#[available_gas(20000000)]
+#[available_gas(50000000)]
 fn test_option_payout_amount_index_higher_than_strike_and_cap_level() {
     let (mut vault, mut current_round) = setup_test_running();
 
@@ -72,7 +72,7 @@ fn test_option_payout_amount_index_higher_than_strike_and_cap_level() {
 
 
 #[test]
-#[available_gas(20000000)]
+#[available_gas(50000000)]
 fn test_option_payout_amount_index_less_than_strike() {
     let (mut vault, mut current_round) = setup_test_running();
 
@@ -86,7 +86,7 @@ fn test_option_payout_amount_index_less_than_strike() {
 }
 
 #[test]
-#[available_gas(20000000)]
+#[available_gas(50000000)]
 fn test_option_payout_amount_index_barely_less_than_strike() {
     let (mut vault, mut current_round) = setup_test_running();
 
