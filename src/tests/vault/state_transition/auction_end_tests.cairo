@@ -23,7 +23,9 @@ use pitch_lake_starknet::{
     tests::{
         utils::{
             helpers::{
-                event_helpers::{pop_log, assert_no_events_left, assert_event_auction_end},
+                event_helpers::{
+                    pop_log, assert_no_events_left, assert_event_auction_end, clear_event_logs
+                },
                 accelerators::{
                     accelerate_to_auctioning, accelerate_to_running,
                     accelerate_to_auctioning_custom, accelerate_to_running_custom,
@@ -75,12 +77,10 @@ fn test_ending_auction_before_it_starts_fails() {
     }
 }
 
-/// @note All below tests will continue to fail until auction start and option settle is implemented
-
 // @note This test will not pass until auction start is implemented
 // Test ending the auction before the auction end date fails
 #[test]
-#[available_gas(100000000)]
+#[available_gas(200000000)]
 fn test_ending_auction_before_auction_end_date_fails() {
     let (mut vault, _) = setup_facade();
     accelerate_to_auctioning(ref vault);
@@ -89,10 +89,7 @@ fn test_ending_auction_before_auction_end_date_fails() {
     let expected_error: felt252 = OptionRoundError::AuctionEndDateNotReached.into();
     match vault.end_auction_raw() {
         Result::Ok(_) => { panic!("Error expected") },
-        Result::Err(err) => {
-            let err_msg: felt252 = err.into();
-            assert(err.into() == expected_error, 'Error Mismatch')
-        }
+        Result::Err(err) => { assert(err.into() == expected_error, 'Error Mismatch') }
     }
 }
 
@@ -141,9 +138,11 @@ fn test_auction_ended_option_round_event() {
     while rounds_to_run > 0_u32 {
         let mut current_round = vault.get_current_round();
         accelerate_to_auctioning(ref vault);
+        clear_event_logs(array![current_round.contract_address()]);
         let (clearing_price, _) = accelerate_to_running(ref vault);
 
         // Check the event emits correctly
+        assert(clearing_price > 0, 'clearing price shd be > 0');
         assert_event_auction_end(current_round.contract_address(), clearing_price);
 
         accelerate_to_settled(ref vault, 0);
@@ -219,7 +218,7 @@ fn test_end_auction_eth_transfer() {
     let bid_amount = current_round.get_total_options_available();
     let losing_price = current_round.get_reserve_price();
     let winning_price = 2 * losing_price;
-    accelerate_to_running_custom(
+    let (clearing_price, options_sold) = accelerate_to_running_custom(
         ref vault_facade,
         option_bidders,
         array![bid_amount, bid_amount].span(),
@@ -230,6 +229,7 @@ fn test_end_auction_eth_transfer() {
     let vault_balance_after = eth.balance_of(vault_facade.contract_address());
 
     // Check premiums transfer from round to vault, and unused bids remain in round
+    assert(clearing_price * options_sold != 0, 'premiums shd be > 0');
     assert(
         round_balance_before == bid_amount * losing_price + bid_amount * winning_price,
         'round balance before wrong'
@@ -292,6 +292,7 @@ fn test_end_auction_updates_locked_and_unlocked_balances() {
         (vault_locked_after, vault_unlocked_after) == (total_deposits, total_premiums),
         'vault balance after'
     );
+    assert(total_premiums > 0, 'premiums shd be greater than 0');
 
     // Check liquidity provider balances
     loop {
@@ -379,6 +380,7 @@ fn test_end_auction_updates_vault_and_lp_spreads_complex() {
     let vault_spread_after = vault.get_total_locked_and_unlocked_balance();
 
     // Check vault spreads
+    assert(total_premiums2 > 0, 'premiums shd be greater than 0');
     assert(
         vault_spread_before == (remaining_liquidity1 + topup_amount, 0), 'vault spread before wrong'
     );
