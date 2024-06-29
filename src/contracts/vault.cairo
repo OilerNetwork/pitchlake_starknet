@@ -400,7 +400,8 @@ mod Vault {
                 .calculate_total_options_available(starting_liquidity);
 
             // Try to start the auction on the current round
-            let res = current_round.start_auction(total_options_available, starting_liquidity);
+            let res = current_round
+                .start_auction(StartAuctionParams { total_options_available, starting_liquidity });
             match res {
                 Result::Ok(total_options_available) => {
                     // Update total_locked_liquidity

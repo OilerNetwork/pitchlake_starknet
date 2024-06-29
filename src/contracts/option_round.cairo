@@ -619,8 +619,10 @@ mod OptionRound {
                 return Result::Err(OptionRoundError::AuctionAlreadyStarted);
             }
 
+            let now = get_block_timestamp();
+            let start_date = self.get_auction_start_date();
             // Assert block timestamp is >= auction start date
-            if (get_block_timestamp() < self.get_auction_start_date()) {
+            if (now < start_date) {
                 return Result::Err(OptionRoundError::AuctionStartDateNotReached);
             }
 
@@ -630,6 +632,7 @@ mod OptionRound {
 
             // Update state to Auctioning
             self.state.write(OptionRoundState::Auctioning);
+            self.auction_end_date.write(self.auction_end_date.read() + now - start_date);
 
             // Emit auction start event
             self
@@ -654,14 +657,16 @@ mod OptionRound {
                 return Result::Err(OptionRoundError::NoAuctionToEnd);
             }
 
+            let now = get_block_timestamp();
+            let end_date = self.get_auction_end_date();
             // Assert block timestamp is >= auction end date
-            if (get_block_timestamp() < self.get_auction_end_date()) {
+            if (now < end_date) {
                 return Result::Err(OptionRoundError::AuctionEndDateNotReached);
             }
 
             // Update state to Running
             self.state.write(OptionRoundState::Running);
-
+            self.option_settlement_date.write(self.option_settlement_date.read() + now - end_date);
             // Calculate clearing price & total options sold
             //  - An empty helper function is fine for now, we will discuss the
             //  implementation of this function later
