@@ -67,17 +67,21 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         updated_unlocked_positions
     }
 
-    fn withdraw(ref self: VaultFacade, amount: u256, liquidity_provider: ContractAddress) -> u256 {
+    fn withdraw_raw(
+        ref self: VaultFacade, amount: u256, liquidity_provider: ContractAddress
+    ) -> Result<u256, VaultError> {
         set_contract_address(liquidity_provider);
-        let res = self.vault_dispatcher.withdraw_liquidity(amount);
-        match res {
+        self.vault_dispatcher.withdraw_liquidity(amount)
+    }
+
+    fn withdraw(ref self: VaultFacade, amount: u256, liquidity_provider: ContractAddress) -> u256 {
+        match self.withdraw_raw(amount, liquidity_provider) {
             Result::Ok(updated_unlocked_position) => sanity_checks::withdraw(
                 ref self, liquidity_provider, updated_unlocked_position
             ),
             Result::Err(e) => panic(array![e.into()]),
         }
     }
-
 
     fn withdraw_multiple(
         ref self: VaultFacade,
@@ -388,9 +392,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     // Gets the round transition period in seconds, 3 hours is a random number for testing
     // @note TODO impl this in contract later
     fn get_round_transition_period(ref self: VaultFacade) -> u64 {
-        let minute = 60;
-        let hour = 60 * minute;
-        3 * hour
+        self.get_round_transition_period()
     }
 }
 
