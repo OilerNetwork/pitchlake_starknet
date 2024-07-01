@@ -70,7 +70,7 @@ use debug::PrintTrait;
 
 // Test settling an option round while round auctioning fails
 #[test]
-#[available_gas(10000000)]
+#[available_gas(50000000)]
 fn test_settling_option_round_while_round_auctioning_fails() {
     let (mut vault_facade, _) = setup_facade();
     accelerate_to_auctioning(ref vault_facade);
@@ -85,7 +85,7 @@ fn test_settling_option_round_while_round_auctioning_fails() {
 
 // Test settling an option round before the option expiry date fails
 #[test]
-#[available_gas(10000000)]
+#[available_gas(50000000)]
 fn test_settling_option_round_before_settlement_date_fails() {
     let (mut vault_facade, _) = setup_test_running();
 
@@ -99,7 +99,7 @@ fn test_settling_option_round_before_settlement_date_fails() {
 
 // Test settling an option round while round settled fails
 #[test]
-#[available_gas(10000000)]
+#[available_gas(50000000)]
 fn test_settling_option_round_while_settled_fails() {
     let (mut vault_facade, _) = setup_facade();
     accelerate_to_auctioning(ref vault_facade);
@@ -117,11 +117,9 @@ fn test_settling_option_round_while_settled_fails() {
 
 /// Event Tests ///
 
-/// OptionRound test
-
 // Test settling an option round emits the correct event
 #[test]
-#[available_gas(10000000)]
+#[available_gas(50000000)]
 fn test_option_round_settled_event() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
@@ -132,6 +130,7 @@ fn test_option_round_settled_event() {
 
         let mut round = vault.get_current_round();
         let settlement_price = round.get_strike_price() + rounds_to_run.into();
+        clear_event_logs(array![round.contract_address()]);
         accelerate_to_settled(ref vault, settlement_price);
         // Check the event emits correctly
         assert_event_option_settle(round.contract_address(), settlement_price);
@@ -140,12 +139,10 @@ fn test_option_round_settled_event() {
     }
 }
 
-/// Vault Test
-
 // Test every time a new round is deployed, the next round deployed event emits correctly
 // @dev The first round to be deployed after deployment is round 2
 #[test]
-#[available_gas(10000000)]
+#[available_gas(50000000)]
 fn test_next_round_deployed_event() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
@@ -156,14 +153,20 @@ fn test_next_round_deployed_event() {
         accelerate_to_auctioning(ref vault);
 
         accelerate_to_running(ref vault);
-        accelerate_to_settled(ref vault, current_round.get_strike_price());
 
+        clear_event_logs(array![vault.contract_address()]);
+        accelerate_to_settled(ref vault, current_round.get_strike_price());
+        let mut new_current_round = vault.get_current_round();
         // Check the event emits correctly
+        assert(
+            current_round.contract_address() != new_current_round.contract_address(),
+            'round contract address wrong'
+        );
         assert_event_option_round_deployed(
             vault
                 .contract_address(), // @dev round 2 should be the first round to deploy post deployment
-            current_round_id,
-            current_round.contract_address(),
+            current_round_id + 1,
+            new_current_round.contract_address(),
         );
 
         rounds_to_run -= 1;
@@ -177,7 +180,7 @@ fn test_next_round_deployed_event() {
 
 // Test settling an option round updates the current round id
 #[test]
-#[available_gas(10000000)]
+#[available_gas(50000000)]
 fn test_settling_option_round_updates_current_round_id() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
@@ -199,7 +202,7 @@ fn test_settling_option_round_updates_current_round_id() {
 // Test settling an option round updates the current round's state
 // @note should this be a state transition test in option round tests
 #[test]
-#[available_gas(10000000)]
+#[available_gas(50000000)]
 fn test_settle_option_round_updates_round_state() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
@@ -227,7 +230,7 @@ fn test_settle_option_round_updates_round_state() {
 
 // Test settling transfers the payout from the vault to the option round
 #[test]
-#[available_gas(10000000)]
+#[available_gas(50000000)]
 fn test_settling_option_round_transfers_payout() {
     let mut rounds_to_run = 3;
     let (mut vault, eth) = setup_facade();
@@ -249,6 +252,7 @@ fn test_settling_option_round_transfers_payout() {
         let vault_balance_after = eth.balance_of(vault.contract_address());
 
         // Check the payout transfers from vault to round
+        assert(total_payout > 0, 'payout shd be > 0');
         assert(round_balance_after == round_balance_before + total_payout, 'round eth bal. wrong');
         assert(vault_balance_after == vault_balance_before - total_payout, 'vault eth bal. wrong');
 
@@ -258,7 +262,7 @@ fn test_settling_option_round_transfers_payout() {
 
 // Test that the vault and LP locked/unlocked balances update when the round settles
 #[test]
-#[available_gas(10000000)]
+#[available_gas(50000000)]
 fn test_settling_option_round_updates_locked_and_unlocked_balances() {
     let number_of_liquidity_providers = 4;
     let mut deposit_amounts = create_array_gradient(
@@ -269,8 +273,6 @@ fn test_settling_option_round_updates_locked_and_unlocked_balances() {
     let (mut vault, _, liquidity_providers, _) = setup_test_auctioning_providers(
         number_of_liquidity_providers, deposit_amounts
     );
-    // Amounts to deposit: [100, 200, 300, 400]
-    accelerate_to_auctioning_custom(ref vault, liquidity_providers, deposit_amounts);
 
     // End auction
     let mut current_round = vault.get_current_round();
@@ -301,6 +303,7 @@ fn test_settling_option_round_updates_locked_and_unlocked_balances() {
     let (vault_locked_after, vault_unlocked_after) = vault.get_total_locked_and_unlocked_balance();
 
     // Check vault balance
+    assert(total_premiums > 0, 'premiums shd be > 0');
     assert(
         (vault_locked_before, vault_unlocked_before) == (total_deposits, total_premiums),
         'vault balance before wrong'

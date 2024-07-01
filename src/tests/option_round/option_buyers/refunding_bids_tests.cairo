@@ -85,7 +85,7 @@ fn place_incremental_bids_internal(
 
 // Test refunding bids before the auction ends fails
 #[test]
-#[available_gas(10000000)]
+#[available_gas(50000000)]
 #[should_panic(expected: ('The auction is still on-going', 'ENTRYPOINT_FAILED',))]
 fn test_refunding_bids_before_auction_end_fails() {
     let number_of_option_bidders: u32 = 3;
@@ -101,7 +101,7 @@ fn test_refunding_bids_before_auction_end_fails() {
 
 // Test refunding bids emits event correctly
 #[test]
-#[available_gas(10000000)]
+#[available_gas(50000000)]
 fn test_refunding_bids_events() {
     let number_of_option_bidders: u32 = 3;
     let (mut vault, _, mut option_bidders) = setup_test(number_of_option_bidders);
@@ -137,7 +137,7 @@ fn test_refunding_bids_events() {
 
 // Test refunding bids sets refunded balance to 0
 #[test]
-#[available_gas(10000000)]
+#[available_gas(50000000)]
 fn test_refund_bids_sets_refunded_balance_to_0() {
     let number_of_option_bidders: u32 = 3;
     let (mut vault, _, mut option_bidders) = setup_test(number_of_option_bidders);
@@ -161,7 +161,7 @@ fn test_refund_bids_sets_refunded_balance_to_0() {
 
 // Test refunding bids transfers eth from round to option bidder
 #[test]
-#[available_gas(10000000)]
+#[available_gas(50000000)]
 fn test_refund_bids_eth_transfer() {
     let number_of_option_bidders: u32 = 3;
     let (mut vault, eth_dispatcher, mut option_bidders) = setup_test(number_of_option_bidders);

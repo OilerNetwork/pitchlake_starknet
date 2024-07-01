@@ -40,7 +40,7 @@ use debug::PrintTrait;
 // @note If premiums collected fails/is 0 amount, should an event be emiited or no ?
 // Test premiums collectable is 0 before auction end
 #[test]
-#[available_gas(10000000)]
+#[available_gas(50000000)]
 fn test_premium_amount_0_before_auction_end() {
     let (mut vault_facade, _) = setup_facade();
 
@@ -64,7 +64,7 @@ fn test_premium_amount_0_before_auction_end() {
 
 // Test the portion of premiums an LP can collect in a round is correct
 #[test]
-#[available_gas(1000000000)]
+#[available_gas(50000000)]
 fn test_premium_amount_for_liquidity_providers_1() {
     let (mut vault_facade, _) = setup_facade();
     // LPs
@@ -77,7 +77,7 @@ fn test_premium_amount_for_liquidity_providers_1() {
 
 // Test the portion of premiums an LP can collect in a round is correct (more LPs)
 #[test]
-#[available_gas(1000000000)]
+#[available_gas(50000000)]
 fn test_premium_amount_for_liquidity_providers_2() {
     let (mut vault_facade, _) = setup_facade();
     // LPs
@@ -90,7 +90,7 @@ fn test_premium_amount_for_liquidity_providers_2() {
 
 // Test the portion of premiums an LP can collect in a round is correct (more LPs)
 #[test]
-#[available_gas(1000000000)]
+#[available_gas(50000000)]
 fn test_premium_amount_for_liquidity_providers_3() {
     let (mut vault_facade, _) = setup_facade();
     // LPs
@@ -103,7 +103,7 @@ fn test_premium_amount_for_liquidity_providers_3() {
 
 // Test the portion of premiums an LP can collect in a round is correct (more LPs)
 #[test]
-#[available_gas(1000000000)]
+#[available_gas(50000000)]
 fn test_premium_amount_for_liquidity_providers_4() {
     let (mut vault_facade, _) = setup_facade();
     // LPs
@@ -116,7 +116,7 @@ fn test_premium_amount_for_liquidity_providers_4() {
 
 // Test the portion of premiums an LP can collect in a round is correct, when deposit 1 >>> deposit 2
 #[test]
-#[available_gas(1000000000)]
+#[available_gas(50000000)]
 fn test_premium_amount_for_liquidity_providers_5() {
     let (mut vault_facade, _) = setup_facade();
     // LPs

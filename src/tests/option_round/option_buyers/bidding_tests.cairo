@@ -84,7 +84,7 @@ use debug::PrintTrait;
 
 // Test bidding price < reserve fails (covers 0 amount as well since 0 is always < reserve price)
 #[test]
-#[available_gas(10000000)]
+#[available_gas(50000000)]
 fn test_bid_price_below_reserve_fails() {
     let (mut vault_facade, _) = setup_facade();
     let options_available = accelerate_to_auctioning(ref vault_facade);
@@ -110,7 +110,7 @@ fn test_bid_price_below_reserve_fails() {
 
 // Test bidding before auction starts fails
 #[test]
-#[available_gas(10000000)]
+#[available_gas(50000000)]
 fn test_bid_before_auction_starts_failure() {
     let (mut vault, _) = setup_facade();
     accelerate_to_auctioning(ref vault);
@@ -138,7 +138,7 @@ fn test_bid_before_auction_starts_failure() {
 
 // Test bidding after auction ends fails
 #[test]
-#[available_gas(10000000)]
+#[available_gas(50000000)]
 fn test_bid_after_auction_ends_failure() {
     let (mut vault, _) = setup_facade();
     accelerate_to_auctioning(ref vault);
@@ -168,7 +168,7 @@ fn test_bid_after_auction_ends_failure() {
 
 // Test bidding after auction end date fail (if end_auction() is not called first)
 #[test]
-#[available_gas(10000000)]
+#[available_gas(50000000)]
 fn test_bid_after_auction_end_failure_2() {
     let (mut vault, _) = setup_facade();
     accelerate_to_auctioning(ref vault);
@@ -203,7 +203,7 @@ fn test_bid_after_auction_end_failure_2() {
 
 // Test bid accepted events
 #[test]
-#[available_gas(10000000)]
+#[available_gas(50000000)]
 fn test_bid_accepted_events() {
     let (mut vault_facade, _) = setup_facade();
     let options_available = accelerate_to_auctioning(ref vault_facade);
@@ -236,7 +236,7 @@ fn test_bid_accepted_events() {
 
 // Test bidding transfers eth from bidder to round
 #[test]
-#[available_gas(10000000)]
+#[available_gas(50000000)]
 fn test_bid_eth_transfer() {
     let (mut vault_facade, eth) = setup_facade();
     let options_available = accelerate_to_auctioning(ref vault_facade);
@@ -283,7 +283,7 @@ fn test_bid_eth_transfer() {
 
 // Test bidding updates bid nonce
 #[test]
-#[available_gas(10000000)]
+#[available_gas(50000000)]
 fn test_bidding_updates_bid_nonce() {
     let (mut vault_facade, _) = setup_facade();
     let options_available = accelerate_to_auctioning(ref vault_facade);
@@ -305,6 +305,8 @@ fn test_bidding_updates_bid_nonce() {
 }
 
 // Test failed bids do not update bid nonce
+#[test]
+#[available_gas(50000000)]
 fn test_failed_bid_nonce_unchanged() {
     let (mut vault_facade, _) = setup_facade();
     let options_available = accelerate_to_auctioning(ref vault_facade);
@@ -334,7 +336,7 @@ fn test_failed_bid_nonce_unchanged() {
 
 // Test bid hashes match expected hash
 #[test]
-#[available_gas(10000000)]
+#[available_gas(50000000)]
 fn test_place_bid_id() {
     let (mut vault_facade, _) = setup_facade();
     let options_available = accelerate_to_auctioning(ref vault_facade);

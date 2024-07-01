@@ -26,7 +26,7 @@ use pitch_lake_starknet::{
                 accelerators::{
                     accelerate_to_auctioning, accelerate_to_running, accelerate_to_settled,
                     accelerate_to_auctioning_custom, accelerate_to_running_custom,
-                    timeskip_and_settle_round, timeskip_and_end_auction,
+                    timeskip_and_settle_round, timeskip_and_end_auction, timeskip_and_start_auction,
                 },
                 general_helpers::{
                     create_array_linear, create_array_gradient, sum_u256_array,
@@ -66,10 +66,7 @@ fn test_starting_auction_while_round_auctioning_fails() {
     let expected_error: felt252 = OptionRoundError::AuctionAlreadyStarted.into();
     match vault_facade.start_auction_raw() {
         Result::Ok(_) => { panic!("Error expected") },
-        Result::Err(err) => {
-            let felt: felt252 = err.into();
-            assert(err.into() == expected_error, 'Error Mismatch')
-        }
+        Result::Err(err) => { assert(err.into() == expected_error, 'Error Mismatch') }
     }
 }
 
@@ -161,7 +158,7 @@ fn test_starting_auction_does_not_update_current_and_next_round_ids() {
 // Test when an auction starts, the option round states update correctly
 // @note should this be a state transition test in option round tests
 #[test]
-#[available_gas(100000000000)]
+#[available_gas(10000000000)]
 fn test_starting_auction_updates_current_rounds_state() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
@@ -170,7 +167,6 @@ fn test_starting_auction_updates_current_rounds_state() {
         accelerate_to_auctioning(ref vault);
 
         let mut current_round = vault.get_current_round();
-        let stat = current_round.get_state();
 
         assert(
             current_round.get_state() == OptionRoundState::Auctioning,
@@ -188,7 +184,7 @@ fn test_starting_auction_updates_current_rounds_state() {
 
 // Test unlocked balances become locked when the auction starts
 #[test]
-#[available_gas(100000000000)]
+#[available_gas(10000000000)]
 fn test_starting_auction_updates_locked_and_unlocked_balances() {
     let (mut vault, _) = setup_facade();
     let mut liquidity_providers = liquidity_providers_get(4).span();
@@ -207,7 +203,7 @@ fn test_starting_auction_updates_locked_and_unlocked_balances() {
         .get_total_locked_and_unlocked_balance();
 
     // Start auction
-    timeskip_and_end_auction(ref vault);
+    timeskip_and_start_auction(ref vault);
 
     // Vault and liquidity provider balances after auction starts
     let mut liquidity_providers_locked_after = vault.get_lp_locked_balances(liquidity_providers);

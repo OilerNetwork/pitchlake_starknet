@@ -12,6 +12,7 @@ mod misc {
         mod lp_token_tests;
         mod deployment_tests;
     }
+    mod unallocated_liquidity_tests;
 }
 
 #[cfg(test)]
@@ -81,7 +82,5 @@ mod vault {
         mod deposit_tests;
         mod withdraw_tests;
     }
-
-    mod unallocated_liquidity_tests;
 }
 
