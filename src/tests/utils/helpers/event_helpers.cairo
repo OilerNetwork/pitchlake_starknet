@@ -113,7 +113,7 @@ fn assert_event_option_settle(option_round_address: ContractAddress, settlement_
             let expected = OptionRound::Event::OptionSettle(
                 OptionRound::OptionSettle { settlement_price }
             );
-        //assert_events_equal(e, expected);
+            assert_events_equal(e, expected);
         },
         Option::None => { panic(array!['No events found']); }
     };
