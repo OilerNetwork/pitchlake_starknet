@@ -303,10 +303,7 @@ fn test_settling_option_round_updates_locked_and_unlocked_balances() {
     let (vault_locked_after, vault_unlocked_after) = vault.get_total_locked_and_unlocked_balance();
 
     // Check vault balance
-    assert(
-    total_premiums > 0 ,
-      'premiums shd be > 0'
-    );
+    assert(total_premiums > 0, 'premiums shd be > 0');
     assert(
         (vault_locked_before, vault_unlocked_before) == (total_deposits, total_premiums),
         'vault balance before wrong'
