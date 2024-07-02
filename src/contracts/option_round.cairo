@@ -3,7 +3,8 @@ use openzeppelin::token::erc20::interface::IERC20Dispatcher;
 use pitch_lake_starknet::contracts::{
     market_aggregator::{IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait},
     option_round::OptionRound::{
-        OptionRoundState, StartAuctionParams, SettleOptionRoundParams, OptionRoundConstructorParams, Bid,
+        OptionRoundState, StartAuctionParams, SettleOptionRoundParams, OptionRoundConstructorParams,
+        Bid,
     },
 };
 
@@ -241,8 +242,8 @@ mod OptionRound {
     struct StartAuctionParams {
         total_options_available: u256,
         starting_liquidity: u256,
-        reserve_price:u256,
-        cap_level:u256,
+        reserve_price: u256,
+        cap_level: u256,
         strike_price: u256,
     }
 
@@ -624,8 +625,12 @@ mod OptionRound {
                 return Result::Err(OptionRoundError::AuctionAlreadyStarted);
             }
 
-            let StartAuctionParams {total_options_available, starting_liquidity, reserve_price, cap_level, strike_price} = params;
-
+            let StartAuctionParams { total_options_available,
+            starting_liquidity,
+            reserve_price,
+            cap_level,
+            strike_price } =
+                params;
 
             // Assert now is >= auction start date
             let now = get_block_timestamp();
@@ -634,7 +639,7 @@ mod OptionRound {
                 return Result::Err(OptionRoundError::AuctionStartDateNotReached);
             }
 
-// Set auction params
+            // Set auction params
             self.reserve_price.write(reserve_price);
             self.cap_level.write(cap_level);
             self.strike_price.write(strike_price);

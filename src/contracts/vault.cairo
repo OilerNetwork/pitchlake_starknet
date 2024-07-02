@@ -445,13 +445,21 @@ mod Vault {
             let total_options_available = self
                 .calculate_total_options_available(starting_liquidity);
 
-// @note replace with individual getters, add strike price
-let reserve_price = self.fetch_reserve_price();
-let cap_level = self.fetch_cap_level();
-let strike_price = self.fetch_strike_price();
+            // @note replace with individual getters, add strike price
+            let reserve_price = self.fetch_reserve_price();
+            let cap_level = self.fetch_cap_level();
+            let strike_price = self.fetch_strike_price();
             // Try to start the auction on the current round
             let res = current_round
-                .start_auction(StartAuctionParams { total_options_available, starting_liquidity,reserve_price, cap_level, strike_price });
+                .start_auction(
+                    StartAuctionParams {
+                        total_options_available,
+                        starting_liquidity,
+                        reserve_price,
+                        cap_level,
+                        strike_price
+                    }
+                );
             match res {
                 Result::Ok(total_options_available) => {
                     // Update total_locked_liquidity
@@ -724,8 +732,8 @@ let strike_price = self.fetch_strike_price();
             IOptionRoundDispatcher { contract_address: round_address }
         }
 
-        fn calculate_reserve_cap_price(ref self:ContractState)-> (u256,u256){
-            (1,1)
+        fn calculate_reserve_cap_price(ref self: ContractState) -> (u256, u256) {
+            (1, 1)
         }
 
         fn calculate_total_options_available(
@@ -782,17 +790,17 @@ let strike_price = self.fetch_strike_price();
         // @note Fetch values upon deployment, if there are newer (less stale) vaules at the time of auction start,
         // we use the newer values to set the params
 
-        fn fetch_reserve_price(self: @ContractState) -> u256{
+        fn fetch_reserve_price(self: @ContractState) -> u256 {
             1
-          }
+        }
 
-          fn fetch_cap_level(self: @ContractState) -> u256{
+        fn fetch_cap_level(self: @ContractState) -> u256 {
             1
-          }
+        }
 
-          fn fetch_strike_price(self: @ContractState) -> u256{
+        fn fetch_strike_price(self: @ContractState) -> u256 {
             1
-          }
+        }
 
         fn fetch_settlement_price(self: @ContractState) -> u256 {
             0

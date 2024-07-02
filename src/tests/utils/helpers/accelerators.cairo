@@ -136,9 +136,16 @@ fn accelerate_to_running_custom_option_round(
     set_contract_address(vault_address);
     set_block_timestamp(auction_start_date + 1);
 
-
     //Should this be called from the option round?? 
-    option_round.start_auction(StartAuctionParams{total_options_available,starting_liquidity: 100 * decimals(),reserve_price:1,cap_level:2});
+    option_round
+        .start_auction(
+            StartAuctionParams {
+                total_options_available,
+                starting_liquidity: 100 * decimals(),
+                reserve_price: 1,
+                cap_level: 2
+            }
+        );
 
     // Make bids
     let mut option_bidders = option_bidders_get(bid_amounts.len()).span();
