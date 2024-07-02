@@ -45,7 +45,8 @@ fn test_only_vault_can_start_auction() {
                 total_options_available: 1,
                 starting_liquidity: 1,
                 reserve_price: 123,
-                cap_level: 123
+                cap_level: 123,
+                strike_price: 123,
             }
         );
 }

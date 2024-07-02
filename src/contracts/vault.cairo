@@ -155,7 +155,7 @@ mod Vault {
             OptionRound,
             OptionRound::{
                 OptionRoundErrorIntoFelt252, OptionRoundConstructorParams, StartAuctionParams,
-                OptionRoundState
+                SettleOptionRoundParams, OptionRoundState
             },
             IOptionRoundDispatcher, IOptionRoundDispatcherTrait,
         },
@@ -535,7 +535,8 @@ mod Vault {
             let settlement_price = self.fetch_settlement_price();
 
             // Try to settle the option round
-            let res = current_round_dispatcher.settle_option_round(settlement_price);
+            let res = current_round_dispatcher
+                .settle_option_round(SettleOptionRoundParams { settlement_price });
             match res {
                 Result::Ok(total_payout) => {
                     // @dev Checking if payout > 0 to save gas if there is no payout

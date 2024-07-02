@@ -106,6 +106,7 @@ fn accelerate_to_running_custom(
 // Helper function to deploy custom option round, start auction, place bids,
 // then end auction
 // Used to test real number outcomes for option distributions
+// @note Re-name, add additional comments for clarity
 fn accelerate_to_running_custom_option_round(
     total_options_available: u256,
     reserve_price: u256,
@@ -136,14 +137,15 @@ fn accelerate_to_running_custom_option_round(
     set_contract_address(vault_address);
     set_block_timestamp(auction_start_date + 1);
 
-    //Should this be called from the option round?? 
+    //Should this be called from the option round??
     option_round
         .start_auction(
             StartAuctionParams {
                 total_options_available,
                 starting_liquidity: 100 * decimals(),
                 reserve_price: 1,
-                cap_level: 2
+                cap_level: 2,
+                strike_price: 3,
             }
         );
 
