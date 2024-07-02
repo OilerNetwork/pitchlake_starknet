@@ -445,10 +445,13 @@ mod Vault {
             let total_options_available = self
                 .calculate_total_options_available(starting_liquidity);
 
-            let (reserve_price,cap_level)= self.calculate_reserve_cap_price();
+// @note replace with individual getters, add strike price
+let reserve_price = self.fetch_reserve_price();
+let cap_level = self.fetch_cap_level();
+let strike_price = self.fetch_strike_price();
             // Try to start the auction on the current round
             let res = current_round
-                .start_auction(StartAuctionParams { total_options_available, starting_liquidity,reserve_price, cap_level });
+                .start_auction(StartAuctionParams { total_options_available, starting_liquidity,reserve_price, cap_level, strike_price });
             match res {
                 Result::Ok(total_options_available) => {
                     // Update total_locked_liquidity
@@ -732,14 +735,6 @@ mod Vault {
             0
         }
 
-        fn fetch_settlement_price(self: @ContractState) -> u256 {
-            0
-        }
-
-        fn fetch_settlement_data(self: @ContractState) -> (u256, u256, u256) {
-            (1, 1, 1)
-        }
-
         // Deploy the next option round contract, update the current round id & round address mapping
         fn deploy_next_round(ref self: ContractState) {
             // The round id for the next round
@@ -759,11 +754,9 @@ mod Vault {
             calldata.append_serde(auction_end_date);
             calldata.append_serde(option_settlement_date);
             // Reserve price, cap level, & strike price
-            let (reserve_price, strike_price, cap_level) = self
-                .fetch_reserve_price_cap_level_and_strike_price();
-            calldata.append_serde(reserve_price);
-            calldata.append_serde(cap_level);
-            calldata.append_serde(strike_price);
+            calldata.append_serde(self.fetch_reserve_price());
+            calldata.append_serde(self.fetch_cap_level());
+            calldata.append_serde(self.fetch_strike_price());
 
             // Deploy the next option round contract
             let (next_round_address, _) = deploy_syscall(
@@ -784,18 +777,30 @@ mod Vault {
                 );
         }
 
-        // Function to return the reserve price, strike price, and cap level for the upcoming round
+        // Functions to return the reserve price, strike price, and cap level for the upcoming round
         // from Fossil
-        // @return (reserve_price, cap_level, strike_price)
-        // @note Needs implementation
         // @note Fetch values upon deployment, if there are newer (less stale) vaules at the time of auction start,
         // we use the newer values to set the params
-        fn fetch_reserve_price_cap_level_and_strike_price(
-            ref self: ContractState
-        ) -> (u256, u256, u256) {
-            (1, 2, 3)
+
+        fn fetch_reserve_price(self: @ContractState) -> u256{
+            1
+          }
+
+          fn fetch_cap_level(self: @ContractState) -> u256{
+            1
+          }
+
+          fn fetch_strike_price(self: @ContractState) -> u256{
+            1
+          }
+
+        fn fetch_settlement_price(self: @ContractState) -> u256 {
+            0
         }
 
+        fn fetch_settlement_data(self: @ContractState) -> (u256, u256, u256) {
+            (1, 1, 1)
+        }
         // Helper function to return the liquidity provider's unlocked balance broken up into its components
         // @return (previous_round_remaining_balance, current_round_collectable_balance, upcoming_round_deposit)
         // @dev A user's unlocked balance could be a combination of their: remaining balance at the end of the previous round,
