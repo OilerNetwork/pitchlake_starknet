@@ -28,7 +28,7 @@ const salt: u64 = 0x123;
 
 // Test that only the vault can start an auction
 #[test]
-#[available_gas(100000000)]
+#[available_gas(50000000)]
 #[should_panic(expected: ('todo', 'ENTRYPOINT_FAILED'))]
 fn test_only_vault_can_start_auction() {
     let (mut vault, _) = setup_facade();
@@ -45,7 +45,7 @@ fn test_only_vault_can_start_auction() {
 // @note Modify to check the Result of the function to be Result::Err(e)
 // Test that only the vault can end an auction
 #[test]
-#[available_gas(100000000)]
+#[available_gas(50000000)]
 fn test_only_vault_can_end_auction() {
     let (mut vault, _) = setup_facade();
     set_block_timestamp(get_block_timestamp() + salt);
@@ -62,7 +62,7 @@ fn test_only_vault_can_end_auction() {
 
 // Test that only the vault can settle an option round
 #[test]
-#[available_gas(100000000)]
+#[available_gas(50000000)]
 fn test_only_vault_can_settle_option_round() {
     let (mut vault, _) = setup_facade();
     set_block_timestamp(get_block_timestamp() + salt);

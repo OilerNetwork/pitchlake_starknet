@@ -18,8 +18,9 @@ use pitch_lake_starknet::{
 };
 
 
-// @note This should move to utils
 // @dev This needs formal verification
+// @note this function should match the implementation in the option round internal functions,
+// need to refactor to remove risk of sub overflow
 fn calculate_expected_payout(ref round: OptionRoundFacade, settlement_price: u256,) -> u256 {
     let k = round.get_strike_price();
     let cl = round.get_cap_level();
@@ -30,7 +31,7 @@ fn calculate_expected_payout(ref round: OptionRoundFacade, settlement_price: u25
 /// Total Payout Tests ///
 
 #[test]
-#[available_gas(10000000)]
+#[available_gas(50000000)]
 fn test_option_payout_amount_index_at_strike() {
     let (mut vault_facade, mut current_round) = setup_test_running();
 
@@ -41,7 +42,7 @@ fn test_option_payout_amount_index_at_strike() {
 }
 
 #[test]
-#[available_gas(10000000)]
+#[available_gas(50000000)]
 fn test_option_payout_amount_index_higher_than_strike() {
     let (mut vault, mut current_round) = setup_test_running();
 
@@ -56,7 +57,7 @@ fn test_option_payout_amount_index_higher_than_strike() {
 }
 
 #[test]
-#[available_gas(10000000)]
+#[available_gas(50000000)]
 fn test_option_payout_amount_index_higher_than_strike_and_cap_level() {
     let (mut vault, mut current_round) = setup_test_running();
 
@@ -71,7 +72,7 @@ fn test_option_payout_amount_index_higher_than_strike_and_cap_level() {
 
 
 #[test]
-#[available_gas(10000000)]
+#[available_gas(50000000)]
 fn test_option_payout_amount_index_less_than_strike() {
     let (mut vault, mut current_round) = setup_test_running();
 
@@ -85,7 +86,7 @@ fn test_option_payout_amount_index_less_than_strike() {
 }
 
 #[test]
-#[available_gas(10000000)]
+#[available_gas(50000000)]
 fn test_option_payout_amount_index_barely_less_than_strike() {
     let (mut vault, mut current_round) = setup_test_running();
 

@@ -180,7 +180,7 @@ fn timeskip_past_option_expiry_date(ref self: VaultFacade) {
 // Jump past the round transition period
 fn timeskip_past_round_transition_period(ref self: VaultFacade) {
     let now = get_block_timestamp();
-    let round_transition_period = self.get_round_transition_period();
+    let round_transition_period = self.vault_dispatcher.get_round_transition_period();
     set_block_timestamp(now + round_transition_period + 1);
 }
 
@@ -190,7 +190,10 @@ fn timeskip_past_round_transition_period(ref self: VaultFacade) {
 fn timeskip_and_start_auction(ref self: VaultFacade) -> u256 {
     timeskip_past_round_transition_period(ref self);
     set_contract_address(bystander());
-    self.start_auction()
+    match self.vault_dispatcher.start_auction() {
+        Result::Ok(options_available) => options_available,
+        Result::Err(e) => panic(array!['Error:', e.into()])
+    }
 }
 
 // Jump to the auction end date and end the auction
@@ -198,7 +201,10 @@ fn timeskip_and_end_auction(ref self: VaultFacade) -> (u256, u256) {
     let mut current_round = self.get_current_round();
     set_block_timestamp(current_round.get_auction_end_date() + 1);
     set_contract_address(bystander());
-    self.end_auction()
+    match self.vault_dispatcher.end_auction() {
+        Result::Ok((clearing_price, options_sold)) => (clearing_price, options_sold),
+        Result::Err(e) => panic(array!['Error:', e.into()])
+    }
 }
 
 // Jump to the option expriry date and settle the round
@@ -206,6 +212,9 @@ fn timeskip_and_settle_round(ref self: VaultFacade) -> u256 {
     let mut current_round = self.get_current_round();
     set_block_timestamp(current_round.get_option_expiry_date() + 1);
     set_contract_address(bystander());
-    self.settle_option_round()
+    match self.vault_dispatcher.settle_option_round() {
+        Result::Ok(payout) => payout,
+        Result::Err(e) => panic(array!['Error:', e.into()])
+    }
 }
 

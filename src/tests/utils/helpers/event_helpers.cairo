@@ -1,7 +1,7 @@
 use starknet::{testing, ContractAddress,};
 use pitch_lake_starknet::contracts::{vault::{Vault}, option_round::{OptionRound}};
 use openzeppelin::token::erc20::{ERC20Component, ERC20Component::Transfer};
-
+use openzeppelin::{utils::serde::SerializedAppend,};
 // Helpers
 
 // Pop the earliest unpopped logged event for the contract as the requested type
@@ -43,11 +43,6 @@ fn assert_events_equal<T, +PartialEq<T>, +Drop<T>>(actual: T, expected: T) {
     assert(actual == expected, 'Event does not match expected');
 }
 
-// Pop the earlist event for a contract and return its details
-fn pop_event_details(address: ContractAddress) -> Option<(Span<felt252>, Span<felt252>)> {
-    Option::Some(testing::pop_log_raw(address)?)
-}
-
 // OptionRound Events
 
 // Check AuctionStart emits correctly
@@ -56,10 +51,8 @@ fn assert_event_auction_start(
 ) {
     // @note Confirm this works (fix from discord), then work into other event assertions (should handle manual ones as well)
     // @note Reminder to clear event logs at the end of the accelerators
-    //match pop_log::<OptionRound::AuctionStart>(option_round_address) {
     match pop_log::<OptionRound::Event>(option_round_address) {
         Option::Some(e) => {
-            //let e = OptionRound::Event::AuctionStart(e);
             let expected = OptionRound::Event::AuctionStart(
                 OptionRound::AuctionStart { total_options_available }
             );
@@ -75,7 +68,6 @@ fn assert_event_auction_bid_accepted(
 ) {
     match pop_log::<OptionRound::Event>(contract) {
         Option::Some(e) => {
-            //let e = OptionRound::Event::AuctionStart(e);
             let expected = OptionRound::Event::AuctionAcceptedBid(
                 OptionRound::AuctionAcceptedBid { account, amount, price }
             );
@@ -83,69 +75,27 @@ fn assert_event_auction_bid_accepted(
         },
         Option::None => { panic(array!['Could not find event']); },
     }
-//    match pop_event_details(contract) {
-//        Option::Some((
-//            keys, data
-//        )) => {
-//            let expected = OptionRound::Event::AuctionAcceptedBid(
-//                OptionRound::AuctionAcceptedBid { account, amount, price }
-//            );
-//            let e = OptionRound::Event::AuctionAcceptedBid(
-//                OptionRound::AuctionAcceptedBid {
-//                    account: (*keys.at(1)).try_into().unwrap(),
-//                    amount: u256 {
-//                        low: (*data.at(0)).try_into().unwrap(),
-//                        high: (*data.at(1)).try_into().unwrap(),
-//                    },
-//                    price: u256 {
-//                        low: (*data.at(2)).try_into().unwrap(),
-//                        high: (*data.at(3)).try_into().unwrap(),
-//                    },
-//                }
-//            );
-//            // Assert events are equal
-//            assert_events_equal(e, expected);
-//        },
-//        Option::None => { panic(array!['No events found']); }
-//    };
 }
 
 // Check AuctionRejectedBid emits correctly
 fn assert_event_auction_bid_rejected(
     contract: ContractAddress, account: ContractAddress, amount: u256, price: u256,
 ) {
-    match pop_event_details(contract) {
-        Option::Some((
-            keys, data
-        )) => {
+    match pop_log::<OptionRound::Event>(contract) {
+        Option::Some(e) => {
             let expected = OptionRound::Event::AuctionRejectedBid(
                 OptionRound::AuctionRejectedBid { account, amount, price }
             );
-            let e = OptionRound::Event::AuctionRejectedBid(
-                OptionRound::AuctionRejectedBid {
-                    account: (*keys.at(1)).try_into().unwrap(),
-                    amount: u256 {
-                        low: (*data.at(0)).try_into().unwrap(),
-                        high: (*data.at(1)).try_into().unwrap(),
-                    },
-                    price: u256 {
-                        low: (*data.at(2)).try_into().unwrap(),
-                        high: (*data.at(3)).try_into().unwrap(),
-                    },
-                }
-            );
-            // Assert events are equal
             assert_events_equal(e, expected);
         },
-        Option::None => { panic(array!['No events found']); }
-    };
+        Option::None => { panic(array!['Could not find event']); },
+    }
 }
 
 // Check AuctionEnd emits correctly
 fn assert_event_auction_end(option_round_address: ContractAddress, clearing_price: u256) {
-    match pop_log::<OptionRound::AuctionEnd>(option_round_address) {
+    match pop_log::<OptionRound::Event>(option_round_address) {
         Option::Some(e) => {
-            let e = OptionRound::Event::AuctionEnd(e);
             let expected = OptionRound::Event::AuctionEnd(
                 OptionRound::AuctionEnd { clearing_price }
             );
@@ -158,9 +108,8 @@ fn assert_event_auction_end(option_round_address: ContractAddress, clearing_pric
 // Check OptionSettle emits correctly
 // @dev Settlment price is the price determining the payout for the round
 fn assert_event_option_settle(option_round_address: ContractAddress, settlement_price: u256) {
-    match pop_log::<OptionRound::OptionSettle>(option_round_address) {
+    match pop_log::<OptionRound::Event>(option_round_address) {
         Option::Some(e) => {
-            let e = OptionRound::Event::OptionSettle(e);
             let expected = OptionRound::Event::OptionSettle(
                 OptionRound::OptionSettle { settlement_price }
             );
@@ -174,21 +123,10 @@ fn assert_event_option_settle(option_round_address: ContractAddress, settlement_
 fn assert_event_unused_bids_refunded(
     contract: ContractAddress, account: ContractAddress, amount: u256
 ) {
-    match pop_event_details(contract) {
-        Option::Some((
-            keys, data
-        )) => {
+    match pop_log::<OptionRound::Event>(contract) {
+        Option::Some(e) => {
             let expected = OptionRound::Event::UnusedBidsRefunded(
                 OptionRound::UnusedBidsRefunded { account, amount }
-            );
-            let e = OptionRound::Event::UnusedBidsRefunded(
-                OptionRound::UnusedBidsRefunded {
-                    account: (*keys.at(1)).try_into().unwrap(),
-                    amount: u256 {
-                        low: (*data.at(0)).try_into().unwrap(),
-                        high: (*data.at(1)).try_into().unwrap(),
-                    }
-                }
             );
             assert_events_equal(e, expected);
         },
@@ -200,25 +138,10 @@ fn assert_event_unused_bids_refunded(
 fn assert_event_options_exercised(
     contract: ContractAddress, account: ContractAddress, num_options: u256, amount: u256
 ) {
-    match pop_event_details(contract) {
-        Option::Some((
-            keys, data
-        )) => {
+    match pop_log::<OptionRound::Event>(contract) {
+        Option::Some(e) => {
             let expected = OptionRound::Event::OptionsExercised(
                 OptionRound::OptionsExercised { account, num_options, amount }
-            );
-            let e = OptionRound::Event::OptionsExercised(
-                OptionRound::OptionsExercised {
-                    account: (*keys.at(1)).try_into().unwrap(),
-                    num_options: u256 {
-                        low: (*data.at(0)).try_into().unwrap(),
-                        high: (*data.at(1)).try_into().unwrap(),
-                    },
-                    amount: u256 {
-                        low: (*data.at(2)).try_into().unwrap(),
-                        high: (*data.at(3)).try_into().unwrap(),
-                    }
-                }
             );
             assert_events_equal(e, expected);
         },
@@ -234,27 +157,10 @@ fn assert_event_options_exercised(
 fn assert_event_transfer(
     contract: ContractAddress, from: ContractAddress, to: ContractAddress, value: u256
 ) {
-    match pop_event_details(contract) {
-        Option::Some((
-            mut keys, mut data
-        )) => {
-            // Build expected event
+    match pop_log::<ERC20Component::Event>(contract) {
+        Option::Some(e) => {
             let expected = ERC20Component::Event::Transfer(Transfer { from, to, value });
-            // Build event from details
-            let event = ERC20Component::Event::Transfer(
-                Transfer {
-                    from: (*keys.at(1)).try_into().unwrap(),
-                    to: (*keys.at(2)).try_into().unwrap(),
-                    value: u256 {
-                        low: (*data.at(0)).try_into().unwrap(),
-                        high: {
-                            (*data.at(1)).try_into().unwrap()
-                        }
-                    }
-                }
-            );
-            // Assert events are equal
-            assert_events_equal(event, expected);
+            assert_events_equal(e, expected);
         },
         Option::None => { panic(array!['No events found']); },
     }
@@ -266,9 +172,8 @@ fn assert_event_transfer(
 fn assert_event_option_round_deployed(
     contract: ContractAddress, round_id: u256, address: ContractAddress,
 ) {
-    match pop_log::<Vault::OptionRoundDeployed>(contract) {
+    match pop_log::<Vault::Event>(contract) {
         Option::Some(e) => {
-            let e = Vault::Event::OptionRoundDeployed(e);
             let expected = Vault::Event::OptionRoundDeployed(
                 Vault::OptionRoundDeployed { round_id, address, }
             );
@@ -285,29 +190,12 @@ fn assert_event_vault_deposit(
     position_balance_before: u256,
     position_balance_after: u256,
 ) {
-    match pop_event_details(vault) {
-        Option::Some((
-            keys, data
-        )) => {
-            let e = Vault::Event::Deposit(
-                Vault::Deposit {
-                    account: (*keys.at(1)).try_into().unwrap(),
-                    position_balance_before: u256 {
-                        low: (*data.at(0)).try_into().unwrap(),
-                        high: (*data.at(1)).try_into().unwrap()
-                    },
-                    position_balance_after: u256 {
-                        low: (*data.at(2)).try_into().unwrap(),
-                        high: (*data.at(3)).try_into().unwrap()
-                    }
-                }
+    match pop_log::<Vault::Event>(vault) {
+        Option::Some(e) => {
+            let expected = Vault::Event::Deposit(
+                Vault::Deposit { account, position_balance_before, position_balance_after }
             );
-            assert_events_equal(
-                e,
-                Vault::Event::Deposit(
-                    Vault::Deposit { account, position_balance_before, position_balance_after }
-                )
-            );
+            assert_events_equal(e, expected);
         },
         Option::None => { panic(array!['No events found']); }
     }
@@ -320,29 +208,13 @@ fn assert_event_vault_withdrawal(
     position_balance_before: u256,
     position_balance_after: u256,
 ) {
-    match pop_event_details(vault) {
-        Option::Some((
-            keys, data
-        )) => {
-            let e = Vault::Event::Withdrawal(
-                Vault::Withdrawal {
-                    account: (*keys.at(1)).try_into().unwrap(),
-                    position_balance_before: u256 {
-                        low: (*data.at(0)).try_into().unwrap(),
-                        high: (*data.at(1)).try_into().unwrap()
-                    },
-                    position_balance_after: u256 {
-                        low: (*data.at(2)).try_into().unwrap(),
-                        high: (*data.at(3)).try_into().unwrap()
-                    }
-                }
+    match pop_log::<Vault::Event>(vault) {
+        Option::Some(e) => {
+            let expected = Vault::Event::Withdrawal(
+                Vault::Withdrawal { account, position_balance_before, position_balance_after }
             );
-            assert_events_equal(
-                e,
-                Vault::Event::Withdrawal(
-                    Vault::Withdrawal { account, position_balance_before, position_balance_after }
-                )
-            );
+
+            assert_events_equal(e, expected);
         },
         Option::None => { panic(array!['No events found']); }
     }
