@@ -399,9 +399,10 @@ mod Vault {
             let total_options_available = self
                 .calculate_total_options_available(starting_liquidity);
 
+            let (reserve_price,cap_level)= self.calculate_reserve_cap_price();
             // Try to start the auction on the current round
             let res = current_round
-                .start_auction(StartAuctionParams { total_options_available, starting_liquidity });
+                .start_auction(StartAuctionParams { total_options_available, starting_liquidity,reserve_price, cap_level });
             match res {
                 Result::Ok(total_options_available) => {
                     // Update total_locked_liquidity
@@ -639,6 +640,10 @@ mod Vault {
         fn get_round_dispatcher(self: @ContractState, round_id: u256) -> IOptionRoundDispatcher {
             let round_address = self.get_option_round_address(round_id);
             IOptionRoundDispatcher { contract_address: round_address }
+        }
+
+        fn calculate_reserve_cap_price(ref self:ContractState)-> (u256,u256){
+            (1,1)
         }
 
         fn calculate_total_options_available(

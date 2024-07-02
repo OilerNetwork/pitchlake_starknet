@@ -236,7 +236,9 @@ mod OptionRound {
     #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
     struct StartAuctionParams {
         total_options_available: u256,
-        starting_liquidity: u256
+        starting_liquidity: u256,
+        reserve_price:u256,
+        cap_level:u256,
     }
 
     #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
@@ -626,6 +628,8 @@ mod OptionRound {
                 return Result::Err(OptionRoundError::AuctionStartDateNotReached);
             }
 
+            self.reserve_price.write(params.reserve_price);
+            self.cap_level.write(params.cap_level);
             // Set starting liquidity & total options available
             self.starting_liquidity.write(params.starting_liquidity);
             self.total_options_available.write(params.total_options_available);
