@@ -445,8 +445,10 @@ mod Vault {
             let total_options_available = self
                 .calculate_total_options_available(starting_liquidity);
 
+            let (reserve_price,cap_level)= self.calculate_reserve_cap_price();
             // Try to start the auction on the current round
-            let res = current_round.start_auction(total_options_available, starting_liquidity);
+            let res = current_round
+                .start_auction(StartAuctionParams { total_options_available, starting_liquidity,reserve_price, cap_level });
             match res {
                 Result::Ok(total_options_available) => {
                     // Update total_locked_liquidity
@@ -464,7 +466,7 @@ mod Vault {
 
         fn end_auction(ref self: ContractState) -> Result<(u256, u256), VaultError> {
             // Get a dispatcher for the current round
-            let current_round_id = self.current_option_round_id.read();
+            let current_round_id = self.current_option_round_id();
             let current_round = self.get_round_dispatcher(current_round_id);
 
             // Try to end the auction on the option round
@@ -474,8 +476,8 @@ mod Vault {
                     clearing_price, total_options_sold
                 )) => {
                     // Amount of liquidity currently locked and unlocked
-                    let mut locked_liquidity = self.total_locked_balance.read();
-                    let mut unlocked_liquidity = self.total_unlocked_balance.read();
+                    let mut locked_liquidity = self.get_total_locked_balance();
+                    let mut unlocked_liquidity = self.get_total_unlocked_balance();
 
                     // Premiums earned from the auction are unlocked for liquidity providers to withdraw
                     unlocked_liquidity += current_round.total_premiums();
@@ -653,7 +655,7 @@ mod Vault {
                             premiums_already_collected + amount_difference
                         );
                 } // @dev If the current round is Open, then the remaining withdraw amount is coming from the
-                // remaining liquidity of the previous round, and therefore we need to accuate the liquidity provider's
+                // remaining liquidity of the previous round; therefore, we need to accuate the liquidity provider's
                 // position in storage (update the checkpoint and deposit amount)
                 else {
                     let updated_remaining_liquidity = remaining_liquidity - amount_difference;
@@ -719,6 +721,10 @@ mod Vault {
             IOptionRoundDispatcher { contract_address: round_address }
         }
 
+        fn calculate_reserve_cap_price(ref self:ContractState)-> (u256,u256){
+            (1,1)
+        }
+
         fn calculate_total_options_available(
             self: @ContractState, starting_liquidity: u256
         ) -> u256 {
@@ -737,7 +743,7 @@ mod Vault {
         // Deploy the next option round contract, update the current round id & round address mapping
         fn deploy_next_round(ref self: ContractState) {
             // The round id for the next round
-            let next_round_id = self.current_option_round_id.read() + 1;
+            let next_round_id = self.current_option_round_id() + 1;
 
             // The constructor params for the next round
             let mut calldata: Array<felt252> = array![];
@@ -780,7 +786,7 @@ mod Vault {
 
         // Function to return the reserve price, strike price, and cap level for the upcoming round
         // from Fossil
-        // @return (reserve_price, strike_price, cap_level)
+        // @return (reserve_price, cap_level, strike_price)
         // @note Needs implementation
         // @note Fetch values upon deployment, if there are newer (less stale) vaules at the time of auction start,
         // we use the newer values to set the params
@@ -886,9 +892,9 @@ mod Vault {
                     } else {
                         // Include the deposit into this round
                         ending_amount += self.positions.read((liquidity_provider, i));
-                        let this_round = self.get_round_dispatcher(i);
 
                         // How much liquidity remained in this round
+                        let this_round = self.get_round_dispatcher(i);
                         let remaininig_liquidity = this_round.starting_liquidity()
                             + this_round.total_premiums()
                             - this_round.total_payout()
