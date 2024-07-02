@@ -255,6 +255,8 @@ mod Vault {
 
         // Setting placeholder values for storage vars because if left as 0
         // tests fail that should not
+        // @note Should pass these in the constructor
+        // - Need to update the setup functions to accomodate (and a couple tests)
         self.round_transition_period.write(123);
         self.auction_run_time.write(123);
         self.option_run_time.write(123);
