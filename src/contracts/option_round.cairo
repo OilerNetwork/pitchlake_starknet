@@ -409,6 +409,7 @@ mod OptionRound {
         OptionSettlementDateNotReached,
         // Placing bids
         BidBelowReservePrice,
+        BiddingWhileNotAuctioning,
         // Editing bids
         BidCannotBeDecreased: felt252,
     }
@@ -424,6 +425,7 @@ mod OptionRound {
                 OptionRoundError::OptionSettlementDateNotReached => 'OptionRound: Option settle fail',
                 OptionRoundError::OptionRoundAlreadySettled => 'OptionRound: Option settle fail',
                 OptionRoundError::BidBelowReservePrice => 'OptionRound: Bid below reserve',
+                OptionRoundError::BiddingWhileNotAuctioning => 'OptionRound: No auction running',
                 OptionRoundError::BidCannotBeDecreased(input) => if input == 'amount' {
                     'OptionRound: Bid amount too low'
                 } else if input == 'price' {
@@ -542,6 +544,9 @@ mod OptionRound {
             100
         }
 
+
+        // @note, not needed, can just use get_bids_for, the state of the round will determine if
+        // these bids are pending or not
         fn get_pending_bids_for(
             self: @ContractState, option_buyer: ContractAddress
         ) -> Array<felt252> {
@@ -814,7 +819,7 @@ mod OptionRound {
             let k = self.get_strike_price();
             let cl = self.get_cap_level();
             //max(0, min((1 + cl) * k, settlement_price) - k)
-            // remove sub overflow possibility
+            // @dev This removes sub overflow possibility
             let min = min((1 + cl) * k, settlement_price);
             if min > k {
                 min - k
