@@ -31,8 +31,9 @@ jobs:
           node-version: "20.x"
 
       # Install Node dependencies
-      # - name: Install dependencies
-      #   run: npm install
+      - name: Install dependencies
+        run: npm install
+        working-directory: ./scripts
 
       # Set up Scarb
       - uses: software-mansion/setup-scarb@v1
