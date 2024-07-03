@@ -33,7 +33,7 @@ When an option round settles, if the average basefee for the round is > the stri
 
 ## The Vault
 
-The vault acts as the central hub for liquidity providers (LPs) to deposit and withdraw their funds. When an LP deposits liquidity, the vault updates the LP's position in storage, and transfers the funds to the correct option round contract. The vault will have pointers to its **current** and **next** option round. Deposits will always go into the **next** option round, because the **current** round will always be ongoing.
+The vault acts as the central hub for liquidity providers (LPs) to deposit and withdraw their funds. When an LP deposits liquidity, the vault updates the LP's position in storage. Liquidity is classified in 2 buckets, locked and unlocked. When an auction starts, all unlocked liquidity becomes locked (collateral for the potential option payout). All deposits and withdraws pertain to an LP's unlocked balance. The vault will have a pointer to the **current** option round.
 
 ## Option Rounds
 
@@ -41,13 +41,13 @@ An option round is a distinct period of trading, contained within its own contra
 
 ### Option Round States
 
-An option round transitions through 4 states during its life cycle: _Open_ | _Auctioning_ | _Running_ | _Settled_. A round is initially deployed with state _Open_. The state becomes _Auctioning_ once its auction begins, _Running_ once its auction settles, and once the option round concludes, its state permanently becomes _Settled_. In the context of the vault, the **current** option round will always be either: _Auctioning_ | _Running_ | _Settled_, and the **next** option round will always be _Open_. When the **current** round settles, there will be a **round transition period** that must pass before we start the **next** round's auction and update the pointers. This **round transition period** and option round states are detailed further into the crash course.
+An option round transitions through 4 states during its life cycle: _Open_ | _Auctioning_ | _Running_ | _Settled_. A round is initially deployed with state _Open_. The state becomes _Auctioning_ once its auction begins, _Running_ once its auction ends, and once the option round concludes, its state permanently becomes _Settled_. In the context of the vault, the **current** option round will always be either: _Open_ | _Auctioning_ | _Running_. When the **current** round settles, we deploy the next option round contract, update the current round, and start a **round transition period**. The round transition period must pass before we start the **next** auction. This **round transition period** and option round states are detailed further into the crash course.
 
 ## LP Tokens
 
 When an LP deposits liquidity, their positions are stored in the vault contract's storage. The details of their positions remain within in storage from round to round, and when a user wishes to withdraw their funds, these details are used to calculate the value of their position at the current time.
 
-However, if an LP wishes to sell their current position (maybe LP speculates there will be a payout and their position will decrease in value), they can convert their position into LP tokens (ERC20s), and sell them on the secondary market. At any point, these LP tokens can be converted back into a position in the **current** round.
+However, if an LP wishes to sell their current position (maybe LP speculates there will be a payout and their position will decrease in value), they can convert their position into LP tokens (ERC20s), and sell them on the secondary market. At any point, these LP tokens can be converted back into a deposit into the protocol.
 
 **_Simply:_** An LP’s position is handled through storage in the vault contract, and only becomes tokenized if the LP chooses to convert their active position to LP tokens. These positions and LP tokens are discussed in more detail later in the crash course.
 
@@ -55,97 +55,93 @@ However, if an LP wishes to sell their current position (maybe LP speculates the
 
 ## The Vault:
 
-- **Deposit**: LP adds liquidity to the **next** option round, updating their position.
-- **Collect:** LP collects their premiums & unlocked liquidity from the **current** round (if they do not, the funds will be rolled over to the **next** round when the **current** round settles). The **current** round's state must be _Running_ for this entry point to be called. If it were _Auctioning_, the premiums would not be calculated yet, and if it were _Settled_, the funds would have already been rolled over to the **next** round.
-- **Withdraw**: LP withdraws from their liquidity in the **next** round. The **current** round's state must be _Settled_ for this entry point to be called. The option round must be _Settled_ so that we know the value of the payout, and can calculate the value of LP's position when it was rolled over to the **next round**. If the round were _Auctioning_ | _Running_, the funds would still be locked in the round.
-- (1\*) Settle Current Option Round: Settles the **current** round, rolls over remaining liquidity to the **next** round, and starts the **round transition period**.
-- (2\*) Start Next Option Round: Starts the **next** round’s auction and deploys the **new next** round. Updates the vault’s **current** & **next** pointers accordingly.
-- **Getters**: There should be read functions on the vault for the **current** & **next** option round ids, the addresses for option rounds, an LP position's value in the **current** round, and the premiums/unlocked liquidity an LP can collect from the **current** round.
+- **Deposit**: LP adds liquidity to the protocol (into their unlocked balance)
+- **Withdraw**: LP withdraws from their liquidity (from their unlocked balance)
+- (\*)Start Auction: Starts the auction for the current round, cannot be called before the round transition period has passed. Locks all unlocked liqudity.
+- (\*)End Auction: End the auction for the current round, cannot be called before the auction end date has been passed.
+- (\*)Settle Option Round: Settles the current option round, cannot be called before the settlement date has passed. Unlocks all remaining liquidity.
 
-> 1.  Anyone can settle an option round, as long as the option expiry date is passed. The incentivisation scheme still needs to be designed.
-> 2.  Anyone can start a new option round, as long as the current round is Settled and the round transition period has passed. The incentivisation scheme still needs to be designed.
+> \* Anyone can call these state transition functions, the incentivisation scheme still needs to be designed.
 
 ## An Option Round:
 
-- (1\*) **Start Auction**: Begins the auction phase of the round, allowing option buyers (OBs) to place bids for the available options. At this time the round becomes the **current** round within the vault.
+- (\*) **Start Auction**: Begins the auction phase of the round, allowing option buyers (OBs) to place bids for the available options.
 - **Place Auction Bid**: OB submits a bid for options.
-- (2\*) **Settle Auction**: Concludes the auction, determining the final distribution of options and premiums and mints the option (ERC20) tokens to the OBs. If any of the available options do not sell, a portion of the LP locked liquidity becomes unlocked. (LPs can withdraw these premiums and unlocked liquidity once the auction settles. If they ignore them, they will be included in LP's rolled over liquidity to the next round).
+- (\*) **End Auction**: Concludes the auction, determining the final distribution of options and premiums. If any of the available options do not sell, a portion of the locked liquidity becomes unlocked. The premiums earned (and any unsold liquidity) is sent from the option round to the vault (unlocked bucket). LPs can withdraw these premiums and unsold liquidity once the auction ends. If they ignore them, they will be included in LP's rolled over liquidity to the next round).
 - **Refund Unused Bids**: OB collects any of their bids that were not fully utilized (converted to premium).
-  > _i.e._ If OB bids 10 ETH for 10 options and only receives 5 options (@1 ETH / option), they can collect their unused 5 ETH at any time after the auction settles.
-- (3\*) **Settle Option Round**: Settles the option round and calculates the total payout of the option round. At this time, the remaining liquidity (deposits + premiums - payout) are transferred to the **next** option round. Note, the _Settled_ round is still the **current** round in the vault, this changes once the **round transition period** has ended and the **next** round's auction starts.
-- **Exercise Options**: OB exercises their options to claim their individual payout, corresponding to the number of options they own. This burns OB's option tokens.
-- **Getters**: There should be read functions on an option round to return: the option round's state, the option round's params (strike price, settlement date, etc.), the initial liquidity in the round, the auction's clearing price, the total premiums collected, the total payout upon settlement, the amount of used/unused bids for an OB, and the payout amount for an OB.
+  > _i.e._ If OB bids for 10 options @ 2ETH each (20ETH total), and the clearing price comes out to be 1ETH, then 10ETH becomes refundable and can be collected at any time after the auction settles.
+- **Tokenize Options**: OB converts the options they earn in the auction to ERC20 tokens. More on this later.
+- (\*) **Settle Option Round**: Settles the option round and calculates the total payout of the option round. If there is a payout (index > strike), then the total payout is sent from the vault (locked bucked) to the option round. At this time, the next option round is deployed (with state _Open_) and the **current round** pointer is updated.
+- **Exercise Options**: OB exercises their options to claim their individual payout, corresponding to the number of options they own. OBs can exercise their options at any time after the round settles.
 
-> 1. An auction can only start once the previous round settles and the **round transition window** passes.
-
-> 2. An auction can only end if the option bidding period has ended (defined in the option round's params).
-
-> 3. An option round can only settle if the option settlement date has been reached (also defined in the option round's params).
-
-> **Note:** These functions can be called by anyone (and/or may have a wrapping entry point through the vault). The incentivisation scheme still needs to be designed.
+> \* Only the vault can call these state transition functions, but anyone can call the wrapping entry points in the vault.
 
 # A Closer Look at the Contracts
 
 ### The Vault <-> Option Round State Connection
 
-The vault has pointers for its current and next round ids. The current round will always be either: _Auctioning | Running | Settled,_ and the next round will always be _Open._
+The vault has a pointer to the current round. The current round will always be either: _Open_ | _Auctioning_ | _Running_, and all previous rounds will be _Settled_.
 
-Once we pass the current round’s settlement date, we can settle it. Once a round settles, the **round transition window** must pass before the next round’s auction can start. This window gives Pitchlake LPs time to withdraw from their rolled over positions, but also allows any LPs from other protocols to enter.
+Once we pass the current round’s settlement date, we can settle it. Once a round settles, we deploy the next round, update the current round pointer, and the **round transition window** must pass before the next round’s auction can start. This window gives Pitchlake LPs time to withdraw from their rolled over positions, but also allows any LPs from other protocols to enter.
 
 > _This is because if other protocols adopt the same option round schedule as Pitchlake, then without a transition window, there would be no time for LP’s to exit another protocol and join before the next auctions starts, nor would Pitchlake LPs have time to withdraw their positions before they get locked into the next round._
 
-Once this round transition window passes, we can call the `vault::start_auction()` entry point. This will start the **next** option round’s auction (_Open → Auctioning_), deploy the **new next** option round contract (→ _Open_), and increment the **current** & **next** round pointers by 1.
+Once this round transition window passes, we can call the `vault::start_auction()` entry point. This will start the option round’s auction (_Open → Auctioning_).
 
 **Example**:
 
-When the vault deploys, its **current** round pointer is 0 (_Settled),_ and its **next** round pointer is 1 (_Open)_. Once `vault::start_auction()` is called, round 1 starts _Auctioning,_ round 2 gets deployed (as _Open_), the **current** round pointer becomes 1, and the **next** round pointer becomes 2.
+When the vault deploys, its **current** round pointer is 1 (_Open_). Once `vault::start_auction()` is called, round 1 becomes _Auctioning_.
 
-The **current** option round (1) continues, transitioning from _Auctioning_ to _Running_ to _Settled_. During this time, any deposits to the vault will be sent to the **next** round (2). After round 1 settles and the transition window passes, the cycle repeats. `vault::start_auction()` is called, round 2 becomes _Auctioning_, round 3 gets deployed as _Open_, the **current** pointer becomes 2, and the **next** pointer becomes 3.
+The **current** option round (1) continues, transitioning from _Auctioning_ to _Running_ to _Settled_. During this time, any deposits to the vault will be sent to the unlocked bucket. After round 1 settles, round 2 is deployed and becomes the current round. Once the transition window passes, the cycle repeats. `vault::start_auction()` is called, round 2 becomes _Auctioning_, and all unlocked liquidity becomes locked.
 
 **In Summary:**
 
-- There will always be a current and next option round contract deployed.
-  - The current round will always be: _Auctioning_ | _Running_ | _Settled._
-  - The next round will always be _Open._
-- Once the current round settles, there is a window of time that must pass before the next round's auction can start.
-  - Once the auction for a round starts, it becomes the current round, and the next round gets deployed.
-- Deposits always go into the next option round.
-- Withdraws always come from the next round.
-  - LP’s r1 position will roll over to r2, once r1 settles. During the transition window, r2 is _still the **next** round_, which is where LP’s withdraw will come from.
+- There will always be a current option round
+  - The current round will always be: _Open_ | _Auctioning_ | _Running_
+  - The previous rounds will always be: _Settled_
+- Once the current round settles, the next round is deployed and it becomes the current round.
+- There is a window of time that must pass before the next round's auction can start (round transition period).
+- When an auction starts, all unlocked liquidity becomes locked.
+- When an option round settles, all remaining locked liquidity becomes unlocked
+- Deposits always go into the unlocked bucket
+- Withdraws always come from the unlocked bucket
+- If an LP does not withdraw their premiums before the next auction starts, it adds to their position in the next round
 
 ### The Life Cycle of an Option Round
 
 **A Round Opens**
 
-A round deploys with state _Open_ as the **next** round in the vault. While _Open,_ LPs can deposit liquidity. A round will remain _Open_ until its auction starts.
+A round deploys with state _Open_ as the **current** round in the vault. A round will remain _Open_ until its auction starts.
 
 **The Auction Starts**
 
-Once a round’s auction starts, its state becomes _Auctioning_ and it becomes the **current** round in the vault. At this time, the **new next** option round is deployed. While a round is _Auctioning_, OBs can submit bids using the `OptionRound::place_bid(amount, price)` entry point:
+Once a round’s auction starts, its state becomes _Auctioning_. While a round is _Auctioning_, OBs can submit bids using the `OptionRound::place_bid(amount, price)` entry point:
 
-> `amount:` The max amount of funds OB is bidding.
+> `amount:` The max amount of options OB is bidding for.
 
 > `price:` The max price per individual option that OB is bidding.
+
+> i.e. A bid of (10, 2) means the bidder wants at most 10 options and is willing to spend up to 2ETH per option. If the clearing price is > 2ETH, the entire bid becomes refundable, and if the clearing price is < 2ETH, then the OB can receive up to 10 options, and the rest of their funds becomes refundable (if they receive 10 options at 1ETH, then 10ETH is refundable and 10ETH is collected as premiums).
 
 **The Auction Ends**
 
 Once the option bidding period has passed, the auction can end, updating the round’s state to _Running_ (while remaining the **current** round in the vault). Pitchlake will use a fair batch auction to settle these auctions. A technical overview of these fair batch auctions can can be found [here](https://docs.cow.fi/cow-protocol/concepts/introduction/batch-auctions), and some examples are discussed later in this crash course.
 
-When the auction settles, the **clearing price** is calculated. This is the price per individual option. With this clearing price, we can calculate how many options to mint each OB, along with how much of the OBs’ bids were used & unused.
+When the auction settles, the **clearing price** is calculated. This is the price per individual option. With this clearing price, we can calculate how many options each OB will receive, along with how much of the OBs’ bids were used & unused.
 
 The used bids are known as the **premiums**. They are what the OBs end up spending to obtain the options, and are paid to the LPs. Any bids not converted to premiums are claimable via: `OptionRound::refund_unused_bids(OB: ContractAddress).`
 
-The options will be in the form of ERC20 tokens, minted to OBs at the end of the auction. Tokenizing the options allow them to be traded/sold/burned/aggregated/packaged into new derivates/etc.
+The options will be in the form of ERC20 tokens, distributed to OBs at the end of the auction. Tokenizing the options allow them to be traded/sold/burned/aggregated/packaged into new derivates/etc. To save on gas, options will not be minted upon auction end, instead the user will need to tokenize their options (if they wish to transfer/sell them). See [this notion page](https://www.notion.so/nethermind/Bid-Notes-b2c4f7c8995a4727993e771e96a134e5?pvs=4) for more details.
 
 **The Option Round Settles**
 
-Once the option settlement date has been reached, the next step is to settle the round. This permanently sets the round’s state to _Settled_ (still the **current** round in the vault). Fossil lets us know what the average basefee over the option round's duration was, and depending on this value, the options may become exercisable (more on Fossil later in the crash course). If the options become exercisable, the total payout of the options is calculated. This allows an OB to burn their options in exchange for their portion of the payout.
+Once the option settlement date has been reached, the next step is to settle the round. This permanently sets the round’s state to _Settled_ (deploying the new current round). Fossil lets us know what the average basefee over the option round's duration was, and depending on this value, the options may become exercisable (more on Fossil later in the crash course). If the options become exercisable, the total payout of the options is calculated (and sent from the vault's locked bucket to the option round). This allows an OB to burn their options in exchange for their portion of the payout.
 
-When the round settles, we enter the **round transition period**. At this time, the parameters of the **next** round are initialized from Fossil (more on this later), and the remaining LP liquidity is sent to the next round, along with any premiums/unlocked liquidity that was not collected.
+When the round settles, all of the remaining liquidity (locked - payout) becomes unlocked, and we start the round transition period. At this time the new current round is deployed and values from Fossil are used to initialize the round's details (more on this later).
 
-> **NOTE:** If an LP does not collect their premium or unlocked liquidity during a round, it is not lost. It is included as part of their rolled over liquidity into the **next** round.
+> **NOTE:** If an LP does not collect their premiums (unlocked liquidity) during a round, it is not lost. It is included as part of their rolled over liquidity into the **next** round.
 
-After the transition period passes, the next round’s auction can start, repeating the same life cycle. At this time, the settled round is no longer the **current** round in the vault, that pointer is updated to the round that's auction just started.
+After the transition period passes, the next round’s auction can start, repeating the same life cycle.
 
 # A Technical Deep Dive
 
@@ -162,7 +158,7 @@ struct Storage {
 	positions: map(LP: ContractAddress, round_id: uint) -> amount: uint,
 
 	// The last round LP made a withdrawal from
-	withdraw_checkpoints: map(LP: ContractAddress, round_id: uint),
+	withdraw_checkpoints: map(LP: ContractAddress) -> round_id: uint,
 }
 ```
 
@@ -179,15 +175,14 @@ Some pseudo code for a deposit is below:
 ```rust
 // LP deposits liquidity into the next round
 fn deposit_liquidity(LP: ContractAddress, amount: u256) {
-  // Get the next round
-	let next_round_id = vault::next_round_id;
-  let next_round_address = address_for_round(next_round_id);
+  let current_round_id = vault::current_round_id;
+	let next_round_id = current_round_id + 1;
 
   // Update LP's position in the next round
   positions[LP, next_round_id] += amount;
 
-  // Transfer the funds to the next round
-  ETH_DISPATCHER.transfer_from(LP, next_round_address, amount);
+  // Transfer the funds to the vault
+  ETH_DISPATCHER.transfer_from(LP, this_contract::contract_address, amount);
 }
 ```
 
@@ -199,7 +194,7 @@ When an LP withdraws from their position, we need to calculate its value at the 
 let remaining_liquidity = round.total_deposits() + round.total_premiums() - round.total_payouts();
 ```
 
-In order for an LP to withdraw from their position, we must be in the round transition period. During this time, the current round is Settled, thus the remaining liquidity is known, and has been rolled over to the next round.
+Since withdrawals come from an LP's unlocked balance, if they wish to withdraw their entire position, it must be during the round transition period. Otherwise they are only able to withdraw their premiums. This is because premiums are sent to the unlocked bucket as soon as the auction ends, but the locked liquidity remains locked until the round settles.
 
 If an LP supplied 50% of a round’s liquidity, they own 50% of the round’s remaining liquidity once it settles. If an LP does not collect any of their premiums or unlocked liquidity, their portion (50%) of the remaining liquidity is rolled over to the next round. This rolled over amount is their position in the next round.
 
@@ -207,27 +202,28 @@ This next round’s position and the next round’s total deposits determine the
 
 This process repeats for all the rounds the LP’s position sits in, some pseudo code for an LP withdrawing from their position is below.
 
-We start by calculating LP’s position value at the end of the current round (ending_amount), and check to make sure LP is not withdrawing more than this value. The next step, is to update LP’s position & withdraw checkpoint. This allows us to calculate the position’s value during the next withdraw. Finally, we transfer the withdraw amount from the next round to LP (we do this last to avoid re-entrancy attacks).
+We start by calculating LP’s position value at the end of the current round (ending_amount), and check to make sure LP is not withdrawing more than this value. The next step, is to update LP’s position & withdraw checkpoint. This allows us to calculate the position’s value during the next withdraw. Finally, we transfer the withdraw amount from the unlocked bucket to LP.
 
 ```rust
-// LPs can only withdraw during the round transition period
-// @dev i.e. the current round is Settled, and the next round is Open
-// @dev LP liquidity is currently sitting in the next round because it was rolled over
+// LPs can only withdraw at any time, but their entire position is only unlocked during the round transition period.
+// This pseudo code demonstrates withdrawing from an entire position, hence us checking the state of the current round.
+// In practice, the LP can withdraw at any time, but to keep the example simple, we are constraining it to only during the
+// round transition period.
 // @param LP: The address withdrawing liquidity
 // @param withdraw_amount: The amount LP is trying to withdraw
 fn withdraw_from_position(LP: ContractAddress, withdraw_amount: uint) {
   // Get the current and next round ids from the vault
 	let current_round_id = vault::current_round_id;
-	let next_round_id = vault::next_round_id;
+  let previous_round_id = current_round_id - 1;
 
-  // Assert the current round is settled (in round transition period)
-  assert_round_is_settled(current_round_id);
+  // Assert the current round is open (meaning we are in the round transition period)
+  assert_round_is_open(current_round_id);
 
 	// The amount LP's position is worth at the end of the current round
 	let mut ending_amount = 0;
 
-  // Iterate through each round position from the last withdraw checkpoint to the current round (both inclusive)
-	for i in range(withdraw_checkpoints[LP], current_round_id) {
+  // Iterate through each round position from the last withdraw checkpoint to the previous round (both inclusive)
+	for i in range(withdraw_checkpoints[LP], previous_round_id) {
 		// How much liquidity did LP supply in this round
 		let starting_amount = ending_amount + vault::positions[LP, i];
 
@@ -247,23 +243,23 @@ fn withdraw_from_position(LP: ContractAddress, withdraw_amount: uint) {
 		// of the premiums/unlocked liquidity LP may have collected during this round,
 		// but it will need to be implemented, and look something like:
 		// `ending_amount -= lp_collections_in_round(LP, i)`,
-		// where `lp_collections_in_round()` retrieves how much premium and unlocked
+		// where `lp_collections_in_round()` retrieves how much premium/unlocked
 		// liquidity LP collected during this round if any (collected funds were not rolled over to the next round)
 
-  // @dev At this point, ending_amount is the value of LP's position at the end of the current round.
-  // @dev This is the amount rolled over into the next round.
+  // @dev At this point, ending_amount is the value of LP's position at the end of the previous round.
+  // @dev This is the amount rolled over into the current round.
 
 	if (withdraw_amount > ending_amount)
 		revert_with_reason("Withdrawing more than position's value");
 
 	// Update LP's position value after the withdraw
-	positions[LP, next_round_id] = ending_amount - withdraw_amount;
+	positions[LP, current_round_id] = ending_amount - withdraw_amount;
 
 	// Update LPs withdraw checkpoint for future calculations
-	withdraw_checkpoints[LP] = next_round_id;
+	withdraw_checkpoints[LP] = current_round_id;
 
-	// Send ETH from the next round to LP (funds are in the next round once the current settles)
-	ETH_DISPATCHER.transfer_from(address_for_round(next_round_id), LP, withdraw_amount);
+	// Send ETH from the vault to LP
+	ETH_DISPATCHER.transfer_from(this_contract.contract_address(), LP, withdraw_amount);
 }
 ```
 
@@ -275,7 +271,7 @@ The above architecture works fine for LPs to withdraw from their positions upon 
 
 LP tokens represent a position's value at the start of a round net of any premiums collected from the round. By knowing the value of a position at the start of a round, we can calculate its value at the end of the round (once it settles), and there by also knowing the value going into the next round (by rolling over). There will be an LP token contract (ERC20) associated with each round. Meaning if an LP tokenizes their position during round 3 (r3), they are minted r3 LP tokens.
 
-When an LP tokenizes their position, they are converting the value of their position at the start of the **current** round to LP tokens. They can only do so once the round's auction has ended, and before the option round settles. Simply, LPs can only tokenize their position in the **current** round if the **current** round's state is _Running_. The **current** round cannot be _Auctioning_, because the premiums would not be known yet, and it could not be _Settled_ because they could just withdraw their position normally (if current round is Settled, we are in the round transition period).
+When an LP tokenizes their position, they are converting the value of their position at the start of the **current** round to LP tokens. They can only do so once the round's auction has ended, and before the option round settles. Simply, LPs can only tokenize their position in the **current** round if the **current** round's state is _Running_. The **current** round cannot be _Auctioning_, because the premiums would not be known yet, and it could not be _Open_ because then they could just withdraw their position normally (if current round is Open, it means we are in the round transition period).
 
 Some pseudo code for an LP tokenizing their entire current position is below:
 
@@ -286,7 +282,7 @@ Some pseudo code for an LP tokenizing their entire current position is below:
 fn tokenize_position(LP: ContractAddress){
   // Get the current and next round ids from the vault
 	let current_round_id = vault::current_round_id;
-	let next_round_id = vault::next_round_id;
+	let next_round_id = current_round_id + 1;
 
   // Assert the current round is running
   assert_round_is_running(current_round_id);
@@ -294,14 +290,11 @@ fn tokenize_position(LP: ContractAddress){
   // Collect LP's premiums if they have not already
   collect_premiums_if_not_yet(LP);
 
-  // @dev This code is similar to the above code, with the difference being the
-  // bounds of the loop
-
 	// The amount LP's position is worth at the end of the round
 	let mut ending_amount = 0;
 
 	// Iterate through each position from the last checkpoint to the previous round (both inclusive)
-	for i in range(withdraw_checkpoints[LP], current_round_id - 1) {
+	for i in range(withdraw_checkpoints[LP], previous_round_id) {
 		// How much liquidity did LP supply in this round
 		let starting_amount = ending_amount + vault::positions[LP, i];
 
@@ -362,6 +355,11 @@ Some pseudo code for converting LP tokens into positions is below:
 fn convert_LP_tokens_to_position(LP: ContractAddress, LP_token_id: uint, LP_token_amount: uint){
   // Get the current round id from the vault
 	let current_round_id = vault::current_round_id;
+  let previous_round_id = current_round_id - 1;
+
+  // LP tokens cannot be converted into a position in the same round they were created in
+  if (current_round_id == LP_token_id)
+    revert_with_reason("Cannot convert LP tokens into a position in the same round they were created in");
 
   // @dev Calculate the value of the LP tokens at the end of the round they come from.
 
@@ -377,11 +375,8 @@ fn convert_LP_tokens_to_position(LP: ContractAddress, LP_token_id: uint, LP_toke
   // The tokens are worth their share of the remaining liquidity
   let mut ending_amount = pool_percentage * remaining_liquidity;
 
-  // @dev If the LP tokens come from the previous round, the below loop will not run.
-  // @dev If the LP tokens come from before the previous round, we calculate their value across these rounds
-
 	// Iterate through each round after the LP token id to the end of the previous round (both inclusive)
-	for i in range(LP_token_id + 1, current_round_id - 1) {
+	for i in range(LP_token_id + 1, previous_round_id) {
 		// Get a round i dispatcher
 		let this_round = RoundDispatcher {address_for_round(i)};
 
@@ -389,7 +384,7 @@ fn convert_LP_tokens_to_position(LP: ContractAddress, LP_token_id: uint, LP_toke
 		let remaining_liquidity = this_round.total_deposits() + this_round.total_premiums() - this_round.total_payouts();
 
 		// How much of this round's pool did LP own
-		let pool_percentage = starting_amount / this_round.total_deposits();
+		let pool_percentage = ending_amount / this_round.total_deposits();
 
 		// LP ends the round with their share of the remaining liquidity
 		ending_amount = pool_percentage * remaining_liquidity;
@@ -413,25 +408,26 @@ fn convert_LP_tokens_to_position(LP: ContractAddress, LP_token_id: uint, LP_toke
 
 When we start an auction, we know the total liquidity for the round. Using this amount and data from Fossil, we will know the max number of options this round can sell. The goal of the auction is to sell as many of these options as it can. The auction will prioritize the quantity of options sold over the total premium. What this means is that if the auction will make less in premiums selling more of the options than selling less at a higher price, it will clear at the lower price. For example say an auction has 100 options to sell, if it can sell all 100 @ 1 ETH (100 ETH in premium) or 75 @ 2 ETH (150 ETH in premium), it will chose to sell 100 @ 1 ETH. However, the auction will prioritize the premium total if it is selling the most options it can. For example, say the auction has 100 options to sell, if it can sell 100 @ 1 ETH (100 ETH in premium), or 100 @ 1.5 ETH (150 ETH), it will chose to sell 100 @ 1.5 ETH.
 
-OBs submit their bids using the `OptionRound::place_bid(amount, price)` entry point. The `amount` is the max amount of money that OB is bidding. This is the amount of funds that will leave OB's wallet while the auction continues. The `price` is the max price per individual option that OB is bidding. This is the most OB is willing to pay for a single option.
+OBs submit their bids using the `OptionRound::place_bid(amount, price)` entry point. The `amount` is the max amount of options that OB is bidding for, and the `price` is the max price per option the OB is willing to spend. This is the `amount * price` is the total amount of funds that will leave OB's wallet while the auction continues.
 
 ## Examples
 
 **_Example 1: Basic Refunded/Unused Bids_**
 
-- **Scenario:** OB1 bids 10 ETH for options, setting a maximum price of 0.5 ETH per option. Other OBs also place various bids.
-- **Outcome:** The auction settles with a clearing price of 0.6 ETH per option. Since OB1's maximum price was 0.5 ETH, none of their bid is used, making the entire 10 ETH refundable.
+- **Scenario:** OB1 bids for 10 options at 0.5 ETH each, other OBs also place various bids.
+- **Outcome:** The auction settles with a clearing price of 0.6 ETH per option. Since OB1's maximum price was 0.5 ETH, none of their bid is used, making the entire 5 ETH refundable.
 
 **_Example 2: Partially Successful Bid with Refund_**
 
-- **Scenario:** The round has 30 options to sell. OB1 bids 10 ETH at 0.5 ETH per option, and OB2 bids 10 ETH at 1 ETH per option.
-- **Outcome:** The clearing price is set at 0.5 ETH to sell all 30 options. OB2, with the higher bid price, gets priority and receives 20 options. OB1 receives the remaining 10 options. OB2's 10 ETH is fully converted into premium, while only 5 ETH of OB1's bid is converted premium. OB1's remaining 5 ETH is refundable.
+- **Scenario:** The round has 30 options to sell. OB1 bids 20 options at 0.5 ETH per option (10 ETH total), and OB2 bids 20 options at 1 ETH per option (20 ETH total).
+- **Outcome:** The clearing price is determined to be 0.5 ETH, to sell all 30 options. OB2, with the higher bid price, gets priority and receives 20 options. OB1 receives the remaining 10 options. Because of the lower clearing price, 10 ETH of OB2's 20 ETH is converted into premium, while only 5 ETH of OB1's bid is converted premium. OB1's remaining 5 ETH and OB2's remaining 10 ETH are refundable.
+
 - **Note**: A clearing price > 0.5 ETH would not sell all 30 options, the goal of the auction is to sell as many options as it can, even if it can make more premiums by selling fewer options at a higher price.
 
 **_Example 3: Maximizing Revenue by Setting a Higher Clearing Price_**
 
-- **Scenario:** The round has 20 options available. OB1 bids 10 ETH at 0.5 ETH per option, OB2 bids 10 ETH at 1 ETH per option, and OB3 bids 10 ETH at 2 ETH per option.
-- **Outcome:** The clearing price is determined to be 1 ETH, selling all 20 options while maximizing revenue. OB3 and OB2 each receive 10 options, using their entire bids as premium. OB1's bid is fully refundable since the clearing price exceeded their maximum bid.
+- **Scenario:** The round has 20 options available. OB1 bids for 10 options at 0.5 ETH per option, OB2 bids for 10 options at 1 ETH per option, and OB3 bids for 10 options at 2 ETH per option.
+- **Outcome:** The clearing price is determined to be 1 ETH, selling all 20 options while maximizing revenue. OB1's entire bid becomes refundable, OB2's entire bid is converted into premiums, and OB3's bid is split (10 ETH becomes premiums, and 10ETH becomes refundable).
 
 # Fossil Integration
 
@@ -445,7 +441,7 @@ When a round settles, we fetch the TWAP of basefee over the round's period from 
 
 ## The next option round is initialized
 
-When the current option round settles, the next option round (that has been _Open_ and accepting deposits) gets initialized, this is the start of the _round transition period_. While in this transition period, the parameters of the next option round are known (initialized), and LPs can decide to withdraw their rolled over liquidity (and still deposit during this period).
+When the current option round settles, the next option round gets deployed and initialized, this is the start of the _round transition period_. While in this transition period, the parameters of the next option round are known (initialized), and LPs can decide to withdraw their rolled over liquidity.
 
 The values used in the initializer that stem from Fossil are the strike price, cap level, and reserve price.
 
@@ -493,4 +489,4 @@ Where `cl` is the cap level, `BF_T1_T2` is the TWAP of basefee over the round, a
 
 ## In Summary
 
-Fossil is used twice over the course of an option round's life cycle, at initialization and settlement. When we settle the current round, we initialize the next. This starts the round transition period, and once it is over, the next auction (for the initialized round) can start. Once the round's auction starts, it becomes the current round, and the next (uninitialized) round is deployed.
+Fossil is used twice over the course of an option round's life cycle, at initialization and settlement. When we settle the current round, we initialize the next. This starts the round transition period, and once it is over, the next auction (for the initialized round) can start.
