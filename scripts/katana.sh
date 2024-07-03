@@ -13,5 +13,5 @@ done
 # Run your Python script
 echo "Running deploy_vault.js with port $PORT"
 ls
-node ./test_scripts.js $PORT
+node ./scripts/test_script.js $PORT
 # STARKNET_NETWORK=katana poetry run python3 scripts/deploy_vault.py --port $PORT
