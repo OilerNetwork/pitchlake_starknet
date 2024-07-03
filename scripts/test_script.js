@@ -6,6 +6,8 @@ async function main(port) {
   const provider = new starknet.RpcProvider({
     nodeUrl: `http://localhost:${port}`,
   });
+
+  // @note: this shouldn't be hard coded
   const account = new starknet.Account(
     provider,
     "0x4d75495e10ee26cae76478b6e491646ff0a10e0a062db1555131e47b07b7d24",
@@ -23,6 +25,8 @@ async function main(port) {
     console.log("Contract is already declared");
   }
 
+  // @note: here the arguments for deploying eth contract were supply and recipient
+  // @note: u256 is defined by low and high, so 1 and 0 is that only
   let constructorArgs = [
     1,
     0,
