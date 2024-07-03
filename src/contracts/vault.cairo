@@ -32,6 +32,9 @@ trait IVault<TContractState> {
     // Get the round transition period
     fn get_round_transition_period(self: @TContractState) -> u64;
 
+    // @note Add getters for auction run time & option run time
+    // - need to also add to facade, then use in tests for the (not yet created) setters (A1.1)
+
     /// Rounds
 
     // @return the current option round id
@@ -68,6 +71,11 @@ trait IVault<TContractState> {
 
     // Get the total premium LP has earned in the current round
     // @note premiums for previous rounds
+    // @note, not sure this function is easily implementable, if a user accuates their position, the
+    // storage mappings would not be able to correclty value the position in the round_id, to know the
+    // amount of premiums earned in the round_id. We would need to modify the checkpoints to be a mapping
+    // instead of a single value (i.e. checkpoint 1 == x, checkpoint 2 == y, along with keeping track of
+    // the checkpoint nonces)
     fn get_premiums_earned(
         self: @TContractState, liquidity_provider: ContractAddress, round_id: u256
     ) -> u256;
@@ -111,6 +119,8 @@ trait IVault<TContractState> {
     ) -> Result<u256, Vault::VaultError>;
 
     /// LP token related
+
+    // Phase C ?
 
     // LP converts their collateral into LP tokens
     // @note all at once or can LP convert a partial amount ?
@@ -233,7 +243,6 @@ mod Vault {
         round_transition_period: u64,
         auction_run_time: u64,
         option_run_time: u64,
-    // liquidity_positions: LegacyMap<((ContractAddress, u256), u256)>,
     }
 
     // @note Need to add eth address as a param here
@@ -733,17 +742,6 @@ mod Vault {
             IOptionRoundDispatcher { contract_address: round_address }
         }
 
-        fn calculate_reserve_cap_price(ref self: ContractState) -> (u256, u256) {
-            (1, 1)
-        }
-
-        fn calculate_total_options_available(
-            self: @ContractState, starting_liquidity: u256
-        ) -> u256 {
-            //Calculate total options accordingly
-            0
-        }
-
         // Deploy the next option round contract, update the current round id & round address mapping
         fn deploy_next_round(ref self: ContractState) {
             // The round id for the next round
@@ -786,30 +784,6 @@ mod Vault {
                 );
         }
 
-        // Functions to return the reserve price, strike price, and cap level for the upcoming round
-        // from Fossil
-        // @note Fetch values upon deployment, if there are newer (less stale) vaules at the time of auction start,
-        // we use the newer values to set the params
-
-        fn fetch_reserve_price(self: @ContractState) -> u256 {
-            1
-        }
-
-        fn fetch_cap_level(self: @ContractState) -> u256 {
-            1
-        }
-
-        fn fetch_strike_price(self: @ContractState) -> u256 {
-            1
-        }
-
-        fn fetch_settlement_price(self: @ContractState) -> u256 {
-            0
-        }
-
-        fn fetch_settlement_data(self: @ContractState) -> (u256, u256, u256) {
-            (1, 1, 1)
-        }
         // Helper function to return the liquidity provider's unlocked balance broken up into its components
         // @return (previous_round_remaining_balance, current_round_collectable_balance, upcoming_round_deposit)
         // @dev A user's unlocked balance could be a combination of their: remaining balance at the end of the previous round,
@@ -944,6 +918,35 @@ mod Vault {
                 // next round is the upcoming round
                 _ => current_round_id + 1
             }
+        }
+
+        // Functions to return the reserve price, strike price, and cap level for the upcoming round
+        // from Fossil
+        // @note Fetch values upon deployment, if there are newer (less stale) vaules at the time of auction start,
+        // we use the newer values to set the params
+        // Phase F (fossil)
+
+        fn fetch_reserve_price(self: @ContractState) -> u256 {
+            1
+        }
+
+        fn fetch_cap_level(self: @ContractState) -> u256 {
+            1
+        }
+
+        fn fetch_strike_price(self: @ContractState) -> u256 {
+            1
+        }
+
+        fn fetch_settlement_price(self: @ContractState) -> u256 {
+            0
+        }
+
+        fn calculate_total_options_available(
+            self: @ContractState, starting_liquidity: u256
+        ) -> u256 {
+            //Calculate total options accordingly
+            0
         }
     }
 }
