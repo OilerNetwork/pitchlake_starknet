@@ -7,7 +7,7 @@ use starknet::{ContractAddress, testing::{set_contract_address}};
 use pitch_lake_starknet::{
     contracts::option_round::{
         IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState, StartAuctionParams,
-        OptionRoundConstructorParams, Bid,
+        SettleOptionRoundParams, OptionRoundConstructorParams, Bid,
         OptionRound::{
             OptionRoundError, OptionRoundErrorIntoFelt252, //OptionRoundErrorIntoByteArray
         }
@@ -35,13 +35,8 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     // to test this.
 
     // Start the next option round's auction
-    fn start_auction(
-        ref self: OptionRoundFacade, params:StartAuctionParams,
-    ) -> u256 {
-       
-        let res = self
-            .option_round_dispatcher
-            .start_auction(params);
+    fn start_auction(ref self: OptionRoundFacade, params: StartAuctionParams,) -> u256 {
+        let res = self.option_round_dispatcher.start_auction(params);
         match res {
             Result::Ok(total_options_available) => sanity_checks::start_auction(
                 ref self, total_options_available
@@ -63,7 +58,9 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
 
     // Settle the current option round
     fn settle_option_round(ref self: OptionRoundFacade, settlement_price: u256) -> u256 {
-        let res = self.option_round_dispatcher.settle_option_round(settlement_price);
+        let res = self
+            .option_round_dispatcher
+            .settle_option_round(SettleOptionRoundParams { settlement_price });
         match res {
             Result::Ok(total_payout) => sanity_checks::settle_option_round(ref self, total_payout),
             Result::Err(e) => panic(array![e.into()]),

@@ -3,7 +3,8 @@ use openzeppelin::token::erc20::interface::IERC20Dispatcher;
 use pitch_lake_starknet::contracts::{
     market_aggregator::{IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait},
     option_round::OptionRound::{
-        OptionRoundState, StartAuctionParams, OptionRoundConstructorParams, Bid
+        OptionRoundState, StartAuctionParams, SettleOptionRoundParams, OptionRoundConstructorParams,
+        Bid,
     },
 };
 
@@ -127,7 +128,7 @@ trait IOptionRound<TContractState> {
     // Settle the option round if past the expiry date and in state::Running
     // @return The total payout of the option round
     fn settle_option_round(
-        ref self: TContractState, settlement_price: u256
+        ref self: TContractState, params: SettleOptionRoundParams
     ) -> Result<u256, OptionRound::OptionRoundError>;
 
     /// Option bidder functions
@@ -241,12 +242,13 @@ mod OptionRound {
     struct StartAuctionParams {
         total_options_available: u256,
         starting_liquidity: u256,
-        reserve_price:u256,
-        cap_level:u256,
+        reserve_price: u256,
+        cap_level: u256,
+        strike_price: u256,
     }
 
     #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
-    struct SettleOptionRound {
+    struct SettleOptionRoundParams {
         settlement_price: u256
     }
 
@@ -407,6 +409,7 @@ mod OptionRound {
         OptionSettlementDateNotReached,
         // Placing bids
         BidBelowReservePrice,
+        BiddingWhileNotAuctioning,
         // Editing bids
         BidCannotBeDecreased: felt252,
     }
@@ -422,6 +425,7 @@ mod OptionRound {
                 OptionRoundError::OptionSettlementDateNotReached => 'OptionRound: Option settle fail',
                 OptionRoundError::OptionRoundAlreadySettled => 'OptionRound: Option settle fail',
                 OptionRoundError::BidBelowReservePrice => 'OptionRound: Bid below reserve',
+                OptionRoundError::BiddingWhileNotAuctioning => 'OptionRound: No auction running',
                 OptionRoundError::BidCannotBeDecreased(input) => if input == 'amount' {
                     'OptionRound: Bid amount too low'
                 } else if input == 'price' {
@@ -540,6 +544,9 @@ mod OptionRound {
             100
         }
 
+
+        // @note, not needed, can just use get_bids_for, the state of the round will determine if
+        // these bids are pending or not
         fn get_pending_bids_for(
             self: @ContractState, option_buyer: ContractAddress
         ) -> Array<felt252> {
@@ -623,21 +630,32 @@ mod OptionRound {
                 return Result::Err(OptionRoundError::AuctionAlreadyStarted);
             }
 
+            let StartAuctionParams { total_options_available,
+            starting_liquidity,
+            reserve_price,
+            cap_level,
+            strike_price } =
+                params;
+
+            // Assert now is >= auction start date
             let now = get_block_timestamp();
             let start_date = self.get_auction_start_date();
-            // Assert block timestamp is >= auction start date
             if (now < start_date) {
                 return Result::Err(OptionRoundError::AuctionStartDateNotReached);
             }
 
-            self.reserve_price.write(params.reserve_price);
-            self.cap_level.write(params.cap_level);
+            // Set auction params
+            self.reserve_price.write(reserve_price);
+            self.cap_level.write(cap_level);
+            self.strike_price.write(strike_price);
             // Set starting liquidity & total options available
-            self.starting_liquidity.write(params.starting_liquidity);
-            self.total_options_available.write(params.total_options_available);
+            self.starting_liquidity.write(starting_liquidity);
+            self.total_options_available.write(total_options_available);
 
             // Update state to Auctioning
             self.state.write(OptionRoundState::Auctioning);
+
+            // Update auction end date if the auction starts later than expected
             self.auction_end_date.write(self.auction_end_date.read() + now - start_date);
 
             // Emit auction start event
@@ -663,16 +681,19 @@ mod OptionRound {
                 return Result::Err(OptionRoundError::NoAuctionToEnd);
             }
 
+            // Assert now is >= auction end date
             let now = get_block_timestamp();
             let end_date = self.get_auction_end_date();
-            // Assert block timestamp is >= auction end date
             if (now < end_date) {
                 return Result::Err(OptionRoundError::AuctionEndDateNotReached);
             }
 
             // Update state to Running
             self.state.write(OptionRoundState::Running);
+
+            // Update option settlement date if the auction ends later than expected
             self.option_settlement_date.write(self.option_settlement_date.read() + now - end_date);
+
             // Calculate clearing price & total options sold
             //  - An empty helper function is fine for now, we will discuss the
             //  implementation of this function later
@@ -695,15 +716,16 @@ mod OptionRound {
         }
 
         fn settle_option_round(
-            ref self: ContractState, settlement_price: u256
+            ref self: ContractState, params: SettleOptionRoundParams
         ) -> Result<u256, OptionRoundError> {
             // Assert caller is Vault
             if (!self.is_caller_the_vault()) {
                 return Result::Err(OptionRoundError::CallerIsNotVault);
             }
 
-            // Assert block timestamp is >= option settlement date
-            if (get_block_timestamp() < self.get_option_settlement_date()) {
+            // Assert now is >= option settlement date
+            let now = get_block_timestamp();
+            if (now < self.get_option_settlement_date()) {
                 return Result::Err(OptionRoundError::OptionSettlementDateNotReached);
             }
 
@@ -716,6 +738,7 @@ mod OptionRound {
             self.state.write(OptionRoundState::Settled);
 
             // Calculate and set total payout
+            let SettleOptionRoundParams { settlement_price } = params;
             let total_payout = self.calculate_expected_payout(settlement_price);
             self.total_payout.write(total_payout);
 
@@ -796,7 +819,7 @@ mod OptionRound {
             let k = self.get_strike_price();
             let cl = self.get_cap_level();
             //max(0, min((1 + cl) * k, settlement_price) - k)
-            // remove sub overflow possibility
+            // @dev This removes sub overflow possibility
             let min = min((1 + cl) * k, settlement_price);
             if min > k {
                 min - k

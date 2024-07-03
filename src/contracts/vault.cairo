@@ -32,6 +32,9 @@ trait IVault<TContractState> {
     // Get the round transition period
     fn get_round_transition_period(self: @TContractState) -> u64;
 
+    // @note Add getters for auction run time & option run time
+    // - need to also add to facade, then use in tests for the (not yet created) setters (A1.1)
+
     /// Rounds
 
     // @return the current option round id
@@ -68,6 +71,11 @@ trait IVault<TContractState> {
 
     // Get the total premium LP has earned in the current round
     // @note premiums for previous rounds
+    // @note, not sure this function is easily implementable, if a user accuates their position, the
+    // storage mappings would not be able to correclty value the position in the round_id, to know the
+    // amount of premiums earned in the round_id. We would need to modify the checkpoints to be a mapping
+    // instead of a single value (i.e. checkpoint 1 == x, checkpoint 2 == y, along with keeping track of
+    // the checkpoint nonces)
     fn get_premiums_earned(
         self: @TContractState, liquidity_provider: ContractAddress, round_id: u256
     ) -> u256;
@@ -112,6 +120,8 @@ trait IVault<TContractState> {
 
     /// LP token related
 
+    // Phase C ?
+
     // LP converts their collateral into LP tokens
     // @note all at once or can LP convert a partial amount ?
     //  - logically i'm pretty sure they could do a partial amount (collecting all rewards in either case)
@@ -155,7 +165,7 @@ mod Vault {
             OptionRound,
             OptionRound::{
                 OptionRoundErrorIntoFelt252, OptionRoundConstructorParams, StartAuctionParams,
-                OptionRoundState
+                SettleOptionRoundParams, OptionRoundState
             },
             IOptionRoundDispatcher, IOptionRoundDispatcherTrait,
         },
@@ -233,7 +243,6 @@ mod Vault {
         round_transition_period: u64,
         auction_run_time: u64,
         option_run_time: u64,
-    // liquidity_positions: LegacyMap<((ContractAddress, u256), u256)>,
     }
 
     // @note Need to add eth address as a param here
@@ -445,10 +454,21 @@ mod Vault {
             let total_options_available = self
                 .calculate_total_options_available(starting_liquidity);
 
-            let (reserve_price,cap_level)= self.calculate_reserve_cap_price();
+            // @note replace with individual getters, add strike price
+            let reserve_price = self.fetch_reserve_price();
+            let cap_level = self.fetch_cap_level();
+            let strike_price = self.fetch_strike_price();
             // Try to start the auction on the current round
             let res = current_round
-                .start_auction(StartAuctionParams { total_options_available, starting_liquidity,reserve_price, cap_level });
+                .start_auction(
+                    StartAuctionParams {
+                        total_options_available,
+                        starting_liquidity,
+                        reserve_price,
+                        cap_level,
+                        strike_price
+                    }
+                );
             match res {
                 Result::Ok(total_options_available) => {
                     // Update total_locked_liquidity
@@ -524,7 +544,8 @@ mod Vault {
             let settlement_price = self.fetch_settlement_price();
 
             // Try to settle the option round
-            let res = current_round_dispatcher.settle_option_round(settlement_price);
+            let res = current_round_dispatcher
+                .settle_option_round(SettleOptionRoundParams { settlement_price });
             match res {
                 Result::Ok(total_payout) => {
                     // @dev Checking if payout > 0 to save gas if there is no payout
@@ -721,25 +742,6 @@ mod Vault {
             IOptionRoundDispatcher { contract_address: round_address }
         }
 
-        fn calculate_reserve_cap_price(ref self:ContractState)-> (u256,u256){
-            (1,1)
-        }
-
-        fn calculate_total_options_available(
-            self: @ContractState, starting_liquidity: u256
-        ) -> u256 {
-            //Calculate total options accordingly
-            0
-        }
-
-        fn fetch_settlement_price(self: @ContractState) -> u256 {
-            0
-        }
-
-        fn fetch_settlement_data(self: @ContractState) -> (u256, u256, u256) {
-            (1, 1, 1)
-        }
-
         // Deploy the next option round contract, update the current round id & round address mapping
         fn deploy_next_round(ref self: ContractState) {
             // The round id for the next round
@@ -759,11 +761,9 @@ mod Vault {
             calldata.append_serde(auction_end_date);
             calldata.append_serde(option_settlement_date);
             // Reserve price, cap level, & strike price
-            let (reserve_price, strike_price, cap_level) = self
-                .fetch_reserve_price_cap_level_and_strike_price();
-            calldata.append_serde(reserve_price);
-            calldata.append_serde(cap_level);
-            calldata.append_serde(strike_price);
+            calldata.append_serde(self.fetch_reserve_price());
+            calldata.append_serde(self.fetch_cap_level());
+            calldata.append_serde(self.fetch_strike_price());
 
             // Deploy the next option round contract
             let (next_round_address, _) = deploy_syscall(
@@ -782,18 +782,6 @@ mod Vault {
                         OptionRoundDeployed { round_id: next_round_id, address: next_round_address }
                     )
                 );
-        }
-
-        // Function to return the reserve price, strike price, and cap level for the upcoming round
-        // from Fossil
-        // @return (reserve_price, cap_level, strike_price)
-        // @note Needs implementation
-        // @note Fetch values upon deployment, if there are newer (less stale) vaules at the time of auction start,
-        // we use the newer values to set the params
-        fn fetch_reserve_price_cap_level_and_strike_price(
-            ref self: ContractState
-        ) -> (u256, u256, u256) {
-            (1, 2, 3)
         }
 
         // Helper function to return the liquidity provider's unlocked balance broken up into its components
@@ -930,6 +918,35 @@ mod Vault {
                 // next round is the upcoming round
                 _ => current_round_id + 1
             }
+        }
+
+        // Functions to return the reserve price, strike price, and cap level for the upcoming round
+        // from Fossil
+        // @note Fetch values upon deployment, if there are newer (less stale) vaules at the time of auction start,
+        // we use the newer values to set the params
+        // Phase F (fossil)
+
+        fn fetch_reserve_price(self: @ContractState) -> u256 {
+            1
+        }
+
+        fn fetch_cap_level(self: @ContractState) -> u256 {
+            1
+        }
+
+        fn fetch_strike_price(self: @ContractState) -> u256 {
+            1
+        }
+
+        fn fetch_settlement_price(self: @ContractState) -> u256 {
+            0
+        }
+
+        fn calculate_total_options_available(
+            self: @ContractState, starting_liquidity: u256
+        ) -> u256 {
+            //Calculate total options accordingly
+            0
         }
     }
 }
