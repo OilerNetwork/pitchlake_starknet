@@ -391,9 +391,6 @@ mod OptionRound {
         self.strike_price.write(strike_price);
     }
 
-    // @note Need to handle CallerIsNotVault errors in tests
-    // @note Need to update end auction error handling in tests (NoAuctionToEnd)
-
     #[derive(Copy, Drop, Serde)]
     enum OptionRoundError {
         // All state transitions
