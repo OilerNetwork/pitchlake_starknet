@@ -24,16 +24,15 @@ jobs:
       - name: Make script executable
         run: chmod +x scripts/katana.sh
 
-      # Set up Python and install Poetry
-      # - name: Set up Python and install Poetry
-      #   uses: actions/setup-python@v2
-      #   with:
-      #     python-version: "3.9"
-      # - run: pip3 install poetry
+      # Set up Node
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
 
-      # Install Python dependencies with Poetry
-      # - name: Install dependencies
-      #   run: poetry install
+      # Install Node dependencies
+      - name: Install dependencies
+        run: npm install
 
       # Set up Scarb
       - uses: software-mansion/setup-scarb@v1
