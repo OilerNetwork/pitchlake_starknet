@@ -483,17 +483,6 @@ mod OptionRound {
         }
     }
 
-    fn test() {
-        let a = MockBid { amount: 1, price: 2 };
-        let b = MockBid { amount: 1, price: 2 };
-        if a == b {
-            println!("one");
-        }
-        if a < b {
-            println!("two");
-        }
-    }
-
     //    impl OptionRoundErrorIntoByteArray of Into<OptionRoundError, ByteArray> {
     //        fn into(self: OptionRoundError) -> ByteArray {
     //            match self {
