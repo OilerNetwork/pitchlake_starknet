@@ -13,8 +13,7 @@ use openzeppelin::{
 };
 use pitch_lake_starknet::{
     contracts::{
-        utils::rbtree::{RedBlackTree,IRedBlackTreeDispatcher},
-        eth::Eth,
+        utils::rbtree::{RedBlackTree, IRedBlackTreeDispatcher}, eth::Eth,
         pitch_lake::{
             IPitchLakeDispatcher, IPitchLakeSafeDispatcher, IPitchLakeDispatcherTrait, PitchLake,
             IPitchLakeSafeDispatcherTrait
@@ -121,7 +120,7 @@ fn deploy_vault(vault_type: VaultType, eth_address: ContractAddress) -> IVaultDi
 
 fn deploy_rbtree() -> IRedBlackTreeDispatcher {
     let mut calldata = array![];
-    
+
     calldata.append_serde(OptionRound::TEST_CLASS_HASH);
     // @dev Making salt timestamp dependent so we can easily deploy new instances for testing
     let now = get_block_timestamp();

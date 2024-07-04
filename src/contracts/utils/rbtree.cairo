@@ -14,7 +14,7 @@ trait IRedBlackTree<TContractState> {
 }
 
 #[starknet::contract]
-mod RedBlackTree {
+pub mod RedBlackTree {
     use pitch_lake_starknet::contracts::{
         utils::rbtree::IRedBlackTree, option_round::OptionRound::Bid
     };
@@ -26,8 +26,8 @@ mod RedBlackTree {
         id: felt252,
         right: felt252,
         left: felt252,
-        end:felt252,
-        next:felt252,
+        end: felt252,
+        next: felt252,
         is_red: bool,
     }
 
@@ -42,9 +42,7 @@ mod RedBlackTree {
     // @note Need to add eth address as a param here
     //  - Will need to update setup functions to accomodate
     #[constructor]
-    fn constructor(ref self: ContractState,) {
-        
-    }
+    fn constructor(ref self: ContractState,) {}
 
     #[abi(embed_v0)]
     impl RedBlackTreeImpl of super::IRedBlackTree<ContractState> {
@@ -73,19 +71,18 @@ mod RedBlackTree {
         fn compare(self: @ContractState, a: felt252, b: felt252) -> u256 {
             let a_data = self.bid_details.read(a);
             let b_data = self.bid_details.read(b);
-            return a_data.price-b_data.price;
+            return a_data.price - b_data.price;
         }
 
         //may not be needed, may be gas intensive
-        fn _delete(ref self: ContractState, root: felt252, parent: felt252, bid: Bid)->felt252{
-            if(root == 0)
-            {
+        fn _delete(ref self: ContractState, root: felt252, parent: felt252, bid: Bid) -> felt252 {
+            if (root == 0) {
                 return 0;
             }
             let mut node_root = self.list.read(root);
             let cmp = self.compare(root, bid.id);
             if (cmp < 0) {
-                let left = self._delete(node_root.left,node_root.id, bid);
+                let left = self._delete(node_root.left, node_root.id, bid);
                 if (left != node_root.left) {
                     node_root.left = left;
                     self.list.write(node_root.id, node_root)
@@ -93,7 +90,7 @@ mod RedBlackTree {
                 { //let x.left = this._put(x.left, key, value);
                 }
             } else if (cmp > 0) {
-                let right = self._delete(node_root.right,node_root.id, bid);
+                let right = self._delete(node_root.right, node_root.id, bid);
                 if (right != node_root.right) {
                     node_root.right = right;
                     self.list.write(node_root.id, node_root)
@@ -102,27 +99,25 @@ mod RedBlackTree {
             // x.value = value;
 
             }
-            let mut node_right= self.list.read(node_root.right);
+            let mut node_right = self.list.read(node_root.right);
             let mut node_left = self.list.read(node_root.left);
-            if(node_right.is_red==true &&  node_left.is_red!=true){
-
-                node_root = self.rotate_left(node_root,node_left,node_right);
+            if (node_right.is_red == true && node_left.is_red != true) {
+                node_root = self.rotate_left(node_root, node_left, node_right);
                 node_right = self.list.read(node_root.right);
                 node_left = self.list.read(node_root.left);
-
             };
-            if(node_left.is_red==true && self.list.read(node_left.left).is_red==true){
+            if (node_left.is_red == true && self.list.read(node_left.left).is_red == true) {
                 node_root = self.rotate_right(node_root, node_left, node_right);
                 node_right = self.list.read(node_root.right);
                 node_left = self.list.read(node_root.left);
             }
-            if(node_left.is_red && node_right.is_red) {
-                node_left.is_red==false;
-                node_right.is_red==false;
+            if (node_left.is_red && node_right.is_red) {
+                node_left.is_red == false;
+                node_right.is_red == false;
                 node_root.is_red == true;
-                self.list.write(node_left.id,node_left);
-                self.list.write(node_right.id,node_right);
-                self.list.write(node_root.id,node_root);
+                self.list.write(node_left.id, node_left);
+                self.list.write(node_right.id, node_right);
+                self.list.write(node_root.id, node_root);
             }
             node_root.id
         }
@@ -131,7 +126,16 @@ mod RedBlackTree {
                 self
                     .list
                     .write(
-                        bid.id, Node { id: bid.id, parent, right: 0, left: 0, is_red: true, end:bid.id, next:0 }
+                        bid.id,
+                        Node {
+                            id: bid.id,
+                            parent,
+                            right: 0,
+                            left: 0,
+                            is_red: true,
+                            end: bid.id,
+                            next: 0
+                        }
                     );
                 return bid.id;
             }
@@ -139,7 +143,7 @@ mod RedBlackTree {
             let mut node_root = self.list.read(root);
             let cmp = self.compare(root, bid.id);
             if (cmp < 0) {
-                let left = self._insert(node_root.left,node_root.id, bid);
+                let left = self._insert(node_root.left, node_root.id, bid);
                 if (left != node_root.left) {
                     node_root.left = left;
                     self.list.write(node_root.id, node_root)
@@ -147,101 +151,96 @@ mod RedBlackTree {
                 { //let x.left = this._put(x.left, key, value);
                 }
             } else if (cmp > 0) {
-                let right = self._insert(node_root.right,node_root.id, bid);
+                let right = self._insert(node_root.right, node_root.id, bid);
                 if (right != node_root.right) {
                     node_root.right = right;
                     self.list.write(node_root.id, node_root)
                 } //x.right = this._put(x.right, key, value);
             } else { //Create a bucket
-            // x.value = value;
+                // x.value = value;
                 let mut end_node = self.list.read(node_root.end);
                 end_node.next = bid.id;
-                node_root.end=bid.id;
-                self.list.write(end_node.id,end_node);
-                self.list.write(node_root.id,node_root);
-                
+                node_root.end = bid.id;
+                self.list.write(end_node.id, end_node);
+                self.list.write(node_root.id, node_root);
             }
-            let mut node_right= self.list.read(node_root.right);
+            let mut node_right = self.list.read(node_root.right);
             let mut node_left = self.list.read(node_root.left);
-            if(node_right.is_red==true &&  node_left.is_red!=true){
-
-                node_root = self.rotate_left(node_root,node_left,node_right);
+            if (node_right.is_red == true && node_left.is_red != true) {
+                node_root = self.rotate_left(node_root, node_left, node_right);
                 node_right = self.list.read(node_root.right);
                 node_left = self.list.read(node_root.left);
-
             };
-            if(node_left.is_red==true && self.list.read(node_left.left).is_red==true){
+            if (node_left.is_red == true && self.list.read(node_left.left).is_red == true) {
                 node_root = self.rotate_right(node_root, node_left, node_right);
                 node_right = self.list.read(node_root.right);
                 node_left = self.list.read(node_root.left);
             }
-            if(node_left.is_red && node_right.is_red) {
-                node_left.is_red==false;
-                node_right.is_red==false;
+            if (node_left.is_red && node_right.is_red) {
+                node_left.is_red == false;
+                node_right.is_red == false;
                 node_root.is_red == true;
-                self.list.write(node_left.id,node_left);
-                self.list.write(node_right.id,node_right);
-                self.list.write(node_root.id,node_root);
+                self.list.write(node_left.id, node_left);
+                self.list.write(node_right.id, node_right);
+                self.list.write(node_root.id, node_root);
             }
             node_root.id
         }
 
-        fn rotate_left(ref self: ContractState,mut node_root:Node,node_left:Node,node_right:Node) -> Node{
+        fn rotate_left(
+            ref self: ContractState, mut node_root: Node, node_left: Node, node_right: Node
+        ) -> Node {
             let mut new_root = node_right;
             node_root.right = node_right.left;
-            if(node_right.left!=0){
+            if (node_right.left != 0) {
                 let mut left = self.list.read(node_right.left);
                 left.parent = node_root.id;
-                self.list.write(left.id,left);
+                self.list.write(left.id, left);
             }
             let mut root_parent = self.list.read(node_root.parent);
-            new_root.parent=node_root.parent;
-            if(node_root.parent==0){
+            new_root.parent = node_root.parent;
+            if (node_root.parent == 0) {
                 //Put root as new_root
                 self.root.write(new_root.id);
-            }
-            else if(root_parent.left==node_root.id){
-                
-                root_parent.left=new_root.id;
-                self.list.write(root_parent.id,root_parent)
-            }
-            else{
-                root_parent.right=new_root.id;
-                self.list.write(root_parent.id,root_parent)
+            } else if (root_parent.left == node_root.id) {
+                root_parent.left = new_root.id;
+                self.list.write(root_parent.id, root_parent)
+            } else {
+                root_parent.right = new_root.id;
+                self.list.write(root_parent.id, root_parent)
             }
             new_root.left = node_root.id;
             node_root.parent = new_root.id;
-            self.list.write(new_root.id,new_root);
-            self.list.write(node_root.id,node_root);
+            self.list.write(new_root.id, new_root);
+            self.list.write(node_root.id, node_root);
             new_root
         }
-        fn rotate_right(ref self: ContractState, mut node_root:Node, node_left:Node, node_right:Node) ->Node{
+        fn rotate_right(
+            ref self: ContractState, mut node_root: Node, node_left: Node, node_right: Node
+        ) -> Node {
             let mut new_root = node_left;
             node_root.left = node_left.right;
-            if(node_left.right!=0){
+            if (node_left.right != 0) {
                 let mut right = self.list.read(node_left.right);
                 right.parent = node_root.id;
-                self.list.write(right.id,right);
+                self.list.write(right.id, right);
             }
             let mut root_parent = self.list.read(node_root.parent);
-            new_root.parent=node_root.parent;
-            if(node_root.parent==0){
+            new_root.parent = node_root.parent;
+            if (node_root.parent == 0) {
                 //Put root as new_root
                 self.root.write(new_root.id);
-            }
-            else if(root_parent.right==node_root.id){
-                
-                root_parent.right=new_root.id;
-                self.list.write(root_parent.id,root_parent)
-            }
-            else{
-                root_parent.left=new_root.id;
-                self.list.write(root_parent.id,root_parent)
+            } else if (root_parent.right == node_root.id) {
+                root_parent.right = new_root.id;
+                self.list.write(root_parent.id, root_parent)
+            } else {
+                root_parent.left = new_root.id;
+                self.list.write(root_parent.id, root_parent)
             }
             new_root.right = node_root.id;
             node_root.parent = new_root.id;
-            self.list.write(new_root.id,new_root);
-            self.list.write(node_root.id,node_root);
+            self.list.write(new_root.id, new_root);
+            self.list.write(node_root.id, node_root);
             new_root
         }
     }

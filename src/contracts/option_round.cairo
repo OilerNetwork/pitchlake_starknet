@@ -80,7 +80,7 @@ trait IOptionRound<TContractState> {
 
     // The address of vault that deployed this round
     fn vault_address(self: @TContractState) -> ContractAddress;
-    
+
     // The constructor parmaeters of the option round
     fn get_constructor_params(self: @TContractState) -> OptionRoundConstructorParams;
 
@@ -178,20 +178,16 @@ mod OptionRound {
     };
 
 
-
-    component!(path: rb_tree_component, storage:bids_tree , event:BidTreeEvent );
+    component!(path: rb_tree_component, storage: bids_tree, event: BidTreeEvent);
 
     #[abi(embed_v0)]
     impl RBTreeImpl = rb_tree_component::RBTree<ContractState>;
 
     impl RBTreeInternalImpl = rb_tree_component::InternalImpl<ContractState>;
-    
-    
+
+
     #[storage]
     struct Storage {
-
-       
-
         vault_address: ContractAddress,
         // The address of the contract to fetch fossil values from
         market_aggregator: ContractAddress,
@@ -229,9 +225,9 @@ mod OptionRound {
         linked_list: LegacyMap<felt252, LinkedBids>,
         bids_head: felt252,
         bids_tail: felt252,
-
+        
         #[substorage(v0)]
-        bids_tree:rb_tree_component::Storage,
+        bids_tree: rb_tree_component::Storage,
     }
 
     // The parameters needed to construct an option round
@@ -272,13 +268,13 @@ mod OptionRound {
         OptionSettle: OptionSettle,
         UnusedBidsRefunded: UnusedBidsRefunded,
         OptionsExercised: OptionsExercised,
-        BidTreeEvent:rb_tree_component::Event,
+        BidTreeEvent: rb_tree_component::Event,
     }
 
     // Emitted when the auction starts
     // @param total_options_available Max number of options that can be sold in the auction
     // @note Discuss if any other params should be emitted
-    #[derive(Drop, starknet::Event, PartialEq,)]
+    #[derive(Drop, starknet::Event, PartialEq)]
     struct AuctionStart {
         total_options_available: u256,
     //...
