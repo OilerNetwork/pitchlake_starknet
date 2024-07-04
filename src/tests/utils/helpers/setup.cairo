@@ -13,7 +13,7 @@ use openzeppelin::{
 };
 use pitch_lake_starknet::{
     contracts::{
-        utils::rbtree::{RedBlackTree, IRedBlackTreeDispatcher}, eth::Eth,
+        eth::Eth,
         pitch_lake::{
             IPitchLakeDispatcher, IPitchLakeSafeDispatcher, IPitchLakeDispatcherTrait, PitchLake,
             IPitchLakeSafeDispatcherTrait
