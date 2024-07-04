@@ -15,9 +15,10 @@ const RED: bool = true;
 
 
 #[starknet::component]
-pub mod RBTree {
+pub mod rb_tree_component {
     use super::{BLACK, RED};
     use core::{array::ArrayTrait, option::OptionTrait, traits::{IndexView, TryInto}};
+    
     #[storage]
     struct Storage {
         root: felt252,
