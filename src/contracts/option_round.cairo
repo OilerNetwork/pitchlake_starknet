@@ -185,6 +185,14 @@ mod OptionRound {
         IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
     };
 
+    // ERC20 Component
+    component!(path: ERC20Component, storage: erc20, event: ERC20Event);
+    // Exposes snake_case & CamelCase entry points
+    #[abi(embed_v0)]
+    impl ERC20MixinImpl = ERC20Component::ERC20MixinImpl<ContractState>;
+    // Allows the contract access to internal functions
+    impl ERC20InternalImpl = ERC20Component::InternalImpl<ContractState>;
+
     #[storage]
     struct Storage {
         // The address of the vault that deployed this round
@@ -225,6 +233,8 @@ mod OptionRound {
         linked_list: LegacyMap<felt252, LinkedBids>,
         bids_head: felt252,
         bids_tail: felt252,
+        #[substorage(v0)]
+        erc20: ERC20Component::Storage
     }
 
     // The parameters needed to construct an option round
@@ -235,7 +245,6 @@ mod OptionRound {
         vault_address: ContractAddress,
         round_id: u256,
     }
-
 
     // The parameters sent from the vault (fossil) to start the auction
     #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
@@ -274,6 +283,8 @@ mod OptionRound {
         OptionSettle: OptionSettle,
         UnusedBidsRefunded: UnusedBidsRefunded,
         OptionsExercised: OptionsExercised,
+        #[flat]
+        ERC20Event: ERC20Component::Event
     }
 
     // Emitted when the auction starts
@@ -372,7 +383,11 @@ mod OptionRound {
         reserve_price: u256,
         cap_level: u256,
         strike_price: u256,
+        name: ByteArray,
+        symbol: ByteArray,
     ) {
+        // Initialize the ERC20 component
+        self.erc20.initializer(name, symbol);
         // Set the vault address and round id
         self.vault_address.write(vault_address);
         self.round_id.write(round_id);
@@ -808,6 +823,14 @@ mod OptionRound {
             let vault = self.get_vault_dispatcher();
             let eth_address = vault.eth_address();
             IERC20Dispatcher { contract_address: eth_address }
+        }
+
+        fn mint(ref self: ContractState, to: ContractAddress, amount: u256) {
+            self.erc20._mint(to, amount);
+        }
+
+        fn burn(ref self: ContractState, owner: ContractAddress, amount: u256) {
+            self.erc20._burn(owner, amount);
         }
 
         fn calculate_options(ref self: ContractState, starting_liquidity: u256) -> u256 {
