@@ -54,7 +54,6 @@ use pitch_lake_starknet::{
 };
 use debug::PrintTrait;
 
-
 // Test PartialOrd & PartialEq for MockBid by printing varying scenarios
 // @note Test is ignored by default, to run the test run `scarb test -f test_bid_sort --include-ignored`
 #[test]

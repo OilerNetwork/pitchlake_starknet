@@ -433,7 +433,7 @@ mod OptionRound {
         }
     }
 
-    // @dev Matt: I am building this struct as a place holder for when we inject the RB tree into the contract
+    // @dev Building this struct as a place holder for when we inject the RB tree into the contract
 
     #[derive(Copy, Drop, Serde, PartialEq, PartialOrd)]
     struct MockBid {
@@ -493,7 +493,6 @@ mod OptionRound {
             println!("two");
         }
     }
-
 
     //    impl OptionRoundErrorIntoByteArray of Into<OptionRoundError, ByteArray> {
     //        fn into(self: OptionRoundError) -> ByteArray {
