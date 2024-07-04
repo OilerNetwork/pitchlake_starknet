@@ -166,7 +166,8 @@ trait IOptionRound<TContractState> {
 
 #[starknet::contract]
 mod OptionRound {
-    use openzeppelin::token::erc20::{
+    use pitch_lake_starknet::contracts::utils::red_black_tree::IRBTree;
+use openzeppelin::token::erc20::{
         ERC20Component, interface::{IERC20, IERC20Dispatcher, IERC20DispatcherTrait,}
     };
     use starknet::{ContractAddress, get_caller_address, get_block_timestamp};
@@ -723,6 +724,8 @@ mod OptionRound {
         fn place_bid(
             ref self: ContractState, amount: u256, price: u256
         ) -> Result<felt252, OptionRoundError> {
+            let node_id = 4;
+            self.bids_tree.insert(4);
             Result::Ok('default')
         }
 

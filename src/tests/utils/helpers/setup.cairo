@@ -118,25 +118,6 @@ fn deploy_vault(vault_type: VaultType, eth_address: ContractAddress) -> IVaultDi
     return IVaultDispatcher { contract_address };
 }
 
-fn deploy_rbtree() -> IRedBlackTreeDispatcher {
-    let mut calldata = array![];
-
-    calldata.append_serde(OptionRound::TEST_CLASS_HASH);
-    // @dev Making salt timestamp dependent so we can easily deploy new instances for testing
-    let now = get_block_timestamp();
-    let salt = 'some salt' + now.into();
-
-    let (contract_address, _) = deploy_syscall(
-        RedBlackTree::TEST_CLASS_HASH.try_into().unwrap(), salt, calldata.span(), true
-    )
-        .expect('DEPLOY_VAULT_FAILED');
-
-    // Clear the event log
-    clear_event_logs(array![contract_address]);
-
-    return IRedBlackTreeDispatcher { contract_address };
-}
-
 
 fn deploy_pitch_lake() -> IPitchLakeDispatcher {
     let mut calldata = array![];

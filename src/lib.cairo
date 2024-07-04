@@ -1,7 +1,6 @@
 mod contracts {
     mod utils {
         mod utils;
-        mod rbtree;
         mod red_black_tree;
     }
     mod eth;
