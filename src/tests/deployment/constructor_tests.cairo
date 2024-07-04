@@ -57,7 +57,7 @@ use debug::PrintTrait;
 // Test the vault deploys with current round 0 (settled), next round 1 (open),
 // vault manager is set
 #[test]
-#[available_gas(10000000)]
+#[available_gas(50000000)]
 fn test_vault_constructor() {
     let (mut vault, eth) = setup_facade();
     let mut current_round = vault.get_current_round();
@@ -76,7 +76,7 @@ fn test_vault_constructor() {
 // Test the option round constructor
 // Test that round 0 deploys as settled, and round 1 deploys as open.
 #[test]
-#[available_gas(10000000)]
+#[available_gas(50000000)]
 fn test_option_round_constructor() {
     let (mut vault, _) = setup_facade();
 
@@ -89,7 +89,7 @@ fn test_option_round_constructor() {
 // Test market aggregator is deployed
 // @note Need make sure mock has both setter & getter implementations
 #[test]
-#[available_gas(10000000)]
+#[available_gas(50000000)]
 fn test_market_aggregator_deployed() {
     let (mut vault_facade, _) = setup_facade();
     // Get market aggregator dispatcher

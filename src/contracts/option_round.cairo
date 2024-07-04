@@ -3,7 +3,8 @@ use openzeppelin::token::erc20::interface::IERC20Dispatcher;
 use pitch_lake_starknet::contracts::{
     market_aggregator::{IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait},
     option_round::OptionRound::{
-        OptionRoundState, StartAuctionParams, OptionRoundConstructorParams, Bid
+        OptionRoundState, StartAuctionParams, SettleOptionRoundParams, OptionRoundConstructorParams,
+        Bid,
     },
 };
 
@@ -105,6 +106,10 @@ trait IOptionRound<TContractState> {
     // The total number of options available in the auction
     fn get_total_options_available(self: @TContractState) -> u256;
 
+    // Get option round id
+    // @note add to facade and tests
+    fn get_round_id(self: @TContractState) -> u256;
+
     /// Writes ///
 
     /// State transitions
@@ -112,7 +117,7 @@ trait IOptionRound<TContractState> {
     // Try to start the option round's auction
     // @return the total options available in the auction
     fn start_auction(
-        ref self: TContractState, total_options_available: u256, starting_liquidity: u256
+        ref self: TContractState, params: StartAuctionParams
     ) -> Result<u256, OptionRound::OptionRoundError>;
 
     // Settle the auction if the auction time has passed
@@ -123,7 +128,7 @@ trait IOptionRound<TContractState> {
     // Settle the option round if past the expiry date and in state::Running
     // @return The total payout of the option round
     fn settle_option_round(
-        ref self: TContractState, settlement_price: u256
+        ref self: TContractState, params: SettleOptionRoundParams
     ) -> Result<u256, OptionRound::OptionRoundError>;
 
     /// Option bidder functions
@@ -168,6 +173,7 @@ trait IOptionRound<TContractState> {
 mod OptionRound {
     use pitch_lake_starknet::contracts::utils::red_black_tree::IRBTree;
 use openzeppelin::token::erc20::{
+
         ERC20Component, interface::{IERC20, IERC20Dispatcher, IERC20DispatcherTrait,}
     };
     use starknet::{ContractAddress, get_caller_address, get_block_timestamp};
@@ -245,8 +251,17 @@ use openzeppelin::token::erc20::{
     #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
     struct StartAuctionParams {
         total_options_available: u256,
+        starting_liquidity: u256,
         reserve_price: u256,
+        cap_level: u256,
+        strike_price: u256,
     }
+
+    #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
+    struct SettleOptionRoundParams {
+        settlement_price: u256
+    }
+
 
     // The states an option round can be in
     // @note Should we move these into the contract or separate file ?
@@ -384,11 +399,6 @@ use openzeppelin::token::erc20::{
         // Write option round params to storage now or once auction starts
         self.reserve_price.write(reserve_price);
         self.cap_level.write(cap_level);
-        self.auction_start_date.write(auction_start_date);
-        self.auction_end_date.write(auction_end_date);
-        self.option_settlement_date.write(option_settlement_date);
-        // Write other params to storage
-
         self.strike_price.write(strike_price);
     }
 
@@ -410,6 +420,7 @@ use openzeppelin::token::erc20::{
         OptionSettlementDateNotReached,
         // Placing bids
         BidBelowReservePrice,
+        BiddingWhileNotAuctioning,
         // Editing bids
         BidCannotBeDecreased: felt252,
     }
@@ -425,6 +436,7 @@ use openzeppelin::token::erc20::{
                 OptionRoundError::OptionSettlementDateNotReached => 'OptionRound: Option settle fail',
                 OptionRoundError::OptionRoundAlreadySettled => 'OptionRound: Option settle fail',
                 OptionRoundError::BidBelowReservePrice => 'OptionRound: Bid below reserve',
+                OptionRoundError::BiddingWhileNotAuctioning => 'OptionRound: No auction running',
                 OptionRoundError::BidCannotBeDecreased(input) => if input == 'amount' {
                     'OptionRound: Bid amount too low'
                 } else if input == 'price' {
@@ -543,6 +555,9 @@ use openzeppelin::token::erc20::{
             100
         }
 
+
+        // @note, not needed, can just use get_bids_for, the state of the round will determine if
+        // these bids are pending or not
         fn get_pending_bids_for(
             self: @ContractState, option_buyer: ContractAddress
         ) -> Array<felt252> {
@@ -564,6 +579,9 @@ use openzeppelin::token::erc20::{
             100
         }
 
+        fn get_round_id(self: @ContractState) -> u256 {
+            self.round_id.read()
+        }
 
         /// Other
 
@@ -611,7 +629,7 @@ use openzeppelin::token::erc20::{
 
         // @note Do we need to set cap level/reserve price/strike price here, or is during deployment fine ? (~1-8 hours earlier)
         fn start_auction(
-            ref self: ContractState, total_options_available: u256, starting_liquidity: u256
+            ref self: ContractState, params: StartAuctionParams
         ) -> Result<u256, OptionRoundError> {
             // Assert caller is Vault
             if (!self.is_caller_the_vault()) {
@@ -623,11 +641,24 @@ use openzeppelin::token::erc20::{
                 return Result::Err(OptionRoundError::AuctionAlreadyStarted);
             }
 
-            // Assert block timestamp is >= auction start date
-            if (get_block_timestamp() < self.get_auction_start_date()) {
+            let StartAuctionParams { total_options_available,
+            starting_liquidity,
+            reserve_price,
+            cap_level,
+            strike_price } =
+                params;
+
+            // Assert now is >= auction start date
+            let now = get_block_timestamp();
+            let start_date = self.get_auction_start_date();
+            if (now < start_date) {
                 return Result::Err(OptionRoundError::AuctionStartDateNotReached);
             }
 
+            // Set auction params
+            self.reserve_price.write(reserve_price);
+            self.cap_level.write(cap_level);
+            self.strike_price.write(strike_price);
             // Set starting liquidity & total options available
             self.starting_liquidity.write(starting_liquidity);
             self.total_options_available.write(total_options_available);
@@ -635,16 +666,19 @@ use openzeppelin::token::erc20::{
             // Update state to Auctioning
             self.state.write(OptionRoundState::Auctioning);
 
+            // Update auction end date if the auction starts later than expected
+            self.auction_end_date.write(self.auction_end_date.read() + now - start_date);
+
             // Emit auction start event
             self
                 .emit(
                     Event::AuctionStart(
-                        AuctionStart { total_options_available: total_options_available }
+                        AuctionStart { total_options_available: params.total_options_available }
                     )
                 );
 
             // Return the total options available
-            Result::Ok(total_options_available)
+            Result::Ok(params.total_options_available)
         }
 
         fn end_auction(ref self: ContractState) -> Result<(u256, u256), OptionRoundError> {
@@ -658,13 +692,18 @@ use openzeppelin::token::erc20::{
                 return Result::Err(OptionRoundError::NoAuctionToEnd);
             }
 
-            // Assert block timestamp is >= auction end date
-            if (get_block_timestamp() < self.get_auction_end_date()) {
+            // Assert now is >= auction end date
+            let now = get_block_timestamp();
+            let end_date = self.get_auction_end_date();
+            if (now < end_date) {
                 return Result::Err(OptionRoundError::AuctionEndDateNotReached);
             }
 
             // Update state to Running
             self.state.write(OptionRoundState::Running);
+
+            // Update option settlement date if the auction ends later than expected
+            self.option_settlement_date.write(self.option_settlement_date.read() + now - end_date);
 
             // Calculate clearing price & total options sold
             //  - An empty helper function is fine for now, we will discuss the
@@ -688,15 +727,16 @@ use openzeppelin::token::erc20::{
         }
 
         fn settle_option_round(
-            ref self: ContractState, settlement_price: u256
+            ref self: ContractState, params: SettleOptionRoundParams
         ) -> Result<u256, OptionRoundError> {
             // Assert caller is Vault
             if (!self.is_caller_the_vault()) {
                 return Result::Err(OptionRoundError::CallerIsNotVault);
             }
 
-            // Assert block timestamp is >= option settlement date
-            if (get_block_timestamp() < self.get_option_settlement_date()) {
+            // Assert now is >= option settlement date
+            let now = get_block_timestamp();
+            if (now < self.get_option_settlement_date()) {
                 return Result::Err(OptionRoundError::OptionSettlementDateNotReached);
             }
 
@@ -709,6 +749,7 @@ use openzeppelin::token::erc20::{
             self.state.write(OptionRoundState::Settled);
 
             // Calculate and set total payout
+            let SettleOptionRoundParams { settlement_price } = params;
             let total_payout = self.calculate_expected_payout(settlement_price);
             self.total_payout.write(total_payout);
 
@@ -772,7 +813,7 @@ use openzeppelin::token::erc20::{
 
         // End the auction and calculate the clearing price and total options sold
         fn end_auction_internal(ref self: ContractState) -> (u256, u256) {
-            (1, 1)
+            (0, 0)
         }
 
         // Get a dispatcher for the ETH contract
@@ -784,14 +825,14 @@ use openzeppelin::token::erc20::{
 
         fn calculate_options(ref self: ContractState, starting_liquidity: u256) -> u256 {
             //Calculate total options accordingly
-            1
+            0
         }
 
         fn calculate_expected_payout(ref self: ContractState, settlement_price: u256,) -> u256 {
             let k = self.get_strike_price();
             let cl = self.get_cap_level();
             //max(0, min((1 + cl) * k, settlement_price) - k)
-            // remove sub overflow possibility
+            // @dev This removes sub overflow possibility
             let min = min((1 + cl) * k, settlement_price);
             if min > k {
                 min - k
