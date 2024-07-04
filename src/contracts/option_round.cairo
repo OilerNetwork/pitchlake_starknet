@@ -236,7 +236,6 @@ mod OptionRound {
         round_id: u256,
     }
 
-
     // The parameters sent from the vault (fossil) to start the auction
     #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
     struct StartAuctionParams {
@@ -323,7 +322,7 @@ mod OptionRound {
         next: felt252
     }
 
-    // Emiited when the auction ends
+    // Emitted when the auction ends
     // @param clearing_price The resulting price per each option of the batch auction
     // @note Discuss if any other params should be emitted (options sold ?)
     #[derive(Drop, starknet::Event, PartialEq)]
@@ -433,6 +432,68 @@ mod OptionRound {
             }
         }
     }
+
+    // @dev Matt: I am building this struct as a place holder for when we inject the RB tree into the contract
+
+    #[derive(Copy, Drop, Serde, PartialEq, PartialOrd)]
+    struct MockBid {
+        amount: u256,
+        price: u256,
+    }
+
+    impl MockBidPartialOrdTrait of PartialOrd<MockBid> {
+        // @return if lhs < rhs
+        fn lt(lhs: MockBid, rhs: MockBid) -> bool {
+            if lhs.price < rhs.price {
+                true
+            } else if lhs.price > rhs.price {
+                false
+            } else {
+                if lhs.amount < rhs.amount {
+                    true
+                } else {
+                    false
+                }
+            }
+        }
+
+        // @return if lhs <= rhs
+        fn le(lhs: MockBid, rhs: MockBid) -> bool {
+            (lhs < rhs) || (lhs == rhs)
+        }
+
+        // @return if lhs > rhs
+        fn gt(lhs: MockBid, rhs: MockBid) -> bool {
+            if lhs.price > rhs.price {
+                true
+            } else if lhs.price < rhs.price {
+                false
+            } else {
+                if lhs.amount > rhs.amount {
+                    true
+                } else {
+                    false
+                }
+            }
+        }
+
+        // @return if lhs >= rhs
+        fn ge(lhs: MockBid, rhs: MockBid) -> bool {
+            (lhs > rhs) || (lhs == rhs)
+        }
+    }
+
+    fn test() {
+        let a = MockBid { amount: 1, price: 2 };
+        let b = MockBid { amount: 1, price: 2 };
+        if a == b {
+            println!("one");
+        }
+        if a < b {
+            println!("two");
+        }
+    }
+
 
     //    impl OptionRoundErrorIntoByteArray of Into<OptionRoundError, ByteArray> {
     //        fn into(self: OptionRoundError) -> ByteArray {

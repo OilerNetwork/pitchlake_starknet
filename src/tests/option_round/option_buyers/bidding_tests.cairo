@@ -16,7 +16,7 @@ use pitch_lake_starknet::{
             IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault,
             IVaultSafeDispatcherTrait
         },
-        option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
+        option_round::{OptionRound::{MockBid}, IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
     },
     tests::{
         utils::{
@@ -53,6 +53,43 @@ use pitch_lake_starknet::{
     },
 };
 use debug::PrintTrait;
+
+
+// Test PartialOrd & PartialEq for MockBid by printing varying scenarios
+// @note Test is ignored by default, to run the test run `scarb test -f test_bid_sort --include-ignored`
+#[test]
+#[available_gas(50000000)]
+#[ignore]
+fn test_bid_sort() {
+    let mut lhs = array![
+        MockBid { amount: 10, price: 10 },
+        MockBid { amount: 10, price: 10 },
+        MockBid { amount: 10, price: 10 },
+        MockBid { amount: 10, price: 10 },
+        MockBid { amount: 10, price: 10 },
+    ];
+    let mut rhs = array![
+        MockBid { amount: 10, price: 10 },
+        MockBid { amount: 10, price: 9 },
+        MockBid { amount: 10, price: 11 },
+        MockBid { amount: 9, price: 10 },
+        MockBid { amount: 11, price: 10 },
+    ];
+    assert(lhs.len() == rhs.len(), 'lhs.len() != rhs.len()');
+    loop {
+        match lhs.pop_front() {
+            Option::Some(l) => {
+                let r = rhs.pop_front().unwrap();
+                println!("({}, {}) == ({}, {}): {}", l.amount, l.price, r.amount, r.price, l == r);
+                println!("({}, {}) < ({}, {}): {}", l.amount, l.price, r.amount, r.price, l < r);
+                println!("({}, {}) <= ({}, {}): {}", l.amount, l.price, r.amount, r.price, l <= r);
+                println!("({}, {}) > ({}, {}): {}", l.amount, l.price, r.amount, r.price, l > r);
+                println!("({}, {}) >= ({}, {}): {}", l.amount, l.price, r.amount, r.price, l >= r);
+            },
+            Option::None => { break (); }
+        }
+    };
+}
 
 /// Failues ///
 
