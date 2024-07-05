@@ -866,16 +866,31 @@ mod OptionRound {
         fn update_bid(
             ref self: ContractState, bid_id: felt252, amount: u256, price: u256
         ) -> Result<Bid, OptionRoundError> {
-            let old_bid: Bid = self.bids_tree.bid_details.read(bid_id);
-            Result::Ok(
-                Bid {
-                    id: 'default',
-                    owner: starknet::get_caller_address(),
-                    amount: 1,
-                    price: 1,
-                    valid: true
+            //Check if state is still auctioning
+            if (self.state.read() != OptionRoundState::Auctioning) {
+                return Result::Err(OptionRoundError::BiddingWhileNotAuctioning);
+            }
+
+            let mut old_bid: Bid = self.bids_tree.bid_details.read(bid_id);
+            let mut new_bid: Bid = old_bid;
+            //Check if amount is decreased
+            if (amount < old_bid.amount) {
+                if (price < old_bid.price) {
+                    return Result::Err(OptionRoundError::BidCannotBeDecreased(''));
                 }
-            )
+                return Result::Err(OptionRoundError::BidCannotBeDecreased('amount'));
+            }
+
+            if (price < old_bid.price) {
+                return Result::Err(OptionRoundError::BidCannotBeDecreased('price'));
+            }
+
+            self.bids_tree.delete(old_bid);
+            new_bid.amount = amount;
+            new_bid.price = price;
+            self.bids_tree.insert(new_bid);
+
+            Result::Ok(new_bid)
         }
         fn refund_unused_bids(
             ref self: ContractState, option_bidder: ContractAddress
