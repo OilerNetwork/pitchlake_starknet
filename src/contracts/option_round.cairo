@@ -57,7 +57,7 @@ trait IOptionRound<TContractState> {
     fn get_bidding_nonce_for(self: @TContractState, option_buyer: ContractAddress) -> u32;
 
     // Get the bid ids for an account
-    fn get_bids_for(self: @TContractState, option_buyer: ContractAddress) -> Array<felt252>;
+    fn get_bids_for(self: @TContractState, option_buyer: ContractAddress) -> Array<Bid>;
 
     // Previously this was the amount of eth locked in the auction
     // @note Consider changing this to returning an array of bid ids
@@ -172,7 +172,7 @@ trait IOptionRound<TContractState> {
 #[starknet::contract]
 mod OptionRound {
     use core::starknet::event::EventEmitter;
-use core::option::OptionTrait;
+    use core::option::OptionTrait;
     use core::fmt::{Display, Formatter, Error};
     use pitch_lake_starknet::contracts::utils::red_black_tree::IRBTree;
     use openzeppelin::token::erc20::{
@@ -272,7 +272,7 @@ use core::option::OptionTrait;
         ///////////
         ///////////
         constructor_params: OptionRoundConstructorParams,
-        bidder_nonces: LegacyMap<ContractAddress, u256>,
+        bidder_nonces: LegacyMap<ContractAddress, u32>,
         // bid_details: LegacyMap<felt252, Bid>,
         linked_list: LegacyMap<felt252, LinkedBids>,
         bids_head: felt252,
@@ -603,18 +603,12 @@ use core::option::OptionTrait;
         }
 
         fn get_bid_details(self: @ContractState, bid_id: felt252) -> Bid {
-            Bid {
-                id: 'default',
-                owner: starknet::get_caller_address(),
-                amount: 1,
-                price: 1,
-                valid: true
-            }
+            self.bids_tree.bid_details.read(bid_id)
         }
 
 
         fn get_bidding_nonce_for(self: @ContractState, option_buyer: ContractAddress) -> u32 {
-            100
+            self.bidder_nonces.read(option_buyer)
         }
 
 
@@ -626,8 +620,17 @@ use core::option::OptionTrait;
             array!['asdf']
         }
 
-        fn get_bids_for(self: @ContractState, option_buyer: ContractAddress) -> Array<felt252> {
-            return array!['dummy'];
+        fn get_bids_for(self: @ContractState, option_buyer: ContractAddress) -> Array<Bid> {
+            let mut i: u32 = self.bidder_nonces.read(option_buyer);
+            let mut bids: Array<Bid> = array![];
+            while i >= 0 {
+                let hash = poseidon::poseidon_hash_span(
+                    array![i.try_into().unwrap(), option_buyer.into()].span()
+                );
+                bids.append(self.bids_tree.bid_details.read(hash));
+                i -= 1;
+            };
+            bids
         }
         fn get_refundable_bids_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
             100
@@ -852,14 +855,18 @@ use core::option::OptionTrait;
             };
             self.bids_tree.insert(bid);
             self.bidder_nonces.write(bidder, nonce + 1);
-            eth_dispatcher.transfer_from(bidder, get_contract_address(), amount*price);
-            self.emit(Event::AuctionAcceptedBid(AuctionAcceptedBid{account:bidder, amount, price}));
+            eth_dispatcher.transfer_from(bidder, get_contract_address(), amount * price);
+            self
+                .emit(
+                    Event::AuctionAcceptedBid(AuctionAcceptedBid { account: bidder, amount, price })
+                );
             Result::Ok(bid)
         }
 
         fn update_bid(
             ref self: ContractState, bid_id: felt252, amount: u256, price: u256
         ) -> Result<Bid, OptionRoundError> {
+            let old_bid: Bid = self.bids_tree.bid_details.read(bid_id);
             Result::Ok(
                 Bid {
                     id: 'default',

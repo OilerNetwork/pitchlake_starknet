@@ -24,12 +24,12 @@ pub mod rb_tree_component {
     struct Storage {
         root: felt252,
         tree: LegacyMap::<felt252, Node>,
-        bid_details: LegacyMap::<felt252, Bid>,
-        node_position: LegacyMap::<felt252, u256>,
+        bid_details: LegacyMap<felt252, Bid>,
+        node_position: LegacyMap<felt252, u256>,
         next_id: felt252,
     }
 
-    
+
     #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
     struct Node {
         value: Bid,
