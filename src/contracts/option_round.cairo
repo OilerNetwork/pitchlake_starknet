@@ -57,7 +57,7 @@ trait IOptionRound<TContractState> {
     fn get_bidding_nonce_for(self: @TContractState, option_buyer: ContractAddress) -> u32;
 
     // Get the bid ids for an account
-    fn get_bids_for(self: @TContractState, option_buyer: ContractAddress) -> Array<felt252>;
+    fn get_bids_for(self: @TContractState, option_buyer: ContractAddress) -> Array<Bid>;
 
     // Previously this was the amount of eth locked in the auction
     // @note Consider changing this to returning an array of bid ids
@@ -142,7 +142,7 @@ trait IOptionRound<TContractState> {
     // @note check all tests match new format (option amount, option price)
     fn place_bid(
         ref self: TContractState, amount: u256, price: u256
-    ) -> Result<felt252, OptionRound::OptionRoundError>;
+    ) -> Result<Bid, OptionRound::OptionRoundError>;
 
     fn update_bid(
         ref self: TContractState, bid_id: felt252, amount: u256, price: u256
@@ -171,12 +171,14 @@ trait IOptionRound<TContractState> {
 
 #[starknet::contract]
 mod OptionRound {
+    use core::starknet::event::EventEmitter;
+    use core::option::OptionTrait;
+    use core::fmt::{Display, Formatter, Error};
     use pitch_lake_starknet::contracts::utils::red_black_tree::IRBTree;
-use openzeppelin::token::erc20::{
-
+    use openzeppelin::token::erc20::{
         ERC20Component, interface::{IERC20, IERC20Dispatcher, IERC20DispatcherTrait,}
     };
-    use starknet::{ContractAddress, get_caller_address, get_block_timestamp};
+    use starknet::{ContractAddress, get_caller_address, get_contract_address, get_block_timestamp};
     use pitch_lake_starknet::contracts::{
         market_aggregator::{IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait},
         utils::{red_black_tree::rb_tree_component, utils::{min, max}},
@@ -191,6 +193,49 @@ use openzeppelin::token::erc20::{
     impl RBTreeImpl = rb_tree_component::RBTree<ContractState>;
 
     impl RBTreeInternalImpl = rb_tree_component::InternalImpl<ContractState>;
+
+    impl BidPartialOrdTrait of PartialOrd<Bid> {
+        // @return if lhs < rhs
+        fn lt(lhs: Bid, rhs: Bid) -> bool {
+            if lhs.price < rhs.price {
+                true
+            } else if lhs.price > rhs.price {
+                false
+            } else {
+                if lhs.amount < rhs.amount {
+                    true
+                } else {
+                    false
+                }
+            }
+        }
+
+
+        // @return if lhs <= rhs
+        fn le(lhs: Bid, rhs: Bid) -> bool {
+            (lhs < rhs) || (lhs == rhs)
+        }
+
+        // @return if lhs > rhs
+        fn gt(lhs: Bid, rhs: Bid) -> bool {
+            if lhs.price > rhs.price {
+                true
+            } else if lhs.price < rhs.price {
+                false
+            } else {
+                if lhs.amount > rhs.amount {
+                    true
+                } else {
+                    false
+                }
+            }
+        }
+
+        // @return if lhs >= rhs
+        fn ge(lhs: Bid, rhs: Bid) -> bool {
+            (lhs > rhs) || (lhs == rhs)
+        }
+    }
 
 
     #[storage]
@@ -227,12 +272,11 @@ use openzeppelin::token::erc20::{
         ///////////
         ///////////
         constructor_params: OptionRoundConstructorParams,
-        bidder_nonces: LegacyMap<ContractAddress, u256>,
-        bid_details: LegacyMap<felt252, Bid>,
+        bidder_nonces: LegacyMap<ContractAddress, u32>,
+        // bid_details: LegacyMap<felt252, Bid>,
         linked_list: LegacyMap<felt252, LinkedBids>,
         bids_head: felt252,
         bids_tail: felt252,
-        
         #[substorage(v0)]
         bids_tree: rb_tree_component::Storage,
     }
@@ -319,7 +363,7 @@ use openzeppelin::token::erc20::{
         amount: u256,
         price: u256
     }
-    #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
+    #[derive(Copy, Drop, Serde, starknet::Store, PartialEq, Display)]
     struct Bid {
         id: felt252,
         owner: ContractAddress,
@@ -327,6 +371,24 @@ use openzeppelin::token::erc20::{
         price: u256,
         valid: bool,
     }
+
+    impl BidDisplay of Display<Bid> {
+        fn fmt(self: @Bid, ref f: Formatter) -> Result<(), Error> {
+            let owner: ContractAddress = *self.owner;
+            let owner_felt: felt252 = owner.into();
+            let str: ByteArray = format!(
+                "ID:{}\nOwner:{}\nAmount:{}\n Price:{}\nValid:{}",
+                *self.id,
+                owner_felt,
+                *self.amount,
+                *self.price,
+                *self.valid
+            );
+            f.buffer.append(@str);
+            Result::Ok(())
+        }
+    }
+
     #[derive(Copy, Drop, starknet::Store, PartialEq)]
     struct LinkedBids {
         bid: felt252,
@@ -541,18 +603,12 @@ use openzeppelin::token::erc20::{
         }
 
         fn get_bid_details(self: @ContractState, bid_id: felt252) -> Bid {
-            Bid {
-                id: 'default',
-                owner: starknet::get_caller_address(),
-                amount: 1,
-                price: 1,
-                valid: true
-            }
+            self.bids_tree.bid_details.read(bid_id)
         }
 
 
         fn get_bidding_nonce_for(self: @ContractState, option_buyer: ContractAddress) -> u32 {
-            100
+            self.bidder_nonces.read(option_buyer)
         }
 
 
@@ -564,8 +620,17 @@ use openzeppelin::token::erc20::{
             array!['asdf']
         }
 
-        fn get_bids_for(self: @ContractState, option_buyer: ContractAddress) -> Array<felt252> {
-            return array!['dummy'];
+        fn get_bids_for(self: @ContractState, option_buyer: ContractAddress) -> Array<Bid> {
+            let mut i: u32 = self.bidder_nonces.read(option_buyer);
+            let mut bids: Array<Bid> = array![];
+            while i >= 0 {
+                let hash = poseidon::poseidon_hash_span(
+                    array![i.try_into().unwrap(), option_buyer.into()].span()
+                );
+                bids.append(self.bids_tree.bid_details.read(hash));
+                i -= 1;
+            };
+            bids
         }
         fn get_refundable_bids_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
             100
@@ -764,24 +829,68 @@ use openzeppelin::token::erc20::{
 
         fn place_bid(
             ref self: ContractState, amount: u256, price: u256
-        ) -> Result<felt252, OptionRoundError> {
-            let node_id = 4;
-            self.bids_tree.insert(4);
-            Result::Ok('default')
+        ) -> Result<Bid, OptionRoundError> {
+            //Check state of the OptionRound
+
+            let eth_dispatcher = self.get_eth_dispatcher();
+            if (self.state.read() != OptionRoundState::Auctioning) {
+                return Result::Err(OptionRoundError::BiddingWhileNotAuctioning);
+            }
+            //Bid below reserve price
+
+            if (amount < self.reserve_price.read()) {
+                return Result::Err(OptionRoundError::BidBelowReservePrice);
+            }
+            let bidder = get_caller_address();
+            let nonce = self.bidder_nonces.read(bidder);
+
+            let bid = Bid {
+                id: poseidon::poseidon_hash_span(
+                    array![bidder.into(), nonce.try_into().unwrap()].span()
+                ),
+                owner: bidder,
+                amount: amount,
+                price: price,
+                valid: true
+            };
+            self.bids_tree.insert(bid);
+            self.bidder_nonces.write(bidder, nonce + 1);
+            eth_dispatcher.transfer_from(bidder, get_contract_address(), amount * price);
+            self
+                .emit(
+                    Event::AuctionAcceptedBid(AuctionAcceptedBid { account: bidder, amount, price })
+                );
+            Result::Ok(bid)
         }
 
         fn update_bid(
             ref self: ContractState, bid_id: felt252, amount: u256, price: u256
         ) -> Result<Bid, OptionRoundError> {
-            Result::Ok(
-                Bid {
-                    id: 'default',
-                    owner: starknet::get_caller_address(),
-                    amount: 1,
-                    price: 1,
-                    valid: true
+            //Check if state is still auctioning
+            if (self.state.read() != OptionRoundState::Auctioning) {
+                return Result::Err(OptionRoundError::BiddingWhileNotAuctioning);
+            }
+
+            let mut old_bid: Bid = self.bids_tree.bid_details.read(bid_id);
+            let mut new_bid: Bid = old_bid;
+            //Check if amount is decreased
+            if (amount < old_bid.amount) {
+                if (price < old_bid.price) {
+                    return Result::Err(OptionRoundError::BidCannotBeDecreased(''));
                 }
-            )
+                return Result::Err(OptionRoundError::BidCannotBeDecreased('amount'));
+            }
+
+            if (price < old_bid.price) {
+                return Result::Err(OptionRoundError::BidCannotBeDecreased('price'));
+            }
+
+            self.bids_tree.delete(old_bid);
+            new_bid.amount = amount;
+            new_bid.price = price;
+            self.bids_tree.insert(new_bid);
+
+            Result::Ok(new_bid)
         }
         fn refund_unused_bids(
             ref self: ContractState, option_bidder: ContractAddress

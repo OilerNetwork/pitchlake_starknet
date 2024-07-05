@@ -1,12 +1,13 @@
+use pitch_lake_starknet::contracts::option_round::OptionRound::Bid;
 #[starknet::interface]
 trait IRBTree<TContractState> {
-    fn insert(ref self: TContractState, value: u256);
-    fn find(ref self: TContractState, value: u256) -> felt252;
-    fn delete(ref self: TContractState, value: u256);
+    fn insert(ref self: TContractState, value: Bid);
+    fn find(ref self: TContractState, value: Bid) -> felt252;
+    fn delete(ref self: TContractState, value: Bid);
     fn get_root(self: @TContractState) -> felt252;
     fn traverse_postorder(ref self: TContractState);
     fn get_height(ref self: TContractState) -> u256;
-    fn get_tree_structure(ref self: TContractState) -> Array<Array<(u256, bool, u256)>>;
+     fn get_tree_structure(ref self: TContractState) -> Array<Array<(Bid, bool, u256)>>;
     fn is_tree_valid(ref self: TContractState) -> bool;
 }
 
@@ -16,20 +17,22 @@ const RED: bool = true;
 
 #[starknet::component]
 pub mod rb_tree_component {
-    use super::{BLACK, RED};
+    use super::{BLACK, RED, Bid};
     use core::{array::ArrayTrait, option::OptionTrait, traits::{IndexView, TryInto}};
 
     #[storage]
     struct Storage {
         root: felt252,
         tree: LegacyMap::<felt252, Node>,
-        node_position: LegacyMap::<felt252, u256>,
+        bid_details: LegacyMap<felt252, Bid>,
+        node_position: LegacyMap<felt252, u256>,
         next_id: felt252,
     }
 
+
     #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
     struct Node {
-        value: u256,
+        value: Bid,
         left: felt252,
         right: felt252,
         parent: felt252,
@@ -39,12 +42,12 @@ pub mod rb_tree_component {
     #[event]
     #[derive(Drop, starknet::Event, PartialEq)]
     pub enum Event {
-       InsertEvent:InsertEvent
+        InsertEvent: InsertEvent
     }
 
     #[derive(Drop, starknet::Event, PartialEq)]
     struct InsertEvent {
-        node:Node,
+        node: Node,
     }
 
 
@@ -52,7 +55,7 @@ pub mod rb_tree_component {
     impl RBTreeImpl<
         TContractState, +HasComponent<TContractState>
     > of super::IRBTree<ComponentState<TContractState>> {
-        fn insert(ref self: ComponentState<TContractState>, value: u256) {
+        fn insert(ref self: ComponentState<TContractState>, value: Bid) {
             let new_node_id = self.create_new_node(value);
 
             if self.root.read() == 0 {
@@ -64,11 +67,12 @@ pub mod rb_tree_component {
             self.balance_after_insertion(new_node_id);
         }
 
-        fn find(ref self: ComponentState<TContractState>, value: u256) -> felt252 {
+        fn find(ref self: ComponentState<TContractState>, value: Bid) -> felt252 {
             self.find_node(self.root.read(), value)
         }
 
-        fn delete(ref self: ComponentState<TContractState>, value: u256) {
+
+        fn delete(ref self: ComponentState<TContractState>, value: Bid) {
             let node_to_delete_id = self.find_node(self.root.read(), value);
             if node_to_delete_id == 0 {
                 return;
@@ -90,7 +94,7 @@ pub mod rb_tree_component {
 
         fn get_tree_structure(
             ref self: ComponentState<TContractState>
-        ) -> Array<Array<(u256, bool, u256)>> {
+        ) -> Array<Array<(Bid, bool, u256)>> {
             self.build_tree_structure_list()
         }
 
@@ -117,7 +121,7 @@ pub mod rb_tree_component {
         }
 
         fn find_node(
-            ref self: ComponentState<TContractState>, current: felt252, value: u256
+            ref self: ComponentState<TContractState>, current: felt252, value: Bid
         ) -> felt252 {
             if current == 0 {
                 return 0;
@@ -137,7 +141,7 @@ pub mod rb_tree_component {
             ref self: ComponentState<TContractState>,
             current_id: felt252,
             new_node_id: felt252,
-            value: u256
+            value: Bid
         ) {
             let mut current_node: Node = self.tree.read(current_id);
 
@@ -173,7 +177,7 @@ pub mod rb_tree_component {
             }
         }
 
-        fn create_new_node(ref self: ComponentState<TContractState>, value: u256) -> felt252 {
+        fn create_new_node(ref self: ComponentState<TContractState>, value: Bid) -> felt252 {
             let new_node_id = self.next_id.read();
             self.next_id.write(new_node_id + 1);
 
@@ -684,13 +688,13 @@ pub mod rb_tree_component {
 
         fn build_tree_structure_list(
             ref self: ComponentState<TContractState>
-        ) -> Array<Array<(u256, bool, u256)>> {
+        ) -> Array<Array<(Bid, bool, u256)>> {
             if (self.root.read() == 0) {
                 return ArrayTrait::new();
             }
             let filled_position_in_levels_original = self.get_node_positions_by_level();
-            let mut filled_position_in_levels: Array<Array<(u256, bool, u256)>> = ArrayTrait::new();
-            let mut filled_position_in_level: Array<(u256, bool, u256)> = ArrayTrait::new();
+            let mut filled_position_in_levels: Array<Array<(Bid, bool, u256)>> = ArrayTrait::new();
+            let mut filled_position_in_level: Array<(Bid, bool, u256)> = ArrayTrait::new();
             let mut i = 0;
             while i < filled_position_in_levels_original
                 .len() {
