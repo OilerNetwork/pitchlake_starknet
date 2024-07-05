@@ -171,9 +171,9 @@ trait IOptionRound<TContractState> {
 
 #[starknet::contract]
 mod OptionRound {
+    use core::fmt::{Display, Formatter, Error};
     use pitch_lake_starknet::contracts::utils::red_black_tree::IRBTree;
-use openzeppelin::token::erc20::{
-
+    use openzeppelin::token::erc20::{
         ERC20Component, interface::{IERC20, IERC20Dispatcher, IERC20DispatcherTrait,}
     };
     use starknet::{ContractAddress, get_caller_address, get_block_timestamp};
@@ -191,6 +191,49 @@ use openzeppelin::token::erc20::{
     impl RBTreeImpl = rb_tree_component::RBTree<ContractState>;
 
     impl RBTreeInternalImpl = rb_tree_component::InternalImpl<ContractState>;
+
+    impl BidPartialOrdTrait of PartialOrd<Bid> {
+        // @return if lhs < rhs
+        fn lt(lhs: Bid, rhs: Bid) -> bool {
+            if lhs.price < rhs.price {
+                true
+            } else if lhs.price > rhs.price {
+                false
+            } else {
+                if lhs.amount < rhs.amount {
+                    true
+                } else {
+                    false
+                }
+            }
+        }
+
+
+        // @return if lhs <= rhs
+        fn le(lhs: Bid, rhs: Bid) -> bool {
+            (lhs < rhs) || (lhs == rhs)
+        }
+
+        // @return if lhs > rhs
+        fn gt(lhs: Bid, rhs: Bid) -> bool {
+            if lhs.price > rhs.price {
+                true
+            } else if lhs.price < rhs.price {
+                false
+            } else {
+                if lhs.amount > rhs.amount {
+                    true
+                } else {
+                    false
+                }
+            }
+        }
+
+        // @return if lhs >= rhs
+        fn ge(lhs: Bid, rhs: Bid) -> bool {
+            (lhs > rhs) || (lhs == rhs)
+        }
+    }
 
 
     #[storage]
@@ -232,7 +275,6 @@ use openzeppelin::token::erc20::{
         linked_list: LegacyMap<felt252, LinkedBids>,
         bids_head: felt252,
         bids_tail: felt252,
-        
         #[substorage(v0)]
         bids_tree: rb_tree_component::Storage,
     }
@@ -319,7 +361,7 @@ use openzeppelin::token::erc20::{
         amount: u256,
         price: u256
     }
-    #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
+    #[derive(Copy, Drop, Serde, starknet::Store, PartialEq, Display)]
     struct Bid {
         id: felt252,
         owner: ContractAddress,
@@ -327,6 +369,15 @@ use openzeppelin::token::erc20::{
         price: u256,
         valid: bool,
     }
+
+    impl BidDisplay of core::fmt::Display<Bid> {
+        fn fmt(self: @Bid, ref f: Formatter) -> Result<(), Error> {
+            let str: ByteArray = format!("ID:{}\nAmount:{}\n Price:{}\nValid:{}", *self.id,*self.amount,*self.price,*self.valid);
+            f.buffer.append(@str);
+            Result::Ok(())
+        }
+    }
+
     #[derive(Copy, Drop, starknet::Store, PartialEq)]
     struct LinkedBids {
         bid: felt252,
@@ -766,7 +817,6 @@ use openzeppelin::token::erc20::{
             ref self: ContractState, amount: u256, price: u256
         ) -> Result<felt252, OptionRoundError> {
             let node_id = 4;
-            self.bids_tree.insert(4);
             Result::Ok('default')
         }
 
