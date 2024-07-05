@@ -142,7 +142,7 @@ trait IOptionRound<TContractState> {
     // @note check all tests match new format (option amount, option price)
     fn place_bid(
         ref self: TContractState, amount: u256, price: u256
-    ) -> Result<felt252, OptionRound::OptionRoundError>;
+    ) -> Result<Bid, OptionRound::OptionRoundError>;
 
     fn update_bid(
         ref self: TContractState, bid_id: felt252, amount: u256, price: u256
@@ -171,12 +171,14 @@ trait IOptionRound<TContractState> {
 
 #[starknet::contract]
 mod OptionRound {
+    use core::starknet::event::EventEmitter;
+use core::option::OptionTrait;
     use core::fmt::{Display, Formatter, Error};
     use pitch_lake_starknet::contracts::utils::red_black_tree::IRBTree;
     use openzeppelin::token::erc20::{
         ERC20Component, interface::{IERC20, IERC20Dispatcher, IERC20DispatcherTrait,}
     };
-    use starknet::{ContractAddress, get_caller_address, get_block_timestamp};
+    use starknet::{ContractAddress, get_caller_address, get_contract_address, get_block_timestamp};
     use pitch_lake_starknet::contracts::{
         market_aggregator::{IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait},
         utils::{red_black_tree::rb_tree_component, utils::{min, max}},
@@ -271,7 +273,7 @@ mod OptionRound {
         ///////////
         constructor_params: OptionRoundConstructorParams,
         bidder_nonces: LegacyMap<ContractAddress, u256>,
-        bid_details: LegacyMap<felt252, Bid>,
+        // bid_details: LegacyMap<felt252, Bid>,
         linked_list: LegacyMap<felt252, LinkedBids>,
         bids_head: felt252,
         bids_tail: felt252,
@@ -370,9 +372,18 @@ mod OptionRound {
         valid: bool,
     }
 
-    impl BidDisplay of core::fmt::Display<Bid> {
+    impl BidDisplay of Display<Bid> {
         fn fmt(self: @Bid, ref f: Formatter) -> Result<(), Error> {
-            let str: ByteArray = format!("ID:{}\nAmount:{}\n Price:{}\nValid:{}", *self.id,*self.amount,*self.price,*self.valid);
+            let owner: ContractAddress = *self.owner;
+            let owner_felt: felt252 = owner.into();
+            let str: ByteArray = format!(
+                "ID:{}\nOwner:{}\nAmount:{}\n Price:{}\nValid:{}",
+                *self.id,
+                owner_felt,
+                *self.amount,
+                *self.price,
+                *self.valid
+            );
             f.buffer.append(@str);
             Result::Ok(())
         }
@@ -815,9 +826,35 @@ mod OptionRound {
 
         fn place_bid(
             ref self: ContractState, amount: u256, price: u256
-        ) -> Result<felt252, OptionRoundError> {
-            let node_id = 4;
-            Result::Ok('default')
+        ) -> Result<Bid, OptionRoundError> {
+            //Check state of the OptionRound
+
+            let eth_dispatcher = self.get_eth_dispatcher();
+            if (self.state.read() != OptionRoundState::Auctioning) {
+                return Result::Err(OptionRoundError::BiddingWhileNotAuctioning);
+            }
+            //Bid below reserve price
+
+            if (amount < self.reserve_price.read()) {
+                return Result::Err(OptionRoundError::BidBelowReservePrice);
+            }
+            let bidder = get_caller_address();
+            let nonce = self.bidder_nonces.read(bidder);
+
+            let bid = Bid {
+                id: poseidon::poseidon_hash_span(
+                    array![bidder.into(), nonce.try_into().unwrap()].span()
+                ),
+                owner: bidder,
+                amount: amount,
+                price: price,
+                valid: true
+            };
+            self.bids_tree.insert(bid);
+            self.bidder_nonces.write(bidder, nonce + 1);
+            eth_dispatcher.transfer_from(bidder, get_contract_address(), amount*price);
+            self.emit(Event::AuctionAcceptedBid(AuctionAcceptedBid{account:bidder, amount, price}));
+            Result::Ok(bid)
         }
 
         fn update_bid(

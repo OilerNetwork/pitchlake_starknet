@@ -29,6 +29,7 @@ pub mod rb_tree_component {
         next_id: felt252,
     }
 
+    
     #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
     struct Node {
         value: Bid,
