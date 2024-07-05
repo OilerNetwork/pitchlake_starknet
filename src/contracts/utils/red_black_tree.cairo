@@ -2,12 +2,12 @@ use pitch_lake_starknet::contracts::option_round::OptionRound::Bid;
 #[starknet::interface]
 trait IRBTree<TContractState> {
     fn insert(ref self: TContractState, value: Bid);
+    fn find(ref self: TContractState, value: Bid) -> felt252;
     fn delete(ref self: TContractState, value: Bid);
     fn get_root(self: @TContractState) -> felt252;
     fn traverse_postorder(ref self: TContractState);
     fn get_height(ref self: TContractState) -> u256;
-    fn display_tree(ref self: TContractState);
-    fn get_tree_structure(ref self: TContractState) -> Array<Array<(Bid, bool, u256)>>;
+     fn get_tree_structure(ref self: TContractState) -> Array<Array<(Bid, bool, u256)>>;
     fn is_tree_valid(ref self: TContractState) -> bool;
 }
 
@@ -39,12 +39,6 @@ pub mod rb_tree_component {
         color: bool,
     }
 
-    // #[constructor]
-    // fn constructor(ref self: ComponentState<TContractState>) {
-    //     self.root.write(0);
-    //     self.next_id.write(1);
-    // }
-
     #[event]
     #[derive(Drop, starknet::Event, PartialEq)]
     pub enum Event {
@@ -73,6 +67,11 @@ pub mod rb_tree_component {
             self.balance_after_insertion(new_node_id);
         }
 
+        fn find(ref self: ComponentState<TContractState>, value: Bid) -> felt252 {
+            self.find_node(self.root.read(), value)
+        }
+
+
         fn delete(ref self: ComponentState<TContractState>, value: Bid) {
             let node_to_delete_id = self.find_node(self.root.read(), value);
             if node_to_delete_id == 0 {
@@ -91,10 +90,6 @@ pub mod rb_tree_component {
 
         fn get_height(ref self: ComponentState<TContractState>) -> u256 {
             return self.get_sub_tree_height(self.root.read());
-        }
-
-        fn display_tree(ref self: ComponentState<TContractState>) {
-            self.display_tree_structure(self.root.read());
         }
 
         fn get_tree_structure(
@@ -151,6 +146,9 @@ pub mod rb_tree_component {
             let mut current_node: Node = self.tree.read(current_id);
 
             if (value == current_node.value) {
+                let next_id = self.next_id.read();
+                // Revert the next_id
+                self.next_id.write(next_id - 1);
                 return;
             } else if value < current_node.value {
                 if current_node.left == 0 {
@@ -242,16 +240,6 @@ pub mod rb_tree_component {
             }
         }
 
-        fn power(ref self: ComponentState<TContractState>, base: u256, exponent: u256) -> u256 {
-            let mut result = 1;
-            let mut i = 0;
-            while i < exponent {
-                result *= base;
-                i += 1;
-            };
-            return result;
-        }
-
         fn get_parent(ref self: ComponentState<TContractState>, node_id: felt252) -> felt252 {
             if node_id == 0 {
                 0
@@ -294,10 +282,6 @@ pub mod rb_tree_component {
         TContractState, +HasComponent<TContractState>
     > of DeleteBalanceTrait<TContractState> {
         fn delete_node(ref self: ComponentState<TContractState>, delete_id: felt252) {
-            if delete_id == 0 {
-                return; // Node not found
-            }
-
             let mut y = delete_id;
             let mut node_delete: Node = self.tree.read(delete_id);
             let mut y_original_color = node_delete.color;
@@ -355,6 +339,8 @@ pub mod rb_tree_component {
                     let mut x_parent_node: Node = self.tree.read(x_parent);
                     if x == x_parent_node.left {
                         let mut w = x_parent_node.right;
+
+                        // Case 1: x's sibling w is red
                         if self.is_red(w) {
                             self.set_color(w, BLACK);
                             self.set_color(x_parent, RED);
@@ -363,12 +349,16 @@ pub mod rb_tree_component {
                             w = x_parent_node.right;
                         }
                         let mut w_node: Node = self.tree.read(w);
+
+                        // Case 2: x's sibling w is black, and both of w's children are black
                         if (w_node.left == 0 || self.is_black(w_node.left))
                             && (w_node.right == 0 || self.is_black(w_node.right)) {
                             self.set_color(w, RED);
                             x = x_parent;
                             x_parent = self.get_parent(x);
                         } else {
+
+                            // Case 3: x's sibling w is black, w's left child is red, and w's right child is black
                             if w_node.right == 0 || self.is_black(w_node.right) {
                                 if w_node.left != 0 {
                                     self.set_color(w_node.left, BLACK);
@@ -377,6 +367,8 @@ pub mod rb_tree_component {
                                 self.rotate_right(w);
                                 w = w_node.right;
                             }
+
+                            // Case 4: x's sibling w is black, and w's right child is red
                             x_parent_node = self.tree.read(x_parent);
                             self.set_color(w, x_parent_node.color);
                             self.set_color(x_parent, BLACK);
@@ -391,6 +383,8 @@ pub mod rb_tree_component {
                     } else {
                         // Mirror case for right child
                         let mut w = x_parent_node.left;
+
+                        // Case 1 (mirror): x's sibling w is red
                         if self.is_red(w) {
                             self.set_color(w, BLACK);
                             self.set_color(x_parent, RED);
@@ -399,12 +393,16 @@ pub mod rb_tree_component {
                             w = x_parent_node.left;
                         }
                         let mut w_node: Node = self.tree.read(w);
+
+                        // Case 2 (mirror): x's sibling w is black, and both of w's children are black
                         if (w_node.right == 0 || self.is_black(w_node.right))
                             && (w_node.left == 0 || self.is_black(w_node.left)) {
                             self.set_color(w, RED);
                             x = x_parent;
                             x_parent = self.get_parent(x);
                         } else {
+
+                            // Case 3 (mirror): x's sibling w is black, w's right child is red, and w's left child is black
                             if w_node.left == 0 || self.is_black(w_node.left) {
                                 if w_node.right != 0 {
                                     self.set_color(w_node.right, BLACK);
@@ -414,6 +412,7 @@ pub mod rb_tree_component {
                                 x_parent_node = self.tree.read(x_parent);
                                 w = x_parent_node.left;
                             }
+                            // Case 4 (mirror): x's sibling w is black, and w's left child is red
                             self.set_color(w, x_parent_node.color);
                             self.set_color(x_parent, BLACK);
                             w_node = self.tree.read(w);
@@ -644,9 +643,9 @@ pub mod rb_tree_component {
     }
 
     #[generate_trait]
-    impl PrintRBTree<
+    impl RBTreeStructure<
         TContractState, +HasComponent<TContractState>
-    > of PrintRBTreeTrait<TContractState> {
+    > of RBTreeGetStructureTrait<TContractState> {
         fn get_node_positions_by_level(
             ref self: ComponentState<TContractState>
         ) -> Array<Array<(felt252, u256)>> {
@@ -687,144 +686,6 @@ pub mod rb_tree_component {
             return filled_position_in_levels;
         }
 
-        fn display_tree_structure(ref self: ComponentState<TContractState>, node_id: felt252) {
-            println!("");
-
-            let root_id = self.root.read();
-            if root_id == 0 {
-                println!("Tree is empty");
-                return;
-            }
-
-            let tree_height = self.get_height();
-            let no_of_levels = tree_height - 1;
-
-            if no_of_levels == 0 {
-                self.render_single_node(root_id);
-                return;
-            }
-
-            let node_positions_by_level = self.get_node_positions_by_level();
-            let all_nodes = self.build_complete_tree_representation(@node_positions_by_level);
-
-            let (mut middle_spacing, mut begin_spacing) = self
-                .calculate_initial_spacing(no_of_levels);
-
-            self.render_tree_levels(all_nodes, no_of_levels, ref middle_spacing, ref begin_spacing);
-
-            println!("");
-        }
-
-        fn render_single_node(ref self: ComponentState<TContractState>, node_id: felt252) {
-            let root_node: Node = self.tree.read(node_id);
-            if root_node.value.price < 10 { //Edit to fix compilation error
-                print!("0");
-            }
-            println!("{}B", root_node.value);
-        }
-
-        fn calculate_initial_spacing(
-            ref self: ComponentState<TContractState>, no_of_levels: u256
-        ) -> (u256, u256) {
-            let middle_spacing = 3 * self.power(2, no_of_levels)
-                + 5 * self.power(2, no_of_levels - 1)
-                + 3 * (self.power(2, no_of_levels - 1) - 1);
-            let begin_spacing = (middle_spacing - 3) / 2;
-            (middle_spacing, begin_spacing)
-        }
-
-        fn render_tree_levels(
-            ref self: ComponentState<TContractState>,
-            all_nodes: Array<Array<felt252>>,
-            no_of_levels: u256,
-            ref middle_spacing: u256,
-            ref begin_spacing: u256
-        ) {
-            let mut i = 0;
-            loop {
-                if i >= all_nodes.len().try_into().unwrap() {
-                    break;
-                }
-                let level = all_nodes.at(i.try_into().unwrap());
-                self.render_level(level, i, no_of_levels, begin_spacing, middle_spacing);
-
-                if i < no_of_levels.try_into().unwrap() {
-                    middle_spacing = begin_spacing;
-                    begin_spacing = (begin_spacing - 3) / 2;
-                }
-
-                println!("");
-                i += 1;
-            }
-        }
-
-        fn render_level(
-            ref self: ComponentState<TContractState>,
-            level: @Array<felt252>,
-            level_index: u256,
-            no_of_levels: u256,
-            begin_spacing: u256,
-            middle_spacing: u256
-        ) {
-            let mut j = 0_u256;
-            loop {
-                if j >= level.len().try_into().unwrap() {
-                    break;
-                }
-                let node_id = *level.at(j.try_into().unwrap());
-
-                self
-                    .print_node_spacing(
-                        j, level_index, no_of_levels, begin_spacing, middle_spacing
-                    );
-                self.print_node(node_id);
-
-                j += 1;
-            }
-        }
-
-        fn print_node_spacing(
-            ref self: ComponentState<TContractState>,
-            node_index: u256,
-            level_index: u256,
-            no_of_levels: u256,
-            begin_spacing: u256,
-            middle_spacing: u256
-        ) {
-            if node_index == 0 {
-                self.print_n_spaces(begin_spacing);
-            } else if level_index == no_of_levels {
-                if node_index % 2 == 0 {
-                    self.print_n_spaces(3);
-                } else {
-                    self.print_n_spaces(5);
-                }
-            } else {
-                self.print_n_spaces(middle_spacing);
-            }
-        }
-
-        fn print_node(ref self: ComponentState<TContractState>, node_id: felt252) {
-            if node_id == 0 {
-                print!("...");
-            } else {
-                let node: Node = self.tree.read(node_id);
-                let node_value = node.value;
-                let node_color = node.color;
-
-                if node_value.price < 10 { //Edit to fix compilation error
-                    print!("0");
-                }
-                print!("{}", node_value);
-
-                if node_color == BLACK {
-                    print!("B");
-                } else {
-                    print!("R");
-                }
-            }
-        }
-
         fn build_tree_structure_list(
             ref self: ComponentState<TContractState>
         ) -> Array<Array<(Bid, bool, u256)>> {
@@ -853,58 +714,6 @@ pub mod rb_tree_component {
             return filled_position_in_levels;
         }
 
-        fn build_complete_tree_representation(
-            ref self: ComponentState<TContractState>,
-            node_positions_by_level: @Array<Array<(felt252, u256)>>
-        ) -> Array<Array<felt252>> {
-            let no_of_levels = self.get_height();
-            let mut i = 0;
-            let mut complete_tree_representation: Array<Array<felt252>> = ArrayTrait::new();
-            while i < no_of_levels {
-                let node_positions_at_level = node_positions_by_level.at(i.try_into().unwrap());
-                let all_nodes_in_level = self.fill_all_nodes_in_level(i, node_positions_at_level);
-                complete_tree_representation.append(all_nodes_in_level);
-                i = i + 1;
-            };
-            return complete_tree_representation;
-        }
-
-        fn fill_all_nodes_in_level(
-            ref self: ComponentState<TContractState>,
-            level: u256,
-            filled_levels: @Array<(felt252, u256)>
-        ) -> Array<felt252> {
-            let mut i = 0;
-            let max_no_of_nodes = self.power(2, level);
-            let mut all_nodes_in_level: Array<felt252> = ArrayTrait::new();
-            while i < max_no_of_nodes {
-                let node_id = self.get_if_node_id_present(filled_levels, i);
-                all_nodes_in_level.append(node_id);
-                i += 1;
-            };
-            return all_nodes_in_level;
-        }
-
-        fn get_if_node_id_present(
-            ref self: ComponentState<TContractState>,
-            filled_levels: @Array<(felt252, u256)>,
-            position: u256
-        ) -> felt252 {
-            let mut i = 0;
-            let mut found_node_id = 0;
-            // iterate through filled_levels
-            while i < filled_levels
-                .len() {
-                    let (node_id, pos) = filled_levels.at(i.try_into().unwrap());
-                    if (pos == @position) {
-                        found_node_id = *node_id;
-                    }
-                    i += 1;
-                };
-
-            return found_node_id;
-        }
-
         fn collect_position_and_levels_of_nodes(
             ref self: ComponentState<TContractState>, node_id: felt252, position: u256, level: u256
         ) {
@@ -918,14 +727,6 @@ pub mod rb_tree_component {
 
             self.collect_position_and_levels_of_nodes(node.left, position * 2, level + 1);
             self.collect_position_and_levels_of_nodes(node.right, position * 2 + 1, level + 1);
-        }
-
-        fn print_n_spaces(ref self: ComponentState<TContractState>, n: u256) {
-            let mut i = 0;
-            while i < n {
-                print!(" ");
-                i += 1;
-            }
         }
     }
 
