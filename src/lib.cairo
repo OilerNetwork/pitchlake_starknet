@@ -9,5 +9,6 @@ mod contracts {
     mod market_aggregator;
     mod lp_token;
 }
+
 #[cfg(test)]
 mod tests;

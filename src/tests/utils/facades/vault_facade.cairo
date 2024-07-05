@@ -244,6 +244,10 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         (self.get_current_round(), self.get_next_round())
     }
 
+    fn get_unsold_liquidity(ref self: VaultFacade, round_id: u256) -> u256 {
+        self.vault_dispatcher.get_unsold_liquidity(round_id)
+    }
+
     /// Liquidity
 
     // For LPs

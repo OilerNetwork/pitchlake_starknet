@@ -85,6 +85,9 @@ trait IVault<TContractState> {
         self: @TContractState, liquidity_provider: ContractAddress, round_id: u256
     ) -> u256;
 
+    // Get the amount of unsold liquidity for a round
+    fn get_unsold_liquidity(self: @TContractState, round_id: u256) -> u256;
+
     /// Writes ///
 
     /// State transition
@@ -358,6 +361,10 @@ mod Vault {
             self: @ContractState, option_round_id: u256
         ) -> ContractAddress {
             self.round_addresses.read(option_round_id)
+        }
+
+        fn get_unsold_liquidity(self: @ContractState, round_id: u256) -> u256 {
+            self.unsold_liquidity.read(round_id)
         }
 
         /// Liquidity
