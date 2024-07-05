@@ -142,7 +142,7 @@ pub mod rb_tree_component {
             let mut current_node: Node = self.tree.read(current_id);
 
             if (value == current_node.value) {
-                let mut next_id = self.next_id.read();
+                let next_id = self.next_id.read();
                 // Revert the next_id
                 self.next_id.write(next_id - 1);
                 return;
