@@ -3,11 +3,12 @@ use pitch_lake_starknet::contracts::option_round::OptionRound::Bid;
 trait IRBTree<TContractState> {
     fn insert(ref self: TContractState, value: Bid);
     fn find(ref self: TContractState, value: Bid) -> felt252;
+    fn find_clearing_price(ref self: TContractState, total_options_available: u256) -> u256;
     fn delete(ref self: TContractState, value: Bid);
     fn get_root(self: @TContractState) -> felt252;
     fn traverse_postorder(ref self: TContractState);
     fn get_height(ref self: TContractState) -> u256;
-     fn get_tree_structure(ref self: TContractState) -> Array<Array<(Bid, bool, u256)>>;
+    fn get_tree_structure(ref self: TContractState) -> Array<Array<(Bid, bool, u256)>>;
     fn is_tree_valid(ref self: TContractState) -> bool;
 }
 
@@ -17,8 +18,10 @@ const RED: bool = true;
 
 #[starknet::component]
 pub mod rb_tree_component {
+    use pitch_lake_starknet::contracts::utils::red_black_tree::IRBTree;
     use super::{BLACK, RED, Bid};
     use core::{array::ArrayTrait, option::OptionTrait, traits::{IndexView, TryInto}};
+
 
     #[storage]
     struct Storage {
@@ -45,6 +48,11 @@ pub mod rb_tree_component {
         InsertEvent: InsertEvent
     }
 
+    #[derive(Copy, Drop, Serde, PartialEq,)]
+    enum TraverseReturn {
+        remaining_options: u256,
+        clearing_price_felt: felt252,
+    }
     #[derive(Drop, starknet::Event, PartialEq)]
     struct InsertEvent {
         node: Node,
@@ -69,6 +77,20 @@ pub mod rb_tree_component {
 
         fn find(ref self: ComponentState<TContractState>, value: Bid) -> felt252 {
             self.find_node(self.root.read(), value)
+        }
+
+        fn find_clearing_price(
+            ref self: ComponentState<TContractState>, total_options_available: u256
+        ) -> u256 {
+            let result = self
+                .traverse_postorder_total_from_node(self.root.read(), total_options_available);
+            match result.unwrap() {
+                TraverseReturn::clearing_price_felt(node_id) => {
+                    let clearing_bid: Bid = self.bid_details.read(node_id);
+                    clearing_bid.price
+                },
+                TraverseReturn::remaining_options(_) => { 0 }
+            }
         }
 
 
@@ -120,6 +142,38 @@ pub mod rb_tree_component {
             self.traverse_postorder_from_node(current_node.left);
         }
 
+        fn find_clearing_price() -> felt252 {
+            'asd'
+        }
+        fn traverse_postorder_total_from_node(
+            ref self: ComponentState<TContractState>,
+            current_id: felt252,
+            total_options_available: u256
+        ) -> Option<TraverseReturn> {
+            if (current_id == 0) {
+                return Option::Some(TraverseReturn::remaining_options(total_options_available));
+            }
+            let current_node: Node = self.tree.read(current_id);
+
+            let mut remaining_options = total_options_available;
+
+            //Recursive on Right Node
+            match self
+                .traverse_postorder_total_from_node(current_node.right, total_options_available)
+                .unwrap() {
+                TraverseReturn::clearing_price_felt(node_id) => {
+                    return Option::Some(TraverseReturn::clearing_price_felt(node_id));
+                },
+                TraverseReturn::remaining_options(remaining) => { remaining_options = remaining; }
+            }
+
+            //Check for self 
+            if (current_node.value.amount >= remaining_options) {
+                return Option::Some(TraverseReturn::clearing_price_felt(current_id));
+            }
+            //Recursive on Left Node and return result directly to the outer call
+            self.traverse_postorder_total_from_node(current_node.left, total_options_available)
+        }
         fn find_node(
             ref self: ComponentState<TContractState>, current: felt252, value: Bid
         ) -> felt252 {
@@ -357,7 +411,6 @@ pub mod rb_tree_component {
                             x = x_parent;
                             x_parent = self.get_parent(x);
                         } else {
-
                             // Case 3: x's sibling w is black, w's left child is red, and w's right child is black
                             if w_node.right == 0 || self.is_black(w_node.right) {
                                 if w_node.left != 0 {
@@ -401,7 +454,6 @@ pub mod rb_tree_component {
                             x = x_parent;
                             x_parent = self.get_parent(x);
                         } else {
-
                             // Case 3 (mirror): x's sibling w is black, w's right child is red, and w's left child is black
                             if w_node.left == 0 || self.is_black(w_node.left) {
                                 if w_node.right != 0 {
