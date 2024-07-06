@@ -27,6 +27,7 @@ use pitch_lake_starknet::{
     }
 };
 use starknet::testing::{set_block_timestamp, set_contract_address};
+use debug::PrintTrait;
 
 
 // Test unsold liquidity is 0 before auction end
@@ -132,13 +133,11 @@ fn test_unsold_liquidity_is_unlocked_for_liquidity_providers() {
         .get_lp_locked_and_unlocked_balances(liquidity_providers)
         .span();
 
-// Bid for 1/2 the options
-let option_bidders = array![option_bidder_buyer_1()].span();
+    // Bid for 1/2 the options
+    let option_bidders = array![option_bidder_buyer_1()].span();
     let bid_amounts = array![options_available / 2].span();
     let bid_prices = array![current_round.get_reserve_price()].span();
-    accelerate_to_running_custom(
-        ref vault, option_bidders, bid_amounts, bid_prices
-    );
+    accelerate_to_running_custom(ref vault, option_bidders, bid_amounts, bid_prices);
 
     // Check each LP's unlocked balance increments as expected
     let unsold_liq = vault.get_unsold_liquidity(current_round.get_round_id());
@@ -171,6 +170,6 @@ let option_bidders = array![option_bidder_buyer_1()].span();
             },
             Option::None => { break (); }
         }
-    }
+    };
 }
 
