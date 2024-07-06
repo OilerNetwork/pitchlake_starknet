@@ -855,6 +855,11 @@ mod OptionRound {
             };
             self.bids_tree.insert(bid);
             self.bidder_nonces.write(bidder, nonce + 1);
+
+            //Update Clearing Price
+            self.update_clearing_price();
+
+            //Transfer Eth
             eth_dispatcher.transfer_from(bidder, get_contract_address(), amount * price);
             self
                 .emit(
@@ -884,12 +889,18 @@ mod OptionRound {
             if (price < old_bid.price) {
                 return Result::Err(OptionRoundError::BidCannotBeDecreased('price'));
             }
-
-            self.bids_tree.delete(old_bid);
             new_bid.amount = amount;
             new_bid.price = price;
+            let difference = new_bid.amount*new_bid.price-old_bid.amount*old_bid.price;
+
+            self.bids_tree.delete(old_bid);
+            
             self.bids_tree.insert(new_bid);
 
+            self.update_clearing_price();
+
+            let eth_dispatcher = self.get_eth_dispatcher();
+            eth_dispatcher.transfer_from(get_caller_address(),get_contract_address(),difference);
             Result::Ok(new_bid)
         }
         fn refund_unused_bids(
@@ -918,6 +929,11 @@ mod OptionRound {
         // Return if the caller is the Vault or not
         fn is_caller_the_vault(self: @ContractState) -> bool {
             get_caller_address() == self.vault_address.read()
+        }
+
+        fn update_clearing_price(ref self:ContractState){
+            let clearing_price = self.bids_tree.find_clearing_price(self.total_options_available.read());
+            self.clearing_price.write(clearing_price);
         }
 
         // End the auction and calculate the clearing price and total options sold
