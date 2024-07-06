@@ -181,7 +181,7 @@ mod OptionRound {
     use starknet::{ContractAddress, get_caller_address, get_contract_address, get_block_timestamp};
     use pitch_lake_starknet::contracts::{
         market_aggregator::{IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait},
-        utils::{red_black_tree::rb_tree_component, utils::{min, max}},
+        utils::{red_black_tree::{rb_tree_component,ClearingPriceReturn}, utils::{min, max}},
         vault::{Vault::VaultType, IVaultDispatcher, IVaultDispatcherTrait},
         option_round::IOptionRound
     };
@@ -933,7 +933,14 @@ mod OptionRound {
 
         fn update_clearing_price(ref self:ContractState){
             let clearing_price = self.bids_tree.find_clearing_price(self.total_options_available.read());
-            self.clearing_price.write(clearing_price);
+            match clearing_price.unwrap(){
+                ClearingPriceReturn::clearing_price(value)=>{
+                    self.clearing_price.write(value);
+                },
+                ClearingPriceReturn::remaining_options(value)=>{
+                    self.total_options_sold.write(self.total_options_available.read()-value);
+                }
+            }
         }
 
         // End the auction and calculate the clearing price and total options sold
