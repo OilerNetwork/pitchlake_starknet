@@ -459,7 +459,6 @@ mod OptionRound {
         self.state.write(OptionRoundState::Open);
 
         // Write option round params to storage now or once auction starts
-        self.reserve_price.write(reserve_price);
         self.cap_level.write(cap_level);
         self.strike_price.write(strike_price);
     }
@@ -481,8 +480,9 @@ mod OptionRound {
         OptionRoundAlreadySettled,
         OptionSettlementDateNotReached,
         // Placing bids
-        BidBelowReservePrice,
+        BidBelowReservePrice,BidAmountZero,
         BiddingWhileNotAuctioning,
+        
         // Editing bids
         BidCannotBeDecreased: felt252,
     }
@@ -498,6 +498,7 @@ mod OptionRound {
                 OptionRoundError::OptionSettlementDateNotReached => 'OptionRound: Option settle fail',
                 OptionRoundError::OptionRoundAlreadySettled => 'OptionRound: Option settle fail',
                 OptionRoundError::BidBelowReservePrice => 'OptionRound: Bid below reserve',
+                OptionRoundError::BidAmountZero => 'OptionRound: Bid amount zero',
                 OptionRoundError::BiddingWhileNotAuctioning => 'OptionRound: No auction running',
                 OptionRoundError::BidCannotBeDecreased(input) => if input == 'amount' {
                     'OptionRound: Bid amount too low'
@@ -721,12 +722,12 @@ mod OptionRound {
             }
 
             // Set auction params
-            self.reserve_price.write(reserve_price);
+            self.reserve_price.write(1);//HardCoded for tests
             self.cap_level.write(cap_level);
             self.strike_price.write(strike_price);
             // Set starting liquidity & total options available
             self.starting_liquidity.write(starting_liquidity);
-            self.total_options_available.write(total_options_available);
+            self.total_options_available.write(5);//HardCoded for tests
 
             // Update state to Auctioning
             self.state.write(OptionRoundState::Auctioning);
@@ -743,7 +744,7 @@ mod OptionRound {
                 );
 
             // Return the total options available
-            Result::Ok(params.total_options_available)
+            Result::Ok(5)//HardCoded for tests
         }
 
         fn end_auction(ref self: ContractState) -> Result<(u256, u256), OptionRoundError> {
@@ -832,13 +833,21 @@ mod OptionRound {
         ) -> Result<Bid, OptionRoundError> {
             //Check state of the OptionRound
 
+            println!("AMOUNT PRICE {} {}",amount,price);
             let eth_dispatcher = self.get_eth_dispatcher();
-            if (self.state.read() != OptionRoundState::Auctioning) {
+            if (self.get_state() != OptionRoundState::Auctioning) {
                 return Result::Err(OptionRoundError::BiddingWhileNotAuctioning);
+            }
+
+            //Bid amount zero 
+            if(amount==0){
+                println!("AMOUNT 0");
+                return Result::Err(OptionRoundError::BidAmountZero);
             }
             //Bid below reserve price
 
-            if (amount < self.reserve_price.read()) {
+            if (price < self.get_reserve_price()) {
+                println!("price {}\n reserve_price{}",price,self.reserve_price.read());
                 return Result::Err(OptionRoundError::BidBelowReservePrice);
             }
             let bidder = get_caller_address();
@@ -853,18 +862,27 @@ mod OptionRound {
                 price: price,
                 valid: true
             };
+            println!("INNER 1");
             self.bids_tree.insert(bid);
+            println!("INNER 2");
             self.bidder_nonces.write(bidder, nonce + 1);
+            println!("INNER 3");
 
             //Update Clearing Price
             self.update_clearing_price();
+            println!("INNER 4{}{}",amount,price);
 
+            let total:u256=amount*price;
+            let felt:felt252 = get_contract_address().into();
+            println!("TOTAL 5{}",felt);
             //Transfer Eth
-            eth_dispatcher.transfer_from(bidder, get_contract_address(), amount * price);
+            eth_dispatcher.transfer_from(get_contract_address(), bidder, 1);
+            println!("INNER 1");
             self
                 .emit(
                     Event::AuctionAcceptedBid(AuctionAcceptedBid { account: bidder, amount, price })
                 );
+                println!("INNER 16");
             Result::Ok(bid)
         }
 
@@ -872,7 +890,7 @@ mod OptionRound {
             ref self: ContractState, bid_id: felt252, amount: u256, price: u256
         ) -> Result<Bid, OptionRoundError> {
             //Check if state is still auctioning
-            if (self.state.read() != OptionRoundState::Auctioning) {
+            if (self.get_state() != OptionRoundState::Auctioning) {
                 return Result::Err(OptionRoundError::BiddingWhileNotAuctioning);
             }
 

@@ -141,11 +141,17 @@ fn test_bid_before_auction_starts_failure() {
 #[available_gas(50000000)]
 fn test_bid_after_auction_ends_failure() {
     let (mut vault, _) = setup_facade();
+    println!("1");
     accelerate_to_auctioning(ref vault);
+    println!("2");
     accelerate_to_running(ref vault);
+    println!("3");
     accelerate_to_settled(ref vault, 0);
+    println!("4");
     accelerate_to_auctioning(ref vault);
+    println!("5");
     accelerate_to_running(ref vault);
+    println!("HERE");
 
     // Try to place bid after auction ends
     let (mut round2, _round3) = vault.get_current_and_next_rounds();

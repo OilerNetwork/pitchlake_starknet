@@ -224,6 +224,8 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         let contract_address = self
             .vault_dispatcher
             .get_option_round_address(self.vault_dispatcher.current_option_round_id());
+        let felt:felt252 = contract_address.into();
+        println!("ADD123{}",felt);
         let option_round_dispatcher = IOptionRoundDispatcher { contract_address };
 
         OptionRoundFacade { option_round_dispatcher }

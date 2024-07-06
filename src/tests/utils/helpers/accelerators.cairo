@@ -98,6 +98,8 @@ fn accelerate_to_running_custom(
 ) -> (u256, u256) {
     // Place bids
     let mut current_round = self.get_current_round();
+    let add:felt252 = current_round.contract_address().into();
+    println!("ADD{}",add);
     current_round.place_bids(max_amounts, prices, bidders);
     // Jump to the auction end date and end the auction
     timeskip_and_end_auction(ref self)
@@ -200,7 +202,10 @@ fn timeskip_and_start_auction(ref self: VaultFacade) -> u256 {
     timeskip_past_round_transition_period(ref self);
     set_contract_address(bystander());
     match self.vault_dispatcher.start_auction() {
-        Result::Ok(options_available) => options_available,
+        Result::Ok(options_available) => {
+            println!("OPTIONS{}", options_available);
+            options_available
+        },
         Result::Err(e) => panic(array!['Error:', e.into()])
     }
 }

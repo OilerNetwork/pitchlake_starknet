@@ -184,6 +184,9 @@ fn setup_facade() -> (VaultFacade, IERC20Dispatcher) {
 
                 eth_dispatcher.transfer(ob, ob_amount_wei);
                 set_contract_address(ob);
+                let add:ContractAddress = vault_dispatcher.get_option_round_address(1);
+                let felt:felt252 = add.into();
+                println!("ADDRESS {}",felt);
                 eth_dispatcher.approve(vault_dispatcher.get_option_round_address(1), ob_amount_wei);
             },
             Option::None => { break; },
