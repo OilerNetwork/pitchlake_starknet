@@ -932,10 +932,14 @@ mod OptionRound {
         }
 
         fn update_clearing_price(ref self:ContractState){
-            let clearing_price = self.bids_tree.find_clearing_price(self.total_options_available.read());
+            let total_options_available = self.total_options_available.read();
+            let clearing_price = self.bids_tree.find_clearing_price(total_options_available);
             match clearing_price.unwrap(){
                 ClearingPriceReturn::clearing_price(value)=>{
                     self.clearing_price.write(value);
+                    if(self.total_options_sold.read()!=total_options_available){
+                        self.total_options_sold.write(total_options_available);
+                    }
                 },
                 ClearingPriceReturn::remaining_options(value)=>{
                     self.total_options_sold.write(self.total_options_available.read()-value);
