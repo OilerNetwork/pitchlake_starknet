@@ -108,6 +108,7 @@ fn accelerate_to_running_custom(
 // Used to test real number outcomes for option distributions
 // @note Re-name, add additional comments for clarity
 fn accelerate_to_running_custom_option_round(
+vault_address: ContractAddress,
     total_options_available: u256,
     reserve_price: u256,
     bid_amounts: Span<u256>,
@@ -117,7 +118,6 @@ fn accelerate_to_running_custom_option_round(
     assert_two_arrays_equal_length(bid_amounts, bid_prices);
 
     // Deploy custom option round
-    let vault_address = contract_address_const::<'vault address'>();
     let auction_start_date: u64 = 1;
     let auction_end_date: u64 = 2;
     let option_settlement_date: u64 = 3;

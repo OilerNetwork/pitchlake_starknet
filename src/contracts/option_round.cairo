@@ -834,9 +834,9 @@ mod OptionRound {
             ref self: ContractState, amount: u256, price: u256
         ) -> Result<Bid, OptionRoundError> {
             //Check state of the OptionRound
-
             let bidder = get_caller_address();
             let eth_dispatcher = self.get_eth_dispatcher();
+
             if (self.get_state() != OptionRoundState::Auctioning
                 || self.auction_end_date.read() < get_block_timestamp()) {
                 self
@@ -848,7 +848,7 @@ mod OptionRound {
                 return Result::Err(OptionRoundError::BiddingWhileNotAuctioning);
             }
 
-            //Bid amount zero 
+            //Bid amount zero
             if (amount == 0) {
                 self
                     .emit(
