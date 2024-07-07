@@ -97,7 +97,6 @@ fn test_convert_position_to_lp_tokens_success() { //
     // Start auction
     let total_options_available = vault_facade.start_auction();
     let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
-    let mut next_round = vault_facade.get_next_round();
     // Make bid
 
     let reserve_price = current_round.get_reserve_price();
@@ -162,12 +161,12 @@ fn test_convert_position_to_lp_tokens_success() { //
     //        'premiums not deposited'
     //    );
     // Check ETH transferred from current -> next round
-    assert_event_transfer(
-        eth.contract_address,
-        current_round.contract_address(),
-        next_round.contract_address(),
-        expected_premiums_share
-    );
+    // assert_event_transfer(
+    //     eth.contract_address,
+    //     current_round.contract_address(),
+    //     next_round.contract_address(),
+    //     expected_premiums_share
+    // );
 // @note Add lp token transfer event assert function
 // assert_lp_event_transfer(lp_token_contract, from: 0, to: LP1, amount: tokenizing_amount)
 }
@@ -243,7 +242,7 @@ fn test_convert_lp_tokens_to_position_is_always_deposit_into_current_round() { /
     /// Start next round's auction
     // @dev Need to jump to time += RTP
     vault_facade.start_auction();
-    let mut next_next_round = vault_facade.get_next_round();
+    let mut next_next_round = vault_facade.get_current_round();
 
     // Convert some tokens to a position while current is Auctioning
     vault_facade.convert_lp_tokens_to_position(1, deposit_amount_wei / 4, liquidity_provider_1());

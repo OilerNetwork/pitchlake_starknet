@@ -142,7 +142,7 @@ fn test_bid_before_auction_starts_failure() {
 #[available_gas(5000000000)]
 fn test_bid_after_auction_ends_failure() {
     let (mut vault, _) = setup_facade();
-
+    
     accelerate_to_auctioning(ref vault);
     accelerate_to_running(ref vault);
     accelerate_to_settled(ref vault, 0);
@@ -150,7 +150,7 @@ fn test_bid_after_auction_ends_failure() {
     accelerate_to_running(ref vault);
 
     // Try to place bid after auction ends
-    let (mut round2, _round3) = vault.get_current_and_next_rounds();
+    let mut round2 = vault.get_current_round();
     let bidder = option_bidder_buyer_1();
     let bid_price = round2.get_reserve_price();
     let bid_amount = round2.get_total_options_available();
@@ -178,7 +178,7 @@ fn test_bid_after_auction_end_failure_2() {
     accelerate_to_settled(ref vault, 0);
     accelerate_to_auctioning(ref vault);
     timeskip_past_auction_end_date(ref vault);
-    let (mut round2, _round3) = vault.get_current_and_next_rounds();
+    let mut round2 = vault.get_current_round();
 
     // Try to place bid after auction end date (before entry point called)
     let bidder = option_bidder_buyer_1();

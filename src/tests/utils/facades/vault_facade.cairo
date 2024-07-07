@@ -236,22 +236,6 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
         OptionRoundFacade { option_round_dispatcher }
     }
-
-    fn get_next_round(ref self: VaultFacade) -> OptionRoundFacade {
-        let contract_address = self
-            .vault_dispatcher
-            .get_option_round_address(self.vault_dispatcher.current_option_round_id() + 1);
-        let option_round_dispatcher = IOptionRoundDispatcher { contract_address };
-
-        OptionRoundFacade { option_round_dispatcher }
-    }
-
-    fn get_current_and_next_rounds(
-        ref self: VaultFacade
-    ) -> (OptionRoundFacade, OptionRoundFacade) {
-        (self.get_current_round(), self.get_next_round())
-    }
-
     /// Liquidity
 
     // For LPs
