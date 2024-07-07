@@ -17,7 +17,7 @@ use pitch_lake_starknet::{
             IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault,
             IVaultSafeDispatcherTrait
         },
-        option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,OptionRoundState},
+        option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState},
     },
     tests::{
         utils::{
@@ -142,7 +142,7 @@ fn test_bid_before_auction_starts_failure() {
 #[available_gas(5000000000)]
 fn test_bid_after_auction_ends_failure() {
     let (mut vault, _) = setup_facade();
-    
+
     accelerate_to_auctioning(ref vault);
     accelerate_to_running(ref vault);
     accelerate_to_settled(ref vault, 0);
@@ -263,7 +263,12 @@ fn test_bid_eth_transfer() {
     );
 
     // Check round balance
-    println!("round_balance_after:{}\nround_balance_before:{}\n,bids_total:{}",round_balance_after,round_balance_before,bids_total);
+    println!(
+        "round_balance_after:{}\nround_balance_before:{}\n,bids_total:{}",
+        round_balance_after,
+        round_balance_before,
+        bids_total
+    );
     assert(round_balance_after == round_balance_before + bids_total, 'round balance after wrong');
     // Check ob balances
     loop {

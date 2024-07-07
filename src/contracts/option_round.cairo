@@ -264,7 +264,7 @@ mod OptionRound {
         // The clearing price of the auction (the price each option sells for)
         clearing_price: u256,
         // Bid id for the last bid to be partially or fully filled
-        clearing_bid:felt252,
+        clearing_bid: felt252,
         // The auction start date
         auction_start_date: u64,
         // The auction end date
@@ -963,7 +963,9 @@ mod OptionRound {
             let total_options_available = self.total_options_available.read();
             let clearing_price = self.bids_tree.find_clearing_price(total_options_available);
             match clearing_price.unwrap() {
-                ClearingPriceReturn::ClearedParams((value,bid_id)) => {
+                ClearingPriceReturn::ClearedParams((
+                    value, bid_id
+                )) => {
                     self.clearing_price.write(value);
                     self.clearing_bid.write(bid_id);
                     if (self.total_options_sold.read() != total_options_available) {

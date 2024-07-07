@@ -155,18 +155,18 @@ fn test_convert_position_to_lp_tokens_success() { //
     // @dev Find out if unallocated is premiums + next round depoist or just next round deposit
     assert(lp1_unallocated_final == 'TODO'.into(), 'lp1 unallocated shd ...');
     assert(lp2_unallocated_final == lp2_unallocated_init, 'lp2 shd not change');
-    //    assert(current_round_unallocated_final == 'TODO'.into(), 'round unallocated shd ...');
-    //    assert(
-    //        next_round_unallocated_final == next_round_unallocated_init + expected_premiums_share,
-    //        'premiums not deposited'
-    //    );
-    // Check ETH transferred from current -> next round
-    // assert_event_transfer(
-    //     eth.contract_address,
-    //     current_round.contract_address(),
-    //     next_round.contract_address(),
-    //     expected_premiums_share
-    // );
+//    assert(current_round_unallocated_final == 'TODO'.into(), 'round unallocated shd ...');
+//    assert(
+//        next_round_unallocated_final == next_round_unallocated_init + expected_premiums_share,
+//        'premiums not deposited'
+//    );
+// Check ETH transferred from current -> next round
+// assert_event_transfer(
+//     eth.contract_address,
+//     current_round.contract_address(),
+//     next_round.contract_address(),
+//     expected_premiums_share
+// );
 // @note Add lp token transfer event assert function
 // assert_lp_event_transfer(lp_token_contract, from: 0, to: LP1, amount: tokenizing_amount)
 }
