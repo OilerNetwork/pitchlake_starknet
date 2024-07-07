@@ -9,7 +9,9 @@ trait IRBTree<TContractState> {
     fn find_clearing_price(
         ref self: TContractState, total_options_available: u256
     ) -> Option<ClearingPriceReturn>;
-    fn find_options_for(ref self: TContractState, bidder: ContractAddress) -> u256;
+    fn find_options_for(
+        ref self: TContractState, bidder: ContractAddress, clearing_bid: felt252
+    ) -> u256;
     fn delete(ref self: TContractState, value: Bid);
     fn get_root(self: @TContractState) -> felt252;
     fn traverse_postorder(ref self: TContractState);
@@ -36,6 +38,7 @@ pub mod rb_tree_component {
         bid_details: LegacyMap<felt252, Bid>,
         node_position: LegacyMap<felt252, u256>,
         next_id: felt252,
+        clearing_bid_amount_sold:u256,
     }
 
 
@@ -109,10 +112,9 @@ pub mod rb_tree_component {
         }
 
         fn find_options_for(
-            ref self: ComponentState<TContractState>, bidder: ContractAddress
+            ref self: ComponentState<TContractState>, bidder: ContractAddress, clearing_bid: felt252
         ) -> u256 {
-            self.traverse_postorder_calculate_options();
-            1
+            self.traverse_postorder_calculate_options_from_node(self.root.read(),bidder,clearing_bid,0)
         }
 
 
@@ -164,7 +166,34 @@ pub mod rb_tree_component {
             self.traverse_postorder_from_node(current_node.left);
         }
 
-        fn traverse_postorder_calculate_options(ref self: ComponentState<TContractState>) {}
+        fn traverse_postorder_calculate_options_from_node(
+            ref self: ComponentState<TContractState>,
+            current_id: felt252,
+            bidder: ContractAddress,
+            clearing_bid: felt252,
+            mut total: u256
+        )->u256 {
+            if (current_id == 0) {
+                return total;
+            }
+            let current_node: Node = self.tree.read(current_id);
+
+            //Recursive on Right Node
+            total = self
+                .traverse_postorder_calculate_options_from_node(current_node.right, bidder,clearing_bid,total);
+            //Check for self 
+            if (current_node.value.owner == bidder&&current_node.value.valid) {
+                if(current_id==clearing_bid){
+                    total+=self.clearing_bid_amount_sold.read();
+                }
+                else{
+                    total+=current_node.value.amount;
+                }
+            }
+            //Recursive on Left Node and return result directly to the outer call
+            self.traverse_postorder_calculate_options_from_node(current_node.left,bidder,clearing_bid, total)
+        }
+
         fn traverse_postorder_total_from_node(
             ref self: ComponentState<TContractState>,
             current_id: felt252,
@@ -189,6 +218,8 @@ pub mod rb_tree_component {
 
             //Check for self 
             if (current_node.value.amount >= remaining_options) {
+                self.clearing_bid_amount_sold.write(remaining_options);
+
                 return Option::Some(TraverseReturn::clearing_price_felt(current_id));
             }
             //Recursive on Left Node and return result directly to the outer call

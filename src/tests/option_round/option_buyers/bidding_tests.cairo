@@ -142,7 +142,6 @@ fn test_bid_before_auction_starts_failure() {
 #[available_gas(5000000000)]
 fn test_bid_after_auction_ends_failure() {
     let (mut vault, _) = setup_facade();
-
     accelerate_to_auctioning(ref vault);
     accelerate_to_running(ref vault);
     accelerate_to_settled(ref vault, 0);
