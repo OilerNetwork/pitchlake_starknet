@@ -21,7 +21,7 @@ use pitch_lake_starknet::{
                 structs::{OptionRoundParams},
                 test_accounts::{
                     vault_manager, liquidity_provider_1, option_bidder_buyer_1, bystander,
-                    option_bidders_get,
+                    option_bidders_get, liquidity_providers_get,
                 },
                 variables::{decimals},
             },
@@ -48,7 +48,7 @@ use pitch_lake_starknet::{
 // Start the auction with LP1 depositing 100 eth
 fn accelerate_to_auctioning(ref self: VaultFacade) -> u256 {
     accelerate_to_auctioning_custom(
-        ref self, array![liquidity_provider_1()].span(), array![100 * decimals()].span()
+        ref self, array![*liquidity_providers_get(1)[0]].span(), array![100 * decimals()].span()
     )
 }
 
@@ -83,7 +83,7 @@ fn accelerate_to_running(ref self: VaultFacade) -> (u256, u256) {
     let bid_price = current_round.get_reserve_price();
     accelerate_to_running_custom(
         ref self,
-        array![option_bidder_buyer_1()].span(),
+        array![*option_bidders_get(1)[0]].span(),
         array![bid_amount].span(),
         array![bid_price].span()
     )
@@ -108,6 +108,7 @@ fn accelerate_to_running_custom(
 // Used to test real number outcomes for option distributions
 // @note Re-name, add additional comments for clarity
 fn accelerate_to_running_custom_option_round(
+vault_address: ContractAddress,
     total_options_available: u256,
     reserve_price: u256,
     bid_amounts: Span<u256>,
@@ -117,7 +118,6 @@ fn accelerate_to_running_custom_option_round(
     assert_two_arrays_equal_length(bid_amounts, bid_prices);
 
     // Deploy custom option round
-    let vault_address = contract_address_const::<'vault address'>();
     let auction_start_date: u64 = 1;
     let auction_end_date: u64 = 2;
     let option_settlement_date: u64 = 3;
@@ -221,9 +221,6 @@ fn timeskip_and_settle_round(ref self: VaultFacade) -> u256 {
     let mut current_round = self.get_current_round();
     set_block_timestamp(current_round.get_option_expiry_date() + 1);
     set_contract_address(bystander());
-    match self.vault_dispatcher.settle_option_round() {
-        Result::Ok(payout) => payout,
-        Result::Err(e) => panic(array!['Error:', e.into()])
-    }
+    self.settle_option_round()
 }
 
