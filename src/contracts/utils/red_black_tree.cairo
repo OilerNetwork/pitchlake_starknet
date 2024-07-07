@@ -115,7 +115,6 @@ pub mod rb_tree_component {
             ref self: ComponentState<TContractState>, bidder: ContractAddress, clearing_bid: felt252
         ) -> u256 {
             self.traverse_postorder_calculate_options_from_node(self.root.read(),bidder,clearing_bid,0)
-            
         }
 
 
@@ -194,6 +193,7 @@ pub mod rb_tree_component {
             //Recursive on Left Node and return result directly to the outer call
             self.traverse_postorder_calculate_options_from_node(current_node.left,bidder,clearing_bid, total)
         }
+
         fn traverse_postorder_total_from_node(
             ref self: ComponentState<TContractState>,
             current_id: felt252,
@@ -219,6 +219,7 @@ pub mod rb_tree_component {
             //Check for self 
             if (current_node.value.amount >= remaining_options) {
                 self.clearing_bid_amount_sold.write(remaining_options);
+
                 return Option::Some(TraverseReturn::clearing_price_felt(current_id));
             }
             //Recursive on Left Node and return result directly to the outer call

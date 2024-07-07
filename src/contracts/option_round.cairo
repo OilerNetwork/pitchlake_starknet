@@ -834,9 +834,9 @@ mod OptionRound {
             ref self: ContractState, amount: u256, price: u256
         ) -> Result<Bid, OptionRoundError> {
             //Check state of the OptionRound
-
             let bidder = get_caller_address();
             let eth_dispatcher = self.get_eth_dispatcher();
+
             if (self.get_state() != OptionRoundState::Auctioning
                 || self.auction_end_date.read() < get_block_timestamp()) {
                 self
@@ -848,7 +848,7 @@ mod OptionRound {
                 return Result::Err(OptionRoundError::BiddingWhileNotAuctioning);
             }
 
-            //Bid amount zero 
+            //Bid amount zero
             if (amount == 0) {
                 self
                     .emit(
@@ -964,6 +964,9 @@ mod OptionRound {
             let clearing_price = self.bids_tree.find_clearing_price(total_options_available);
             match clearing_price.unwrap() {
                 ClearingPriceReturn::ClearedParams((value,bid_id)) => {
+                ClearingPriceReturn::ClearedParams((
+                    value, bid_id
+                )) => {
                     self.clearing_price.write(value);
                     self.clearing_bid.write(bid_id);
                     if (self.total_options_sold.read() != total_options_available) {
