@@ -31,6 +31,7 @@ mod option_round {
             mod clearing_price_tests;
             mod option_distribution_tests;
             mod premium_earned_tests;
+            mod unsold_liquidity_tests;
         }
         mod auction_start {
             mod auction_start_tests;
