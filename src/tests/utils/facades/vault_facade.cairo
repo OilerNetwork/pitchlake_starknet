@@ -159,10 +159,8 @@ impl VaultFacadeImpl of VaultFacadeTrait {
             Result::Err(e) => panic(array![e.into()]),
         };
 
-        println!("HEYSETTLE");
         let next_round_address = self.get_option_round_address(current_round.get_round_id() + 1);
         eth_supply_and_approve_all_bidders(next_round_address, self.get_eth_address());
-        println!("HEYSETT2");
         res
     }
 

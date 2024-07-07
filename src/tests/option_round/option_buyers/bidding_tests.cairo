@@ -119,7 +119,7 @@ fn test_bid_before_auction_starts_failure() {
     accelerate_to_settled(ref vault, 0);
 
     // Try to place bid before auction starts
-    let (_round1, mut round2) = vault.get_current_and_next_rounds();
+    let mut round2 = vault.get_current_round();
     let bidder = option_bidder_buyer_1();
     let bid_price = round2.get_reserve_price();
     let bid_amount = round2.get_total_options_available();
@@ -143,31 +143,20 @@ fn test_bid_before_auction_starts_failure() {
 fn test_bid_after_auction_ends_failure() {
     let (mut vault, _) = setup_facade();
 
-    println!("HERE1");
     accelerate_to_auctioning(ref vault);
-    println!("HERE2");
     accelerate_to_running(ref vault);
-    println!("HERE3");
     accelerate_to_settled(ref vault, 0);
-    println!("HERE4");
     accelerate_to_auctioning(ref vault);
-    println!("HERE5");
     accelerate_to_running(ref vault);
-    println!("HERE6");
 
     // Try to place bid after auction ends
-    println!("HERE");
     let (mut round2, _round3) = vault.get_current_and_next_rounds();
     let bidder = option_bidder_buyer_1();
     let bid_price = round2.get_reserve_price();
     let bid_amount = round2.get_total_options_available();
-    let state = round2.get_state();
-    if(state==OptionRoundState::Running){
-        println!("Correct");
-    }
     // Check bid rejected event
     clear_event_logs(array![round2.contract_address()]);
-    println!("HERES");
+
     match round2.place_bid_raw(bid_amount, bid_price, option_bidder_buyer_1()) {
         Result::Ok(_) => { panic!("Bid should have failed"); },
         Result::Err(_) => {
@@ -274,6 +263,7 @@ fn test_bid_eth_transfer() {
     );
 
     // Check round balance
+    println!("round_balance_after:{}\nround_balance_before:{}\n,bids_total:{}",round_balance_after,round_balance_before,bids_total);
     assert(round_balance_after == round_balance_before + bids_total, 'round balance after wrong');
     // Check ob balances
     loop {
