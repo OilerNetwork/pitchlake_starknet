@@ -1,10 +1,15 @@
-use pitch_lake_starknet::contracts::{utils::red_black_tree::rb_tree_component::ClearingPriceReturn,
-    option_round::OptionRound::Bid};
+use pitch_lake_starknet::contracts::{
+    utils::red_black_tree::rb_tree_component::ClearingPriceReturn, option_round::OptionRound::Bid
+};
+use starknet::ContractAddress;
 #[starknet::interface]
 trait IRBTree<TContractState> {
     fn insert(ref self: TContractState, value: Bid);
     fn find(ref self: TContractState, value: Bid) -> felt252;
-    fn find_clearing_price(ref self: TContractState, total_options_available: u256) -> Option<ClearingPriceReturn>;
+    fn find_clearing_price(
+        ref self: TContractState, total_options_available: u256
+    ) -> Option<ClearingPriceReturn>;
+    fn find_options_for(ref self: TContractState, bidder: ContractAddress) -> u256;
     fn delete(ref self: TContractState, value: Bid);
     fn get_root(self: @TContractState) -> felt252;
     fn traverse_postorder(ref self: TContractState);
@@ -20,7 +25,7 @@ const RED: bool = true;
 #[starknet::component]
 pub mod rb_tree_component {
     use pitch_lake_starknet::contracts::utils::red_black_tree::IRBTree;
-    use super::{BLACK, RED, Bid};
+    use super::{BLACK, RED, Bid, ContractAddress};
     use core::{array::ArrayTrait, option::OptionTrait, traits::{IndexView, TryInto}};
 
 
@@ -51,8 +56,8 @@ pub mod rb_tree_component {
 
     #[derive(Copy, Drop, Serde, PartialEq,)]
     enum ClearingPriceReturn {
-        remaining_options: u256,
-        clearing_price: u256,
+        RemainingOptions: u256,
+        ClearedParams: (u256, felt252),
     }
 
     #[event]
@@ -60,8 +65,6 @@ pub mod rb_tree_component {
     pub enum Event {
         InsertEvent: InsertEvent
     }
-
-    
 
     #[derive(Drop, starknet::Event, PartialEq)]
     struct InsertEvent {
@@ -97,10 +100,19 @@ pub mod rb_tree_component {
             match result.unwrap() {
                 TraverseReturn::clearing_price_felt(node_id) => {
                     let clearing_bid: Bid = self.bid_details.read(node_id);
-                    Option::Some(ClearingPriceReturn::clearing_price(clearing_bid.price))
+                    Option::Some(ClearingPriceReturn::ClearedParams((clearing_bid.price, node_id)))
                 },
-                TraverseReturn::remaining_options(value) => { Option::Some(ClearingPriceReturn::remaining_options(value)) }
+                TraverseReturn::remaining_options(value) => {
+                    Option::Some(ClearingPriceReturn::RemainingOptions(value))
+                }
             }
+        }
+
+        fn find_options_for(
+            ref self: ComponentState<TContractState>, bidder: ContractAddress
+        ) -> u256 {
+            self.traverse_postorder_calculate_options();
+            1
         }
 
 
@@ -152,6 +164,7 @@ pub mod rb_tree_component {
             self.traverse_postorder_from_node(current_node.left);
         }
 
+        fn traverse_postorder_calculate_options(ref self: ComponentState<TContractState>) {}
         fn traverse_postorder_total_from_node(
             ref self: ComponentState<TContractState>,
             current_id: felt252,

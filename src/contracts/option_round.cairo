@@ -74,7 +74,7 @@ trait IOptionRound<TContractState> {
     // Gets the amount that an option buyer can exercise with their option balance
     fn get_payout_balance_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
-    fn get_option_balance_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
+    fn get_option_balance_for(ref self: TContractState, option_buyer: ContractAddress) -> u256;
 
 
     /// Other
@@ -263,6 +263,8 @@ mod OptionRound {
         total_options_sold: u256,
         // The clearing price of the auction (the price each option sells for)
         clearing_price: u256,
+        // Bid id for the last bid to be partially or fully filled
+        clearing_bid:felt252,
         // The auction start date
         auction_start_date: u64,
         // The auction end date
@@ -641,8 +643,8 @@ mod OptionRound {
             100
         }
 
-        fn get_option_balance_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
-            100
+        fn get_option_balance_for(ref self: ContractState, option_buyer: ContractAddress) -> u256 {
+            self.bids_tree.find_options_for(option_buyer)
         }
 
         fn get_round_id(self: @ContractState) -> u256 {
@@ -961,13 +963,14 @@ mod OptionRound {
             let total_options_available = self.total_options_available.read();
             let clearing_price = self.bids_tree.find_clearing_price(total_options_available);
             match clearing_price.unwrap() {
-                ClearingPriceReturn::clearing_price(value) => {
+                ClearingPriceReturn::ClearedParams((value,bid_id)) => {
                     self.clearing_price.write(value);
+                    self.clearing_bid.write(bid_id);
                     if (self.total_options_sold.read() != total_options_available) {
                         self.total_options_sold.write(total_options_available);
                     }
                 },
-                ClearingPriceReturn::remaining_options(value) => {
+                ClearingPriceReturn::RemainingOptions(value) => {
                     self.total_options_sold.write(self.total_options_available.read() - value);
                 }
             }
