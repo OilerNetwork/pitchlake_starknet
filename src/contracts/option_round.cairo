@@ -435,53 +435,53 @@ mod OptionRound {
 
     // @dev Building this struct as a place holder for when we inject the RB tree into the contract
 
-    #[derive(Copy, Drop, Serde, PartialEq, PartialOrd)]
-    struct MockBid {
-        amount: u256,
-        price: u256,
-    }
-
-    impl MockBidPartialOrdTrait of PartialOrd<MockBid> {
-        // @return if lhs < rhs
-        fn lt(lhs: MockBid, rhs: MockBid) -> bool {
-            if lhs.price < rhs.price {
-                true
-            } else if lhs.price > rhs.price {
-                false
-            } else {
-                if lhs.amount < rhs.amount {
-                    true
-                } else {
-                    false
-                }
-            }
-        }
-
-        // @return if lhs <= rhs
-        fn le(lhs: MockBid, rhs: MockBid) -> bool {
-            (lhs < rhs) || (lhs == rhs)
-        }
-
-        // @return if lhs > rhs
-        fn gt(lhs: MockBid, rhs: MockBid) -> bool {
-            if lhs.price > rhs.price {
-                true
-            } else if lhs.price < rhs.price {
-                false
-            } else {
-                if lhs.amount > rhs.amount {
-                    true
-                } else {
-                    false
-                }
-            }
-        }
-
-        // @return if lhs >= rhs
-        fn ge(lhs: MockBid, rhs: MockBid) -> bool {
-            (lhs > rhs) || (lhs == rhs)
-        }
-    }
+//    #[derive(Copy, Drop, Serde, PartialEq, PartialOrd)]
+//    struct MockBid {
+//        amount: u256,
+//        price: u256,
+//    }
+//
+//    impl MockBidPartialOrdTrait of PartialOrd<MockBid> {
+//        // @return if lhs < rhs
+//        fn lt(lhs: MockBid, rhs: MockBid) -> bool {
+//            if lhs.price < rhs.price {
+//                true
+//            } else if lhs.price > rhs.price {
+//                false
+//            } else {
+//                if lhs.amount < rhs.amount {
+//                    true
+//                } else {
+//                    false
+//                }
+//            }
+//        }
+//
+//        // @return if lhs <= rhs
+//        fn le(lhs: MockBid, rhs: MockBid) -> bool {
+//            (lhs < rhs) || (lhs == rhs)
+//        }
+//
+//        // @return if lhs > rhs
+//        fn gt(lhs: MockBid, rhs: MockBid) -> bool {
+//            if lhs.price > rhs.price {
+//                true
+//            } else if lhs.price < rhs.price {
+//                false
+//            } else {
+//                if lhs.amount > rhs.amount {
+//                    true
+//                } else {
+//                    false
+//                }
+//            }
+//        }
+//
+//        // @return if lhs >= rhs
+//        fn ge(lhs: MockBid, rhs: MockBid) -> bool {
+//            (lhs > rhs) || (lhs == rhs)
+//        }
+//    }
 
     //    impl OptionRoundErrorIntoByteArray of Into<OptionRoundError, ByteArray> {
     //        fn into(self: OptionRoundError) -> ByteArray {
