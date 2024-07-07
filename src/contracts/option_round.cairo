@@ -644,7 +644,7 @@ mod OptionRound {
         }
 
         fn get_option_balance_for(ref self: ContractState, option_buyer: ContractAddress) -> u256 {
-            self.bids_tree.find_options_for(option_buyer)
+            self.bids_tree.find_options_for(option_buyer,self.clearing_bid.read())
         }
 
         fn get_round_id(self: @ContractState) -> u256 {
