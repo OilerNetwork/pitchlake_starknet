@@ -19,12 +19,11 @@ fn liquidity_providers_get(number: u32) -> Array<ContractAddress> {
     let mut index = 0;
     while index < number {
         let contractAddress = match index {
-            0 => contract_address_const::<'liquidity_provider_1'>(),
-            1 => contract_address_const::<'liquidity_provider_2'>(),
-            2 => contract_address_const::<'liquidity_provider_3'>(),
-            3 => contract_address_const::<'liquidity_provider_4'>(),
-            4 => contract_address_const::<'liquidity_provider_5'>(),
-            5 => contract_address_const::<'liquidity_provider_6'>(),
+            0 => liquidity_provider_1(),
+            1 => liquidity_provider_2(),
+            2 => liquidity_provider_3(),
+            3 => liquidity_provider_4(),
+            4 => liquidity_provider_5(),
             _ => contract_address_const::<'liquidity_provider_1'>(),
         };
 
@@ -40,12 +39,11 @@ fn option_bidders_get(number: u32) -> Array<ContractAddress> {
     let mut index = 0;
     while index < number {
         let contractAddress = match index {
-            0 => contract_address_const::<'option_bidder_buyer_1'>(),
-            1 => contract_address_const::<'option_bidder_buyer_2'>(),
-            2 => contract_address_const::<'option_bidder_buyer_3'>(),
-            3 => contract_address_const::<'option_bidder_buyer_4'>(),
-            4 => contract_address_const::<'option_bidder_buyer_5'>(),
-            5 => contract_address_const::<'option_bidder_buyer_6'>(),
+            0 => option_bidder_buyer_1(),
+            1 => option_bidder_buyer_2(),
+            2 => option_bidder_buyer_3(),
+            3 => option_bidder_buyer_4(),
+            4 => option_bidder_buyer_5(),
             _ => contract_address_const::<'option_bidder_buyer_1'>(),
         };
 

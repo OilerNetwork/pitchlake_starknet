@@ -34,12 +34,12 @@ fn test_only_vault_can_start_auction() {
     let (mut vault, _) = setup_facade();
     set_block_timestamp(get_block_timestamp() + salt);
     let (mut other_vault, _) = setup_facade();
-    let mut next_round = vault.get_next_round();
+    let mut round_to_start = vault.get_current_round();
     vault.deposit(100 * decimals(), liquidity_provider_1());
 
     set_contract_address(other_vault.contract_address());
 
-    next_round
+    round_to_start
         .start_auction(
             StartAuctionParams {
                 total_options_available: 1,
