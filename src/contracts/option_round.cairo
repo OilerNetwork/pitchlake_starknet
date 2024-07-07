@@ -964,9 +964,6 @@ mod OptionRound {
             let clearing_price = self.bids_tree.find_clearing_price(total_options_available);
             match clearing_price.unwrap() {
                 ClearingPriceReturn::ClearedParams((value,bid_id)) => {
-                ClearingPriceReturn::ClearedParams((
-                    value, bid_id
-                )) => {
                     self.clearing_price.write(value);
                     self.clearing_bid.write(bid_id);
                     if (self.total_options_sold.read() != total_options_available) {
