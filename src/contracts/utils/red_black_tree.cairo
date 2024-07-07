@@ -183,7 +183,7 @@ pub mod rb_tree_component {
             total = self
                 .traverse_postorder_calculate_options_from_node(current_node.right, bidder,clearing_bid,total);
             //Check for self 
-            if (current_node.value.owner == bidder) {
+            if (current_node.value.owner == bidder&&current_node.value.valid) {
                 if(current_id==clearing_bid){
                     total+=self.clearing_bid_amount_sold.read();
                 }
