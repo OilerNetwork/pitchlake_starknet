@@ -14,7 +14,7 @@ use pitch_lake_starknet::{
     },
     tests::{
         utils::{
-            helpers::general_helpers::{assert_two_arrays_equal_length, get_erc20_balance},
+            helpers::{setup::eth_supply_and_approve_all_bidders,general_helpers::{assert_two_arrays_equal_length, get_erc20_balance}},
             lib::{test_accounts::{vault_manager, bystander}, structs::{OptionRoundParams}},
             facades::sanity_checks,
         }
@@ -61,10 +61,17 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         let res = self
             .option_round_dispatcher
             .settle_option_round(SettleOptionRoundParams { settlement_price });
-        match res {
+        let res = match res {
             Result::Ok(total_payout) => sanity_checks::settle_option_round(ref self, total_payout),
             Result::Err(e) => panic(array![e.into()]),
-        }
+        };
+
+        //Get next round id and approvals for next round
+                let vault_address= self.vault_address();
+                let vault_dispatcher = IVaultDispatcher{contract_address:vault_address};
+                let next_round_address= vault_dispatcher.get_option_round_address(self.get_round_id()+1);
+                eth_supply_and_approve_all_bidders(next_round_address,vault_dispatcher.eth_address());
+        res
     }
 
 
@@ -101,7 +108,6 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
                     let bid_amount = amounts.pop_front().unwrap();
                     let bid_price = prices.pop_front().unwrap();
                     // Make bid
-                    println!("ABCDEF {} {}",bid_amount,bid_price);
                     let res = self.place_bid(*bid_amount, *bid_price, *bidder);
                     // Append result
                     results.append(res);
@@ -121,9 +127,6 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         option_bidder_buyer: ContractAddress,
     ) -> Result<Bid, OptionRoundError> {
         set_contract_address(option_bidder_buyer);
-        let add:felt252 = self.contract_address().into();
-        println!("FELT{}",add);
-
         self.option_round_dispatcher.place_bid(amount, price)
     }
 

@@ -1,3 +1,4 @@
+use core::traits::Into;
 use core::array::ArrayTrait;
 use starknet::{
     ClassHash, ContractAddress, contract_address_const, deploy_syscall,
@@ -160,38 +161,16 @@ fn setup_facade() -> (VaultFacade, IERC20Dispatcher) {
     );
 
     // Supply eth to test accounts and approve vault to transfer lp eth
-    let mut liquidity_providers = liquidity_providers_get(5);
-    loop {
-        match liquidity_providers.pop_front() {
-            Option::Some(liquidity_provider) => {
-                let lp_amount_wei: u256 = 1000000 * decimals(); // 1,000,000 ETH
-                set_contract_address(weth_owner());
-                eth_dispatcher.transfer(liquidity_provider, lp_amount_wei);
-                set_contract_address(liquidity_provider);
-                eth_dispatcher.approve(vault_dispatcher.contract_address, lp_amount_wei);
-            },
-            Option::None => { break (); },
-        };
-    };
+    eth_supply_and_approve_all_providers(
+        vault_dispatcher.contract_address, eth_dispatcher.contract_address
+    );
+
+    //Supply and approve option_bidders
+    let current_round_address = vault_dispatcher
+        .get_option_round_address(vault_dispatcher.current_option_round_id());
+    eth_supply_and_approve_all_bidders(current_round_address, eth_dispatcher.contract_address);
 
     // Supply eth to test accounts and approve option round 1 to spend ob eth
-    let mut option_bidders = option_bidders_get(5);
-    loop {
-        match option_bidders.pop_front() {
-            Option::Some(ob) => {
-                set_contract_address(weth_owner());
-                let ob_amount_wei: u256 = 100000 * decimals(); // 100,000 ETH
-
-                eth_dispatcher.transfer(ob, ob_amount_wei);
-                set_contract_address(ob);
-                let add:ContractAddress = vault_dispatcher.get_option_round_address(1);
-                let felt:felt252 = add.into();
-                println!("ADDRESS {}",felt);
-                eth_dispatcher.approve(vault_dispatcher.get_option_round_address(1), ob_amount_wei);
-            },
-            Option::None => { break; },
-        };
-    };
     // Supply bystander with eth and approve vault to transfer eth
     set_contract_address(weth_owner());
     eth_dispatcher.transfer(bystander(), 100000 * decimals());
@@ -271,4 +250,69 @@ fn setup_test_auctioning_providers(
         ref vault, liquidity_providers, deposit_amounts
     );
     (vault, eth, liquidity_providers, total_options_available)
+}
+
+//Eth setup helpers
+
+fn eth_supply_and_approve_all(
+    contract_address: ContractAddress,
+    eth_address: ContractAddress,
+    addresses: Span<ContractAddress>
+) {
+    eth_supply(eth_address, addresses);
+    eth_approval(contract_address, eth_address, addresses);
+}
+fn eth_supply_and_approve_all_providers(
+    contract_address: ContractAddress, eth_address: ContractAddress
+) {
+    let mut liquidity_providers = liquidity_providers_get(5);
+    eth_supply_and_approve_all(contract_address, eth_address, liquidity_providers.span());
+}
+
+fn eth_supply_and_approve_all_bidders(
+    contract_address: ContractAddress, eth_address: ContractAddress
+) {
+    let option_biddders = option_bidders_get(5);
+    eth_supply_and_approve_all(contract_address, eth_address, option_biddders.span());
+}
+
+fn eth_supply(eth_address: ContractAddress, mut receivers: Span<ContractAddress>) {
+    let eth_dispatcher = IERC20Dispatcher { contract_address: eth_address };
+    loop {
+        match receivers.pop_front() {
+            Option::Some(receiver) => {
+                set_contract_address(weth_owner());
+                let ob_amount_wei: u256 = 100000 * decimals(); // 100,000 ETH
+
+                eth_dispatcher.transfer(*receiver, ob_amount_wei);
+            },
+            Option::None => { break; },
+        };
+    };
+}
+fn eth_approval(
+    contract_address: ContractAddress,
+    eth_address: ContractAddress,
+    mut approvers: Span<ContractAddress>
+) {
+    let eth_dispatcher = IERC20Dispatcher { contract_address: eth_address };
+    loop {
+        match approvers.pop_front() {
+            Option::Some(approver) => {
+                set_contract_address(weth_owner());
+                let ob_amount_wei: u256 = 100000 * decimals(); // 100,000 ETH
+
+                //Debug
+                // let felt_ca: felt252 = contract_address.into();
+                // let felt_eth: felt252 = eth_address.into();
+                // let app: ContractAddress = *approver;
+                // let felt_app: felt252 = app.into();
+
+                eth_dispatcher.transfer(*approver, ob_amount_wei);
+                set_contract_address(*approver);
+                eth_dispatcher.approve(contract_address, ob_amount_wei);
+            },
+            Option::None => { break; },
+        };
+    };
 }

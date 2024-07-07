@@ -181,7 +181,7 @@ mod OptionRound {
     use starknet::{ContractAddress, get_caller_address, get_contract_address, get_block_timestamp};
     use pitch_lake_starknet::contracts::{
         market_aggregator::{IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait},
-        utils::{red_black_tree::{rb_tree_component,ClearingPriceReturn}, utils::{min, max}},
+        utils::{red_black_tree::{rb_tree_component, ClearingPriceReturn}, utils::{min, max}},
         vault::{Vault::VaultType, IVaultDispatcher, IVaultDispatcherTrait},
         option_round::IOptionRound
     };
@@ -480,9 +480,9 @@ mod OptionRound {
         OptionRoundAlreadySettled,
         OptionSettlementDateNotReached,
         // Placing bids
-        BidBelowReservePrice,BidAmountZero,
+        BidBelowReservePrice,
+        BidAmountZero,
         BiddingWhileNotAuctioning,
-        
         // Editing bids
         BidCannotBeDecreased: felt252,
     }
@@ -707,9 +707,9 @@ mod OptionRound {
                 return Result::Err(OptionRoundError::AuctionAlreadyStarted);
             }
 
-            let StartAuctionParams { total_options_available,
+            let StartAuctionParams { total_options_available: _,
             starting_liquidity,
-            reserve_price,
+            reserve_price: _,
             cap_level,
             strike_price } =
                 params;
@@ -722,12 +722,12 @@ mod OptionRound {
             }
 
             // Set auction params
-            self.reserve_price.write(1);//HardCoded for tests
+            self.reserve_price.write(1); //HardCoded for tests
             self.cap_level.write(cap_level);
             self.strike_price.write(strike_price);
             // Set starting liquidity & total options available
             self.starting_liquidity.write(starting_liquidity);
-            self.total_options_available.write(5);//HardCoded for tests
+            self.total_options_available.write(5); //HardCoded for tests
 
             // Update state to Auctioning
             self.state.write(OptionRoundState::Auctioning);
@@ -744,7 +744,7 @@ mod OptionRound {
                 );
 
             // Return the total options available
-            Result::Ok(5)//HardCoded for tests
+            Result::Ok(5) //HardCoded for tests
         }
 
         fn end_auction(ref self: ContractState) -> Result<(u256, u256), OptionRoundError> {
@@ -832,25 +832,36 @@ mod OptionRound {
             ref self: ContractState, amount: u256, price: u256
         ) -> Result<Bid, OptionRoundError> {
             //Check state of the OptionRound
-
-            println!("AMOUNT PRICE {} {}",amount,price);
+            
+            let bidder = get_caller_address();
             let eth_dispatcher = self.get_eth_dispatcher();
             if (self.get_state() != OptionRoundState::Auctioning) {
+                self
+                .emit(
+                    Event::AuctionRejectedBid(AuctionRejectedBid { account: bidder, amount, price })
+                );
                 return Result::Err(OptionRoundError::BiddingWhileNotAuctioning);
+               
             }
 
             //Bid amount zero 
-            if(amount==0){
-                println!("AMOUNT 0");
+            if (amount == 0) {
+                self
+                .emit(
+                    Event::AuctionRejectedBid(AuctionRejectedBid { account: bidder, amount, price })
+                );
                 return Result::Err(OptionRoundError::BidAmountZero);
             }
             //Bid below reserve price
 
             if (price < self.get_reserve_price()) {
-                println!("price {}\n reserve_price{}",price,self.reserve_price.read());
+                self
+                .emit(
+                    Event::AuctionRejectedBid(AuctionRejectedBid { account: bidder, amount, price })
+                );
                 return Result::Err(OptionRoundError::BidBelowReservePrice);
             }
-            let bidder = get_caller_address();
+            
             let nonce = self.bidder_nonces.read(bidder);
 
             let bid = Bid {
@@ -862,27 +873,18 @@ mod OptionRound {
                 price: price,
                 valid: true
             };
-            println!("INNER 1");
             self.bids_tree.insert(bid);
-            println!("INNER 2");
             self.bidder_nonces.write(bidder, nonce + 1);
-            println!("INNER 3");
 
             //Update Clearing Price
             self.update_clearing_price();
-            println!("INNER 4{}{}",amount,price);
 
-            let total:u256=amount*price;
-            let felt:felt252 = get_contract_address().into();
-            println!("TOTAL 5{}",felt);
             //Transfer Eth
-            eth_dispatcher.transfer_from(get_contract_address(), bidder, 1);
-            println!("INNER 1");
+            eth_dispatcher.transfer_from(bidder, get_contract_address(), 1);
             self
                 .emit(
                     Event::AuctionAcceptedBid(AuctionAcceptedBid { account: bidder, amount, price })
                 );
-                println!("INNER 16");
             Result::Ok(bid)
         }
 
@@ -909,16 +911,16 @@ mod OptionRound {
             }
             new_bid.amount = amount;
             new_bid.price = price;
-            let difference = new_bid.amount*new_bid.price-old_bid.amount*old_bid.price;
+            let difference = new_bid.amount * new_bid.price - old_bid.amount * old_bid.price;
 
             self.bids_tree.delete(old_bid);
-            
+
             self.bids_tree.insert(new_bid);
 
             self.update_clearing_price();
 
             let eth_dispatcher = self.get_eth_dispatcher();
-            eth_dispatcher.transfer_from(get_caller_address(),get_contract_address(),difference);
+            eth_dispatcher.transfer_from(get_caller_address(), get_contract_address(), difference);
             Result::Ok(new_bid)
         }
         fn refund_unused_bids(
@@ -949,18 +951,18 @@ mod OptionRound {
             get_caller_address() == self.vault_address.read()
         }
 
-        fn update_clearing_price(ref self:ContractState){
+        fn update_clearing_price(ref self: ContractState) {
             let total_options_available = self.total_options_available.read();
             let clearing_price = self.bids_tree.find_clearing_price(total_options_available);
-            match clearing_price.unwrap(){
-                ClearingPriceReturn::clearing_price(value)=>{
+            match clearing_price.unwrap() {
+                ClearingPriceReturn::clearing_price(value) => {
                     self.clearing_price.write(value);
-                    if(self.total_options_sold.read()!=total_options_available){
+                    if (self.total_options_sold.read() != total_options_available) {
                         self.total_options_sold.write(total_options_available);
                     }
                 },
-                ClearingPriceReturn::remaining_options(value)=>{
-                    self.total_options_sold.write(self.total_options_available.read()-value);
+                ClearingPriceReturn::remaining_options(value) => {
+                    self.total_options_sold.write(self.total_options_available.read() - value);
                 }
             }
         }
