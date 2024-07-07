@@ -822,12 +822,12 @@ mod OptionRound {
             // Calculate clearing price & total options sold
             //  - An empty helper function is fine for now, we will discuss the
             //  implementation of this function later
-            let (clearing_price, total_options_sold) = self.end_auction_internal();
-
+            self.update_clearing_price();
+            let clearing_price = self.clearing_price.read();
+            let total_options_sold = self.total_options_sold.read();
             // Set clearing price & total options sold
-            self.clearing_price.write(clearing_price);
-            self.total_options_sold.write(total_options_sold);
 
+           
             // Send premiums earned from the auction to Vault
             let eth = self.get_eth_dispatcher();
             eth.transfer(self.vault_address(), self.total_premiums());
@@ -917,7 +917,7 @@ mod OptionRound {
             }
 
             let nonce = self.bidder_nonces.read(bidder);
-
+            
             let bid = Bid {
                 id: poseidon::poseidon_hash_span(
                     array![bidder.into(), nonce.try_into().unwrap()].span()
@@ -931,7 +931,6 @@ mod OptionRound {
             self.bidder_nonces.write(bidder, nonce + 1);
 
             //Update Clearing Price
-            self.update_clearing_price();
 
             //Transfer Eth
             eth_dispatcher.transfer_from(bidder, get_contract_address(), amount * price);
@@ -1014,10 +1013,11 @@ mod OptionRound {
                     self.clearing_bid.write(bid_id);
                     if (self.total_options_sold.read() != total_options_available) {
                         self.total_options_sold.write(total_options_available);
-                    }
+                    };
                 },
-                ClearingPriceReturn::RemainingOptions(value) => {
-                    self.total_options_sold.write(self.total_options_available.read() - value);
+                ClearingPriceReturn::RemainingOptions((clearing_price,remaining_options)) => {
+                    self.total_options_sold.write(self.total_options_available.read() - remaining_options);
+                    self.clearing_price.write(clearing_price);
                 }
             }
         }
