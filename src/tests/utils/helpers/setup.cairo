@@ -308,7 +308,6 @@ fn eth_approval(
                 // let app: ContractAddress = *approver;
                 // let felt_app: felt252 = app.into();
 
-                eth_dispatcher.transfer(*approver, ob_amount_wei);
                 set_contract_address(*approver);
                 eth_dispatcher.approve(contract_address, ob_amount_wei);
             },

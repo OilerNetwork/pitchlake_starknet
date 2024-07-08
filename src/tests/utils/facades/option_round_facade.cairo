@@ -110,6 +110,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
                 Option::Some(bidder) => {
                     let bid_amount = amounts.pop_front().unwrap();
                     let bid_price = prices.pop_front().unwrap();
+
                     // Make bid
                     let res = self.place_bid(*bid_amount, *bid_price, *bidder);
                     // Append result
