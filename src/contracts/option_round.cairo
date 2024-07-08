@@ -265,9 +265,6 @@ mod OptionRound {
         // The total number of options sold in the auction
         total_options_sold: u256,
         // The clearing price of the auction (the price each option sells for)
-        clearing_price: u256,
-        // Bid id for the last bid to be partially or fully filled
-        clearing_bid: felt252,
         // The auction start date
         auction_start_date: u64,
         // The auction end date
@@ -647,7 +644,7 @@ mod OptionRound {
         }
 
         fn get_auction_clearing_price(self: @ContractState) -> u256 {
-            self.clearing_price.read()
+            self.bids_tree.clearing_price.read()
         }
 
         fn total_options_sold(self: @ContractState) -> u256 {
@@ -695,7 +692,7 @@ mod OptionRound {
         }
 
         fn get_option_balance_for(ref self: ContractState, option_buyer: ContractAddress) -> u256 {
-            self.bids_tree.find_options_for(option_buyer, self.clearing_bid.read())
+            self.bids_tree.find_options_for(option_buyer)
         }
 
         fn get_round_id(self: @ContractState) -> u256 {
@@ -1016,8 +1013,8 @@ mod OptionRound {
                 ClearingPriceReturn::ClearedParams((
                     value, bid_id
                 )) => {
-                    self.clearing_price.write(value);
-                    self.clearing_bid.write(bid_id);
+                    self.bids_tree.clearing_price.write(value);
+                    self.bids_tree.clearing_bid.write(bid_id);
                     if (self.total_options_sold.read() != total_options_available) {
                         self.total_options_sold.write(total_options_available);
                     };
@@ -1026,7 +1023,7 @@ mod OptionRound {
                     clearing_price, remaining_options
                 )) => {
                     self.total_options_sold.write(total_options_available - remaining_options);
-                    self.clearing_price.write(clearing_price);
+                    self.bids_tree.clearing_price.write(clearing_price);
                 }
             }
         }

@@ -9,9 +9,7 @@ trait IRBTree<TContractState> {
     fn find_clearing_price(
         ref self: TContractState, total_options_available: u256
     ) -> Option<ClearingPriceReturn>;
-    fn find_options_for(
-        ref self: TContractState, bidder: ContractAddress, clearing_bid: felt252
-    ) -> u256;
+    fn find_options_for(ref self: TContractState, bidder: ContractAddress) -> u256;
     fn delete(ref self: TContractState, value: Bid);
     fn get_root(self: @TContractState) -> felt252;
     fn traverse_postorder(ref self: TContractState);
@@ -38,6 +36,8 @@ pub mod rb_tree_component {
         node_position: LegacyMap<felt252, u256>,
         next_id: felt252,
         clearing_bid_amount_sold: u256,
+        clearing_price: u256,
+        clearing_bid: felt252,
     }
 
 
@@ -82,13 +82,14 @@ pub mod rb_tree_component {
             let new_node_id = value.id;
             if self.root.read() == 0 {
                 self.root.write(new_node_id);
-                self.tree.write(new_node_id,Node{value,left:0,right:0,parent:0,color:BLACK});
+                self
+                    .tree
+                    .write(new_node_id, Node { value, left: 0, right: 0, parent: 0, color: BLACK });
                 return;
             }
 
             self.insert_node_recursively(self.root.read(), new_node_id, value);
             self.balance_after_insertion(new_node_id);
-
         }
 
         fn find(ref self: ComponentState<TContractState>, value: Bid) -> felt252 {
@@ -98,19 +99,20 @@ pub mod rb_tree_component {
         fn find_clearing_price(
             ref self: ComponentState<TContractState>, total_options_available: u256
         ) -> Option<ClearingPriceReturn> {
-
-            let root:felt252 = self.root.read();
-            let root_node:Node = self.tree.read(root);
-            let root_bid:Bid = root_node.value;
+            let root: felt252 = self.root.read();
+            let root_node: Node = self.tree.read(root);
+            let root_bid: Bid = root_node.value;
             let result = self
                 .traverse_postorder_clearing_price_from_node(
                     root, total_options_available, root_bid.price
                 );
             match result.unwrap() {
                 TraverseReturn::ClearingPriceFelt(node_id) => {
-                    let clearing_node:Node =  self.tree.read(node_id);
+                    let clearing_node: Node = self.tree.read(node_id);
                     //println!("CLEARING_BID {}",clearing_bid);
-                    Option::Some(ClearingPriceReturn::ClearedParams((clearing_node.value.price, node_id)))
+                    Option::Some(
+                        ClearingPriceReturn::ClearedParams((clearing_node.value.price, node_id))
+                    )
                 },
                 TraverseReturn::RemainingOptions((
                     clearing_price, value
@@ -121,12 +123,9 @@ pub mod rb_tree_component {
         }
 
         fn find_options_for(
-            ref self: ComponentState<TContractState>, bidder: ContractAddress, clearing_bid: felt252
+            ref self: ComponentState<TContractState>, bidder: ContractAddress
         ) -> u256 {
-            self
-                .traverse_postorder_calculate_options_from_node(
-                    self.root.read(), bidder, clearing_bid, 0
-                )
+            self.traverse_postorder_calculate_options_from_node(self.root.read(), bidder, 0)
         }
 
 
@@ -182,19 +181,16 @@ pub mod rb_tree_component {
             ref self: ComponentState<TContractState>,
             current_id: felt252,
             bidder: ContractAddress,
-            clearing_bid: felt252,
             mut total: u256
         ) -> u256 {
             if (current_id == 0) {
                 return total;
             }
             let current_node: Node = self.tree.read(current_id);
-
+            let clearing_bid: felt252 = self.clearing_bid.read();
             //Recursive on Right Node
             total = self
-                .traverse_postorder_calculate_options_from_node(
-                    current_node.right, bidder, clearing_bid, total
-                );
+                .traverse_postorder_calculate_options_from_node(current_node.right, bidder, total);
             //Check for self 
             if (current_node.value.owner == bidder && current_node.value.valid) {
                 if (current_id == clearing_bid) {
@@ -204,10 +200,7 @@ pub mod rb_tree_component {
                 }
             }
             //Recursive on Left Node and return result directly to the outer call
-            self
-                .traverse_postorder_calculate_options_from_node(
-                    current_node.left, bidder, clearing_bid, total
-                )
+            self.traverse_postorder_calculate_options_from_node(current_node.left, bidder, total)
         }
 
         fn traverse_postorder_clearing_price_from_node(
@@ -217,7 +210,9 @@ pub mod rb_tree_component {
             mut clearing_price: u256
         ) -> Option<TraverseReturn> {
             if (current_id == 0) {
-                return Option::Some(TraverseReturn::RemainingOptions((clearing_price, total_options_available)));
+                return Option::Some(
+                    TraverseReturn::RemainingOptions((clearing_price, total_options_available))
+                );
             }
             let current_node: Node = self.tree.read(current_id);
 
@@ -240,14 +235,50 @@ pub mod rb_tree_component {
                 }
             }
 
-           // println!("current_node\n{}\n",current_node.value);
+            // println!("current_node\n{}\n",current_node.value);
 
             //Check for self 
             if (current_node.value.amount >= remaining_options) {
-              //  println!("IN HERE");
+                //  println!("IN HERE");
                 self.clearing_bid_amount_sold.write(remaining_options);
 
                 return Option::Some(TraverseReturn::ClearingPriceFelt(current_id));
+            } else {
+                remaining_options -= current_node.value.amount;
+                clearing_price = current_node.value.price;
+            }
+            //Recursive on Left Node and return result directly to the outer call
+            self
+                .traverse_postorder_clearing_price_from_node(
+                    current_node.left, remaining_options, clearing_price
+                )
+        }
+
+        fn traverse_postorder_clearing_price_from_node_2(
+            ref self: ComponentState<TContractState>,
+            current_id: felt252,
+            total_options_available: u256,
+            mut clearing_price: u256
+        ) -> (felt252, u256) {
+            if (current_id == 0) {
+                return (current_id, total_options_available);
+            }
+            let current_node: Node = self.tree.read(current_id);
+
+            //Recursive on Right Node
+            let (clearing_felt, mut remaining_options) = self
+                .traverse_postorder_clearing_price_from_node_2(
+                    current_node.right, total_options_available, clearing_price
+                );
+            if (remaining_options == 0) {
+                return (clearing_felt, 0);
+            }
+
+            //Check for self 
+            if (current_node.value.amount >= remaining_options) {
+                self.clearing_bid_amount_sold.write(remaining_options);
+
+                return (current_id, 0);
             } else {
                 remaining_options -= current_node.value.amount;
                 clearing_price = current_node.value.price;
@@ -287,10 +318,12 @@ pub mod rb_tree_component {
                     current_node.left = new_node_id;
 
                     // update parent
-                    let new_node = Node{left:0,right:0,value,parent:current_id,color:BLACK};
-                    self.tree.write(new_node_id,new_node);
+                    let new_node = Node {
+                        left: 0, right: 0, value, parent: current_id, color: BLACK
+                    };
+                    self.tree.write(new_node_id, new_node);
                     self.tree.write(current_id, current_node);
-                 
+
                     return;
                 }
 
@@ -300,8 +333,10 @@ pub mod rb_tree_component {
                     current_node.right = new_node_id;
 
                     // update parent
-                    let new_node = Node{left:0,right:0,value,parent:current_id,color:BLACK};
-                    self.tree.write(new_node_id,new_node);
+                    let new_node = Node {
+                        left: 0, right: 0, value, parent: current_id, color: BLACK
+                    };
+                    self.tree.write(new_node_id, new_node);
                     self.tree.write(current_id, current_node);
                     return;
                 }
