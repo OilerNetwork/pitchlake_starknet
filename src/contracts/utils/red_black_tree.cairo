@@ -28,7 +28,7 @@ pub mod RBTreeComponent {
     struct Storage {
         root: felt252,
         tree: LegacyMap::<felt252, Node>,
-        nonce:u64,
+        nonce: u64,
         node_position: LegacyMap<felt252, u256>,
         next_id: felt252,
         clearing_bid_amount_sold: u256,
@@ -74,7 +74,7 @@ pub mod RBTreeComponent {
 
             self.insert_node_recursively(self.root.read(), new_node_id, value);
             self.balance_after_insertion(new_node_id);
-            self.nonce.write(self.nonce.read()+1);
+            self.nonce.write(self.nonce.read() + 1);
         }
 
         fn find(ref self: ComponentState<TContractState>, value: Bid) -> felt252 {
