@@ -206,7 +206,11 @@ mod OptionRound {
                 if lhs.amount < rhs.amount {
                     true
                 } else {
-                    false
+                    if lhs.nonce > rhs.nonce {
+                        true
+                    } else {
+                        false
+                    }
                 }
             }
         }
@@ -386,6 +390,7 @@ mod OptionRound {
     #[derive(Copy, Drop, Serde, starknet::Store, PartialEq, Display)]
     struct Bid {
         id: felt252,
+        nonce: u64,
         owner: ContractAddress,
         amount: u256,
         price: u256,
@@ -724,10 +729,9 @@ mod OptionRound {
             }
             loop {
                 match refundable_bids.pop_front() {
-                    Option::Some(bid_id) => {
-                        let bid_node: Node = self.bids_tree.tree.read(bid_id);
-                        if (!bid_node.value.is_refunded) {
-                            refundable_balance += bid_node.value.amount * bid_node.value.price;
+                    Option::Some(bid) => {
+                        if (!bid.is_refunded) {
+                            refundable_balance += bid.amount * bid.price;
                         }
                     },
                     Option::None => { break; }
@@ -757,10 +761,9 @@ mod OptionRound {
             }
             loop {
                 match tokenizable_bids.pop_front() {
-                    Option::Some(bid_id) => {
-                        let bid_node: Node = self.bids_tree.tree.read(bid_id);
-                        if (!bid_node.value.is_tokenized) {
-                            options_balance += bid_node.value.amount * bid_node.value.price;
+                    Option::Some(bid) => {
+                        if (!bid.is_tokenized) {
+                            options_balance += bid.amount * bid.price;
                         }
                     },
                     Option::None => { break; }
@@ -994,6 +997,7 @@ mod OptionRound {
                 id: poseidon::poseidon_hash_span(
                     array![bidder.into(), nonce.try_into().unwrap()].span()
                 ),
+                nonce: self.get_bid_tree_nonce(),
                 owner: bidder,
                 amount: amount,
                 price: price,
@@ -1104,6 +1108,10 @@ mod OptionRound {
             (0, 0)
         }
 
+        //Get bid tree nonce
+        fn get_bid_tree_nonce(self: @ContractState) -> u64 {
+            self.bids_tree.nonce.read()
+        }
         // Get a dispatcher for the ETH contract
         fn get_eth_dispatcher(self: @ContractState) -> IERC20Dispatcher {
             let vault = self.get_vault_dispatcher();
@@ -1121,27 +1129,32 @@ mod OptionRound {
 
         fn inspect_options_for(
             self: @ContractState, bidder: ContractAddress
-        ) -> (Array<felt252>, Array<felt252>, felt252) {
+        ) -> (Array<Bid>, Array<Bid>, felt252) {
             let nonce = self.get_bidding_nonce_for(bidder);
             let mut i = 0;
-            let mut refundable_bids: Array<felt252> = array![];
+            let mut refundable_bids: Array<Bid> = array![];
+            let mut tokenizable_bids: Array<Bid> = array![];
 
             let mut partial_bid: felt252 = 0;
             while i < nonce {
                 let bid_id = poseidon::poseidon_hash_span(
                     array![bidder.into(), nonce.into()].span()
                 );
-                let clearing_bid: felt252 = self.bids_tree.clearing_bid.read();
-                if (bid_id == clearing_bid) {
+                let clearing_bid_id: felt252 = self.bids_tree.clearing_bid.read();
+                if (bid_id == clearing_bid_id) {
                     partial_bid = bid_id;
                 } else {
-                    refundable_bids.append(bid_id);
+                    let bid_node: Node = self.bids_tree.tree.read(bid_id);
+                    let clearing_node: Node = self.bids_tree.tree.read(clearing_bid_id);
+                    if (bid_node.value < clearing_node.value) {
+                        refundable_bids.append(bid_node.value);
+                    } else {
+                        tokenizable_bids.append(bid_node.value);
+                    }
                 }
                 i += 1;
             };
-            let (tokenizable_bids, refundable_bids) = self
-                .bids_tree
-                .find_options_for(bidder, refundable_bids);
+
             (tokenizable_bids, refundable_bids, partial_bid)
         }
         fn calculate_options(ref self: ContractState, starting_liquidity: u256) -> u256 {
