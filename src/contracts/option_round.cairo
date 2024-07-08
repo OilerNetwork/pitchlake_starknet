@@ -314,10 +314,9 @@ mod OptionRound {
         settlement_price: u256
     }
 
-
+    #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
     struct PartialBidData {
         id: felt252,
-        total_bids: u256,
         options_sold: u256,
     }
     // The states an option round can be in
@@ -713,8 +712,32 @@ mod OptionRound {
             bids
         }
         fn get_refundable_bids_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
-            let (_, refundable_bids) = self.inspect_options_for(option_buyer);
-            1
+            let (_, mut refundable_bids, partial_bid) = self.inspect_options_for(option_buyer);
+            let mut refundable_balance = 0;
+
+            //Add refundable balance from Partial Bid if it's there
+            if(partial_bid!=0){
+                let partial_node:Node = self.bids_tree.tree.read(partial_bid);
+
+                //Since only clearing_bid can be partially sold, the clearing_bid_amount_sold is saved on the tree
+                let options_sold = self.bids_tree.clearing_bid_amount_sold.read();
+                if(!partial_node.value.is_refunded)
+                {
+                    refundable_balance+=(partial_node.value.amount-options_sold)*partial_node.value.price;
+                }
+            }
+            loop {
+                match refundable_bids.pop_front() {
+                    Option::Some(bid_id) => {
+                        let bid_node: Node = self.bids_tree.tree.read(bid_id);
+                        if (!bid_node.value.is_refunded) {
+                            refundable_balance += bid_node.value.amount * bid_node.value.price;
+                        }
+                    },
+                    Option::None => { break; }
+                }
+            };
+            refundable_balance
         }
 
         fn get_payout_balance_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
@@ -723,10 +746,20 @@ mod OptionRound {
 
         fn get_option_balance_for(ref self: ContractState, option_buyer: ContractAddress) -> u256 {
             //self.bids_tree.find_options_for(option_buyer);
-            let (mut tokenizable_bids, _) = self.inspect_options_for(option_buyer);
+            let (mut tokenizable_bids, _, partial_bid) = self.inspect_options_for(option_buyer);
             let mut options_balance: u256 = 0;
             //Check and sum bids that are not tokenized yet
+            //Add options balance from Partial Bid if it's there
+            if(partial_bid!=0){
+                let partial_node:Node = self.bids_tree.tree.read(partial_bid);
 
+                //Since only clearing_bid can be partially sold, the clearing_bid_amount_sold is saved on the tree
+                let options_sold = self.bids_tree.clearing_bid_amount_sold.read();
+                if(!partial_node.value.is_tokenized)
+                {
+                    options_balance+=(options_sold)*partial_node.value.price;
+                }
+            }
             loop {
                 match tokenizable_bids.pop_front() {
                     Option::Some(bid_id) => {
@@ -1091,28 +1124,29 @@ mod OptionRound {
 
         fn inspect_options_for(
             self: @ContractState, bidder: ContractAddress
-        ) -> (Array<felt252>, Array<felt252>) {
+        ) -> (Array<felt252>, Array<felt252>, felt252) {
             let nonce = self.get_bidding_nonce_for(bidder);
             let mut i = 0;
             let mut refundable_bids: Array<felt252> = array![];
 
-            let mut partial_bid: PartialBidData = PartialBidData {
-                id: 0, total_bids: 0, options_sold: 0
-            };
+            let mut partial_bid:felt252 = 0;
             while i < nonce {
                 let bid_id = poseidon::poseidon_hash_span(
                     array![bidder.into(), nonce.into()].span()
                 );
                 let clearing_bid: felt252 = self.bids_tree.clearing_bid.read();
                 if (bid_id == clearing_bid) {
-                    partial_bid.id = bid_id;
-                    partial_bid.options_sold = self.bids_tree.clearing_bid_amount_sold.read();
+                    partial_bid = bid_id;
+
                 } else {
                     refundable_bids.append(bid_id);
                 }
                 i += 1;
             };
-            self.bids_tree.find_options_for(bidder, refundable_bids)
+            let (tokenizable_bids, refundable_bids) = self
+                .bids_tree
+                .find_options_for(bidder, refundable_bids);
+            (tokenizable_bids, refundable_bids, partial_bid)
         }
         fn calculate_options(ref self: ContractState, starting_liquidity: u256) -> u256 {
             //Calculate total options accordingly
