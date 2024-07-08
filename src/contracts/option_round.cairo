@@ -773,7 +773,7 @@ mod OptionRound {
             self.strike_price.write(strike_price);
             // Set starting liquidity & total options available
             self.starting_liquidity.write(starting_liquidity);
-            self.bids_tree.total_options_available.write(5); //HardCoded for tests
+            self.bids_tree.total_options_available.write(30); //HardCoded for tests
 
             // Update state to Auctioning
             self.state.write(OptionRoundState::Auctioning);
@@ -790,7 +790,7 @@ mod OptionRound {
                 );
 
             // Return the total options available
-            Result::Ok(5) //HardCoded for tests
+            Result::Ok(30) //HardCoded for tests
         }
 
         fn end_auction(ref self: ContractState) -> Result<(u256, u256), OptionRoundError> {
