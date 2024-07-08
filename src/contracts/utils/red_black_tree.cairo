@@ -1,5 +1,5 @@
 use pitch_lake_starknet::contracts::{
-    utils::red_black_tree::rb_tree_component::ClearingPriceReturn, option_round::OptionRound::Bid
+    utils::red_black_tree::RBTreeComponent::ClearingPriceReturn, option_round::OptionRound::Bid
 };
 use starknet::ContractAddress;
 #[starknet::interface]
@@ -21,7 +21,7 @@ const BLACK: bool = false;
 const RED: bool = true;
 
 #[starknet::component]
-pub mod rb_tree_component {
+pub mod RBTreeComponent {
     use pitch_lake_starknet::contracts::utils::red_black_tree::IRBTree;
     use super::{BLACK, RED, Bid, ContractAddress};
     use core::{array::ArrayTrait, option::OptionTrait, traits::{IndexView, TryInto}};
