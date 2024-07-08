@@ -751,7 +751,7 @@ mod OptionRound {
             }
 
             // Assert state is Open
-            if (self.state.read() != OptionRoundState::Open) {
+            if (self.get_state() != OptionRoundState::Open) {
                 return Result::Err(OptionRoundError::AuctionAlreadyStarted);
             }
 
@@ -781,7 +781,7 @@ mod OptionRound {
             self.state.write(OptionRoundState::Auctioning);
 
             // Update auction end date if the auction starts later than expected
-            self.auction_end_date.write(self.auction_end_date.read() + now - start_date);
+            self.auction_end_date.write(self.get_auction_end_date()+ now - start_date);
 
             // Emit auction start event
             self
@@ -802,7 +802,7 @@ mod OptionRound {
             }
 
             // Assert state is Auctioning
-            if (self.state.read() != OptionRoundState::Auctioning) {
+            if (self.get_state() != OptionRoundState::Auctioning) {
                 return Result::Err(OptionRoundError::NoAuctionToEnd);
             }
 
@@ -817,13 +817,13 @@ mod OptionRound {
             self.state.write(OptionRoundState::Running);
 
             // Update option settlement date if the auction ends later than expected
-            self.option_settlement_date.write(self.option_settlement_date.read() + now - end_date);
+            self.option_settlement_date.write(self.get_option_settlement_date() + now - end_date);
 
             // Calculate clearing price & total options sold
             //  - An empty helper function is fine for now, we will discuss the
             //  implementation of this function later
             self.update_clearing_price();
-            let clearing_price = self.clearing_price.read();
+            let clearing_price = self.get_auction_clearing_price();
             let total_options_sold = self.total_options_sold.read();
             // Set clearing price & total options sold
 
@@ -855,7 +855,7 @@ mod OptionRound {
             }
 
             // Assert state is Running
-            if (self.state.read() != OptionRoundState::Running) {
+            if (self.get_state() != OptionRoundState::Running) {
                 return Result::Err(OptionRoundError::OptionRoundAlreadySettled);
             }
 
@@ -884,7 +884,7 @@ mod OptionRound {
             let eth_dispatcher = self.get_eth_dispatcher();
 
             if (self.get_state() != OptionRoundState::Auctioning
-                || self.auction_end_date.read() < get_block_timestamp()) {
+                || self.get_auction_end_date() < get_block_timestamp()) {
                 self
                     .emit(
                         Event::AuctionRejectedBid(
@@ -1005,7 +1005,7 @@ mod OptionRound {
         }
 
         fn update_clearing_price(ref self: ContractState) {
-            let total_options_available = self.total_options_available.read();
+            let total_options_available = self.get_total_options_available();
             let clearing_price = self.bids_tree.find_clearing_price(total_options_available);
             match clearing_price.unwrap() {
                 ClearingPriceReturn::ClearedParams((value,bid_id)) => {
@@ -1016,7 +1016,7 @@ mod OptionRound {
                     };
                 },
                 ClearingPriceReturn::RemainingOptions((clearing_price,remaining_options)) => {
-                    self.total_options_sold.write(self.total_options_available.read() - remaining_options);
+                    self.total_options_sold.write(total_options_available - remaining_options);
                     self.clearing_price.write(clearing_price);
                 }
             }
