@@ -64,12 +64,12 @@ fn assert_event_auction_start(
 
 // Check AuctionAcceptedBid emits correctly
 fn assert_event_auction_bid_accepted(
-    contract: ContractAddress, account: ContractAddress, amount: u256, price: u256,
+    contract: ContractAddress, account: ContractAddress, amount: u256, price: u256, nonce: u32
 ) {
     match pop_log::<OptionRound::Event>(contract) {
         Option::Some(e) => {
             let expected = OptionRound::Event::AuctionAcceptedBid(
-                OptionRound::AuctionAcceptedBid { account, amount, price }
+                OptionRound::AuctionAcceptedBid { account, amount, price, nonce }
             );
             assert_events_equal(e, expected);
         },

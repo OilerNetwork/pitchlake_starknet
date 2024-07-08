@@ -363,6 +363,7 @@ mod OptionRound {
     struct AuctionAcceptedBid {
         #[key]
         account: ContractAddress,
+        nonce: u32,
         amount: u256,
         price: u256
     }
@@ -608,7 +609,7 @@ mod OptionRound {
                 .emit(
                     Event::AuctionAcceptedBid(
                         AuctionAcceptedBid {
-                            account: starknet::get_contract_address(), amount: x, price: x
+                            nonce: 0, account: starknet::get_contract_address(), amount: x, price: x
                         }
                     )
                 );
@@ -716,14 +717,14 @@ mod OptionRound {
             let mut refundable_balance = 0;
 
             //Add refundable balance from Partial Bid if it's there
-            if(partial_bid!=0){
-                let partial_node:Node = self.bids_tree.tree.read(partial_bid);
+            if (partial_bid != 0) {
+                let partial_node: Node = self.bids_tree.tree.read(partial_bid);
 
                 //Since only clearing_bid can be partially sold, the clearing_bid_amount_sold is saved on the tree
                 let options_sold = self.bids_tree.clearing_bid_amount_sold.read();
-                if(!partial_node.value.is_refunded)
-                {
-                    refundable_balance+=(partial_node.value.amount-options_sold)*partial_node.value.price;
+                if (!partial_node.value.is_refunded) {
+                    refundable_balance += (partial_node.value.amount - options_sold)
+                        * partial_node.value.price;
                 }
             }
             loop {
@@ -750,14 +751,13 @@ mod OptionRound {
             let mut options_balance: u256 = 0;
             //Check and sum bids that are not tokenized yet
             //Add options balance from Partial Bid if it's there
-            if(partial_bid!=0){
-                let partial_node:Node = self.bids_tree.tree.read(partial_bid);
+            if (partial_bid != 0) {
+                let partial_node: Node = self.bids_tree.tree.read(partial_bid);
 
                 //Since only clearing_bid can be partially sold, the clearing_bid_amount_sold is saved on the tree
                 let options_sold = self.bids_tree.clearing_bid_amount_sold.read();
-                if(!partial_node.value.is_tokenized)
-                {
-                    options_balance+=(options_sold)*partial_node.value.price;
+                if (!partial_node.value.is_tokenized) {
+                    options_balance += (options_sold) * partial_node.value.price;
                 }
             }
             loop {
@@ -1014,7 +1014,9 @@ mod OptionRound {
             eth_dispatcher.transfer_from(bidder, get_contract_address(), amount * price);
             self
                 .emit(
-                    Event::AuctionAcceptedBid(AuctionAcceptedBid { account: bidder, amount, price })
+                    Event::AuctionAcceptedBid(
+                        AuctionAcceptedBid { nonce, account: bidder, amount, price }
+                    )
                 );
             Result::Ok(bid)
         }
@@ -1129,7 +1131,7 @@ mod OptionRound {
             let mut i = 0;
             let mut refundable_bids: Array<felt252> = array![];
 
-            let mut partial_bid:felt252 = 0;
+            let mut partial_bid: felt252 = 0;
             while i < nonce {
                 let bid_id = poseidon::poseidon_hash_span(
                     array![bidder.into(), nonce.into()].span()
@@ -1137,7 +1139,6 @@ mod OptionRound {
                 let clearing_bid: felt252 = self.bids_tree.clearing_bid.read();
                 if (bid_id == clearing_bid) {
                     partial_bid = bid_id;
-
                 } else {
                     refundable_bids.append(bid_id);
                 }

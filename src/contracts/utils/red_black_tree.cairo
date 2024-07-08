@@ -115,7 +115,6 @@ pub mod RBTreeComponent {
                     self.root.read(), bidder, array![], refundable_bids, false
                 );
             return (tokenizable_bids, refundable_bids);
-
         }
 
         fn get_tree_structure(
@@ -171,11 +170,10 @@ pub mod RBTreeComponent {
 
             if (current_node.value.owner == bidder) {
                 //If bid is not tokenized or refunded, append it to tokenizable
-                    tokenizable_bids.append(current_id);
+                tokenizable_bids.append(current_id);
 
                 //Remove bid from refundable array
                 refundable_bids = self.remove_from_array(current_id, refundable_bids);
-
             }
 
             //Recursive on Left Node and return result directly to the outer call
@@ -183,7 +181,6 @@ pub mod RBTreeComponent {
                 .traverse_postorder_calculate_options_from_node(
                     current_node.left, bidder, tokenizable_bids, refundable_bids, false
                 )
-
         }
 
         fn traverse_postorder_clearing_price_from_node(
