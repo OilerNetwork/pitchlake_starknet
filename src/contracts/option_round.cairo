@@ -285,10 +285,8 @@ mod OptionRound {
         bids_tail: felt252,
         #[substorage(v0)]
         bids_tree: RBTreeComponent::Storage,
-
         #[substorage(v0)]
         erc20: ERC20Component::Storage,
-
     }
 
     // The parameters needed to construct an option round
@@ -316,6 +314,11 @@ mod OptionRound {
     }
 
 
+    struct PartialBidData {
+        id: felt252,
+        total_bids: u256,
+        options_sold: u256,
+    }
     // The states an option round can be in
     // @note Should we move these into the contract or separate file ?
     #[derive(Copy, Drop, Serde, PartialEq, starknet::Store)]
@@ -340,7 +343,6 @@ mod OptionRound {
         BidTreeEvent: RBTreeComponent::Event,
         #[flat]
         ERC20Event: ERC20Component::Event,
-       
     }
 
     // Emitted when the auction starts
@@ -381,7 +383,8 @@ mod OptionRound {
         owner: ContractAddress,
         amount: u256,
         price: u256,
-        valid: bool,
+        is_tokenized: bool,
+        is_refunded: bool,
     }
 
     impl BidDisplay of Display<Bid> {
@@ -389,12 +392,13 @@ mod OptionRound {
             let owner: ContractAddress = *self.owner;
             let owner_felt: felt252 = owner.into();
             let str: ByteArray = format!(
-                "ID:{}\nOwner:{}\nAmount:{}\n Price:{}\nValid:{}",
+                "ID:{}\nOwner:{}\nAmount:{}\n Price:{}\nTokenized:{}\nRefunded:{}",
                 *self.id,
                 owner_felt,
                 *self.amount,
                 *self.price,
-                *self.valid
+                *self.is_tokenized,
+                *self.is_refunded,
             );
             f.buffer.append(@str);
             Result::Ok(())
@@ -706,7 +710,8 @@ mod OptionRound {
         }
 
         fn get_option_balance_for(ref self: ContractState, option_buyer: ContractAddress) -> u256 {
-            self.bids_tree.find_options_for(option_buyer)
+            //self.bids_tree.find_options_for(option_buyer)
+            1
         }
 
         fn get_round_id(self: @ContractState) -> u256 {
@@ -937,7 +942,8 @@ mod OptionRound {
                 owner: bidder,
                 amount: amount,
                 price: price,
-                valid: true
+                is_tokenized: false,
+                is_refunded: false
             };
             self.bids_tree.insert(bid);
             self.bidder_nonces.write(bidder, nonce + 1);
@@ -1045,6 +1051,31 @@ mod OptionRound {
             self.erc20._burn(owner, amount);
         }
 
+        fn inspect_options_for(
+            ref self: ContractState, bidder: ContractAddress
+        ) -> (Array<felt252>, Array<felt252>) {
+            let nonce = self.get_bidding_nonce_for(bidder);
+            let mut i = 0;
+            let mut refundable_bids: Array<felt252> = array![];
+
+            let mut partial_bid: PartialBidData = PartialBidData {
+                id: 0, total_bids: 0, options_sold: 0
+            };
+            while i < nonce {
+                let bid_id = poseidon::poseidon_hash_span(
+                    array![bidder.into(), nonce.into()].span()
+                );
+                let clearing_bid: felt252 = self.bids_tree.clearing_bid.read();
+                if (bid_id == clearing_bid) {
+                    partial_bid.id = bid_id;
+                    partial_bid.options_sold = self.bids_tree.clearing_bid_amount_sold.read();
+                } else {
+                    refundable_bids.append(bid_id);
+                }
+                i += 1;
+            };
+            self.bids_tree.find_options_for(bidder, refundable_bids)
+        }
         fn calculate_options(ref self: ContractState, starting_liquidity: u256) -> u256 {
             //Calculate total options accordingly
             0
