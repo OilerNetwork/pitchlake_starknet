@@ -7,7 +7,7 @@ trait IRBTree<TContractState> {
     fn delete(ref self: TContractState, value: Bid);
     fn find_clearing_price(ref self: TContractState) -> (u256, u256);
     fn find_options_for(
-        ref self: TContractState, bidder: ContractAddress, refundable_bids: Array<felt252>
+        self: @TContractState, bidder: ContractAddress, refundable_bids: Array<felt252>
     ) -> (Array<felt252>, Array<felt252>);
     fn get_tree_structure(ref self: TContractState) -> Array<Array<(Bid, bool, u256)>>;
     fn is_tree_valid(ref self: TContractState) -> bool;
@@ -106,7 +106,7 @@ pub mod RBTreeComponent {
         }
 
         fn find_options_for(
-            ref self: ComponentState<TContractState>,
+            self: @ComponentState<TContractState>,
             bidder: ContractAddress,
             refundable_bids: Array<felt252>
         ) -> (Array<felt252>, Array<felt252>) {
@@ -141,7 +141,7 @@ pub mod RBTreeComponent {
         TContractState, +HasComponent<TContractState>
     > of InternalTrait<TContractState> {
         fn traverse_postorder_calculate_options_from_node(
-            ref self: ComponentState<TContractState>,
+            self: @ComponentState<TContractState>,
             current_id: felt252,
             bidder: ContractAddress,
             tokenizable_bids: Array<felt252>,
@@ -169,9 +169,7 @@ pub mod RBTreeComponent {
 
             if (current_node.value.owner == bidder) {
                 //If bid is not tokenized or refunded, append it to tokenizable
-                if (!current_node.value.is_refunded && !current_node.value.is_tokenized) {
                     tokenizable_bids.append(current_id);
-                }
 
                 //Remove bid from refundable array
                 refundable_bids = self.remove_from_array(current_id, refundable_bids);
@@ -277,7 +275,7 @@ pub mod RBTreeComponent {
         }
 
         fn remove_from_array<T, +Drop<T>, +PartialEq<T>>(
-            ref self: ComponentState<TContractState>, element: T, mut array: Array<T>
+            self: @ComponentState<TContractState>, element: T, mut array: Array<T>
         ) -> Array<T> {
             let mut new_array: Array<T> = array![];
             loop {
