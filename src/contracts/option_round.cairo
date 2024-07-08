@@ -182,7 +182,7 @@ mod OptionRound {
     use pitch_lake_starknet::contracts::{
         market_aggregator::{IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait},
         utils::{
-            red_black_tree::{rb_tree_component, ClearingPriceReturn, rb_tree_component::Node},
+            red_black_tree::{RBTreeComponent, ClearingPriceReturn, RBTreeComponent::Node},
             utils::{min, max}
         },
         vault::{Vault::VaultType, IVaultDispatcher, IVaultDispatcherTrait},
@@ -190,12 +190,12 @@ mod OptionRound {
     };
 
 
-    component!(path: rb_tree_component, storage: bids_tree, event: BidTreeEvent);
+    component!(path: RBTreeComponent, storage: bids_tree, event: BidTreeEvent);
 
     #[abi(embed_v0)]
-    impl RBTreeImpl = rb_tree_component::RBTree<ContractState>;
+    impl RBTreeImpl = RBTreeComponent::RBTree<ContractState>;
 
-    impl RBTreeInternalImpl = rb_tree_component::InternalImpl<ContractState>;
+    impl RBTreeInternalImpl = RBTreeComponent::InternalImpl<ContractState>;
 
     impl BidPartialOrdTrait of PartialOrd<Bid> {
         // @return if lhs < rhs
@@ -280,7 +280,7 @@ mod OptionRound {
         bids_head: felt252,
         bids_tail: felt252,
         #[substorage(v0)]
-        bids_tree: rb_tree_component::Storage,
+        bids_tree: RBTreeComponent::Storage,
     }
 
     // The parameters needed to construct an option round
@@ -329,7 +329,7 @@ mod OptionRound {
         OptionSettle: OptionSettle,
         UnusedBidsRefunded: UnusedBidsRefunded,
         OptionsExercised: OptionsExercised,
-        BidTreeEvent: rb_tree_component::Event,
+        BidTreeEvent: RBTreeComponent::Event,
     }
 
     // Emitted when the auction starts

@@ -1,19 +1,18 @@
 use pitch_lake_starknet::contracts::{
-    utils::red_black_tree::rb_tree_component::ClearingPriceReturn, option_round::OptionRound::Bid
+    utils::red_black_tree::RBTreeComponent::ClearingPriceReturn, option_round::OptionRound::Bid
 };
 use starknet::ContractAddress;
 #[starknet::interface]
 trait IRBTree<TContractState> {
     fn insert(ref self: TContractState, value: Bid);
     fn find(ref self: TContractState, value: Bid) -> felt252;
+    fn delete(ref self: TContractState, value: Bid);
     fn find_clearing_price(
         ref self: TContractState, total_options_available: u256
     ) -> Option<ClearingPriceReturn>;
-    fn find_options_for(ref self: TContractState, bidder: ContractAddress) -> u256;
-    fn delete(ref self: TContractState, value: Bid);
-    fn get_root(self: @TContractState) -> felt252;
-    fn traverse_postorder(ref self: TContractState);
-    fn get_height(ref self: TContractState) -> u256;
+    fn find_options_for(
+        ref self: TContractState, bidder: ContractAddress
+    ) -> u256;
     fn get_tree_structure(ref self: TContractState) -> Array<Array<(Bid, bool, u256)>>;
     fn is_tree_valid(ref self: TContractState) -> bool;
 }
@@ -21,13 +20,11 @@ trait IRBTree<TContractState> {
 const BLACK: bool = false;
 const RED: bool = true;
 
-
 #[starknet::component]
-pub mod rb_tree_component {
+pub mod RBTreeComponent {
     use pitch_lake_starknet::contracts::utils::red_black_tree::IRBTree;
     use super::{BLACK, RED, Bid, ContractAddress};
     use core::{array::ArrayTrait, option::OptionTrait, traits::{IndexView, TryInto}};
-
 
     #[storage]
     struct Storage {
@@ -39,7 +36,6 @@ pub mod rb_tree_component {
         clearing_price: u256,
         clearing_bid: felt252,
     }
-
 
     #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
     struct Node {
@@ -73,7 +69,6 @@ pub mod rb_tree_component {
         node: Node,
     }
 
-
     #[embeddable_as(RBTree)]
     impl RBTreeImpl<
         TContractState, +HasComponent<TContractState>
@@ -94,6 +89,14 @@ pub mod rb_tree_component {
 
         fn find(ref self: ComponentState<TContractState>, value: Bid) -> felt252 {
             self.find_node(self.root.read(), value)
+        }
+
+        fn delete(ref self: ComponentState<TContractState>, value: Bid) {
+            let node_to_delete_id = self.find_node(self.root.read(), value);
+            if node_to_delete_id == 0 {
+                return;
+            }
+            self.delete_node(node_to_delete_id);
         }
 
         fn find_clearing_price(
@@ -128,27 +131,6 @@ pub mod rb_tree_component {
             self.traverse_postorder_calculate_options_from_node(self.root.read(), bidder, 0)
         }
 
-
-        fn delete(ref self: ComponentState<TContractState>, value: Bid) {
-            let node_to_delete_id = self.find_node(self.root.read(), value);
-            if node_to_delete_id == 0 {
-                return;
-            }
-            self.delete_node(node_to_delete_id);
-        }
-
-        fn get_root(self: @ComponentState<TContractState>) -> felt252 {
-            self.root.read()
-        }
-
-        fn traverse_postorder(ref self: ComponentState<TContractState>) {
-            self.traverse_postorder_from_node(self.root.read());
-        }
-
-        fn get_height(ref self: ComponentState<TContractState>) -> u256 {
-            return self.get_sub_tree_height(self.root.read());
-        }
-
         fn get_tree_structure(
             ref self: ComponentState<TContractState>
         ) -> Array<Array<(Bid, bool, u256)>> {
@@ -164,19 +146,6 @@ pub mod rb_tree_component {
     pub impl InternalImpl<
         TContractState, +HasComponent<TContractState>
     > of InternalTrait<TContractState> {
-        fn traverse_postorder_from_node(
-            ref self: ComponentState<TContractState>, current_id: felt252
-        ) {
-            if (current_id == 0) {
-                return;
-            }
-            let current_node = self.tree.read(current_id);
-
-            self.traverse_postorder_from_node(current_node.right);
-            println!("{}", current_node.value);
-            self.traverse_postorder_from_node(current_node.left);
-        }
-
         fn traverse_postorder_calculate_options_from_node(
             ref self: ComponentState<TContractState>,
             current_id: felt252,
@@ -229,17 +198,12 @@ pub mod rb_tree_component {
                 TraverseReturn::RemainingOptions((
                     _clearing_price, remaining
                 )) => {
-                    //println!("PENDING{} {} ",_clearing_price,remaining);
                     remaining_options = remaining;
                     clearing_price = _clearing_price;
                 }
             }
 
-            // println!("current_node\n{}\n",current_node.value);
-
-            //Check for self 
             if (current_node.value.amount >= remaining_options) {
-                //  println!("IN HERE");
                 self.clearing_bid_amount_sold.write(remaining_options);
 
                 return Option::Some(TraverseReturn::ClearingPriceFelt(current_id));
@@ -285,7 +249,7 @@ pub mod rb_tree_component {
             }
             //Recursive on Left Node and return result directly to the outer call
             self
-                .traverse_postorder_clearing_price_from_node(
+                .traverse_postorder_clearing_price_from_node_2(
                     current_node.left, remaining_options, clearing_price
                 )
         }
@@ -389,23 +353,6 @@ pub mod rb_tree_component {
             let mut node: Node = self.tree.read(node_id);
             node.parent = parent_id;
             self.tree.write(node_id, node);
-        }
-
-        fn get_sub_tree_height(ref self: ComponentState<TContractState>, node_id: felt252) -> u256 {
-            let node = self.tree.read(node_id);
-
-            if (node_id == 0) {
-                return 0;
-            } else {
-                let left_height = self.get_sub_tree_height(node.left);
-                let right_height = self.get_sub_tree_height(node.right);
-
-                if (left_height > right_height) {
-                    return left_height + 1;
-                } else {
-                    return right_height + 1;
-                }
-            }
         }
 
         fn get_parent(ref self: ComponentState<TContractState>, node_id: felt252) -> felt252 {
