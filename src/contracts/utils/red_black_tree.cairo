@@ -35,7 +35,6 @@ pub mod rb_tree_component {
     struct Storage {
         root: felt252,
         tree: LegacyMap::<felt252, Node>,
-        bid_details: LegacyMap<felt252, Bid>,
         node_position: LegacyMap<felt252, u256>,
         next_id: felt252,
         clearing_bid_amount_sold: u256,
@@ -81,7 +80,6 @@ pub mod rb_tree_component {
     > of super::IRBTree<ComponentState<TContractState>> {
         fn insert(ref self: ComponentState<TContractState>, value: Bid) {
             let new_node_id = value.id;
-            self.bid_details.write(new_node_id, value);
             if self.root.read() == 0 {
                 self.root.write(new_node_id);
                 self.tree.write(new_node_id,Node{value,left:0,right:0,parent:0,color:BLACK});
@@ -102,16 +100,17 @@ pub mod rb_tree_component {
         ) -> Option<ClearingPriceReturn> {
 
             let root:felt252 = self.root.read();
-            let root_bid:Bid = self.bid_details.read(root);
+            let root_node:Node = self.tree.read(root);
+            let root_bid:Bid = root_node.value;
             let result = self
                 .traverse_postorder_clearing_price_from_node(
                     root, total_options_available, root_bid.price
                 );
             match result.unwrap() {
                 TraverseReturn::ClearingPriceFelt(node_id) => {
-                    let clearing_bid: Bid = self.bid_details.read(node_id);
+                    let clearing_node:Node =  self.tree.read(node_id);
                     //println!("CLEARING_BID {}",clearing_bid);
-                    Option::Some(ClearingPriceReturn::ClearedParams((clearing_bid.price, node_id)))
+                    Option::Some(ClearingPriceReturn::ClearedParams((clearing_node.value.price, node_id)))
                 },
                 TraverseReturn::RemainingOptions((
                     clearing_price, value

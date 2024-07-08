@@ -181,7 +181,10 @@ mod OptionRound {
     use starknet::{ContractAddress, get_caller_address, get_contract_address, get_block_timestamp};
     use pitch_lake_starknet::contracts::{
         market_aggregator::{IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait},
-        utils::{red_black_tree::{rb_tree_component, ClearingPriceReturn}, utils::{min, max}},
+        utils::{
+            red_black_tree::{rb_tree_component, ClearingPriceReturn, rb_tree_component::Node},
+            utils::{min, max}
+        },
         vault::{Vault::VaultType, IVaultDispatcher, IVaultDispatcherTrait},
         option_round::IOptionRound
     };
@@ -264,7 +267,7 @@ mod OptionRound {
         // The clearing price of the auction (the price each option sells for)
         clearing_price: u256,
         // Bid id for the last bid to be partially or fully filled
-        clearing_bid:felt252,
+        clearing_bid: felt252,
         // The auction start date
         auction_start_date: u64,
         // The auction end date
@@ -511,53 +514,53 @@ mod OptionRound {
 
     // @dev Building this struct as a place holder for when we inject the RB tree into the contract
 
-//    #[derive(Copy, Drop, Serde, PartialEq, PartialOrd)]
-//    struct MockBid {
-//        amount: u256,
-//        price: u256,
-//    }
-//
-//    impl MockBidPartialOrdTrait of PartialOrd<MockBid> {
-//        // @return if lhs < rhs
-//        fn lt(lhs: MockBid, rhs: MockBid) -> bool {
-//            if lhs.price < rhs.price {
-//                true
-//            } else if lhs.price > rhs.price {
-//                false
-//            } else {
-//                if lhs.amount < rhs.amount {
-//                    true
-//                } else {
-//                    false
-//                }
-//            }
-//        }
-//
-//        // @return if lhs <= rhs
-//        fn le(lhs: MockBid, rhs: MockBid) -> bool {
-//            (lhs < rhs) || (lhs == rhs)
-//        }
-//
-//        // @return if lhs > rhs
-//        fn gt(lhs: MockBid, rhs: MockBid) -> bool {
-//            if lhs.price > rhs.price {
-//                true
-//            } else if lhs.price < rhs.price {
-//                false
-//            } else {
-//                if lhs.amount > rhs.amount {
-//                    true
-//                } else {
-//                    false
-//                }
-//            }
-//        }
-//
-//        // @return if lhs >= rhs
-//        fn ge(lhs: MockBid, rhs: MockBid) -> bool {
-//            (lhs > rhs) || (lhs == rhs)
-//        }
-//    }
+    //    #[derive(Copy, Drop, Serde, PartialEq, PartialOrd)]
+    //    struct MockBid {
+    //        amount: u256,
+    //        price: u256,
+    //    }
+    //
+    //    impl MockBidPartialOrdTrait of PartialOrd<MockBid> {
+    //        // @return if lhs < rhs
+    //        fn lt(lhs: MockBid, rhs: MockBid) -> bool {
+    //            if lhs.price < rhs.price {
+    //                true
+    //            } else if lhs.price > rhs.price {
+    //                false
+    //            } else {
+    //                if lhs.amount < rhs.amount {
+    //                    true
+    //                } else {
+    //                    false
+    //                }
+    //            }
+    //        }
+    //
+    //        // @return if lhs <= rhs
+    //        fn le(lhs: MockBid, rhs: MockBid) -> bool {
+    //            (lhs < rhs) || (lhs == rhs)
+    //        }
+    //
+    //        // @return if lhs > rhs
+    //        fn gt(lhs: MockBid, rhs: MockBid) -> bool {
+    //            if lhs.price > rhs.price {
+    //                true
+    //            } else if lhs.price < rhs.price {
+    //                false
+    //            } else {
+    //                if lhs.amount > rhs.amount {
+    //                    true
+    //                } else {
+    //                    false
+    //                }
+    //            }
+    //        }
+    //
+    //        // @return if lhs >= rhs
+    //        fn ge(lhs: MockBid, rhs: MockBid) -> bool {
+    //            (lhs > rhs) || (lhs == rhs)
+    //        }
+    //    }
 
     //    impl OptionRoundErrorIntoByteArray of Into<OptionRoundError, ByteArray> {
     //        fn into(self: OptionRoundError) -> ByteArray {
@@ -652,7 +655,8 @@ mod OptionRound {
         }
 
         fn get_bid_details(self: @ContractState, bid_id: felt252) -> Bid {
-            self.bids_tree.bid_details.read(bid_id)
+            let node: Node = self.bids_tree.tree.read(bid_id);
+            node.value
         }
 
 
@@ -676,7 +680,8 @@ mod OptionRound {
                 let hash = poseidon::poseidon_hash_span(
                     array![i.try_into().unwrap(), option_buyer.into()].span()
                 );
-                bids.append(self.bids_tree.bid_details.read(hash));
+                let node: Node = self.bids_tree.tree.read(hash);
+                bids.append(node.value);
                 i -= 1;
             };
             bids
@@ -690,7 +695,7 @@ mod OptionRound {
         }
 
         fn get_option_balance_for(ref self: ContractState, option_buyer: ContractAddress) -> u256 {
-            self.bids_tree.find_options_for(option_buyer,self.clearing_bid.read())
+            self.bids_tree.find_options_for(option_buyer, self.clearing_bid.read())
         }
 
         fn get_round_id(self: @ContractState) -> u256 {
@@ -781,7 +786,7 @@ mod OptionRound {
             self.state.write(OptionRoundState::Auctioning);
 
             // Update auction end date if the auction starts later than expected
-            self.auction_end_date.write(self.get_auction_end_date()+ now - start_date);
+            self.auction_end_date.write(self.get_auction_end_date() + now - start_date);
 
             // Emit auction start event
             self
@@ -827,7 +832,6 @@ mod OptionRound {
             let total_options_sold = self.total_options_sold.read();
             // Set clearing price & total options sold
 
-           
             // Send premiums earned from the auction to Vault
             let eth = self.get_eth_dispatcher();
             eth.transfer(self.vault_address(), self.total_premiums());
@@ -917,7 +921,7 @@ mod OptionRound {
             }
 
             let nonce = self.bidder_nonces.read(bidder);
-            
+
             let bid = Bid {
                 id: poseidon::poseidon_hash_span(
                     array![bidder.into(), nonce.try_into().unwrap()].span()
@@ -949,7 +953,8 @@ mod OptionRound {
                 return Result::Err(OptionRoundError::BiddingWhileNotAuctioning);
             }
 
-            let mut old_bid: Bid = self.bids_tree.bid_details.read(bid_id);
+            let old_node: Node = self.bids_tree.tree.read(bid_id);
+            let mut old_bid: Bid = old_node.value;
             let mut new_bid: Bid = old_bid;
             //Check if amount is decreased
             if (amount < old_bid.amount) {
@@ -1008,14 +1013,18 @@ mod OptionRound {
             let total_options_available = self.get_total_options_available();
             let clearing_price = self.bids_tree.find_clearing_price(total_options_available);
             match clearing_price.unwrap() {
-                ClearingPriceReturn::ClearedParams((value,bid_id)) => {
+                ClearingPriceReturn::ClearedParams((
+                    value, bid_id
+                )) => {
                     self.clearing_price.write(value);
                     self.clearing_bid.write(bid_id);
                     if (self.total_options_sold.read() != total_options_available) {
                         self.total_options_sold.write(total_options_available);
                     };
                 },
-                ClearingPriceReturn::RemainingOptions((clearing_price,remaining_options)) => {
+                ClearingPriceReturn::RemainingOptions((
+                    clearing_price, remaining_options
+                )) => {
                     self.total_options_sold.write(total_options_available - remaining_options);
                     self.clearing_price.write(clearing_price);
                 }
