@@ -76,7 +76,6 @@ pub mod RBTreeComponent {
         fn find(ref self: ComponentState<TContractState>, value: Bid) -> felt252 {
             self.find_node(self.root.read(), value)
         }
-
         fn delete(ref self: ComponentState<TContractState>, value: Bid) {
             let node_to_delete_id = self.find_node(self.root.read(), value);
             if node_to_delete_id == 0 {
