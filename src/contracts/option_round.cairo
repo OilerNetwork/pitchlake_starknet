@@ -314,11 +314,6 @@ mod OptionRound {
         settlement_price: u256
     }
 
-    #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
-    struct PartialBidData {
-        id: felt252,
-        options_sold: u256,
-    }
     // The states an option round can be in
     // @note Should we move these into the contract or separate file ?
     #[derive(Copy, Drop, Serde, PartialEq, starknet::Store)]
