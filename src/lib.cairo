@@ -1,6 +1,7 @@
 mod contracts {
     mod utils {
         mod utils;
+        mod red_black_tree;
     }
     mod eth;
     mod pitch_lake;
@@ -9,5 +10,6 @@ mod contracts {
     mod market_aggregator;
     mod lp_token;
 }
+
 #[cfg(test)]
 mod tests;

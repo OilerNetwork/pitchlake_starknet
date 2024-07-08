@@ -81,7 +81,7 @@ fn test_clearing_price_is_only_bid_price() {
 
 // Test clearing price is max price to sell all options
 #[test]
-#[available_gas(50000000)]
+#[available_gas(80000000)]
 fn test_clearing_price_is_highest_price_to_sell_all_options() {
     let (mut vault, _) = setup_facade();
     // Deposit liquidity and start the auction

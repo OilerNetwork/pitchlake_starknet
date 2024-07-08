@@ -33,7 +33,7 @@ fn test_tokenizing_options_mints_option_tokens() {
     let mut option_bidders = option_bidders_get(number_of_option_bidders).span();
     let bid_amounts = array![50, 142, 235, 222, 75, 35].span();
     let bid_prices = array![20, 11, 11, 2, 1, 1].span();
-    accelerate_to_running_custom_option_round(
+    accelerate_to_running_custom_option_round(vault.contract_address(),
         options_available, reserve_price, bid_amounts, bid_prices
     );
 
@@ -79,7 +79,7 @@ fn test_tokenizing_options_twice_does_nothing() {
     let mut option_bidders = option_bidders_get(number_of_option_bidders).span();
     let bid_amounts = array![50, 142, 235, 222, 75, 35].span();
     let bid_prices = array![20, 11, 11, 2, 1, 1].span();
-    accelerate_to_running_custom_option_round(
+    accelerate_to_running_custom_option_round( vault.contract_address(),
         options_available, reserve_price, bid_amounts, bid_prices
     );
 
@@ -128,7 +128,7 @@ fn test_tokenizing_options_sets_option_storage_balance_to_0() {
     let bid_amounts = array![50, 142, 235, 222, 75, 35].span();
     let bid_prices = array![20, 11, 11, 2, 1, 1].span();
     accelerate_to_running_custom_option_round(
-        options_available, reserve_price, bid_amounts, bid_prices
+       vault.contract_address(), options_available, reserve_price, bid_amounts, bid_prices
     );
 
     loop {

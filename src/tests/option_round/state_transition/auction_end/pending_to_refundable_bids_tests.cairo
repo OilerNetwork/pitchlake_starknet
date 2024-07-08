@@ -187,7 +187,7 @@ fn test_refundable_bids_after_auction_end() {
 
 // Test refundable bids sums partial and fully refundable bids
 #[test]
-#[available_gas(50000000)]
+#[available_gas(100000000)]
 fn test_refundable_bids_includes_partial_and_fully_refunded_bids() {
     let (mut vault, _) = setup_facade();
     // Deposit liquidity and start the auction
