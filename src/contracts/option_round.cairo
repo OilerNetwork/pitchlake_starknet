@@ -285,6 +285,8 @@ mod OptionRound {
         bids_tail: felt252,
         #[substorage(v0)]
         bids_tree: RBTreeComponent::Storage,
+
+        #[substorage(v0)]
         erc20: ERC20Component::Storage,
 
     }
@@ -335,9 +337,10 @@ mod OptionRound {
         OptionSettle: OptionSettle,
         UnusedBidsRefunded: UnusedBidsRefunded,
         OptionsExercised: OptionsExercised,
+        BidTreeEvent: RBTreeComponent::Event,
         #[flat]
         ERC20Event: ERC20Component::Event,
-        BidTreeEvent: rb_tree_component::Event
+       
     }
 
     // Emitted when the auction starts
@@ -1010,6 +1013,12 @@ mod OptionRound {
         // Return if the caller is the Vault or not
         fn is_caller_the_vault(self: @ContractState) -> bool {
             get_caller_address() == self.vault_address.read()
+        }
+
+        fn get_name_symbol(self: @ContractState, round_id: u256) -> (ByteArray, ByteArray) {
+            let name: ByteArray = format!("Pitch Lake Option Round {round_id}");
+            let symbol: ByteArray = format!("PLOR{round_id}");
+            return (name, symbol);
         }
 
         fn update_clearing_price(ref self: ContractState) -> (u256, u256) {
