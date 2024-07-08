@@ -1022,7 +1022,7 @@ mod OptionRound {
 
         fn get_name_symbol(self: @ContractState, round_id: u256) -> (ByteArray, ByteArray) {
             let name: ByteArray = format!("Pitch Lake Option Round {round_id}");
-            let symbol: ByteArray = format!("Pitch Lake Option Round {round_id}");
+            let symbol: ByteArray = format!("PLOR{round_id}");
             return (name, symbol);
         }
 
