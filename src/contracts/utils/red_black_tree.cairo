@@ -115,6 +115,7 @@ pub mod RBTreeComponent {
                     self.root.read(), bidder, array![], refundable_bids, false
                 );
             return (tokenizable_bids, refundable_bids);
+
         }
 
         fn get_tree_structure(
@@ -149,12 +150,13 @@ pub mod RBTreeComponent {
             clearing_bid_reached: bool
         ) -> (Array<felt252>, Array<felt252>, bool) {
             //If null node return states unchanged
+
             if (current_id == 0) {
                 return (tokenizable_bids, refundable_bids, false);
             }
 
             let current_node: Node = self.tree.read(current_id);
-
+            let clearing_bid: felt252 = self.clearing_bid.read();
             //Recursive on Right Node
             let (mut tokenizable_bids, mut refundable_bids, clearing_bid_reached) = self
                 .traverse_postorder_calculate_options_from_node(
@@ -173,6 +175,7 @@ pub mod RBTreeComponent {
 
                 //Remove bid from refundable array
                 refundable_bids = self.remove_from_array(current_id, refundable_bids);
+
             }
 
             //Recursive on Left Node and return result directly to the outer call
@@ -180,6 +183,7 @@ pub mod RBTreeComponent {
                 .traverse_postorder_calculate_options_from_node(
                     current_node.left, bidder, tokenizable_bids, refundable_bids, false
                 )
+
         }
 
         fn traverse_postorder_clearing_price_from_node(
