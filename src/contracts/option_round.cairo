@@ -238,6 +238,14 @@ mod OptionRound {
     }
 
 
+    // ERC20 Component
+    component!(path: ERC20Component, storage: erc20, event: ERC20Event);
+    // Exposes snake_case & CamelCase entry points
+    #[abi(embed_v0)]
+    impl ERC20MixinImpl = ERC20Component::ERC20MixinImpl<ContractState>;
+    // Allows the contract access to internal functions
+    impl ERC20InternalImpl = ERC20Component::InternalImpl<ContractState>;
+
     #[storage]
     struct Storage {
         vault_address: ContractAddress,
@@ -264,7 +272,7 @@ mod OptionRound {
         // The clearing price of the auction (the price each option sells for)
         clearing_price: u256,
         // Bid id for the last bid to be partially or fully filled
-        clearing_bid:felt252,
+        clearing_bid: felt252,
         // The auction start date
         auction_start_date: u64,
         // The auction end date
@@ -279,6 +287,8 @@ mod OptionRound {
         linked_list: LegacyMap<felt252, LinkedBids>,
         bids_head: felt252,
         bids_tail: felt252,
+        #[substorage(v0)]
+        erc20: ERC20Component::Storage,
         #[substorage(v0)]
         bids_tree: rb_tree_component::Storage,
     }
@@ -329,7 +339,9 @@ mod OptionRound {
         OptionSettle: OptionSettle,
         UnusedBidsRefunded: UnusedBidsRefunded,
         OptionsExercised: OptionsExercised,
-        BidTreeEvent: rb_tree_component::Event,
+        #[flat]
+        ERC20Event: ERC20Component::Event,
+        BidTreeEvent: rb_tree_component::Event
     }
 
     // Emitted when the auction starts
@@ -445,8 +457,11 @@ mod OptionRound {
         option_settlement_date: u64,
         reserve_price: u256,
         cap_level: u256,
-        strike_price: u256,
+        strike_price: u256
     ) {
+        let (name, symbol) = self.get_name_symbol(round_id);
+        // Initialize the ERC20 component
+        self.erc20.initializer(name, symbol);
         // Set the vault address and round id
         self.vault_address.write(vault_address);
         self.round_id.write(round_id);
@@ -511,53 +526,53 @@ mod OptionRound {
 
     // @dev Building this struct as a place holder for when we inject the RB tree into the contract
 
-//    #[derive(Copy, Drop, Serde, PartialEq, PartialOrd)]
-//    struct MockBid {
-//        amount: u256,
-//        price: u256,
-//    }
-//
-//    impl MockBidPartialOrdTrait of PartialOrd<MockBid> {
-//        // @return if lhs < rhs
-//        fn lt(lhs: MockBid, rhs: MockBid) -> bool {
-//            if lhs.price < rhs.price {
-//                true
-//            } else if lhs.price > rhs.price {
-//                false
-//            } else {
-//                if lhs.amount < rhs.amount {
-//                    true
-//                } else {
-//                    false
-//                }
-//            }
-//        }
-//
-//        // @return if lhs <= rhs
-//        fn le(lhs: MockBid, rhs: MockBid) -> bool {
-//            (lhs < rhs) || (lhs == rhs)
-//        }
-//
-//        // @return if lhs > rhs
-//        fn gt(lhs: MockBid, rhs: MockBid) -> bool {
-//            if lhs.price > rhs.price {
-//                true
-//            } else if lhs.price < rhs.price {
-//                false
-//            } else {
-//                if lhs.amount > rhs.amount {
-//                    true
-//                } else {
-//                    false
-//                }
-//            }
-//        }
-//
-//        // @return if lhs >= rhs
-//        fn ge(lhs: MockBid, rhs: MockBid) -> bool {
-//            (lhs > rhs) || (lhs == rhs)
-//        }
-//    }
+    //    #[derive(Copy, Drop, Serde, PartialEq, PartialOrd)]
+    //    struct MockBid {
+    //        amount: u256,
+    //        price: u256,
+    //    }
+    //
+    //    impl MockBidPartialOrdTrait of PartialOrd<MockBid> {
+    //        // @return if lhs < rhs
+    //        fn lt(lhs: MockBid, rhs: MockBid) -> bool {
+    //            if lhs.price < rhs.price {
+    //                true
+    //            } else if lhs.price > rhs.price {
+    //                false
+    //            } else {
+    //                if lhs.amount < rhs.amount {
+    //                    true
+    //                } else {
+    //                    false
+    //                }
+    //            }
+    //        }
+    //
+    //        // @return if lhs <= rhs
+    //        fn le(lhs: MockBid, rhs: MockBid) -> bool {
+    //            (lhs < rhs) || (lhs == rhs)
+    //        }
+    //
+    //        // @return if lhs > rhs
+    //        fn gt(lhs: MockBid, rhs: MockBid) -> bool {
+    //            if lhs.price > rhs.price {
+    //                true
+    //            } else if lhs.price < rhs.price {
+    //                false
+    //            } else {
+    //                if lhs.amount > rhs.amount {
+    //                    true
+    //                } else {
+    //                    false
+    //                }
+    //            }
+    //        }
+    //
+    //        // @return if lhs >= rhs
+    //        fn ge(lhs: MockBid, rhs: MockBid) -> bool {
+    //            (lhs > rhs) || (lhs == rhs)
+    //        }
+    //    }
 
     //    impl OptionRoundErrorIntoByteArray of Into<OptionRoundError, ByteArray> {
     //        fn into(self: OptionRoundError) -> ByteArray {
@@ -690,7 +705,7 @@ mod OptionRound {
         }
 
         fn get_option_balance_for(ref self: ContractState, option_buyer: ContractAddress) -> u256 {
-            self.bids_tree.find_options_for(option_buyer,self.clearing_bid.read())
+            self.bids_tree.find_options_for(option_buyer, self.clearing_bid.read())
         }
 
         fn get_round_id(self: @ContractState) -> u256 {
@@ -1005,11 +1020,19 @@ mod OptionRound {
             get_caller_address() == self.vault_address.read()
         }
 
+        fn get_name_symbol(self: @ContractState, round_id: u256) -> (ByteArray, ByteArray) {
+            let name: ByteArray = format!("Pitch Lake Option Round {round_id}");
+            let symbol: ByteArray = format!("PLOR{round_id}");
+            return (name, symbol);
+        }
+
         fn update_clearing_price(ref self: ContractState) {
             let total_options_available = self.total_options_available.read();
             let clearing_price = self.bids_tree.find_clearing_price(total_options_available);
             match clearing_price.unwrap() {
-                ClearingPriceReturn::ClearedParams((value,bid_id)) => {
+                ClearingPriceReturn::ClearedParams((
+                    value, bid_id
+                )) => {
                     self.clearing_price.write(value);
                     self.clearing_bid.write(bid_id);
                     if (self.total_options_sold.read() != total_options_available) {
@@ -1032,6 +1055,14 @@ mod OptionRound {
             let vault = self.get_vault_dispatcher();
             let eth_address = vault.eth_address();
             IERC20Dispatcher { contract_address: eth_address }
+        }
+
+        fn mint(ref self: ContractState, to: ContractAddress, amount: u256) {
+            self.erc20._mint(to, amount);
+        }
+
+        fn burn(ref self: ContractState, owner: ContractAddress, amount: u256) {
+            self.erc20._burn(owner, amount);
         }
 
         fn calculate_options(ref self: ContractState, starting_liquidity: u256) -> u256 {
