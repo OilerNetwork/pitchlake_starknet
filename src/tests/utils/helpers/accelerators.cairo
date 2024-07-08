@@ -108,7 +108,7 @@ fn accelerate_to_running_custom(
 // Used to test real number outcomes for option distributions
 // @note Re-name, add additional comments for clarity
 fn accelerate_to_running_custom_option_round(
-vault_address: ContractAddress,
+    vault_address: ContractAddress,
     total_options_available: u256,
     reserve_price: u256,
     bid_amounts: Span<u256>,

@@ -181,10 +181,7 @@ mod OptionRound {
     use starknet::{ContractAddress, get_caller_address, get_contract_address, get_block_timestamp};
     use pitch_lake_starknet::contracts::{
         market_aggregator::{IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait},
-        utils::{
-            red_black_tree::{RBTreeComponent, ClearingPriceReturn, RBTreeComponent::Node},
-            utils::{min, max}
-        },
+        utils::{red_black_tree::{RBTreeComponent, RBTreeComponent::Node}, utils::{min, max}},
         vault::{Vault::VaultType, IVaultDispatcher, IVaultDispatcherTrait},
         option_round::IOptionRound
     };
@@ -251,7 +248,7 @@ mod OptionRound {
         // The round's id
         round_id: u256,
         // Total number of options available to sell in the auction
-        total_options_available: u256,
+
         // The cap level of the potential payout
         cap_level: u256,
         // The minimum bid price per option
@@ -263,7 +260,6 @@ mod OptionRound {
         // The amount the option round pays out upon settlemnt
         total_payout: u256,
         // The total number of options sold in the auction
-        total_options_sold: u256,
         // The clearing price of the auction (the price each option sells for)
         // The auction start date
         auction_start_date: u64,
@@ -648,7 +644,7 @@ mod OptionRound {
         }
 
         fn total_options_sold(self: @ContractState) -> u256 {
-            self.total_options_sold.read()
+            self.bids_tree.total_options_sold.read()
         }
 
         fn get_bid_details(self: @ContractState, bid_id: felt252) -> Bid {
@@ -736,7 +732,7 @@ mod OptionRound {
         }
 
         fn get_total_options_available(self: @ContractState) -> u256 {
-            self.total_options_available.read()
+            self.bids_tree.total_options_available.read()
         }
 
         /// Writes ///
@@ -777,7 +773,7 @@ mod OptionRound {
             self.strike_price.write(strike_price);
             // Set starting liquidity & total options available
             self.starting_liquidity.write(starting_liquidity);
-            self.total_options_available.write(5); //HardCoded for tests
+            self.bids_tree.total_options_available.write(5); //HardCoded for tests
 
             // Update state to Auctioning
             self.state.write(OptionRoundState::Auctioning);
@@ -824,11 +820,8 @@ mod OptionRound {
             // Calculate clearing price & total options sold
             //  - An empty helper function is fine for now, we will discuss the
             //  implementation of this function later
-            self.update_clearing_price();
-            let clearing_price = self.get_auction_clearing_price();
-            let total_options_sold = self.total_options_sold.read();
+            let (clearing_price, total_options_sold) = self.update_clearing_price();
             // Set clearing price & total options sold
-
             // Send premiums earned from the auction to Vault
             let eth = self.get_eth_dispatcher();
             eth.transfer(self.vault_address(), self.total_premiums());
@@ -972,8 +965,6 @@ mod OptionRound {
 
             self.bids_tree.insert(new_bid);
 
-            self.update_clearing_price();
-
             let eth_dispatcher = self.get_eth_dispatcher();
             eth_dispatcher.transfer_from(get_caller_address(), get_contract_address(), difference);
             Result::Ok(new_bid)
@@ -1006,26 +997,8 @@ mod OptionRound {
             get_caller_address() == self.vault_address.read()
         }
 
-        fn update_clearing_price(ref self: ContractState) {
-            let total_options_available = self.get_total_options_available();
-            let clearing_price = self.bids_tree.find_clearing_price(total_options_available);
-            match clearing_price.unwrap() {
-                ClearingPriceReturn::ClearedParams((
-                    value, bid_id
-                )) => {
-                    self.bids_tree.clearing_price.write(value);
-                    self.bids_tree.clearing_bid.write(bid_id);
-                    if (self.total_options_sold.read() != total_options_available) {
-                        self.total_options_sold.write(total_options_available);
-                    };
-                },
-                ClearingPriceReturn::RemainingOptions((
-                    clearing_price, remaining_options
-                )) => {
-                    self.total_options_sold.write(total_options_available - remaining_options);
-                    self.bids_tree.clearing_price.write(clearing_price);
-                }
-            }
+        fn update_clearing_price(ref self: ContractState) -> (u256, u256) {
+            self.bids_tree.find_clearing_price()
         }
 
         // End the auction and calculate the clearing price and total options sold
