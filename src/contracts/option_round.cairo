@@ -285,10 +285,8 @@ mod OptionRound {
         bids_tail: felt252,
         #[substorage(v0)]
         bids_tree: RBTreeComponent::Storage,
-
         #[substorage(v0)]
         erc20: ERC20Component::Storage,
-
     }
 
     // The parameters needed to construct an option round
@@ -340,7 +338,6 @@ mod OptionRound {
         BidTreeEvent: RBTreeComponent::Event,
         #[flat]
         ERC20Event: ERC20Component::Event,
-       
     }
 
     // Emitted when the auction starts
