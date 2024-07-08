@@ -81,11 +81,18 @@ pub mod rb_tree_component {
 
             self.insert_node_recursively(self.root.read(), new_node_id, value);
             self.balance_after_insertion(new_node_id);
-
         }
 
         fn find(ref self: ComponentState<TContractState>, value: Bid) -> felt252 {
             self.find_node(self.root.read(), value)
+        }
+
+        fn delete(ref self: ComponentState<TContractState>, value: Bid) {
+            let node_to_delete_id = self.find_node(self.root.read(), value);
+            if node_to_delete_id == 0 {
+                return;
+            }
+            self.delete_node(node_to_delete_id);
         }
 
         fn find_clearing_price(
@@ -120,14 +127,6 @@ pub mod rb_tree_component {
                 .traverse_postorder_calculate_options_from_node(
                     self.root.read(), bidder, clearing_bid, 0
                 )
-        }
-
-        fn delete(ref self: ComponentState<TContractState>, value: Bid) {
-            let node_to_delete_id = self.find_node(self.root.read(), value);
-            if node_to_delete_id == 0 {
-                return;
-            }
-            self.delete_node(node_to_delete_id);
         }
 
         fn get_tree_structure(
