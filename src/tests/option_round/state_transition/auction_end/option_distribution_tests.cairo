@@ -503,7 +503,7 @@ fn test_losing_bid_gets_no_options() {
 #[test]
 #[available_gas(50000000)]
 fn test_option_distribution_real_numbers_1() {
-  let (mut vault, _) = setup_facade();
+    let (mut vault, _) = setup_facade();
     let options_available = 200;
     let reserve_price = 2;
     let bid_amounts = array![50, 142, 235, 222, 75, 35].span();
@@ -512,7 +512,7 @@ fn test_option_distribution_real_numbers_1() {
     let mut expected_option_distribution = array![50, 142, 8, 0, 0, 0].span();
 
     auction_real_numbers_test_helper(
-   vault.contract_address(),
+        vault.contract_address(),
         options_available,
         reserve_price,
         bid_amounts,
@@ -526,7 +526,7 @@ fn test_option_distribution_real_numbers_1() {
 #[test]
 #[available_gas(50000000)]
 fn test_option_distribution_real_numbers_2() {
-  let (mut vault, _) = setup_facade();
+    let (mut vault, _) = setup_facade();
     let options_available = 200;
     let reserve_price = 2;
     let bid_amounts = array![25, 20, 60, 40, 75, 35].span();
@@ -535,7 +535,7 @@ fn test_option_distribution_real_numbers_2() {
     let mut expected_option_distribution = array![25, 20, 60, 40, 0, 0].span();
 
     auction_real_numbers_test_helper(
-    vault.contract_address(),
+        vault.contract_address(),
         options_available,
         reserve_price,
         bid_amounts,
@@ -548,7 +548,7 @@ fn test_option_distribution_real_numbers_2() {
 #[test]
 #[available_gas(50000000)]
 fn test_option_distribution_real_numbers_3() {
-  let (mut vault, _) = setup_facade();
+    let (mut vault, _) = setup_facade();
     let options_available = 500;
     let reserve_price = 2;
     let bid_amounts = array![400, 50, 30, 50, 75, 30].span();
@@ -557,7 +557,7 @@ fn test_option_distribution_real_numbers_3() {
     let mut expected_option_distribution = array![400, 50, 30, 20, 0, 0].span();
 
     auction_real_numbers_test_helper(
-vault.contract_address(),
+        vault.contract_address(),
         options_available,
         reserve_price,
         bid_amounts,
@@ -569,7 +569,7 @@ vault.contract_address(),
 
 // @note Need to make sure rejected bids do not revert here, switch to using raw calls
 fn auction_real_numbers_test_helper(
-vault_address: ContractAddress,
+    vault_address: ContractAddress,
     options_available: u256,
     reserve_price: u256,
     bid_amounts: Span<u256>,
@@ -577,8 +577,8 @@ vault_address: ContractAddress,
     expected_options_sold: u256,
     mut expected_option_distribution: Span<u256>,
 ) {
-    let (_, options_sold, mut option_round) = accelerate_to_running_custom_option_round( vault_address,
-        options_available, reserve_price, bid_amounts, bid_prices
+    let (_, options_sold, mut option_round) = accelerate_to_running_custom_option_round(
+        vault_address, options_available, reserve_price, bid_amounts, bid_prices
     );
 
     // Check that the correct number of options were sold and distributed
