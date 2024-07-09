@@ -30,7 +30,6 @@ pub mod RBTreeComponent {
         tree: LegacyMap::<felt252, Node>,
         nonce: u64,
         node_position: LegacyMap<felt252, u256>,
-        next_id: felt252,
         clearing_bid_amount_sold: u256,
         clearing_price: u256,
         clearing_bid: felt252,
@@ -64,6 +63,7 @@ pub mod RBTreeComponent {
     > of super::IRBTree<ComponentState<TContractState>> {
         fn insert(ref self: ComponentState<TContractState>, value: Bid) {
             let new_node_id = value.id;
+            
             if self.root.read() == 0 {
                 self.root.write(new_node_id);
                 self
@@ -292,22 +292,6 @@ pub mod RBTreeComponent {
                 }
             };
             new_array
-        }
-
-
-        fn create_new_node(ref self: ComponentState<TContractState>, value: Bid) -> felt252 {
-            let new_node_id = self.next_id.read();
-            self.next_id.write(new_node_id + 1);
-
-            let mut color = RED;
-            if (self.root.read() == 0) {
-                color = BLACK;
-            }
-
-            let new_node = Node { value, left: 0, right: 0, parent: 0, color: color };
-
-            self.tree.write(new_node_id, new_node);
-            return new_node_id;
         }
 
         fn is_left_child(ref self: ComponentState<TContractState>, node_id: felt252) -> bool {
