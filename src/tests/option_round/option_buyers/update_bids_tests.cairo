@@ -5,7 +5,7 @@ use pitch_lake_starknet::{
         utils::{
             helpers::{
                 setup::{setup_facade}, accelerators::{accelerate_to_auctioning},
-                event_helpers::{assert_event_auction_bid_updated}
+                event_helpers::{assert_event_auction_bid_updated, clear_event_logs},
             },
             lib::{
                 test_accounts::{option_bidders_get, option_bidder_buyer_1}, variables::{decimals},
@@ -66,7 +66,7 @@ fn test_update_bids_price_cannot_be_decreased() {
 
 #[test]
 #[available_gas(50000000)]
-fn test_update_bids_price_amount() {
+fn test_update_bid_event() {
     let (mut vault_facade, _) = setup_facade();
     let options_available = accelerate_to_auctioning(ref vault_facade);
     let mut current_round = vault_facade.get_current_round();
@@ -77,19 +77,20 @@ fn test_update_bids_price_amount() {
     let bid_price = reserve_price;
     let mut bid_amount = options_available / 2;
     let bid_id = current_round.place_bid(bid_amount, bid_price, option_buyer);
+    clear_event_logs(array![current_round.contract_address()]);
 
-    let updated_bid = current_round.update_bid(bid_id, bid_amount + 1, bid_price + 5 * decimals());
+    let updated_bid = current_round.update_bid(bid_id, bid_amount + 1, bid_price + 5);
     assert_event_auction_bid_updated(
         current_round.contract_address(),
         option_buyer,
-        bid_amount + 1, //Updated amount
-        bid_price + 5, //Updated price
         bid_amount, //Old amount
         bid_price, //Old price
+        bid_amount + 1, //Updated amount
+        bid_price + 5, //Updated price
         bid_id
     );
     assert(updated_bid.amount == bid_amount + 1, 'Updated amount incorrect');
-    assert(updated_bid.price == bid_price + 5 * decimals(), 'Updated price incorrect');
+    assert(updated_bid.price == bid_price + 5, 'Updated price incorrect');
 }
 
 // These 2 tests deal with the case where the the bidder is editing their bid to cost them more ETH, but lower

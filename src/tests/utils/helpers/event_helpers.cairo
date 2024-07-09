@@ -2,6 +2,7 @@ use starknet::{testing, ContractAddress,};
 use pitch_lake_starknet::contracts::{vault::{Vault}, option_round::{OptionRound}};
 use openzeppelin::token::erc20::{ERC20Component, ERC20Component::Transfer};
 use openzeppelin::{utils::serde::SerializedAppend,};
+use debug::PrintTrait;
 // Helpers
 
 // Pop the earliest unpopped logged event for the contract as the requested type
@@ -80,10 +81,10 @@ fn assert_event_auction_bid_accepted(
 fn assert_event_auction_bid_updated(
     contract: ContractAddress,
     account: ContractAddress,
-    new_amount: u256,
-    new_price: u256,
     old_amount: u256,
     old_price: u256,
+    new_amount: u256,
+    new_price: u256,
     id: felt252
 ) {
     match pop_log::<OptionRound::Event>(contract) {
