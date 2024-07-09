@@ -346,7 +346,7 @@ mod OptionRound {
         UnusedBidsRefunded: UnusedBidsRefunded,
         OptionsExercised: OptionsExercised,
         BidTreeEvent: RBTreeComponent::Event,
-        OptionTokenized: OptionTokenized,
+        OptionsTokenized: OptionsTokenized,
         #[flat]
         ERC20Event: ERC20Component::Event,
     }
@@ -397,7 +397,7 @@ mod OptionRound {
     }
 
     #[derive(Drop, starknet::Event, PartialEq)]
-    struct OptionTokenized {
+    struct OptionsTokenized {
         #[key]
         account: ContractAddress,
         bid_id: felt252,
