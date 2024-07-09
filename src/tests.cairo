@@ -17,6 +17,7 @@ mod misc {
 
 #[cfg(test)]
 mod rb_tree {
+    mod rb_tree_mock_contract;
     mod rb_tree_tests;
 }
 
