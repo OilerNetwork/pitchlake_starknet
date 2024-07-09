@@ -415,26 +415,16 @@ mod OptionRound {
         is_refunded: bool,
     }
 
-    impl OptionRoundStateDisplay of Display<OptionRoundState>{
-        fn fmt(self:@OptionRoundState, ref f:Formatter)->Result<(),Error>{
-            let str:ByteArray = match self{
-                OptionRoundState::Open=>{
-                    format!("Open")
-                },
-                OptionRoundState::Auctioning=>{
-                    format!("Auctioning")
-                    
-                },
-                OptionRoundState::Running=>{
-                    format!("Running")
-                },
-                OptionRoundState::Settled=>{
-                    format!("Settled")
-                }
+    impl OptionRoundStateDisplay of Display<OptionRoundState> {
+        fn fmt(self: @OptionRoundState, ref f: Formatter) -> Result<(), Error> {
+            let str: ByteArray = match self {
+                OptionRoundState::Open => { format!("Open") },
+                OptionRoundState::Auctioning => { format!("Auctioning") },
+                OptionRoundState::Running => { format!("Running") },
+                OptionRoundState::Settled => { format!("Settled") }
             };
             f.buffer.append(@str);
             Result::Ok(())
-
         }
     }
     impl BidDisplay of Display<Bid> {
@@ -1166,7 +1156,7 @@ mod OptionRound {
         ) -> Result<u256, OptionRoundError> {
             //Check that the round is settled 
             let state = self.get_state();
-            if (state != OptionRoundState::Running&&state!=OptionRoundState::Settled) {
+            if (state != OptionRoundState::Running && state != OptionRoundState::Settled) {
                 return Result::Err(OptionRoundError::AuctionNotEnded);
             }
             let (mut tokenizable_bids, _, partial_bid) = self.inspect_options_for(option_buyer);
@@ -1176,8 +1166,9 @@ mod OptionRound {
             if (partial_bid.is_non_zero()) {
                 let mut partial_node: Node = self.bids_tree.tree.read(partial_bid);
                 //Since only clearing_bid can be partially sold, the clearing_bid_amount_sold is saved on the tree
-                let options_sold = self.bids_tree.clearing_bid_amount_sold.read();
+
                 if (!partial_node.value.is_tokenized) {
+                    let options_sold = self.bids_tree.clearing_bid_amount_sold.read();
                     options_to_mint += options_sold;
                     partial_node.value.is_tokenized = true;
                     self.bids_tree.tree.write(partial_bid, partial_node);
@@ -1187,10 +1178,10 @@ mod OptionRound {
                 match tokenizable_bids.pop_front() {
                     Option::Some(mut bid) => {
                         if (!bid.is_tokenized) {
-                            options_to_mint += bid.amount;
                             let mut bid_node: Node = self.bids_tree.tree.read(bid.id);
                             bid_node.value.is_tokenized = true;
                             self.bids_tree.tree.write(bid.id, bid_node);
+                            options_to_mint += bid.amount;
                         }
                     },
                     Option::None => { break; }

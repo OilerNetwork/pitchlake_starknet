@@ -10,7 +10,9 @@ use pitch_lake_starknet::tests::{
         lib::{test_accounts::{option_bidders_get, option_bidder_buyer_1},},
         facades::{
             vault_facade::{VaultFacade, VaultFacadeTrait},
-            option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundParams,OptionRoundError}
+            option_round_facade::{
+                OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundParams, OptionRoundError
+            }
         },
     },
 };
@@ -24,7 +26,6 @@ use starknet::{contract_address_const, testing::{set_block_timestamp}};
 #[available_gas(500000000)]
 fn test_tokenizing_options_mints_option_tokens() {
     let (mut vault, _) = setup_facade();
-    let mut current_round = vault.get_current_round();
 
     // Start auction with custom auction params
     let options_available = 200;
@@ -33,7 +34,7 @@ fn test_tokenizing_options_mints_option_tokens() {
     let mut option_bidders = option_bidders_get(number_of_option_bidders).span();
     let bid_amounts = array![50, 142, 235, 222, 75, 35].span();
     let bid_prices = array![20, 11, 11, 2, 1, 1].span();
-    let (_,_,mut current_round) = accelerate_to_running_custom_option_round(
+    let (_, _, mut current_round) = accelerate_to_running_custom_option_round(
         vault.contract_address(), options_available, reserve_price, bid_amounts, bid_prices
     );
     loop {
@@ -65,19 +66,15 @@ fn test_tokenizing_options_mints_option_tokens() {
 
 #[test]
 #[available_gas(500000000)]
-fn test_tokenizing_options_before_auction_end_fails(){
+fn test_tokenizing_options_before_auction_end_fails() {
     let (mut vault, _) = setup_facade();
     let mut current_round = vault.get_current_round();
     let option_bidder = option_bidder_buyer_1();
-    let expected_error= OptionRoundError::AuctionNotEnded;
+    let expected_error = OptionRoundError::AuctionNotEnded;
     let res = current_round.tokenize_options_raw(option_bidder);
-    match res{
-        Result::Ok(_)=>{
-            panic!("Should throw error")
-        },
-        Result::Err(e)=>{
-            assert(e==expected_error,'Error mismatch')
-        }
+    match res {
+        Result::Ok(_) => { panic!("Should throw error") },
+        Result::Err(e) => { assert(e == expected_error, 'Error mismatch') }
     }
 }
 
@@ -87,7 +84,6 @@ fn test_tokenizing_options_before_auction_end_fails(){
 #[available_gas(500000000)]
 fn test_tokenizing_options_twice_does_nothing() {
     let (mut vault, _) = setup_facade();
-    let mut current_round = vault.get_current_round();
 
     // Start auction with custom auction params
     let options_available = 200;
@@ -96,7 +92,7 @@ fn test_tokenizing_options_twice_does_nothing() {
     let mut option_bidders = option_bidders_get(number_of_option_bidders).span();
     let bid_amounts = array![50, 142, 235, 222, 75, 35].span();
     let bid_prices = array![20, 11, 11, 2, 1, 1].span();
-    let (_,_,mut current_round)= accelerate_to_running_custom_option_round(
+    let (_, _, mut current_round) = accelerate_to_running_custom_option_round(
         vault.contract_address(), options_available, reserve_price, bid_amounts, bid_prices
     );
 
@@ -135,7 +131,6 @@ fn test_tokenizing_options_twice_does_nothing() {
 #[available_gas(500000000)]
 fn test_tokenizing_options_sets_option_storage_balance_to_0() {
     let (mut vault, _) = setup_facade();
-    let mut current_round = vault.get_current_round();
 
     // Start auction with custom auction params
     let options_available = 200;
@@ -144,7 +139,7 @@ fn test_tokenizing_options_sets_option_storage_balance_to_0() {
     let mut option_bidders = option_bidders_get(number_of_option_bidders).span();
     let bid_amounts = array![50, 142, 235, 222, 75, 35].span();
     let bid_prices = array![20, 11, 11, 2, 1, 1].span();
-    let (_,_,mut current_round)= accelerate_to_running_custom_option_round(
+    let (_, _, mut current_round) = accelerate_to_running_custom_option_round(
         vault.contract_address(), options_available, reserve_price, bid_amounts, bid_prices
     );
 
