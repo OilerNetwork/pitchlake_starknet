@@ -127,7 +127,6 @@ pub mod RBTreeComponent {
     pub impl InternalImpl<
         TContractState, +HasComponent<TContractState>
     > of InternalTrait<TContractState> {
-
         fn traverse_postorder_clearing_price_from_node(
             ref self: ComponentState<TContractState>,
             current_id: felt252,
@@ -152,7 +151,7 @@ pub mod RBTreeComponent {
             //Check for self
             if (current_node.value.amount >= remaining_options) {
                 self.clearing_bid_amount_sold.write(remaining_options);
-                
+
                 return (current_id, 0);
             } else {
                 remaining_options -= current_node.value.amount;
