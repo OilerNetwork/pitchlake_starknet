@@ -11,7 +11,7 @@ trait IRBTree<TContractState> {
     ) -> (Array<felt252>, Array<felt252>);
     fn get_tree_structure(ref self: TContractState) -> Array<Array<(Bid, bool, u256)>>;
     fn is_tree_valid(ref self: TContractState) -> bool;
-    fn get_total_options_available(self: @TContractState) -> u256;
+    fn RBTree_get_total_options_available(self: @TContractState) -> u256;
     fn get_total_options_sold(self: @TContractState) -> u256;
 }
 
@@ -89,7 +89,7 @@ pub mod RBTreeComponent {
         }
 
         fn find_clearing_price(ref self: ComponentState<TContractState>) -> (u256, u256) {
-            let total_options_available = self.get_total_options_available();
+            let total_options_available = self.RBTree_get_total_options_available();
             let root: felt252 = self.root.read();
             let root_node: Node = self.tree.read(root);
             let root_bid: Bid = root_node.value;
@@ -129,7 +129,7 @@ pub mod RBTreeComponent {
             self.total_options_sold.read()
         }
 
-        fn get_total_options_available(self: @ComponentState<TContractState>) -> u256 {
+        fn RBTree_get_total_options_available(self: @ComponentState<TContractState>) -> u256 {
             self.total_options_available.read()
         }
 
