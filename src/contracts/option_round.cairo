@@ -764,7 +764,7 @@ mod OptionRound {
             refundable_balance
         }
 
-
+        // Get the amount of options that can be tokenized for the option buyer
         fn get_tokenizable_options_for(
             self: @ContractState, option_buyer: ContractAddress
         ) -> u256 {
