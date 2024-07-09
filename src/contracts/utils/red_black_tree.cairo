@@ -63,12 +63,10 @@ pub mod RBTreeComponent {
     > of super::IRBTree<ComponentState<TContractState>> {
         fn insert(ref self: ComponentState<TContractState>, value: Bid) {
             let new_node_id = value.id;
-            
+
             if self.root.read() == 0 {
                 self.root.write(new_node_id);
-                self
-                    .tree
-                    .write(new_node_id, Node { value, left: 0, right: 0, parent: 0, color: BLACK });
+                self.tree.write(new_node_id, self.create_default_node(@value));
                 return;
             }
 
@@ -208,7 +206,7 @@ pub mod RBTreeComponent {
                 return (clearing_felt, 0);
             }
 
-            //Check for self 
+            //Check for self
             if (current_node.value.amount >= remaining_options) {
                 self.clearing_bid_amount_sold.write(remaining_options);
 
@@ -292,6 +290,10 @@ pub mod RBTreeComponent {
                 }
             };
             new_array
+        }
+
+        fn create_default_node(self: @ComponentState<TContractState>, value: @Bid) -> Node {
+            Node { value: *value, left: 0, right: 0, parent: 0, color: BLACK, }
         }
 
         fn is_left_child(ref self: ComponentState<TContractState>, node_id: felt252) -> bool {
