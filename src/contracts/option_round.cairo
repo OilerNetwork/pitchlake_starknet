@@ -887,7 +887,7 @@ mod OptionRound {
                 );
 
             // Return the total options available
-            Result::Ok(30) //HardCoded for tests
+            Result::Ok(total_options_available)
         }
 
         // End the round's auction
@@ -1093,7 +1093,6 @@ mod OptionRound {
         fn tokenize_options(
             ref self: ContractState, option_buyer: ContractAddress
         ) -> Result<u256, OptionRoundError> {
-
             //Check that the round is past auctioning state
             let state = self.get_state();
             if (state == OptionRoundState::Auctioning || state == OptionRoundState::Open) {
