@@ -71,7 +71,7 @@ trait IOptionRound<TContractState> {
     // refundable amount should be the value of the last bid + the remaining amount of the partial bid
     fn get_refundable_bids_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
-    fn get_total_options_balance_for(self:@TContractState,option_buyer:ContractAddress)->u256;
+    fn get_total_options_balance_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
     // Gets the amount that an option buyer can exercise with their option balance
     fn get_payout_balance_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
@@ -389,7 +389,7 @@ mod OptionRound {
         price: u256
     }
 
-#[derive(Copy, Drop, Serde, starknet::Store, PartialEq, Display)]
+    #[derive(Copy, Drop, Serde, starknet::Store, PartialEq, Display)]
     struct Bid {
         id: felt252,
         nonce: u64,
@@ -755,18 +755,22 @@ mod OptionRound {
             refundable_balance
         }
 
-        fn get_total_options_balance_for(self: @ContractState, option_buyer:ContractAddress)->u256{
-            let tokenizable_options_amount= self.get_tokenizable_options_for(option_buyer);
-            let eth_dispatcher = IERC20Dispatcher {contract_address:get_contract_address()};
+        fn get_total_options_balance_for(
+            self: @ContractState, option_buyer: ContractAddress
+        ) -> u256 {
+            let tokenizable_options_amount = self.get_tokenizable_options_for(option_buyer);
+            let eth_dispatcher = IERC20Dispatcher { contract_address: get_contract_address() };
             let token_balance = eth_dispatcher.balance_of(option_buyer);
 
-            tokenizable_options_amount+token_balance
+            tokenizable_options_amount + token_balance
         }
         fn get_payout_balance_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
             1
         }
 
-        fn get_tokenizable_options_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
+        fn get_tokenizable_options_for(
+            self: @ContractState, option_buyer: ContractAddress
+        ) -> u256 {
             //self.bids_tree.find_options_for(option_buyer);
             let (mut tokenizable_bids, _, partial_bid) = self.inspect_options_for(option_buyer);
             let mut options_balance: u256 = 0;
@@ -1093,7 +1097,7 @@ mod OptionRound {
                         }
                     )
                 );
-                
+
             Result::Ok(new_bid)
         }
 
@@ -1194,7 +1198,7 @@ mod OptionRound {
             0
         }
 
-        fn calculate_expected_payout(ref self: ContractState, settlement_price: u256,) -> u256 {
+        fn calculate_payout(ref self: ContractState, settlement_price: u256,) -> u256 {
             let k = self.get_strike_price();
             let cl = self.get_cap_level();
             // @dev This is `min((1 + cl) * k, settlement_price) - k)`
