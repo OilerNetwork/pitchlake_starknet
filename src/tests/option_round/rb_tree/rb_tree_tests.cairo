@@ -7,6 +7,8 @@ use starknet::{deploy_syscall, SyscallResultTrait, contract_address_const, Contr
 #[starknet::interface]
 pub trait IRBTree<TContractState> {
     fn insert(ref self: TContractState, value: Bid);
+    fn get_nonce(ref self: TContractState) -> u64;
+    fn get_tree_structure(ref self: TContractState) -> Array<Array<(Bid, bool, u256)>>;
 }
 
 fn setup_rb_tree() -> IRBTreeDispatcher {
@@ -24,14 +26,25 @@ fn mock_address(value: felt252) -> ContractAddress {
 #[test]
 fn test_insertion() {
     let rb_tree = setup_rb_tree();
-    let mock_owner = mock_address(123456); 
+    insert(rb_tree, 1, 1);
+    insert(rb_tree, 2, 2);
+    insert(rb_tree, 3, 3);
+    let tree_structure = rb_tree.get_tree_structure();
+    println!("{:?}", tree_structure);
+}
+
+fn insert(rb_tree: IRBTreeDispatcher, price: u256, nonce: u64) {
+    let bidder = mock_address(123456);
+    let id = poseidon::poseidon_hash_span(
+        array![bidder.into(), nonce.try_into().unwrap()].span()
+    );
     rb_tree.insert(Bid { 
-        id: 1,
-        nonce: 1,
-        owner: mock_owner,
-        amount: 10,
-        price: 10,
+        id: id,
+        nonce: nonce,
+        owner: bidder,
+        amount: 0,
+        price: price,
         is_tokenized: false,
-        is_refunded: false, 
+        is_refunded: false,
     });
 }
