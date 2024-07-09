@@ -71,10 +71,11 @@ trait IOptionRound<TContractState> {
     // refundable amount should be the value of the last bid + the remaining amount of the partial bid
     fn get_refundable_bids_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
+    fn get_total_options_balance_for(self:@TContractState,option_buyer:ContractAddress)->u256;
     // Gets the amount that an option buyer can exercise with their option balance
     fn get_payout_balance_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
-    fn get_option_balance_for(ref self: TContractState, option_buyer: ContractAddress) -> u256;
+    fn get_tokenizable_options_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
 
     /// Other
@@ -171,6 +172,7 @@ trait IOptionRound<TContractState> {
 
 #[starknet::contract]
 mod OptionRound {
+    use core::array::ArrayTrait;
     use core::starknet::event::EventEmitter;
     use core::option::OptionTrait;
     use core::fmt::{Display, Formatter, Error};
@@ -205,7 +207,11 @@ mod OptionRound {
                 if lhs.amount < rhs.amount {
                     true
                 } else {
-                    false
+                    if lhs.nonce > rhs.nonce {
+                        true
+                    } else {
+                        false
+                    }
                 }
             }
         }
@@ -313,7 +319,6 @@ mod OptionRound {
         settlement_price: u256
     }
 
-
     // The states an option round can be in
     // @note Should we move these into the contract or separate file ?
     #[derive(Copy, Drop, Serde, PartialEq, starknet::Store)]
@@ -331,6 +336,7 @@ mod OptionRound {
         AuctionStart: AuctionStart,
         AuctionAcceptedBid: AuctionAcceptedBid,
         AuctionRejectedBid: AuctionRejectedBid,
+        AuctionUpdatedBid: AuctionUpdatedBid,
         AuctionEnd: AuctionEnd,
         OptionSettle: OptionSettle,
         UnusedBidsRefunded: UnusedBidsRefunded,
@@ -357,6 +363,7 @@ mod OptionRound {
     struct AuctionAcceptedBid {
         #[key]
         account: ContractAddress,
+        nonce: u32,
         amount: u256,
         price: u256
     }
@@ -372,13 +379,24 @@ mod OptionRound {
         amount: u256,
         price: u256
     }
+
+    #[derive(Drop, starknet::Event, PartialEq)]
+    struct AuctionUpdatedBid {
+        #[key]
+        account: ContractAddress,
+        id: felt252,
+        amount: u256,
+        price: u256
+    }
     #[derive(Copy, Drop, Serde, starknet::Store, PartialEq, Display)]
     struct Bid {
         id: felt252,
+        nonce: u64,
         owner: ContractAddress,
         amount: u256,
         price: u256,
-        valid: bool,
+        is_tokenized: bool,
+        is_refunded: bool,
     }
 
     impl BidDisplay of Display<Bid> {
@@ -386,12 +404,13 @@ mod OptionRound {
             let owner: ContractAddress = *self.owner;
             let owner_felt: felt252 = owner.into();
             let str: ByteArray = format!(
-                "ID:{}\nOwner:{}\nAmount:{}\n Price:{}\nValid:{}",
+                "ID:{}\nOwner:{}\nAmount:{}\n Price:{}\nTokenized:{}\nRefunded:{}",
                 *self.id,
                 owner_felt,
                 *self.amount,
                 *self.price,
-                *self.valid
+                *self.is_tokenized,
+                *self.is_refunded,
             );
             f.buffer.append(@str);
             Result::Ok(())
@@ -591,7 +610,7 @@ mod OptionRound {
                 .emit(
                     Event::AuctionAcceptedBid(
                         AuctionAcceptedBid {
-                            account: starknet::get_contract_address(), amount: x, price: x
+                            nonce: 0, account: starknet::get_contract_address(), amount: x, price: x
                         }
                     )
                 );
@@ -695,15 +714,80 @@ mod OptionRound {
             bids
         }
         fn get_refundable_bids_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
-            100
+            let (mut tokenizable_bids, mut refundable_bids, partial_bid) = self
+                .inspect_options_for(option_buyer);
+            let mut refundable_balance = 0;
+            let clearing_price = self.get_auction_clearing_price();
+            //Add refundable balance from Partial Bid if it's there
+            if (partial_bid != 0) {
+                let partial_node: Node = self.bids_tree.tree.read(partial_bid);
+
+                //Since only clearing_bid can be partially sold, the clearing_bid_amount_sold is saved on the tree
+                let options_sold = self.bids_tree.clearing_bid_amount_sold.read();
+                if (!partial_node.value.is_refunded) {
+                    refundable_balance += (partial_node.value.amount - options_sold)
+                        * partial_node.value.price;
+                }
+            }
+            loop {
+                match refundable_bids.pop_front() {
+                    Option::Some(bid) => {
+                        if (!bid.is_refunded) {
+                            refundable_balance += bid.amount * bid.price;
+                        }
+                    },
+                    Option::None => { break; }
+                }
+            };
+
+            loop {
+                match tokenizable_bids.pop_front() {
+                    Option::Some(bid) => {
+                        refundable_balance += bid.amount * (bid.price - clearing_price)
+                    },
+                    Option::None => { break; }
+                }
+            };
+            refundable_balance
         }
 
+        fn get_total_options_balance_for(self: @ContractState, option_buyer:ContractAddress)->u256{
+            let tokenizable_options_amount= self.get_tokenizable_options_for(option_buyer);
+            let eth_dispatcher = IERC20Dispatcher {contract_address:get_contract_address()};
+            let token_balance = eth_dispatcher.balance_of(option_buyer);
+
+            tokenizable_options_amount+token_balance
+        }
         fn get_payout_balance_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
-            100
+            1
         }
 
-        fn get_option_balance_for(ref self: ContractState, option_buyer: ContractAddress) -> u256 {
-            self.bids_tree.find_options_for(option_buyer)
+        fn get_tokenizable_options_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
+            //self.bids_tree.find_options_for(option_buyer);
+            let (mut tokenizable_bids, _, partial_bid) = self.inspect_options_for(option_buyer);
+            let mut options_balance: u256 = 0;
+            //Check and sum bids that are not tokenized yet
+            //Add options balance from Partial Bid if it's there
+            if (partial_bid != 0) {
+                let partial_node: Node = self.bids_tree.tree.read(partial_bid);
+
+                //Since only clearing_bid can be partially sold, the clearing_bid_amount_sold is saved on the tree
+                let options_sold = self.bids_tree.clearing_bid_amount_sold.read();
+                if (!partial_node.value.is_tokenized) {
+                    options_balance += (options_sold) * partial_node.value.price;
+                }
+            }
+            loop {
+                match tokenizable_bids.pop_front() {
+                    Option::Some(bid) => {
+                        if (!bid.is_tokenized) {
+                            options_balance += bid.amount * bid.price;
+                        }
+                    },
+                    Option::None => { break; }
+                }
+            };
+            options_balance
         }
 
         fn get_round_id(self: @ContractState) -> u256 {
@@ -931,10 +1015,12 @@ mod OptionRound {
                 id: poseidon::poseidon_hash_span(
                     array![bidder.into(), nonce.try_into().unwrap()].span()
                 ),
+                nonce: self.get_bid_tree_nonce(),
                 owner: bidder,
                 amount: amount,
                 price: price,
-                valid: true
+                is_tokenized: false,
+                is_refunded: false
             };
             self.bids_tree.insert(bid);
             self.bidder_nonces.write(bidder, nonce + 1);
@@ -945,7 +1031,9 @@ mod OptionRound {
             eth_dispatcher.transfer_from(bidder, get_contract_address(), amount * price);
             self
                 .emit(
-                    Event::AuctionAcceptedBid(AuctionAcceptedBid { account: bidder, amount, price })
+                    Event::AuctionAcceptedBid(
+                        AuctionAcceptedBid { nonce, account: bidder, amount, price }
+                    )
                 );
             Result::Ok(bid)
         }
@@ -982,6 +1070,17 @@ mod OptionRound {
 
             let eth_dispatcher = self.get_eth_dispatcher();
             eth_dispatcher.transfer_from(get_caller_address(), get_contract_address(), difference);
+            self
+                .emit(
+                    Event::AuctionUpdatedBid(
+                        AuctionUpdatedBid {
+                            id: bid_id,
+                            account: get_caller_address(),
+                            amount: new_bid.amount,
+                            price: new_bid.price
+                        }
+                    )
+                );
             Result::Ok(new_bid)
         }
         fn refund_unused_bids(
@@ -1027,6 +1126,10 @@ mod OptionRound {
             (0, 0)
         }
 
+        //Get bid tree nonce
+        fn get_bid_tree_nonce(self: @ContractState) -> u64 {
+            self.bids_tree.nonce.read()
+        }
         // Get a dispatcher for the ETH contract
         fn get_eth_dispatcher(self: @ContractState) -> IERC20Dispatcher {
             let vault = self.get_vault_dispatcher();
@@ -1042,6 +1145,36 @@ mod OptionRound {
             self.erc20._burn(owner, amount);
         }
 
+        fn inspect_options_for(
+            self: @ContractState, bidder: ContractAddress
+        ) -> (Array<Bid>, Array<Bid>, felt252) {
+            let nonce = self.get_bidding_nonce_for(bidder);
+            let mut i = 0;
+            let mut refundable_bids: Array<Bid> = array![];
+            let mut tokenizable_bids: Array<Bid> = array![];
+
+            let mut partial_bid: felt252 = 0;
+            while i < nonce {
+                let bid_id = poseidon::poseidon_hash_span(
+                    array![bidder.into(), nonce.into()].span()
+                );
+                let clearing_bid_id: felt252 = self.bids_tree.clearing_bid.read();
+                if (bid_id == clearing_bid_id) {
+                    partial_bid = bid_id;
+                } else {
+                    let bid_node: Node = self.bids_tree.tree.read(bid_id);
+                    let clearing_node: Node = self.bids_tree.tree.read(clearing_bid_id);
+                    if (bid_node.value < clearing_node.value) {
+                        refundable_bids.append(bid_node.value);
+                    } else {
+                        tokenizable_bids.append(bid_node.value);
+                    }
+                }
+                i += 1;
+            };
+
+            (tokenizable_bids, refundable_bids, partial_bid)
+        }
         fn calculate_options(ref self: ContractState, starting_liquidity: u256) -> u256 {
             //Calculate total options accordingly
             0

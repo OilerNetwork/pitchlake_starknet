@@ -124,10 +124,7 @@ fn test_update_bids_price_cannot_be_decreased_event_if_amount_is_increased() {
 
     // Update bid to lower price and >> amount
     let res = current_round.update_bid_raw(bid_id, 10 * bid_amount, bid_price - 1);
-    let expected_error: felt252 = OptionRoundError::BidCannotBeDecreased(
-        'UPDATE THIS AFTER DISUCSSION'
-    )
-        .into();
+    let expected_error: felt252 = OptionRoundError::BidCannotBeDecreased('price').into();
     match res {
         Result::Ok(_) => panic!("Error expected"),
         Result::Err(err) => { assert(err.into() == expected_error, 'Error Mismatch') }

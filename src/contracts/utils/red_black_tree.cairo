@@ -6,7 +6,9 @@ trait IRBTree<TContractState> {
     fn find(ref self: TContractState, value: Bid) -> felt252;
     fn delete(ref self: TContractState, value: Bid);
     fn find_clearing_price(ref self: TContractState) -> (u256, u256);
-    fn find_options_for(ref self: TContractState, bidder: ContractAddress) -> u256;
+    fn find_options_for(
+        self: @TContractState, bidder: ContractAddress, refundable_bids: Array<felt252>
+    ) -> (Array<felt252>, Array<felt252>);
     fn get_tree_structure(ref self: TContractState) -> Array<Array<(Bid, bool, u256)>>;
     fn is_tree_valid(ref self: TContractState) -> bool;
     fn get_total_options_available(self: @TContractState) -> u256;
@@ -26,6 +28,7 @@ pub mod RBTreeComponent {
     struct Storage {
         root: felt252,
         tree: LegacyMap::<felt252, Node>,
+        nonce: u64,
         node_position: LegacyMap<felt252, u256>,
         next_id: felt252,
         clearing_bid_amount_sold: u256,
@@ -71,6 +74,7 @@ pub mod RBTreeComponent {
 
             self.insert_node_recursively(self.root.read(), new_node_id, value);
             self.balance_after_insertion(new_node_id);
+            self.nonce.write(self.nonce.read() + 1);
         }
 
         fn find(ref self: ComponentState<TContractState>, value: Bid) -> felt252 {
@@ -104,9 +108,15 @@ pub mod RBTreeComponent {
         }
 
         fn find_options_for(
-            ref self: ComponentState<TContractState>, bidder: ContractAddress
-        ) -> u256 {
-            self.traverse_postorder_calculate_options_from_node(self.root.read(), bidder, 0)
+            self: @ComponentState<TContractState>,
+            bidder: ContractAddress,
+            refundable_bids: Array<felt252>
+        ) -> (Array<felt252>, Array<felt252>) {
+            let (tokenizable_bids, refundable_bids, _) = self
+                .traverse_postorder_calculate_options_from_node(
+                    self.root.read(), bidder, array![], refundable_bids, false
+                );
+            return (tokenizable_bids, refundable_bids);
         }
 
         fn get_tree_structure(
@@ -133,29 +143,46 @@ pub mod RBTreeComponent {
         TContractState, +HasComponent<TContractState>
     > of InternalTrait<TContractState> {
         fn traverse_postorder_calculate_options_from_node(
-            ref self: ComponentState<TContractState>,
+            self: @ComponentState<TContractState>,
             current_id: felt252,
             bidder: ContractAddress,
-            mut total: u256
-        ) -> u256 {
+            tokenizable_bids: Array<felt252>,
+            refundable_bids: Array<felt252>,
+            clearing_bid_reached: bool
+        ) -> (Array<felt252>, Array<felt252>, bool) {
+            //If null node return states unchanged
+
             if (current_id == 0) {
-                return total;
+                return (tokenizable_bids, refundable_bids, false);
             }
+
             let current_node: Node = self.tree.read(current_id);
             let clearing_bid: felt252 = self.clearing_bid.read();
             //Recursive on Right Node
-            total = self
-                .traverse_postorder_calculate_options_from_node(current_node.right, bidder, total);
-            //Check for self 
-            if (current_node.value.owner == bidder && current_node.value.valid) {
-                if (current_id == clearing_bid) {
-                    total += self.clearing_bid_amount_sold.read();
-                } else {
-                    total += current_node.value.amount;
-                }
+            let (mut tokenizable_bids, mut refundable_bids, clearing_bid_reached) = self
+                .traverse_postorder_calculate_options_from_node(
+                    current_node.right, bidder, tokenizable_bids, refundable_bids, false
+                );
+
+            //Check for self, recheck if clearing_bid_reached is true and break recursion
+            //Break the recursion if current id is clearing bid
+            if (clearing_bid_reached || current_id == self.clearing_bid.read()) {
+                return (tokenizable_bids, refundable_bids, true);
             }
+
+            if (current_node.value.owner == bidder) {
+                //If bid is not tokenized or refunded, append it to tokenizable
+                tokenizable_bids.append(current_id);
+
+                //Remove bid from refundable array
+                refundable_bids = self.remove_from_array(current_id, refundable_bids);
+            }
+
             //Recursive on Left Node and return result directly to the outer call
-            self.traverse_postorder_calculate_options_from_node(current_node.left, bidder, total)
+            self
+                .traverse_postorder_calculate_options_from_node(
+                    current_node.left, bidder, tokenizable_bids, refundable_bids, false
+                )
         }
 
         fn traverse_postorder_clearing_price_from_node(
@@ -249,6 +276,22 @@ pub mod RBTreeComponent {
                 self.insert_node_recursively(current_node.right, new_node_id, value);
             }
         }
+
+        fn remove_from_array<T, +Drop<T>, +PartialEq<T>>(
+            self: @ComponentState<TContractState>, element: T, mut array: Array<T>
+        ) -> Array<T> {
+            let mut new_array: Array<T> = array![];
+            loop {
+                match array.pop_front() {
+                    Option::Some(value) => { if (value != element) {
+                        new_array.append(value);
+                    } },
+                    Option::None => { break; }
+                }
+            };
+            new_array
+        }
+
 
         fn create_new_node(ref self: ComponentState<TContractState>, value: Bid) -> felt252 {
             let new_node_id = self.next_id.read();

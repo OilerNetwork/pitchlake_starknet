@@ -330,7 +330,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     fn get_option_balance_for(
         ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
     ) -> u256 {
-        self.option_round_dispatcher.get_option_balance_for(option_bidder_buyer)
+        self.option_round_dispatcher.get_tokenizable_options_for(option_bidder_buyer)
     }
 
     /// Other

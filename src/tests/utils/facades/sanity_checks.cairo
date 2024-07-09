@@ -133,7 +133,7 @@ fn test_event_testers() {
     round.option_round_dispatcher.rm_me(100);
     event_helpers::assert_event_auction_start(round.contract_address(), 100);
     event_helpers::assert_event_auction_bid_accepted(
-        round.contract_address(), round.contract_address(), 100, 100
+        round.contract_address(), round.contract_address(), 100, 100, 0
     );
     event_helpers::assert_event_auction_bid_rejected(
         round.contract_address(), round.contract_address(), 100, 100

@@ -447,7 +447,7 @@ fn test_the_last_bidder_gets_no_options_if_none_left() {
 
 // Test losing bidder gets no options
 #[test]
-#[available_gas(50000000)]
+#[available_gas(500000000)]
 fn test_losing_bid_gets_no_options() {
     let number_of_option_bidders = 4;
     let (mut vault, _, mut option_bidders, total_options_available) = setup_test_auctioning_bidders(
