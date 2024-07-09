@@ -74,7 +74,7 @@ trait IOptionRound<TContractState> {
     // Gets the amount that an option buyer can exercise with their option balance
     fn get_payout_balance_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
-    fn get_option_balance_for(ref self: TContractState, option_buyer: ContractAddress) -> u256;
+    fn get_tokenizable_options_for(ref self: TContractState, option_buyer: ContractAddress) -> u256;
 
 
     /// Other
@@ -713,9 +713,10 @@ mod OptionRound {
             bids
         }
         fn get_refundable_bids_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
-            let (_, mut refundable_bids, partial_bid) = self.inspect_options_for(option_buyer);
+            let (mut tokenizable_bids, mut refundable_bids, partial_bid) = self
+                .inspect_options_for(option_buyer);
             let mut refundable_balance = 0;
-
+            let clearing_price = self.get_auction_clearing_price();
             //Add refundable balance from Partial Bid if it's there
             if (partial_bid != 0) {
                 let partial_node: Node = self.bids_tree.tree.read(partial_bid);
@@ -737,6 +738,15 @@ mod OptionRound {
                     Option::None => { break; }
                 }
             };
+
+            loop {
+                match tokenizable_bids.pop_front() {
+                    Option::Some(bid) => {
+                        refundable_balance += bid.amount * bid.price - clearing_price
+                    },
+                    Option::None => { break; }
+                }
+            };
             refundable_balance
         }
 
@@ -744,7 +754,7 @@ mod OptionRound {
             1
         }
 
-        fn get_option_balance_for(ref self: ContractState, option_buyer: ContractAddress) -> u256 {
+        fn get_tokenizable_options_for(ref self: ContractState, option_buyer: ContractAddress) -> u256 {
             //self.bids_tree.find_options_for(option_buyer);
             let (mut tokenizable_bids, _, partial_bid) = self.inspect_options_for(option_buyer);
             let mut options_balance: u256 = 0;
