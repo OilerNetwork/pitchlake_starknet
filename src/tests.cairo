@@ -16,6 +16,11 @@ mod misc {
 }
 
 #[cfg(test)]
+mod rb_tree {
+    mod rb_tree_tests;
+}
+
+#[cfg(test)]
 mod option_round {
     mod option_buyers {
         mod bidding_tests;
