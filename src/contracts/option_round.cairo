@@ -743,7 +743,7 @@ mod OptionRound {
             loop {
                 match tokenizable_bids.pop_front() {
                     Option::Some(bid) => {
-                        refundable_balance += bid.amount * bid.price - clearing_price
+                        refundable_balance += bid.amount * (bid.price - clearing_price)
                     },
                     Option::None => { break; }
                 }
