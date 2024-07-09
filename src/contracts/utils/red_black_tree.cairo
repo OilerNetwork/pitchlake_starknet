@@ -11,6 +11,7 @@ trait IRBTree<TContractState> {
     ) -> (Array<felt252>, Array<felt252>);
     fn get_tree_structure(ref self: TContractState) -> Array<Array<(Bid, bool, u256)>>;
     fn is_tree_valid(ref self: TContractState) -> bool;
+    fn _get_total_options_available(self: @TContractState) -> u256;
     fn get_total_options_sold(self: @TContractState) -> u256;
 }
 
@@ -88,7 +89,7 @@ pub mod RBTreeComponent {
         }
 
         fn find_clearing_price(ref self: ComponentState<TContractState>) -> (u256, u256) {
-            let total_options_available = self.total_options_available.read();
+            let total_options_available = self._get_total_options_available();
             let root: felt252 = self.root.read();
             let root_node: Node = self.tree.read(root);
             let root_bid: Bid = root_node.value;
@@ -128,6 +129,10 @@ pub mod RBTreeComponent {
             self.total_options_sold.read()
         }
 
+        fn _get_total_options_available(self: @ComponentState<TContractState>) -> u256 {
+            self.total_options_available.read()
+        }
+
         fn is_tree_valid(ref self: ComponentState<TContractState>) -> bool {
             self.check_if_rb_tree_is_valid()
         }
@@ -152,6 +157,7 @@ pub mod RBTreeComponent {
             }
 
             let current_node: Node = self.tree.read(current_id);
+            let clearing_bid: felt252 = self.clearing_bid.read();
             //Recursive on Right Node
             let (mut tokenizable_bids, mut refundable_bids, clearing_bid_reached) = self
                 .traverse_postorder_calculate_options_from_node(
