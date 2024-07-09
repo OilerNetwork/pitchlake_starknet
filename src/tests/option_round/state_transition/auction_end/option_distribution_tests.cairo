@@ -408,8 +408,6 @@ fn test_the_last_bidder_gets_no_options_if_none_left() {
         setup_test_auctioning_bidders(
         number_of_option_bidders
     );
-    let bidders = option_bidders;
-
     let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
 
     // Make bids, end auction
@@ -425,10 +423,6 @@ fn test_the_last_bidder_gets_no_options_if_none_left() {
     // Check that the last bidder gets 0 options, and the rest get the bid amount
     match option_bidders.pop_back() {
         Option::Some(last_bidder) => {
-            let losing = *last_bidder;
-            let felt1: felt252 = losing.into();
-            let bidder = *bidders[3];
-            let felt2: felt252 = bidder.into();
             assert(
                 current_round.get_option_balance_for(*last_bidder) == 0,
                 'last bidder shd get 0 options'
@@ -437,7 +431,6 @@ fn test_the_last_bidder_gets_no_options_if_none_left() {
             loop {
                 match option_bidders.pop_front() {
                     Option::Some(bidder) => {
-                        let a = current_round.get_option_balance_for(*bidder);
                         assert(
                             current_round.get_option_balance_for(*bidder) == bid_amount,
                             'bidder shd get bid amount'
