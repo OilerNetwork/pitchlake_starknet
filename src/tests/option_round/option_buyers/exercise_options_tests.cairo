@@ -90,6 +90,7 @@ fn test_exercise_options_events() {
     let bid_prices = create_array_linear(reserve_price, option_bidders.len()).span();
     accelerate_to_running_custom(ref vault, option_bidders, bid_amounts, bid_prices);
     accelerate_to_settled(ref vault, 2 * current_round.get_strike_price());
+    clear_event_logs(array![current_round.contract_address()]);
 
     loop {
         match option_bidders.pop_front() {
