@@ -1,9 +1,21 @@
 name: Run scripts
 
-on: pull_request
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - "**"
+    types:
+      - reopened
+      - ready_for_review
+      - synchronize
 
 jobs:
   run_scripts:
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.draft == false)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
