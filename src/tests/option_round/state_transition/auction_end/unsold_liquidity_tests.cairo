@@ -9,7 +9,7 @@ use pitch_lake_starknet::{
                 setup::{setup_facade, setup_test_auctioning_bidders},
                 general_helpers::{
                     create_array_linear, create_array_gradient, create_array_gradient_reverse,
-                    get_portion_of_amount
+                    get_portion_of_amount, get_erc20_balance, get_erc20_balances,
                 },
             },
             lib::{
@@ -98,20 +98,24 @@ fn test_unsold_liquidity_moves_from_locked_to_unlocked() {
     let (total_locked_before, total_unlocked_before) = vault
         .get_total_locked_and_unlocked_balance();
 
-    let liquidity_providers = liquidity_providers_get(2);
+    let option_buyers = option_bidders_get(2);
     let bid_amounts = array![options_available / 3, options_available / 3];
-    let bid_prices = create_array_linear(current_round.get_reserve_price(), bid_amounts.len());
-    accelerate_to_running_custom(
-        ref vault, liquidity_providers.span(), bid_amounts.span(), bid_prices.span()
+    let bid_prices = array![current_round.get_reserve_price(), current_round.get_reserve_price()];
+
+    let (clearing_price, total_options_sold) = accelerate_to_running_custom(
+        ref vault, option_buyers.span(), bid_amounts.span(), bid_prices.span()
     );
 
     // Check unsold moves from locked to unlocked
     let unsold_liq = vault.get_unsold_liquidity(current_round.get_round_id());
     assert(unsold_liq > 0, 'unsold liq shd not be 0');
     let (total_locked_after, total_unlocked_after) = vault.get_total_locked_and_unlocked_balance();
+    let total_premium = total_options_sold * clearing_price;
+
     assert(total_locked_after == total_locked_before - unsold_liq, 'locked balance after fail');
     assert(
-        total_unlocked_after == total_unlocked_before + unsold_liq, 'unlocked balance after fail'
+        total_unlocked_after == total_unlocked_before + unsold_liq + total_premium,
+        'unlocked balance after fail'
     );
 }
 

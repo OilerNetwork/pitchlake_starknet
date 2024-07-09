@@ -896,7 +896,7 @@ mod OptionRound {
                 );
 
             // Return the total options available
-            Result::Ok(100000000) //HardCoded for tests
+            Result::Ok(total_options_available)
         }
 
         // End the round's auction

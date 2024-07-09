@@ -301,13 +301,6 @@ fn test_bid_eth_transfer() {
         eth.contract_address, current_round.contract_address()
     );
 
-    // Check round balance
-    println!(
-        "round_balance_after:{}\nround_balance_before:{}\n,bids_total:{}",
-        round_balance_after,
-        round_balance_before,
-        bids_total
-    );
     assert(round_balance_after == round_balance_before + bids_total, 'round balance after wrong');
     // Check ob balances
     loop {
