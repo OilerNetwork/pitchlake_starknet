@@ -211,6 +211,8 @@ fn deploy_custom_option_round(
     )
         .expect('DEPLOY_VAULT_FAILED');
 
+    let vault_dispatcher = IVaultDispatcher { contract_address: vault_address };
+    eth_supply_and_approve_all_bidders(contract_address, vault_dispatcher.eth_address());
     // Clear the event log
     clear_event_logs(array![contract_address]);
 
@@ -265,14 +267,14 @@ fn eth_supply_and_approve_all(
 fn eth_supply_and_approve_all_providers(
     contract_address: ContractAddress, eth_address: ContractAddress
 ) {
-    let mut liquidity_providers = liquidity_providers_get(5);
+    let mut liquidity_providers = liquidity_providers_get(6);
     eth_supply_and_approve_all(contract_address, eth_address, liquidity_providers.span());
 }
 
 fn eth_supply_and_approve_all_bidders(
     contract_address: ContractAddress, eth_address: ContractAddress
 ) {
-    let option_biddders = option_bidders_get(5);
+    let option_biddders = option_bidders_get(6);
     eth_supply_and_approve_all(contract_address, eth_address, option_biddders.span());
 }
 

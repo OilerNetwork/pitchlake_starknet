@@ -80,7 +80,7 @@ use debug::PrintTrait;
 //        match lhs.pop_front() {
 //            Option::Some(l) => {
 //                let r = rhs.pop_front().unwrap();
-//                println!("({}, {}) == ({}, {}): {}", l.amount, l.price, r.amount, r.price, l == r);
+//                ("({}, {}) == ({}, {}): {}", l.amount, l.price, r.amount, r.price, l == r);
 //                println!("({}, {}) < ({}, {}): {}", l.amount, l.price, r.amount, r.price, l < r);
 //                println!("({}, {}) <= ({}, {}): {}", l.amount, l.price, r.amount, r.price, l <= r);
 //                println!("({}, {}) > ({}, {}): {}", l.amount, l.price, r.amount, r.price, l > r);

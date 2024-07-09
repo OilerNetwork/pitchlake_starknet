@@ -97,12 +97,6 @@ fn test_clearing_price_is_highest_price_to_sell_all_options() {
     let (clearing_price, _) = accelerate_to_running_custom(
         ref vault, bidders, bid_amounts, bid_prices
     );
-    println!(
-        "CLEARING_PRICE:{}\nBID_PRICE:{}\nBID_AMOUNTS:{}",
-        clearing_price,
-        *bid_prices[1],
-        *bid_amounts[0]
-    );
     // Check that clearing price is the 2nd bid price (max price to sell all options)
     assert(clearing_price == *bid_prices[1], 'clearing price wrong');
 }
