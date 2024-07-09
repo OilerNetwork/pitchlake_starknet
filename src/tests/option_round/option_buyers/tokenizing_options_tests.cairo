@@ -2,7 +2,8 @@ use pitch_lake_starknet::tests::{
     utils::{
         helpers::{
             accelerators::{
-                accelerate_to_running_custom,accelerate_to_auctioning, accelerate_to_running_custom_option_round,
+                accelerate_to_running_custom, accelerate_to_auctioning,
+                accelerate_to_running_custom_option_round,
             },
             setup::{setup_facade, deploy_custom_option_round},
             general_helpers::{get_erc20_balance, assert_two_arrays_equal_length},
@@ -82,7 +83,6 @@ fn test_tokenizing_options_before_auction_end_fails() {
         Result::Ok(_) => { panic!("Should throw error") },
         Result::Err(e) => { assert(e == expected_error, 'Error mismatch') }
     }
-
 }
 
 // Test user cannot tokenize options again
