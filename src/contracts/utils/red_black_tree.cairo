@@ -152,7 +152,6 @@ pub mod RBTreeComponent {
             }
 
             let current_node: Node = self.tree.read(current_id);
-            let clearing_bid: felt252 = self.clearing_bid.read();
             //Recursive on Right Node
             let (mut tokenizable_bids, mut refundable_bids, clearing_bid_reached) = self
                 .traverse_postorder_calculate_options_from_node(
