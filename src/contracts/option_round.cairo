@@ -831,7 +831,7 @@ mod OptionRound {
         }
 
         fn get_total_options_available(self: @ContractState) -> u256 {
-            self.bids_tree.total_options_available.read()
+            self.bids_tree.RBTree_get_total_options_available()
         }
 
         /// Writes ///
