@@ -39,7 +39,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
 
     // Start the next option round's auction
     fn start_auction(ref self: OptionRoundFacade, params: StartAuctionParams,) -> u256 {
-        let res = self.option_round_dispatcher.start_auction(params);
+        let res = self.start_auction_raw(params);
         match res {
             Result::Ok(total_options_available) => sanity_checks::start_auction(
                 ref self, total_options_available
@@ -48,9 +48,15 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         }
     }
 
+    fn start_auction_raw(
+        ref self: OptionRoundFacade, params: StartAuctionParams,
+    ) -> Result<u256, OptionRoundError> {
+        self.option_round_dispatcher.start_auction(params)
+    }
+
     // End the current option round's auction
     fn end_auction(ref self: OptionRoundFacade) -> (u256, u256) {
-        let res = self.option_round_dispatcher.end_auction();
+        let res = self.end_auction_raw();
         match res {
             Result::Ok((
                 clearing_price, total_options_sold
@@ -59,11 +65,13 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         }
     }
 
+    fn end_auction_raw(ref self: OptionRoundFacade) -> Result<(u256, u256), OptionRoundError> {
+        self.option_round_dispatcher.end_auction()
+    }
+
     // Settle the current option round
     fn settle_option_round(ref self: OptionRoundFacade, settlement_price: u256) -> u256 {
-        let res = self
-            .option_round_dispatcher
-            .settle_option_round(SettleOptionRoundParams { settlement_price });
+        let res = self.settle_option_round_raw(settlement_price);
         let res = match res {
             Result::Ok(total_payout) => sanity_checks::settle_option_round(ref self, total_payout),
             Result::Err(e) => panic(array![e.into()]),
@@ -75,6 +83,14 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         let next_round_address = vault_dispatcher.get_option_round_address(self.get_round_id() + 1);
         eth_supply_and_approve_all_bidders(next_round_address, vault_dispatcher.eth_address());
         res
+    }
+
+    fn settle_option_round_raw(
+        ref self: OptionRoundFacade, settlement_price: u256,
+    ) -> Result<u256, OptionRoundError> {
+        self
+            .option_round_dispatcher
+            .settle_option_round(SettleOptionRoundParams { settlement_price })
     }
 
 
