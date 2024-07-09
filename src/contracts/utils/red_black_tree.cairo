@@ -4,14 +4,14 @@ use starknet::ContractAddress;
 trait IRBTree<TContractState> {
     fn insert(ref self: TContractState, value: Bid);
     fn find(ref self: TContractState, value: Bid) -> felt252;
-    fn delete(ref self: TContractState, value: Bid);
+    fn delete(ref self: TContractState, bid_id: felt252);
     fn find_clearing_price(ref self: TContractState) -> (u256, u256);
     fn find_options_for(
         self: @TContractState, bidder: ContractAddress, refundable_bids: Array<felt252>
     ) -> (Array<felt252>, Array<felt252>);
     fn get_tree_structure(ref self: TContractState) -> Array<Array<(Bid, bool, u256)>>;
     fn is_tree_valid(ref self: TContractState) -> bool;
-    fn get_total_options_available(self: @TContractState) -> u256;
+    fn _get_total_options_available(self: @TContractState) -> u256;
     fn get_total_options_sold(self: @TContractState) -> u256;
 }
 
@@ -30,7 +30,6 @@ pub mod RBTreeComponent {
         tree: LegacyMap::<felt252, Node>,
         nonce: u64,
         node_position: LegacyMap<felt252, u256>,
-        next_id: felt252,
         clearing_bid_amount_sold: u256,
         clearing_price: u256,
         clearing_bid: felt252,
@@ -64,11 +63,10 @@ pub mod RBTreeComponent {
     > of super::IRBTree<ComponentState<TContractState>> {
         fn insert(ref self: ComponentState<TContractState>, value: Bid) {
             let new_node_id = value.id;
+
             if self.root.read() == 0 {
                 self.root.write(new_node_id);
-                self
-                    .tree
-                    .write(new_node_id, Node { value, left: 0, right: 0, parent: 0, color: BLACK });
+                self.tree.write(new_node_id, self.create_default_node(@value));
                 return;
             }
 
@@ -80,16 +78,18 @@ pub mod RBTreeComponent {
         fn find(ref self: ComponentState<TContractState>, value: Bid) -> felt252 {
             self.find_node(self.root.read(), value)
         }
-        fn delete(ref self: ComponentState<TContractState>, value: Bid) {
-            let node_to_delete_id = self.find_node(self.root.read(), value);
-            if node_to_delete_id == 0 {
+
+        fn delete(ref self: ComponentState<TContractState>, bid_id: felt252) {
+            let node: Node = self.tree.read(bid_id);
+            // Check if bid exists
+            if node.value.id == 0 {
                 return;
             }
-            self.delete_node(node_to_delete_id);
+            self.delete_node(bid_id);
         }
 
         fn find_clearing_price(ref self: ComponentState<TContractState>) -> (u256, u256) {
-            let total_options_available = self.get_total_options_available();
+            let total_options_available = self._get_total_options_available();
             let root: felt252 = self.root.read();
             let root_node: Node = self.tree.read(root);
             let root_bid: Bid = root_node.value;
@@ -129,7 +129,7 @@ pub mod RBTreeComponent {
             self.total_options_sold.read()
         }
 
-        fn get_total_options_available(self: @ComponentState<TContractState>) -> u256 {
+        fn _get_total_options_available(self: @ComponentState<TContractState>) -> u256 {
             self.total_options_available.read()
         }
 
@@ -157,7 +157,6 @@ pub mod RBTreeComponent {
             }
 
             let current_node: Node = self.tree.read(current_id);
-            let clearing_bid: felt252 = self.clearing_bid.read();
             //Recursive on Right Node
             let (mut tokenizable_bids, mut refundable_bids, clearing_bid_reached) = self
                 .traverse_postorder_calculate_options_from_node(
@@ -206,7 +205,7 @@ pub mod RBTreeComponent {
                 return (clearing_felt, 0);
             }
 
-            //Check for self 
+            //Check for self
             if (current_node.value.amount >= remaining_options) {
                 self.clearing_bid_amount_sold.write(remaining_options);
 
@@ -292,20 +291,8 @@ pub mod RBTreeComponent {
             new_array
         }
 
-
-        fn create_new_node(ref self: ComponentState<TContractState>, value: Bid) -> felt252 {
-            let new_node_id = self.next_id.read();
-            self.next_id.write(new_node_id + 1);
-
-            let mut color = RED;
-            if (self.root.read() == 0) {
-                color = BLACK;
-            }
-
-            let new_node = Node { value, left: 0, right: 0, parent: 0, color: color };
-
-            self.tree.write(new_node_id, new_node);
-            return new_node_id;
+        fn create_default_node(self: @ComponentState<TContractState>, value: @Bid) -> Node {
+            Node { value: *value, left: 0, right: 0, parent: 0, color: BLACK, }
         }
 
         fn is_left_child(ref self: ComponentState<TContractState>, node_id: felt252) -> bool {

@@ -20,7 +20,7 @@ use pitch_lake_starknet::{
 #[test]
 #[available_gas(50000000)]
 fn test_update_bids_amount_cannot_be_decreased() {
-    let (mut vault_facade, eth) = setup_facade();
+    let (mut vault_facade, _) = setup_facade();
     let options_available = accelerate_to_auctioning(ref vault_facade);
     let mut current_round = vault_facade.get_current_round();
     let reserve_price = current_round.get_reserve_price();
@@ -32,7 +32,7 @@ fn test_update_bids_amount_cannot_be_decreased() {
     let bid_id = current_round.place_bid(bid_amount, bid_price, option_buyer);
 
     // Update bid to lower price
-    let expected_error: felt252 = OptionRoundError::BidCannotBeDecreased('amount').into();
+    let expected_error: felt252 = OptionRoundError::BidCannotBeDecreased.into();
     let res = current_round.update_bid_raw(bid_id, bid_amount - 1, bid_price);
     match res {
         Result::Ok(_) => panic!("Error expected"),
@@ -56,7 +56,7 @@ fn test_update_bids_price_cannot_be_decreased() {
     let bid_id = current_round.place_bid(bid_amount, bid_price, option_buyer);
 
     // Update bid to lower price
-    let expected_error: felt252 = OptionRoundError::BidCannotBeDecreased('price').into();
+    let expected_error: felt252 = OptionRoundError::BidCannotBeDecreased.into();
     let res = current_round.update_bid_raw(bid_id, bid_amount, bid_price - 1);
     match res {
         Result::Ok(_) => panic!("Error expected"),
@@ -67,7 +67,7 @@ fn test_update_bids_price_cannot_be_decreased() {
 #[test]
 #[available_gas(50000000)]
 fn test_update_bids_price_amount() {
-    let (mut vault_facade, eth) = setup_facade();
+    let (mut vault_facade, _) = setup_facade();
     let options_available = accelerate_to_auctioning(ref vault_facade);
     let mut current_round = vault_facade.get_current_round();
     let reserve_price = current_round.get_reserve_price();
@@ -112,7 +112,7 @@ fn test_update_bids_amount_cannot_be_decreased_event_if_price_is_increased() {
 
     // Update bid to lower price and >> amount
     let res = current_round.update_bid_raw(bid_id, bid_amount - 1, 10 * bid_price);
-    let expected_error: felt252 = OptionRoundError::BidCannotBeDecreased('amount').into();
+    let expected_error: felt252 = OptionRoundError::BidCannotBeDecreased.into();
     match res {
         Result::Ok(_) => panic!("Error expected"),
         Result::Err(err) => { assert(err.into() == expected_error, 'Error Mismatch') }
@@ -135,7 +135,7 @@ fn test_update_bids_price_cannot_be_decreased_event_if_amount_is_increased() {
 
     // Update bid to lower price and >> amount
     let res = current_round.update_bid_raw(bid_id, 10 * bid_amount, bid_price - 1);
-    let expected_error: felt252 = OptionRoundError::BidCannotBeDecreased('price').into();
+    let expected_error: felt252 = OptionRoundError::BidCannotBeDecreased.into();
     match res {
         Result::Ok(_) => panic!("Error expected"),
         Result::Err(err) => { assert(err.into() == expected_error, 'Error Mismatch') }

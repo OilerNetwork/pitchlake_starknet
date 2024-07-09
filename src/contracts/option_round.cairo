@@ -71,10 +71,14 @@ trait IOptionRound<TContractState> {
     // refundable amount should be the value of the last bid + the remaining amount of the partial bid
     fn get_refundable_bids_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
+    // Get the total amount of options the option buyer owns, includes the tokenizable amount and the
+    // already tokenized (ERC20) amount
     fn get_total_options_balance_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
+
     // Gets the amount that an option buyer can exercise with their option balance
     fn get_payout_balance_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
+    // Get the amount of options that can be tokenized for the option buyer
     fn get_tokenizable_options_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
 
@@ -146,7 +150,7 @@ trait IOptionRound<TContractState> {
     ) -> Result<Bid, OptionRound::OptionRoundError>;
 
     fn update_bid(
-        ref self: TContractState, bid_id: felt252, amount: u256, price: u256
+        ref self: TContractState, bid_id: felt252, new_amount: u256, new_price: u256
     ) -> Result<Bid, OptionRound::OptionRoundError>;
 
     // Refund unused bids for an option bidder if the auction has ended
@@ -400,6 +404,7 @@ mod OptionRound {
         amount: u256,
     //...
     }
+
     #[derive(Copy, Drop, Serde, starknet::Store, PartialEq, Display)]
     struct Bid {
         id: felt252,
@@ -524,7 +529,7 @@ mod OptionRound {
         BidAmountZero,
         BiddingWhileNotAuctioning,
         // Editing bids
-        BidCannotBeDecreased: felt252,
+        BidCannotBeDecreased,
     }
 
     impl OptionRoundErrorIntoFelt252 of Into<OptionRoundError, felt252> {
@@ -540,13 +545,7 @@ mod OptionRound {
                 OptionRoundError::BidBelowReservePrice => 'OptionRound: Bid below reserve',
                 OptionRoundError::BidAmountZero => 'OptionRound: Bid amount zero',
                 OptionRoundError::BiddingWhileNotAuctioning => 'OptionRound: No auction running',
-                OptionRoundError::BidCannotBeDecreased(input) => if input == 'amount' {
-                    'OptionRound: Bid amount too low'
-                } else if input == 'price' {
-                    'OptionRound: Bid price too low'
-                } else {
-                    'OptionRound: Bid too low'
-                }
+                OptionRoundError::BidCannotBeDecreased => { 'OptionRound: New bid too low' }
             }
         }
     }
@@ -673,32 +672,39 @@ mod OptionRound {
 
         /// $
 
+        // Get the amount of liquidity that the round started with
         fn starting_liquidity(self: @ContractState) -> u256 {
             self.starting_liquidity.read()
         }
 
+        // Get the total amount of premiums collected from the auction
         fn total_premiums(self: @ContractState) -> u256 {
             self.get_auction_clearing_price() * self.total_options_sold()
         }
 
+        // Get the total payout of the round
         fn total_payout(self: @ContractState) -> u256 {
             self.total_payout.read()
         }
 
+        // Get the clearing price of the auction
         fn get_auction_clearing_price(self: @ContractState) -> u256 {
             self.bids_tree.clearing_price.read()
         }
 
+        // Get the total number of options sold
         fn total_options_sold(self: @ContractState) -> u256 {
             self.bids_tree.total_options_sold.read()
         }
 
+        // Get the details of a bid
         fn get_bid_details(self: @ContractState, bid_id: felt252) -> Bid {
             let node: Node = self.bids_tree.tree.read(bid_id);
             node.value
         }
 
 
+        // Get the amount of bids the option buyer has placed
         fn get_bidding_nonce_for(self: @ContractState, option_buyer: ContractAddress) -> u32 {
             self.bidder_nonces.read(option_buyer)
         }
@@ -712,25 +718,30 @@ mod OptionRound {
             array!['asdf']
         }
 
+        // Get the bid ids for all of the bids the option buyer has placed
         fn get_bids_for(self: @ContractState, option_buyer: ContractAddress) -> Array<Bid> {
             let mut i: u32 = self.bidder_nonces.read(option_buyer);
             let mut bids: Array<Bid> = array![];
-            while i >= 0 {
-                let hash = poseidon::poseidon_hash_span(
-                    array![i.try_into().unwrap(), option_buyer.into()].span()
-                );
-                let node: Node = self.bids_tree.tree.read(hash);
-                bids.append(node.value);
-                i -= 1;
-            };
+            while i
+                .is_non_zero() {
+                    let hash = self.create_bid_id(option_buyer, i);
+                    let node: Node = self.bids_tree.tree.read(hash);
+                    bids.append(node.value);
+                    i -= 1;
+                };
             bids
         }
+
+        // Return the total refundable balance for the option buyer
         fn get_refundable_bids_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
+            // Get the refundable, tokenizable, and partially sold bid ids
             let (mut tokenizable_bids, mut refundable_bids, partial_bid) = self
                 .inspect_options_for(option_buyer);
+
+            // Check and sum bids that are not refunded yet
             let mut refundable_balance = 0;
             let clearing_price = self.get_auction_clearing_price();
-            //Add refundable balance from Partial Bid if it's there
+            // Add refundable balance from Partial Bid if it's there
             if (partial_bid != 0) {
                 let partial_node: Node = self.bids_tree.tree.read(partial_bid);
 
@@ -741,6 +752,7 @@ mod OptionRound {
                         * partial_node.value.price;
                 }
             }
+            // Add refundable balance from all (not already refunded) refundable bids
             loop {
                 match refundable_bids.pop_front() {
                     Option::Some(bid) => {
@@ -751,29 +763,20 @@ mod OptionRound {
                     Option::None => { break; }
                 }
             };
-
+            // Add refundable balance from all (not already refunded) over bids
+            // @dev An over bid in this context is when a bid's price is > the clearing price
             loop {
                 match tokenizable_bids.pop_front() {
                     Option::Some(bid) => {
-                        refundable_balance += bid.amount * (bid.price - clearing_price)
+                        if (!bid.is_refunded) {
+                            refundable_balance += bid.amount * (bid.price - clearing_price)
+                        }
                     },
                     Option::None => { break; }
                 }
             };
+
             refundable_balance
-        }
-
-        fn get_total_options_balance_for(
-            self: @ContractState, option_buyer: ContractAddress
-        ) -> u256 {
-            let tokenizable_options_amount = self.get_tokenizable_options_for(option_buyer);
-            let eth_dispatcher = IERC20Dispatcher { contract_address: get_contract_address() };
-            let token_balance = eth_dispatcher.balance_of(option_buyer);
-
-            tokenizable_options_amount + token_balance
-        }
-        fn get_payout_balance_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
-            1
         }
 
         fn get_tokenizable_options_for(
@@ -784,20 +787,20 @@ mod OptionRound {
             let mut options_balance: u256 = 0;
             //Check and sum bids that are not tokenized yet
             //Add options balance from Partial Bid if it's there
-            if (partial_bid != 0) {
+            if (partial_bid.is_non_zero()) {
                 let partial_node: Node = self.bids_tree.tree.read(partial_bid);
 
                 //Since only clearing_bid can be partially sold, the clearing_bid_amount_sold is saved on the tree
                 let options_sold = self.bids_tree.clearing_bid_amount_sold.read();
                 if (!partial_node.value.is_tokenized) {
-                    options_balance += (options_sold) * partial_node.value.price;
+                    options_balance += options_sold;
                 }
             }
             loop {
                 match tokenizable_bids.pop_front() {
                     Option::Some(bid) => {
                         if (!bid.is_tokenized) {
-                            options_balance += bid.amount * bid.price;
+                            options_balance += bid.amount;
                         }
                     },
                     Option::None => { break; }
@@ -806,20 +809,39 @@ mod OptionRound {
             options_balance
         }
 
+        // Get the total amount of options the option buyer owns, includes the tokenizable amount and the
+        // already tokenized (ERC20) amount
+        fn get_total_options_balance_for(
+            self: @ContractState, option_buyer: ContractAddress
+        ) -> u256 {
+            self.get_tokenizable_options_for(option_buyer)
+                + self.erc20.ERC20_balances.read(option_buyer)
+        }
+
+        // Get the payout balance for the option buyer
+        fn get_payout_balance_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
+            (self.total_payout() * self.get_total_options_balance_for(option_buyer))
+                / self.get_total_options_sold()
+        }
+
+        // Get the id of the round
         fn get_round_id(self: @ContractState) -> u256 {
             self.round_id.read()
         }
 
         /// Other
 
+        // Get the constructor params of the round
         fn get_constructor_params(self: @ContractState) -> OptionRoundConstructorParams {
             self.constructor_params.read()
         }
 
+        // Get the state of the round
         fn get_state(self: @ContractState) -> OptionRoundState {
             self.state.read()
         }
 
+        // Get the address of the vault that deployed this round
         fn vault_address(self: @ContractState) -> ContractAddress {
             self.vault_address.read()
         }
@@ -834,27 +856,33 @@ mod OptionRound {
             100
         }
 
+        // Get the strike price for the round
         fn get_strike_price(self: @ContractState) -> u256 {
             self.strike_price.read()
         }
 
+        // Get the cap level for the round
         fn get_cap_level(self: @ContractState) -> u256 {
             self.cap_level.read()
         }
 
+        // Get the mimium bid price per option
         fn get_reserve_price(self: @ContractState) -> u256 {
             self.reserve_price.read()
         }
 
+        // Get the total options available to sell in the auction
         fn get_total_options_available(self: @ContractState) -> u256 {
-            self.bids_tree.total_options_available.read()
+            self.bids_tree._get_total_options_available()
         }
 
         /// Writes ///
 
         /// State transition
 
-        // @note Do we need to set cap level/reserve price/strike price here, or is during deployment fine ? (~1-8 hours earlier)
+        // Start the round's auction
+        // @dev Params are set in the constructor and in this function in case newer values from
+        // Fossil are produced in during the round transition period
         fn start_auction(
             ref self: ContractState, params: StartAuctionParams
         ) -> Result<u256, OptionRoundError> {
@@ -908,6 +936,7 @@ mod OptionRound {
             Result::Ok(30) //HardCoded for tests
         }
 
+        // End the round's auction
         fn end_auction(ref self: ContractState) -> Result<(u256, u256), OptionRoundError> {
             // Assert caller is Vault
             if (!self.is_caller_the_vault()) {
@@ -949,6 +978,7 @@ mod OptionRound {
             Result::Ok((clearing_price, total_options_sold))
         }
 
+        // Settle the option round
         fn settle_option_round(
             ref self: ContractState, params: SettleOptionRoundParams
         ) -> Result<u256, OptionRoundError> {
@@ -973,7 +1003,7 @@ mod OptionRound {
 
             // Calculate and set total payout
             let SettleOptionRoundParams { settlement_price } = params;
-            let total_payout = self.calculate_expected_payout(settlement_price);
+            let total_payout = self.calculate_payout(settlement_price);
             self.total_payout.write(total_payout);
 
             // Emit option settled event
@@ -985,13 +1015,13 @@ mod OptionRound {
 
         /// Option bidder functions
 
+        // Place a bid in the auction
         fn place_bid(
             ref self: ContractState, amount: u256, price: u256
         ) -> Result<Bid, OptionRoundError> {
-            //Check state of the OptionRound
+            //Assert round is auctioning
             let bidder = get_caller_address();
             let eth_dispatcher = self.get_eth_dispatcher();
-
             if (self.get_state() != OptionRoundState::Auctioning
                 || self.get_auction_end_date() < get_block_timestamp()) {
                 self
@@ -1003,8 +1033,8 @@ mod OptionRound {
                 return Result::Err(OptionRoundError::BiddingWhileNotAuctioning);
             }
 
-            //Bid amount zero
-            if (amount == 0) {
+            //Assert bid if for more than 0 options
+            if (amount.is_zero()) {
                 self
                     .emit(
                         Event::AuctionRejectedBid(
@@ -1013,8 +1043,8 @@ mod OptionRound {
                     );
                 return Result::Err(OptionRoundError::BidAmountZero);
             }
-            //Bid below reserve price
 
+            //Assert bid price is above reserve price
             if (price < self.get_reserve_price()) {
                 self
                     .emit(
@@ -1025,12 +1055,10 @@ mod OptionRound {
                 return Result::Err(OptionRoundError::BidBelowReservePrice);
             }
 
+            //Create and store bid, then update bidder nonce
             let nonce = self.bidder_nonces.read(bidder);
-
             let bid = Bid {
-                id: poseidon::poseidon_hash_span(
-                    array![bidder.into(), nonce.try_into().unwrap()].span()
-                ),
+                id: self.create_bid_id(bidder, nonce),
                 nonce: self.get_bid_tree_nonce(),
                 owner: bidder,
                 amount: amount,
@@ -1040,8 +1068,6 @@ mod OptionRound {
             };
             self.bids_tree.insert(bid);
             self.bidder_nonces.write(bidder, nonce + 1);
-
-            //Update Clearing Price
 
             //Transfer Eth
             eth_dispatcher.transfer_from(bidder, get_contract_address(), amount * price);
@@ -1054,38 +1080,35 @@ mod OptionRound {
             Result::Ok(bid)
         }
 
+        // Update a bid in the auction
         fn update_bid(
-            ref self: ContractState, bid_id: felt252, amount: u256, price: u256
+            ref self: ContractState, bid_id: felt252, new_amount: u256, new_price: u256
         ) -> Result<Bid, OptionRoundError> {
-            //Check if state is still auctioning
+            //Assert round is still auctioning
             if (self.get_state() != OptionRoundState::Auctioning) {
                 return Result::Err(OptionRoundError::BiddingWhileNotAuctioning);
             }
 
+            //Assert new bid is > old bid
             let old_node: Node = self.bids_tree.tree.read(bid_id);
             let mut old_bid: Bid = old_node.value;
+            if (new_amount < old_bid.amount || new_price < old_bid.price) {
+                return Result::Err(OptionRoundError::BidCannotBeDecreased);
+            }
+
+            //Update bid
             let mut new_bid: Bid = old_bid;
-            //Check if amount is decreased
-            if (amount < old_bid.amount) {
-                if (price < old_bid.price) {
-                    return Result::Err(OptionRoundError::BidCannotBeDecreased(''));
-                }
-                return Result::Err(OptionRoundError::BidCannotBeDecreased('amount'));
-            }
-
-            if (price < old_bid.price) {
-                return Result::Err(OptionRoundError::BidCannotBeDecreased('price'));
-            }
-            new_bid.amount = amount;
-            new_bid.price = price;
-            let difference = new_bid.amount * new_bid.price - old_bid.amount * old_bid.price;
-
-            self.bids_tree.delete(old_bid);
-
+            new_bid.amount = new_amount;
+            new_bid.price = new_price;
+            self.bids_tree.delete(bid_id);
             self.bids_tree.insert(new_bid);
 
+            //Charge the difference
+            let difference = (new_amount * new_price) - (old_bid.amount * old_bid.price);
             let eth_dispatcher = self.get_eth_dispatcher();
             eth_dispatcher.transfer_from(get_caller_address(), get_contract_address(), difference);
+
+            // Emit bid updated event
             self
                 .emit(
                     Event::AuctionUpdatedBid(
@@ -1099,8 +1122,10 @@ mod OptionRound {
                         }
                     )
                 );
+
             Result::Ok(new_bid)
         }
+
         fn refund_unused_bids(
             ref self: ContractState, option_bidder: ContractAddress
         ) -> Result<u256, OptionRoundError> {
@@ -1129,25 +1154,23 @@ mod OptionRound {
             get_caller_address() == self.vault_address.read()
         }
 
+        // Create the contract's ERC20 name and symbol
         fn get_name_symbol(self: @ContractState, round_id: u256) -> (ByteArray, ByteArray) {
             let name: ByteArray = format!("Pitch Lake Option Round {round_id}");
             let symbol: ByteArray = format!("PLOR{round_id}");
             return (name, symbol);
         }
 
+        // Calculate the clearing price and total options sold from the auction
         fn update_clearing_price(ref self: ContractState) -> (u256, u256) {
             self.bids_tree.find_clearing_price()
-        }
-
-        // End the auction and calculate the clearing price and total options sold
-        fn end_auction_internal(ref self: ContractState) -> (u256, u256) {
-            (0, 0)
         }
 
         //Get bid tree nonce
         fn get_bid_tree_nonce(self: @ContractState) -> u64 {
             self.bids_tree.nonce.read()
         }
+
         // Get a dispatcher for the ETH contract
         fn get_eth_dispatcher(self: @ContractState) -> IERC20Dispatcher {
             let vault = self.get_vault_dispatcher();
@@ -1155,10 +1178,12 @@ mod OptionRound {
             IERC20Dispatcher { contract_address: eth_address }
         }
 
+        // Mint option ERC20 tokens
         fn mint(ref self: ContractState, to: ContractAddress, amount: u256) {
             self.erc20._mint(to, amount);
         }
 
+        // Burn option ERC20 tokens
         fn burn(ref self: ContractState, owner: ContractAddress, amount: u256) {
             self.erc20._burn(owner, amount);
         }
@@ -1166,17 +1191,17 @@ mod OptionRound {
         fn inspect_options_for(
             self: @ContractState, bidder: ContractAddress
         ) -> (Array<Bid>, Array<Bid>, felt252) {
-            let nonce = self.get_bidding_nonce_for(bidder);
-            let mut i = 0;
             let mut refundable_bids: Array<Bid> = array![];
             let mut tokenizable_bids: Array<Bid> = array![];
-
             let mut partial_bid: felt252 = 0;
+            let nonce = self.get_bidding_nonce_for(bidder);
+            let mut i = 0;
             while i < nonce {
                 let bid_id = poseidon::poseidon_hash_span(
                     array![bidder.into(), nonce.into()].span()
                 );
                 let clearing_bid_id: felt252 = self.bids_tree.clearing_bid.read();
+                // If bidder's bid is the clearing bid, it could be partially sold
                 if (bid_id == clearing_bid_id) {
                     partial_bid = bid_id;
                 } else {
@@ -1198,11 +1223,11 @@ mod OptionRound {
             0
         }
 
-        fn calculate_expected_payout(ref self: ContractState, settlement_price: u256,) -> u256 {
+        fn calculate_payout(ref self: ContractState, settlement_price: u256,) -> u256 {
             let k = self.get_strike_price();
             let cl = self.get_cap_level();
-            //max(0, min((1 + cl) * k, settlement_price) - k)
-            // @dev This removes sub overflow possibility
+            // @dev This is `min((1 + cl) * k, settlement_price) - k)`
+            // without the possibility of a sub overflow error
             let min = min((1 + cl) * k, settlement_price);
             if min > k {
                 min - k
@@ -1214,6 +1239,11 @@ mod OptionRound {
         // Get a dispatcher for the Vault
         fn get_vault_dispatcher(self: @ContractState) -> IVaultDispatcher {
             IVaultDispatcher { contract_address: self.vault_address.read() }
+        }
+
+        // Calculate a bid's id
+        fn create_bid_id(self: @ContractState, bidder: ContractAddress, nonce: u32) -> felt252 {
+            poseidon::poseidon_hash_span(array![bidder.into(), nonce.try_into().unwrap()].span())
         }
     }
 }
