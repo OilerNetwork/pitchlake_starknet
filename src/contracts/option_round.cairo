@@ -1089,7 +1089,7 @@ mod OptionRound {
             let mut new_bid: Bid = old_bid;
             new_bid.amount = new_amount;
             new_bid.price = new_price;
-            self.bids_tree.delete(old_bid);
+            self.bids_tree.delete(bid_id);
             self.bids_tree.insert(new_bid);
 
             //Charge the difference
