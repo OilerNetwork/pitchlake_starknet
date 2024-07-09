@@ -507,6 +507,7 @@ mod OptionRound {
         self.state.write(OptionRoundState::Open);
 
         // Write option round params to storage now or once auction starts
+        self.reserve_price.write(reserve_price);
         self.cap_level.write(cap_level);
         self.strike_price.write(strike_price);
     }
@@ -549,67 +550,6 @@ mod OptionRound {
             }
         }
     }
-
-    // @dev Building this struct as a place holder for when we inject the RB tree into the contract
-
-    //    #[derive(Copy, Drop, Serde, PartialEq, PartialOrd)]
-    //    struct MockBid {
-    //        amount: u256,
-    //        price: u256,
-    //    }
-    //
-    //    impl MockBidPartialOrdTrait of PartialOrd<MockBid> {
-    //        // @return if lhs < rhs
-    //        fn lt(lhs: MockBid, rhs: MockBid) -> bool {
-    //            if lhs.price < rhs.price {
-    //                true
-    //            } else if lhs.price > rhs.price {
-    //                false
-    //            } else {
-    //                if lhs.amount < rhs.amount {
-    //                    true
-    //                } else {
-    //                    false
-    //                }
-    //            }
-    //        }
-    //
-    //        // @return if lhs <= rhs
-    //        fn le(lhs: MockBid, rhs: MockBid) -> bool {
-    //            (lhs < rhs) || (lhs == rhs)
-    //        }
-    //
-    //        // @return if lhs > rhs
-    //        fn gt(lhs: MockBid, rhs: MockBid) -> bool {
-    //            if lhs.price > rhs.price {
-    //                true
-    //            } else if lhs.price < rhs.price {
-    //                false
-    //            } else {
-    //                if lhs.amount > rhs.amount {
-    //                    true
-    //                } else {
-    //                    false
-    //                }
-    //            }
-    //        }
-    //
-    //        // @return if lhs >= rhs
-    //        fn ge(lhs: MockBid, rhs: MockBid) -> bool {
-    //            (lhs > rhs) || (lhs == rhs)
-    //        }
-    //    }
-
-    //    impl OptionRoundErrorIntoByteArray of Into<OptionRoundError, ByteArray> {
-    //        fn into(self: OptionRoundError) -> ByteArray {
-    //            match self {
-    //                OptionRoundError::AuctionStartDateNotReached => "OptionRound: Auction start fail",
-    //                OptionRoundError::AuctionEndDateNotReached => "OptionRound: Auction end fail",
-    //                OptionRoundError::OptionSettlementDateNotReached => "OptionRound: Option settle fail",
-    //                OptionRoundError::BidBelowReservePrice => "OptionRound: Bid below reserve",
-    //            }
-    //        }
-    //    }
 
     #[abi(embed_v0)]
     impl OptionRoundImpl of super::IOptionRound<ContractState> {
@@ -896,9 +836,9 @@ mod OptionRound {
                 return Result::Err(OptionRoundError::AuctionAlreadyStarted);
             }
 
-            let StartAuctionParams { total_options_available: _,
+            let StartAuctionParams { total_options_available,
             starting_liquidity,
-            reserve_price: _,
+            reserve_price,
             cap_level,
             strike_price } =
                 params;
@@ -910,13 +850,14 @@ mod OptionRound {
                 return Result::Err(OptionRoundError::AuctionStartDateNotReached);
             }
 
-            // Set auction params
-            self.reserve_price.write(1); //HardCoded for tests
-            self.cap_level.write(cap_level);
-            self.strike_price.write(strike_price);
             // Set starting liquidity & total options available
             self.starting_liquidity.write(starting_liquidity);
-            self.bids_tree.total_options_available.write(30); //HardCoded for tests
+            self.bids_tree.total_options_available.write(total_options_available);
+
+            // Set auction params
+            self.reserve_price.write(reserve_price);
+            self.cap_level.write(cap_level);
+            self.strike_price.write(strike_price);
 
             // Update state to Auctioning
             self.state.write(OptionRoundState::Auctioning);
@@ -962,10 +903,8 @@ mod OptionRound {
             self.option_settlement_date.write(self.get_option_settlement_date() + now - end_date);
 
             // Calculate clearing price & total options sold
-            //  - An empty helper function is fine for now, we will discuss the
-            //  implementation of this function later
             let (clearing_price, total_options_sold) = self.update_clearing_price();
-            // Set clearing price & total options sold
+
             // Send premiums earned from the auction to Vault
             let eth = self.get_eth_dispatcher();
             eth.transfer(self.vault_address(), self.total_premiums());
