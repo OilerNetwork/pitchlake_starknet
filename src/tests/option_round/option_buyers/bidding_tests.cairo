@@ -261,7 +261,11 @@ fn test_bid_accepted_events() {
                 let bid_amount = bid_amounts.pop_front().unwrap();
                 let bid_price = bid_prices.pop_front().unwrap();
                 assert_event_auction_bid_accepted(
-                    current_round.contract_address(), *ob, *bid_amount, *bid_price
+                    current_round.contract_address(),
+                    *ob,
+                    *bid_amount,
+                    *bid_price,
+                    0 //The 0 is nonce, nonce for each of the bidders should be 0 as it's there first bid
                 );
             },
             Option::None => { break; }
