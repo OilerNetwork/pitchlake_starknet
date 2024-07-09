@@ -6,9 +6,6 @@ trait IRBTree<TContractState> {
     fn find(ref self: TContractState, value: Bid) -> felt252;
     fn delete(ref self: TContractState, bid_id: felt252);
     fn find_clearing_price(ref self: TContractState) -> (u256, u256);
-    fn find_options_for(
-        self: @TContractState, bidder: ContractAddress, refundable_bids: Array<felt252>
-    ) -> (Array<felt252>, Array<felt252>);
     fn get_tree_structure(ref self: TContractState) -> Array<Array<(Bid, bool, u256)>>;
     fn is_tree_valid(ref self: TContractState) -> bool;
     fn _get_total_options_available(self: @TContractState) -> u256;
@@ -98,6 +95,7 @@ pub mod RBTreeComponent {
                     root, total_options_available, root_bid.price, root
                 );
             let clearing_node: Node = self.tree.read(clearing_felt);
+            println!("CLEARING_FELT:{}\nREMAINING_OPTIONS:{}",clearing_felt,remaining_options);
             let total_options_sold = total_options_available - remaining_options;
             self.total_options_sold.write(total_options_sold);
             if (remaining_options == 0) {
@@ -105,18 +103,6 @@ pub mod RBTreeComponent {
             }
             self.clearing_price.write(clearing_node.value.price);
             (clearing_node.value.price, total_options_sold)
-        }
-
-        fn find_options_for(
-            self: @ComponentState<TContractState>,
-            bidder: ContractAddress,
-            refundable_bids: Array<felt252>
-        ) -> (Array<felt252>, Array<felt252>) {
-            let (tokenizable_bids, refundable_bids, _) = self
-                .traverse_postorder_calculate_options_from_node(
-                    self.root.read(), bidder, array![], refundable_bids, false
-                );
-            return (tokenizable_bids, refundable_bids);
         }
 
         fn get_tree_structure(
@@ -142,47 +128,6 @@ pub mod RBTreeComponent {
     pub impl InternalImpl<
         TContractState, +HasComponent<TContractState>
     > of InternalTrait<TContractState> {
-        fn traverse_postorder_calculate_options_from_node(
-            self: @ComponentState<TContractState>,
-            current_id: felt252,
-            bidder: ContractAddress,
-            tokenizable_bids: Array<felt252>,
-            refundable_bids: Array<felt252>,
-            clearing_bid_reached: bool
-        ) -> (Array<felt252>, Array<felt252>, bool) {
-            //If null node return states unchanged
-
-            if (current_id == 0) {
-                return (tokenizable_bids, refundable_bids, false);
-            }
-
-            let current_node: Node = self.tree.read(current_id);
-            //Recursive on Right Node
-            let (mut tokenizable_bids, mut refundable_bids, clearing_bid_reached) = self
-                .traverse_postorder_calculate_options_from_node(
-                    current_node.right, bidder, tokenizable_bids, refundable_bids, false
-                );
-
-            //Check for self, recheck if clearing_bid_reached is true and break recursion
-            //Break the recursion if current id is clearing bid
-            if (clearing_bid_reached || current_id == self.clearing_bid.read()) {
-                return (tokenizable_bids, refundable_bids, true);
-            }
-
-            if (current_node.value.owner == bidder) {
-                //If bid is not tokenized or refunded, append it to tokenizable
-                tokenizable_bids.append(current_id);
-
-                //Remove bid from refundable array
-                refundable_bids = self.remove_from_array(current_id, refundable_bids);
-            }
-
-            //Recursive on Left Node and return result directly to the outer call
-            self
-                .traverse_postorder_calculate_options_from_node(
-                    current_node.left, bidder, tokenizable_bids, refundable_bids, false
-                )
-        }
 
         fn traverse_postorder_clearing_price_from_node(
             ref self: ComponentState<TContractState>,
@@ -208,7 +153,7 @@ pub mod RBTreeComponent {
             //Check for self
             if (current_node.value.amount >= remaining_options) {
                 self.clearing_bid_amount_sold.write(remaining_options);
-
+                
                 return (current_id, 0);
             } else {
                 remaining_options -= current_node.value.amount;

@@ -210,6 +210,8 @@ mod OptionRound {
             } else {
                 if lhs.amount < rhs.amount {
                     true
+                } else if lhs.amount > rhs.amount {
+                    false
                 } else {
                     if lhs.nonce > rhs.nonce {
                         true
@@ -235,8 +237,14 @@ mod OptionRound {
             } else {
                 if lhs.amount > rhs.amount {
                     true
-                } else {
+                } else if lhs.amount < rhs.amount {
                     false
+                } else {
+                    if (lhs.nonce < rhs.nonce) {
+                        true
+                    } else {
+                        false
+                    }
                 }
             }
         }
@@ -432,8 +440,9 @@ mod OptionRound {
             let owner: ContractAddress = *self.owner;
             let owner_felt: felt252 = owner.into();
             let str: ByteArray = format!(
-                "ID:{}\nOwner:{}\nAmount:{}\n Price:{}\nTokenized:{}\nRefunded:{}",
+                "ID:{}\nNonce:{}\nOwner:{}\nAmount:{}\n Price:{}\nTokenized:{}\nRefunded:{}",
                 *self.id,
+                *self.nonce,
                 owner_felt,
                 *self.amount,
                 *self.price,
@@ -753,6 +762,7 @@ mod OptionRound {
                 match tokenizable_bids.pop_front() {
                     Option::Some(bid) => {
                         if (!bid.is_tokenized) {
+                            println!("HI");
                             options_balance += bid.amount;
                         }
                     },
@@ -826,7 +836,7 @@ mod OptionRound {
 
         // Get the total options available to sell in the auction
         fn get_total_options_available(self: @ContractState) -> u256 {
-            self.bids_tree._get_total_options_available()
+            self.bids_tree.total_options_available.read()
         }
 
         /// Writes ///
@@ -887,7 +897,7 @@ mod OptionRound {
                 );
 
             // Return the total options available
-            Result::Ok(30) //HardCoded for tests
+            Result::Ok(100000000) //HardCoded for tests
         }
 
         // End the round's auction
@@ -1018,7 +1028,10 @@ mod OptionRound {
                 is_tokenized: false,
                 is_refunded: false
             };
+            println!("BID INSERT{}", bid);
             self.bids_tree.insert(bid);
+            let node: Node = self.bids_tree.tree.read(bid.id);
+            println!("BID IN STORAGE{}", node.value);
             self.bidder_nonces.write(bidder, nonce + 1);
 
             //Transfer Eth
@@ -1093,7 +1106,6 @@ mod OptionRound {
         fn tokenize_options(
             ref self: ContractState, option_buyer: ContractAddress
         ) -> Result<u256, OptionRoundError> {
-
             //Check that the round is past auctioning state
             let state = self.get_state();
             if (state == OptionRoundState::Auctioning || state == OptionRoundState::Open) {
@@ -1190,9 +1202,8 @@ mod OptionRound {
             let nonce = self.get_bidding_nonce_for(bidder);
             let mut i = 0;
             while i < nonce {
-                let bid_id = poseidon::poseidon_hash_span(
-                    array![bidder.into(), nonce.into()].span()
-                );
+                let bid_id: felt252 = self.create_bid_id(bidder, i);
+                println!("BID_ID{} ", bid_id);
                 let clearing_bid_id: felt252 = self.bids_tree.clearing_bid.read();
                 // If bidder's bid is the clearing bid, it could be partially sold
                 if (bid_id == clearing_bid_id) {
@@ -1201,8 +1212,10 @@ mod OptionRound {
                     let bid_node: Node = self.bids_tree.tree.read(bid_id);
                     let clearing_node: Node = self.bids_tree.tree.read(clearing_bid_id);
                     if (bid_node.value < clearing_node.value) {
+                        println!("SMALLER");
                         refundable_bids.append(bid_node.value);
                     } else {
+                        println!("BIGGER:{}\nCLEARING_BID:{}", bid_node.value, clearing_node.value);
                         tokenizable_bids.append(bid_node.value);
                     }
                 }
