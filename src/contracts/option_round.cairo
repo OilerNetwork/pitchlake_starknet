@@ -862,7 +862,7 @@ mod OptionRound {
 
         // Get the total options available to sell in the auction
         fn get_total_options_available(self: @ContractState) -> u256 {
-            self.bids_tree.total_options_available.read()
+            self.bids_tree._get_total_options_available()
         }
 
         /// Writes ///
