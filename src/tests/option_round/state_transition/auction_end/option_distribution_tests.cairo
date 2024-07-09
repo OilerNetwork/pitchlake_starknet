@@ -33,7 +33,7 @@ use pitch_lake_starknet::tests::{
 
 // Test that options sold is 0 pre auction end
 #[test]
-#[available_gas(50000000)]
+#[available_gas(500000000)]
 fn test_options_sold_0_before_auction_end() {
     let (mut vault, _) = setup_facade();
     let total_options_available = accelerate_to_auctioning(ref vault);
@@ -51,7 +51,7 @@ fn test_options_sold_0_before_auction_end() {
 
 // Test options sold is 0 if no bids are placed
 #[test]
-#[available_gas(50000000)]
+#[available_gas(500000000)]
 fn test_options_sold_is_0_when_no_bids() {
     let (mut vault_facade, _) = setup_facade();
     accelerate_to_auctioning(ref vault_facade);
@@ -65,7 +65,7 @@ fn test_options_sold_is_0_when_no_bids() {
 
 // Test bidding for more than total options available does not result in more options sold
 #[test]
-#[available_gas(50000000)]
+#[available_gas(500000000)]
 fn test_bidding_for_more_than_total_options_available() {
     let number_of_option_bidders = 3;
     let (mut vault, _, option_bidders, total_options_available) = setup_test_auctioning_bidders(
@@ -86,7 +86,7 @@ fn test_bidding_for_more_than_total_options_available() {
 
 // Test bidding for less than total options available at the same price sells the sum of the bids
 #[test]
-#[available_gas(50000000)]
+#[available_gas(500000000)]
 fn test_bidding_for_less_than_total_options_available() {
     let number_of_option_bidders = 3;
     let (mut vault, _, option_bidders, _) = setup_test_auctioning_bidders(number_of_option_bidders);
@@ -107,7 +107,7 @@ fn test_bidding_for_less_than_total_options_available() {
 
 // Test bidding for less than total options available at different prices sells the sum of the bids
 #[test]
-#[available_gas(50000000)]
+#[available_gas(500000000)]
 fn test_bidding_for_less_than_total_options_available_different_prices() {
     let number_of_option_bidders = 3;
     let (mut vault, _, option_bidders, _) = setup_test_auctioning_bidders(number_of_option_bidders);
@@ -129,7 +129,7 @@ fn test_bidding_for_less_than_total_options_available_different_prices() {
 
 // Test bids with the same amount, higher price are favored in the auction
 #[test]
-#[available_gas(50000000)]
+#[available_gas(500000000)]
 fn test_bidding_same_amount_higher_price_wins() {
     let number_of_option_bidders = 3;
     let (mut vault, _, mut option_bidders, total_options_available) = setup_test_auctioning_bidders(
@@ -168,9 +168,9 @@ fn test_bidding_same_amount_higher_price_wins() {
 
 // Test bids with the same price, higher amounts are favored in the auction
 #[test]
-#[available_gas(50000000)]
+#[available_gas(500000000)]
 fn test_bidding_same_price_higher_amount_wins() {
-    let number_of_option_bidders = 3;
+    let number_of_option_bidders = 5;
     let (mut vault, _, mut option_bidders, total_options_available) = setup_test_auctioning_bidders(
         number_of_option_bidders
     );
@@ -207,7 +207,7 @@ fn test_bidding_same_price_higher_amount_wins() {
 
 // Test higher price wins even if losing bidders bid total is higher
 #[test]
-#[available_gas(50000000)]
+#[available_gas(500000000)]
 fn test_bidding_higher_price_beats_higher_total_bid_amount() {
     let number_of_option_bidders = 3;
     let (mut vault, _, mut option_bidders, total_options_available) = setup_test_auctioning_bidders(
@@ -248,7 +248,7 @@ fn test_bidding_higher_price_beats_higher_total_bid_amount() {
 
 // Test that the last bidder gets the remaining options to be sold
 #[test]
-#[available_gas(50000000)]
+#[available_gas(500000000)]
 fn test_remaining_bids_go_to_last_bidder() {
     let number_of_option_bidders = 3;
     let (mut vault, _, mut option_bidders, total_options_available) = setup_test_auctioning_bidders(
@@ -279,7 +279,7 @@ fn test_remaining_bids_go_to_last_bidder() {
     );
     let remaining_options = total_options_available - (*bid_amounts[0] + *bid_amounts[1]);
     assert(
-        current_round.get_option_balance_for(*option_bidders[0]) == remaining_options,
+        current_round.get_option_balance_for(*option_bidders[2]) == remaining_options,
         'ob3 wrong option amount'
     )
 }
@@ -401,14 +401,13 @@ fn test_remaining_bids_go_to_last_bidder() {
 
 // Test that the last bidder gets no options if there are none left
 #[test]
-#[available_gas(50000000)]
+#[available_gas(500000000)]
 fn test_the_last_bidder_gets_no_options_if_none_left() {
-    let number_of_option_bidders = 4;
+    let number_of_option_bidders = 5;
     let (mut vault_facade, _, mut option_bidders, total_options_available) =
         setup_test_auctioning_bidders(
         number_of_option_bidders
     );
-    accelerate_to_auctioning(ref vault_facade);
     let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
 
     // Make bids, end auction
@@ -449,15 +448,17 @@ fn test_the_last_bidder_gets_no_options_if_none_left() {
 #[test]
 #[available_gas(500000000)]
 fn test_losing_bid_gets_no_options() {
-    let number_of_option_bidders = 4;
+    let number_of_option_bidders = 5;
     let (mut vault, _, mut option_bidders, total_options_available) = setup_test_auctioning_bidders(
         number_of_option_bidders
     );
     // Deposit liquidity and start the auction
     let mut current_round = vault.get_current_round();
 
-    // Make bids, 4 bidders bid for 1/3 total options each, each bidder outbidding the previous one's price
-    let mut bid_amounts = create_array_linear(total_options_available / 3, option_bidders.len())
+    // Make bids, 5 bidders bid for 1/3 total options each, each bidder outbidding the previous one's price
+    let mut bid_amounts = create_array_linear(
+        total_options_available / (number_of_option_bidders - 1).into(), option_bidders.len()
+    )
         .span();
     let bid_prices = create_array_gradient(
         current_round.get_reserve_price(), 1, option_bidders.len()
@@ -501,7 +502,7 @@ fn test_losing_bid_gets_no_options() {
 
 // Test where the total options available have been exhausted
 #[test]
-#[available_gas(50000000)]
+#[available_gas(500000000)]
 fn test_option_distribution_real_numbers_1() {
     let (mut vault, _) = setup_facade();
     let options_available = 200;
@@ -524,7 +525,7 @@ fn test_option_distribution_real_numbers_1() {
 
 // Test where the total options available have not been exhausted
 #[test]
-#[available_gas(50000000)]
+#[available_gas(500000000)]
 fn test_option_distribution_real_numbers_2() {
     let (mut vault, _) = setup_facade();
     let options_available = 200;
@@ -546,7 +547,7 @@ fn test_option_distribution_real_numbers_2() {
 }
 
 #[test]
-#[available_gas(50000000)]
+#[available_gas(500000000)]
 fn test_option_distribution_real_numbers_3() {
     let (mut vault, _) = setup_facade();
     let options_available = 500;

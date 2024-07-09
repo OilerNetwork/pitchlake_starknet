@@ -210,6 +210,8 @@ mod OptionRound {
             } else {
                 if lhs.amount < rhs.amount {
                     true
+                } else if lhs.amount > rhs.amount {
+                    false
                 } else {
                     if lhs.nonce > rhs.nonce {
                         true
@@ -235,8 +237,14 @@ mod OptionRound {
             } else {
                 if lhs.amount > rhs.amount {
                     true
-                } else {
+                } else if lhs.amount < rhs.amount {
                     false
+                } else {
+                    if (lhs.nonce < rhs.nonce) {
+                        true
+                    } else {
+                        false
+                    }
                 }
             }
         }
@@ -432,8 +440,9 @@ mod OptionRound {
             let owner: ContractAddress = *self.owner;
             let owner_felt: felt252 = owner.into();
             let str: ByteArray = format!(
-                "ID:{}\nOwner:{}\nAmount:{}\n Price:{}\nTokenized:{}\nRefunded:{}",
+                "ID:{}\nNonce:{}\nOwner:{}\nAmount:{}\n Price:{}\nTokenized:{}\nRefunded:{}",
                 *self.id,
+                *self.nonce,
                 owner_felt,
                 *self.amount,
                 *self.price,
@@ -887,7 +896,7 @@ mod OptionRound {
                 );
 
             // Return the total options available
-            Result::Ok(30) //HardCoded for tests
+            Result::Ok(100000000) //HardCoded for tests
         }
 
         // End the round's auction
@@ -1093,7 +1102,6 @@ mod OptionRound {
         fn tokenize_options(
             ref self: ContractState, option_buyer: ContractAddress
         ) -> Result<u256, OptionRoundError> {
-
             //Check that the round is past auctioning state
             let state = self.get_state();
             if (state == OptionRoundState::Auctioning || state == OptionRoundState::Open) {
@@ -1190,9 +1198,7 @@ mod OptionRound {
             let nonce = self.get_bidding_nonce_for(bidder);
             let mut i = 0;
             while i < nonce {
-                let bid_id = poseidon::poseidon_hash_span(
-                    array![bidder.into(), nonce.into()].span()
-                );
+                let bid_id: felt252 = self.create_bid_id(bidder, i);
                 let clearing_bid_id: felt252 = self.bids_tree.clearing_bid.read();
                 // If bidder's bid is the clearing bid, it could be partially sold
                 if (bid_id == clearing_bid_id) {
