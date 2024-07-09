@@ -511,7 +511,7 @@ mod OptionRound {
         self.strike_price.write(strike_price);
     }
 
-    #[derive(Copy, Drop, Serde)]
+    #[derive(Copy, Drop, Serde, PartialEq)]
     enum OptionRoundError {
         // All state transitions
         CallerIsNotVault,
