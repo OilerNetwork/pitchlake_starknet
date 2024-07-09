@@ -1200,7 +1200,6 @@ mod OptionRound {
             let mut i = 0;
             while i < nonce {
                 let bid_id: felt252 = self.create_bid_id(bidder, i);
-                !("BID_ID{} ", bid_id);
                 let clearing_bid_id: felt252 = self.bids_tree.clearing_bid.read();
                 // If bidder's bid is the clearing bid, it could be partially sold
                 if (bid_id == clearing_bid_id) {
