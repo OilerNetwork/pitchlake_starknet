@@ -835,7 +835,7 @@ mod OptionRound {
 
         // Get the total options available to sell in the auction
         fn get_total_options_available(self: @ContractState) -> u256 {
-            self.bids_tree.total_options_available.read()
+            self.bids_tree._get_total_options_available()
         }
 
         /// Writes ///
@@ -1028,7 +1028,6 @@ mod OptionRound {
                 is_refunded: false
             };
             self.bids_tree.insert(bid);
-            let node: Node = self.bids_tree.tree.read(bid.id);
             self.bidder_nonces.write(bidder, nonce + 1);
 
             //Transfer Eth
