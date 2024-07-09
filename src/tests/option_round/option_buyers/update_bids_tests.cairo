@@ -3,7 +3,10 @@ use pitch_lake_starknet::{
     contracts::{option_round::{OptionRound::OptionRoundError}},
     tests::{
         utils::{
-            helpers::{setup::{setup_facade}, accelerators::{accelerate_to_auctioning},},
+            helpers::{
+                setup::{setup_facade}, accelerators::{accelerate_to_auctioning},
+                event_helpers::{assert_event_auction_bid_updated}
+            },
             lib::{
                 test_accounts::{option_bidders_get, option_bidder_buyer_1}, variables::{decimals},
             },
@@ -75,8 +78,16 @@ fn test_update_bids_price_amount() {
     let mut bid_amount = options_available / 2;
     let bid_id = current_round.place_bid(bid_amount, bid_price, option_buyer);
 
-    // Update bid
     let updated_bid = current_round.update_bid(bid_id, bid_amount + 1, bid_price + 5 * decimals());
+    assert_event_auction_bid_updated(
+        current_round.contract_address(),
+        option_buyer,
+        bid_amount + 1, //Updated amount
+        bid_price + 5, //Updated price
+        bid_amount, //Old amount
+        bid_price, //Old price
+        bid_id
+    );
     assert(updated_bid.amount == bid_amount + 1, 'Updated amount incorrect');
     assert(updated_bid.price == bid_price + 5 * decimals(), 'Updated price incorrect');
 }

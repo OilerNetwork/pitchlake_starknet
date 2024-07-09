@@ -71,7 +71,7 @@ trait IOptionRound<TContractState> {
     // refundable amount should be the value of the last bid + the remaining amount of the partial bid
     fn get_refundable_bids_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
-    fn get_total_options_balance_for(self:@TContractState,option_buyer:ContractAddress)->u256;
+    fn get_total_options_balance_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
     // Gets the amount that an option buyer can exercise with their option balance
     fn get_payout_balance_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
@@ -342,6 +342,7 @@ mod OptionRound {
         UnusedBidsRefunded: UnusedBidsRefunded,
         OptionsExercised: OptionsExercised,
         BidTreeEvent: RBTreeComponent::Event,
+        OptionTokenized: OptionTokenized,
         #[flat]
         ERC20Event: ERC20Component::Event,
     }
@@ -385,8 +386,19 @@ mod OptionRound {
         #[key]
         account: ContractAddress,
         id: felt252,
+        old_amount: u256,
+        old_price: u256,
+        new_amount: u256,
+        new_price: u256
+    }
+
+    #[derive(Drop, starknet::Event, PartialEq)]
+    struct OptionTokenized {
+        #[key]
+        account: ContractAddress,
+        bid_id: felt252,
         amount: u256,
-        price: u256
+    //...
     }
     #[derive(Copy, Drop, Serde, starknet::Store, PartialEq, Display)]
     struct Bid {
@@ -751,18 +763,22 @@ mod OptionRound {
             refundable_balance
         }
 
-        fn get_total_options_balance_for(self: @ContractState, option_buyer:ContractAddress)->u256{
-            let tokenizable_options_amount= self.get_tokenizable_options_for(option_buyer);
-            let eth_dispatcher = IERC20Dispatcher {contract_address:get_contract_address()};
+        fn get_total_options_balance_for(
+            self: @ContractState, option_buyer: ContractAddress
+        ) -> u256 {
+            let tokenizable_options_amount = self.get_tokenizable_options_for(option_buyer);
+            let eth_dispatcher = IERC20Dispatcher { contract_address: get_contract_address() };
             let token_balance = eth_dispatcher.balance_of(option_buyer);
 
-            tokenizable_options_amount+token_balance
+            tokenizable_options_amount + token_balance
         }
         fn get_payout_balance_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
             1
         }
 
-        fn get_tokenizable_options_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
+        fn get_tokenizable_options_for(
+            self: @ContractState, option_buyer: ContractAddress
+        ) -> u256 {
             //self.bids_tree.find_options_for(option_buyer);
             let (mut tokenizable_bids, _, partial_bid) = self.inspect_options_for(option_buyer);
             let mut options_balance: u256 = 0;
@@ -1076,8 +1092,10 @@ mod OptionRound {
                         AuctionUpdatedBid {
                             id: bid_id,
                             account: get_caller_address(),
-                            amount: new_bid.amount,
-                            price: new_bid.price
+                            old_amount: old_bid.amount,
+                            old_price: old_bid.price,
+                            new_amount: new_bid.amount,
+                            new_price: new_bid.price
                         }
                     )
                 );

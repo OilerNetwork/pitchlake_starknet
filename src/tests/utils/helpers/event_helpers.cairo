@@ -77,6 +77,28 @@ fn assert_event_auction_bid_accepted(
     }
 }
 
+fn assert_event_auction_bid_updated(
+    contract: ContractAddress,
+    account: ContractAddress,
+    new_amount: u256,
+    new_price: u256,
+    old_amount: u256,
+    old_price: u256,
+    id: felt252
+) {
+    match pop_log::<OptionRound::Event>(contract) {
+        Option::Some(e) => {
+            let expected = OptionRound::Event::AuctionUpdatedBid(
+                OptionRound::AuctionUpdatedBid {
+                    id, account, old_amount, old_price, new_amount, new_price
+                }
+            );
+            assert_events_equal(e, expected);
+        },
+        Option::None => { panic(array!['Could not find event']); }
+    }
+}
+
 // Check AuctionRejectedBid emits correctly
 fn assert_event_auction_bid_rejected(
     contract: ContractAddress, account: ContractAddress, amount: u256, price: u256,
