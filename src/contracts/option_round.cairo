@@ -72,6 +72,7 @@ trait IOptionRound<TContractState> {
     fn get_refundable_bids_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
     fn get_total_options_balance_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
+
     // Gets the amount that an option buyer can exercise with their option balance
     fn get_payout_balance_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
