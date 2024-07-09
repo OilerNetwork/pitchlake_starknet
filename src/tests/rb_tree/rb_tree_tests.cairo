@@ -17,5 +17,5 @@ mod RBTreeMockContract {
     }
 
     #[abi(embed_v0)]
-    impl RBTreeImpl = RBTreeComponent::RBTreeImpl<ContractState>; 
+    impl RBTreeImpl = RBTreeComponent::RBTree<ContractState>;
 }
