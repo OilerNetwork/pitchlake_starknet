@@ -16,12 +16,6 @@ mod misc {
 }
 
 #[cfg(test)]
-mod rb_tree {
-    mod rb_tree_mock_contract;
-    mod rb_tree_tests;
-}
-
-#[cfg(test)]
 mod option_round {
     mod option_buyers {
         mod bidding_tests;
@@ -29,6 +23,10 @@ mod option_round {
         mod refunding_bids_tests;
         mod update_bids_tests;
         mod tokenizing_options_tests;
+    }
+    mod rb_tree {
+        mod rb_tree_tests;
+        mod rb_tree_mock_contract;
     }
     mod state_transition {
         mod auction_end {
