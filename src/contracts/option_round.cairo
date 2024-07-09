@@ -1165,7 +1165,8 @@ mod OptionRound {
             ref self: ContractState, option_buyer: ContractAddress
         ) -> Result<u256, OptionRoundError> {
             //Check that the round is settled 
-            if (self.get_state() != OptionRoundState::Running) {
+            let state = self.get_state();
+            if (state != OptionRoundState::Running&&state!=OptionRoundState::Settled) {
                 return Result::Err(OptionRoundError::AuctionNotEnded);
             }
             let (mut tokenizable_bids, _, partial_bid) = self.inspect_options_for(option_buyer);

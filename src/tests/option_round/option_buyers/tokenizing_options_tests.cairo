@@ -7,10 +7,10 @@ use pitch_lake_starknet::tests::{
             setup::{setup_facade, deploy_custom_option_round},
             general_helpers::{get_erc20_balance, assert_two_arrays_equal_length},
         },
-        lib::{test_accounts::{option_bidders_get},},
+        lib::{test_accounts::{option_bidders_get, option_bidder_buyer_1},},
         facades::{
             vault_facade::{VaultFacade, VaultFacadeTrait},
-            option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundParams}
+            option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundParams,OptionRoundError}
         },
     },
 };
@@ -59,6 +59,24 @@ fn test_tokenizing_options_mints_option_tokens() {
                 );
             },
             Option::None => { break (); },
+        }
+    }
+}
+
+#[test]
+#[available_gas(500000000)]
+fn test_tokenizing_options_before_auction_end_fails(){
+    let (mut vault, _) = setup_facade();
+    let mut current_round = vault.get_current_round();
+    let option_bidder = option_bidder_buyer_1();
+    let expected_error= OptionRoundError::AuctionNotEnded;
+    let res = current_round.tokenize_options_raw(option_bidder);
+    match res{
+        Result::Ok(_)=>{
+            panic!("Should throw error")
+        },
+        Result::Err(e)=>{
+            assert(e==expected_error,'Error mismatch')
         }
     }
 }
