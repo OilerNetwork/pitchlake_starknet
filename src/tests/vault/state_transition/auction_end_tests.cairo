@@ -138,8 +138,16 @@ fn test_auction_ended_option_round_event() {
     while rounds_to_run > 0_u32 {
         let mut current_round = vault.get_current_round();
         accelerate_to_auctioning(ref vault);
+
+        // Make bids
+        let bidder: ContractAddress = *option_bidders_get(1)[0];
+        let bid_amount = current_round.get_total_options_available();
+        let bid_price = current_round.get_reserve_price();
+        current_round.place_bid(bid_amount, bid_price, bidder);
+
+        // End auction
         clear_event_logs(array![current_round.contract_address()]);
-        let (clearing_price, _) = accelerate_to_running(ref vault);
+        let (clearing_price, _) = timeskip_and_end_auction(ref vault);
 
         // Check the event emits correctly
         assert(clearing_price > 0, 'clearing price shd be > 0');
@@ -207,23 +215,26 @@ fn test_end_auction_updates_current_round_state() {
 fn test_end_auction_eth_transfer() {
     let (mut vault_facade, eth) = setup_facade();
     accelerate_to_auctioning(ref vault_facade);
-
-    // Vault and round balances before auction ends
     let mut current_round = vault_facade.get_current_round();
-    let round_balance_before = eth.balance_of(current_round.contract_address());
-    let vault_balance_before = eth.balance_of(vault_facade.contract_address());
 
-    // End auction (2 bidders, first bid gets refuned, second's is converted to premium)
     let option_bidders = option_bidders_get(2).span();
     let bid_amount = current_round.get_total_options_available();
     let losing_price = current_round.get_reserve_price();
     let winning_price = 2 * losing_price;
-    let (clearing_price, options_sold) = accelerate_to_running_custom(
-        ref vault_facade,
-        option_bidders,
-        array![bid_amount, bid_amount].span(),
-        array![losing_price, winning_price].span()
-    );
+    current_round
+        .place_bids(
+            array![bid_amount, bid_amount].span(),
+            array![losing_price, winning_price].span(),
+            option_bidders
+        );
+
+    // Vault and round balances before auction ends
+    let round_balance_before = eth.balance_of(current_round.contract_address());
+    let vault_balance_before = eth.balance_of(vault_facade.contract_address());
+
+    // End auction (2 bidders, first bid gets refunded, second bid is used for premiums
+    let (clearing_price, options_sold) = timeskip_and_end_auction(ref vault_facade);
+
     // Vault and round balances after auction ends
     let round_balance_after = eth.balance_of(current_round.contract_address());
     let vault_balance_after = eth.balance_of(vault_facade.contract_address());
@@ -382,10 +393,13 @@ fn test_end_auction_updates_vault_and_lp_spreads_complex() {
     // Check vault spreads
     assert(total_premiums2 > 0, 'premiums shd be greater than 0');
     assert(
-        vault_spread_before == (remaining_liquidity1 + topup_amount, 0), 'vault spread before wrong'
+        vault_spread_before == (remaining_liquidity1 + topup_amount - withdraw_amount, 0),
+        'vault spread before wrong'
     );
     assert(
-        vault_spread_after == (remaining_liquidity1 + topup_amount, total_premiums2),
+        vault_spread_after == (
+            remaining_liquidity1 + topup_amount - withdraw_amount, total_premiums2
+        ),
         'vault spread after wrong'
     );
     // Check LP spreads

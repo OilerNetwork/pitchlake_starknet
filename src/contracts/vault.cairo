@@ -838,8 +838,13 @@ mod Vault {
                     let total_collectable = current_round.total_premiums()
                         + self.unsold_liquidity.read(current_round_id);
                     // Calculate the liquidity provider's share of the total collectable balance
-                    let lp_collectable = (total_collectable * previous_round_remaining_balance)
+                    // @dev The liquidity provider's share is proportional to the amount of liquidity they
+                    // had in the previous round + the amount they deposited for the current round
+                    let lp_weight_total = previous_round_remaining_balance
+                        + self.positions.read((liquidity_provider, current_round_id));
+                    let lp_collectable = (total_collectable * lp_weight_total)
                         / current_round.starting_liquidity();
+
                     // Get the amount that the liquidity provider has already collected
                     let lp_collected = self
                         .get_premiums_collected(liquidity_provider, current_round_id);
@@ -934,26 +939,26 @@ mod Vault {
         // Phase F (fossil)
 
         fn fetch_reserve_price(self: @ContractState) -> u256 {
-            1
+            1000000
         }
 
         fn fetch_cap_level(self: @ContractState) -> u256 {
-            1
+            1000000
         }
 
         fn fetch_strike_price(self: @ContractState) -> u256 {
-            1
+            1000000
         }
 
         fn fetch_settlement_price(self: @ContractState) -> u256 {
-            0
+            2 * self.get_round_dispatcher(self.current_option_round_id()).get_reserve_price()
         }
 
         fn calculate_total_options_available(
             self: @ContractState, starting_liquidity: u256
         ) -> u256 {
             //Calculate total options accordingly
-            0
+            100000000
         }
     }
 }

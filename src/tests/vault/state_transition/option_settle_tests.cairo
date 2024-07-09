@@ -230,7 +230,7 @@ fn test_settle_option_round_updates_round_state() {
 
 // Test settling transfers the payout from the vault to the option round
 #[test]
-#[available_gas(50000000)]
+#[available_gas(90000000)]
 fn test_settling_option_round_transfers_payout() {
     let mut rounds_to_run = 3;
     let (mut vault, eth) = setup_facade();
