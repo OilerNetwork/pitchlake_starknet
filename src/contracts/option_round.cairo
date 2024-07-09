@@ -346,6 +346,7 @@ mod OptionRound {
         UnusedBidsRefunded: UnusedBidsRefunded,
         OptionsExercised: OptionsExercised,
         BidTreeEvent: RBTreeComponent::Event,
+        OptionsTokenized: OptionsTokenized,
         #[flat]
         ERC20Event: ERC20Component::Event,
     }
@@ -389,8 +390,19 @@ mod OptionRound {
         #[key]
         account: ContractAddress,
         id: felt252,
+        old_amount: u256,
+        old_price: u256,
+        new_amount: u256,
+        new_price: u256
+    }
+
+    #[derive(Drop, starknet::Event, PartialEq)]
+    struct OptionsTokenized {
+        #[key]
+        account: ContractAddress,
+        bid_id: felt252,
         amount: u256,
-        price: u256
+    //...
     }
 
     #[derive(Copy, Drop, Serde, starknet::Store, PartialEq, Display)]
@@ -767,7 +779,6 @@ mod OptionRound {
             refundable_balance
         }
 
-        // Get the amount of options that can be tokenized for the option buyer
         fn get_tokenizable_options_for(
             self: @ContractState, option_buyer: ContractAddress
         ) -> u256 {
@@ -1104,8 +1115,10 @@ mod OptionRound {
                         AuctionUpdatedBid {
                             id: bid_id,
                             account: get_caller_address(),
-                            amount: new_bid.amount,
-                            price: new_bid.price
+                            old_amount: old_bid.amount,
+                            old_price: old_bid.price,
+                            new_amount: new_bid.amount,
+                            new_price: new_bid.price
                         }
                     )
                 );
