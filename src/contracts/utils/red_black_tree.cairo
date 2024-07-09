@@ -10,6 +10,7 @@ trait IRBTree<TContractState> {
     fn is_tree_valid(ref self: TContractState) -> bool;
     fn _get_total_options_available(self: @TContractState) -> u256;
     fn get_total_options_sold(self: @TContractState) -> u256;
+    fn get_nonce(self: @TContractState) -> u64;
 }
 
 const BLACK: bool = false;
@@ -121,6 +122,10 @@ pub mod RBTreeComponent {
 
         fn is_tree_valid(ref self: ComponentState<TContractState>) -> bool {
             self.check_if_rb_tree_is_valid()
+        }
+
+        fn get_nonce(self: @ComponentState<TContractState>) -> u64 {
+            self.nonce.read()
         }
     }
 
