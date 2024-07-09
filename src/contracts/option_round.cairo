@@ -400,7 +400,6 @@ mod OptionRound {
     struct OptionsTokenized {
         #[key]
         account: ContractAddress,
-        bid_id: felt252,
         amount: u256,
     //...
     }
@@ -416,6 +415,28 @@ mod OptionRound {
         is_refunded: bool,
     }
 
+    impl OptionRoundStateDisplay of Display<OptionRoundState>{
+        fn fmt(self:@OptionRoundState, ref f:Formatter)->Result<(),Error>{
+            let str:ByteArray = match self{
+                OptionRoundState::Open=>{
+                    format!("Open")
+                },
+                OptionRoundState::Auctioning=>{
+                    format!("Auctioning")
+                    
+                },
+                OptionRoundState::Running=>{
+                    format!("Running")
+                },
+                OptionRoundState::Settled=>{
+                    format!("Settled")
+                }
+            };
+            f.buffer.append(@str);
+            Result::Ok(())
+
+        }
+    }
     impl BidDisplay of Display<Bid> {
         fn fmt(self: @Bid, ref f: Formatter) -> Result<(), Error> {
             let owner: ContractAddress = *self.owner;
@@ -521,6 +542,7 @@ mod OptionRound {
         // Ending auction
         NoAuctionToEnd,
         AuctionEndDateNotReached,
+        AuctionNotEnded,
         // Settling round
         OptionRoundAlreadySettled,
         OptionSettlementDateNotReached,
@@ -545,7 +567,8 @@ mod OptionRound {
                 OptionRoundError::BidBelowReservePrice => 'OptionRound: Bid below reserve',
                 OptionRoundError::BidAmountZero => 'OptionRound: Bid amount zero',
                 OptionRoundError::BiddingWhileNotAuctioning => 'OptionRound: No auction running',
-                OptionRoundError::BidCannotBeDecreased => { 'OptionRound: New bid too low' }
+                OptionRoundError::BidCannotBeDecreased => { 'OptionRound: New bid too low' },
+                OptionRoundError::AuctionNotEnded => { 'Auction has not ended' }
             }
         }
     }
@@ -1141,7 +1164,45 @@ mod OptionRound {
         fn tokenize_options(
             ref self: ContractState, option_buyer: ContractAddress
         ) -> Result<u256, OptionRoundError> {
-            Result::Ok(100)
+            //Check that the round is settled 
+            if (self.get_state() != OptionRoundState::Running) {
+                return Result::Err(OptionRoundError::AuctionNotEnded);
+            }
+            let (mut tokenizable_bids, _, partial_bid) = self.inspect_options_for(option_buyer);
+            let mut options_to_mint = 0;
+            //Check and sum bids that are not tokenized yet
+            //Add options balance from Partial Bid if it's there
+            if (partial_bid.is_non_zero()) {
+                let mut partial_node: Node = self.bids_tree.tree.read(partial_bid);
+                //Since only clearing_bid can be partially sold, the clearing_bid_amount_sold is saved on the tree
+                let options_sold = self.bids_tree.clearing_bid_amount_sold.read();
+                if (!partial_node.value.is_tokenized) {
+                    options_to_mint += options_sold;
+                    partial_node.value.is_tokenized = true;
+                    self.bids_tree.tree.write(partial_bid, partial_node);
+                }
+            }
+            loop {
+                match tokenizable_bids.pop_front() {
+                    Option::Some(mut bid) => {
+                        if (!bid.is_tokenized) {
+                            options_to_mint += bid.amount;
+                            let mut bid_node: Node = self.bids_tree.tree.read(bid.id);
+                            bid_node.value.is_tokenized = true;
+                            self.bids_tree.tree.write(bid.id, bid_node);
+                        }
+                    },
+                    Option::None => { break; }
+                }
+            };
+            self.mint(option_buyer, options_to_mint);
+            self
+                .emit(
+                    Event::OptionsTokenized(
+                        OptionsTokenized { account: option_buyer, amount: options_to_mint }
+                    )
+                );
+            Result::Ok(options_to_mint)
         }
     }
 

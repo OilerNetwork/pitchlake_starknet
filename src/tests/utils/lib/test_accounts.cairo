@@ -24,6 +24,7 @@ fn liquidity_providers_get(number: u32) -> Array<ContractAddress> {
             2 => liquidity_provider_3(),
             3 => liquidity_provider_4(),
             4 => liquidity_provider_5(),
+            5 => liquidity_provider_6(),
             _ => contract_address_const::<'liquidity_provider_1'>(),
         };
 
@@ -44,6 +45,7 @@ fn option_bidders_get(number: u32) -> Array<ContractAddress> {
             2 => option_bidder_buyer_3(),
             3 => option_bidder_buyer_4(),
             4 => option_bidder_buyer_5(),
+            5 => option_bidder_buyer_6(),
             _ => contract_address_const::<'option_bidder_buyer_1'>(),
         };
 
@@ -68,6 +70,9 @@ fn liquidity_provider_4() -> ContractAddress {
 }
 fn liquidity_provider_5() -> ContractAddress {
     contract_address_const::<'liquidity_provider_5'>()
+}
+fn liquidity_provider_6() -> ContractAddress {
+    contract_address_const::<'liquidity_provider_6'>()
 }
 fn option_bidder_buyer_1() -> ContractAddress {
     contract_address_const::<'option_bidder_buyer1'>()
