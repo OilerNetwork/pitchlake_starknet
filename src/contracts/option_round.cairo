@@ -762,7 +762,6 @@ mod OptionRound {
                 match tokenizable_bids.pop_front() {
                     Option::Some(bid) => {
                         if (!bid.is_tokenized) {
-                            println!("HI");
                             options_balance += bid.amount;
                         }
                     },
@@ -1028,10 +1027,8 @@ mod OptionRound {
                 is_tokenized: false,
                 is_refunded: false
             };
-            println!("BID INSERT{}", bid);
             self.bids_tree.insert(bid);
             let node: Node = self.bids_tree.tree.read(bid.id);
-            println!("BID IN STORAGE{}", node.value);
             self.bidder_nonces.write(bidder, nonce + 1);
 
             //Transfer Eth
@@ -1203,7 +1200,7 @@ mod OptionRound {
             let mut i = 0;
             while i < nonce {
                 let bid_id: felt252 = self.create_bid_id(bidder, i);
-                println!("BID_ID{} ", bid_id);
+                !("BID_ID{} ", bid_id);
                 let clearing_bid_id: felt252 = self.bids_tree.clearing_bid.read();
                 // If bidder's bid is the clearing bid, it could be partially sold
                 if (bid_id == clearing_bid_id) {
@@ -1212,10 +1209,8 @@ mod OptionRound {
                     let bid_node: Node = self.bids_tree.tree.read(bid_id);
                     let clearing_node: Node = self.bids_tree.tree.read(clearing_bid_id);
                     if (bid_node.value < clearing_node.value) {
-                        println!("SMALLER");
                         refundable_bids.append(bid_node.value);
                     } else {
-                        println!("BIGGER:{}\nCLEARING_BID:{}", bid_node.value, clearing_node.value);
                         tokenizable_bids.append(bid_node.value);
                     }
                 }

@@ -188,7 +188,6 @@ fn test_bidding_same_price_higher_amount_wins() {
     match option_bidders.pop_back() {
         Option::Some(ob) => {
             let winner_option_balance = current_round.get_option_balance_for(*ob);
-            println!("WINNER:{}\nTOTAL:{}",winner_option_balance,total_options_available);
             assert(
                 winner_option_balance == total_options_available, 'winner should get all options'
             );
@@ -280,7 +279,7 @@ fn test_remaining_bids_go_to_last_bidder() {
     );
     let remaining_options = total_options_available - (*bid_amounts[0] + *bid_amounts[1]);
     assert(
-        current_round.get_option_balance_for(*option_bidders[0]) == remaining_options,
+        current_round.get_option_balance_for(*option_bidders[2]) == remaining_options,
         'ob3 wrong option amount'
     )
 }
@@ -414,7 +413,6 @@ fn test_the_last_bidder_gets_no_options_if_none_left() {
     let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
 
     // Make bids, end auction
-    println!("total_options_available:{}", total_options_available);
     let bid_amount = total_options_available / (number_of_option_bidders.into() - 1);
     let bid_amounts = create_array_linear(bid_amount, number_of_option_bidders);
     let bid_prices = create_array_linear(

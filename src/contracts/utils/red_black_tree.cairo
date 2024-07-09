@@ -95,7 +95,6 @@ pub mod RBTreeComponent {
                     root, total_options_available, root_bid.price, root
                 );
             let clearing_node: Node = self.tree.read(clearing_felt);
-            println!("CLEARING_FELT:{}\nREMAINING_OPTIONS:{}",clearing_felt,remaining_options);
             let total_options_sold = total_options_available - remaining_options;
             self.total_options_sold.write(total_options_sold);
             if (remaining_options == 0) {
