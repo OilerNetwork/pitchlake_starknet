@@ -71,7 +71,7 @@ trait IOptionRound<TContractState> {
     // refundable amount should be the value of the last bid + the remaining amount of the partial bid
     fn get_refundable_bids_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
-    fn get_total_options_balance_for(self:@TContractState,option_buyer:ContractAddress)->u256;
+    fn get_total_options_balance_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
     // Gets the amount that an option buyer can exercise with their option balance
     fn get_payout_balance_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
@@ -700,6 +700,7 @@ mod OptionRound {
             array!['asdf']
         }
 
+        // Get the bid ids for all of the bids the option buyer has placed
         fn get_bids_for(self: @ContractState, option_buyer: ContractAddress) -> Array<Bid> {
             let mut i: u32 = self.bidder_nonces.read(option_buyer);
             let mut bids: Array<Bid> = array![];
@@ -713,12 +714,17 @@ mod OptionRound {
             };
             bids
         }
+
+        // Return the total refundable balance for the option buyer
         fn get_refundable_bids_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
+            // Get the refundable, tokenizable, and partially sold bid ids
             let (mut tokenizable_bids, mut refundable_bids, partial_bid) = self
                 .inspect_options_for(option_buyer);
+
+            // Check and sum bids that are not refunded yet
             let mut refundable_balance = 0;
             let clearing_price = self.get_auction_clearing_price();
-            //Add refundable balance from Partial Bid if it's there
+            // Add refundable balance from Partial Bid if it's there
             if (partial_bid != 0) {
                 let partial_node: Node = self.bids_tree.tree.read(partial_bid);
 
@@ -729,6 +735,7 @@ mod OptionRound {
                         * partial_node.value.price;
                 }
             }
+            // Add refundable balance from all (not already refunded) refundable bids
             loop {
                 match refundable_bids.pop_front() {
                     Option::Some(bid) => {
@@ -739,49 +746,45 @@ mod OptionRound {
                     Option::None => { break; }
                 }
             };
-
+            // Add refundable balance from all (not already refunded) over bids
+            // @dev An over bid in this context is when a bid's price is > the clearing price
             loop {
                 match tokenizable_bids.pop_front() {
                     Option::Some(bid) => {
-                        refundable_balance += bid.amount * (bid.price - clearing_price)
+                        if (!bid.is_refunded) {
+                            refundable_balance += bid.amount * (bid.price - clearing_price)
+                        }
                     },
                     Option::None => { break; }
                 }
             };
+
             refundable_balance
         }
 
-        fn get_total_options_balance_for(self: @ContractState, option_buyer:ContractAddress)->u256{
-            let tokenizable_options_amount= self.get_tokenizable_options_for(option_buyer);
-            let eth_dispatcher = IERC20Dispatcher {contract_address:get_contract_address()};
-            let token_balance = eth_dispatcher.balance_of(option_buyer);
-
-            tokenizable_options_amount+token_balance
-        }
-        fn get_payout_balance_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
-            1
-        }
-
-        fn get_tokenizable_options_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
+        // Get the amount of options that can be tokenized for the option buyer
+        fn get_tokenizable_options_for(
+            self: @ContractState, option_buyer: ContractAddress
+        ) -> u256 {
             //self.bids_tree.find_options_for(option_buyer);
             let (mut tokenizable_bids, _, partial_bid) = self.inspect_options_for(option_buyer);
             let mut options_balance: u256 = 0;
             //Check and sum bids that are not tokenized yet
             //Add options balance from Partial Bid if it's there
-            if (partial_bid != 0) {
+            if (partial_bid.is_non_zero()) {
                 let partial_node: Node = self.bids_tree.tree.read(partial_bid);
 
                 //Since only clearing_bid can be partially sold, the clearing_bid_amount_sold is saved on the tree
                 let options_sold = self.bids_tree.clearing_bid_amount_sold.read();
                 if (!partial_node.value.is_tokenized) {
-                    options_balance += (options_sold) * partial_node.value.price;
+                    options_balance += options_sold;
                 }
             }
             loop {
                 match tokenizable_bids.pop_front() {
                     Option::Some(bid) => {
                         if (!bid.is_tokenized) {
-                            options_balance += bid.amount * bid.price;
+                            options_balance += bid.amount;
                         }
                     },
                     Option::None => { break; }
@@ -790,6 +793,22 @@ mod OptionRound {
             options_balance
         }
 
+        // Get the total amount of options the option buyer owns, includes the tokenizable amount and the
+        // already tokenized (ERC20) amount
+        fn get_total_options_balance_for(
+            self: @ContractState, option_buyer: ContractAddress
+        ) -> u256 {
+            self.get_tokenizable_options_for(option_buyer)
+                + self.erc20.ERC20_balances.read(option_buyer)
+        }
+
+        // Get the payout balance for the option buyer
+        fn get_payout_balance_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
+            (self.total_payout() * self.get_total_options_balance_for(option_buyer))
+                / self.get_total_options_sold()
+        }
+
+        // Get the round's id
         fn get_round_id(self: @ContractState) -> u256 {
             self.round_id.read()
         }
@@ -1148,17 +1167,17 @@ mod OptionRound {
         fn inspect_options_for(
             self: @ContractState, bidder: ContractAddress
         ) -> (Array<Bid>, Array<Bid>, felt252) {
-            let nonce = self.get_bidding_nonce_for(bidder);
-            let mut i = 0;
             let mut refundable_bids: Array<Bid> = array![];
             let mut tokenizable_bids: Array<Bid> = array![];
-
             let mut partial_bid: felt252 = 0;
+            let nonce = self.get_bidding_nonce_for(bidder);
+            let mut i = 0;
             while i < nonce {
                 let bid_id = poseidon::poseidon_hash_span(
                     array![bidder.into(), nonce.into()].span()
                 );
                 let clearing_bid_id: felt252 = self.bids_tree.clearing_bid.read();
+                // If bidder's bid is the clearing bid, it could be partially sold
                 if (bid_id == clearing_bid_id) {
                     partial_bid = bid_id;
                 } else {
