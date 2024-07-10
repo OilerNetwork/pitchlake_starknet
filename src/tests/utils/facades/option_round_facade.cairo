@@ -207,6 +207,11 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         }
     }
 
+    fn refund_bid_raw(
+        ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
+    ) -> Result<u256, OptionRoundError> {
+        self.option_round_dispatcher.refund_unused_bids(option_bidder_buyer)
+    }
     // Refunds all unused bids of multiple option bidders
     // @return: The amounts refunded
     fn refund_bids(ref self: OptionRoundFacade, mut bidders: Span<ContractAddress>) -> Array<u256> {
