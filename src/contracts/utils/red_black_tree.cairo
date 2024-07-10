@@ -62,7 +62,7 @@ pub mod RBTreeComponent {
             let new_node_id = value.id;
 
             if self.root.read() == 0 {
-                let root_node = self.create_default_node(@value);
+                let root_node = self.create_root_node(@value);
                 self.tree.write(new_node_id, root_node);
                 self.root.write(new_node_id);
                 return;
@@ -229,7 +229,7 @@ pub mod RBTreeComponent {
             new_array
         }
 
-        fn create_default_node(self: @ComponentState<TContractState>, value: @Bid) -> Node {
+        fn create_root_node(self: @ComponentState<TContractState>, value: @Bid) -> Node {
             Node { value: *value, left: 0, right: 0, parent: 0, color: BLACK, }
         }
 
