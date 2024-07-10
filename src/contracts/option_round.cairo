@@ -711,7 +711,6 @@ mod OptionRound {
                 let options_sold = self.bids_tree.clearing_bid_amount_sold.read();
                 if (!partial_node.value.is_refunded) {
                     refundable_balance += (partial_node.value.amount - options_sold)
-                        * partial_node.value.price;
                 }
             }
             // Add refundable balance from all (not already refunded) refundable bids
@@ -719,7 +718,7 @@ mod OptionRound {
                 match refundable_bids.pop_front() {
                     Option::Some(bid) => {
                         if (!bid.is_refunded) {
-                            refundable_balance += bid.amount * bid.price;
+                            refundable_balance += bid.amount;
                         }
                     },
                     Option::None => { break; }
@@ -727,16 +726,21 @@ mod OptionRound {
             };
             // Add refundable balance from all (not already refunded) over bids
             // @dev An over bid in this context is when a bid's price is > the clearing price
-            loop {
-                match tokenizable_bids.pop_front() {
-                    Option::Some(bid) => {
-                        if (!bid.is_refunded) {
-                            refundable_balance += bid.amount * (bid.price - clearing_price)
-                        }
-                    },
-                    Option::None => { break; }
-                }
-            };
+
+            //Add difference from tokenizable bids only if the state is not open or auctioning
+            let state = self.get_state();
+            if (state != OptionRoundState::Open && state != OptionRoundState::Auctioning) {
+                loop {
+                    match tokenizable_bids.pop_front() {
+                        Option::Some(bid) => {
+                            if (!bid.is_refunded&&bid.price!=clearing_price) {
+                                refundable_balance += bid.amount
+                            }
+                        },
+                        Option::None => { break; }
+                    }
+                };
+            }
 
             refundable_balance
         }

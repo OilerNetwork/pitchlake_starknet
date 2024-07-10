@@ -67,8 +67,6 @@ fn test_pending_bids_after_auction_end() {
         number_of_option_bidders
     );
 
-    // Start auction
-    accelerate_to_auctioning(ref vault);
 
     // Each option buyer out bids the next
     let (_, _, mut current_round, _) = place_incremental_bids_internal(ref vault, option_bidders);
@@ -97,8 +95,6 @@ fn test_pending_bids_before_auction_end() {
         number_of_option_bidders
     );
 
-    // Start auction
-    accelerate_to_auctioning(ref vault);
 
     // Each option buyer out bids the next
     let (_, _, mut current_round, mut bid_ids) = place_incremental_bids_internal(
@@ -175,6 +171,7 @@ fn test_refundable_bids_after_auction_end() {
                     Option::Some(bidder) => {
                         let refunded_amount = current_round.get_refundable_bids_for(*bidder);
                         let bid_amount = bid_amounts.pop_front().unwrap();
+                        println!("refunded_amount:{}\bid_amount:{}", refunded_amount,*bid_amount);
                         assert(refunded_amount == *bid_amount, 'refunded bid balance wrong');
                     },
                     Option::None => { break; }
