@@ -102,7 +102,9 @@ fn test_insertion() {
 
     insert(rb_tree, 7, 8);
     let tree_structure = rb_tree.get_tree_structure();
+    let is_tree_valid = rb_tree.is_tree_valid();
     println!("{:?}", @tree_structure);
+    println!("{:?}", is_tree_valid);
 }
 
 fn insert(rb_tree: IRBTreeDispatcher, price: u256, nonce: u64) {
