@@ -62,8 +62,9 @@ pub mod RBTreeComponent {
             let new_node_id = value.id;
 
             if self.root.read() == 0 {
+                let root_node = self.create_root_node(@value);
+                self.tree.write(new_node_id, root_node);
                 self.root.write(new_node_id);
-                self.tree.write(new_node_id, self.create_default_node(@value));
                 return;
             }
 
@@ -191,10 +192,7 @@ pub mod RBTreeComponent {
                 if current_node.left == 0 {
                     current_node.left = new_node_id;
 
-                    // update parent
-                    let new_node = Node {
-                        left: 0, right: 0, value, parent: current_id, color: BLACK
-                    };
+                    let new_node = self.create_leaf_node(@value, current_id);
                     self.tree.write(new_node_id, new_node);
                     self.tree.write(current_id, current_node);
 
@@ -206,10 +204,7 @@ pub mod RBTreeComponent {
                 if current_node.right == 0 {
                     current_node.right = new_node_id;
 
-                    // update parent
-                    let new_node = Node {
-                        left: 0, right: 0, value, parent: current_id, color: BLACK
-                    };
+                    let new_node = self.create_leaf_node(@value, current_id);
                     self.tree.write(new_node_id, new_node);
                     self.tree.write(current_id, current_node);
                     return;
@@ -234,8 +229,12 @@ pub mod RBTreeComponent {
             new_array
         }
 
-        fn create_default_node(self: @ComponentState<TContractState>, value: @Bid) -> Node {
+        fn create_root_node(self: @ComponentState<TContractState>, value: @Bid) -> Node {
             Node { value: *value, left: 0, right: 0, parent: 0, color: BLACK, }
+        }
+
+        fn create_leaf_node(self: @ComponentState<TContractState>, value: @Bid, parent: felt252) -> Node {
+            Node { value: *value, left: 0, right: 0, parent: parent, color: RED, }
         }
 
         fn is_left_child(ref self: ComponentState<TContractState>, node_id: felt252) -> bool {
