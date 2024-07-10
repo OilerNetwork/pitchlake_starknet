@@ -704,7 +704,7 @@ pub mod RBTreeComponent {
                         filled_position_in_level = ArrayTrait::new();
                     }
 
-                    
+                    let position = node_positions.get(node_id);
 
                     filled_position_in_level.append((node_id, position));
 
