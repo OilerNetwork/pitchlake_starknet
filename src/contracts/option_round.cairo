@@ -546,7 +546,7 @@ mod OptionRound {
         // Settling round
         OptionRoundAlreadySettled,
         OptionSettlementDateNotReached,
-        AuctionNotSettled,
+        OptionRoundNotSettled,
         // Placing bids
         BidBelowReservePrice,
         BidAmountZero,
@@ -565,7 +565,7 @@ mod OptionRound {
                 OptionRoundError::AuctionNotEnded => 'Auction has not ended',
                 OptionRoundError::NoAuctionToEnd => 'OptionRound: No auction to end',
                 OptionRoundError::OptionSettlementDateNotReached => 'OptionRound: Option settle fail',
-                OptionRoundError::AuctionNotSettled => 'OptionRound:Auction not settled',
+                OptionRoundError::OptionRoundNotSettled => 'OptionRound:Round not settled',
                 OptionRoundError::OptionRoundAlreadySettled => 'OptionRound: Option settle fail',
                 OptionRoundError::BidBelowReservePrice => 'OptionRound: Bid below reserve',
                 OptionRoundError::BidAmountZero => 'OptionRound: Bid amount zero',
@@ -1154,7 +1154,7 @@ mod OptionRound {
             ref self: ContractState, option_buyer: ContractAddress
         ) -> Result<u256, OptionRoundError> {
             if (self.get_state() != OptionRoundState::Settled) {
-                return Result::Err(OptionRoundError::AuctionNotSettled);
+                return Result::Err(OptionRoundError::OptionRoundNotSettled);
             }
             let (mut tokenizable_bids, _, partial_bid) = self.inspect_options_for(option_buyer);
             let mut options_to_exercise = 0;

@@ -65,7 +65,7 @@ fn test_exercise_options_before_round_settles_fails() {
     accelerate_to_running(ref vault);
     // Try to exercise before round settles
     let mut current_round = vault.get_current_round();
-    let mut expected_error = OptionRoundError::AuctionNotSettled;
+    let mut expected_error = OptionRoundError::OptionRoundNotSettled;
     match current_round.exercise_options_raw(option_bidder_buyer_1()) {
         Result::Ok(_) => { panic!("Error expected") },
         Result::Err(err) => { assert(err == expected_error, 'Error misMatch'); },
