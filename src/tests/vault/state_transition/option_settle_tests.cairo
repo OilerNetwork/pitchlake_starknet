@@ -128,7 +128,6 @@ fn test_option_round_settled_event() {
         let settlement_price = round.get_strike_price();
         clear_event_logs(array![round.contract_address()]);
         accelerate_to_settled(ref vault, settlement_price);
-        println!("settlement_Price:{}",settlement_price);
         // Check the event emits correctly
         assert_event_option_settle(round.contract_address(), settlement_price);
 
