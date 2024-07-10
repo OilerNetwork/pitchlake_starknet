@@ -727,16 +727,19 @@ mod OptionRound {
             };
             // Add refundable balance from all (not already refunded) over bids
             // @dev An over bid in this context is when a bid's price is > the clearing price
-            loop {
-                match tokenizable_bids.pop_front() {
-                    Option::Some(bid) => {
-                        if (!bid.is_refunded) {
-                            refundable_balance += bid.amount * (bid.price - clearing_price)
-                        }
-                    },
-                    Option::None => { break; }
-                }
-            };
+
+            //Add difference from tokenizable bids only if the state is not open or auctioning
+
+                loop {
+                    match tokenizable_bids.pop_front() {
+                        Option::Some(bid) => {
+                            if (!bid.is_refunded) {
+                                refundable_balance += bid.amount * (bid.price - clearing_price)
+                            }
+                        },
+                        Option::None => { break; }
+                    }
+                };
 
             refundable_balance
         }
@@ -1090,7 +1093,68 @@ mod OptionRound {
         fn refund_unused_bids(
             ref self: ContractState, option_bidder: ContractAddress
         ) -> Result<u256, OptionRoundError> {
-            Result::Ok(100)
+            let state = self.get_state();
+            if (state == OptionRoundState::Auctioning || state == OptionRoundState::Open) {
+                return Result::Err(OptionRoundError::AuctionNotEnded);
+            }
+            // Get the refundable, tokenizable, and partially sold bid ids
+            let (mut tokenizable_bids, mut refundable_bids, partial_bid) = self
+                .inspect_options_for(option_bidder);
+
+            // Check and sum bids that are not refunded yet
+            let mut refundable_balance = 0;
+            let clearing_price = self.get_auction_clearing_price();
+            // Add refundable balance from Partial Bid if it's there
+            if (partial_bid != 0) {
+                let mut partial_node: Node = self.bids_tree.tree.read(partial_bid);
+
+                //Since only clearing_bid can be partially sold, the clearing_bid_amount_sold is saved on the tree
+                let options_sold = self.bids_tree.clearing_bid_amount_sold.read();
+                if (!partial_node.value.is_refunded) {
+                    partial_node.value.is_refunded = true;
+                    self.bids_tree.tree.write(partial_bid, partial_node);
+                    refundable_balance += (partial_node.value.amount - options_sold)
+                        * partial_node.value.price;
+                }
+            }
+            // Add refundable balance from all (not already refunded) refundable bids
+            loop {
+                match refundable_bids.pop_front() {
+                    Option::Some(bid) => {
+                        if (!bid.is_refunded) {
+                            let mut refundable_node: Node = self.bids_tree.tree.read(bid.id);
+                            refundable_node.value.is_refunded = true;
+                            self.bids_tree.tree.write(refundable_node.value.id, refundable_node);
+                            refundable_balance += bid.amount * bid.price;
+                        }
+                    },
+                    Option::None => { break; }
+                }
+            };
+            // Add refundable balance from all (not already refunded) over bids
+            // @dev An over bid in this context is when a bid's price is > the clearing price
+            loop {
+                match tokenizable_bids.pop_front() {
+                    Option::Some(bid) => {
+                        if (!bid.is_refunded) {
+                            let mut refundable_node: Node = self.bids_tree.tree.read(bid.id);
+                            refundable_node.value.is_refunded = true;
+                            self.bids_tree.tree.write(refundable_node.value.id, refundable_node);
+                            refundable_balance += bid.amount * (bid.price - clearing_price)
+                        }
+                    },
+                    Option::None => { break; }
+                }
+            };
+            let eth_dispatcher = self.get_eth_dispatcher();
+            eth_dispatcher.transfer(option_bidder, refundable_balance);
+            self
+                .emit(
+                    Event::UnusedBidsRefunded(
+                        UnusedBidsRefunded { account: option_bidder, amount: refundable_balance }
+                    )
+                );
+            Result::Ok(refundable_balance)
         }
 
         fn exercise_options(
@@ -1195,6 +1259,13 @@ mod OptionRound {
             let mut refundable_bids: Array<Bid> = array![];
             let mut tokenizable_bids: Array<Bid> = array![];
             let mut partial_bid: felt252 = 0;
+
+            //If state is open or auctioning, return defaults
+
+            let state = self.get_state();
+            if(state==OptionRoundState::Open||state==OptionRoundState::Auctioning){
+                return (tokenizable_bids, refundable_bids, partial_bid);
+            }
             let nonce = self.get_bidding_nonce_for(bidder);
             let mut i = 0;
             while i < nonce {
