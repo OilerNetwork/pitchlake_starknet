@@ -72,7 +72,7 @@ fn test_convert_position_to_lp_tokens_while_settled__TODO__() {
     let (clearing_price, _) = vault_facade.end_auction();
     assert(clearing_price == bid_price, 'clearing price wrong');
     // Settle option round
-    set_block_timestamp(current_round.get_option_expiry_date() + 1);
+    set_block_timestamp(current_round.get_option_settlement_date() + 1);
     vault_facade.settle_option_round();
     // Convert position -> tokens while current round is Settled
     vault_facade.convert_position_to_lp_tokens(1, liquidity_provider_1());

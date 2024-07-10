@@ -1,4 +1,5 @@
 //Helper functions for posterity
+use openzeppelin::token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
 use pitch_lake_starknet::contracts::vault::{
     IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait,
     VaultType
@@ -289,7 +290,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         self.option_round_dispatcher.get_auction_end_date()
     }
 
-    fn get_option_expiry_date(ref self: OptionRoundFacade) -> u64 {
+    fn get_option_settlement_date(ref self: OptionRoundFacade) -> u64 {
         self.option_round_dispatcher.get_option_settlement_date()
     }
 
@@ -400,5 +401,26 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
 
     fn get_total_options_available(ref self: OptionRoundFacade) -> u256 {
         self.option_round_dispatcher.get_total_options_available()
+    }
+
+    /// ERC20 functions
+    fn to_erc20(ref self: OptionRoundFacade) -> ERC20ABIDispatcher {
+        ERC20ABIDispatcher { contract_address: self.contract_address() }
+    }
+
+    fn name(ref self: OptionRoundFacade) -> ByteArray {
+        self.to_erc20().name()
+    }
+
+    fn symbol(ref self: OptionRoundFacade) -> ByteArray {
+        self.to_erc20().symbol()
+    }
+
+    fn decimals(ref self: OptionRoundFacade) -> u8 {
+        self.to_erc20().decimals()
+    }
+
+    fn balance_of(ref self: OptionRoundFacade, owner: ContractAddress) -> u256 {
+        self.to_erc20().balance_of(owner)
     }
 }

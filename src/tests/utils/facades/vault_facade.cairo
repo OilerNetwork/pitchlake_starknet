@@ -175,7 +175,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         set_contract_address(bystander());
         let mut current_round = self.get_current_round();
         let start_date = current_round.get_auction_start_date();
-        let end_date = current_round.get_option_expiry_date();
+        let end_date = current_round.get_option_settlement_date();
         let market_aggregator = IMarketAggregatorSetterDispatcher {
             contract_address: self.get_market_aggregator(),
         };
@@ -367,7 +367,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         };
         let mut current_round = self.get_current_round();
         let start_date = current_round.get_auction_start_date();
-        let end_date = current_round.get_option_expiry_date();
+        let end_date = current_round.get_option_settlement_date();
 
         match market_aggregator.get_value(start_date, end_date) {
             Result::Ok((value, _)) => value,
@@ -384,6 +384,14 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     // Eth contract address
     fn get_eth_address(ref self: VaultFacade) -> ContractAddress {
         self.vault_dispatcher.eth_address()
+    }
+
+    fn get_auction_run_time(ref self: VaultFacade) -> u64 {
+        self.vault_dispatcher.get_auction_run_time()
+    }
+
+    fn get_option_run_time(ref self: VaultFacade) -> u64 {
+        self.vault_dispatcher.get_option_run_time()
     }
 
     // Gets the round transition period in seconds, 3 hours is a random number for testing

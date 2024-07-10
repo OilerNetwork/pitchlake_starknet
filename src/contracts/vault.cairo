@@ -29,8 +29,15 @@ trait IVault<TContractState> {
     // Get the ETH address
     fn eth_address(self: @TContractState) -> ContractAddress;
 
-    // Get the round transition period
+    // Get the amount of time an auction runs for
+    fn get_auction_run_time(self: @TContractState) -> u64;
+
+    // Get the amount of time an option round runs for
+    fn get_option_run_time(self: @TContractState) -> u64;
+
+    // Get the amount of time till starting the next round's auction
     fn get_round_transition_period(self: @TContractState) -> u64;
+
 
     // @note Add getters for auction run time & option run time
     // - need to also add to facade, then use in tests for the (not yet created) setters (A1.1)
@@ -345,9 +352,18 @@ mod Vault {
             self.eth_address.read()
         }
 
+        fn get_auction_run_time(self: @ContractState) -> u64 {
+            self.auction_run_time.read()
+        }
+
+        fn get_option_run_time(self: @ContractState) -> u64 {
+            self.option_run_time.read()
+        }
+
         fn get_round_transition_period(self: @ContractState) -> u64 {
             self.round_transition_period.read()
         }
+
 
         /// Rounds
 
