@@ -62,8 +62,11 @@ pub mod RBTreeComponent {
             let new_node_id = value.id;
 
             if self.root.read() == 0 {
+                // Write the root node id only after the first node is inserted
+                // As we expect the root to be 0 if the tree is empty
+                let root_node = self.create_new_node(@value, 0)
+                self.tree.write(new_node_id, root_node);
                 self.root.write(new_node_id);
-                self.tree.write(new_node_id, self.create_default_node(@value));
                 return;
             }
 
@@ -191,10 +194,7 @@ pub mod RBTreeComponent {
                 if current_node.left == 0 {
                     current_node.left = new_node_id;
 
-                    // update parent
-                    let new_node = Node {
-                        left: 0, right: 0, value, parent: current_id, color: RED
-                    };
+                    let new_node = self.create_new_node(@value, current_id);
                     self.tree.write(new_node_id, new_node);
                     self.tree.write(current_id, current_node);
 
@@ -206,10 +206,7 @@ pub mod RBTreeComponent {
                 if current_node.right == 0 {
                     current_node.right = new_node_id;
 
-                    // update parent
-                    let new_node = Node {
-                        left: 0, right: 0, value, parent: current_id, color: RED
-                    };
+                    let new_node = self.create_new_node(@value, current_id);
                     self.tree.write(new_node_id, new_node);
                     self.tree.write(current_id, current_node);
                     return;
@@ -234,8 +231,16 @@ pub mod RBTreeComponent {
             new_array
         }
 
-        fn create_default_node(self: @ComponentState<TContractState>, value: @Bid) -> Node {
-            Node { value: *value, left: 0, right: 0, parent: 0, color: BLACK, }
+        fn create_new_node(self: @ComponentState<TContractState>, value: @Bid, parent: felt252) -> Node {
+            // If the tree is non empty, we insert node as red
+            let mut color = RED;
+
+            // If the tree is empty, root node should be black
+            if self.root.read() == 0 {
+                color = BLACK;
+            }
+
+            Node { value: *value, left: 0, right: 0, parent: parent, color: color, }
         }
 
         fn is_left_child(ref self: ComponentState<TContractState>, node_id: felt252) -> bool {
