@@ -62,8 +62,8 @@ pub mod RBTreeComponent {
             let new_node_id = value.id;
 
             if self.root.read() == 0 {
-                self.root.write(new_node_id);
                 self.tree.write(new_node_id, self.create_default_node(@value));
+                self.root.write(new_node_id);
                 return;
             }
 
@@ -235,7 +235,15 @@ pub mod RBTreeComponent {
         }
 
         fn create_default_node(self: @ComponentState<TContractState>, value: @Bid) -> Node {
-            Node { value: *value, left: 0, right: 0, parent: 0, color: BLACK, }
+            // If the tree is non-empty, the newly inserted node is red
+            let mut color = RED;
+
+            // If the tree is empty, the root node is black
+            if self.root.read() == 0 {
+                color = BLACK;
+            }
+
+            Node { value: *value, left: 0, right: 0, parent: 0, color: color, }
         }
 
         fn is_left_child(ref self: ComponentState<TContractState>, node_id: felt252) -> bool {
