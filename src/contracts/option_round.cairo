@@ -1,5 +1,5 @@
 use starknet::{ContractAddress, StorePacking};
-use openzeppelin::token::erc20::interface::IERC20Dispatcher;
+use openzeppelin::token::erc20::interface::ERC20ABIDispatcher;
 use pitch_lake_starknet::contracts::{
     market_aggregator::{IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait},
     option_round::OptionRound::{
@@ -182,7 +182,7 @@ mod OptionRound {
     use core::fmt::{Display, Formatter, Error};
     use pitch_lake_starknet::contracts::utils::red_black_tree::IRBTree;
     use openzeppelin::token::erc20::{
-        ERC20Component, interface::{IERC20, IERC20Dispatcher, IERC20DispatcherTrait,}
+        ERC20Component, interface::{IERC20Metadata, ERC20ABIDispatcher, ERC20ABIDispatcherTrait,}
     };
     use starknet::{ContractAddress, get_caller_address, get_contract_address, get_block_timestamp};
     use pitch_lake_starknet::contracts::{
@@ -192,12 +192,19 @@ mod OptionRound {
         option_round::IOptionRound
     };
 
-
+    // ERC20 Component
+    component!(path: ERC20Component, storage: erc20, event: ERC20Event);
+    // Exposes snake_case & CamelCase entry points
+    #[abi(embed_v0)]
+    impl ERC20Impl = ERC20Component::ERC20Impl<ContractState>;
+    #[abi(embed_v0)]
+    impl ERC20CamelOnlyImpl = ERC20Component::ERC20CamelOnlyImpl<ContractState>;
+    // Allows the contract access to internal functions
+    impl ERC20InternalImpl = ERC20Component::InternalImpl<ContractState>;
+    // RedBlackTree component
     component!(path: RBTreeComponent, storage: bids_tree, event: BidTreeEvent);
-
     #[abi(embed_v0)]
     impl RBTreeImpl = RBTreeComponent::RBTree<ContractState>;
-
     impl RBTreeInternalImpl = RBTreeComponent::InternalImpl<ContractState>;
 
     impl BidPartialOrdTrait of PartialOrd<Bid> {
@@ -255,14 +262,6 @@ mod OptionRound {
         }
     }
 
-
-    // ERC20 Component
-    component!(path: ERC20Component, storage: erc20, event: ERC20Event);
-    // Exposes snake_case & CamelCase entry points
-    #[abi(embed_v0)]
-    impl ERC20MixinImpl = ERC20Component::ERC20MixinImpl<ContractState>;
-    // Allows the contract access to internal functions
-    impl ERC20InternalImpl = ERC20Component::InternalImpl<ContractState>;
 
     #[storage]
     struct Storage {
@@ -552,6 +551,22 @@ mod OptionRound {
         BiddingWhileNotAuctioning,
         // Editing bids
         BidCannotBeDecreased,
+    }
+
+    #[abi(embed_v0)]
+    impl ERC20MetadataImpl of IERC20Metadata<ContractState> {
+        fn name(self: @ContractState) -> ByteArray {
+            self.erc20.name()
+        }
+
+        fn symbol(self: @ContractState) -> ByteArray {
+            self.erc20.symbol()
+        }
+
+        // @note add to constructor
+        fn decimals(self: @ContractState) -> u8 {
+            6
+        }
     }
 
     impl OptionRoundErrorIntoFelt252 of Into<OptionRoundError, felt252> {
@@ -1173,10 +1188,10 @@ mod OptionRound {
         }
 
         // Get a dispatcher for the ETH contract
-        fn get_eth_dispatcher(self: @ContractState) -> IERC20Dispatcher {
+        fn get_eth_dispatcher(self: @ContractState) -> ERC20ABIDispatcher {
             let vault = self.get_vault_dispatcher();
             let eth_address = vault.eth_address();
-            IERC20Dispatcher { contract_address: eth_address }
+            ERC20ABIDispatcher { contract_address: eth_address }
         }
 
         // Mint option ERC20 tokens
