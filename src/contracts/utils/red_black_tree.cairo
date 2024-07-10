@@ -7,7 +7,7 @@ trait IRBTree<TContractState> {
     fn find(ref self: TContractState, value: Bid) -> felt252;
     fn delete(ref self: TContractState, bid_id: felt252);
     fn find_clearing_price(ref self: TContractState) -> (u256, u256);
-    fn get_tree_structure(ref self: TContractState) -> Array<Array<(u256, bool, u256)>>;
+    fn get_tree_structure(ref self: TContractState) -> Array<Array<(u256, bool, u128)>>;
     fn is_tree_valid(ref self: TContractState) -> bool;
     fn _get_total_options_available(self: @TContractState) -> u256;
     fn get_total_options_sold(self: @TContractState) -> u256;
@@ -108,7 +108,7 @@ pub mod RBTreeComponent {
 
         fn get_tree_structure(
             ref self: ComponentState<TContractState>
-        ) -> Array<Array<(u256, bool, u256)>> {
+        ) -> Array<Array<(u256, bool, u128)>> {
             self.build_tree_structure_list()
         }
 
@@ -494,7 +494,7 @@ pub mod RBTreeComponent {
     > of InsertBalanceTrait<TContractState> {
         fn balance_after_insertion(ref self: ComponentState<TContractState>, node_id: felt252) {
             let mut current = node_id;
-            let current_node: Node = self.tree.read(current);
+            let mut current_node: Node = self.tree.read(current);
             while current != self.root.read()
                 && self
                     .is_red(current_node.parent) {
@@ -507,6 +507,7 @@ pub mod RBTreeComponent {
                         } else {
                             current = self.balance_right_case(current, parent, grandparent);
                         }
+                        current_node = self.tree.read(current);
                     };
             self.ensure_root_is_black();
         }
@@ -681,14 +682,14 @@ pub mod RBTreeComponent {
     > of RBTreeGetStructureTrait<TContractState> {
         fn get_node_positions_by_level(
             ref self: ComponentState<TContractState>
-        ) -> Array<Array<(felt252, u256)>> {
-            let mut queue: Array<(felt252, u256)> = ArrayTrait::new();
+        ) -> Array<Array<(felt252, u128)>> {
+            let mut queue: Array<(felt252, u128)> = ArrayTrait::new();
             let root_id = self.root.read();
             let initial_level = 0;
             let mut current_level = 0;
-            let mut filled_position_in_levels: Array<Array<(felt252, u256)>> = ArrayTrait::new();
-            let mut filled_position_in_level: Array<(felt252, u256)> = ArrayTrait::new();
-            let mut node_positions: Felt252Dict<u256> = Default::default();
+            let mut filled_position_in_levels: Array<Array<(felt252, u128)>> = ArrayTrait::new();
+            let mut filled_position_in_level: Array<(felt252, u128)> = ArrayTrait::new();
+            let mut node_positions: Felt252Dict<u128> = Default::default();
 
             self.collect_position_and_levels_of_nodes(root_id, 0, initial_level, ref node_positions);
             queue.append((root_id, 0));
@@ -722,13 +723,13 @@ pub mod RBTreeComponent {
 
         fn build_tree_structure_list(
             ref self: ComponentState<TContractState>
-        ) -> Array<Array<(u256, bool, u256)>> {
+        ) -> Array<Array<(u256, bool, u128)>> {
             if (self.root.read() == 0) {
                 return ArrayTrait::new();
             }
             let filled_position_in_levels_original = self.get_node_positions_by_level();
-            let mut filled_position_in_levels: Array<Array<(u256, bool, u256)>> = ArrayTrait::new();
-            let mut filled_position_in_level: Array<(u256, bool, u256)> = ArrayTrait::new();
+            let mut filled_position_in_levels: Array<Array<(u256, bool, u128)>> = ArrayTrait::new();
+            let mut filled_position_in_level: Array<(u256, bool, u128)> = ArrayTrait::new();
             let mut i = 0;
             while i < filled_position_in_levels_original
                 .len() {
@@ -749,7 +750,7 @@ pub mod RBTreeComponent {
         }
 
         fn collect_position_and_levels_of_nodes(
-            ref self: ComponentState<TContractState>, node_id: felt252, position: u256, level: u256, ref node_positions:Felt252Dict<u256>
+            ref self: ComponentState<TContractState>, node_id: felt252, position: u128, level: u256, ref node_positions:Felt252Dict<u128>
         ) {
             if node_id == 0 {
                 return;

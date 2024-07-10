@@ -8,7 +8,7 @@ use starknet::{deploy_syscall, SyscallResultTrait, contract_address_const, Contr
 pub trait IRBTree<TContractState> {
     fn insert(ref self: TContractState, value: Bid);
     fn get_nonce(ref self: TContractState) -> u64;
-    fn get_tree_structure(ref self: TContractState) -> Array<Array<(u256, bool, u256)>>;
+    fn get_tree_structure(ref self: TContractState) -> Array<Array<(u256, bool, u128)>>;
     fn is_tree_valid(ref self: TContractState) -> bool;
 }
 
@@ -122,8 +122,8 @@ fn insert(rb_tree: IRBTreeDispatcher, price: u256, nonce: u64) {
 }
 
 fn compare_tree_structures(
-    actual: @Array<Array<(u256, bool, u256)>>,
-    expected: @Array<Array<(u256, bool, u256)>>
+    actual: @Array<Array<(u256, bool, u128)>>,
+    expected: @Array<Array<(u256, bool, u128)>>
 ) {
     if actual.len() != expected.len() {
         return;
@@ -141,8 +141,8 @@ fn compare_tree_structures(
 }
 
 fn compare_inner(
-    actual: @Array<(u256, bool, u256)>,
-    expected: @Array<(u256, bool, u256)>
+    actual: @Array<(u256, bool, u128)>,
+    expected: @Array<(u256, bool, u128)>
 ) {
     if actual.len() != expected.len() {
         return;
@@ -159,8 +159,8 @@ fn compare_inner(
 }
 
 fn compare_tuple(
-    actual: (u256, bool, u256),
-    expected: (u256, bool, u256)
+    actual: (u256, bool, u128),
+    expected: (u256, bool, u128)
 ) {
     let (actual_price, actual_color, actual_position) = actual;
     let (expected_price, expected_color, expected_position) = expected;
