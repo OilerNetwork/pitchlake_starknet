@@ -546,6 +546,7 @@ mod OptionRound {
         // Settling round
         OptionRoundAlreadySettled,
         OptionSettlementDateNotReached,
+        OptionRoundNotSettled,
         // Placing bids
         BidBelowReservePrice,
         BidAmountZero,
@@ -561,14 +562,15 @@ mod OptionRound {
                 OptionRoundError::AuctionStartDateNotReached => 'OptionRound: Auction start fail',
                 OptionRoundError::AuctionAlreadyStarted => 'OptionRound: Auction start fail',
                 OptionRoundError::AuctionEndDateNotReached => 'OptionRound: Auction end fail',
+                OptionRoundError::AuctionNotEnded => 'Auction has not ended',
                 OptionRoundError::NoAuctionToEnd => 'OptionRound: No auction to end',
                 OptionRoundError::OptionSettlementDateNotReached => 'OptionRound: Option settle fail',
+                OptionRoundError::OptionRoundNotSettled => 'OptionRound:Round not settled',
                 OptionRoundError::OptionRoundAlreadySettled => 'OptionRound: Option settle fail',
                 OptionRoundError::BidBelowReservePrice => 'OptionRound: Bid below reserve',
                 OptionRoundError::BidAmountZero => 'OptionRound: Bid amount zero',
                 OptionRoundError::BiddingWhileNotAuctioning => 'OptionRound: No auction running',
-                OptionRoundError::BidCannotBeDecreased => { 'OptionRound: New bid too low' },
-                OptionRoundError::AuctionNotEnded => { 'Auction has not ended' }
+                OptionRoundError::BidCannotBeDecreased => 'OptionRound: New bid too low',
             }
         }
     }
@@ -1148,19 +1150,70 @@ mod OptionRound {
             };
             let eth_dispatcher = self.get_eth_dispatcher();
             eth_dispatcher.transfer(option_bidder, refundable_balance);
+
             self
                 .emit(
                     Event::UnusedBidsRefunded(
                         UnusedBidsRefunded { account: option_bidder, amount: refundable_balance }
                     )
                 );
+
             Result::Ok(refundable_balance)
         }
 
         fn exercise_options(
             ref self: ContractState, option_buyer: ContractAddress
         ) -> Result<u256, OptionRoundError> {
-            Result::Ok(100)
+            if (self.get_state() != OptionRoundState::Settled) {
+                return Result::Err(OptionRoundError::OptionRoundNotSettled);
+            }
+            let (mut tokenizable_bids, _, partial_bid) = self.inspect_options_for(option_buyer);
+            let mut options_to_exercise = 0;
+            //Check and sum bids that are not tokenized yet
+            //Add options balance from Partial Bid if it's there
+            if (partial_bid.is_non_zero()) {
+                let mut partial_node: Node = self.bids_tree.tree.read(partial_bid);
+                //Since only clearing_bid can be partially sold, the clearing_bid_amount_sold is saved on the tree
+
+                if (!partial_node.value.is_tokenized) {
+                    let options_sold = self.bids_tree.clearing_bid_amount_sold.read();
+                    options_to_exercise += options_sold;
+                    partial_node.value.is_tokenized = true;
+                    self.bids_tree.tree.write(partial_bid, partial_node);
+                }
+            }
+            loop {
+                match tokenizable_bids.pop_front() {
+                    Option::Some(mut bid) => {
+                        if (!bid.is_tokenized) {
+                            let mut bid_node: Node = self.bids_tree.tree.read(bid.id);
+                            bid_node.value.is_tokenized = true;
+                            self.bids_tree.tree.write(bid.id, bid_node);
+                            options_to_exercise += bid.amount;
+                        }
+                    },
+                    Option::None => { break; }
+                }
+            };
+            let token_balance = self.erc20.ERC20_balances.read(option_buyer);
+            self.burn(option_buyer, token_balance);
+            options_to_exercise += token_balance;
+            let eth_dispatcher = self.get_eth_dispatcher();
+            let amount_eth = options_to_exercise
+                * self.total_payout()
+                / self.get_total_options_sold();
+            eth_dispatcher.transfer(option_buyer, amount_eth);
+            self
+                .emit(
+                    Event::OptionsExercised(
+                        OptionsExercised {
+                            account: option_buyer,
+                            amount: amount_eth,
+                            num_options: options_to_exercise
+                        }
+                    )
+                );
+            Result::Ok(amount_eth)
         }
 
         fn tokenize_options(

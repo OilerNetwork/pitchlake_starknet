@@ -65,10 +65,10 @@ fn test_exercise_options_before_round_settles_fails() {
     accelerate_to_running(ref vault);
     // Try to exercise before round settles
     let mut current_round = vault.get_current_round();
-    let mut expected_error: felt252 = OptionRoundError::AuctionEndDateNotReached.into();
+    let mut expected_error = OptionRoundError::OptionRoundNotSettled;
     match current_round.exercise_options_raw(option_bidder_buyer_1()) {
         Result::Ok(_) => { panic!("Error expected") },
-        Result::Err(err) => { assert(err.into() == expected_error, 'Error misMatch'); },
+        Result::Err(err) => { assert(err == expected_error, 'Error misMatch'); },
     }
 }
 
@@ -110,18 +110,18 @@ fn test_exercise_options_events() {
 /// State Tests ///
 
 #[test]
-#[available_gas(50000000)]
+#[available_gas(500000000)]
 fn test_exercise_options_eth_transfer() {
     let (mut vault, eth) = setup_facade();
     let options_available = accelerate_to_auctioning(ref vault);
 
     // Place bids and start the auction, bidders split the options at the reserve price
-    let mut option_bidders = option_bidders_get(3).span();
+    let mut option_bidders = option_bidders_get(4).span();
     let mut current_round = vault.get_current_round();
     let reserve_price = current_round.get_reserve_price();
     let bid_count = options_available / option_bidders.len().into();
     let bid_prices = create_array_linear(reserve_price, option_bidders.len()).span();
-    let bid_amounts = create_array_linear(bid_count, 3).span();
+    let bid_amounts = create_array_linear(bid_count, 4).span();
     accelerate_to_running_custom(ref vault, option_bidders, bid_amounts, bid_prices);
     let total_payout = accelerate_to_settled(ref vault, 2 * current_round.get_strike_price());
 
@@ -134,8 +134,9 @@ fn test_exercise_options_eth_transfer() {
             Option::Some(ob) => {
                 let lp_balance_before = get_erc20_balance(eth.contract_address, *ob);
                 let payout_amount = current_round.exercise_options(*ob);
+                
                 let lp_balance_after = get_erc20_balance(eth.contract_address, *ob);
-
+                println!("lp_balance_before:{}\nlp_balance_after:{}\npayout_amount:{}",lp_balance_before,lp_balance_after,payout_amount);
                 assert(
                     lp_balance_after == lp_balance_before + payout_amount, 'lp balance after wrong'
                 );
