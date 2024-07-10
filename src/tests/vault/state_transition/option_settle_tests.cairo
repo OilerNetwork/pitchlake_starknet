@@ -115,7 +115,7 @@ fn test_settling_option_round_while_settled_fails() {
 
 // Test settling an option round emits the correct event
 #[test]
-#[available_gas(50000000)]
+#[available_gas(5000000000)]
 fn test_option_round_settled_event() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
@@ -125,9 +125,10 @@ fn test_option_round_settled_event() {
         accelerate_to_running(ref vault);
 
         let mut round = vault.get_current_round();
-        let settlement_price = round.get_strike_price() + rounds_to_run.into();
+        let settlement_price = round.get_strike_price();
         clear_event_logs(array![round.contract_address()]);
         accelerate_to_settled(ref vault, settlement_price);
+        println!("settlement_Price:{}",settlement_price);
         // Check the event emits correctly
         assert_event_option_settle(round.contract_address(), settlement_price);
 

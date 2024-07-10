@@ -124,7 +124,7 @@ fn accelerate_to_running_custom_option_round(
 
     let mut option_round = deploy_custom_option_round(
         vault_address,
-        1_u256,
+        2_u256,
         auction_start_date,
         auction_end_date,
         option_settlement_date,
@@ -143,7 +143,7 @@ fn accelerate_to_running_custom_option_round(
             StartAuctionParams {
                 total_options_available,
                 starting_liquidity: 100 * decimals(),
-                reserve_price: 1,
+                reserve_price: reserve_price,
                 cap_level: 2,
                 strike_price: 3,
             }
@@ -151,7 +151,7 @@ fn accelerate_to_running_custom_option_round(
 
     // Make bids
     let mut option_bidders = option_bidders_get(bid_amounts.len()).span();
-    option_round.place_bids(bid_amounts, bid_prices, option_bidders);
+    option_round.place_bids_raw(bid_amounts, bid_prices, option_bidders);
 
     // End auction
     set_contract_address(vault_address);

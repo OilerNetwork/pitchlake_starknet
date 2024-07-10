@@ -1,3 +1,4 @@
+use core::array::SpanTrait;
 use starknet::{testing, ContractAddress,};
 use pitch_lake_starknet::contracts::{vault::{Vault}, option_round::{OptionRound}};
 use openzeppelin::token::erc20::{ERC20Component, ERC20Component::Transfer};
@@ -10,6 +11,16 @@ use debug::PrintTrait;
 // Indexed event members are currently not supported, so they are ignored.
 fn pop_log<T, +Drop<T>, impl TEvent: starknet::Event<T>>(address: ContractAddress) -> Option<T> {
     let (mut keys, mut data) = testing::pop_log_raw(address)?;
+    let mut index = 0;
+    while index<keys.len(){
+        println!("KEY:{}",keys[index]);
+        index+=1;
+    };
+    index = 0;
+    while index<data.len(){
+        println!("DATA:{}",data[index]);
+        index+=1;
+    };
     let ret = starknet::Event::deserialize(ref keys, ref data);
     assert(data.is_empty(), 'Event has extra data');
     ret

@@ -984,6 +984,7 @@ mod OptionRound {
 
             // Calculate and set total payout
             let SettleOptionRoundParams { settlement_price } = params;
+            println!("SETTLEMENTCONTRACT:{}",settlement_price);
             let total_payout = self.calculate_payout(settlement_price);
             self.total_payout.write(total_payout);
 
@@ -1024,7 +1025,6 @@ mod OptionRound {
                     );
                 return Result::Err(OptionRoundError::BidAmountZero);
             }
-
             //Assert bid price is above reserve price
             if (price < self.get_reserve_price()) {
                 self

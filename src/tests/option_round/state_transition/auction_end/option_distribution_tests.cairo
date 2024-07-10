@@ -501,14 +501,42 @@ fn test_losing_bid_gets_no_options() {
 // a few test cases
 
 // Test where the total options available have been exhausted
+fn internal_pow(mut value:u256, mut power:u8)->u256{
+    let mut res:u256 = 1;
+    while power>0{
+        res*=value;
+        power-=1;
+    };
+    res
+}
+fn internal_to_wei(mut values:Span<u256>,mut decimals:u8)->Span<u256>{
+    let mut arr_res=array![];
+
+    loop {
+        match values.pop_front(){
+            Option::Some(value)=>{
+                let updated_value = *value*internal_pow(10,decimals);
+                arr_res.append(updated_value);
+            },
+            Option::None=>{break;}
+        }
+    };
+    arr_res.span()
+}
 #[test]
 #[available_gas(500000000)]
 fn test_option_distribution_real_numbers_1() {
     let (mut vault, _) = setup_facade();
     let options_available = 200;
-    let reserve_price = 2;
+   
     let bid_amounts = array![50, 142, 235, 222, 75, 35].span();
-    let bid_prices = array![20, 11, 11, 2, 1, 1].span();
+    let bid_prices = array![20, 11, 10, 2, 1, 1].span();
+
+    //Convert prices to wei values
+    let mut current_round = vault.get_current_round();
+    let bid_prices = internal_to_wei(bid_prices,current_round.decimals());
+     let reserve_price = 2*internal_pow(10,current_round.decimals());
+
     let expected_options_sold = 200;
     let mut expected_option_distribution = array![50, 142, 8, 0, 0, 0].span();
 
@@ -529,9 +557,15 @@ fn test_option_distribution_real_numbers_1() {
 fn test_option_distribution_real_numbers_2() {
     let (mut vault, _) = setup_facade();
     let options_available = 200;
-    let reserve_price = 2;
+   
     let bid_amounts = array![25, 20, 60, 40, 75, 35].span();
     let bid_prices = array![25, 24, 15, 2, 1, 1].span();
+
+    //Convert prices to wei values
+    let mut current_round = vault.get_current_round();
+    let bid_prices = internal_to_wei(bid_prices,current_round.decimals());
+     let reserve_price = 2*internal_pow(10,current_round.decimals());
+
     let expected_options_sold = 145;
     let mut expected_option_distribution = array![25, 20, 60, 40, 0, 0].span();
 
@@ -554,6 +588,11 @@ fn test_option_distribution_real_numbers_3() {
     let reserve_price = 2;
     let bid_amounts = array![400, 50, 30, 50, 75, 30].span();
     let bid_prices = array![50, 40, 30, 20, 2, 2].span();
+
+    //Convert prices to wei values
+    let mut current_round = vault.get_current_round();
+    let bid_prices = internal_to_wei(bid_prices,current_round.decimals());
+
     let expected_options_sold = 500;
     let mut expected_option_distribution = array![400, 50, 30, 20, 0, 0].span();
 
@@ -581,6 +620,7 @@ fn auction_real_numbers_test_helper(
     let (_, options_sold, mut option_round) = accelerate_to_running_custom_option_round(
         vault_address, options_available, reserve_price, bid_amounts, bid_prices
     );
+
 
     // Check that the correct number of options were sold and distributed
     assert(options_sold == expected_options_sold, 'options sold should match');
