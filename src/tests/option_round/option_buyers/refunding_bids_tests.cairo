@@ -1,6 +1,6 @@
 use core::traits::TryInto;
 use starknet::{ContractAddress, testing::{set_block_timestamp, set_contract_address}};
-use openzeppelin::token::erc20::interface::{IERC20, IERC20Dispatcher, IERC20DispatcherTrait,};
+use openzeppelin::token::erc20::interface::{ERC20ABI, ERC20ABIDispatcher, ERC20ABIDispatcherTrait,};
 use pitch_lake_starknet::tests::{
     utils::{
         helpers::{
@@ -43,7 +43,7 @@ use pitch_lake_starknet::tests::{
 // @return The vault facade, eth dispatcher, and span of option bidders
 fn setup_test(
     number_of_option_buyers: u32
-) -> (VaultFacade, IERC20Dispatcher, Span<ContractAddress>) {
+) -> (VaultFacade, ERC20ABIDispatcher, Span<ContractAddress>) {
     let (mut vault, eth) = setup_facade();
 
     // Auction participants

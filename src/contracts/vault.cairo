@@ -157,9 +157,7 @@ mod Vault {
         get_contract_address, get_block_timestamp
     };
     use openzeppelin::{
-        token::erc20::{
-            ERC20Component, interface::{IERC20, IERC20Dispatcher, IERC20DispatcherTrait,}
-        },
+        token::erc20::{ERC20Component, interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait,}},
         utils::serde::SerializedAppend
     };
     use pitch_lake_starknet::contracts::{
@@ -738,9 +736,9 @@ mod Vault {
     #[generate_trait]
     impl InternalImpl of VaultInternalTrait {
         // Get a dispatcher for the ETH contract
-        fn get_eth_dispatcher(self: @ContractState) -> IERC20Dispatcher {
+        fn get_eth_dispatcher(self: @ContractState) -> ERC20ABIDispatcher {
             let eth_address: ContractAddress = self.eth_address();
-            IERC20Dispatcher { contract_address: eth_address }
+            ERC20ABIDispatcher { contract_address: eth_address }
         }
 
         // Get a dispatcher for the Vault

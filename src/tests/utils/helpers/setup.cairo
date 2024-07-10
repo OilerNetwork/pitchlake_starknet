@@ -7,10 +7,7 @@ use starknet::{
 };
 use openzeppelin::{
     utils::serde::SerializedAppend,
-    token::erc20::{
-        ERC20Component,
-        interface::{IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,}
-    }
+    token::erc20::{ERC20Component, interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait,}}
 };
 use pitch_lake_starknet::{
     contracts::{
@@ -63,7 +60,7 @@ const DECIMALS: u8 = 18_u8;
 const SUPPLY: u256 = 99999999999999999999999999999999;
 
 // Deploy eth contract for testing
-fn deploy_eth() -> IERC20Dispatcher {
+fn deploy_eth() -> ERC20ABIDispatcher {
     let mut calldata = array![];
 
     calldata.append_serde(SUPPLY);
@@ -76,7 +73,7 @@ fn deploy_eth() -> IERC20Dispatcher {
 
     // Clear the event log
     clear_event_logs(array![contract_address]);
-    return IERC20Dispatcher { contract_address };
+    return ERC20ABIDispatcher { contract_address };
 }
 
 // Deploy market aggregator for testing
@@ -122,7 +119,7 @@ fn deploy_vault(vault_type: VaultType, eth_address: ContractAddress) -> IVaultDi
 
 fn deploy_pitch_lake() -> IPitchLakeDispatcher {
     let mut calldata = array![];
-    let eth_dispatcher: IERC20Dispatcher = deploy_eth();
+    let eth_dispatcher = deploy_eth();
     let eth_address = eth_dispatcher.contract_address;
 
     let ITM: IVaultDispatcher = deploy_vault(VaultType::InTheMoney, eth_address);
@@ -154,8 +151,8 @@ fn deploy_pitch_lake() -> IPitchLakeDispatcher {
     return IPitchLakeDispatcher { contract_address };
 }
 
-fn setup_facade() -> (VaultFacade, IERC20Dispatcher) {
-    let eth_dispatcher: IERC20Dispatcher = deploy_eth();
+fn setup_facade() -> (VaultFacade, ERC20ABIDispatcher) {
+    let eth_dispatcher: ERC20ABIDispatcher = deploy_eth();
     let vault_dispatcher: IVaultDispatcher = deploy_vault(
         VaultType::InTheMoney, eth_dispatcher.contract_address
     );
@@ -221,7 +218,7 @@ fn deploy_custom_option_round(
 
 fn setup_test_auctioning_bidders(
     number_of_option_buyers: u32
-) -> (VaultFacade, IERC20Dispatcher, Span<ContractAddress>, u256) {
+) -> (VaultFacade, ERC20ABIDispatcher, Span<ContractAddress>, u256) {
     let (mut vault, eth) = setup_facade();
 
     // Auction participants
@@ -244,7 +241,7 @@ fn setup_test_running() -> (VaultFacade, OptionRoundFacade) {
 
 fn setup_test_auctioning_providers(
     number_of_option_buyers: u32, deposit_amounts: Span<u256>
-) -> (VaultFacade, IERC20Dispatcher, Span<ContractAddress>, u256) {
+) -> (VaultFacade, ERC20ABIDispatcher, Span<ContractAddress>, u256) {
     let (mut vault, eth) = setup_facade();
     let mut liquidity_providers = liquidity_providers_get(number_of_option_buyers).span();
     // Amounts to deposit: [100, 200, 300, 400]
@@ -279,7 +276,7 @@ fn eth_supply_and_approve_all_bidders(
 }
 
 fn eth_supply(eth_address: ContractAddress, mut receivers: Span<ContractAddress>) {
-    let eth_dispatcher = IERC20Dispatcher { contract_address: eth_address };
+    let eth_dispatcher = ERC20ABIDispatcher { contract_address: eth_address };
     loop {
         match receivers.pop_front() {
             Option::Some(receiver) => {
@@ -297,7 +294,7 @@ fn eth_approval(
     eth_address: ContractAddress,
     mut approvers: Span<ContractAddress>
 ) {
-    let eth_dispatcher = IERC20Dispatcher { contract_address: eth_address };
+    let eth_dispatcher = ERC20ABIDispatcher { contract_address: eth_address };
     loop {
         match approvers.pop_front() {
             Option::Some(approver) => {
