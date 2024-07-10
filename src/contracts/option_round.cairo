@@ -711,6 +711,7 @@ mod OptionRound {
                 let options_sold = self.bids_tree.clearing_bid_amount_sold.read();
                 if (!partial_node.value.is_refunded) {
                     refundable_balance += (partial_node.value.amount - options_sold)
+                        * partial_node.value.price;
                 }
             }
             // Add refundable balance from all (not already refunded) refundable bids
@@ -718,7 +719,7 @@ mod OptionRound {
                 match refundable_bids.pop_front() {
                     Option::Some(bid) => {
                         if (!bid.is_refunded) {
-                            refundable_balance += bid.amount;
+                            refundable_balance += bid.amount * bid.price;
                         }
                     },
                     Option::None => { break; }
@@ -734,7 +735,7 @@ mod OptionRound {
                     match tokenizable_bids.pop_front() {
                         Option::Some(bid) => {
                             if (!bid.is_refunded) {
-                                refundable_balance += bid.amount
+                                refundable_balance += bid.amount * (bid.price - clearing_price)
                             }
                         },
                         Option::None => { break; }
