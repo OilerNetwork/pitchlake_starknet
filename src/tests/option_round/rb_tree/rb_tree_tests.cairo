@@ -27,17 +27,31 @@ fn mock_address(value: felt252) -> ContractAddress {
 fn test_insertion() {
     let rb_tree = setup_rb_tree();
     
-    insert(rb_tree, 1, 1);
-    insert(rb_tree, 2, 2);
-    insert(rb_tree, 3, 3);
-
-    let expected_structure: Array<Array<(u256, bool, u256)>> = array![
-        array![(1, false, 0)],
-        array![(2, false, 1), (3, false, 3)]
-    ];
-
+    // Test 1 - Root insertion
+    insert(rb_tree, 5, 1);
     let tree_structure = rb_tree.get_tree_structure();
-    compare_tree_structures(@tree_structure, @expected_structure);
+    let tree_with_root_only = array![
+        array![(5, false, 0)]
+    ];
+    compare_tree_structures(@tree_structure, @tree_with_root_only);
+
+    // Test 2 - Simple left child insertion
+    insert(rb_tree, 25, 2);
+    let tree_with_left_child = array![
+        array![(5, false, 0)],
+        array![(25, true, 0)]
+    ];
+    compare_tree_structures(@tree_structure, @tree_with_left_child);
+
+    // Test 3 - Simple right child insertion
+    insert(rb_tree, 75, 3);
+    let tree_with_right_child = array![
+        array![(5, false, 0)],
+        array![(25, true, 0)],
+        array![(75, true, 1)]
+    ];
+    compare_tree_structures(@tree_structure, @tree_with_right_child);
+
 }
 
 fn insert(rb_tree: IRBTreeDispatcher, price: u256, nonce: u64) {
