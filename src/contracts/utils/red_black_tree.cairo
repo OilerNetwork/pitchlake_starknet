@@ -1,5 +1,6 @@
 use pitch_lake_starknet::contracts::{utils::red_black_tree, option_round::OptionRound::Bid};
 use starknet::ContractAddress;
+
 #[starknet::interface]
 trait IRBTree<TContractState> {
     fn insert(ref self: TContractState, value: Bid);
@@ -27,7 +28,6 @@ pub mod RBTreeComponent {
         root: felt252,
         tree: LegacyMap::<felt252, Node>,
         nonce: u64,
-        node_position: LegacyMap<felt252, u256>,
         clearing_bid_amount_sold: u256,
         clearing_price: u256,
         clearing_bid: felt252,
@@ -688,8 +688,9 @@ pub mod RBTreeComponent {
             let mut current_level = 0;
             let mut filled_position_in_levels: Array<Array<(felt252, u256)>> = ArrayTrait::new();
             let mut filled_position_in_level: Array<(felt252, u256)> = ArrayTrait::new();
+            let mut node_positions: Felt252Dict<u256> = Default::default();
 
-            self.collect_position_and_levels_of_nodes(root_id, 0, initial_level);
+            self.collect_position_and_levels_of_nodes(root_id, 0, initial_level, ref node_positions);
             queue.append((root_id, 0));
 
             while !queue
@@ -703,7 +704,7 @@ pub mod RBTreeComponent {
                         filled_position_in_level = ArrayTrait::new();
                     }
 
-                    let position = self.node_position.read(node_id);
+                    
 
                     filled_position_in_level.append((node_id, position));
 
@@ -748,7 +749,7 @@ pub mod RBTreeComponent {
         }
 
         fn collect_position_and_levels_of_nodes(
-            ref self: ComponentState<TContractState>, node_id: felt252, position: u256, level: u256
+            ref self: ComponentState<TContractState>, node_id: felt252, position: u256, level: u256, ref node_positions:Felt252Dict<u256>
         ) {
             if node_id == 0 {
                 return;
@@ -756,10 +757,10 @@ pub mod RBTreeComponent {
 
             let node = self.tree.read(node_id);
 
-            self.node_position.write(node_id, position);
+            node_positions.insert(node_id, position);
 
-            self.collect_position_and_levels_of_nodes(node.left, position * 2, level + 1);
-            self.collect_position_and_levels_of_nodes(node.right, position * 2 + 1, level + 1);
+            self.collect_position_and_levels_of_nodes(node.left, position * 2, level + 1, ref node_positions);
+            self.collect_position_and_levels_of_nodes(node.right, position * 2 + 1, level + 1, ref node_positions);
         }
     }
 
