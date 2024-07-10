@@ -733,7 +733,7 @@ mod OptionRound {
                 loop {
                     match tokenizable_bids.pop_front() {
                         Option::Some(bid) => {
-                            if (!bid.is_refunded&&bid.price!=clearing_price) {
+                            if (!bid.is_refunded) {
                                 refundable_balance += bid.amount
                             }
                         },
