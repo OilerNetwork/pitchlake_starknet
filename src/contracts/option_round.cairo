@@ -1191,6 +1191,16 @@ mod OptionRound {
                 * self.total_payout()
                 / self.get_total_options_sold();
             eth_dispatcher.transfer(option_buyer, amount_eth);
+            self
+                .emit(
+                    Event::OptionsExercised(
+                        OptionsExercised {
+                            account: option_buyer,
+                            amount: amount_eth,
+                            num_options: options_to_exercise
+                        }
+                    )
+                );
             Result::Ok(options_to_exercise)
         }
 
