@@ -78,8 +78,6 @@ fn test_vault_constructor() {
 fn test_option_round_constructor() {
     let (mut vault, _) = setup_facade();
     let mut current_round = vault.get_current_round();
-    //assert(current_round.get_constructor_params() == args, 'r1 construcutor params wrong');
-    // @note add other constructor args here
 
     // Test constructor args
     assert_eq!(current_round.name(), "Pitch Lake Option Round 1");
@@ -98,6 +96,7 @@ fn test_option_round_constructor() {
             vault.get_round_transition_period()
         )
     };
+
     let auction_start_date = now + round_transition_period;
     let auction_end_date = auction_start_date + auction_run_time;
     let option_settlement_date = auction_end_date + option_run_time;
@@ -107,7 +106,7 @@ fn test_option_round_constructor() {
     assert_eq!(current_round.get_option_settlement_date(), option_settlement_date);
 
     assert!(current_round.get_state() == OptionRoundState::Open, "state does not match");
-// Test reserve price, cap level, strik price
+// Test reserve price, cap level, strike price
 // - might need to deploy a custom option round for this
 }
 
