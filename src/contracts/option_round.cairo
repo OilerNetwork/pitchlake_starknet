@@ -747,16 +747,16 @@ mod OptionRound {
 
             //Add difference from tokenizable bids only if the state is not open or auctioning
 
-                loop {
-                    match tokenizable_bids.pop_front() {
-                        Option::Some(bid) => {
-                            if (!bid.is_refunded) {
-                                refundable_balance += bid.amount * (bid.price - clearing_price)
-                            }
-                        },
-                        Option::None => { break; }
-                    }
-                };
+            loop {
+                match tokenizable_bids.pop_front() {
+                    Option::Some(bid) => {
+                        if (!bid.is_refunded) {
+                            refundable_balance += bid.amount * (bid.price - clearing_price)
+                        }
+                    },
+                    Option::None => { break; }
+                }
+            };
 
             refundable_balance
         }
@@ -1331,7 +1331,7 @@ mod OptionRound {
             //If state is open or auctioning, return defaults
 
             let state = self.get_state();
-            if(state==OptionRoundState::Open||state==OptionRoundState::Auctioning){
+            if (state == OptionRoundState::Open || state == OptionRoundState::Auctioning) {
                 return (tokenizable_bids, refundable_bids, partial_bid);
             }
             let nonce = self.get_bidding_nonce_for(bidder);

@@ -134,9 +134,14 @@ fn test_exercise_options_eth_transfer() {
             Option::Some(ob) => {
                 let lp_balance_before = get_erc20_balance(eth.contract_address, *ob);
                 let payout_amount = current_round.exercise_options(*ob);
-                
+
                 let lp_balance_after = get_erc20_balance(eth.contract_address, *ob);
-                println!("lp_balance_before:{}\nlp_balance_after:{}\npayout_amount:{}",lp_balance_before,lp_balance_after,payout_amount);
+                println!(
+                    "lp_balance_before:{}\nlp_balance_after:{}\npayout_amount:{}",
+                    lp_balance_before,
+                    lp_balance_after,
+                    payout_amount
+                );
                 assert(
                     lp_balance_after == lp_balance_before + payout_amount, 'lp balance after wrong'
                 );

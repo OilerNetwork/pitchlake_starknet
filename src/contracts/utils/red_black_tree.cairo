@@ -233,7 +233,9 @@ pub mod RBTreeComponent {
             Node { value: *value, left: 0, right: 0, parent: 0, color: BLACK, }
         }
 
-        fn create_leaf_node(self: @ComponentState<TContractState>, value: @Bid, parent: felt252) -> Node {
+        fn create_leaf_node(
+            self: @ComponentState<TContractState>, value: @Bid, parent: felt252
+        ) -> Node {
             Node { value: *value, left: 0, right: 0, parent: parent, color: RED, }
         }
 
