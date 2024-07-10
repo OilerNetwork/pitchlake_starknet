@@ -729,8 +729,7 @@ mod OptionRound {
             // @dev An over bid in this context is when a bid's price is > the clearing price
 
             //Add difference from tokenizable bids only if the state is not open or auctioning
-            let state = self.get_state();
-            if (state != OptionRoundState::Open && state != OptionRoundState::Auctioning) {
+
                 loop {
                     match tokenizable_bids.pop_front() {
                         Option::Some(bid) => {
@@ -741,7 +740,6 @@ mod OptionRound {
                         Option::None => { break; }
                     }
                 };
-            }
 
             refundable_balance
         }
@@ -1261,6 +1259,13 @@ mod OptionRound {
             let mut refundable_bids: Array<Bid> = array![];
             let mut tokenizable_bids: Array<Bid> = array![];
             let mut partial_bid: felt252 = 0;
+
+            //If state is open or auctioning, return defaults
+
+            let state = self.get_state();
+            if(state==OptionRoundState::Open||state==OptionRoundState::Auctioning){
+                return (tokenizable_bids, refundable_bids, partial_bid);
+            }
             let nonce = self.get_bidding_nonce_for(bidder);
             let mut i = 0;
             while i < nonce {

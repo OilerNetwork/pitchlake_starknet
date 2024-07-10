@@ -110,11 +110,6 @@ fn test_refundable_bids_after_auction_end() {
                         let refunded_amount = current_round.get_refundable_bids_for(*bidder);
                         let bid_amount = bid_amounts.pop_front().unwrap();
                         let bid_price = bid_prices.pop_front().unwrap();
-                        println!(
-                            "refunded_amount:{}\nbid_amount:{}",
-                            refunded_amount,
-                            (*bid_amount) * (*bid_price)
-                        );
                         assert(
                             refunded_amount == (*bid_amount) * (*bid_price),
                             'refunded bid balance wrong'
