@@ -62,6 +62,8 @@ pub mod RBTreeComponent {
             let new_node_id = value.id;
 
             if self.root.read() == 0 {
+                // Root should be written after the first insertion
+                // as we expect the root to be 0 in the beginning
                 self.tree.write(new_node_id, self.create_default_node(@value));
                 self.root.write(new_node_id);
                 return;
