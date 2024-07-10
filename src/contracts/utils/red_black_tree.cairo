@@ -6,7 +6,7 @@ trait IRBTree<TContractState> {
     fn find(ref self: TContractState, value: Bid) -> felt252;
     fn delete(ref self: TContractState, bid_id: felt252);
     fn find_clearing_price(ref self: TContractState) -> (u256, u256);
-    fn get_tree_structure(ref self: TContractState) -> Array<Array<(Bid, bool, u256)>>;
+    fn get_tree_structure(ref self: TContractState) -> Array<Array<(u256, bool, u256)>>;
     fn is_tree_valid(ref self: TContractState) -> bool;
     fn _get_total_options_available(self: @TContractState) -> u256;
     fn get_total_options_sold(self: @TContractState) -> u256;
@@ -108,7 +108,7 @@ pub mod RBTreeComponent {
 
         fn get_tree_structure(
             ref self: ComponentState<TContractState>
-        ) -> Array<Array<(Bid, bool, u256)>> {
+        ) -> Array<Array<(u256, bool, u256)>> {
             self.build_tree_structure_list()
         }
 
@@ -721,13 +721,13 @@ pub mod RBTreeComponent {
 
         fn build_tree_structure_list(
             ref self: ComponentState<TContractState>
-        ) -> Array<Array<(Bid, bool, u256)>> {
+        ) -> Array<Array<(u256, bool, u256)>> {
             if (self.root.read() == 0) {
                 return ArrayTrait::new();
             }
             let filled_position_in_levels_original = self.get_node_positions_by_level();
-            let mut filled_position_in_levels: Array<Array<(Bid, bool, u256)>> = ArrayTrait::new();
-            let mut filled_position_in_level: Array<(Bid, bool, u256)> = ArrayTrait::new();
+            let mut filled_position_in_levels: Array<Array<(u256, bool, u256)>> = ArrayTrait::new();
+            let mut filled_position_in_level: Array<(u256, bool, u256)> = ArrayTrait::new();
             let mut i = 0;
             while i < filled_position_in_levels_original
                 .len() {
@@ -737,7 +737,7 @@ pub mod RBTreeComponent {
                         .len() {
                             let (node_id, position) = level.at(j.try_into().unwrap());
                             let node = self.tree.read(*node_id);
-                            filled_position_in_level.append((node.value, node.color, *position));
+                            filled_position_in_level.append((node.value.price, node.color, *position));
                             j += 1;
                         };
                     filled_position_in_levels.append(filled_position_in_level);
