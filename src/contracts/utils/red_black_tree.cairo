@@ -193,7 +193,7 @@ pub mod RBTreeComponent {
 
                     // update parent
                     let new_node = Node {
-                        left: 0, right: 0, value, parent: current_id, color: BLACK
+                        left: 0, right: 0, value, parent: current_id, color: RED
                     };
                     self.tree.write(new_node_id, new_node);
                     self.tree.write(current_id, current_node);
@@ -208,7 +208,7 @@ pub mod RBTreeComponent {
 
                     // update parent
                     let new_node = Node {
-                        left: 0, right: 0, value, parent: current_id, color: BLACK
+                        left: 0, right: 0, value, parent: current_id, color: RED
                     };
                     self.tree.write(new_node_id, new_node);
                     self.tree.write(current_id, current_node);
