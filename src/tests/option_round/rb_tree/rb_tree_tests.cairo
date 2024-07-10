@@ -9,6 +9,7 @@ pub trait IRBTree<TContractState> {
     fn insert(ref self: TContractState, value: Bid);
     fn get_nonce(ref self: TContractState) -> u64;
     fn get_tree_structure(ref self: TContractState) -> Array<Array<(u256, bool, u256)>>;
+    fn is_tree_valid(ref self: TContractState) -> bool;
 }
 
 fn setup_rb_tree() -> IRBTreeDispatcher {
@@ -24,18 +25,84 @@ fn mock_address(value: felt252) -> ContractAddress {
 }
 
 #[test]
-#[available_gas(50000000)]
 fn test_insertion() {
     let rb_tree = setup_rb_tree();
     
-    // Test 1 - Root insertion
-    insert(rb_tree, 5, 1);
+    insert(rb_tree, 2, 1);
     let tree_structure = rb_tree.get_tree_structure();
-    let tree_with_root_only = array![
-        array![(5, false, 0)]
+    let tree_with_root_node = array![
+        array![(2, false, 0)]
     ];
-    println!("{:?}", tree_structure);
-    compare_tree_structures(@tree_structure, @tree_with_root_only);
+    compare_tree_structures(@tree_structure, @tree_with_root_node);
+
+    insert(rb_tree, 1, 2);
+    let tree_with_left_node = array![
+        array![(2, false, 0)],
+        array![(1, true, 0)]
+    ];
+    let tree_structure = rb_tree.get_tree_structure();
+    compare_tree_structures(@tree_structure, @tree_with_left_node);
+    
+    insert(rb_tree, 4, 3);
+    let tree_with_right_node = array![
+        array![(2, false, 0)],
+        array![(1, true, 0)],
+        array![(4, true, 0)]
+    ];
+    let tree_structure = rb_tree.get_tree_structure();
+    compare_tree_structures(@tree_structure, @tree_with_right_node);
+    let is_tree_valid = rb_tree.is_tree_valid();
+    assert(is_tree_valid, 'Tree is not valid');
+
+    insert(rb_tree, 5, 4);
+    let tree_after_recolor_parents = array![
+        array![(2, false, 0)],
+        array![(1, false, 0), (4, false, 1)],
+        array![(5, true, 3)]
+    ];
+    let tree_structure = rb_tree.get_tree_structure();
+    compare_tree_structures(@tree_structure, @tree_after_recolor_parents);
+    let is_tree_valid = rb_tree.is_tree_valid();
+    assert(is_tree_valid, 'Tree is not valid');
+
+    insert(rb_tree, 9, 5);
+    let tree_after_left_rotation = array![
+        array![(2, false, 0)],
+        array![(1, false, 0), (5, false, 1)],
+        array![(4, true, 2), (9, true, 3)]
+    ];
+    let tree_structure = rb_tree.get_tree_structure();
+    compare_tree_structures(@tree_structure, @tree_after_left_rotation);
+    let is_tree_valid = rb_tree.is_tree_valid();
+    assert(is_tree_valid, 'Tree is not valid');
+
+    insert(rb_tree, 3, 6);
+    let tree_after_recolor = array![
+        array![(2, false, 0)],
+        array![(1, false, 0), (5, true, 1)],
+        array![(4, false, 2), (9, false, 3)],
+        array![(3, true, 4)],
+    ];
+    let tree_structure = rb_tree.get_tree_structure();
+    compare_tree_structures(@tree_structure, @tree_after_recolor);
+    let is_tree_valid = rb_tree.is_tree_valid();
+    assert(is_tree_valid, 'Tree is not valid');
+
+    insert(rb_tree, 6, 7);
+    let tree_after_insertion = array![
+        array![(2, false, 0)],
+        array![(1, false, 0), (5, true, 1)],
+        array![(4, false, 2), (9, false, 3)],
+        array![(3, true, 4), (6, true, 6)],
+    ];
+    let tree_structure = rb_tree.get_tree_structure();
+    compare_tree_structures(@tree_structure, @tree_after_insertion);
+    let is_tree_valid = rb_tree.is_tree_valid();
+    assert(is_tree_valid, 'Tree is not valid');
+
+    insert(rb_tree, 7, 8);
+    let tree_structure = rb_tree.get_tree_structure();
+    println!("{:?}", @tree_structure);
 }
 
 fn insert(rb_tree: IRBTreeDispatcher, price: u256, nonce: u64) {
