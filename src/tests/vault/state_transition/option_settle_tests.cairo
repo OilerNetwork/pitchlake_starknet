@@ -4,11 +4,7 @@ use starknet::{
     testing::{set_block_timestamp, set_contract_address}, contract_address::ContractAddressZeroable,
 };
 use openzeppelin::{
-    utils::serde::SerializedAppend,
-    token::erc20::interface::{
-        IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
-        IERC20SafeDispatcherTrait,
-    }
+    utils::serde::SerializedAppend, token::erc20::interface::{ERC20ABIDispatcherTrait}
 };
 use pitch_lake_starknet::{
     contracts::{

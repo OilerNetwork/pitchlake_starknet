@@ -1,6 +1,4 @@
-use openzeppelin::token::erc20::interface::{
-    IERC20, IERC20SafeDispatcher, IERC20SafeDispatcherTrait,
-};
+use openzeppelin::token::erc20::interface::{ERC20ABIDispatcherTrait,};
 use starknet::{
     ClassHash, ContractAddress, contract_address_const, deploy_syscall,
     Felt252TryIntoContractAddress, get_contract_address,
@@ -28,7 +26,7 @@ fn OPERATOR() -> ContractAddress {
     contract_address_const::<40>()
 }
 
-fn deploy() -> IERC20SafeDispatcher {
+fn deploy() -> ERC20SafeDispatcher {
     let mut calldata = array![];
 
     calldata.append_serde(NAME);
@@ -40,7 +38,7 @@ fn deploy() -> IERC20SafeDispatcher {
         Eth::TEST_CLASS_HASH.try_into().unwrap(), 0, calldata.span(), true
     )
         .expect('DEPLOY_AD_FAILED');
-    return IERC20SafeDispatcher { contract_address: address };
+    return ERC20ABIDispatcher { contract_address: address };
 }
 
 #[test]

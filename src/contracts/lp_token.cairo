@@ -1,7 +1,7 @@
 use starknet::{ContractAddress, StorePacking};
 use array::{Array};
 use traits::{Into, TryInto};
-use openzeppelin::token::erc20::interface::IERC20Dispatcher;
+use openzeppelin::token::erc20::interface::ERC20ABIDispatcher;
 use openzeppelin::utils::serde::SerializedAppend;
 
 use pitch_lake_starknet::contracts::option_round::{OptionRoundState};

@@ -1,6 +1,4 @@
-use openzeppelin::token::erc20::interface::{
-    IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcherTrait,
-};
+use openzeppelin::token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait,};
 use starknet::{ContractAddress};
 
 /// Array helpers ///
@@ -117,7 +115,7 @@ fn span_to_array<T, +Drop<T>, +Copy<T>>(mut span: Span<T>) -> Array<T> {
 
 // Get erc20 balances for an address
 fn get_erc20_balance(contract_address: ContractAddress, account_address: ContractAddress) -> u256 {
-    let contract = IERC20Dispatcher { contract_address };
+    let contract = ERC20ABIDispatcher { contract_address };
     contract.balance_of(account_address)
 }
 

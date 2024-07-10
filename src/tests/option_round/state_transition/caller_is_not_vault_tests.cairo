@@ -87,7 +87,7 @@ fn test_only_vault_can_settle_option_round() {
     accelerate_to_running(ref vault);
     let mut current_round = vault.get_current_round();
 
-    set_block_timestamp(current_round.get_option_expiry_date());
+    set_block_timestamp(current_round.get_option_settlement_date());
     set_contract_address(other_vault.contract_address());
     match current_round.settle_option_round_raw(0x123) {
         Result::Ok(_) => panic!("Expected Result::Err(e)"),

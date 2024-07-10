@@ -1,8 +1,5 @@
 use starknet::testing::{set_block_timestamp, set_contract_address, ContractAddress};
-use openzeppelin::token::erc20::interface::{
-    IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
-    IERC20SafeDispatcherTrait,
-};
+use openzeppelin::token::erc20::interface::{ERC20ABIDispatcherTrait,};
 use pitch_lake_starknet::tests::{
     utils::{
         helpers::{
