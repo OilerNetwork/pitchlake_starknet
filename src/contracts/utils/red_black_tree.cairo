@@ -192,7 +192,7 @@ pub mod RBTreeComponent {
                 if current_node.left == 0 {
                     current_node.left = new_node_id;
 
-                    let new_node = self.create_new_node(@value, current_id);
+                    let new_node = self.create_child_node(@value, current_id);
                     self.tree.write(new_node_id, new_node);
                     self.tree.write(current_id, current_node);
 
@@ -204,7 +204,7 @@ pub mod RBTreeComponent {
                 if current_node.right == 0 {
                     current_node.right = new_node_id;
 
-                    let new_node = self.create_new_node(@value, current_id);
+                    let new_node = self.create_child_node(@value, current_id);
                     self.tree.write(new_node_id, new_node);
                     self.tree.write(current_id, current_node);
                     return;
@@ -233,7 +233,7 @@ pub mod RBTreeComponent {
             Node { value: *value, left: 0, right: 0, parent: 0, color: BLACK, }
         }
 
-        fn create_new_node(self: @ComponentState<TContractState>, value: @Bid, parent: felt252) -> Node {
+        fn create_child_node(self: @ComponentState<TContractState>, value: @Bid, parent: felt252) -> Node {
             Node { value: *value, left: 0, right: 0, parent: parent, color: RED, }
         }
 
