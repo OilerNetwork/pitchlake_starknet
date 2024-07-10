@@ -397,7 +397,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     // Gets the round transition period in seconds, 3 hours is a random number for testing
     // @note TODO impl this in contract later
     fn get_round_transition_period(ref self: VaultFacade) -> u64 {
-        self.get_round_transition_period()
+        self.vault_dispatcher.get_round_transition_period()
     }
 }
 
