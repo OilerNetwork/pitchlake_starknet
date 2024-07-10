@@ -1145,6 +1145,12 @@ mod OptionRound {
             };
             let eth_dispatcher = self.get_eth_dispatcher();
             eth_dispatcher.transfer(option_bidder, refundable_balance);
+            self
+                .emit(
+                    Event::UnusedBidsRefunded(
+                        UnusedBidsRefunded { account: option_bidder, amount: refundable_balance }
+                    )
+                );
             Result::Ok(refundable_balance)
         }
 
