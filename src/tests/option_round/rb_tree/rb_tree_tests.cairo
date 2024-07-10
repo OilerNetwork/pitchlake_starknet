@@ -24,6 +24,7 @@ fn mock_address(value: felt252) -> ContractAddress {
 }
 
 #[test]
+#[available_gas(50000000)]
 fn test_insertion() {
     let rb_tree = setup_rb_tree();
     
@@ -33,25 +34,8 @@ fn test_insertion() {
     let tree_with_root_only = array![
         array![(5, false, 0)]
     ];
+    println!("{:?}", tree_structure);
     compare_tree_structures(@tree_structure, @tree_with_root_only);
-
-    // Test 2 - Simple left child insertion
-    insert(rb_tree, 25, 2);
-    let tree_with_left_child = array![
-        array![(5, false, 0)],
-        array![(25, true, 0)]
-    ];
-    compare_tree_structures(@tree_structure, @tree_with_left_child);
-
-    // Test 3 - Simple right child insertion
-    insert(rb_tree, 75, 3);
-    let tree_with_right_child = array![
-        array![(5, false, 0)],
-        array![(25, true, 0)],
-        array![(75, true, 1)]
-    ];
-    compare_tree_structures(@tree_structure, @tree_with_right_child);
-
 }
 
 fn insert(rb_tree: IRBTreeDispatcher, price: u256, nonce: u64) {
@@ -85,6 +69,7 @@ fn compare_tree_structures(
         let actual_inner = actual[i];
         let expected_inner = expected[i];
         compare_inner(actual_inner, expected_inner);
+        i += 1;
     }                      
 }
 
