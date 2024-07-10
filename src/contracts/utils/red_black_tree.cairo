@@ -64,7 +64,7 @@ pub mod RBTreeComponent {
             if self.root.read() == 0 {
                 // Write the root node id only after the first node is inserted
                 // As we expect the root to be 0 if the tree is empty
-                let root_node = self.create_new_node(@value, 0)
+                let root_node = self.create_new_node(@value, 0);
                 self.tree.write(new_node_id, root_node);
                 self.root.write(new_node_id);
                 return;
