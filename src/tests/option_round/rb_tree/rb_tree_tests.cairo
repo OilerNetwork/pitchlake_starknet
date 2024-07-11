@@ -12,7 +12,6 @@ const RED: bool = true;
 #[starknet::interface]
 pub trait IRBTree<TContractState> {
     fn insert(ref self: TContractState, value: Bid) -> felt252;
-    fn get_nonce(ref self: TContractState) -> u64;
     fn find(ref self: TContractState, value: Bid) -> felt252;
     fn get_tree_structure(ref self: TContractState) -> Array<Array<(u256, bool, u128)>>;
     fn is_tree_valid(ref self: TContractState) -> bool;
