@@ -14,7 +14,7 @@ trait IRBTree<TContractState> {
 
     // Fns for testing
     fn get_bid(ref self: TContractState, bid_id: felt252) -> Bid;
-    fn create_node(ref self: TContractState, bid: Bid, color: bool, parent: felt252) -> felt252 ;
+    fn add_node(ref self: TContractState, bid: Bid, color: bool, parent: felt252) -> felt252 ;
 }
 
 const BLACK: bool = false;
@@ -133,7 +133,7 @@ pub mod RBTreeComponent {
             node.value
         }
 
-        fn create_node(ref self: ComponentState<TContractState>, bid: Bid, color: bool, parent: felt252) -> felt252 {
+        fn add_node(ref self: ComponentState<TContractState>, bid: Bid, color: bool, parent: felt252) -> felt252 {
             let new_node = Node {
                 value: bid,
                 left: 0,

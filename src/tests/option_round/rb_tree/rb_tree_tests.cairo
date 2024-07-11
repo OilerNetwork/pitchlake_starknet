@@ -11,11 +11,12 @@ const RED: bool = true;
 pub trait IRBTree<TContractState> {
     fn insert(ref self: TContractState, value: Bid) -> felt252;
     fn get_nonce(ref self: TContractState) -> u64;
+    fn find(ref self: TContractState, value: Bid) -> felt252;
     fn get_tree_structure(ref self: TContractState) -> Array<Array<(u256, bool, u128)>>;
     fn is_tree_valid(ref self: TContractState) -> bool;
     fn delete(ref self: TContractState, bid_id: felt252);
     fn get_bid(ref self: TContractState, bid_id: felt252) -> Bid;
-    fn create_node(ref self: TContractState, value: Bid, color:bool, parent:felt252) -> felt252;
+    fn add_node(ref self: TContractState, value: Bid, color:bool, parent:felt252) -> felt252;
 }
 
 fn setup_rb_tree() -> IRBTreeDispatcher {
@@ -107,28 +108,28 @@ fn mock_address(value: felt252) -> ContractAddress {
 //     let node_31 = rb_tree.insert(new_bid);
 
 //     new_bid = create_bid(11, 2);
-//     let node_11 = rb_tree.create_node(new_bid, RED, node_31);
+//     let node_11 = rb_tree.add_node(new_bid, RED, node_31);
 
 //     new_bid = create_bid(41, 3);
-//     let node_41 = rb_tree.create_node(new_bid, RED, node_31);
+//     let node_41 = rb_tree.add_node(new_bid, RED, node_31);
 
 //     new_bid = create_bid(1, 4);
-//     rb_tree.create_node(new_bid, BLACK, node_11);
+//     rb_tree.add_node(new_bid, BLACK, node_11);
 
 //     new_bid = create_bid(27, 5);
-//     let node_27 = rb_tree.create_node(new_bid, BLACK, node_11);
+//     let node_27 = rb_tree.add_node(new_bid, BLACK, node_11);
 
 //     new_bid = create_bid(36, 6);
-//     rb_tree.create_node(new_bid, BLACK, node_41);
+//     rb_tree.add_node(new_bid, BLACK, node_41);
 
 //     new_bid = create_bid(46, 7);
-//     rb_tree.create_node(new_bid, BLACK, node_41);
+//     rb_tree.add_node(new_bid, BLACK, node_41);
 
 //     new_bid = create_bid(23, 8);
-//     rb_tree.create_node(new_bid, RED, node_27);
+//     rb_tree.add_node(new_bid, RED, node_27);
 
 //     new_bid = create_bid(29, 9);
-//     rb_tree.create_node(new_bid, RED, node_27);
+//     rb_tree.add_node(new_bid, RED, node_27);
 
 //     let is_tree_valid = rb_tree.is_tree_valid();
 //     assert(is_tree_valid, 'Tree is not valid');
@@ -157,28 +158,28 @@ fn mock_address(value: felt252) -> ContractAddress {
 //     let node_31 = rb_tree.insert(new_bid);
 
 //     let new_bid = create_bid(11, 2);
-//     let node_11 = rb_tree.create_node(new_bid, RED, node_31);
+//     let node_11 = rb_tree.add_node(new_bid, RED, node_31);
 
 //     let new_bid = create_bid(41, 3);
-//     let node_41 = rb_tree.create_node(new_bid, RED, node_31);
+//     let node_41 = rb_tree.add_node(new_bid, RED, node_31);
 
 //     let new_bid = create_bid(1, 4);
-//     rb_tree.create_node(new_bid, BLACK, node_11);
+//     rb_tree.add_node(new_bid, BLACK, node_11);
 
 //     let new_node = create_bid(27, 5);
-//     rb_tree.create_node(new_node, BLACK, node_11);
+//     rb_tree.add_node(new_node, BLACK, node_11);
 
 //     let new_bid = create_bid(36, 6);
-//     let node_36 = rb_tree.create_node(new_bid, BLACK, node_41);
+//     let node_36 = rb_tree.add_node(new_bid, BLACK, node_41);
 
 //     let new_bid = create_bid(46, 7);
-//     rb_tree.create_node(new_bid, BLACK, node_41);
+//     rb_tree.add_node(new_bid, BLACK, node_41);
 
 //     let new_bid = create_bid(33, 8);
-//     rb_tree.create_node(new_bid, RED, node_36);
+//     rb_tree.add_node(new_bid, RED, node_36);
 
 //     let new_bid = create_bid(38, 9);
-//     rb_tree.create_node(new_bid, RED, node_36);
+//     rb_tree.add_node(new_bid, RED, node_36);
 
 //     let is_tree_valid = rb_tree.is_tree_valid();
 //     assert(is_tree_valid, 'Tree is not valid');
@@ -208,16 +209,16 @@ fn mock_address(value: felt252) -> ContractAddress {
 //     let node_21 = rb_tree.insert(new_bid);
 
 //     let new_bid = create_bid(1, 2);
-//     let node_1 = rb_tree.create_node(new_bid, BLACK, node_21);
+//     let node_1 = rb_tree.add_node(new_bid, BLACK, node_21);
 
 //     let new_bid = create_bid(31, 3);
-//     let node_31 = rb_tree.create_node(new_bid, BLACK, node_21);
+//     let node_31 = rb_tree.add_node(new_bid, BLACK, node_21);
 
 //     let new_bid = create_bid(18, 4);
-//     rb_tree.create_node(new_bid, RED, node_1);
+//     rb_tree.add_node(new_bid, RED, node_1);
 
 //     let new_bid = create_bid(26, 5);
-//     rb_tree.create_node(new_bid, RED, node_31);
+//     rb_tree.add_node(new_bid, RED, node_31);
 
 //     let is_tree_valid = rb_tree.is_tree_valid();
 //     assert(is_tree_valid, 'Tree is not valid');
@@ -245,13 +246,13 @@ fn mock_address(value: felt252) -> ContractAddress {
 //     let node_10 = rb_tree.insert(new_bid);
 
 //     let new_bid = create_bid(7, 2);
-//     let node_7 = rb_tree.create_node(new_bid, BLACK, node_10);
+//     let node_7 = rb_tree.add_node(new_bid, BLACK, node_10);
 
 //     let new_bid = create_bid(20, 3);
-//     rb_tree.create_node(new_bid, BLACK, node_10);
+//     rb_tree.add_node(new_bid, BLACK, node_10);
 
 //     let new_bid = create_bid(8, 4);
-//     rb_tree.create_node(new_bid, RED, node_7);
+//     rb_tree.add_node(new_bid, RED, node_7);
 
 //     let is_tree_valid = rb_tree.is_tree_valid();
 //     assert(is_tree_valid, 'Tree is not valid');
@@ -279,16 +280,16 @@ fn mock_address(value: felt252) -> ContractAddress {
 //     let node_23 = rb_tree.insert(new_bid);
 
 //     let new_bid = create_bid(3, 2);
-//     let node_3 = rb_tree.create_node(new_bid, BLACK, node_23);
+//     let node_3 = rb_tree.add_node(new_bid, BLACK, node_23);
 
 //     let new_bid = create_bid(33, 3);
-//     let node_33 = rb_tree.create_node(new_bid, BLACK, node_23);
+//     let node_33 = rb_tree.add_node(new_bid, BLACK, node_23);
 
 //     let new_bid = create_bid(2, 4);
-//     rb_tree.create_node(new_bid, RED, node_3);
+//     rb_tree.add_node(new_bid, RED, node_3);
 
 //     let new_bid = create_bid(28, 5);
-//     rb_tree.create_node(new_bid, RED, node_33);
+//     rb_tree.add_node(new_bid, RED, node_33);
 
 //     let is_tree_valid = rb_tree.is_tree_valid();
 //     assert(is_tree_valid, 'Tree is not valid');
@@ -315,16 +316,16 @@ fn mock_address(value: felt252) -> ContractAddress {
 //     let node_21 = rb_tree.insert(new_bid);
 
 //     let new_bid = create_bid(1, 2);
-//     let node_1 = rb_tree.create_node(new_bid, BLACK, node_21);
+//     let node_1 = rb_tree.add_node(new_bid, BLACK, node_21);
 
 //     let new_bid = create_bid(31, 3);
-//     let node_31 = rb_tree.create_node(new_bid, BLACK, node_21);
+//     let node_31 = rb_tree.add_node(new_bid, BLACK, node_21);
 
 //     let new_bid = create_bid(18, 4);
-//     rb_tree.create_node(new_bid, RED, node_1);
+//     rb_tree.add_node(new_bid, RED, node_1);
 
 //     let new_bid = create_bid(26, 5);
-//     rb_tree.create_node(new_bid, RED, node_31);
+//     rb_tree.add_node(new_bid, RED, node_31);
 
 //     let is_tree_valid = rb_tree.is_tree_valid();
 //     assert(is_tree_valid, 'Tree is not valid');
@@ -356,16 +357,16 @@ fn mock_address(value: felt252) -> ContractAddress {
 //     let node_21 = rb_tree.insert(new_bid);
 
 //     let new_bid = create_bid(1, 2);
-//     let node_1 = rb_tree.create_node(new_bid, BLACK, node_21);
+//     let node_1 = rb_tree.add_node(new_bid, BLACK, node_21);
 
 //     let new_bid = create_bid(31, 3);
-//     let node_31 = rb_tree.create_node(new_bid, BLACK, node_21);
+//     let node_31 = rb_tree.add_node(new_bid, BLACK, node_21);
 
 //     let new_bid = create_bid(18, 4);
-//     rb_tree.create_node(new_bid, RED, node_1);
+//     rb_tree.add_node(new_bid, RED, node_1);
 
 //     let new_bid = create_bid(26, 5);
-//     rb_tree.create_node(new_bid, RED, node_31);
+//     rb_tree.add_node(new_bid, RED, node_31);
 
 //     let is_tree_valid = rb_tree.is_tree_valid();
 //     assert(is_tree_valid, 'Tree is not valid');
@@ -398,28 +399,28 @@ fn mock_address(value: felt252) -> ContractAddress {
 //     let node_31 = rb_tree.insert(new_bid);
 
 //     let new_bid = create_bid(11, 2);
-//     let node_11 = rb_tree.create_node(new_bid, RED, node_31);
+//     let node_11 = rb_tree.add_node(new_bid, RED, node_31);
 
 //     let new_bid = create_bid(41, 3);
-//     let node_41 = rb_tree.create_node(new_bid, BLACK, node_31);
+//     let node_41 = rb_tree.add_node(new_bid, BLACK, node_31);
 
 //     let new_bid = create_bid(1, 4);
-//     rb_tree.create_node(new_bid, BLACK, node_11);
+//     rb_tree.add_node(new_bid, BLACK, node_11);
 
 //     let new_bid = create_bid(27, 5);
-//     let node_27 = rb_tree.create_node(new_bid, BLACK, node_11);
+//     let node_27 = rb_tree.add_node(new_bid, BLACK, node_11);
 
 //     let new_bid = create_bid(36, 6);
-//     rb_tree.create_node(new_bid, RED, node_41);
+//     rb_tree.add_node(new_bid, RED, node_41);
 
 //     let new_bid = create_bid(51, 7);
-//     rb_tree.create_node(new_bid, RED, node_41);
+//     rb_tree.add_node(new_bid, RED, node_41);
 
 //     let new_bid = create_bid(22, 8);
-//     rb_tree.create_node(new_bid, RED, node_27);
+//     rb_tree.add_node(new_bid, RED, node_27);
 
 //     let new_bid = create_bid(30, 9);
-//     rb_tree.create_node(new_bid, RED, node_27);
+//     rb_tree.add_node(new_bid, RED, node_27);
 
 //     let is_tree_valid = rb_tree.is_tree_valid();
 //     assert(is_tree_valid, 'Tree is not valid');
@@ -548,22 +549,22 @@ fn mock_address(value: felt252) -> ContractAddress {
 //     let node_10 = rb_tree.insert(new_bid);
 
 //     let new_bid = create_bid(5, 2);
-//     rb_tree.create_node(new_bid, BLACK, node_10);
+//     rb_tree.add_node(new_bid, BLACK, node_10);
 
 //     let new_bid = create_bid(20, 3);
-//     let node_20 = rb_tree.create_node(new_bid, RED, node_10);
+//     let node_20 = rb_tree.add_node(new_bid, RED, node_10);
 
 //     let new_bid = create_bid(15, 4);
-//     let node_15 = rb_tree.create_node(new_bid, BLACK, node_20);
+//     let node_15 = rb_tree.add_node(new_bid, BLACK, node_20);
 
 //     let new_bid = create_bid(25, 5);
-//     rb_tree.create_node(new_bid, BLACK, node_20);
+//     rb_tree.add_node(new_bid, BLACK, node_20);
 
 //     let new_bid = create_bid(12, 6);
-//     rb_tree.create_node(new_bid, RED, node_15);
+//     rb_tree.add_node(new_bid, RED, node_15);
 
 //     let new_bid = create_bid(17, 7);
-//     rb_tree.create_node(new_bid, RED, node_15);
+//     rb_tree.add_node(new_bid, RED, node_15);
 
 //     let is_tree_valid = rb_tree.is_tree_valid();
 //     assert(is_tree_valid, 'Tree is not valid');
@@ -592,28 +593,28 @@ fn mock_address(value: felt252) -> ContractAddress {
 //     let node_33 = rb_tree.insert(new_bid);
 
 //     let new_bid = create_bid(13, 2);
-//     let node_13 = rb_tree.create_node(new_bid, RED, node_33);
+//     let node_13 = rb_tree.add_node(new_bid, RED, node_33);
 
 //     let new_bid = create_bid(43, 3);
-//     let node_43 = rb_tree.create_node(new_bid, BLACK, node_33);
+//     let node_43 = rb_tree.add_node(new_bid, BLACK, node_33);
 
 //     let new_bid = create_bid(3, 4);
-//     let node_3 = rb_tree.create_node(new_bid, BLACK, node_13);
+//     let node_3 = rb_tree.add_node(new_bid, BLACK, node_13);
 
 //     let new_bid = create_bid(29, 5);
-//      rb_tree.create_node(new_bid, BLACK, node_13);
+//      rb_tree.add_node(new_bid, BLACK, node_13);
 
 //     let new_bid = create_bid(38, 6);
-//     rb_tree.create_node(new_bid, RED, node_43);
+//     rb_tree.add_node(new_bid, RED, node_43);
 
 //     let new_bid = create_bid(48, 7);
-//     rb_tree.create_node(new_bid, RED, node_43);
+//     rb_tree.add_node(new_bid, RED, node_43);
 
 //     let new_bid = create_bid(2, 8);
-//     rb_tree.create_node(new_bid, RED, node_3);
+//     rb_tree.add_node(new_bid, RED, node_3);
 
 //     let new_bid = create_bid(4, 9);
-//     rb_tree.create_node(new_bid, RED, node_3);
+//     rb_tree.add_node(new_bid, RED, node_3);
 
 //     let is_tree_valid = rb_tree.is_tree_valid();
 //     assert(is_tree_valid, 'Tree is not valid');
@@ -661,22 +662,102 @@ fn mock_address(value: felt252) -> ContractAddress {
 //     assert(is_tree_valid, 'Tree is not valid');
 // }
 
+// #[test]
+// fn test_deletion_root_2_nodes() {
+//     let rb_tree = setup_rb_tree();
+
+//     let node_5 = insert(rb_tree, 5, 1);
+//     insert(rb_tree, 8, 2);
+
+//     let is_tree_valid = rb_tree.is_tree_valid();
+//     assert(is_tree_valid, 'Tree is not valid');
+
+//     delete(rb_tree, node_5);
+
+//     let tree_after_deletion = array![
+//         array![(8, false, 0)]
+//     ];
+
+//     let tree_structure = rb_tree.get_tree_structure();
+//     compare_tree_structures(@tree_structure, @tree_after_deletion);
+
+//     let is_tree_valid = rb_tree.is_tree_valid();
+//     assert(is_tree_valid, 'Tree is not valid');
+// }
+
+// #[test]
+// fn test_delete_single_child() {
+//     let rb_tree = setup_rb_tree();
+
+//     insert(rb_tree, 5, 1);
+//     insert(rb_tree, 1, 2);
+//     let node_6 = insert(rb_tree, 6, 3);
+
+//     let is_tree_valid = rb_tree.is_tree_valid();
+//     assert(is_tree_valid, 'Tree is not valid');
+
+//     delete(rb_tree, node_6);
+
+//     let tree_after_deletion = array![
+//         array![(5, false, 0)],
+//         array![(1, true, 0)]
+//     ];
+
+//     let tree_structure = rb_tree.get_tree_structure();
+//     compare_tree_structures(@tree_structure, @tree_after_deletion);
+
+//     let is_tree_valid = rb_tree.is_tree_valid();
+//     assert(is_tree_valid, 'Tree is not valid');
+// }
+
 #[test]
-fn test_deletion_root_2_nodes() {
+fn test_delete_single_deep_child() {
     let rb_tree = setup_rb_tree();
 
-    let node_5 = insert(rb_tree, 5, 1);
-    insert(rb_tree, 8, 2);
+    let mut new_bid = create_bid(20, 1);
+    let node_20 = rb_tree.insert(new_bid);
+
+    let new_bid = create_bid(10, 2);
+    let node_10 = rb_tree.add_node(new_bid, BLACK, node_20);
+
+    let new_bid = create_bid(38, 3);
+    let node_38 = rb_tree.add_node(new_bid, RED, node_20);
+
+    let new_bid = create_bid(5, 4);
+    rb_tree.add_node(new_bid, RED, node_10);
+
+    let new_bid = create_bid(15, 5);
+    rb_tree.add_node(new_bid, RED, node_10);
+
+    let new_bid = create_bid(28, 6);
+    let node_28 = rb_tree.add_node(new_bid, BLACK, node_38);
+
+    let new_bid = create_bid(48, 7);
+    let node_48 = rb_tree.add_node(new_bid, BLACK, node_38);
+
+    let new_bid = create_bid(23, 8);
+    rb_tree.add_node(new_bid, RED, node_28);
+
+    let new_bid = create_bid(29, 9);
+    rb_tree.add_node(new_bid, RED, node_28);
+
+    let new_bid = create_bid(41, 10);
+    rb_tree.add_node(new_bid, RED, node_48);
+
+    let new_bid = create_bid(49, 11);
+    let node_49 = rb_tree.add_node(new_bid, RED, node_48);
 
     let is_tree_valid = rb_tree.is_tree_valid();
     assert(is_tree_valid, 'Tree is not valid');
 
-    delete(rb_tree, node_5);
+    delete(rb_tree, node_49);
 
     let tree_after_deletion = array![
-        array![(8, false, 0)]
+        array![(20, false, 0)],
+        array![(10, false, 0), (38, true, 1)],
+        array![(5, true, 0), (15, true, 1), (28, false, 2), (48, false, 3)],
+        array![(23, true, 4), (29, true, 5), (41, true, 6)]
     ];
-
     let tree_structure = rb_tree.get_tree_structure();
     compare_tree_structures(@tree_structure, @tree_after_deletion);
 
