@@ -13,9 +13,9 @@ done
 # Run your Node script
 echo "Running scripts on port $PORT"
 echo "Declaring all the contracts"
-node ./declareContracts.js dev $PORT
+node ./scripts/declareContracts.js dev $PORT
 echo "Declaration of all the contracts done"
 echo "Deploying all the contracts"
-node ./deployContracts.js dev $PORT
+node ./scripts/deployContracts.js dev $PORT
 echo "Deployment of all the contracts done "
 # STARKNET_NETWORK=katana poetry run python3 scripts/deploy_vault.py --port $PORT
