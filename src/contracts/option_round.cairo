@@ -330,6 +330,58 @@ mod OptionRound {
         settlement_price: u256
     }
 
+
+    #[derive(Copy, Drop, Serde, starknet::Store, PartialEq, Display)]
+    struct Bid {
+        id: felt252,
+        nonce: u64,
+        owner: ContractAddress,
+        amount: u256,
+        price: u256,
+        is_tokenized: bool,
+        is_refunded: bool,
+    }
+
+    //Refactor into a Display impl file, impl display for various types
+    impl OptionRoundStateDisplay of Display<OptionRoundState> {
+        fn fmt(self: @OptionRoundState, ref f: Formatter) -> Result<(), Error> {
+            let str: ByteArray = match self {
+                OptionRoundState::Open => { format!("Open") },
+                OptionRoundState::Auctioning => { format!("Auctioning") },
+                OptionRoundState::Running => { format!("Running") },
+                OptionRoundState::Settled => { format!("Settled") }
+            };
+            f.buffer.append(@str);
+            Result::Ok(())
+        }
+    }
+    impl BidDisplay of Display<Bid> {
+        fn fmt(self: @Bid, ref f: Formatter) -> Result<(), Error> {
+            let owner: ContractAddress = *self.owner;
+            let owner_felt: felt252 = owner.into();
+            let str: ByteArray = format!(
+                "ID:{}\nNonce:{}\nOwner:{}\nAmount:{}\n Price:{}\nTokenized:{}\nRefunded:{}",
+                *self.id,
+                *self.nonce,
+                owner_felt,
+                *self.amount,
+                *self.price,
+                *self.is_tokenized,
+                *self.is_refunded,
+            );
+            f.buffer.append(@str);
+            Result::Ok(())
+        }
+    }
+
+    #[derive(Copy, Drop, starknet::Store, PartialEq)]
+    struct LinkedBids {
+        bid: felt252,
+        previous: felt252,
+        next: felt252
+    }
+
+
     // The states an option round can be in
     // @note Should we move these into the contract or separate file ?
     #[derive(Copy, Drop, Serde, PartialEq, starknet::Store)]
@@ -350,8 +402,9 @@ mod OptionRound {
         AuctionUpdatedBid: AuctionUpdatedBid,
         AuctionEnd: AuctionEnd,
         OptionSettle: OptionSettle,
-        UnusedBidsRefunded: UnusedBidsRefunded,
         OptionsExercised: OptionsExercised,
+        UnusedBidsRefunded: UnusedBidsRefunded,
+        #[flat]
         BidTreeEvent: RBTreeComponent::Event,
         OptionsTokenized: OptionsTokenized,
         #[flat]
@@ -409,55 +462,6 @@ mod OptionRound {
         account: ContractAddress,
         amount: u256,
     //...
-    }
-
-    #[derive(Copy, Drop, Serde, starknet::Store, PartialEq, Display)]
-    struct Bid {
-        id: felt252,
-        nonce: u64,
-        owner: ContractAddress,
-        amount: u256,
-        price: u256,
-        is_tokenized: bool,
-        is_refunded: bool,
-    }
-
-    impl OptionRoundStateDisplay of Display<OptionRoundState> {
-        fn fmt(self: @OptionRoundState, ref f: Formatter) -> Result<(), Error> {
-            let str: ByteArray = match self {
-                OptionRoundState::Open => { format!("Open") },
-                OptionRoundState::Auctioning => { format!("Auctioning") },
-                OptionRoundState::Running => { format!("Running") },
-                OptionRoundState::Settled => { format!("Settled") }
-            };
-            f.buffer.append(@str);
-            Result::Ok(())
-        }
-    }
-    impl BidDisplay of Display<Bid> {
-        fn fmt(self: @Bid, ref f: Formatter) -> Result<(), Error> {
-            let owner: ContractAddress = *self.owner;
-            let owner_felt: felt252 = owner.into();
-            let str: ByteArray = format!(
-                "ID:{}\nNonce:{}\nOwner:{}\nAmount:{}\n Price:{}\nTokenized:{}\nRefunded:{}",
-                *self.id,
-                *self.nonce,
-                owner_felt,
-                *self.amount,
-                *self.price,
-                *self.is_tokenized,
-                *self.is_refunded,
-            );
-            f.buffer.append(@str);
-            Result::Ok(())
-        }
-    }
-
-    #[derive(Copy, Drop, starknet::Store, PartialEq)]
-    struct LinkedBids {
-        bid: felt252,
-        previous: felt252,
-        next: felt252
     }
 
     // Emitted when the auction ends
@@ -1024,7 +1028,6 @@ mod OptionRound {
                     );
                 return Result::Err(OptionRoundError::BidAmountZero);
             }
-
             //Assert bid price is above reserve price
             if (price < self.get_reserve_price()) {
                 self
@@ -1223,11 +1226,12 @@ mod OptionRound {
                     Event::OptionsExercised(
                         OptionsExercised {
                             account: option_buyer,
-                            amount: amount_eth,
-                            num_options: options_to_exercise
+                            num_options: options_to_exercise,
+                            amount: amount_eth
                         }
                     )
                 );
+
             Result::Ok(amount_eth)
         }
 

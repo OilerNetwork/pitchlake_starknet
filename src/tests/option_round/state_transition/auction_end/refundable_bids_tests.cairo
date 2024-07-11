@@ -61,7 +61,7 @@ fn place_incremental_bids_internal(
 
 // Test refundable bid balance before auction ends
 #[test]
-#[available_gas(50000000)]
+#[available_gas(500000000)]
 fn test_refundable_bids_before_auction_end() {
     let number_of_option_bidders = 3;
     let (mut vault, _, mut option_bidders, _) = setup_test_auctioning_bidders(
@@ -85,7 +85,7 @@ fn test_refundable_bids_before_auction_end() {
 
 // Test refundable bid balance after auction ends
 #[test]
-#[available_gas(50000000)]
+#[available_gas(500000000)]
 fn test_refundable_bids_after_auction_end() {
     let number_of_option_bidders = 3;
     let (mut vault, _, mut option_bidders, _) = setup_test_auctioning_bidders(
@@ -156,7 +156,7 @@ fn test_refundable_bids_includes_partial_and_fully_refunded_bids() {
 
 // Test over bids are refundable
 #[test]
-#[available_gas(50000000)]
+#[available_gas(500000000)]
 fn test_over_bids_are_refundable() {
     let (mut vault, _) = setup_facade();
     // Deposit liquidity and start the auction

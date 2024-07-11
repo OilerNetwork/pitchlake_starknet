@@ -99,6 +99,7 @@ fn accelerate_to_running_custom(
     // Place bids
     let mut current_round = self.get_current_round();
     current_round.place_bids(max_amounts, prices, bidders);
+    println!("REACHED");
     // Jump to the auction end date and end the auction
     timeskip_and_end_auction(ref self)
 }
@@ -143,7 +144,7 @@ fn accelerate_to_running_custom_option_round(
             StartAuctionParams {
                 total_options_available,
                 starting_liquidity: 100 * decimals(),
-                reserve_price: 1,
+                reserve_price: reserve_price,
                 cap_level: 2,
                 strike_price: 3,
             }
@@ -151,7 +152,7 @@ fn accelerate_to_running_custom_option_round(
 
     // Make bids
     let mut option_bidders = option_bidders_get(bid_amounts.len()).span();
-    option_round.place_bids(bid_amounts, bid_prices, option_bidders);
+    option_round.place_bids_raw(bid_amounts, bid_prices, option_bidders);
 
     // End auction
     set_contract_address(vault_address);

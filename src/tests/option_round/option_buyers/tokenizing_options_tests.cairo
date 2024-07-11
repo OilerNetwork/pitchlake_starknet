@@ -7,6 +7,7 @@ use pitch_lake_starknet::tests::{
             },
             setup::{setup_facade, deploy_custom_option_round},
             general_helpers::{get_erc20_balance, assert_two_arrays_equal_length},
+            event_helpers::{assert_event_options_tokenized, clear_event_logs}
         },
         lib::{test_accounts::{option_bidders_get, option_bidder_buyer_1},},
         facades::{
@@ -38,6 +39,7 @@ fn test_tokenizing_options_mints_option_tokens() {
     let (_, _, mut current_round) = accelerate_to_running_custom_option_round(
         vault.contract_address(), options_available, reserve_price, bid_amounts, bid_prices
     );
+    clear_event_logs(array![current_round.contract_address()]);
     loop {
         match option_bidders.pop_front() {
             Option::Some(bidder) => {
@@ -48,7 +50,9 @@ fn test_tokenizing_options_mints_option_tokens() {
 
                 // Tokenize options
                 let options_minted = current_round.tokenize_options(*bidder);
-
+                assert_event_options_tokenized(
+                    current_round.contract_address(), *bidder, options_minted
+                );
                 // User's option erc20 balance after tokenizing
                 let option_erc20_balance_after = get_erc20_balance(
                     current_round.contract_address(), *bidder
@@ -59,6 +63,38 @@ fn test_tokenizing_options_mints_option_tokens() {
                     option_erc20_balance_after == option_erc20_balance_before + options_minted,
                     'wrong option erc20 balance'
                 );
+            },
+            Option::None => { break (); },
+        }
+    }
+}
+
+#[test]
+#[available_gas(500000000)]
+fn test_tokenizing_options_events() {
+    let (mut vault, _) = setup_facade();
+
+    // Start auction with custom auction params
+    let options_available = 200;
+    let reserve_price = 2;
+    let number_of_option_bidders = 6;
+    let mut option_bidders = option_bidders_get(number_of_option_bidders).span();
+    let bid_amounts = array![50, 142, 235, 222, 75, 35].span();
+    let bid_prices = array![20, 11, 11, 2, 1, 1].span();
+    let (_, _, mut current_round) = accelerate_to_running_custom_option_round(
+        vault.contract_address(), options_available, reserve_price, bid_amounts, bid_prices
+    );
+    clear_event_logs(array![current_round.contract_address()]);
+    loop {
+        match option_bidders.pop_front() {
+            Option::Some(bidder) => {
+                // User's option erc20 balance before tokenizing
+                // Tokenize options
+                let options_minted = current_round.tokenize_options(*bidder);
+                assert_event_options_tokenized(
+                    current_round.contract_address(), *bidder, options_minted
+                );
+            // User's option erc20 balance after tokenizing
             },
             Option::None => { break (); },
         }
@@ -84,6 +120,7 @@ fn test_tokenizing_options_before_auction_end_fails() {
         Result::Err(e) => { assert(e == expected_error, 'Error mismatch') }
     }
 }
+
 
 // Test user cannot tokenize options again
 // @dev This call should not fail, simply do nothing the second time

@@ -115,7 +115,7 @@ fn test_settling_option_round_while_settled_fails() {
 
 // Test settling an option round emits the correct event
 #[test]
-#[available_gas(50000000)]
+#[available_gas(5000000000)]
 fn test_option_round_settled_event() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();

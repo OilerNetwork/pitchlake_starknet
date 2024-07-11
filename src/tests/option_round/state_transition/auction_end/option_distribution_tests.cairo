@@ -12,7 +12,7 @@ use pitch_lake_starknet::tests::{
             },
             setup::{setup_facade, setup_test_auctioning_bidders, deploy_custom_option_round},
             general_helpers::{
-                sum_u256_array, create_array_linear, create_array_gradient,
+                pow, to_wei, sum_u256_array, create_array_linear, create_array_gradient,
                 create_array_gradient_reverse, assert_two_arrays_equal_length,
             },
         },
@@ -501,14 +501,21 @@ fn test_losing_bid_gets_no_options() {
 // a few test cases
 
 // Test where the total options available have been exhausted
+
 #[test]
 #[available_gas(500000000)]
 fn test_option_distribution_real_numbers_1() {
     let (mut vault, _) = setup_facade();
     let options_available = 200;
-    let reserve_price = 2;
+
     let bid_amounts = array![50, 142, 235, 222, 75, 35].span();
     let bid_prices = array![20, 11, 11, 2, 1, 1].span();
+
+    //Convert prices to wei values
+    let mut current_round = vault.get_current_round();
+    let bid_prices = to_wei(bid_prices, current_round.decimals());
+    let reserve_price = 2 * pow(10, current_round.decimals());
+
     let expected_options_sold = 200;
     let mut expected_option_distribution = array![50, 142, 8, 0, 0, 0].span();
 
@@ -529,9 +536,15 @@ fn test_option_distribution_real_numbers_1() {
 fn test_option_distribution_real_numbers_2() {
     let (mut vault, _) = setup_facade();
     let options_available = 200;
-    let reserve_price = 2;
+
     let bid_amounts = array![25, 20, 60, 40, 75, 35].span();
     let bid_prices = array![25, 24, 15, 2, 1, 1].span();
+
+    //Convert prices to wei values
+    let mut current_round = vault.get_current_round();
+    let bid_prices = to_wei(bid_prices, current_round.decimals());
+    let reserve_price = 2 * pow(10, current_round.decimals());
+
     let expected_options_sold = 145;
     let mut expected_option_distribution = array![25, 20, 60, 40, 0, 0].span();
 
@@ -551,11 +564,17 @@ fn test_option_distribution_real_numbers_2() {
 fn test_option_distribution_real_numbers_3() {
     let (mut vault, _) = setup_facade();
     let options_available = 500;
-    let reserve_price = 2;
+
     let bid_amounts = array![400, 50, 30, 50, 75, 30].span();
     let bid_prices = array![50, 40, 30, 20, 2, 2].span();
+
+    //Convert prices to wei values
+    let mut current_round = vault.get_current_round();
+    let bid_prices = to_wei(bid_prices, current_round.decimals());
+
     let expected_options_sold = 500;
     let mut expected_option_distribution = array![400, 50, 30, 20, 0, 0].span();
+    let reserve_price = 2 * pow(10, current_round.decimals());
 
     auction_real_numbers_test_helper(
         vault.contract_address(),

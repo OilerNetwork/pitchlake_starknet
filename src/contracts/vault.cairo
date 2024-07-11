@@ -409,7 +409,14 @@ mod Vault {
                     .calculate_value_of_position_from_checkpoint_to_round(
                         liquidity_provider, previous_round_id
                     );
-                previous_round_remaining_balance + current_round_deposit
+                // Total unsold liquidity for the current round
+                let round_unsold_liquidity = self.unsold_liquidity.read(current_round_id);
+                // Lp portion of the unsold liquidity
+                let lp_unsold_liquidity = (round_unsold_liquidity
+                    * (previous_round_remaining_balance + current_round_deposit))
+                    / current_round.starting_liquidity();
+
+                previous_round_remaining_balance + current_round_deposit - lp_unsold_liquidity
             }
         }
 

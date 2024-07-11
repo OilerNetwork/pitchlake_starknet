@@ -76,7 +76,7 @@ fn test_exercise_options_before_round_settles_fails() {
 
 // Test exercising emits correct events
 #[test]
-#[available_gas(50000000)]
+#[available_gas(5000000000)]
 fn test_exercise_options_events() {
     let (mut vault, _) = setup_facade();
     let options_available = accelerate_to_auctioning(ref vault);
@@ -96,7 +96,6 @@ fn test_exercise_options_events() {
         match option_bidders.pop_front() {
             Option::Some(ob) => {
                 let payout_amount = current_round.exercise_options(*ob);
-
                 assert_event_options_exercised(
                     current_round.contract_address(), *ob, bid_count, payout_amount
                 );

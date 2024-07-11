@@ -1,3 +1,4 @@
+use core::array::SpanTrait;
 use starknet::{testing, ContractAddress,};
 use pitch_lake_starknet::contracts::{vault::{Vault}, option_round::{OptionRound}};
 use openzeppelin::token::erc20::{ERC20Component, ERC20Component::Transfer};
@@ -157,18 +158,43 @@ fn assert_event_unused_bids_refunded(
     }
 }
 
+fn assert_event_options_tokenized(
+    contract: ContractAddress, account: ContractAddress, amount: u256
+) {
+    // We pop here twice since the method fires a ERC20 mint event and a OptionsTokenized event
+    match testing::pop_log_raw(contract) {
+        Option::Some(_) => {
+            match pop_log::<OptionRound::Event>(contract) {
+                Option::Some(e) => {
+                    let expected = OptionRound::Event::OptionsTokenized(
+                        OptionRound::OptionsTokenized { account, amount }
+                    );
+                    assert_events_equal(e, expected);
+                },
+                Option::None => { panic(array!['No events found']); },
+            }
+        },
+        Option::None => { panic!("ERC20 event not found") }
+    }
+}
 // Check OptionsExercised emits correctly
 fn assert_event_options_exercised(
     contract: ContractAddress, account: ContractAddress, num_options: u256, amount: u256
 ) {
-    match pop_log::<OptionRound::Event>(contract) {
-        Option::Some(e) => {
-            let expected = OptionRound::Event::OptionsExercised(
-                OptionRound::OptionsExercised { account, num_options, amount }
-            );
-            assert_events_equal(e, expected);
+    // We pop here twice since the method fires a ERC20 burn event and a OptionsExercised event
+    match testing::pop_log_raw(contract) {
+        Option::Some(_) => {
+            match pop_log::<OptionRound::Event>(contract) {
+                Option::Some(e) => {
+                    let expected = OptionRound::Event::OptionsExercised(
+                        OptionRound::OptionsExercised { account, num_options, amount }
+                    );
+                    assert_events_equal(e, expected);
+                },
+                Option::None => { panic(array!['No events found']); },
+            }
         },
-        Option::None => { panic(array!['No events found']); },
+        Option::None => { panic!("ERC20 event not found") }
     }
 }
 
