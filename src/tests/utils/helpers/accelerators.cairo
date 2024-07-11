@@ -99,6 +99,7 @@ fn accelerate_to_running_custom(
     // Place bids
     let mut current_round = self.get_current_round();
     current_round.place_bids(max_amounts, prices, bidders);
+    println!("REACHED");
     // Jump to the auction end date and end the auction
     timeskip_and_end_auction(ref self)
 }
