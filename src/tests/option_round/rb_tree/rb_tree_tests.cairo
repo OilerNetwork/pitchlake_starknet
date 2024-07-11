@@ -1121,14 +1121,17 @@ fn test_deletion_black_node_no_successor_3() {
 
     let tree_after_deletion = array![
         array![(30, false, 0)],
-        array![(10, false, 0), (50, true, 1)],
+        array![(10, false, 0), (50, false, 1)],
         array![(7, false, 0), (15, false, 1), (40, false, 2), (70, false, 3)],
         array![(9, true, 1)]
     ];
 
     let tree_structure = rb_tree.get_tree_structure();
     
-    println!("{:?}", tree_structure);
+    compare_tree_structures(@tree_structure, @tree_after_deletion);
+
+    let is_tree_valid = rb_tree.is_tree_valid();
+    assert(is_tree_valid, 'Tree is not valid');
 }
 
 // Test Utilities

@@ -388,6 +388,10 @@ pub mod RBTreeComponent {
             self.tree.write(delete_id, self.get_null_node());
 
             if y_original_color == BLACK {
+                let x_node: Node = self.tree.read(x);
+                let x_parent_node: Node = self.tree.read(x_parent);
+                println!("{}", x_node.value.price);
+                println!("{}", x_parent_node.value.price);
                 self.delete_fixup(x, x_parent);
             }
 
@@ -400,6 +404,7 @@ pub mod RBTreeComponent {
             while x != self.root.read()
                 && (x == 0 || self.is_black(x)) {
                     let mut x_parent_node: Node = self.tree.read(x_parent);
+
                     if x == x_parent_node.left {
                         let mut w = x_parent_node.right;
 
@@ -428,7 +433,7 @@ pub mod RBTreeComponent {
                                 }
                                 self.set_color(w, RED);
                                 self.rotate_right(w);
-                                w = w_node.right;
+                                w = x_parent_node.right;
                             }
 
                             // Case 4: x's sibling w is black, and w's right child is red
