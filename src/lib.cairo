@@ -14,7 +14,6 @@ mod contracts {
         mod contract;
         mod interface;
         mod types;
-        mod events;
     }
 
     mod market_aggregator;

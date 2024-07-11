@@ -14,10 +14,6 @@ mod OptionRound {
         utils::{red_black_tree::{RBTreeComponent, RBTreeComponent::Node}, utils::{min, max}},
         vault::{interface::{IVaultDispatcher, IVaultDispatcherTrait}, types::VaultType},
         option_round::{
-            events::{
-                AuctionStarted, BidAccepted, BidRejected, BidUpdated, AuctionEnded,
-                OptionRoundSettled, OptionsExercised, UnusedBidsRefunded, OptionsTokenized
-            },
             interface::IOptionRound,
             types::{
                 Bid, OptionRoundState, OptionRoundConstructorParams, StartAuctionParams,
@@ -42,42 +38,41 @@ mod OptionRound {
     impl RBTreeInternalImpl = RBTreeComponent::InternalImpl<ContractState>;
 
 
+    // *************************************************************************
+    //                              STORAGE
+    // *************************************************************************
+    // Note: Write description of any storage variable here->
+    // @market_aggregator:The address of the contract to fetch fossil values from
+    // @state: The state of the option round
+    // @round_id: The round's id
+    // @cap_level: The cap level of the potential payout
+    // @reserve_price: The minimum bid price per option
+    // @strike_price: The strike price of the options
+    // @starting_liquidity: The amount of liquidity this round starts with (locked upon auction starting)
+    // @total_payout: The amount the option round pays out upon settlemnt
+    // @auction_start_date: The auction start date
+    // @auction_end_date: The auction end date
+    // @option_settlement_date: The option settlement date
+    // @constructor:params: Params to pass at option round creation, to be set by fossil
+    // @bidder_nonces: A mapping of address to u256, tells the current nonce for an address
+    // @bids_tree: Storage for the bids tree, see rb-tree-component
+    // @erc20: Storage for erc20 component of the round.
     #[storage]
     struct Storage {
         vault_address: ContractAddress,
-        // The address of the contract to fetch fossil values from
         market_aggregator: ContractAddress,
-        // The state of the option round
         state: OptionRoundState,
-        // The round's id
         round_id: u256,
-        // Total number of options available to sell in the auction
-
-        // The cap level of the potential payout
         cap_level: u256,
-        // The minimum bid price per option
         reserve_price: u256,
-        // The strike price of the options
         strike_price: u256,
-        // The amount of liquidity this round starts with (locked upon auction starting)
         starting_liquidity: u256,
-        // The amount the option round pays out upon settlemnt
         total_payout: u256,
-        // The total number of options sold in the auction
-        // The clearing price of the auction (the price each option sells for)
-        // The auction start date
         auction_start_date: u64,
-        // The auction end date
         auction_end_date: u64,
-        // The option settlement date
         option_settlement_date: u64,
-        ///////////
-        ///////////
         constructor_params: OptionRoundConstructorParams,
         bidder_nonces: LegacyMap<ContractAddress, u32>,
-        // bid_details: LegacyMap<felt252, Bid>,
-        bids_head: felt252,
-        bids_tail: felt252,
         #[substorage(v0)]
         bids_tree: RBTreeComponent::Storage,
         #[substorage(v0)]
@@ -108,6 +103,97 @@ mod OptionRound {
         #[flat]
         ERC20Event: ERC20Component::Event,
     }
+    // Emitted when the auction starts
+// @param total_options_available Max number of options that can be sold in the auction
+// @note Discuss if any other params should be emitted
+#[derive(Drop, starknet::Event, PartialEq)]
+struct AuctionStarted {
+    total_options_available: u256,
+//...
+}
+
+// Emitted when a bid is accepted
+// @param account The account that placed the bid
+// @param amount The amount of options the bidder want in total
+// @param price The price per option that was bid (max price the bidder is willing to spend per option)
+#[derive(Drop, starknet::Event, PartialEq)]
+struct BidAccepted {
+    #[key]
+    account: ContractAddress,
+    nonce: u32,
+    amount: u256,
+    price: u256
+}
+
+// Emitted when a bid is rejected
+// @param account The account that placed the bid
+// @param amount The amount of options the bidder is willing to buy in total
+// @param price The price per option that was bid (max price the bidder is willing to spend per option)
+#[derive(Drop, starknet::Event, PartialEq)]
+struct BidRejected {
+    #[key]
+    account: ContractAddress,
+    amount: u256,
+    price: u256
+}
+
+#[derive(Drop, starknet::Event, PartialEq)]
+struct BidUpdated {
+    #[key]
+    account: ContractAddress,
+    id: felt252,
+    old_amount: u256,
+    old_price: u256,
+    new_amount: u256,
+    new_price: u256
+}
+
+#[derive(Drop, starknet::Event, PartialEq)]
+struct OptionsTokenized {
+    #[key]
+    account: ContractAddress,
+    amount: u256,
+//...
+}
+
+// Emitted when the auction ends
+// @param clearing_price The resulting price per each option of the batch auction
+// @note Discuss if any other params should be emitted (options sold ?)
+#[derive(Drop, starknet::Event, PartialEq)]
+struct AuctionEnded {
+    clearing_price: u256
+}
+
+// Emitted when the option round settles
+// @param settlement_price The TWAP of basefee for the option round period, used to calculate the payout
+// @note Discuss if any other params should be emitted (total payout ?)
+#[derive(Drop, starknet::Event, PartialEq)]
+struct OptionRoundSettled {
+    settlement_price: u256
+}
+
+// Emitted when a bidder refunds their unused bids
+// @param account The account that's bids were refuned
+// @param amount The amount transferred
+#[derive(Drop, starknet::Event, PartialEq)]
+struct UnusedBidsRefunded {
+    #[key]
+    account: ContractAddress,
+    amount: u256
+}
+
+// Emitted when an option holder exercises their options
+// @param account The account: that exercised the options
+// @param num_options: The number of options exercised
+// @param amount: The amount transferred
+#[derive(Drop, starknet::Event, PartialEq)]
+struct OptionsExercised {
+    #[key]
+    account: ContractAddress,
+    num_options: u256,
+    amount: u256
+}
+
 
     #[constructor]
     fn constructor(
@@ -158,6 +244,9 @@ mod OptionRound {
             6
         }
     }
+
+
+    
 
     #[abi(embed_v0)]
     impl OptionRoundImpl of IOptionRound<ContractState> {

@@ -9,7 +9,10 @@ mod Vault {
         utils::serde::SerializedAppend
     };
     use pitch_lake_starknet::contracts::{
-        vault::{types::{VaultType, VaultError}, interface::IVault},
+        vault::{
+            types::{VaultType, VaultError},
+            interface::IVault
+        },
         option_round::{
             contract::OptionRound,
             types::{
@@ -58,27 +61,35 @@ mod Vault {
     // possibly more members to this event
     }
 
+
+    // *************************************************************************
+    //                              STORAGE
+    // *************************************************************************
+    // Note: Write description of any storage variable here->
+    // @eth_address: Address for eth contract
+    // @option_round_class_hash: Hash for the latest implementation of OptionRound class
+    // @position: The amount liquidity providers deposit into each round: (liquidity_provider, round_id) -> deposit_amount
+    // @withdraw_checkpoints: Withdraw checkpoints: (liquidity_provider) -> round_id
+    // @total_unlocked_balance: Total unlocked liquidity
+    // @total_locked_balance: Total locked liquidity
+    // @premiums_collected:The amount of premiums a liquidity provider collects from each round: (liquidity_provider, round_id) -> collected_amount
+    // @unsold_liquidity: The amount of liquidity not sold during each round's auction (if any): (round_id) -> unsold_liquidity
+    // @current_option_round_id: The id of the current option round
+    // @round_addresses: Mapping of round id -> round address
+    // @round_transition_period: Time between settling of current round and starting of next round
+    // @auction_run_time: running time for the auction
+    // 
     #[storage]
     struct Storage {
-        // The address for the ETH contract
         eth_address: ContractAddress,
         option_round_class_hash: ClassHash,
-        // The amount liquidity providers deposit into each round: (liquidity_provider, round_id) -> deposit_amount
         positions: LegacyMap<(ContractAddress, u256), u256>,
-        // Withdraw checkpoints: (liquidity_provider) -> round_id
         withdraw_checkpoints: LegacyMap<ContractAddress, u256>,
-        // Total unlocked liquidity
         total_unlocked_balance: u256,
-        // Total locked liquidity
         total_locked_balance: u256,
-        // The amount of premiums a liquidity provider collects from each round: (liquidity_provider, round_id) -> collected_amount
         premiums_collected: LegacyMap<(ContractAddress, u256), u256>,
-        // The amount of liquidity not sold during each round's auction (if any): (round_id) -> unsold_liquidity
         unsold_liquidity: LegacyMap<u256, u256>,
-        // The id of the current option round
         current_option_round_id: u256,
-        ///////
-        ///////
         vault_manager: ContractAddress,
         vault_type: VaultType,
         market_aggregator: ContractAddress,
