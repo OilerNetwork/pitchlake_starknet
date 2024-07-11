@@ -11,8 +11,6 @@ trait IRBTree<TContractState> {
     fn is_tree_valid(ref self: TContractState) -> bool;
     fn _get_total_options_available(self: @TContractState) -> u256;
     fn get_total_options_sold(self: @TContractState) -> u256;
-
-    // Fns for testing
     fn get_bid(ref self: TContractState, bid_id: felt252) -> Bid;
     fn add_node(ref self: TContractState, bid: Bid, color: bool, parent: felt252) -> felt252 ;
 }
