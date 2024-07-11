@@ -369,6 +369,15 @@ struct OptionsExercised {
             bids
         }
 
+
+
+        // #Params
+        //  @option_buyer: address of wallet to find refundable bids for
+        // #Description
+        // This function iterates through the list of bids and returns total refundable amount
+        // From the partial bids, takes the amount that was not sold (total-sold)*price and adds to refundable_balance
+        // From tokenizable bids, takes the difference in clearing_price and bid_price (clearing_price-bid_price)*amount and adds to refundable_balance
+        // From refundable bids, adds the entire amount*price to refundable_balance
         // Return the total refundable balance for the option buyer
         fn get_refundable_bids_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
             // Get the refundable, tokenizable, and partially sold bid ids
@@ -419,6 +428,13 @@ struct OptionsExercised {
             refundable_balance
         }
 
+        // #Params
+        //  @option_buyer: address of wallet to find tokenizable bids for
+        // #Description
+        // This function iterates through the list of bids and returns total tokenizable options
+        // From the partial bids, takes the amount that was sold and adds to options_balance,
+        // From tokenizable bids, if not tokenized yet, adds to options_balance, updates flag
+        // Return the total(options_balance) for the option buyer
         fn get_tokenizable_options_for(
             self: @ContractState, option_buyer: ContractAddress
         ) -> u256 {
