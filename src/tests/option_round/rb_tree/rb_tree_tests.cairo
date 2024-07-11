@@ -6,10 +6,11 @@ use starknet::{deploy_syscall, SyscallResultTrait, contract_address_const, Contr
 
 #[starknet::interface]
 pub trait IRBTree<TContractState> {
-    fn insert(ref self: TContractState, value: Bid);
+    fn insert(ref self: TContractState, value: Bid) -> felt252;
     fn get_nonce(ref self: TContractState) -> u64;
     fn get_tree_structure(ref self: TContractState) -> Array<Array<(u256, bool, u128)>>;
     fn is_tree_valid(ref self: TContractState) -> bool;
+    fn delete(ref self: TContractState, bid_id: felt252);
 }
 
 fn setup_rb_tree() -> IRBTreeDispatcher {
@@ -23,6 +24,8 @@ fn setup_rb_tree() -> IRBTreeDispatcher {
 fn mock_address(value: felt252) -> ContractAddress {
     contract_address_const::<'liquidity_provider_1'>()
 }
+
+// Tests for insertion
 
 #[test]
 fn test_insertion() {
@@ -125,7 +128,63 @@ fn test_insertion() {
     assert(is_tree_valid, 'Tree is not valid');
 }
 
-fn insert(rb_tree: IRBTreeDispatcher, price: u256, nonce: u64) {
+// Tests for deletion
+
+
+#[test]
+fn test_deletion() {
+    let rb_tree = setup_rb_tree();
+
+    let node_90 = insert(rb_tree, 90, 1);
+    let node_70 = insert(rb_tree, 70, 2);
+    insert(rb_tree, 43, 3); 
+    delete(rb_tree, node_70);
+    insert(rb_tree, 24, 4);
+    is_tree_valid(rb_tree);
+
+    insert(rb_tree, 14, 5);
+    is_tree_valid(rb_tree);
+
+    insert(rb_tree, 93, 6);
+    is_tree_valid(rb_tree);
+
+    let node_47 = insert(rb_tree, 47, 7);
+    is_tree_valid(rb_tree);
+
+    delete(rb_tree, node_47);
+    is_tree_valid(rb_tree);
+
+    delete(rb_tree, node_90);
+    is_tree_valid(rb_tree);
+
+    insert(rb_tree, 57, 8);
+    is_tree_valid(rb_tree);
+
+    insert(rb_tree, 1, 9);
+    is_tree_valid(rb_tree);
+
+    insert(rb_tree, 60, 10);
+    is_tree_valid(rb_tree);
+        
+    insert(rb_tree, 47, 11);
+    is_tree_valid(rb_tree);
+
+    delete(rb_tree, node_47);
+    is_tree_valid(rb_tree);
+
+    delete(rb_tree, node_90);
+    is_tree_valid(rb_tree);
+
+    delete(rb_tree, node_70);
+    is_tree_valid(rb_tree);
+
+    insert(rb_tree, 49, 12);
+    is_tree_valid(rb_tree);
+}
+
+// Test Utilities
+
+fn insert(rb_tree: IRBTreeDispatcher, price: u256, nonce: u64) -> felt252 {
     let bidder = mock_address(123456);
     let id = poseidon::poseidon_hash_span(
         array![bidder.into(), nonce.try_into().unwrap()].span()
@@ -138,7 +197,16 @@ fn insert(rb_tree: IRBTreeDispatcher, price: u256, nonce: u64) {
         price: price,
         is_tokenized: false,
         is_refunded: false,
-    });
+    })
+}
+
+fn is_tree_valid(rb_tree: IRBTreeDispatcher) {
+    let is_tree_valid = rb_tree.is_tree_valid();
+    println!("Is tree valid: {:?}", is_tree_valid);
+}
+
+fn delete(rb_tree: IRBTreeDispatcher, bid_id: felt252) {
+    rb_tree.delete(bid_id);
 }
 
 fn compare_tree_structures(

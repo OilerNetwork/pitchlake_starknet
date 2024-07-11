@@ -3,7 +3,7 @@ use starknet::ContractAddress;
 
 #[starknet::interface]
 trait IRBTree<TContractState> {
-    fn insert(ref self: TContractState, value: Bid);
+    fn insert(ref self: TContractState, value: Bid) -> felt252;
     fn find(ref self: TContractState, value: Bid) -> felt252;
     fn delete(ref self: TContractState, bid_id: felt252);
     fn find_clearing_price(ref self: TContractState) -> (u256, u256);
@@ -58,19 +58,20 @@ pub mod RBTreeComponent {
     impl RBTreeImpl<
         TContractState, +HasComponent<TContractState>
     > of super::IRBTree<ComponentState<TContractState>> {
-        fn insert(ref self: ComponentState<TContractState>, value: Bid) {
+        fn insert(ref self: ComponentState<TContractState>, value: Bid) -> felt252 {
             let new_node_id = value.id;
 
             if self.root.read() == 0 {
                 let root_node = self.create_root_node(@value);
                 self.tree.write(new_node_id, root_node);
                 self.root.write(new_node_id);
-                return;
+                return new_node_id;
             }
 
             self.insert_node_recursively(self.root.read(), new_node_id, value);
             self.balance_after_insertion(new_node_id);
             self.nonce.write(self.nonce.read() + 1);
+            return new_node_id;
         }
 
         fn find(ref self: ComponentState<TContractState>, value: Bid) -> felt252 {
@@ -172,6 +173,7 @@ pub mod RBTreeComponent {
             }
 
             let node: Node = self.tree.read(current);
+            
             if value == node.value {
                 return current;
             } else if value < node.value {
@@ -313,7 +315,7 @@ pub mod RBTreeComponent {
     > of DeleteBalanceTrait<TContractState> {
         fn delete_node(ref self: ComponentState<TContractState>, delete_id: felt252) {
             let mut y = delete_id;
-            let mut node_delete: Node = self.tree.read(delete_id);
+            let mut node_delete: Node = self.tree.read(y);
             let mut y_original_color = node_delete.color;
             let mut x: felt252 = 0;
             let mut x_parent: felt252 = 0;
@@ -346,13 +348,14 @@ pub mod RBTreeComponent {
 
                 self.transplant(delete_id, y);
                 let mut y_node: Node = self.tree.read(y);
-                node_delete = self.tree.read(delete_id);
                 y_node.left = node_delete.left;
                 y_node.color = node_delete.color;
                 self.tree.write(y, y_node);
-                node_delete = self.tree.read(delete_id);
+
                 self.update_parent(node_delete.left, y);
             }
+
+            self.tree.write(delete_id, self.get_null_node());
 
             if y_original_color == BLACK {
                 self.delete_fixup(x, x_parent);
@@ -366,6 +369,7 @@ pub mod RBTreeComponent {
         ) {
             while x != self.root.read()
                 && (x == 0 || self.is_black(x)) {
+                    println!("Fixing");
                     let mut x_parent_node: Node = self.tree.read(x_parent);
                     if x == x_parent_node.left {
                         let mut w = x_parent_node.right;
@@ -388,6 +392,7 @@ pub mod RBTreeComponent {
                             x_parent = self.get_parent(x);
                         } else {
                             // Case 3: x's sibling w is black, w's left child is red, and w's right child is black
+                            let mut w_node: Node = self.tree.read(w);
                             if w_node.right == 0 || self.is_black(w_node.right) {
                                 if w_node.left != 0 {
                                     self.set_color(w_node.left, BLACK);
@@ -431,6 +436,7 @@ pub mod RBTreeComponent {
                             x_parent = self.get_parent(x);
                         } else {
                             // Case 3 (mirror): x's sibling w is black, w's right child is red, and w's left child is black
+                            let mut w_node: Node = self.tree.read(w);
                             if w_node.left == 0 || self.is_black(w_node.left) {
                                 if w_node.right != 0 {
                                     self.set_color(w_node.right, BLACK);
@@ -480,6 +486,24 @@ pub mod RBTreeComponent {
                 node = self.tree.read(current);
             };
             current
+        }
+
+        fn get_null_node(ref self: ComponentState<TContractState>) -> Node {
+            Node {
+                value: Bid { 
+                    id: 0,
+                    nonce: 0,
+                    owner: 0.try_into().unwrap(),
+                    amount: 0,
+                    price: 0,
+                    is_tokenized: false,
+                    is_refunded: false,
+                },
+                left: 0,
+                right: 0,
+                parent: 0,
+                color: BLACK,
+            }
         }
     }
 
