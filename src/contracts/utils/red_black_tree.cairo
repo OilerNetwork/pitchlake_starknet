@@ -315,7 +315,7 @@ pub mod RBTreeComponent {
     > of DeleteBalanceTrait<TContractState> {
         fn delete_node(ref self: ComponentState<TContractState>, delete_id: felt252) {
             let mut y = delete_id;
-            let mut node_delete: Node = self.tree.read(y);
+            let mut node_delete: Node = self.tree.read(delete_id);
             let mut y_original_color = node_delete.color;
             let mut x: felt252 = 0;
             let mut x_parent: felt252 = 0;
