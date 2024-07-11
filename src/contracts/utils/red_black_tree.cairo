@@ -5,13 +5,16 @@ use starknet::ContractAddress;
 trait IRBTree<TContractState> {
     fn insert(ref self: TContractState, value: Bid) -> felt252;
     fn find(ref self: TContractState, value: Bid) -> felt252;
-    fn get_bid(ref self: TContractState, bid_id: felt252) -> Bid;
     fn delete(ref self: TContractState, bid_id: felt252);
     fn find_clearing_price(ref self: TContractState) -> (u256, u256);
     fn get_tree_structure(ref self: TContractState) -> Array<Array<(u256, bool, u128)>>;
     fn is_tree_valid(ref self: TContractState) -> bool;
     fn _get_total_options_available(self: @TContractState) -> u256;
     fn get_total_options_sold(self: @TContractState) -> u256;
+
+    // Fns for testing
+    fn get_bid(ref self: TContractState, bid_id: felt252) -> Bid;
+    fn create_node(ref self: TContractState, bid: Bid, color: bool, parent: felt252) -> felt252 ;
 }
 
 const BLACK: bool = false;
@@ -128,6 +131,25 @@ pub mod RBTreeComponent {
         fn get_bid(ref self: ComponentState<TContractState>, bid_id: felt252) -> Bid {
             let node: Node = self.tree.read(bid_id);
             node.value
+        }
+
+        fn create_node(ref self: ComponentState<TContractState>, bid: Bid, color: bool, parent: felt252) -> felt252 {
+            let new_node = Node {
+                value: bid,
+                left: 0,
+                right: 0,
+                parent: parent,
+                color: color,
+            };
+            let parent_node = self.tree.read(parent);
+            if bid <= parent_node.value {
+                self.update_left(parent, bid.id);
+            } else {
+                self.update_right(parent, bid.id);
+            }
+            self.update_parent(bid.id, parent);
+            self.tree.write(bid.id, new_node);
+            return bid.id;
         }
     }
 
