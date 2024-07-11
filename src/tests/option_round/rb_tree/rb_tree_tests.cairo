@@ -137,49 +137,33 @@ fn test_deletion() {
 
     let node_90 = insert(rb_tree, 90, 1);
     let node_70 = insert(rb_tree, 70, 2);
-    insert(rb_tree, 43, 3); 
+    let node_43 = insert(rb_tree, 43, 3); 
     delete(rb_tree, node_70);
     insert(rb_tree, 24, 4);
-    is_tree_valid(rb_tree);
-
     insert(rb_tree, 14, 5);
-    is_tree_valid(rb_tree);
-
     insert(rb_tree, 93, 6);
-    is_tree_valid(rb_tree);
-
     let node_47 = insert(rb_tree, 47, 7);
-    is_tree_valid(rb_tree);
-
     delete(rb_tree, node_47);
-    is_tree_valid(rb_tree);
-
     delete(rb_tree, node_90);
-    is_tree_valid(rb_tree);
-
     insert(rb_tree, 57, 8);
-    is_tree_valid(rb_tree);
-
-    insert(rb_tree, 1, 9);
-    is_tree_valid(rb_tree);
-
-    insert(rb_tree, 60, 10);
-    is_tree_valid(rb_tree);
-        
-    insert(rb_tree, 47, 11);
-    is_tree_valid(rb_tree);
-
+    let node_1 = insert(rb_tree, 1, 9);
+    insert(rb_tree, 60, 10);  
+    let node_47 =  insert(rb_tree, 47, 11);
     delete(rb_tree, node_47);
-    is_tree_valid(rb_tree);
-
+    delete(rb_tree, node_1);
     delete(rb_tree, node_90);
-    is_tree_valid(rb_tree);
-
-    delete(rb_tree, node_70);
-    is_tree_valid(rb_tree);
-
+    delete(rb_tree, node_43);
     insert(rb_tree, 49, 12);
-    is_tree_valid(rb_tree);
+
+    let final_tree = rb_tree.get_tree_structure();
+    let expected_tree_structure = array![
+        array![(57, false, 0)],
+        array![(24, false, 0), (60, false, 1)],
+        array![(14, true, 0), (49, true, 1), (93, true, 3)]
+    ];
+    compare_tree_structures(@final_tree, @expected_tree_structure);
+    let is_tree_valid = rb_tree.is_tree_valid();
+    assert(is_tree_valid, 'Tree is not valid');
 }
 
 // Test Utilities
