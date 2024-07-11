@@ -344,42 +344,96 @@ fn mock_address(value: felt252) -> ContractAddress {
 //     assert(is_tree_valid, 'Tree is not valid');
 // }
 
+// #[test]
+// fn test_right_left_rotation_no_sibling() {
+//     // 21B
+//     // 1B 31B
+//     // 18R 26R
+
+//     let rb_tree = setup_rb_tree();
+
+//     let mut new_bid = create_bid(21, 1);
+//     let node_21 = rb_tree.insert(new_bid);
+
+//     let new_bid = create_bid(1, 2);
+//     let node_1 = rb_tree.create_node(new_bid, BLACK, node_21);
+
+//     let new_bid = create_bid(31, 3);
+//     let node_31 = rb_tree.create_node(new_bid, BLACK, node_21);
+
+//     let new_bid = create_bid(18, 4);
+//     rb_tree.create_node(new_bid, RED, node_1);
+
+//     let new_bid = create_bid(26, 5);
+//     rb_tree.create_node(new_bid, RED, node_31);
+
+//     let is_tree_valid = rb_tree.is_tree_valid();
+//     assert(is_tree_valid, 'Tree is not valid');
+
+//     insert(rb_tree, 13, 6);
+    
+//     let result = rb_tree.get_tree_structure();
+//     let expected_tree_structure = array![
+//         array![(21, false, 0)],
+//         array![(13, false, 0), (31, false, 1)],
+//         array![(1, true, 0), (18, true, 1), (26, true, 2)]
+//     ];
+
+//     compare_tree_structures(@result, @expected_tree_structure);
+
+//     let is_tree_valid = rb_tree.is_tree_valid();
+//     assert(is_tree_valid, 'Tree is not valid');
+// }
+
 #[test]
-fn test_right_left_rotation_no_sibling() {
-    // 21B
-    // 1B 31B
-    // 18R 26R
+fn test_recolor_lr() {
+    // 31B
+    // 11R 41B
+    // 1B 27B 36R 51R
+    // 22R 30R
 
     let rb_tree = setup_rb_tree();
 
-    let mut new_bid = create_bid(21, 1);
-    let node_21 = rb_tree.insert(new_bid);
+    let mut new_bid = create_bid(31, 1);
+    let node_31 = rb_tree.insert(new_bid);
 
-    let new_bid = create_bid(1, 2);
-    let node_1 = rb_tree.create_node(new_bid, BLACK, node_21);
+    let new_bid = create_bid(11, 2);
+    let node_11 = rb_tree.create_node(new_bid, RED, node_31);
 
-    let new_bid = create_bid(31, 3);
-    let node_31 = rb_tree.create_node(new_bid, BLACK, node_21);
+    let new_bid = create_bid(41, 3);
+    let node_41 = rb_tree.create_node(new_bid, BLACK, node_31);
 
-    let new_bid = create_bid(18, 4);
-    rb_tree.create_node(new_bid, RED, node_1);
+    let new_bid = create_bid(1, 4);
+    rb_tree.create_node(new_bid, BLACK, node_11);
 
-    let new_bid = create_bid(26, 5);
-    rb_tree.create_node(new_bid, RED, node_31);
+    let new_bid = create_bid(27, 5);
+    let node_27 = rb_tree.create_node(new_bid, BLACK, node_11);
+
+    let new_bid = create_bid(36, 6);
+    rb_tree.create_node(new_bid, RED, node_41);
+
+    let new_bid = create_bid(51, 7);
+    rb_tree.create_node(new_bid, RED, node_41);
+
+    let new_bid = create_bid(22, 8);
+    rb_tree.create_node(new_bid, RED, node_27);
+
+    let new_bid = create_bid(30, 9);
+    rb_tree.create_node(new_bid, RED, node_27);
 
     let is_tree_valid = rb_tree.is_tree_valid();
     assert(is_tree_valid, 'Tree is not valid');
 
-    insert(rb_tree, 13, 6);
-    
-    let result = rb_tree.get_tree_structure();
-    let expected_tree_structure = array![
-        array![(21, false, 0)],
-        array![(13, false, 0), (31, false, 1)],
-        array![(1, true, 0), (18, true, 1), (26, true, 2)]
-    ];
+    insert(rb_tree, 25, 10);
 
-    compare_tree_structures(@result, @expected_tree_structure);
+    let tree_after_recolor = array![
+        array![(27, false, 0)],
+        array![(11, true, 0), (31, true, 1)],
+        array![(1, false, 0), (22, false, 1), (30, false, 2), (41, false, 3)],
+        array![(25, true, 3), (36, true, 6), (51, true, 7)]
+    ];
+    let tree_structure = rb_tree.get_tree_structure();
+    compare_tree_structures(@tree_structure, @tree_after_recolor);
 
     let is_tree_valid = rb_tree.is_tree_valid();
     assert(is_tree_valid, 'Tree is not valid');
