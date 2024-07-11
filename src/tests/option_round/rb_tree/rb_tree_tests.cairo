@@ -636,6 +636,31 @@ fn mock_address(value: felt252) -> ContractAddress {
 
 // Tests for deletion
 
+#[test]
+fn test_deletion_root() {
+    let rb_tree = setup_rb_tree();
+
+    let node_5 = insert(rb_tree, 5, 1);
+    insert(rb_tree, 3, 2);
+    insert(rb_tree, 8, 3);
+
+    let is_tree_valid = rb_tree.is_tree_valid();
+    assert(is_tree_valid, 'Tree is not valid');
+
+    delete(rb_tree, node_5);
+
+    let tree_after_deletion = array![
+        array![(8, false, 0)],
+        array![(3, true, 0)]
+    ];
+
+    let tree_structure = rb_tree.get_tree_structure();
+    compare_tree_structures(@tree_structure, @tree_after_deletion);
+
+    let is_tree_valid = rb_tree.is_tree_valid();
+    assert(is_tree_valid, 'Tree is not valid');
+}
+
 // #[test]
 // fn test_deletion() {
 //     let rb_tree = setup_rb_tree();
