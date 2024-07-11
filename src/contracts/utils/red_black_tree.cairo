@@ -348,9 +348,11 @@ pub mod RBTreeComponent {
 
                 self.transplant(delete_id, y);
                 let mut y_node: Node = self.tree.read(y);
+                node_delete = self.tree.read(delete_id);
                 y_node.left = node_delete.left;
                 y_node.color = node_delete.color;
                 self.tree.write(y, y_node);
+                node_delete = self.tree.read(delete_id);
 
                 self.update_parent(node_delete.left, y);
             }
