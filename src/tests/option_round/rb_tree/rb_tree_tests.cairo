@@ -1281,7 +1281,7 @@ fn mock_address(value: felt252) -> ContractAddress {
 //     };
 // } 
 
-const max_no:u8 = 200;
+const max_no:u8 = 50;
 
 fn random(seed: felt252) -> u8 {
     // Use pedersen hash to generate a pseudo-random felt252
