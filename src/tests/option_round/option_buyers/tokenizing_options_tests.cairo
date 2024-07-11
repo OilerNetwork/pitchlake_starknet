@@ -7,7 +7,7 @@ use pitch_lake_starknet::tests::{
             },
             setup::{setup_facade, deploy_custom_option_round},
             general_helpers::{get_erc20_balance, assert_two_arrays_equal_length},
-            event_helpers::{assert_event_options_tokenized,clear_event_logs}
+            event_helpers::{assert_event_options_tokenized, clear_event_logs}
         },
         lib::{test_accounts::{option_bidders_get, option_bidder_buyer_1},},
         facades::{
@@ -50,7 +50,9 @@ fn test_tokenizing_options_mints_option_tokens() {
 
                 // Tokenize options
                 let options_minted = current_round.tokenize_options(*bidder);
-                assert_event_options_tokenized(current_round.contract_address(),*bidder,options_minted);
+                assert_event_options_tokenized(
+                    current_round.contract_address(), *bidder, options_minted
+                );
                 // User's option erc20 balance after tokenizing
                 let option_erc20_balance_after = get_erc20_balance(
                     current_round.contract_address(), *bidder
@@ -89,8 +91,10 @@ fn test_tokenizing_options_events() {
                 // User's option erc20 balance before tokenizing
                 // Tokenize options
                 let options_minted = current_round.tokenize_options(*bidder);
-                assert_event_options_tokenized(current_round.contract_address(),*bidder,options_minted);
-                // User's option erc20 balance after tokenizing
+                assert_event_options_tokenized(
+                    current_round.contract_address(), *bidder, options_minted
+                );
+            // User's option erc20 balance after tokenizing
             },
             Option::None => { break (); },
         }

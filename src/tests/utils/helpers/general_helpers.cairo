@@ -110,24 +110,24 @@ fn span_to_array<T, +Drop<T>, +Copy<T>>(mut span: Span<T>) -> Array<T> {
     arr
 }
 
-fn pow(mut value:u256, mut power:u8)->u256{
-    let mut res:u256 = 1;
-    while power>0{
-        res*=value;
-        power-=1;
+fn pow(mut value: u256, mut power: u8) -> u256 {
+    let mut res: u256 = 1;
+    while power > 0 {
+        res *= value;
+        power -= 1;
     };
     res
 }
-fn to_wei(mut values:Span<u256>,mut decimals:u8)->Span<u256>{
-    let mut arr_res=array![];
+fn to_wei(mut values: Span<u256>, mut decimals: u8) -> Span<u256> {
+    let mut arr_res = array![];
 
     loop {
-        match values.pop_front(){
-            Option::Some(value)=>{
-                let updated_value = *value*pow(10,decimals);
+        match values.pop_front() {
+            Option::Some(value) => {
+                let updated_value = *value * pow(10, decimals);
                 arr_res.append(updated_value);
             },
-            Option::None=>{break;}
+            Option::None => { break; }
         }
     };
     arr_res.span()

@@ -564,7 +564,7 @@ fn test_option_distribution_real_numbers_2() {
 fn test_option_distribution_real_numbers_3() {
     let (mut vault, _) = setup_facade();
     let options_available = 500;
-   
+
     let bid_amounts = array![400, 50, 30, 50, 75, 30].span();
     let bid_prices = array![50, 40, 30, 20, 2, 2].span();
 
@@ -574,7 +574,7 @@ fn test_option_distribution_real_numbers_3() {
 
     let expected_options_sold = 500;
     let mut expected_option_distribution = array![400, 50, 30, 20, 0, 0].span();
-    let reserve_price = 2*pow(10,current_round.decimals());
+    let reserve_price = 2 * pow(10, current_round.decimals());
 
     auction_real_numbers_test_helper(
         vault.contract_address(),

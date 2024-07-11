@@ -78,15 +78,13 @@ fn test_unsold_liquidity_1() {
     let bid_amounts = array![options_available / 4, options_available / 4];
     let bid_prices = create_array_linear((current_round.get_reserve_price()), bid_amounts.len());
     println!("2");
-    accelerate_to_running_custom(
-        ref vault, bidders.span(), bid_amounts.span(), bid_prices.span()
-    );
+    accelerate_to_running_custom(ref vault, bidders.span(), bid_amounts.span(), bid_prices.span());
     println!("3");
 
     // Check 1/3 of the total locked liquidity is unsold
     let expected_unsold_liq = total_locked_before / 2;
     let unsold_liq = vault.get_unsold_liquidity(current_round.get_round_id());
-    println!("unsold_liq:{}\nexpected_unsold_liq:{}",unsold_liq,expected_unsold_liq);
+    println!("unsold_liq:{}\nexpected_unsold_liq:{}", unsold_liq, expected_unsold_liq);
     assert(unsold_liq == expected_unsold_liq, 'unsold liq wrong');
 }
 
@@ -150,6 +148,9 @@ fn test_unsold_liquidity_is_unlocked_for_liquidity_providers() {
     // Check each LP's unlocked balance increments as expected
     let unsold_liq = vault.get_unsold_liquidity(current_round.get_round_id());
     let mut expected_unsold_liq_shares = get_portion_of_amount(deposit_amounts, unsold_liq).span();
+    let total_premium = current_round.total_premiums();
+    let mut expected_premiums_shares = get_portion_of_amount(deposit_amounts, total_premium).span();
+
     let mut locked_and_unlocked_balances_after: Span<(u256, u256)> = vault
         .get_lp_locked_and_unlocked_balances(liquidity_providers)
         .span();
@@ -166,13 +167,16 @@ fn test_unsold_liquidity_is_unlocked_for_liquidity_providers() {
                     .pop_front()
                     .unwrap();
                 let share_of_unsold_liq = expected_unsold_liq_shares.pop_front().unwrap();
+                let share_of_premiums = expected_premiums_shares.pop_front().unwrap();
 
                 assert(
                     *locked_balance_after == *locked_balance_before - *share_of_unsold_liq,
                     'lp locked wrong'
                 );
                 assert(
-                    *unlocked_balance_after == *unlocked_balance_before + *share_of_unsold_liq,
+                    *unlocked_balance_after == *unlocked_balance_before
+                        + *share_of_unsold_liq
+                        + *share_of_premiums,
                     'lp unlocked wrong'
                 );
             },
