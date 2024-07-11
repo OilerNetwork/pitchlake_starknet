@@ -102,9 +102,27 @@ fn test_insertion() {
 
     insert(rb_tree, 7, 8);
     let tree_structure = rb_tree.get_tree_structure();
+    let tree_after_left_right_rotation_recolor = array![
+        array![(2, false, 0)],
+        array![(1, false, 0), (5, true, 1)],
+        array![(4, false, 2), (7, false, 3)],
+        array![(3, true, 4), (6, true, 6), (9, true, 7)],
+    ];
+    compare_tree_structures(@tree_structure, @tree_after_left_right_rotation_recolor);
     let is_tree_valid = rb_tree.is_tree_valid();
-    println!("{:?}", @tree_structure);
-    println!("{:?}", is_tree_valid);
+    assert(is_tree_valid, 'Tree is not valid');
+
+    insert(rb_tree, 15, 9);
+    let tree_structure = rb_tree.get_tree_structure();
+    let tree_after_recolor = array![
+        array![(5, false, 0)],
+        array![(2, true, 0), (7, true, 1)],
+        array![(1, false, 0), (4, false, 1), (6, false, 2), (9, false, 3)],
+        array![(3, true, 2), (15, true, 7)],
+    ];
+    compare_tree_structures(@tree_structure, @tree_after_recolor);
+    let is_tree_valid = rb_tree.is_tree_valid();
+    assert(is_tree_valid, 'Tree is not valid');
 }
 
 fn insert(rb_tree: IRBTreeDispatcher, price: u256, nonce: u64) {
