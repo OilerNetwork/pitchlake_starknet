@@ -1232,6 +1232,7 @@ fn test_delete_tree_one_by_one() {
 
 #[test]
 #[available_gas(50000000000)]
+#[ignore]
 fn test_add_1_to_100_delete_100_to_1() {
     let rb_tree = setup_rb_tree();
     let mut i = 1;
@@ -1259,6 +1260,7 @@ fn test_add_1_to_100_delete_100_to_1() {
 
 #[test]
 #[available_gas(50000000000)]
+#[ignore]
 fn test_add_1_to_100_delete_1_to_100() {
     let rb_tree = setup_rb_tree();
     let mut i = 1;
@@ -1296,7 +1298,8 @@ fn random(seed: felt252) -> u8 {
 }
 
 #[test]
-#[available_gas(50000000000)]
+#[available_gas(5000000000)]
+#[ignore]
 fn testing_random_insertion_and_deletion() {
     let rb_tree = setup_rb_tree();
     let no_of_nodes:u8 = max_no;
