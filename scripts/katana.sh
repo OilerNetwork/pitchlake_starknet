@@ -10,8 +10,12 @@ while ! nc -z localhost $PORT; do
   sleep 0.1 # wait for 1/10 of the second before check again
 done
 
-# Run your Python script
-echo "Running deploy_vault.js with port $PORT"
-ls
-node ./scripts/test_script.js $PORT
+# Run your Node script
+echo "Running scripts on port $PORT"
+echo "Declaring all the contracts"
+node ./declareContracts.js dev $PORT
+echo "Declaration of all the contracts done"
+echo "Deploying all the contracts"
+node ./deployContracts.js dev $PORT
+echo "Deployment of all the contracts done "
 # STARKNET_NETWORK=katana poetry run python3 scripts/deploy_vault.py --port $PORT
