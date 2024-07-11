@@ -124,7 +124,7 @@ fn accelerate_to_running_custom_option_round(
 
     let mut option_round = deploy_custom_option_round(
         vault_address,
-        2_u256,
+        1_u256,
         auction_start_date,
         auction_end_date,
         option_settlement_date,

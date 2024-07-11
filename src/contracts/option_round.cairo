@@ -988,7 +988,6 @@ mod OptionRound {
 
             // Calculate and set total payout
             let SettleOptionRoundParams { settlement_price } = params;
-            println!("SETTLEMENTCONTRACT:{}", settlement_price);
             let total_payout = self.calculate_payout(settlement_price);
             self.total_payout.write(total_payout);
 

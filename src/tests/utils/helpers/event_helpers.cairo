@@ -11,32 +11,6 @@ use debug::PrintTrait;
 // Indexed event members are currently not supported, so they are ignored.
 fn pop_log<T, +Drop<T>, impl TEvent: starknet::Event<T>>(address: ContractAddress) -> Option<T> {
     let (mut keys, mut data) = testing::pop_log_raw(address)?;
-
-    let mut keys_2 = keys;
-    let mut data_2 = data;
-
-    loop{
-        match keys_2.pop_front(){
-            Option::Some(value)=>{
-                println!("KEY:{}",value);
-            },
-            Option::None=>{
-                break;
-            }
-        }
-    };
-
-    loop{
-        match data_2.pop_front(){
-            Option::Some(value)=>{
-                println!("VALUE:{}",value);
-            },
-            Option::None=>{
-                break;
-            }
-        }
-    };
-
     let ret = starknet::Event::deserialize(ref keys, ref data);
     assert(data.is_empty(), 'Event has extra data');
     ret
