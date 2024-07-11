@@ -1,8 +1,10 @@
+use core::traits::TryInto;
 use pitch_lake_starknet::{
     tests::option_round::rb_tree::rb_tree_mock_contract::RBTreeMockContract,
     contracts::option_round::OptionRound::Bid
 };
 use starknet::{deploy_syscall, SyscallResultTrait, contract_address_const, ContractAddress };
+use core::pedersen::pedersen;
 
 const BLACK: bool = false;
 const RED: bool = true;
@@ -1226,6 +1228,105 @@ fn mock_address(value: felt252) -> ContractAddress {
 //     assert(is_tree_valid, 'Tree is not valid');
 // }
 
+// Stress tests
+
+// #[test]
+// #[available_gas(50000000000)]
+// fn test_add_1_to_100_delete_100_to_1() {
+//     let rb_tree = setup_rb_tree();
+//     let mut i = 1;
+//     while i < 100 {
+//         insert(rb_tree, i, i.try_into().unwrap());
+//         println!("Inserted: {:?}", i);
+//         let is_tree_valid = rb_tree.is_tree_valid();
+//         assert(is_tree_valid, 'Tree is not valid');
+//         i += 1;
+//     };
+
+//     i = 99;
+//     while i >= 1 {
+//         let id = poseidon::poseidon_hash_span(array![mock_address(123456).into(), i.try_into().unwrap()].span());
+//         delete(rb_tree, id);
+//         println!("Deleted: {:?}", i);
+//         let is_tree_valid = rb_tree.is_tree_valid();
+//         assert(is_tree_valid, 'Tree is not valid');
+//         i -= 1;
+//     };
+
+//     let is_tree_valid = rb_tree.is_tree_valid();
+//     assert(is_tree_valid, 'Tree is not valid');
+// }
+
+// #[test]
+// #[available_gas(50000000000)]
+// fn test_add_1_to_100_delete_1_to_100() {
+//     let rb_tree = setup_rb_tree();
+//     let mut i = 1;
+//     while i < 100 {
+//         insert(rb_tree, i, i.try_into().unwrap());
+//         println!("Inserted: {:?}", i);
+//         let is_tree_valid = rb_tree.is_tree_valid();
+//         assert(is_tree_valid, 'Tree is not valid');
+//         i += 1;
+//     };
+
+//     i = 1;
+//     while i < 100 {
+//         let id = poseidon::poseidon_hash_span(array![mock_address(123456).into(), i.try_into().unwrap()].span());
+//         delete(rb_tree, id);
+//         println!("Deleted: {:?}", i);
+//         let is_tree_valid = rb_tree.is_tree_valid();
+//         assert(is_tree_valid, 'Tree is not valid');
+//         i += 1;
+//     };
+// } 
+
+const max_no:u8 = 200;
+
+fn random(seed: felt252) -> u8 {
+    // Use pedersen hash to generate a pseudo-random felt252
+    let hash = pedersen(seed, 0);
+    
+    // Convert the felt252 to u256 and take the last 8 bits
+    let random_u256: u256 = hash.into();
+    let random_u8: u8 = (random_u256 & 0xFF).try_into().unwrap();
+    
+    // Scale
+    (random_u8 % max_no) + 1
+}
+
+#[test]
+#[available_gas(50000000000)]
+fn testing_random_insertion_and_deletion() {
+    let rb_tree = setup_rb_tree();
+    let no_of_nodes:u8 = max_no;
+    let mut inserted_node_ids:Array<felt252> = ArrayTrait::new();
+
+    let mut i:u32 = 0;
+    while i < no_of_nodes.try_into().unwrap() {
+        let price = random(i.try_into().unwrap());
+        println!("Inserting {}", i);
+        let nonce = i.try_into().unwrap();
+        let node_id:felt252 = insert(rb_tree, price.try_into().unwrap(), nonce);
+        let is_tree_valid = rb_tree.is_tree_valid();
+        assert(is_tree_valid, 'Tree is not valid');
+        inserted_node_ids.append(node_id);
+        i += 1;
+    };
+
+    println!("No of nodes inserted: {:?}", inserted_node_ids.len());
+
+    let mut j:u32 = 0;
+    while j < no_of_nodes.try_into().unwrap() {
+        let node_id = inserted_node_ids.at(j);
+        delete(rb_tree, *node_id.try_into().unwrap());
+        let is_tree_valid = rb_tree.is_tree_valid();
+        assert(is_tree_valid, 'Tree is not valid');
+        println!("Deleted {}", j);
+        j += 1;
+    }
+}
+
 // Test Utilities
 
 fn create_bid(price: u256, nonce: u64) -> Bid {
@@ -1257,7 +1358,8 @@ fn insert(rb_tree: IRBTreeDispatcher, price: u256, nonce: u64) -> felt252 {
         price: price,
         is_tokenized: false,
         is_refunded: false,
-    })
+    });
+    return id;
 }
 
 fn is_tree_valid(rb_tree: IRBTreeDispatcher) {
