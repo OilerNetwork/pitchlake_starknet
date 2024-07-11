@@ -371,7 +371,6 @@ pub mod RBTreeComponent {
         ) {
             while x != self.root.read()
                 && (x == 0 || self.is_black(x)) {
-                    println!("Fixing");
                     let mut x_parent_node: Node = self.tree.read(x_parent);
                     if x == x_parent_node.left {
                         let mut w = x_parent_node.right;
