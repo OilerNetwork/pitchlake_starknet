@@ -489,7 +489,7 @@ pub mod RBTreeComponent {
     > of InsertBalanceTrait<TContractState> {
         fn balance_after_insertion(ref self: ComponentState<TContractState>, node_id: felt252) {
             let mut current = node_id;
-            let current_node: Node = self.tree.read(current);
+            let mut current_node: Node = self.tree.read(current);
             while current != self.root.read()
                 && self
                     .is_red(current_node.parent) {
@@ -502,6 +502,7 @@ pub mod RBTreeComponent {
                         } else {
                             current = self.balance_right_case(current, parent, grandparent);
                         }
+                        current_node = self.tree.read(current);
                     };
             self.ensure_root_is_black();
         }
