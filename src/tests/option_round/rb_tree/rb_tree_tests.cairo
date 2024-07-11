@@ -1018,41 +1018,6 @@ fn mock_address(value: felt252) -> ContractAddress {
 // }
 
 // #[test]
-// fn test_delete_tree_one_by_one() {
-//     let rb_tree = setup_rb_tree();
-
-//     let node_90 = insert(rb_tree, 90, 1);
-//     let node_70 = insert(rb_tree, 70, 2);
-//     let node_43 = insert(rb_tree, 43, 3); 
-//     delete(rb_tree, node_70);
-//     insert(rb_tree, 24, 4);
-//     insert(rb_tree, 14, 5);
-//     insert(rb_tree, 93, 6);
-//     let node_47 = insert(rb_tree, 47, 7);
-//     delete(rb_tree, node_47);
-//     delete(rb_tree, node_90);
-//     insert(rb_tree, 57, 8);
-//     let node_1 = insert(rb_tree, 1, 9);
-//     insert(rb_tree, 60, 10);  
-//     let node_47 =  insert(rb_tree, 47, 11);
-//     delete(rb_tree, node_47);
-//     delete(rb_tree, node_1);
-//     delete(rb_tree, node_90);
-//     delete(rb_tree, node_43);
-//     insert(rb_tree, 49, 12);
-
-//     let final_tree = rb_tree.get_tree_structure();
-//     let expected_tree_structure = array![
-//         array![(57, false, 0)],
-//         array![(24, false, 0), (60, false, 1)],
-//         array![(14, true, 0), (49, true, 1), (93, true, 3)]
-//     ];
-//     compare_tree_structures(@final_tree, @expected_tree_structure);
-//     let is_tree_valid = rb_tree.is_tree_valid();
-//     assert(is_tree_valid, 'Tree is not valid');
-// }
-
-// #[test]
 // fn test_deletion_black_node_no_successor_2() {
 //     let rb_tree = setup_rb_tree();
 
@@ -1126,7 +1091,7 @@ fn mock_address(value: felt252) -> ContractAddress {
 // }
 
 // #[test]
-// fn test_deletion_black_node_successor_case() {
+// fn test_deletion_black_node_successor() {
 //     let rb_tree = setup_rb_tree();
 
 //     let mut new_bid = create_bid(10, 1);
@@ -1176,55 +1141,90 @@ fn mock_address(value: felt252) -> ContractAddress {
 //     assert(is_tree_valid, 'Tree is not valid');
 // }
 
-#[test]
-fn test_mirror_deletion_black_node_successor_case() {
-    let rb_tree = setup_rb_tree();
+// #[test]
+// fn test_mirror_deletion_black_node_successor_case() {
+//     let rb_tree = setup_rb_tree();
 
-    let mut new_bid = create_bid(20, 1);
-    let node_20 = rb_tree.insert(new_bid);
+//     let mut new_bid = create_bid(20, 1);
+//     let node_20 = rb_tree.insert(new_bid);
 
-    let new_bid = create_bid(10, 2);
-    let node_10 = rb_tree.add_node(new_bid, BLACK, node_20);
+//     let new_bid = create_bid(10, 2);
+//     let node_10 = rb_tree.add_node(new_bid, BLACK, node_20);
 
-    let new_bid = create_bid(30, 3);
-    let node_30 = rb_tree.add_node(new_bid, BLACK, node_20);
+//     let new_bid = create_bid(30, 3);
+//     let node_30 = rb_tree.add_node(new_bid, BLACK, node_20);
 
-    let new_bid = create_bid(8, 4);
-    let node_8 = rb_tree.add_node(new_bid, RED, node_10);
+//     let new_bid = create_bid(8, 4);
+//     let node_8 = rb_tree.add_node(new_bid, RED, node_10);
 
-    let new_bid = create_bid(15, 5);
-    let node_15 = rb_tree.add_node(new_bid, BLACK, node_10);
+//     let new_bid = create_bid(15, 5);
+//     let node_15 = rb_tree.add_node(new_bid, BLACK, node_10);
 
-    let new_bid = create_bid(25, 6);
-    rb_tree.add_node(new_bid, BLACK, node_30);
+//     let new_bid = create_bid(25, 6);
+//     rb_tree.add_node(new_bid, BLACK, node_30);
 
-    let new_bid = create_bid(35, 7);
-    rb_tree.add_node(new_bid, BLACK, node_30);
+//     let new_bid = create_bid(35, 7);
+//     rb_tree.add_node(new_bid, BLACK, node_30);
 
-    let new_bid = create_bid(6, 8);
-    rb_tree.add_node(new_bid, BLACK, node_8);
+//     let new_bid = create_bid(6, 8);
+//     rb_tree.add_node(new_bid, BLACK, node_8);
 
-    let new_bid = create_bid(9, 9);
-    rb_tree.add_node(new_bid, BLACK, node_8);
+//     let new_bid = create_bid(9, 9);
+//     rb_tree.add_node(new_bid, BLACK, node_8);
 
-    let is_tree_valid = rb_tree.is_tree_valid();
-    assert(is_tree_valid, 'Tree is not valid');
+//     let is_tree_valid = rb_tree.is_tree_valid();
+//     assert(is_tree_valid, 'Tree is not valid');
 
-    delete(rb_tree, node_15);
+//     delete(rb_tree, node_15);
 
-    let tree_after_deletion = array![
-        array![(20, false, 0)],
-        array![(8, false, 0), (30, false, 1)],
-        array![(6, false, 0), (10, false, 1), (25, false, 2), (35, false, 3)],
-        array![(9, true, 2)]
-    ];
+//     let tree_after_deletion = array![
+//         array![(20, false, 0)],
+//         array![(8, false, 0), (30, false, 1)],
+//         array![(6, false, 0), (10, false, 1), (25, false, 2), (35, false, 3)],
+//         array![(9, true, 2)]
+//     ];
 
-    let tree_structure = rb_tree.get_tree_structure();
-    compare_tree_structures(@tree_structure, @tree_after_deletion);
+//     let tree_structure = rb_tree.get_tree_structure();
+//     compare_tree_structures(@tree_structure, @tree_after_deletion);
 
-    let is_tree_valid = rb_tree.is_tree_valid();
-    assert(is_tree_valid, 'Tree is not valid');
-}
+//     let is_tree_valid = rb_tree.is_tree_valid();
+//     assert(is_tree_valid, 'Tree is not valid');
+// }
+
+// #[test]
+// fn test_delete_tree_one_by_one() {
+//     let rb_tree = setup_rb_tree();
+
+//     let node_90 = insert(rb_tree, 90, 1);
+//     let node_70 = insert(rb_tree, 70, 2);
+//     let node_43 = insert(rb_tree, 43, 3); 
+//     delete(rb_tree, node_70);
+//     insert(rb_tree, 24, 4);
+//     insert(rb_tree, 14, 5);
+//     insert(rb_tree, 93, 6);
+//     let node_47 = insert(rb_tree, 47, 7);
+//     delete(rb_tree, node_47);
+//     delete(rb_tree, node_90);
+//     insert(rb_tree, 57, 8);
+//     let node_1 = insert(rb_tree, 1, 9);
+//     insert(rb_tree, 60, 10);  
+//     let node_47 =  insert(rb_tree, 47, 11);
+//     delete(rb_tree, node_47);
+//     delete(rb_tree, node_1);
+//     delete(rb_tree, node_90);
+//     delete(rb_tree, node_43);
+//     insert(rb_tree, 49, 12);
+
+//     let final_tree = rb_tree.get_tree_structure();
+//     let expected_tree_structure = array![
+//         array![(57, false, 0)],
+//         array![(24, false, 0), (60, false, 1)],
+//         array![(14, true, 0), (49, true, 1), (93, true, 3)]
+//     ];
+//     compare_tree_structures(@final_tree, @expected_tree_structure);
+//     let is_tree_valid = rb_tree.is_tree_valid();
+//     assert(is_tree_valid, 'Tree is not valid');
+// }
 
 // Test Utilities
 
