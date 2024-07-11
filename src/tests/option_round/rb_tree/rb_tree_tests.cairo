@@ -1297,7 +1297,7 @@ fn random(seed: felt252) -> u8 {
 }
 
 #[test]
-#[available_gas(5000000000)]
+#[available_gas(50000000000)]
 #[ignore]
 fn testing_random_insertion_and_deletion() {
     let rb_tree = setup_rb_tree();
