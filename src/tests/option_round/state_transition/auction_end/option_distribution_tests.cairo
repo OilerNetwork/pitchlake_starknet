@@ -509,7 +509,7 @@ fn test_option_distribution_real_numbers_1() {
     let options_available = 200;
 
     let bid_amounts = array![50, 142, 235, 222, 75, 35].span();
-    let bid_prices = array![20, 11, 10, 2, 1, 1].span();
+    let bid_prices = array![20, 11, 11, 2, 1, 1].span();
 
     //Convert prices to wei values
     let mut current_round = vault.get_current_round();
