@@ -1,4 +1,4 @@
-use pitch_lake_starknet::contracts::{utils::red_black_tree, option_round::OptionRound::Bid};
+use pitch_lake_starknet::contracts::{utils::red_black_tree, option_round::types::{Bid}};
 use starknet::ContractAddress;
 #[starknet::interface]
 trait IRBTree<TContractState> {

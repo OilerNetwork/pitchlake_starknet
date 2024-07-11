@@ -71,20 +71,16 @@ fn test_unsold_liquidity_1() {
     let options_available = accelerate_to_auctioning(ref vault);
 
     // Get liquidity locked before auction ends
-    println!("1");
     let total_locked_before = vault.get_total_locked_balance();
 
     let bidders = option_bidders_get(2);
     let bid_amounts = array![options_available / 4, options_available / 4];
     let bid_prices = create_array_linear((current_round.get_reserve_price()), bid_amounts.len());
-    println!("2");
     accelerate_to_running_custom(ref vault, bidders.span(), bid_amounts.span(), bid_prices.span());
-    println!("3");
 
     // Check 1/3 of the total locked liquidity is unsold
     let expected_unsold_liq = total_locked_before / 2;
     let unsold_liq = vault.get_unsold_liquidity(current_round.get_round_id());
-    println!("unsold_liq:{}\nexpected_unsold_liq:{}", unsold_liq, expected_unsold_liq);
     assert(unsold_liq == expected_unsold_liq, 'unsold liq wrong');
 }
 

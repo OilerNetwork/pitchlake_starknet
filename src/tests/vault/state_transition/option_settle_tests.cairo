@@ -9,12 +9,16 @@ use openzeppelin::{
 use pitch_lake_starknet::{
     contracts::{
         vault::{
-            IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault,
-            IVaultSafeDispatcherTrait
+            contract::Vault,
+            interface::{
+                IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait,
+                IVaultSafeDispatcherTrait
+            }
         },
         eth::Eth,
         option_round::{
-            IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRound::OptionRoundError
+            types::OptionRoundError,
+            interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,}
         },
         market_aggregator::{
             IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait,

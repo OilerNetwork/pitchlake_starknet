@@ -2,7 +2,7 @@ use core::traits::Into;
 use starknet::testing::{set_block_timestamp, set_contract_address};
 use openzeppelin::token::erc20::interface::{ERC20ABIDispatcherTrait,};
 use pitch_lake_starknet::{
-    contracts::option_round::OptionRound::{OptionRoundError, OptionRoundErrorIntoFelt252},
+    contracts::option_round::types::{OptionRoundError, OptionRoundErrorIntoFelt252},
     tests::{
         utils::{
             helpers::{

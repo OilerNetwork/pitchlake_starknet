@@ -8,12 +8,15 @@ use pitch_lake_starknet::{
     contracts::{
         eth::Eth,
         vault::{
-            IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault,
-            IVaultSafeDispatcherTrait
+            contract::Vault,
+            interface::{
+                IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait,
+                IVaultSafeDispatcherTrait
+            }
         },
         option_round::{
-            IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState,
-            OptionRound::OptionRoundError
+            interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,},
+            types::{OptionRoundState, OptionRoundError}
         },
     },
     tests::{

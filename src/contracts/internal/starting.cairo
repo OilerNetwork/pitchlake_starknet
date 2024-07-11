@@ -1,4 +1,4 @@
-use starknet::{CopntractAddress};
+use starknet::{ContractAddress};
 /// This will be where we start implementation and eventually wrap as internal functions in the contracts
 
 // Send erc20 tokens from one account to another

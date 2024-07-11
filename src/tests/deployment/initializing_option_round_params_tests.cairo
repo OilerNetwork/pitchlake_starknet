@@ -13,8 +13,10 @@ use pitch_lake_starknet::{
             IPitchLakeDispatcher, IPitchLakeSafeDispatcher, IPitchLakeDispatcherTrait, PitchLake,
             IPitchLakeSafeDispatcherTrait
         },
-        vault::{IVaultDispatcher, IVaultDispatcherTrait, Vault, VaultType},
-        option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
+        vault::{
+            contract::Vault, interface::{IVaultDispatcher, IVaultDispatcherTrait}, types::VaultType
+        },
+        option_round::interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
     },
     tests::{
         utils::{

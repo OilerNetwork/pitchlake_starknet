@@ -1,16 +1,18 @@
 //Helper functions for posterity
 use openzeppelin::token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
 use pitch_lake_starknet::contracts::vault::{
-    IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait,
-    VaultType
+    interface::{
+        IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcherTrait,
+    },
+    contract::Vault, types::VaultType
 };
 use starknet::{ContractAddress, testing::{set_contract_address}};
 use pitch_lake_starknet::{
     contracts::option_round::{
-        IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState, StartAuctionParams,
-        SettleOptionRoundParams, OptionRoundConstructorParams, Bid,
-        OptionRound::{
-            OptionRoundError, OptionRoundErrorIntoFelt252, //OptionRoundErrorIntoByteArray
+        types::{OptionRoundError, OptionRoundErrorIntoFelt252},
+        interface::{
+            IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState,
+            StartAuctionParams, SettleOptionRoundParams, OptionRoundConstructorParams, Bid,
         }
     },
     tests::{
