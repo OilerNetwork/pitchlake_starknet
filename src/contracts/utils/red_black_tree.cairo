@@ -635,7 +635,6 @@ pub mod RBTreeComponent {
             grandparent: felt252
         ) -> felt252 {
             let mut new_current = current;
-
             if self.is_left_child(current) {
                 new_current = parent;
                 self.rotate_right(new_current);
