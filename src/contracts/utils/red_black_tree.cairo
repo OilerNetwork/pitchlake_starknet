@@ -426,10 +426,10 @@ pub mod RBTreeComponent {
                         }
                         
                         // Case 4: x's sibling w is black, and w's right child is red
-                        let x_parent_node = self.tree.read(x_parent);
+                        let x_parent_node: Node = self.tree.read(x_parent);
                         self.set_color(w, x_parent_node.color);
                         self.set_color(x_parent, BLACK);
-                        let w_node = self.tree.read(w);
+                        let w_node: Node = self.tree.read(w);
                         if w_node.right != 0 {
                             self.set_color(w_node.right, BLACK);
                         }
