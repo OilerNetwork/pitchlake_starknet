@@ -167,12 +167,10 @@ trait IOptionRound<TContractState> {
     // @note the value that each option pays out might be 0 if non-exercisable
     // @param option_buyer: The option buyer to claim the payout for
     // @return the amount of the transfer
-    fn exercise_options(
-        ref self: TContractState, option_buyer: ContractAddress
-    ) -> Result<u256, OptionRound::OptionRoundError>;
+    fn exercise_options(ref self: TContractState) -> Result<u256, OptionRound::OptionRoundError>;
 
     // Convert options won from auction into erc20 tokens
     fn tokenize_options(
-        ref self: TContractState, option_buyer: ContractAddress
+        ref self: TContractState
     ) -> Result<u256, OptionRound::OptionRoundError>;
 }
