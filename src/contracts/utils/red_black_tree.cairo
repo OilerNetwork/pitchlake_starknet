@@ -3,7 +3,7 @@ use starknet::ContractAddress;
 
 #[starknet::interface]
 trait IRBTree<TContractState> {
-    fn insert(ref self: TContractState, value: Bid) -> felt252;
+    fn insert(ref self: TContractState, value: Bid);
     fn find(ref self: TContractState, value: Bid) -> felt252;
     fn delete(ref self: TContractState, bid_id: felt252);
     fn find_clearing_price(ref self: TContractState) -> (u256, u256);
@@ -60,20 +60,19 @@ pub mod RBTreeComponent {
     impl RBTreeImpl<
         TContractState, +HasComponent<TContractState>
     > of super::IRBTree<ComponentState<TContractState>> {
-        fn insert(ref self: ComponentState<TContractState>, value: Bid) -> felt252 {
+        fn insert(ref self: ComponentState<TContractState>, value: Bid) {
             let new_node_id = value.id;
 
             if self.root.read() == 0 {
                 let root_node = self.create_root_node(@value);
                 self.tree.write(new_node_id, root_node);
                 self.root.write(new_node_id);
-                return new_node_id;
+                return;
             }
 
             self.insert_node_recursively(self.root.read(), new_node_id, value);
             self.balance_after_insertion(new_node_id);
             self.nonce.write(self.nonce.read() + 1);
-            return new_node_id;
         }
 
         fn find(ref self: ComponentState<TContractState>, value: Bid) -> felt252 {
