@@ -73,6 +73,7 @@ enum OptionRoundError {
     BidBelowReservePrice,
     BidAmountZero,
     BiddingWhileNotAuctioning,
+    CallerNotBidOwner,
     // Editing bids
     BidCannotBeDecreased,
 }
@@ -89,17 +90,16 @@ impl BidPartialOrdTrait of PartialOrd<Bid> {
         } else if lhs.price > rhs.price {
             false
         } else {
-            if lhs.amount < rhs.amount {
-                true
-            } else if lhs.amount > rhs.amount {
-                false
-            } else {
                 if lhs.nonce > rhs.nonce {
                     true
                 } else {
-                    false
+                    if lhs.amount >= rhs.amount {
+                        true
+                    } else {
+                        false
+                    }
                 }
-            }
+        
         }
     }
 
@@ -189,6 +189,7 @@ impl OptionRoundErrorIntoFelt252 of Into<OptionRoundError, felt252> {
             OptionRoundError::BidAmountZero => 'OptionRound: Bid amount zero',
             OptionRoundError::BiddingWhileNotAuctioning => 'OptionRound: No auction running',
             OptionRoundError::BidCannotBeDecreased => 'OptionRound: New bid too low',
+            OptionRoundError::CallerNotBidOwner => 'OptionROund: Caller not owner',
         }
     }
 }

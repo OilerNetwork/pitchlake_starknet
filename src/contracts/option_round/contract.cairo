@@ -54,7 +54,7 @@ mod OptionRound {
     // @auction_end_date: The auction end date
     // @option_settlement_date: The option settlement date
     // @constructor:params: Params to pass at option round creation, to be set by fossil
-    // @bidder_nonces: A mapping of address to u256, tells the current nonce for an address
+    // @bidder_nonces: A mapping of address to u256, tells the current nonce for an address, allows tracking of bids for each user and used to create unique bid id's for each bid
     // @bids_tree: Storage for the bids tree, see rb-tree-component
     // @erc20: Storage for erc20 component of the round.
     #[storage]
@@ -104,95 +104,95 @@ mod OptionRound {
         ERC20Event: ERC20Component::Event,
     }
     // Emitted when the auction starts
-// @param total_options_available Max number of options that can be sold in the auction
-// @note Discuss if any other params should be emitted
-#[derive(Drop, starknet::Event, PartialEq)]
-struct AuctionStarted {
-    total_options_available: u256,
-//...
-}
+    // @param total_options_available Max number of options that can be sold in the auction
+    // @note Discuss if any other params should be emitted
+    #[derive(Drop, starknet::Event, PartialEq)]
+    struct AuctionStarted {
+        total_options_available: u256,
+    //...
+    }
 
-// Emitted when a bid is accepted
-// @param account The account that placed the bid
-// @param amount The amount of options the bidder want in total
-// @param price The price per option that was bid (max price the bidder is willing to spend per option)
-#[derive(Drop, starknet::Event, PartialEq)]
-struct BidAccepted {
-    #[key]
-    account: ContractAddress,
-    nonce: u32,
-    amount: u256,
-    price: u256
-}
+    // Emitted when a bid is accepted
+    // @param account The account that placed the bid
+    // @param amount The amount of options the bidder want in total
+    // @param price The price per option that was bid (max price the bidder is willing to spend per option)
+    #[derive(Drop, starknet::Event, PartialEq)]
+    struct BidAccepted {
+        #[key]
+        account: ContractAddress,
+        nonce: u32,
+        amount: u256,
+        price: u256
+    }
 
-// Emitted when a bid is rejected
-// @param account The account that placed the bid
-// @param amount The amount of options the bidder is willing to buy in total
-// @param price The price per option that was bid (max price the bidder is willing to spend per option)
-#[derive(Drop, starknet::Event, PartialEq)]
-struct BidRejected {
-    #[key]
-    account: ContractAddress,
-    amount: u256,
-    price: u256
-}
+    // Emitted when a bid is rejected
+    // @param account The account that placed the bid
+    // @param amount The amount of options the bidder is willing to buy in total
+    // @param price The price per option that was bid (max price the bidder is willing to spend per option)
+    #[derive(Drop, starknet::Event, PartialEq)]
+    struct BidRejected {
+        #[key]
+        account: ContractAddress,
+        amount: u256,
+        price: u256
+    }
 
-#[derive(Drop, starknet::Event, PartialEq)]
-struct BidUpdated {
-    #[key]
-    account: ContractAddress,
-    id: felt252,
-    old_amount: u256,
-    old_price: u256,
-    new_amount: u256,
-    new_price: u256
-}
+    #[derive(Drop, starknet::Event, PartialEq)]
+    struct BidUpdated {
+        #[key]
+        account: ContractAddress,
+        id: felt252,
+        old_amount: u256,
+        old_price: u256,
+        new_amount: u256,
+        new_price: u256
+    }
 
-#[derive(Drop, starknet::Event, PartialEq)]
-struct OptionsTokenized {
-    #[key]
-    account: ContractAddress,
-    amount: u256,
-//...
-}
+    #[derive(Drop, starknet::Event, PartialEq)]
+    struct OptionsTokenized {
+        #[key]
+        account: ContractAddress,
+        amount: u256,
+    //...
+    }
 
-// Emitted when the auction ends
-// @param clearing_price The resulting price per each option of the batch auction
-// @note Discuss if any other params should be emitted (options sold ?)
-#[derive(Drop, starknet::Event, PartialEq)]
-struct AuctionEnded {
-    clearing_price: u256
-}
+    // Emitted when the auction ends
+    // @param clearing_price The resulting price per each option of the batch auction
+    // @note Discuss if any other params should be emitted (options sold ?)
+    #[derive(Drop, starknet::Event, PartialEq)]
+    struct AuctionEnded {
+        clearing_price: u256
+    }
 
-// Emitted when the option round settles
-// @param settlement_price The TWAP of basefee for the option round period, used to calculate the payout
-// @note Discuss if any other params should be emitted (total payout ?)
-#[derive(Drop, starknet::Event, PartialEq)]
-struct OptionRoundSettled {
-    settlement_price: u256
-}
+    // Emitted when the option round settles
+    // @param settlement_price The TWAP of basefee for the option round period, used to calculate the payout
+    // @note Discuss if any other params should be emitted (total payout ?)
+    #[derive(Drop, starknet::Event, PartialEq)]
+    struct OptionRoundSettled {
+        settlement_price: u256
+    }
 
-// Emitted when a bidder refunds their unused bids
-// @param account The account that's bids were refuned
-// @param amount The amount transferred
-#[derive(Drop, starknet::Event, PartialEq)]
-struct UnusedBidsRefunded {
-    #[key]
-    account: ContractAddress,
-    amount: u256
-}
+    // Emitted when a bidder refunds their unused bids
+    // @param account The account that's bids were refuned
+    // @param amount The amount transferred
+    #[derive(Drop, starknet::Event, PartialEq)]
+    struct UnusedBidsRefunded {
+        #[key]
+        account: ContractAddress,
+        amount: u256
+    }
 
-// Emitted when an option holder exercises their options
-// @param account The account: that exercised the options
-// @param num_options: The number of options exercised
-// @param amount: The amount transferred
-#[derive(Drop, starknet::Event, PartialEq)]
-struct OptionsExercised {
-    #[key]
-    account: ContractAddress,
-    num_options: u256,
-    amount: u256
-}
+    // Emitted when an option holder exercises their options
+    // @param account The account: that exercised the options
+    // @param num_options: The number of options exercised
+    // @param amount: The amount transferred
+    #[derive(Drop, starknet::Event, PartialEq)]
+    struct OptionsExercised {
+        #[key]
+        account: ContractAddress,
+        num_options: u256,
+        amount: u256
+    }
 
 
     #[constructor]
@@ -245,8 +245,6 @@ struct OptionsExercised {
         }
     }
 
-
-    
 
     #[abi(embed_v0)]
     impl OptionRoundImpl of IOptionRound<ContractState> {
@@ -355,6 +353,7 @@ struct OptionsExercised {
             array!['asdf']
         }
 
+
         // Get the bid ids for all of the bids the option buyer has placed
         fn get_bids_for(self: @ContractState, option_buyer: ContractAddress) -> Array<Bid> {
             let mut i: u32 = self.bidder_nonces.read(option_buyer);
@@ -370,15 +369,14 @@ struct OptionsExercised {
         }
 
 
-
         // #Params
-        //  @option_buyer: address of wallet to find refundable bids for
+        // @option_buyer:ContractAddress, target address
         // #Description
         // This function iterates through the list of bids and returns total refundable amount
         // From the partial bids, takes the amount that was not sold (total-sold)*price and adds to refundable_balance
         // From tokenizable bids, takes the difference in clearing_price and bid_price (clearing_price-bid_price)*amount and adds to refundable_balance
         // From refundable bids, adds the entire amount*price to refundable_balance
-        // Return the total refundable balance for the option buyer
+        // Returns the total refundable balance for the option buyer
         fn get_refundable_bids_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
             // Get the refundable, tokenizable, and partially sold bid ids
             let (mut tokenizable_bids, mut refundable_bids, partial_bid) = self
@@ -429,9 +427,9 @@ struct OptionsExercised {
         }
 
         // #Params
-        //  @option_buyer: address of wallet to find tokenizable bids for
+        //  @option_buyer: target address
         // #Description
-        // This function iterates through the list of bids and returns total tokenizable options
+        // iterates through the list of bids and returns total tokenizable options
         // From the partial bids, takes the amount that was sold and adds to options_balance,
         // From tokenizable bids, if not tokenized yet, adds to options_balance, updates flag
         // Return the total(options_balance) for the option buyer
@@ -465,8 +463,10 @@ struct OptionsExercised {
             options_balance
         }
 
-        // Get the total amount of options the option buyer owns, includes the tokenizable amount and the
-        // already tokenized (ERC20) amount
+        //  #Params
+        //  @option_buyer: target address
+        //  #Description
+        //  Returns number of tokenizable bids and option tokens held by the address
         fn get_total_options_balance_for(
             self: @ContractState, option_buyer: ContractAddress
         ) -> u256 {
@@ -536,7 +536,19 @@ struct OptionsExercised {
 
         /// State transition
 
-        // Start the round's auction
+        // fn start_auction
+        // #Params
+        // @total_options_available: u256 Number of options to be made available for bidding
+        // @starting_liquidity: u256 Liquidity provided to be sold
+        // @reserve_price: u256, Reserve price for the auction, this is the minimum price 
+        // @cap_level: u256, The payout cap for purchased options
+        // @strike_price: u256, The settlement amount
+        // #Return
+        // u256: Total number of options available for auctioning
+        // #Description
+        // Starts the round's auction
+        // Checks that the caller is the Vault, State of the round is Open, and the auction start time has crossed
+        // Updates state to auctioning, writes auction parameters to storage, emits AuctionStart event
         // @dev Params are set in the constructor and in this function in case newer values from
         // Fossil are produced in during the round transition period
         fn start_auction(
@@ -593,7 +605,16 @@ struct OptionsExercised {
             Result::Ok(total_options_available)
         }
 
+
+        // fn end_auction
+        // #Return
+        // u256: Clearing price for the auction, the lowest amount at which options were sold
+        // u256: Total options sold, the total number of options sold in the auction
+        // #Description
         // End the round's auction
+        // Check the caller is vault, state is 'Auctioning' and auction end time has passed
+        // Updates state to 'Running', determines clearing price, sends premiums collected back to vault
+        // and emits an AuctionEnded event
         fn end_auction(ref self: ContractState) -> Result<(u256, u256), OptionRoundError> {
             // Assert caller is Vault
             if (!self.is_caller_the_vault()) {
@@ -633,7 +654,16 @@ struct OptionsExercised {
             Result::Ok((clearing_price, total_options_sold))
         }
 
+        // fn settle_option_round
+        // #Params
+        // @settlement_price:u256 The price at which the auction is settled (Use fossil)
+        // #Return
+        // u256: Total payout for the round that is made available to the options holders
+        // #Description
         // Settle the option round
+        // Checks caller is vault, state is 'Running' and settlement date is reached
+        // Updates state to 'Settled',calculates payout, updates storage and emits 'OptionRoundSettled' event
+
         fn settle_option_round(
             ref self: ContractState, params: SettleOptionRoundParams
         ) -> Result<u256, OptionRoundError> {
@@ -670,7 +700,19 @@ struct OptionsExercised {
 
         /// Option bidder functions
 
+        // fn place_bid
+        // #params
+        // @amount:u256, No. of options to bid for
+        // @price:u256, Price per option to bid at
+        // #Return
+        // Bid: The bid data for the newly placed bid
+        // #Description
         // Place a bid in the auction
+        // Checks state is 'Auctioning', the auction end date is not reached, the amount is not 0
+        // and the price is above reserve price
+        // Gets bidder nonce for the caller, and the bids_tree nonce for the new bid, creates a new id: hash(nonce,address) for the bid
+        // Inserts new bid into the tree, transfers eth, and emits BidAccepted event
+
         fn place_bid(
             ref self: ContractState, amount: u256, price: u256
         ) -> Result<Bid, OptionRoundError> {
@@ -714,7 +756,19 @@ struct OptionsExercised {
             Result::Ok(bid)
         }
 
+        // fn update_bid
+        // #Params
+        // @bid_id:felt252, The id of the bid to be updated
+        // @new_amount:u256, new amount for the bid
+        // @new_price:u256, new price for the bid
+        // #Return
+        // Bid: The updated bid data
+        // #Description
         // Update a bid in the auction
+        // Checks the round state is 'Auctioning', the new bid price and amount is greater than old bid
+        // Deletes old bid from the tree, inserts updated bid to the tree with new nonce,
+        // transfers difference in eth from bidder to contract and emits BidUpdated event
+        // New nonce is necessary to avoid bidders coming in early with low bids and updating them later
         fn update_bid(
             ref self: ContractState, bid_id: felt252, new_amount: u256, new_price: u256
         ) -> Result<Bid, OptionRoundError> {
@@ -723,8 +777,12 @@ struct OptionsExercised {
                 return Result::Err(OptionRoundError::BiddingWhileNotAuctioning);
             }
 
-            //Assert new bid is > old bid
             let old_node: Node = self.bids_tree.tree.read(bid_id);
+            //Assert bid owner is the caller
+            if (old_node.value.owner != get_caller_address()) {
+                return Result::Err(OptionRoundError::CallerNotBidOwner);
+            }
+            //Assert new bid is > old bid
             let mut old_bid: Bid = old_node.value;
             if (new_amount < old_bid.amount || new_price < old_bid.price) {
                 return Result::Err(OptionRoundError::BidCannotBeDecreased);
@@ -734,6 +792,7 @@ struct OptionsExercised {
             let mut new_bid: Bid = old_bid;
             new_bid.amount = new_amount;
             new_bid.price = new_price;
+            new_bid.nonce = self.bids_tree.nonce.read();
             self.bids_tree.delete(bid_id);
             self.bids_tree.insert(new_bid);
 
@@ -760,6 +819,17 @@ struct OptionsExercised {
             Result::Ok(new_bid)
         }
 
+        // fn refund_unused_bids
+        // #Params
+        // @option_bidder:ContractAddress, target address
+        // #Description
+        // Refunds unused bids
+        // #Return
+        // Returns amount in eth refunded to the bidder
+        // Check state is not Open or Auctioning
+        // Uses internal helper to get list of refundable bids, checks for any partial refundable bids
+        // Adds balances from all refundable bids and updates bids.is_refunded to true
+        // Transfers total refundable_balance amount to the target address
         fn refund_unused_bids(
             ref self: ContractState, option_bidder: ContractAddress
         ) -> Result<u256, OptionRoundError> {
@@ -829,6 +899,18 @@ struct OptionsExercised {
             Result::Ok(refundable_balance)
         }
 
+        // fn exercise_options
+        // #Params
+        // @option_buyer:ContractAddress, target address
+        // #Return
+        // u256: Amount of eth sent to the exercising bidder
+        // #Description
+        // Exercise options
+        // Checks round state is 'Settled', sums number of options from all tokenizable_bids(winning bids) and any partial bid
+        // Updates all tokenizable and partial bids, bids.is_tokenized to true
+        // Checks for any option_round tokens owned by option_buyer, burns the tokens
+        // Transfers sum of eth_amount from bids + eth_amount from option round tokens to the bidder,
+        // Emits OptionsExercised event
         fn exercise_options(
             ref self: ContractState, option_buyer: ContractAddress
         ) -> Result<u256, OptionRoundError> {
@@ -885,6 +967,17 @@ struct OptionsExercised {
             Result::Ok(amount_eth)
         }
 
+        // fn tokenize_options
+        // #Params
+        // @option_buyer:ContractAddress, target address
+        // #Return
+        // u256: Total number of options minted,
+        // #Description
+        // Mint ERC20 tokens for winning bids
+        // Checks that state is 'Ended' or after
+        // Gets tokenizable and partial tokenizable bids from internal helper, 
+        // Sums total number of tokenizable options from both,updates all tokenizable bids.is_tokenized to true,
+        // Mints option round tokens to the bidder and emits OptionsTokenized event
         fn tokenize_options(
             ref self: ContractState, option_buyer: ContractAddress
         ) -> Result<u256, OptionRoundError> {
@@ -975,6 +1068,10 @@ struct OptionsExercised {
             self.erc20._burn(owner, amount);
         }
 
+
+        // fn inspect_options_for
+        // #Params
+        // @bidder:ContractAddress, targetAddress
         fn inspect_options_for(
             self: @ContractState, bidder: ContractAddress
         ) -> (Array<Bid>, Array<Bid>, felt252) {
