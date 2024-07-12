@@ -1271,7 +1271,7 @@ fn test_delete_tree_one_by_one() {
 fn test_add_1_to_100_delete_100_to_1() {
     let rb_tree = setup_rb_tree();
     let mut i = 1;
-    while i < 100 {
+    while i <= 100 {
         insert(rb_tree, i, i.try_into().unwrap());
         println!("Inserted: {:?}", i);
         let is_tree_valid = rb_tree.is_tree_valid();
@@ -1279,7 +1279,7 @@ fn test_add_1_to_100_delete_100_to_1() {
         i += 1;
     };
 
-    i = 99;
+    i = 100;
     while i >= 1 {
         let id = poseidon::poseidon_hash_span(array![mock_address(123456).into(), i.try_into().unwrap()].span());
         delete(rb_tree, id);
@@ -1299,7 +1299,7 @@ fn test_add_1_to_100_delete_100_to_1() {
 fn test_add_1_to_100_delete_1_to_100() {
     let rb_tree = setup_rb_tree();
     let mut i = 1;
-    while i < 100 {
+    while i <= 100 {
         insert(rb_tree, i, i.try_into().unwrap());
         println!("Inserted: {:?}", i);
         let is_tree_valid = rb_tree.is_tree_valid();
@@ -1308,7 +1308,7 @@ fn test_add_1_to_100_delete_1_to_100() {
     };
 
     i = 1;
-    while i < 100 {
+    while i <= 100 {
         let id = poseidon::poseidon_hash_span(array![mock_address(123456).into(), i.try_into().unwrap()].span());
         delete(rb_tree, id);
         println!("Deleted: {:?}", i);
