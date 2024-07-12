@@ -3,7 +3,7 @@ use pitch_lake_starknet::{
     tests::option_round::rb_tree::rb_tree_mock_contract::RBTreeMockContract,
     contracts::option_round::OptionRound::Bid
 };
-use starknet::{deploy_syscall, SyscallResultTrait, contract_address_const, ContractAddress };
+use starknet::{deploy_syscall, SyscallResultTrait, contract_address_const, ContractAddress};
 use core::pedersen::pedersen;
 
 const BLACK: bool = false;
@@ -18,7 +18,7 @@ pub trait IRBTree<TContractState> {
     fn get_tree_structure(ref self: TContractState) -> Array<Array<(u256, bool, u128)>>;
     fn is_tree_valid(ref self: TContractState) -> bool;
     fn delete(ref self: TContractState, bid_id: felt252);
-    fn add_node(ref self: TContractState, value: Bid, color:bool, parent:felt252) -> felt252;
+    fn add_node(ref self: TContractState, value: Bid, color: bool, parent: felt252) -> felt252;
 }
 
 fn setup_rb_tree() -> IRBTreeDispatcher {
@@ -62,7 +62,7 @@ fn test_insert_into_empty_tree() {
 
     let node_4 = rb_tree.find(node_4_id);
     assert(node_4.price == 4, 'Node 4 price mismatch');
-    
+
     let node_5 = rb_tree.find(node_5_id);
     assert(node_5.price == 5, 'Node 5 price mismatch');
 
@@ -89,7 +89,7 @@ fn test_insert_into_empty_tree() {
         array![(3, true, 2), (15, true, 7)]
     ];
     compare_tree_structures(@tree, @expected_tree_structure);
-    
+
     // Negative tests
 
     let node_10 = rb_tree.find(10);
@@ -106,7 +106,7 @@ fn test_insert_into_empty_tree() {
 #[ignore]
 fn test_recoloring_only() {
     let rb_tree = setup_rb_tree();
-    
+
     let mut new_bid = create_bid(31, 1);
     rb_tree.insert(new_bid);
     let node_31 = new_bid.id;
@@ -152,7 +152,7 @@ fn test_recoloring_only() {
 
     let is_tree_valid = rb_tree.is_tree_valid();
     assert(is_tree_valid, 'Tree is not valid');
-}   
+}
 
 #[test]
 #[ignore]
@@ -210,7 +210,7 @@ fn test_recoloring_two() {
 #[ignore]
 fn test_right_rotation() {
     let rb_tree = setup_rb_tree();
-    
+
     let mut new_bid = create_bid(21, 1);
     rb_tree.insert(new_bid);
     let node_21 = new_bid.id;
@@ -382,7 +382,7 @@ fn test_right_left_rotation_no_sibling() {
     assert(is_tree_valid, 'Tree is not valid');
 
     insert(rb_tree, 13, 6);
-    
+
     let result = rb_tree.get_tree_structure();
     let expected_tree_structure = array![
         array![(21, false, 0)],
@@ -450,27 +450,20 @@ fn test_recolor_lr() {
 #[test]
 fn test_functional_test_build_tree() {
     let rb_tree = setup_rb_tree();
-    
+
     insert(rb_tree, 2, 1);
     let tree_structure = rb_tree.get_tree_structure();
-    let tree_with_root_node = array![
-        array![(2, false, 0)]
-    ];
+    let tree_with_root_node = array![array![(2, false, 0)]];
     compare_tree_structures(@tree_structure, @tree_with_root_node);
 
     insert(rb_tree, 1, 2);
-    let tree_with_left_node = array![
-        array![(2, false, 0)],
-        array![(1, true, 0)]
-    ];
+    let tree_with_left_node = array![array![(2, false, 0)], array![(1, true, 0)]];
     let tree_structure = rb_tree.get_tree_structure();
     compare_tree_structures(@tree_structure, @tree_with_left_node);
-    
+
     insert(rb_tree, 4, 3);
     let tree_with_right_node = array![
-        array![(2, false, 0)],
-        array![(1, true, 0)],
-        array![(4, true, 0)]
+        array![(2, false, 0)], array![(1, true, 0)], array![(4, true, 0)]
     ];
     let tree_structure = rb_tree.get_tree_structure();
     compare_tree_structures(@tree_structure, @tree_with_right_node);
@@ -479,9 +472,7 @@ fn test_functional_test_build_tree() {
 
     insert(rb_tree, 5, 4);
     let tree_after_recolor_parents = array![
-        array![(2, false, 0)],
-        array![(1, false, 0), (4, false, 1)],
-        array![(5, true, 3)]
+        array![(2, false, 0)], array![(1, false, 0), (4, false, 1)], array![(5, true, 3)]
     ];
     let tree_structure = rb_tree.get_tree_structure();
     compare_tree_structures(@tree_structure, @tree_after_recolor_parents);
@@ -613,7 +604,7 @@ fn test_right_rotation_after_recolor() {
     let node_3 = rb_tree.add_node(new_bid, BLACK, node_13);
 
     let new_bid = create_bid(29, 5);
-     rb_tree.add_node(new_bid, BLACK, node_13);
+    rb_tree.add_node(new_bid, BLACK, node_13);
 
     let new_bid = create_bid(38, 6);
     rb_tree.add_node(new_bid, RED, node_43);
@@ -662,10 +653,7 @@ fn test_deletion_root() {
 
     delete(rb_tree, node_5);
 
-    let tree_after_deletion = array![
-        array![(8, false, 0)],
-        array![(3, true, 0)]
-    ];
+    let tree_after_deletion = array![array![(8, false, 0)], array![(3, true, 0)]];
 
     let tree_structure = rb_tree.get_tree_structure();
     compare_tree_structures(@tree_structure, @tree_after_deletion);
@@ -687,9 +675,7 @@ fn test_deletion_root_2_nodes() {
 
     delete(rb_tree, node_5);
 
-    let tree_after_deletion = array![
-        array![(8, false, 0)]
-    ];
+    let tree_after_deletion = array![array![(8, false, 0)]];
 
     let tree_structure = rb_tree.get_tree_structure();
     compare_tree_structures(@tree_structure, @tree_after_deletion);
@@ -712,10 +698,7 @@ fn test_delete_single_child() {
 
     delete(rb_tree, node_6);
 
-    let tree_after_deletion = array![
-        array![(5, false, 0)],
-        array![(1, true, 0)]
-    ];
+    let tree_after_deletion = array![array![(5, false, 0)], array![(1, true, 0)]];
 
     let tree_structure = rb_tree.get_tree_structure();
     compare_tree_structures(@tree_structure, @tree_after_deletion);
@@ -808,7 +791,7 @@ fn test_deletion_red_node_red_successor_no_children() {
     let new_bid = create_bid(44, 7);
     let node_44 = rb_tree.add_node(new_bid, BLACK, node_41);
 
-    let new_bid = create_bid(42, 8);    
+    let new_bid = create_bid(42, 8);
     rb_tree.add_node(new_bid, RED, node_44);
 
     let is_tree_valid = rb_tree.is_tree_valid();
@@ -866,7 +849,7 @@ fn test_mirror_deletion_red_node_red_successor_no_children() {
 
     delete(rb_tree, node_11);
 
-     let tree_after_deletion = array![
+    let tree_after_deletion = array![
         array![(16, false, 0)],
         array![(12, true, 0), (41, true, 1)],
         array![(1, false, 0), (13, false, 1), (26, false, 2), (44, false, 3)],
@@ -962,9 +945,7 @@ fn test_deletion_black_node_black_successor_no_child() {
 
     let tree = rb_tree.get_tree_structure();
     let expected_tree_structure = array![
-        array![(31, false, 0)],
-        array![(1, false, 0), (41, false, 1)],
-        array![(49, true, 3)]
+        array![(31, false, 0)], array![(1, false, 0), (41, false, 1)], array![(49, true, 3)]
     ];
     compare_tree_structures(@tree, @expected_tree_structure);
 
@@ -1000,9 +981,7 @@ fn test_deletion_black_node_no_successor() {
 
     let tree = rb_tree.get_tree_structure();
     let expected_tree_structure = array![
-        array![(41, false, 0)],
-        array![(21, false, 0), (51, false, 1)],
-        array![(36, true, 1)]
+        array![(41, false, 0)], array![(21, false, 0), (51, false, 1)], array![(36, true, 1)]
     ];
     compare_tree_structures(@tree, @expected_tree_structure);
 
@@ -1035,12 +1014,10 @@ fn test_mirror_deletion_black_node_no_successor() {
     assert(is_tree_valid, 'Tree is not valid');
 
     delete(rb_tree, node_12);
-    
+
     let tree = rb_tree.get_tree_structure();
     let expected_tree_structure = array![
-        array![(5, false, 0)],
-        array![(1, false, 0), (10, false, 1)],
-        array![(7, true, 2)]
+        array![(5, false, 0)], array![(1, false, 0), (10, false, 1)], array![(7, true, 2)]
     ];
 
     compare_tree_structures(@tree, @expected_tree_structure);
@@ -1061,10 +1038,7 @@ fn test_deletion_black_node_no_successor_2() {
     delete(rb_tree, node_1);
 
     let tree = rb_tree.get_tree_structure();
-    let expected_tree_structure = array![
-        array![(21, false, 0)],
-        array![(41, true, 1)]
-    ];
+    let expected_tree_structure = array![array![(21, false, 0)], array![(41, true, 1)]];
 
     compare_tree_structures(@tree, @expected_tree_structure);
 
@@ -1118,7 +1092,7 @@ fn test_deletion_black_node_no_successor_3() {
     ];
 
     let tree_structure = rb_tree.get_tree_structure();
-    
+
     compare_tree_structures(@tree_structure, @tree_after_deletion);
 
     let is_tree_valid = rb_tree.is_tree_valid();
@@ -1160,7 +1134,7 @@ fn test_deletion_black_node_successor() {
 
     let is_tree_valid = rb_tree.is_tree_valid();
     assert(is_tree_valid, 'Tree is not valid');
-    
+
     delete(rb_tree, node_10);
 
     let tree_after_deletion = array![
@@ -1235,7 +1209,7 @@ fn test_delete_tree_one_by_one() {
 
     let node_90 = insert(rb_tree, 90, 1);
     let node_70 = insert(rb_tree, 70, 2);
-    let node_43 = insert(rb_tree, 43, 3); 
+    let node_43 = insert(rb_tree, 43, 3);
     delete(rb_tree, node_70);
     insert(rb_tree, 24, 4);
     insert(rb_tree, 14, 5);
@@ -1245,8 +1219,8 @@ fn test_delete_tree_one_by_one() {
     delete(rb_tree, node_90);
     insert(rb_tree, 57, 8);
     let node_1 = insert(rb_tree, 1, 9);
-    insert(rb_tree, 60, 10);  
-    let node_47 =  insert(rb_tree, 47, 11);
+    insert(rb_tree, 60, 10);
+    let node_47 = insert(rb_tree, 47, 11);
     delete(rb_tree, node_47);
     delete(rb_tree, node_1);
     delete(rb_tree, node_90);
@@ -1282,7 +1256,9 @@ fn test_add_1_to_100_delete_100_to_1() {
 
     i = 100;
     while i >= 1 {
-        let id = poseidon::poseidon_hash_span(array![mock_address(MOCK_ADDRESS).into(), i.try_into().unwrap()].span());
+        let id = poseidon::poseidon_hash_span(
+            array![mock_address(MOCK_ADDRESS).into(), i.try_into().unwrap()].span()
+        );
         delete(rb_tree, id);
         println!("Deleted: {:?}", i);
         let is_tree_valid = rb_tree.is_tree_valid();
@@ -1310,25 +1286,27 @@ fn test_add_1_to_100_delete_1_to_100() {
 
     i = 1;
     while i <= 100 {
-        let id = poseidon::poseidon_hash_span(array![mock_address(MOCK_ADDRESS).into(), i.try_into().unwrap()].span());
+        let id = poseidon::poseidon_hash_span(
+            array![mock_address(MOCK_ADDRESS).into(), i.try_into().unwrap()].span()
+        );
         delete(rb_tree, id);
         println!("Deleted: {:?}", i);
         let is_tree_valid = rb_tree.is_tree_valid();
         assert(is_tree_valid, 'Tree is not valid');
         i += 1;
     };
-} 
+}
 
-const max_no:u8 = 100;
+const max_no: u8 = 100;
 
 fn random(seed: felt252) -> u8 {
     // Use pedersen hash to generate a pseudo-random felt252
     let hash = pedersen(seed, 0);
-    
+
     // Convert the felt252 to u256 and take the last 8 bits
     let random_u256: u256 = hash.into();
     let random_u8: u8 = (random_u256 & 0xFF).try_into().unwrap();
-    
+
     // Scale
     (random_u8 % max_no) + 1
 }
@@ -1338,60 +1316,62 @@ fn random(seed: felt252) -> u8 {
 #[ignore]
 fn testing_random_insertion_and_deletion() {
     let rb_tree = setup_rb_tree();
-    let no_of_nodes:u8 = max_no;
-    let mut inserted_node_ids:Array<felt252> = ArrayTrait::new();
+    let no_of_nodes: u8 = max_no;
+    let mut inserted_node_ids: Array<felt252> = ArrayTrait::new();
 
-    let mut i:u32 = 0;
+    let mut i: u32 = 0;
 
-    while i < no_of_nodes.try_into().unwrap() {
-        let price = random(i.try_into().unwrap());
-        let nonce = i.try_into().unwrap();
+    while i < no_of_nodes
+        .try_into()
+        .unwrap() {
+            let price = random(i.try_into().unwrap());
+            let nonce = i.try_into().unwrap();
 
-        let new_bid = create_bid(price.try_into().unwrap(), nonce);
+            let new_bid = create_bid(price.try_into().unwrap(), nonce);
 
-        rb_tree.insert(new_bid);
-        
-        inserted_node_ids.append(new_bid.id);
+            rb_tree.insert(new_bid);
 
-        let bid = rb_tree.find(new_bid.id);
-        println!("Inserting price {}", bid.price);
+            inserted_node_ids.append(new_bid.id);
 
-        assert(bid.price == price.try_into().unwrap(), 'Insertion error');
+            let bid = rb_tree.find(new_bid.id);
+            println!("Inserting price {}", bid.price);
 
-        let is_tree_valid = rb_tree.is_tree_valid();
-        assert(is_tree_valid, 'Tree is not valid');
+            assert(bid.price == price.try_into().unwrap(), 'Insertion error');
 
-        i += 1;
-    };
+            let is_tree_valid = rb_tree.is_tree_valid();
+            assert(is_tree_valid, 'Tree is not valid');
 
-    let mut j:u32 = 0;
+            i += 1;
+        };
 
-    while j < no_of_nodes.try_into().unwrap() {
-        let bid_id = inserted_node_ids.at(j);
+    let mut j: u32 = 0;
 
-        delete(rb_tree, *bid_id);
+    while j < no_of_nodes
+        .try_into()
+        .unwrap() {
+            let bid_id = inserted_node_ids.at(j);
 
-        let found_bid = rb_tree.find(*bid_id);
+            delete(rb_tree, *bid_id);
 
-        assert(found_bid.id == 0, 'Bid delete error');
+            let found_bid = rb_tree.find(*bid_id);
 
-        let is_tree_valid = rb_tree.is_tree_valid();
-        assert(is_tree_valid, 'Tree is not valid');
+            assert(found_bid.id == 0, 'Bid delete error');
 
-        println!("Deleted node no. {}", j);
+            let is_tree_valid = rb_tree.is_tree_valid();
+            assert(is_tree_valid, 'Tree is not valid');
 
-        j += 1;
-    }
+            println!("Deleted node no. {}", j);
+
+            j += 1;
+        }
 }
 
 // Test Utilities
 
 fn create_bid(price: u256, nonce: u64) -> Bid {
     let bidder = mock_address(MOCK_ADDRESS);
-    let id = poseidon::poseidon_hash_span(
-        array![bidder.into(), nonce.try_into().unwrap()].span()
-    );
-    Bid { 
+    let id = poseidon::poseidon_hash_span(array![bidder.into(), nonce.try_into().unwrap()].span());
+    Bid {
         id: id,
         nonce: nonce,
         owner: bidder,
@@ -1404,18 +1384,19 @@ fn create_bid(price: u256, nonce: u64) -> Bid {
 
 fn insert(rb_tree: IRBTreeDispatcher, price: u256, nonce: u64) -> felt252 {
     let bidder = mock_address(MOCK_ADDRESS);
-    let id = poseidon::poseidon_hash_span(
-        array![bidder.into(), nonce.try_into().unwrap()].span()
-    );
-    rb_tree.insert(Bid { 
-        id: id,
-        nonce: nonce,
-        owner: bidder,
-        amount: 0,
-        price: price,
-        is_tokenized: false,
-        is_refunded: false,
-    });
+    let id = poseidon::poseidon_hash_span(array![bidder.into(), nonce.try_into().unwrap()].span());
+    rb_tree
+        .insert(
+            Bid {
+                id: id,
+                nonce: nonce,
+                owner: bidder,
+                amount: 0,
+                price: price,
+                is_tokenized: false,
+                is_refunded: false,
+            }
+        );
     return id;
 }
 
@@ -1429,27 +1410,7 @@ fn delete(rb_tree: IRBTreeDispatcher, bid_id: felt252) {
 }
 
 fn compare_tree_structures(
-    actual: @Array<Array<(u256, bool, u128)>>,
-    expected: @Array<Array<(u256, bool, u128)>>
-) {
-    if actual.len() != expected.len() {
-        return;
-    }
-
-    let mut i = 0;    
-    
-    // Compare outer array
-    while i < actual.len() {
-        let actual_inner = actual[i];
-        let expected_inner = expected[i];
-        compare_inner(actual_inner, expected_inner);
-        i += 1;
-    }                      
-}
-
-fn compare_inner(
-    actual: @Array<(u256, bool, u128)>,
-    expected: @Array<(u256, bool, u128)>
+    actual: @Array<Array<(u256, bool, u128)>>, expected: @Array<Array<(u256, bool, u128)>>
 ) {
     if actual.len() != expected.len() {
         return;
@@ -1457,18 +1418,33 @@ fn compare_inner(
 
     let mut i = 0;
 
-    while i < actual.len() {
-        let actual_tuple = *actual[i];
-        let expected_tuple = *expected[i];
-        compare_tuple(actual_tuple, expected_tuple);
-        i += 1;
-    }
+    // Compare outer array
+    while i < actual
+        .len() {
+            let actual_inner = actual[i];
+            let expected_inner = expected[i];
+            compare_inner(actual_inner, expected_inner);
+            i += 1;
+        }
 }
 
-fn compare_tuple(
-    actual: (u256, bool, u128),
-    expected: (u256, bool, u128)
-) {
+fn compare_inner(actual: @Array<(u256, bool, u128)>, expected: @Array<(u256, bool, u128)>) {
+    if actual.len() != expected.len() {
+        return;
+    }
+
+    let mut i = 0;
+
+    while i < actual
+        .len() {
+            let actual_tuple = *actual[i];
+            let expected_tuple = *expected[i];
+            compare_tuple(actual_tuple, expected_tuple);
+            i += 1;
+        }
+}
+
+fn compare_tuple(actual: (u256, bool, u128), expected: (u256, bool, u128)) {
     let (actual_price, actual_color, actual_position) = actual;
     let (expected_price, expected_color, expected_position) = expected;
 

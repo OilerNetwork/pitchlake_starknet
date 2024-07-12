@@ -11,7 +11,7 @@ trait IRBTree<TContractState> {
     fn is_tree_valid(ref self: TContractState) -> bool;
     fn _get_total_options_available(self: @TContractState) -> u256;
     fn get_total_options_sold(self: @TContractState) -> u256;
-    fn add_node(ref self: TContractState, bid: Bid, color: bool, parent: felt252) -> felt252 ;
+    fn add_node(ref self: TContractState, bid: Bid, color: bool, parent: felt252) -> felt252;
 }
 
 const BLACK: bool = false;
@@ -125,14 +125,10 @@ pub mod RBTreeComponent {
             self.check_if_rb_tree_is_valid()
         }
 
-        fn add_node(ref self: ComponentState<TContractState>, bid: Bid, color: bool, parent: felt252) -> felt252 {
-            let new_node = Node {
-                value: bid,
-                left: 0,
-                right: 0,
-                parent: parent,
-                color: color,
-            };
+        fn add_node(
+            ref self: ComponentState<TContractState>, bid: Bid, color: bool, parent: felt252
+        ) -> felt252 {
+            let new_node = Node { value: bid, left: 0, right: 0, parent: parent, color: color, };
             let parent_node = self.tree.read(parent);
             if bid <= parent_node.value {
                 self.update_left(parent, bid.id);
@@ -193,7 +189,7 @@ pub mod RBTreeComponent {
             }
 
             let node: Node = self.tree.read(current);
-            
+
             if value == node.value {
                 return current;
             } else if value < node.value {
@@ -386,99 +382,102 @@ pub mod RBTreeComponent {
             self.ensure_root_is_black();
         }
 
-        fn delete_fixup(ref self: ComponentState<TContractState>, mut x: felt252, mut x_parent: felt252) {
-            while x != self.root.read() && (x == 0 || self.is_black(x)) {
-                let mut x_parent_node: Node = self.tree.read(x_parent);
-                if x == x_parent_node.left {
-                    let mut w = x_parent_node.right;
-                    
-                    // Case 1: x's sibling w is red
-                    if self.is_red(w) {
-                        self.set_color(w, BLACK);
-                        self.set_color(x_parent, RED);
-                        self.rotate_left(x_parent);
-                        x_parent_node = self.tree.read(x_parent);
-                        w = x_parent_node.right;
-                    }
-                    
-                    // Case 2: x's sibling w is black, and both of w's children are black
-                    let mut w_node: Node = self.tree.read(w);
-                    if (w_node.left == 0 || self.is_black(w_node.left))
-                        && (w_node.right == 0 || self.is_black(w_node.right)) {
-                        self.set_color(w, RED);
-                        x = x_parent;
-                        x_parent = self.get_parent(x);
-                    } else {
-                        // Case 3: x's sibling w is black, w's left child is red, and w's right child is black
-                        if w_node.right == 0 || self.is_black(w_node.right) {
-                            if w_node.left != 0 {
-                                self.set_color(w_node.left, BLACK);
-                            }
-                            self.set_color(w, RED);
-                            self.rotate_right(w);
+        fn delete_fixup(
+            ref self: ComponentState<TContractState>, mut x: felt252, mut x_parent: felt252
+        ) {
+            while x != self.root.read()
+                && (x == 0 || self.is_black(x)) {
+                    let mut x_parent_node: Node = self.tree.read(x_parent);
+                    if x == x_parent_node.left {
+                        let mut w = x_parent_node.right;
+
+                        // Case 1: x's sibling w is red
+                        if self.is_red(w) {
+                            self.set_color(w, BLACK);
+                            self.set_color(x_parent, RED);
+                            self.rotate_left(x_parent);
                             x_parent_node = self.tree.read(x_parent);
                             w = x_parent_node.right;
                         }
-                        
-                        // Case 4: x's sibling w is black, and w's right child is red
-                        x_parent_node = self.tree.read(x_parent);
-                        self.set_color(w, x_parent_node.color);
-                        self.set_color(x_parent, BLACK);
-                        w_node = self.tree.read(w);
-                        if w_node.right != 0 {
-                            self.set_color(w_node.right, BLACK);
-                        }
-                        self.rotate_left(x_parent);
-                        x = self.root.read();
-                        break;
-                    }
-                } else {
-                    // Mirror cases for when x is a right child
-                    let mut w = x_parent_node.left;
-                    
-                    // Case 1 (mirror): x's sibling w is red
-                    if self.is_red(w) {
-                        self.set_color(w, BLACK);
-                        self.set_color(x_parent, RED);
-                        self.rotate_right(x_parent);
-                        x_parent_node = self.tree.read(x_parent);
-                        w = x_parent_node.left;
-                    }
-                    
-                    // Case 2 (mirror): x's sibling w is black, and both of w's children are black
-                    let mut w_node:Node = self.tree.read(w);
-                    if (w_node.right == 0 || self.is_black(w_node.right))
-                        && (w_node.left == 0 || self.is_black(w_node.left)) {
-                        self.set_color(w, RED);
-                        x = x_parent;
-                        x_parent = self.get_parent(x);
-                    } else {
-                        // Case 3 (mirror): x's sibling w is black, w's right child is red, and w's left child is black
-                        if w_node.left == 0 || self.is_black(w_node.left) {
+
+                        // Case 2: x's sibling w is black, and both of w's children are black
+                        let mut w_node: Node = self.tree.read(w);
+                        if (w_node.left == 0 || self.is_black(w_node.left))
+                            && (w_node.right == 0 || self.is_black(w_node.right)) {
+                            self.set_color(w, RED);
+                            x = x_parent;
+                            x_parent = self.get_parent(x);
+                        } else {
+                            // Case 3: x's sibling w is black, w's left child is red, and w's right child is black
+                            if w_node.right == 0 || self.is_black(w_node.right) {
+                                if w_node.left != 0 {
+                                    self.set_color(w_node.left, BLACK);
+                                }
+                                self.set_color(w, RED);
+                                self.rotate_right(w);
+                                x_parent_node = self.tree.read(x_parent);
+                                w = x_parent_node.right;
+                            }
+
+                            // Case 4: x's sibling w is black, and w's right child is red
+                            x_parent_node = self.tree.read(x_parent);
+                            self.set_color(w, x_parent_node.color);
+                            self.set_color(x_parent, BLACK);
+                            w_node = self.tree.read(w);
                             if w_node.right != 0 {
                                 self.set_color(w_node.right, BLACK);
                             }
-                            self.set_color(w, RED);
-                            self.rotate_left(w);
+                            self.rotate_left(x_parent);
+                            x = self.root.read();
+                            break;
+                        }
+                    } else {
+                        // Mirror cases for when x is a right child
+                        let mut w = x_parent_node.left;
+
+                        // Case 1 (mirror): x's sibling w is red
+                        if self.is_red(w) {
+                            self.set_color(w, BLACK);
+                            self.set_color(x_parent, RED);
+                            self.rotate_right(x_parent);
                             x_parent_node = self.tree.read(x_parent);
                             w = x_parent_node.left;
                         }
-                        
-                        // Case 4 (mirror): x's sibling w is black, and w's left child is red
-                        x_parent_node = self.tree.read(x_parent);
-                        self.set_color(w, x_parent_node.color);
-                        self.set_color(x_parent, BLACK);
-                        w_node = self.tree.read(w);
-                        if w_node.left != 0 {
-                            self.set_color(w_node.left, BLACK);
+
+                        // Case 2 (mirror): x's sibling w is black, and both of w's children are black
+                        let mut w_node: Node = self.tree.read(w);
+                        if (w_node.right == 0 || self.is_black(w_node.right))
+                            && (w_node.left == 0 || self.is_black(w_node.left)) {
+                            self.set_color(w, RED);
+                            x = x_parent;
+                            x_parent = self.get_parent(x);
+                        } else {
+                            // Case 3 (mirror): x's sibling w is black, w's right child is red, and w's left child is black
+                            if w_node.left == 0 || self.is_black(w_node.left) {
+                                if w_node.right != 0 {
+                                    self.set_color(w_node.right, BLACK);
+                                }
+                                self.set_color(w, RED);
+                                self.rotate_left(w);
+                                x_parent_node = self.tree.read(x_parent);
+                                w = x_parent_node.left;
+                            }
+
+                            // Case 4 (mirror): x's sibling w is black, and w's left child is red
+                            x_parent_node = self.tree.read(x_parent);
+                            self.set_color(w, x_parent_node.color);
+                            self.set_color(x_parent, BLACK);
+                            w_node = self.tree.read(w);
+                            if w_node.left != 0 {
+                                self.set_color(w_node.left, BLACK);
+                            }
+                            self.rotate_right(x_parent);
+                            x = self.root.read();
+                            break;
                         }
-                        self.rotate_right(x_parent);
-                        x = self.root.read();
-                        break;
                     }
-                }
-            };
-            
+                };
+
             // Final color adjustment
             if x != 0 {
                 self.set_color(x, BLACK);
@@ -510,13 +509,7 @@ pub mod RBTreeComponent {
         }
 
         fn get_default_node(ref self: ComponentState<TContractState>) -> Node {
-            Node {
-                value: self.get_default_bid(),
-                left: 0,
-                right: 0,
-                parent: 0,
-                color: BLACK,
-            }
+            Node { value: self.get_default_bid(), left: 0, right: 0, parent: 0, color: BLACK, }
         }
 
         fn get_default_bid(ref self: ComponentState<TContractState>) -> Bid {
@@ -734,7 +727,10 @@ pub mod RBTreeComponent {
             let mut filled_position_in_level: Array<(felt252, u128)> = ArrayTrait::new();
             let mut node_positions: Felt252Dict<u128> = Default::default();
 
-            self.collect_position_and_levels_of_nodes(root_id, 0, initial_level, ref node_positions);
+            self
+                .collect_position_and_levels_of_nodes(
+                    root_id, 0, initial_level, ref node_positions
+                );
             queue.append((root_id, 0));
 
             while !queue
@@ -782,7 +778,8 @@ pub mod RBTreeComponent {
                         .len() {
                             let (node_id, position) = level.at(j.try_into().unwrap());
                             let node = self.tree.read(*node_id);
-                            filled_position_in_level.append((node.value.price, node.color, *position));
+                            filled_position_in_level
+                                .append((node.value.price, node.color, *position));
                             j += 1;
                         };
                     filled_position_in_levels.append(filled_position_in_level);
@@ -793,7 +790,11 @@ pub mod RBTreeComponent {
         }
 
         fn collect_position_and_levels_of_nodes(
-            ref self: ComponentState<TContractState>, node_id: felt252, position: u128, level: u256, ref node_positions:Felt252Dict<u128>
+            ref self: ComponentState<TContractState>,
+            node_id: felt252,
+            position: u128,
+            level: u256,
+            ref node_positions: Felt252Dict<u128>
         ) {
             if node_id == 0 {
                 return;
@@ -803,8 +804,14 @@ pub mod RBTreeComponent {
 
             node_positions.insert(node_id, position);
 
-            self.collect_position_and_levels_of_nodes(node.left, position * 2, level + 1, ref node_positions);
-            self.collect_position_and_levels_of_nodes(node.right, position * 2 + 1, level + 1, ref node_positions);
+            self
+                .collect_position_and_levels_of_nodes(
+                    node.left, position * 2, level + 1, ref node_positions
+                );
+            self
+                .collect_position_and_levels_of_nodes(
+                    node.right, position * 2 + 1, level + 1, ref node_positions
+                );
         }
     }
 
