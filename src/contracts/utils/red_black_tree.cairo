@@ -415,7 +415,6 @@ pub mod RBTreeComponent {
                         x_parent = self.get_parent(x);
                     } else {
                         // Case 3: x's sibling w is black, w's left child is red, and w's right child is black
-                        let w_node: Node = self.tree.read(w);
                         if w_node.right == 0 || self.is_black(w_node.right) {
                             if w_node.left != 0 {
                                 self.set_color(w_node.left, BLACK);
@@ -461,7 +460,6 @@ pub mod RBTreeComponent {
                         x_parent = self.get_parent(x);
                     } else {
                         // Case 3 (mirror): x's sibling w is black, w's right child is red, and w's left child is black
-                        let w_node: Node = self.tree.read(w);
                         if w_node.left == 0 || self.is_black(w_node.left) {
                             if w_node.right != 0 {
                                 self.set_color(w_node.right, BLACK);
