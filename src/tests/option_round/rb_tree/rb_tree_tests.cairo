@@ -9,6 +9,8 @@ use core::pedersen::pedersen;
 const BLACK: bool = false;
 const RED: bool = true;
 
+const MOCK_ADDRESS: felt252 = 123456;
+
 #[starknet::interface]
 pub trait IRBTree<TContractState> {
     fn insert(ref self: TContractState, value: Bid);
@@ -1281,7 +1283,7 @@ fn test_add_1_to_100_delete_100_to_1() {
 
     i = 100;
     while i >= 1 {
-        let id = poseidon::poseidon_hash_span(array![mock_address(123456).into(), i.try_into().unwrap()].span());
+        let id = poseidon::poseidon_hash_span(array![mock_address(MOCK_ADDRESS).into(), i.try_into().unwrap()].span());
         delete(rb_tree, id);
         println!("Deleted: {:?}", i);
         let is_tree_valid = rb_tree.is_tree_valid();
@@ -1309,7 +1311,7 @@ fn test_add_1_to_100_delete_1_to_100() {
 
     i = 1;
     while i <= 100 {
-        let id = poseidon::poseidon_hash_span(array![mock_address(123456).into(), i.try_into().unwrap()].span());
+        let id = poseidon::poseidon_hash_span(array![mock_address(MOCK_ADDRESS).into(), i.try_into().unwrap()].span());
         delete(rb_tree, id);
         println!("Deleted: {:?}", i);
         let is_tree_valid = rb_tree.is_tree_valid();
@@ -1386,7 +1388,7 @@ fn testing_random_insertion_and_deletion() {
 // Test Utilities
 
 fn create_bid(price: u256, nonce: u64) -> Bid {
-    let bidder = mock_address(123456);
+    let bidder = mock_address(MOCK_ADDRESS);
     let id = poseidon::poseidon_hash_span(
         array![bidder.into(), nonce.try_into().unwrap()].span()
     );
@@ -1402,7 +1404,7 @@ fn create_bid(price: u256, nonce: u64) -> Bid {
 }
 
 fn insert(rb_tree: IRBTreeDispatcher, price: u256, nonce: u64) -> felt252 {
-    let bidder = mock_address(123456);
+    let bidder = mock_address(MOCK_ADDRESS);
     let id = poseidon::poseidon_hash_span(
         array![bidder.into(), nonce.try_into().unwrap()].span()
     );
