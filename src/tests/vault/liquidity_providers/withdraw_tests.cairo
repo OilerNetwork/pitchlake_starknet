@@ -7,7 +7,7 @@ use starknet::{
     testing::{set_block_timestamp, set_contract_address}
 };
 use pitch_lake_starknet::{
-    contracts::{eth::Eth, vault::{Vault, VaultError}},
+    contracts::{eth::Eth, vault::{contract::Vault, types::VaultError}},
     tests::{
         utils::{
             helpers::{

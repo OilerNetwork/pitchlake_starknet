@@ -1,6 +1,6 @@
 use core::array::SpanTrait;
 use starknet::{testing, ContractAddress,};
-use pitch_lake_starknet::contracts::{vault::{Vault}, option_round::{OptionRound}};
+use pitch_lake_starknet::contracts::{vault::contract::Vault, option_round::contract::OptionRound,};
 use openzeppelin::token::erc20::{ERC20Component, ERC20Component::Transfer};
 use openzeppelin::{utils::serde::SerializedAppend,};
 use debug::PrintTrait;
@@ -55,8 +55,8 @@ fn assert_event_auction_start(
     // @note Reminder to clear event logs at the end of the accelerators
     match pop_log::<OptionRound::Event>(option_round_address) {
         Option::Some(e) => {
-            let expected = OptionRound::Event::AuctionStart(
-                OptionRound::AuctionStart { total_options_available }
+            let expected = OptionRound::Event::AuctionStarted(
+                OptionRound::AuctionStarted { total_options_available }
             );
             assert_events_equal(e, expected);
         },
@@ -70,8 +70,8 @@ fn assert_event_auction_bid_accepted(
 ) {
     match pop_log::<OptionRound::Event>(contract) {
         Option::Some(e) => {
-            let expected = OptionRound::Event::AuctionAcceptedBid(
-                OptionRound::AuctionAcceptedBid { account, amount, price, nonce }
+            let expected = OptionRound::Event::BidAccepted(
+                OptionRound::BidAccepted { account, amount, price, nonce }
             );
             assert_events_equal(e, expected);
         },
@@ -90,8 +90,8 @@ fn assert_event_auction_bid_updated(
 ) {
     match pop_log::<OptionRound::Event>(contract) {
         Option::Some(e) => {
-            let expected = OptionRound::Event::AuctionUpdatedBid(
-                OptionRound::AuctionUpdatedBid {
+            let expected = OptionRound::Event::BidUpdated(
+                OptionRound::BidUpdated {
                     id, account, old_amount, old_price, new_amount, new_price
                 }
             );
@@ -107,8 +107,8 @@ fn assert_event_auction_bid_rejected(
 ) {
     match pop_log::<OptionRound::Event>(contract) {
         Option::Some(e) => {
-            let expected = OptionRound::Event::AuctionRejectedBid(
-                OptionRound::AuctionRejectedBid { account, amount, price }
+            let expected = OptionRound::Event::BidRejected(
+                OptionRound::BidRejected { account, amount, price }
             );
             assert_events_equal(e, expected);
         },
@@ -120,8 +120,8 @@ fn assert_event_auction_bid_rejected(
 fn assert_event_auction_end(option_round_address: ContractAddress, clearing_price: u256) {
     match pop_log::<OptionRound::Event>(option_round_address) {
         Option::Some(e) => {
-            let expected = OptionRound::Event::AuctionEnd(
-                OptionRound::AuctionEnd { clearing_price }
+            let expected = OptionRound::Event::AuctionEnded(
+                OptionRound::AuctionEnded { clearing_price }
             );
             assert_events_equal(e, expected);
         },
@@ -134,8 +134,8 @@ fn assert_event_auction_end(option_round_address: ContractAddress, clearing_pric
 fn assert_event_option_settle(option_round_address: ContractAddress, settlement_price: u256) {
     match pop_log::<OptionRound::Event>(option_round_address) {
         Option::Some(e) => {
-            let expected = OptionRound::Event::OptionSettle(
-                OptionRound::OptionSettle { settlement_price }
+            let expected = OptionRound::Event::OptionRoundSettled(
+                OptionRound::OptionRoundSettled { settlement_price }
             );
             assert_events_equal(e, expected);
         },

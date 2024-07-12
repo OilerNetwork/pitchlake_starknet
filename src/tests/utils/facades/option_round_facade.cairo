@@ -1,16 +1,18 @@
 //Helper functions for posterity
 use openzeppelin::token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
 use pitch_lake_starknet::contracts::vault::{
-    IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait,
-    VaultType
+    interface::{
+        IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcherTrait,
+    },
+    contract::Vault, types::VaultType
 };
 use starknet::{ContractAddress, testing::{set_contract_address}};
 use pitch_lake_starknet::{
     contracts::option_round::{
-        IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState, StartAuctionParams,
-        SettleOptionRoundParams, OptionRoundConstructorParams, Bid,
-        OptionRound::{
-            OptionRoundError, OptionRoundErrorIntoFelt252, //OptionRoundErrorIntoByteArray
+        types::{OptionRoundError, OptionRoundErrorIntoFelt252},
+        interface::{
+            IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState,
+            StartAuctionParams, SettleOptionRoundParams, OptionRoundConstructorParams, Bid,
         }
     },
     tests::{
@@ -234,7 +236,8 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     // @note: Call using bystander ?
     fn exercise_options(ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress) -> u256 {
         let individual_payout = self.get_payout_balance_for(option_bidder_buyer);
-        let res = self.option_round_dispatcher.exercise_options(option_bidder_buyer);
+        set_contract_address(option_bidder_buyer);
+        let res = self.option_round_dispatcher.exercise_options();
         match res {
             Result::Ok(payout) => sanity_checks::exercise_options(
                 ref self, payout, individual_payout
@@ -246,7 +249,8 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     fn exercise_options_raw(
         ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
     ) -> Result<u256, OptionRoundError> {
-        self.option_round_dispatcher.exercise_options(option_bidder_buyer)
+        set_contract_address(option_bidder_buyer);
+        self.option_round_dispatcher.exercise_options()
     }
 
     // Exercise options for multiple option buyers
@@ -268,7 +272,8 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         let option_erc20_balance_before = get_erc20_balance(
             self.contract_address(), option_bidder_buyer
         );
-        let res = self.option_round_dispatcher.tokenize_options(option_bidder_buyer);
+        set_contract_address(option_bidder_buyer);
+        let res = self.option_round_dispatcher.tokenize_options();
         match res {
             Result::Ok(options_minted) => sanity_checks::tokenize_options(
                 ref self, option_bidder_buyer, option_erc20_balance_before, options_minted,
@@ -280,7 +285,8 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     fn tokenize_options_raw(
         ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
     ) -> Result<u256, OptionRoundError> {
-        self.option_round_dispatcher.tokenize_options(option_bidder_buyer)
+        set_contract_address(option_bidder_buyer);
+        self.option_round_dispatcher.tokenize_options()
     }
 
     /// Reads ///

@@ -8,8 +8,11 @@ use starknet::{
 use openzeppelin::token::erc20::interface::{ERC20ABIDispatcherTrait,};
 use pitch_lake_starknet::{
     contracts::{
-        eth::Eth, vault::{Vault},
-        option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState},
+        eth::Eth, vault::contract::Vault,
+        option_round::{
+            types::{OptionRoundState},
+            interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,}
+        },
     },
     tests::{
         utils::{

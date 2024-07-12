@@ -21,10 +21,16 @@ use pitch_lake_starknet::{
             IMarketAggregatorDispatcherTrait, IMarketAggregatorSafeDispatcher,
             IMarketAggregatorSafeDispatcherTrait
         },
-        vault::{IVaultDispatcher, IVaultDispatcherTrait, Vault, VaultType}, option_round,
+        vault::{
+            contract::Vault, types::VaultType, interface::{IVaultDispatcher, IVaultDispatcherTrait}
+        },
         option_round::{
-            OptionRound, StartAuctionParams, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,
-            IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait, OptionRoundState,
+            contract::OptionRound,
+            interface::{
+                IOptionRoundDispatcher, IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher,
+                IOptionRoundSafeDispatcherTrait,
+            },
+            types::{StartAuctionParams, OptionRoundState,}
         },
     },
     tests::{

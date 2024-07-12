@@ -2,8 +2,10 @@ use starknet::{ContractAddress, testing::{set_contract_address, set_block_timest
 use openzeppelin::token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
 use pitch_lake_starknet::{
     contracts::{
-        vault::{VaultError, IVaultDispatcher, IVaultDispatcherTrait},
-        option_round::{OptionRound, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,},
+        vault::{types::VaultError, interface::{IVaultDispatcher, IVaultDispatcherTrait}},
+        option_round::{
+            contract::OptionRound, interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,}
+        },
         market_aggregator::{
             MarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
         },
