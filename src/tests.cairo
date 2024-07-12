@@ -24,6 +24,10 @@ mod option_round {
         mod update_bids_tests;
         mod tokenizing_options_tests;
     }
+    mod rb_tree {
+        mod rb_tree_tests;
+        mod rb_tree_mock_contract;
+    }
     mod state_transition {
         mod auction_end {
             mod auction_end_tests;
