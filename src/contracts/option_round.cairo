@@ -682,8 +682,8 @@ mod OptionRound {
 
         // Get the details of a bid
         fn get_bid_details(self: @ContractState, bid_id: felt252) -> Bid {
-            let node: Node = self.bids_tree.tree.read(bid_id);
-            node.value
+            let bid: Bid = self.bids_tree.find(bid_id);
+            bid
         }
 
 
