@@ -1,7 +1,7 @@
 use core::traits::TryInto;
 use pitch_lake_starknet::{
-    tests::option_round::rb_tree::rb_tree_mock_contract::RBTreeMockContract,
-    contracts::option_round::OptionRound::Bid
+    tests::option_round::{rb_tree::rb_tree_mock_contract::RBTreeMockContract},
+    contracts::option_round::types::Bid,
 };
 use starknet::{deploy_syscall, SyscallResultTrait, contract_address_const, ContractAddress};
 use core::pedersen::pedersen;
