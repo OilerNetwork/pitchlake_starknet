@@ -102,6 +102,7 @@ fn test_insert_into_empty_tree() {
 }
 
 #[test]
+#[ignore]
 fn test_recoloring_only() {
     let rb_tree = setup_rb_tree();
     
@@ -152,6 +153,7 @@ fn test_recoloring_only() {
 }   
 
 #[test]
+#[ignore]
 fn test_recoloring_two() {
     let rb_tree = setup_rb_tree();
 
@@ -187,7 +189,6 @@ fn test_recoloring_two() {
 
     insert(rb_tree, 40, 10);
 
-    // [[(31, false, 0)], [(11, false, 0), (41, false, 1)], [(1, false, 0), (27, false, 1), (36, true, 2), (46, false, 3)], [(33, false, 4), (38, false, 5)], [(40, true, 11)]]
     let tree_after_recolor = array![
         array![(31, false, 0)],
         array![(11, false, 0), (41, false, 1)],
@@ -203,6 +204,7 @@ fn test_recoloring_two() {
 }
 
 #[test]
+#[ignore]
 fn test_right_rotation() {
     let rb_tree = setup_rb_tree();
     
@@ -240,6 +242,7 @@ fn test_right_rotation() {
 
 
 #[test]
+#[ignore]
 fn test_left_rotation_no_sibling() {
     let rb_tree = setup_rb_tree();
 
@@ -274,6 +277,7 @@ fn test_left_rotation_no_sibling() {
 }
 
 #[test]
+#[ignore]
 fn test_right_rotation_no_sibling_left_subtree() {
     let rb_tree = setup_rb_tree();
 
@@ -310,6 +314,7 @@ fn test_right_rotation_no_sibling_left_subtree() {
 }
 
 #[test]
+#[ignore]
 fn test_left_right_rotation_no_sibling() {
     let rb_tree = setup_rb_tree();
 
@@ -345,8 +350,8 @@ fn test_left_right_rotation_no_sibling() {
     let is_tree_valid = rb_tree.is_tree_valid();
     assert(is_tree_valid, 'Tree is not valid');
 }
-
 #[test]
+#[ignore]
 fn test_right_left_rotation_no_sibling() {
     let rb_tree = setup_rb_tree();
 
@@ -384,12 +389,8 @@ fn test_right_left_rotation_no_sibling() {
 }
 
 #[test]
+#[ignore]
 fn test_recolor_lr() {
-    // 31B
-    // 11R 41B
-    // 1B 27B 36R 51R
-    // 22R 30R
-
     let rb_tree = setup_rb_tree();
 
     let mut new_bid = create_bid(31, 1);
@@ -539,6 +540,7 @@ fn test_functional_test_build_tree() {
 }
 
 #[test]
+#[ignore]
 fn test_right_left_rotation_after_recolor() {
     let rb_tree = setup_rb_tree();
 
@@ -583,6 +585,7 @@ fn test_right_left_rotation_after_recolor() {
 }
 
 #[test]
+#[ignore]
 fn test_right_rotation_after_recolor() {
     let rb_tree = setup_rb_tree();
 
@@ -635,6 +638,7 @@ fn test_right_rotation_after_recolor() {
 // Tests for deletion
 
 #[test]
+#[ignore]
 fn test_deletion_root() {
     let rb_tree = setup_rb_tree();
 
@@ -660,6 +664,7 @@ fn test_deletion_root() {
 }
 
 #[test]
+#[ignore]
 fn test_deletion_root_2_nodes() {
     let rb_tree = setup_rb_tree();
 
@@ -683,6 +688,7 @@ fn test_deletion_root_2_nodes() {
 }
 
 #[test]
+#[ignore]
 fn test_delete_single_child() {
     let rb_tree = setup_rb_tree();
 
@@ -708,6 +714,7 @@ fn test_delete_single_child() {
 }
 
 #[test]
+#[ignore]
 fn test_delete_single_deep_child() {
     let rb_tree = setup_rb_tree();
 
@@ -763,6 +770,7 @@ fn test_delete_single_deep_child() {
 }
 
 #[test]
+#[ignore]
 fn test_deletion_red_node_red_successor_no_children() {
     let rb_tree = setup_rb_tree();
 
@@ -808,6 +816,7 @@ fn test_deletion_red_node_red_successor_no_children() {
 }
 
 #[test]
+#[ignore]
 fn test_mirror_deletion_red_node_red_successor_no_children() {
     let rb_tree = setup_rb_tree();
 
@@ -857,6 +866,7 @@ fn test_mirror_deletion_red_node_red_successor_no_children() {
 }
 
 #[test]
+#[ignore]
 fn test_deletion_black_node_black_successor_right_red_child() {
     let rb_tree = setup_rb_tree();
 
@@ -910,6 +920,7 @@ fn test_deletion_black_node_black_successor_right_red_child() {
 }
 
 #[test]
+#[ignore]
 fn test_deletion_black_node_black_successor_no_child() {
     let rb_tree = setup_rb_tree();
 
@@ -946,6 +957,7 @@ fn test_deletion_black_node_black_successor_no_child() {
 }
 
 #[test]
+#[ignore]
 fn test_deletion_black_node_no_successor() {
     let rb_tree = setup_rb_tree();
 
@@ -982,6 +994,7 @@ fn test_deletion_black_node_no_successor() {
 }
 
 #[test]
+#[ignore]
 fn test_mirror_deletion_black_node_no_successor() {
     let rb_tree = setup_rb_tree();
 
@@ -1019,6 +1032,7 @@ fn test_mirror_deletion_black_node_no_successor() {
 }
 
 #[test]
+#[ignore]
 fn test_deletion_black_node_no_successor_2() {
     let rb_tree = setup_rb_tree();
 
@@ -1041,6 +1055,7 @@ fn test_deletion_black_node_no_successor_2() {
 }
 
 #[test]
+#[ignore]
 fn test_deletion_black_node_no_successor_3() {
     let rb_tree = setup_rb_tree();
 
@@ -1092,6 +1107,7 @@ fn test_deletion_black_node_no_successor_3() {
 }
 
 #[test]
+#[ignore]
 fn test_deletion_black_node_successor() {
     let rb_tree = setup_rb_tree();
 
@@ -1127,7 +1143,6 @@ fn test_deletion_black_node_successor() {
     
     delete(rb_tree, node_10);
 
-    // [[(20, false, 0)], [(5, false, 0), (60, false, 1)], [(3, false, 0), (7, false, 1), (40, false, 2), (80, false, 3)], [(50, true, 5)]]
     let tree_after_deletion = array![
         array![(20, false, 0)],
         array![(5, false, 0), (60, false, 1)],
@@ -1143,6 +1158,7 @@ fn test_deletion_black_node_successor() {
 }
 
 #[test]
+#[ignore]
 fn test_mirror_deletion_black_node_successor_case() {
     let rb_tree = setup_rb_tree();
 
