@@ -4,11 +4,12 @@ use starknet::ContractAddress;
 #[starknet::interface]
 trait IRBTree<TContractState> {
     fn insert(ref self: TContractState, value: Bid);
-    fn find(ref self: TContractState, bid_id: felt252) -> Bid;
+    fn find(self: @TContractState, bid_id: felt252) -> Bid;
+    fn update(ref self: TContractState, bid_id: felt252, bid: Bid);
     fn delete(ref self: TContractState, bid_id: felt252);
     fn find_clearing_price(ref self: TContractState) -> (u256, u256);
-    fn get_tree_structure(ref self: TContractState) -> Array<Array<(u256, bool, u128)>>;
-    fn is_tree_valid(ref self: TContractState) -> bool;
+    fn get_tree_structure(self: @TContractState) -> Array<Array<(u256, bool, u128)>>;
+    fn is_tree_valid(self: @TContractState) -> bool;
     fn _get_total_options_available(self: @TContractState) -> u256;
     fn get_total_options_sold(self: @TContractState) -> u256;
     fn add_node(ref self: TContractState, bid: Bid, color: bool, parent: felt252) -> felt252;
@@ -74,9 +75,18 @@ pub mod RBTreeComponent {
             self.nonce.write(self.nonce.read() + 1);
         }
 
-        fn find(ref self: ComponentState<TContractState>, bid_id: felt252) -> Bid {
+        fn find(self: @ComponentState<TContractState>, bid_id: felt252) -> Bid {
             let node: Node = self.tree.read(bid_id);
             return node.value;
+        }
+
+        fn update(ref self: ComponentState<TContractState>, bid_id: felt252, bid: Bid) {
+            let node: Node = self.tree.read(bid_id);
+            if node.value.id == 0 {
+                return;
+            }
+            let new_node = Node { value: bid, ..node };
+            self.tree.write(bid_id, new_node);
         }
 
         fn delete(ref self: ComponentState<TContractState>, bid_id: felt252) {
@@ -108,7 +118,7 @@ pub mod RBTreeComponent {
         }
 
         fn get_tree_structure(
-            ref self: ComponentState<TContractState>
+            self: @ComponentState<TContractState>
         ) -> Array<Array<(u256, bool, u128)>> {
             self.build_tree_structure_list()
         }
@@ -121,7 +131,7 @@ pub mod RBTreeComponent {
             self.total_options_available.read()
         }
 
-        fn is_tree_valid(ref self: ComponentState<TContractState>) -> bool {
+        fn is_tree_valid(self: @ComponentState<TContractState>) -> bool {
             self.check_if_rb_tree_is_valid()
         }
 
@@ -297,12 +307,12 @@ pub mod RBTreeComponent {
             }
         }
 
-        fn is_black(ref self: ComponentState<TContractState>, node_id: felt252) -> bool {
+        fn is_black(self: @ComponentState<TContractState>, node_id: felt252) -> bool {
             let node: Node = self.tree.read(node_id);
             node_id == 0 || node.color == BLACK
         }
 
-        fn is_red(ref self: ComponentState<TContractState>, node_id: felt252) -> bool {
+        fn is_red(self: @ComponentState<TContractState>, node_id: felt252) -> bool {
             if node_id == 0 {
                 return false;
             }
@@ -717,7 +727,7 @@ pub mod RBTreeComponent {
         TContractState, +HasComponent<TContractState>
     > of RBTreeGetStructureTrait<TContractState> {
         fn get_node_positions_by_level(
-            ref self: ComponentState<TContractState>
+            self: @ComponentState<TContractState>
         ) -> Array<Array<(felt252, u128)>> {
             let mut queue: Array<(felt252, u128)> = ArrayTrait::new();
             let root_id = self.root.read();
@@ -761,7 +771,7 @@ pub mod RBTreeComponent {
         }
 
         fn build_tree_structure_list(
-            ref self: ComponentState<TContractState>
+            self: @ComponentState<TContractState>
         ) -> Array<Array<(u256, bool, u128)>> {
             if (self.root.read() == 0) {
                 return ArrayTrait::new();
@@ -790,7 +800,7 @@ pub mod RBTreeComponent {
         }
 
         fn collect_position_and_levels_of_nodes(
-            ref self: ComponentState<TContractState>,
+            self: @ComponentState<TContractState>,
             node_id: felt252,
             position: u128,
             level: u256,
@@ -819,7 +829,7 @@ pub mod RBTreeComponent {
     impl RBTreeValidation<
         TContractState, +HasComponent<TContractState>
     > of RBTreeValidationTrait<TContractState> {
-        fn check_if_rb_tree_is_valid(ref self: ComponentState<TContractState>) -> bool {
+        fn check_if_rb_tree_is_valid(self: @ComponentState<TContractState>) -> bool {
             let root = self.root.read();
             if root == 0 {
                 return true; // An empty tree is a valid RB tree
@@ -835,7 +845,7 @@ pub mod RBTreeComponent {
             is_valid
         }
 
-        fn validate_node(ref self: ComponentState<TContractState>, node: felt252) -> (bool, u32) {
+        fn validate_node(self: @ComponentState<TContractState>, node: felt252) -> (bool, u32) {
             if node == 0 {
                 return (true, 1); // Null nodes are considered black
             }
