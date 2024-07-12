@@ -1318,29 +1318,47 @@ fn random(seed: felt252) -> u8 {
 fn testing_random_insertion_and_deletion() {
     let rb_tree = setup_rb_tree();
     let no_of_nodes:u8 = max_no;
-    let mut inserted_node_ids:Array<felt252> = ArrayTrait::new();
+    let mut inserted_node_ids:Array<Bid> = ArrayTrait::new();
 
     let mut i:u32 = 0;
+
     while i < no_of_nodes.try_into().unwrap() {
         let price = random(i.try_into().unwrap());
-        println!("Inserting {}", i);
         let nonce = i.try_into().unwrap();
-        let node_id:felt252 = insert(rb_tree, price.try_into().unwrap(), nonce);
+
+        let new_bid = create_bid(price.try_into().unwrap(), nonce);
+
+        let node_id = rb_tree.insert(new_bid);
+        
+        inserted_node_ids.append(new_bid);
+
+        let bid = rb_tree.get_bid(node_id);
+        println!("Inserting price {}", bid.price);
+
+        assert(bid.price == price.try_into().unwrap(), 'Insertion error');
+
         let is_tree_valid = rb_tree.is_tree_valid();
         assert(is_tree_valid, 'Tree is not valid');
-        inserted_node_ids.append(node_id);
+
         i += 1;
     };
 
-    println!("No of nodes inserted: {:?}", inserted_node_ids.len());
-
     let mut j:u32 = 0;
+
     while j < no_of_nodes.try_into().unwrap() {
-        let node_id = inserted_node_ids.at(j);
-        delete(rb_tree, *node_id.try_into().unwrap());
+        let bid = inserted_node_ids.at(j);
+
+        delete(rb_tree, *bid.id);
+
+        let found_bid = rb_tree.find(*bid);
+
+        assert(found_bid == 0, 'Bid delete error');
+
         let is_tree_valid = rb_tree.is_tree_valid();
         assert(is_tree_valid, 'Tree is not valid');
-        println!("Deleted {}", j);
+
+        println!("Deleted node no. {}", j);
+
         j += 1;
     }
 }
