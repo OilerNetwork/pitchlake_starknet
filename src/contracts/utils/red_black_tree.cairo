@@ -402,7 +402,7 @@ pub mod RBTreeComponent {
                         self.set_color(w, BLACK);
                         self.set_color(x_parent, RED);
                         self.rotate_left(x_parent);
-                        let x_parent_node: Node = self.tree.read(x_parent);
+                        x_parent_node = self.tree.read(x_parent);
                         w = x_parent_node.right;
                     }
                     
@@ -421,15 +421,15 @@ pub mod RBTreeComponent {
                             }
                             self.set_color(w, RED);
                             self.rotate_right(w);
-                            let x_parent_node:Node = self.tree.read(x_parent);
+                            x_parent_node = self.tree.read(x_parent);
                             w = x_parent_node.right;
                         }
                         
                         // Case 4: x's sibling w is black, and w's right child is red
-                        let x_parent_node: Node = self.tree.read(x_parent);
+                        x_parent_node = self.tree.read(x_parent);
                         self.set_color(w, x_parent_node.color);
                         self.set_color(x_parent, BLACK);
-                        let w_node: Node = self.tree.read(w);
+                        w_node = self.tree.read(w);
                         if w_node.right != 0 {
                             self.set_color(w_node.right, BLACK);
                         }
@@ -439,7 +439,6 @@ pub mod RBTreeComponent {
                     }
                 } else {
                     // Mirror cases for when x is a right child
-                    let x_parent_node:Node = self.tree.read(x_parent);
                     let mut w = x_parent_node.left;
                     
                     // Case 1 (mirror): x's sibling w is red
@@ -447,12 +446,12 @@ pub mod RBTreeComponent {
                         self.set_color(w, BLACK);
                         self.set_color(x_parent, RED);
                         self.rotate_right(x_parent);
-                        let x_parent_node: Node = self.tree.read(x_parent);
+                        x_parent_node = self.tree.read(x_parent);
                         w = x_parent_node.left;
                     }
                     
                     // Case 2 (mirror): x's sibling w is black, and both of w's children are black
-                    let w_node:Node = self.tree.read(w);
+                    let mut w_node:Node = self.tree.read(w);
                     if (w_node.right == 0 || self.is_black(w_node.right))
                         && (w_node.left == 0 || self.is_black(w_node.left)) {
                         self.set_color(w, RED);
@@ -466,15 +465,15 @@ pub mod RBTreeComponent {
                             }
                             self.set_color(w, RED);
                             self.rotate_left(w);
-                            let x_parent_node: Node = self.tree.read(x_parent);
+                            x_parent_node = self.tree.read(x_parent);
                             w = x_parent_node.left;
                         }
                         
                         // Case 4 (mirror): x's sibling w is black, and w's left child is red
-                        let x_parent_node: Node = self.tree.read(x_parent);
+                        x_parent_node = self.tree.read(x_parent);
                         self.set_color(w, x_parent_node.color);
                         self.set_color(x_parent, BLACK);
-                        let w_node: Node = self.tree.read(w);
+                        w_node = self.tree.read(w);
                         if w_node.left != 0 {
                             self.set_color(w_node.left, BLACK);
                         }
