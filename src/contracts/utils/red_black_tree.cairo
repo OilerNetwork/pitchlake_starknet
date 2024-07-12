@@ -383,7 +383,7 @@ pub mod RBTreeComponent {
                 self.update_parent(node_delete.left, y);
             }
 
-            self.tree.write(delete_id, self.get_null_node());
+            self.tree.write(delete_id, self.get_default_node());
 
             if y_original_color == BLACK {
                 self.delete_fixup(x, x_parent);
@@ -518,21 +518,25 @@ pub mod RBTreeComponent {
             current
         }
 
-        fn get_null_node(ref self: ComponentState<TContractState>) -> Node {
+        fn get_default_node(ref self: ComponentState<TContractState>) -> Node {
             Node {
-                value: Bid { 
-                    id: 0,
-                    nonce: 0,
-                    owner: 0.try_into().unwrap(),
-                    amount: 0,
-                    price: 0,
-                    is_tokenized: false,
-                    is_refunded: false,
-                },
+                value: self.get_default_bid(),
                 left: 0,
                 right: 0,
                 parent: 0,
                 color: BLACK,
+            }
+        }
+
+        fn get_default_bid(ref self: ComponentState<TContractState>) -> Bid {
+            Bid {
+                id: 0,
+                nonce: 0,
+                owner: 0.try_into().unwrap(),
+                amount: 0,
+                price: 0,
+                is_tokenized: false,
+                is_refunded: false,
             }
         }
     }
