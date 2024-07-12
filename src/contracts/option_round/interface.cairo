@@ -170,7 +170,5 @@ trait IOptionRound<TContractState> {
     fn exercise_options(ref self: TContractState) -> Result<u256, OptionRound::OptionRoundError>;
 
     // Convert options won from auction into erc20 tokens
-    fn tokenize_options(
-        ref self: TContractState
-    ) -> Result<u256, OptionRound::OptionRoundError>;
+    fn tokenize_options(ref self: TContractState) -> Result<u256, OptionRound::OptionRoundError>;
 }

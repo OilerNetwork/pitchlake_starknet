@@ -9,10 +9,7 @@ mod Vault {
         utils::serde::SerializedAppend
     };
     use pitch_lake_starknet::contracts::{
-        vault::{
-            types::{VaultType, VaultError},
-            interface::IVault
-        },
+        vault::{types::{VaultType, VaultError}, interface::IVault},
         option_round::{
             contract::OptionRound,
             types::{

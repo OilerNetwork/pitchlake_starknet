@@ -911,9 +911,7 @@ mod OptionRound {
         // Checks for any option_round tokens owned by option_buyer, burns the tokens
         // Transfers sum of eth_amount from bids + eth_amount from option round tokens to the bidder,
         // Emits OptionsExercised event
-        fn exercise_options(
-            ref self: ContractState
-        ) -> Result<u256, OptionRoundError> {
+        fn exercise_options(ref self: ContractState) -> Result<u256, OptionRoundError> {
             let option_buyer = get_caller_address();
             if (self.get_state() != OptionRoundState::Settled) {
                 return Result::Err(OptionRoundError::OptionRoundNotSettled);
@@ -979,10 +977,7 @@ mod OptionRound {
         // Gets tokenizable and partial tokenizable bids from internal helper, 
         // Sums total number of tokenizable options from both,updates all tokenizable bids.is_tokenized to true,
         // Mints option round tokens to the bidder and emits OptionsTokenized event
-        fn tokenize_options(
-            ref self: ContractState
-        ) -> Result<u256, OptionRoundError> {
-            
+        fn tokenize_options(ref self: ContractState) -> Result<u256, OptionRoundError> {
             let option_buyer = get_contract_address();
             //Check that the round is past auctioning state
             let state = self.get_state();
