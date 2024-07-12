@@ -392,8 +392,7 @@ mod OptionRound {
                 //Since only clearing_bid can be partially sold, the clearing_bid_amount_sold is saved on the tree
                 let options_sold = self.bids_tree.clearing_bid_amount_sold.read();
                 if (!partial_bid.is_refunded) {
-                    refundable_balance += (partial_bid.amount - options_sold)
-                        * partial_bid.price;
+                    refundable_balance += (partial_bid.amount - options_sold) * partial_bid.price;
                 }
             }
             // Add refundable balance from all (not already refunded) refundable bids
@@ -853,8 +852,7 @@ mod OptionRound {
                 if (!partial_bid.is_refunded) {
                     partial_bid.is_refunded = true;
                     self.bids_tree.update(partial_bid_id, partial_bid);
-                    refundable_balance += (partial_bid.amount - options_sold)
-                        * partial_bid.price;
+                    refundable_balance += (partial_bid.amount - options_sold) * partial_bid.price;
                 }
             }
             // Add refundable balance from all (not already refunded) refundable bids
