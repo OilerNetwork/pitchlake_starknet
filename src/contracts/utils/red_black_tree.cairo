@@ -5,6 +5,7 @@ use starknet::ContractAddress;
 trait IRBTree<TContractState> {
     fn insert(ref self: TContractState, value: Bid);
     fn find(self: @TContractState, bid_id: felt252) -> Bid;
+    fn update(ref self: TContractState, bid_id: felt252, bid: Bid);
     fn delete(ref self: TContractState, bid_id: felt252);
     fn find_clearing_price(ref self: TContractState) -> (u256, u256);
     fn get_tree_structure(self: @TContractState) -> Array<Array<(u256, bool, u128)>>;
@@ -77,6 +78,15 @@ pub mod RBTreeComponent {
         fn find(self: @ComponentState<TContractState>, bid_id: felt252) -> Bid {
             let node: Node = self.tree.read(bid_id);
             return node.value;
+        }
+
+        fn update(ref self: ComponentState<TContractState>, bid_id: felt252, bid: Bid) {
+            let node: Node = self.tree.read(bid_id);
+            if node.value.id == 0 {
+                return;
+            }
+            let new_node = Node { value: bid, ..node };
+            self.tree.write(bid_id, new_node);
         }
 
         fn delete(ref self: ComponentState<TContractState>, bid_id: felt252) {
