@@ -1178,7 +1178,7 @@ fn test_deletion_black_node_successor() {
 
 #[test]
 #[ignore]
-fn test_mirror_deletion_black_node_successor_case() {
+fn test_mirror_deletion_black_node_successor() {
     let rb_tree = setup_rb_tree();
 
     let mut new_bid = create_bid(20, 1);
