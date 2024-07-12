@@ -14,11 +14,10 @@ const MOCK_ADDRESS: felt252 = 123456;
 #[starknet::interface]
 pub trait IRBTree<TContractState> {
     fn insert(ref self: TContractState, value: Bid);
-    fn find(ref self: TContractState, value: Bid) -> felt252;
+    fn find(ref self: TContractState, bid_id: felt252) -> Bid;
     fn get_tree_structure(ref self: TContractState) -> Array<Array<(u256, bool, u128)>>;
     fn is_tree_valid(ref self: TContractState) -> bool;
     fn delete(ref self: TContractState, bid_id: felt252);
-    fn get_bid(ref self: TContractState, bid_id: felt252) -> Bid;
     fn add_node(ref self: TContractState, value: Bid, color:bool, parent:felt252) -> felt252;
 }
 
@@ -55,31 +54,31 @@ fn test_insert_into_empty_tree() {
     let is_tree_valid = rb_tree.is_tree_valid();
     assert(is_tree_valid, 'Tree is not valid');
 
-    let node_2 = rb_tree.get_bid(node_2_id);
+    let node_2 = rb_tree.find(node_2_id);
     assert(node_2.price == 2, 'Node 2 price mismatch');
 
-    let node_1 = rb_tree.get_bid(node_1_id);
+    let node_1 = rb_tree.find(node_1_id);
     assert(node_1.price == 1, 'Node 1 price mismatch');
 
-    let node_4 = rb_tree.get_bid(node_4_id);
+    let node_4 = rb_tree.find(node_4_id);
     assert(node_4.price == 4, 'Node 4 price mismatch');
     
-    let node_5 = rb_tree.get_bid(node_5_id);
+    let node_5 = rb_tree.find(node_5_id);
     assert(node_5.price == 5, 'Node 5 price mismatch');
 
-    let node_9 = rb_tree.get_bid(node_9_id);
+    let node_9 = rb_tree.find(node_9_id);
     assert(node_9.price == 9, 'Node 9 price mismatch');
 
-    let node_3 = rb_tree.get_bid(node_3_id);
+    let node_3 = rb_tree.find(node_3_id);
     assert(node_3.price == 3, 'Node 3 price mismatch');
 
-    let node_6 = rb_tree.get_bid(node_6_id);
+    let node_6 = rb_tree.find(node_6_id);
     assert(node_6.price == 6, 'Node 6 price mismatch');
 
-    let node_7 = rb_tree.get_bid(node_7_id);
+    let node_7 = rb_tree.find(node_7_id);
     assert(node_7.price == 7, 'Node 7 price mismatch');
 
-    let node_15 = rb_tree.get_bid(node_15_id);
+    let node_15 = rb_tree.find(node_15_id);
     assert(node_15.price == 15, 'Node 15 price mismatch');
 
     let tree = rb_tree.get_tree_structure();
@@ -93,18 +92,18 @@ fn test_insert_into_empty_tree() {
     
     // Negative tests
 
-    let node_10 = rb_tree.get_bid(10);
+    let node_10 = rb_tree.find(10);
     assert(node_10.price == 0, 'Node 10 should not exist');
 
-    let node_11 = rb_tree.get_bid(11);
+    let node_11 = rb_tree.find(11);
     assert(node_11.price == 0, 'Node 11 should not exist');
 
-    let node_12 = rb_tree.get_bid(12);
+    let node_12 = rb_tree.find(12);
     assert(node_12.price == 0, 'Node 12 should not exist');
 }
 
 #[test]
-#[ignore]
+
 fn test_recoloring_only() {
     let rb_tree = setup_rb_tree();
     
@@ -156,7 +155,7 @@ fn test_recoloring_only() {
 }   
 
 #[test]
-#[ignore]
+
 fn test_recoloring_two() {
     let rb_tree = setup_rb_tree();
 
@@ -208,7 +207,7 @@ fn test_recoloring_two() {
 }
 
 #[test]
-#[ignore]
+
 fn test_right_rotation() {
     let rb_tree = setup_rb_tree();
     
@@ -247,7 +246,7 @@ fn test_right_rotation() {
 
 
 #[test]
-#[ignore]
+
 fn test_left_rotation_no_sibling() {
     let rb_tree = setup_rb_tree();
 
@@ -283,7 +282,7 @@ fn test_left_rotation_no_sibling() {
 }
 
 #[test]
-#[ignore]
+
 fn test_right_rotation_no_sibling_left_subtree() {
     let rb_tree = setup_rb_tree();
 
@@ -321,7 +320,7 @@ fn test_right_rotation_no_sibling_left_subtree() {
 }
 
 #[test]
-#[ignore]
+
 fn test_left_right_rotation_no_sibling() {
     let rb_tree = setup_rb_tree();
 
@@ -359,7 +358,7 @@ fn test_left_right_rotation_no_sibling() {
     assert(is_tree_valid, 'Tree is not valid');
 }
 #[test]
-#[ignore]
+
 fn test_right_left_rotation_no_sibling() {
     let rb_tree = setup_rb_tree();
 
@@ -398,7 +397,7 @@ fn test_right_left_rotation_no_sibling() {
 }
 
 #[test]
-#[ignore]
+
 fn test_recolor_lr() {
     let rb_tree = setup_rb_tree();
 
@@ -550,7 +549,7 @@ fn test_functional_test_build_tree() {
 }
 
 #[test]
-#[ignore]
+
 fn test_right_left_rotation_after_recolor() {
     let rb_tree = setup_rb_tree();
 
@@ -596,7 +595,7 @@ fn test_right_left_rotation_after_recolor() {
 }
 
 #[test]
-#[ignore]
+
 fn test_right_rotation_after_recolor() {
     let rb_tree = setup_rb_tree();
 
@@ -650,7 +649,7 @@ fn test_right_rotation_after_recolor() {
 // Tests for deletion
 
 #[test]
-#[ignore]
+
 fn test_deletion_root() {
     let rb_tree = setup_rb_tree();
 
@@ -676,7 +675,7 @@ fn test_deletion_root() {
 }
 
 #[test]
-#[ignore]
+
 fn test_deletion_root_2_nodes() {
     let rb_tree = setup_rb_tree();
 
@@ -700,7 +699,7 @@ fn test_deletion_root_2_nodes() {
 }
 
 #[test]
-#[ignore]
+
 fn test_delete_single_child() {
     let rb_tree = setup_rb_tree();
 
@@ -726,7 +725,7 @@ fn test_delete_single_child() {
 }
 
 #[test]
-#[ignore]
+
 fn test_delete_single_deep_child() {
     let rb_tree = setup_rb_tree();
 
@@ -783,7 +782,7 @@ fn test_delete_single_deep_child() {
 }
 
 #[test]
-#[ignore]
+
 fn test_deletion_red_node_red_successor_no_children() {
     let rb_tree = setup_rb_tree();
 
@@ -830,7 +829,7 @@ fn test_deletion_red_node_red_successor_no_children() {
 }
 
 #[test]
-#[ignore]
+
 fn test_mirror_deletion_red_node_red_successor_no_children() {
     let rb_tree = setup_rb_tree();
 
@@ -881,7 +880,7 @@ fn test_mirror_deletion_red_node_red_successor_no_children() {
 }
 
 #[test]
-#[ignore]
+
 fn test_deletion_black_node_black_successor_right_red_child() {
     let rb_tree = setup_rb_tree();
 
@@ -936,7 +935,7 @@ fn test_deletion_black_node_black_successor_right_red_child() {
 }
 
 #[test]
-#[ignore]
+
 fn test_deletion_black_node_black_successor_no_child() {
     let rb_tree = setup_rb_tree();
 
@@ -974,7 +973,7 @@ fn test_deletion_black_node_black_successor_no_child() {
 }
 
 #[test]
-#[ignore]
+
 fn test_deletion_black_node_no_successor() {
     let rb_tree = setup_rb_tree();
 
@@ -1012,7 +1011,7 @@ fn test_deletion_black_node_no_successor() {
 }
 
 #[test]
-#[ignore]
+
 fn test_mirror_deletion_black_node_no_successor() {
     let rb_tree = setup_rb_tree();
 
@@ -1051,7 +1050,7 @@ fn test_mirror_deletion_black_node_no_successor() {
 }
 
 #[test]
-#[ignore]
+
 fn test_deletion_black_node_no_successor_2() {
     let rb_tree = setup_rb_tree();
 
@@ -1074,7 +1073,7 @@ fn test_deletion_black_node_no_successor_2() {
 }
 
 #[test]
-#[ignore]
+
 fn test_deletion_black_node_no_successor_3() {
     let rb_tree = setup_rb_tree();
 
@@ -1127,7 +1126,7 @@ fn test_deletion_black_node_no_successor_3() {
 }
 
 #[test]
-#[ignore]
+
 fn test_deletion_black_node_successor() {
     let rb_tree = setup_rb_tree();
 
@@ -1179,7 +1178,7 @@ fn test_deletion_black_node_successor() {
 }
 
 #[test]
-#[ignore]
+
 fn test_mirror_deletion_black_node_successor() {
     let rb_tree = setup_rb_tree();
 
@@ -1269,7 +1268,7 @@ fn test_delete_tree_one_by_one() {
 
 #[test]
 #[available_gas(50000000000)]
-#[ignore]
+
 fn test_add_1_to_100_delete_100_to_1() {
     let rb_tree = setup_rb_tree();
     let mut i = 1;
@@ -1297,7 +1296,7 @@ fn test_add_1_to_100_delete_100_to_1() {
 
 #[test]
 #[available_gas(50000000000)]
-#[ignore]
+
 fn test_add_1_to_100_delete_1_to_100() {
     let rb_tree = setup_rb_tree();
     let mut i = 1;
@@ -1336,11 +1335,11 @@ fn random(seed: felt252) -> u8 {
 
 #[test]
 #[available_gas(50000000000)]
-#[ignore]
+
 fn testing_random_insertion_and_deletion() {
     let rb_tree = setup_rb_tree();
     let no_of_nodes:u8 = max_no;
-    let mut inserted_node_ids:Array<Bid> = ArrayTrait::new();
+    let mut inserted_node_ids:Array<felt252> = ArrayTrait::new();
 
     let mut i:u32 = 0;
 
@@ -1352,9 +1351,9 @@ fn testing_random_insertion_and_deletion() {
 
         rb_tree.insert(new_bid);
         
-        inserted_node_ids.append(new_bid);
+        inserted_node_ids.append(new_bid.id);
 
-        let bid = rb_tree.get_bid(new_bid.id);
+        let bid = rb_tree.find(new_bid.id);
         println!("Inserting price {}", bid.price);
 
         assert(bid.price == price.try_into().unwrap(), 'Insertion error');
@@ -1368,13 +1367,13 @@ fn testing_random_insertion_and_deletion() {
     let mut j:u32 = 0;
 
     while j < no_of_nodes.try_into().unwrap() {
-        let bid = inserted_node_ids.at(j);
+        let bid_id = inserted_node_ids.at(j);
 
-        delete(rb_tree, *bid.id);
+        delete(rb_tree, *bid_id);
 
-        let found_bid = rb_tree.find(*bid);
+        let found_bid = rb_tree.find(*bid_id);
 
-        assert(found_bid == 0, 'Bid delete error');
+        assert(found_bid.id == 0, 'Bid delete error');
 
         let is_tree_valid = rb_tree.is_tree_valid();
         assert(is_tree_valid, 'Tree is not valid');
