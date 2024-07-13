@@ -86,7 +86,7 @@ fn test_convert_position_to_lp_tokens_while_settled__TODO__() {
 #[test]
 #[available_gas(50000000)]
 fn test_convert_position_to_lp_tokens_success() { //
-    let (mut vault_facade, eth) = setup_facade();
+    let (mut vault_facade, _) = setup_facade();
     // LPs deposit 50/50 into the next round (round 1)
     let deposit_amount_wei: u256 = 10000 * decimals();
     vault_facade.deposit(deposit_amount_wei, liquidity_provider_1());

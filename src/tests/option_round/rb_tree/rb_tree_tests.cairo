@@ -3,7 +3,7 @@ use pitch_lake_starknet::{
     tests::option_round::{rb_tree::rb_tree_mock_contract::RBTreeMockContract},
     contracts::option_round::types::Bid,
 };
-use starknet::{ contract_address_const, ContractAddress};
+use starknet::{contract_address_const, ContractAddress};
 use core::pedersen::pedersen;
 use pitch_lake_starknet::tests::utils::helpers::setup::setup_rb_tree_test;
 const BLACK: bool = false;
@@ -20,7 +20,6 @@ pub trait IRBTree<TContractState> {
     fn delete(ref self: TContractState, bid_id: felt252);
     fn add_node(ref self: TContractState, value: Bid, color: bool, parent: felt252) -> felt252;
 }
-
 
 
 fn mock_address(value: felt252) -> ContractAddress {

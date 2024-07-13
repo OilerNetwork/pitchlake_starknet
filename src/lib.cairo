@@ -1,7 +1,6 @@
 mod contracts {
     mod utils {
         mod utils;
-      
     }
     mod components {
         mod eth;

@@ -82,13 +82,9 @@ mod OptionRound {
         erc20: ERC20Component::Storage,
     }
 
-    // The parameters needed to construct an option round
-    // @param vault_address: The address of the vault that deployed this round
-    // @param round_id: The id of the round (the first round in a vault is round 0)
-
-    //Refactor into a Display impl file, impl display for various types
-
-    // Option round events
+    // *************************************************************************
+    //                              EVENTS
+    // *************************************************************************
     #[event]
     #[derive(Drop, starknet::Event, PartialEq)]
     enum Event {
@@ -198,6 +194,10 @@ mod OptionRound {
     }
 
 
+    // *************************************************************************
+    //                              Constructor
+    // *************************************************************************
+
     #[constructor]
     fn constructor(
         ref self: ContractState,
@@ -231,6 +231,10 @@ mod OptionRound {
         self.strike_price.write(strike_price);
     }
 
+
+    // *************************************************************************
+    //                            IMPLEMENTATION
+    // *************************************************************************
 
     #[abi(embed_v0)]
     impl ERC20MetadataImpl of IERC20Metadata<ContractState> {
@@ -291,7 +295,9 @@ mod OptionRound {
             IVaultDispatcher { contract_address: self.vault_address.read() }.rm_me2();
         }
 
-        /// Reads ///
+        // ***********************************
+        //               READS
+        // ***********************************
 
         /// Dates
 
@@ -348,15 +354,6 @@ mod OptionRound {
         }
 
 
-        // @note, not needed, can just use get_bids_for, the state of the round will determine if
-        // these bids are pending or not
-        fn get_pending_bids_for(
-            self: @ContractState, option_buyer: ContractAddress
-        ) -> Array<felt252> {
-            array!['asdf']
-        }
-
-
         // Get the bid ids for all of the bids the option buyer has placed
         fn get_bids_for(self: @ContractState, option_buyer: ContractAddress) -> Array<Bid> {
             let mut i: u32 = self.bidder_nonces.read(option_buyer);
@@ -374,12 +371,14 @@ mod OptionRound {
 
         // #Params
         // @option_buyer:ContractAddress, target address
+        // #Return
+        // u256:total refundable balance for the option buyer
         // #Description
         // This function iterates through the list of bids and returns total refundable amount
-        // From the partial bids, takes the amount that was not sold (total-sold)*price and adds to refundable_balance
-        // From tokenizable bids, takes the difference in clearing_price and bid_price (clearing_price-bid_price)*amount and adds to refundable_balance
-        // From refundable bids, adds the entire amount*price to refundable_balance
-        // Returns the total refundable balance for the option buyer
+        // From the partial bids, takes unsold value (total-sold)*price and adds to refundable_balance
+        // From tokenizable bids, takes (clearing_price-bid_price)*amount and adds to refundable_balance
+        // From refundable bids, adds the full amount*price to refundable_balance.
+
         fn get_refundable_bids_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
             // Get the refundable, tokenizable, and partially sold bid ids
             let (mut tokenizable_bids, mut refundable_bids, partial_bid_id) = self
@@ -430,11 +429,13 @@ mod OptionRound {
 
         // #Params
         //  @option_buyer: target address
+        // #Return
+        // u256: total options_balance for the option buyer
         // #Description
         // iterates through the list of bids and returns total tokenizable options
         // From the partial bids, takes the amount that was sold and adds to options_balance,
         // From tokenizable bids, if not tokenized yet, adds to options_balance, updates flag
-        // Return the total(options_balance) for the option buyer
+
         fn get_tokenizable_options_for(
             self: @ContractState, option_buyer: ContractAddress
         ) -> u256 {
@@ -467,8 +468,12 @@ mod OptionRound {
 
         //  #Params
         //  @option_buyer: target address
+
+        //  #Return
+        //  u256: number of options held by option_buyer
         //  #Description
-        //  Returns number of tokenizable bids and option tokens held by the address
+        //  Returns sum of total tokenizable options and option round tokens held by option_buyer
+        //  
         fn get_total_options_balance_for(
             self: @ContractState, option_buyer: ContractAddress
         ) -> u256 {
@@ -534,7 +539,9 @@ mod OptionRound {
             self.bids_tree._get_total_options_available()
         }
 
-        /// Writes ///
+        // ***********************************
+        //               WRITES
+        // ***********************************
 
         /// State transition
 
@@ -718,9 +725,9 @@ mod OptionRound {
         fn place_bid(
             ref self: ContractState, amount: u256, price: u256
         ) -> Result<Bid, OptionRoundError> {
-            //Assert round is auctioning
             let bidder = get_caller_address();
-            let eth_dispatcher = self.get_eth_dispatcher();
+
+            //Assert round is auctioning
             if (self.get_state() != OptionRoundState::Auctioning
                 || self.get_auction_end_date() < get_block_timestamp()) {
                 self.emit(Event::BidRejected(BidRejected { account: bidder, amount, price }));
@@ -739,6 +746,7 @@ mod OptionRound {
             }
 
             //Create and store bid, then update bidder nonce
+
             let nonce = self.bidder_nonces.read(bidder);
             let bid = Bid {
                 id: self.create_bid_id(bidder, nonce),
@@ -753,6 +761,7 @@ mod OptionRound {
             self.bidder_nonces.write(bidder, nonce + 1);
 
             //Transfer Eth
+            let eth_dispatcher = self.get_eth_dispatcher();
             eth_dispatcher.transfer_from(bidder, get_contract_address(), amount * price);
             self.emit(Event::BidAccepted(BidAccepted { nonce, account: bidder, amount, price }));
             Result::Ok(bid)
