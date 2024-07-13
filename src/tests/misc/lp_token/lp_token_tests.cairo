@@ -5,7 +5,7 @@ use starknet::{
 };
 use openzeppelin::token::erc20::interface::{ERC20ABIDispatcherTrait,};
 use pitch_lake_starknet::{
-    contracts::eth::Eth,
+    contracts::components::eth::Eth,
     tests::{
         utils::{
             helpers::{

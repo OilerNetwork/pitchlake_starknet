@@ -3,9 +3,9 @@ use pitch_lake_starknet::{
     tests::option_round::{rb_tree::rb_tree_mock_contract::RBTreeMockContract},
     contracts::option_round::types::Bid,
 };
-use starknet::{deploy_syscall, SyscallResultTrait, contract_address_const, ContractAddress};
+use starknet::{ contract_address_const, ContractAddress};
 use core::pedersen::pedersen;
-
+use pitch_lake_starknet::tests::utils::helpers::setup::setup_rb_tree_test;
 const BLACK: bool = false;
 const RED: bool = true;
 
@@ -21,13 +21,7 @@ pub trait IRBTree<TContractState> {
     fn add_node(ref self: TContractState, value: Bid, color: bool, parent: felt252) -> felt252;
 }
 
-fn setup_rb_tree() -> IRBTreeDispatcher {
-    let (address, _) = deploy_syscall(
-        RBTreeMockContract::TEST_CLASS_HASH.try_into().unwrap(), 0, array![].span(), false
-    )
-        .unwrap_syscall();
-    IRBTreeDispatcher { contract_address: address }
-}
+
 
 fn mock_address(value: felt252) -> ContractAddress {
     contract_address_const::<'liquidity_provider_1'>()
@@ -37,7 +31,7 @@ fn mock_address(value: felt252) -> ContractAddress {
 
 #[test]
 fn test_insert_into_empty_tree() {
-    let rb_tree = setup_rb_tree();
+    let rb_tree = setup_rb_tree_test();
 
     let node_2_id = insert(rb_tree, 2, 1);
     let node_1_id = insert(rb_tree, 1, 2);
@@ -105,7 +99,7 @@ fn test_insert_into_empty_tree() {
 #[test]
 #[ignore]
 fn test_recoloring_only() {
-    let rb_tree = setup_rb_tree();
+    let rb_tree = setup_rb_tree_test();
 
     let mut new_bid = create_bid(31, 1);
     rb_tree.insert(new_bid);
@@ -157,7 +151,7 @@ fn test_recoloring_only() {
 #[test]
 #[ignore]
 fn test_recoloring_two() {
-    let rb_tree = setup_rb_tree();
+    let rb_tree = setup_rb_tree_test();
 
     let mut new_bid = create_bid(31, 1);
     rb_tree.insert(new_bid);
@@ -209,7 +203,7 @@ fn test_recoloring_two() {
 #[test]
 #[ignore]
 fn test_right_rotation() {
-    let rb_tree = setup_rb_tree();
+    let rb_tree = setup_rb_tree_test();
 
     let mut new_bid = create_bid(21, 1);
     rb_tree.insert(new_bid);
@@ -248,7 +242,7 @@ fn test_right_rotation() {
 #[test]
 #[ignore]
 fn test_left_rotation_no_sibling() {
-    let rb_tree = setup_rb_tree();
+    let rb_tree = setup_rb_tree_test();
 
     let mut new_bid = create_bid(10, 1);
     rb_tree.insert(new_bid);
@@ -284,7 +278,7 @@ fn test_left_rotation_no_sibling() {
 #[test]
 #[ignore]
 fn test_right_rotation_no_sibling_left_subtree() {
-    let rb_tree = setup_rb_tree();
+    let rb_tree = setup_rb_tree_test();
 
     let mut new_bid = create_bid(23, 1);
     rb_tree.insert(new_bid);
@@ -322,7 +316,7 @@ fn test_right_rotation_no_sibling_left_subtree() {
 #[test]
 #[ignore]
 fn test_left_right_rotation_no_sibling() {
-    let rb_tree = setup_rb_tree();
+    let rb_tree = setup_rb_tree_test();
 
     let mut new_bid = create_bid(21, 1);
     rb_tree.insert(new_bid);
@@ -360,7 +354,7 @@ fn test_left_right_rotation_no_sibling() {
 #[test]
 #[ignore]
 fn test_right_left_rotation_no_sibling() {
-    let rb_tree = setup_rb_tree();
+    let rb_tree = setup_rb_tree_test();
 
     let mut new_bid = create_bid(21, 1);
     rb_tree.insert(new_bid);
@@ -399,7 +393,7 @@ fn test_right_left_rotation_no_sibling() {
 #[test]
 #[ignore]
 fn test_recolor_lr() {
-    let rb_tree = setup_rb_tree();
+    let rb_tree = setup_rb_tree_test();
 
     let mut new_bid = create_bid(31, 1);
     rb_tree.insert(new_bid);
@@ -449,7 +443,7 @@ fn test_recolor_lr() {
 
 #[test]
 fn test_functional_test_build_tree() {
-    let rb_tree = setup_rb_tree();
+    let rb_tree = setup_rb_tree_test();
 
     insert(rb_tree, 2, 1);
     let tree_structure = rb_tree.get_tree_structure();
@@ -542,7 +536,7 @@ fn test_functional_test_build_tree() {
 #[test]
 #[ignore]
 fn test_right_left_rotation_after_recolor() {
-    let rb_tree = setup_rb_tree();
+    let rb_tree = setup_rb_tree_test();
 
     let mut new_bid = create_bid(10, 1);
     rb_tree.insert(new_bid);
@@ -588,7 +582,7 @@ fn test_right_left_rotation_after_recolor() {
 #[test]
 #[ignore]
 fn test_right_rotation_after_recolor() {
-    let rb_tree = setup_rb_tree();
+    let rb_tree = setup_rb_tree_test();
 
     let mut new_bid = create_bid(33, 1);
     rb_tree.insert(new_bid);
@@ -642,7 +636,7 @@ fn test_right_rotation_after_recolor() {
 #[test]
 #[ignore]
 fn test_deletion_root() {
-    let rb_tree = setup_rb_tree();
+    let rb_tree = setup_rb_tree_test();
 
     let node_5 = insert(rb_tree, 5, 1);
     insert(rb_tree, 3, 2);
@@ -665,7 +659,7 @@ fn test_deletion_root() {
 #[test]
 #[ignore]
 fn test_deletion_root_2_nodes() {
-    let rb_tree = setup_rb_tree();
+    let rb_tree = setup_rb_tree_test();
 
     let node_5 = insert(rb_tree, 5, 1);
     insert(rb_tree, 8, 2);
@@ -687,7 +681,7 @@ fn test_deletion_root_2_nodes() {
 #[test]
 #[ignore]
 fn test_delete_single_child() {
-    let rb_tree = setup_rb_tree();
+    let rb_tree = setup_rb_tree_test();
 
     insert(rb_tree, 5, 1);
     insert(rb_tree, 1, 2);
@@ -710,7 +704,7 @@ fn test_delete_single_child() {
 #[test]
 #[ignore]
 fn test_delete_single_deep_child() {
-    let rb_tree = setup_rb_tree();
+    let rb_tree = setup_rb_tree_test();
 
     let mut new_bid = create_bid(20, 1);
     rb_tree.insert(new_bid);
@@ -767,7 +761,7 @@ fn test_delete_single_deep_child() {
 #[test]
 #[ignore]
 fn test_deletion_red_node_red_successor_no_children() {
-    let rb_tree = setup_rb_tree();
+    let rb_tree = setup_rb_tree_test();
 
     let mut new_bid = create_bid(16, 1);
     rb_tree.insert(new_bid);
@@ -814,7 +808,7 @@ fn test_deletion_red_node_red_successor_no_children() {
 #[test]
 #[ignore]
 fn test_mirror_deletion_red_node_red_successor_no_children() {
-    let rb_tree = setup_rb_tree();
+    let rb_tree = setup_rb_tree_test();
 
     let mut new_bid = create_bid(16, 1);
     rb_tree.insert(new_bid);
@@ -865,7 +859,7 @@ fn test_mirror_deletion_red_node_red_successor_no_children() {
 #[test]
 #[ignore]
 fn test_deletion_black_node_black_successor_right_red_child() {
-    let rb_tree = setup_rb_tree();
+    let rb_tree = setup_rb_tree_test();
 
     let mut new_bid = create_bid(16, 1);
     rb_tree.insert(new_bid);
@@ -920,7 +914,7 @@ fn test_deletion_black_node_black_successor_right_red_child() {
 #[test]
 #[ignore]
 fn test_deletion_black_node_black_successor_no_child() {
-    let rb_tree = setup_rb_tree();
+    let rb_tree = setup_rb_tree_test();
 
     let mut new_bid = create_bid(21, 1);
     rb_tree.insert(new_bid);
@@ -956,7 +950,7 @@ fn test_deletion_black_node_black_successor_no_child() {
 #[test]
 #[ignore]
 fn test_deletion_black_node_no_successor() {
-    let rb_tree = setup_rb_tree();
+    let rb_tree = setup_rb_tree_test();
 
     let mut new_bid = create_bid(21, 1);
     rb_tree.insert(new_bid);
@@ -992,7 +986,7 @@ fn test_deletion_black_node_no_successor() {
 #[test]
 #[ignore]
 fn test_mirror_deletion_black_node_no_successor() {
-    let rb_tree = setup_rb_tree();
+    let rb_tree = setup_rb_tree_test();
 
     let mut new_bid = create_bid(10, 1);
     rb_tree.insert(new_bid);
@@ -1029,7 +1023,7 @@ fn test_mirror_deletion_black_node_no_successor() {
 #[test]
 #[ignore]
 fn test_deletion_black_node_no_successor_2() {
-    let rb_tree = setup_rb_tree();
+    let rb_tree = setup_rb_tree_test();
 
     insert(rb_tree, 21, 1);
     let node_1 = insert(rb_tree, 1, 2);
@@ -1049,7 +1043,7 @@ fn test_deletion_black_node_no_successor_2() {
 #[test]
 #[ignore]
 fn test_deletion_black_node_no_successor_3() {
-    let rb_tree = setup_rb_tree();
+    let rb_tree = setup_rb_tree_test();
 
     let mut new_bid = create_bid(10, 1);
     rb_tree.insert(new_bid);
@@ -1102,7 +1096,7 @@ fn test_deletion_black_node_no_successor_3() {
 #[test]
 #[ignore]
 fn test_deletion_black_node_successor() {
-    let rb_tree = setup_rb_tree();
+    let rb_tree = setup_rb_tree_test();
 
     let mut new_bid = create_bid(10, 1);
     rb_tree.insert(new_bid);
@@ -1154,7 +1148,7 @@ fn test_deletion_black_node_successor() {
 #[test]
 #[ignore]
 fn test_mirror_deletion_black_node_successor() {
-    let rb_tree = setup_rb_tree();
+    let rb_tree = setup_rb_tree_test();
 
     let mut new_bid = create_bid(20, 1);
     rb_tree.insert(new_bid);
@@ -1205,7 +1199,7 @@ fn test_mirror_deletion_black_node_successor() {
 
 #[test]
 fn test_delete_tree_one_by_one() {
-    let rb_tree = setup_rb_tree();
+    let rb_tree = setup_rb_tree_test();
 
     let node_90 = insert(rb_tree, 90, 1);
     let node_70 = insert(rb_tree, 70, 2);
@@ -1244,7 +1238,7 @@ fn test_delete_tree_one_by_one() {
 #[available_gas(50000000000)]
 #[ignore]
 fn test_add_1_to_100_delete_100_to_1() {
-    let rb_tree = setup_rb_tree();
+    let rb_tree = setup_rb_tree_test();
     let mut i = 1;
     while i <= 100 {
         insert(rb_tree, i, i.try_into().unwrap());
@@ -1274,7 +1268,7 @@ fn test_add_1_to_100_delete_100_to_1() {
 #[available_gas(50000000000)]
 #[ignore]
 fn test_add_1_to_100_delete_1_to_100() {
-    let rb_tree = setup_rb_tree();
+    let rb_tree = setup_rb_tree_test();
     let mut i = 1;
     while i <= 100 {
         insert(rb_tree, i, i.try_into().unwrap());
@@ -1315,7 +1309,7 @@ fn random(seed: felt252) -> u8 {
 #[available_gas(50000000000)]
 #[ignore]
 fn testing_random_insertion_and_deletion() {
-    let rb_tree = setup_rb_tree();
+    let rb_tree = setup_rb_tree_test();
     let no_of_nodes: u8 = max_no;
     let mut inserted_node_ids: Array<felt252> = ArrayTrait::new();
 

@@ -4,14 +4,17 @@ mod OptionRound {
     use core::starknet::event::EventEmitter;
     use core::option::OptionTrait;
     use core::fmt::{Display, Formatter, Error};
-    use pitch_lake_starknet::contracts::utils::red_black_tree::IRBTree;
+    use pitch_lake_starknet::contracts::components::red_black_tree::IRBTree;
     use openzeppelin::token::erc20::{
         ERC20Component, interface::{IERC20Metadata, ERC20ABIDispatcher, ERC20ABIDispatcherTrait,}
     };
     use starknet::{ContractAddress, get_caller_address, get_contract_address, get_block_timestamp};
     use pitch_lake_starknet::contracts::{
         market_aggregator::{IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait},
-        utils::{red_black_tree::{RBTreeComponent, RBTreeComponent::Node}, utils::{min, max}},
+        {
+            components::red_black_tree::{RBTreeComponent, RBTreeComponent::Node},
+            utils::utils::{min, max}
+        },
         vault::{interface::{IVaultDispatcher, IVaultDispatcherTrait}, types::VaultType},
         option_round::{
             interface::IOptionRound,

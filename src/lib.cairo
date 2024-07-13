@@ -1,9 +1,12 @@
 mod contracts {
     mod utils {
         mod utils;
+      
+    }
+    mod components {
+        mod eth;
         mod red_black_tree;
     }
-    mod eth;
     mod pitch_lake;
     mod vault {
         mod contract;
