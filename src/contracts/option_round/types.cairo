@@ -1,6 +1,11 @@
 use starknet::ContractAddress;
 use core::fmt::{Formatter, Error, Display};
 
+
+// The parameters needed to construct an option round
+// @param vault_address: The address of the vault that deployed this round
+// @param round_id: The id of the round (the first round in a vault is round 0)
+
 #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
 struct OptionRoundConstructorParams {
     vault_address: ContractAddress,
@@ -92,6 +97,8 @@ impl BidPartialOrdTrait of PartialOrd<Bid> {
         } else {
             if lhs.nonce > rhs.nonce {
                 true
+            } else if (lhs.nonce < rhs.nonce) {
+                false
             } else {
                 if lhs.amount >= rhs.amount {
                     true
@@ -115,12 +122,12 @@ impl BidPartialOrdTrait of PartialOrd<Bid> {
         } else if lhs.price < rhs.price {
             false
         } else {
-            if lhs.amount > rhs.amount {
+            if lhs.nonce < rhs.nonce {
                 true
-            } else if lhs.amount < rhs.amount {
+            } else if lhs.nonce > rhs.nonce {
                 false
             } else {
-                if (lhs.nonce < rhs.nonce) {
+                if (lhs.amount < rhs.amount) {
                     true
                 } else {
                     false

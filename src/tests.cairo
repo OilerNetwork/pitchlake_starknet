@@ -27,6 +27,7 @@ mod option_round {
     mod rb_tree {
         mod rb_tree_tests;
         mod rb_tree_mock_contract;
+        mod rb_tree_stress_tests;
     }
     mod state_transition {
         mod auction_end {

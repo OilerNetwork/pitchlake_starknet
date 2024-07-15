@@ -8,7 +8,7 @@ use openzeppelin::token::erc20::interface::{ERC20ABIDispatcherTrait,};
 
 use pitch_lake_starknet::{
     contracts::{
-        eth::Eth,
+        components::eth::Eth,
         pitch_lake::{
             IPitchLakeDispatcher, IPitchLakeSafeDispatcher, IPitchLakeDispatcherTrait, PitchLake,
             IPitchLakeSafeDispatcherTrait
@@ -58,9 +58,12 @@ fn test_strike_price_based_on_vault_types() {
     set_contract_address(bystander());
 
     // @note For some reason this is throwing ENTRYPOINT_NOT_FOUND
-    vault_dispatcher_at_the_money.deposit_liquidity(deposit_amount_wei, liquidity_provider_1());
-    vault_dispatcher_in_the_money.deposit_liquidity(deposit_amount_wei, liquidity_provider_1());
-    vault_dispatcher_out_the_money.deposit_liquidity(deposit_amount_wei, liquidity_provider_1());
+    let _ = vault_dispatcher_at_the_money
+        .deposit_liquidity(deposit_amount_wei, liquidity_provider_1());
+    let _ = vault_dispatcher_in_the_money
+        .deposit_liquidity(deposit_amount_wei, liquidity_provider_1());
+    let _ = vault_dispatcher_out_the_money
+        .deposit_liquidity(deposit_amount_wei, liquidity_provider_1());
 
     'does not'.print();
 

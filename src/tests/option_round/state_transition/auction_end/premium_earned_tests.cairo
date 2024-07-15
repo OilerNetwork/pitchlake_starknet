@@ -45,8 +45,6 @@ fn test_premium_amount_0_before_auction_end() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
-    let reserve_price = current_round.get_reserve_price();
-    let total_options_available = current_round.get_total_options_available();
 
     // Bid for all options at reserve price
     let bid_amount = current_round.get_total_options_available();

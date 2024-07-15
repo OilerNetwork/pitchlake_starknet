@@ -15,7 +15,7 @@ use pitch_lake_starknet::{
                 IVaultSafeDispatcherTrait
             }
         },
-        eth::Eth,
+        components::eth::Eth,
         option_round::{
             types::OptionRoundError,
             interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,}
@@ -262,7 +262,7 @@ fn test_settling_option_round_transfers_payout() {
 
 // Test that the vault and LP locked/unlocked balances update when the round settles
 #[test]
-#[available_gas(50000000)]
+#[available_gas(500000000)]
 fn test_settling_option_round_updates_locked_and_unlocked_balances() {
     let number_of_liquidity_providers = 4;
     let mut deposit_amounts = create_array_gradient(
