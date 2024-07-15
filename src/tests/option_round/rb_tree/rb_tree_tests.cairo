@@ -1,10 +1,14 @@
 use core::traits::TryInto;
 use pitch_lake_starknet::{
-    tests::{option_round::{rb_tree::rb_tree_mock_contract::{RBTreeMockContract, IRBTreeMockContractDispatcher,IRBTreeMockContractDispatcherTrait}},
-
+    tests::{
+        option_round::{
+            rb_tree::rb_tree_mock_contract::{
+                RBTreeMockContract, IRBTreeMockContractDispatcher,
+                IRBTreeMockContractDispatcherTrait
+            }
+        },
     },
     contracts::option_round::types::Bid,
-
 };
 use starknet::{contract_address_const, ContractAddress};
 use core::pedersen::pedersen;
@@ -1200,7 +1204,7 @@ fn test_mirror_deletion_black_node_successor() {
 
 #[test]
 fn test_delete_tree_one_by_one() {
-    let rb_tree= setup_rb_tree_test();
+    let rb_tree = setup_rb_tree_test();
 
     let node_90 = insert(rb_tree, 90, 1);
     let node_70 = insert(rb_tree, 70, 2);
@@ -1267,7 +1271,7 @@ fn insert(rb_tree: IRBTreeMockContractDispatcher, price: u256, nonce: u64) -> fe
     return id;
 }
 
-fn is_tree_valid(rb_tree: IRBTreeMockContractDispatcher){
+fn is_tree_valid(rb_tree: IRBTreeMockContractDispatcher) {
     let is_tree_valid = rb_tree.is_tree_valid();
 //println!("Is tree valid: {:?}", is_tree_valid);
 }

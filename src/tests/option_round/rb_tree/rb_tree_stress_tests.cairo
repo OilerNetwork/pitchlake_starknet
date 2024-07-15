@@ -2,8 +2,8 @@ use pitch_lake_starknet::{
     tests::{
         utils::helpers::setup::setup_rb_tree_test,
         option_round::rb_tree::rb_tree_tests::{
-            IRBTreeMockContractDispatcherTrait,
-            insert, mock_address, MOCK_ADDRESS, delete, create_bid
+            IRBTreeMockContractDispatcherTrait, insert, mock_address, MOCK_ADDRESS, delete,
+            create_bid
         },
     },
     contracts::option_round::types::Bid,

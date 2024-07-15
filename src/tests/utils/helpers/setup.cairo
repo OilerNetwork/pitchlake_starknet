@@ -165,7 +165,7 @@ fn deploy_pitch_lake() -> IPitchLakeDispatcher {
     return IPitchLakeDispatcher { contract_address };
 }
 
-fn setup_rb_tree_test() -> IRBTreeMockContractDispatcher{
+fn setup_rb_tree_test() -> IRBTreeMockContractDispatcher {
     let (address, _) = deploy_syscall(
         RBTreeMockContract::TEST_CLASS_HASH.try_into().unwrap(), 0, array![].span(), false
     )
