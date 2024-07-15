@@ -90,7 +90,7 @@ impl BidPartialOrdTrait of PartialOrd<Bid> {
         } else if lhs.price > rhs.price {
             false
         } else {
-          lhs.nonce > rhs.nonce
+            lhs.nonce > rhs.nonce
         }
     }
 
@@ -107,8 +107,8 @@ impl BidPartialOrdTrait of PartialOrd<Bid> {
         } else if lhs.price < rhs.price {
             false
         } else {
-          lhs.nonce < rhs.nonce
-       }
+            lhs.nonce < rhs.nonce
+        }
     }
 
     // @return if lhs >= rhs

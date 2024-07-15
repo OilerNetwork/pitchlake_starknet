@@ -28,7 +28,10 @@ use pitch_lake_starknet::{
                 liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
                 option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4, bystander,
             },
-            facades::{option_round_facade::{OptionRoundFacade, OptionRoundFacadeImpl}, vault_facade::{VaultFacade, VaultFacadeTrait}},
+            facades::{
+                option_round_facade::{OptionRoundFacade, OptionRoundFacadeImpl},
+                vault_facade::{VaultFacade, VaultFacadeTrait}
+            },
         },
     },
 };
@@ -46,12 +49,15 @@ fn test_strike_price_based_on_vault_types() {
     // Deploy pitch lake
     let pitch_lake_dispatcher: IPitchLakeDispatcher = deploy_pitch_lake();
     // Fetch vaults as facades
-let mut vault_dispatcher_at_the_money = VaultFacade {vault_dispatcher: pitch_lake_dispatcher
-        .at_the_money_vault()};
-let mut vault_dispatcher_in_the_money = VaultFacade {vault_dispatcher:pitch_lake_dispatcher
-        .in_the_money_vault()};
-let mut vault_dispatcher_out_the_money = VaultFacade {vault_dispatcher:pitch_lake_dispatcher
-        .out_the_money_vault() };
+    let mut vault_dispatcher_at_the_money = VaultFacade {
+        vault_dispatcher: pitch_lake_dispatcher.at_the_money_vault()
+    };
+    let mut vault_dispatcher_in_the_money = VaultFacade {
+        vault_dispatcher: pitch_lake_dispatcher.in_the_money_vault()
+    };
+    let mut vault_dispatcher_out_the_money = VaultFacade {
+        vault_dispatcher: pitch_lake_dispatcher.out_the_money_vault()
+    };
 
     // LP deposits into each round 1 because a round cannot start auctioning without liquidity
     let deposit_amount_wei: u256 = 100 * decimals();
