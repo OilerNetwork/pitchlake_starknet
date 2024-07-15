@@ -1,0 +1,37 @@
+name: RB Tree Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - "**"
+    types:
+      - reopened
+      - ready_for_review
+      - synchronize
+
+jobs:
+  main:
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.draft == false)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Scarb
+        uses: software-mansion/setup-scarb@v1
+        with:
+          tool-versions: .tool-versions
+
+      - name: Test the code
+        run: |
+          # Run the test and capture the output
+          output=$(scarb test -f rb_tree_tests --include-ignored)
+
+          # Echo the entire output (optional, for debugging purposes)
+          echo "$output"
+
+          # Filter and echo the specific part of the output you are interested in
+          echo "$output" | grep -E "Error: test result: FAILED. [0-9]+ passed; [0-9]+ failed; [0-9]+ ignored"

@@ -1266,7 +1266,7 @@ fn insert(rb_tree: IRBTreeDispatcher, price: u256, nonce: u64) -> felt252 {
 
 fn is_tree_valid(rb_tree: IRBTreeDispatcher) {
     let is_tree_valid = rb_tree.is_tree_valid();
-    println!("Is tree valid: {:?}", is_tree_valid);
+    //println!("Is tree valid: {:?}", is_tree_valid);
 }
 
 fn delete(rb_tree: IRBTreeDispatcher, bid_id: felt252) {
