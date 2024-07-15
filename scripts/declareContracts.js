@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 
 const constantsPath = path.resolve(__dirname, "./utils/constants.json");
-let constants = JSON.parse(fs.readFileSync(constantsPath, "utf8"));
+// let constants = JSON.parse(fs.readFileSync(constantsPath, "utf8"));
 
 // const { getAccount, getProvider } = require("./utils/helper");
 
@@ -14,6 +14,7 @@ async function declareContract(
   placeholder
 ) {
   try {
+    let constants = JSON.parse(fs.readFileSync(constantsPath, "utf8"));
     const declareResult = await account.declare({
       contract: sierra,
       casm: casm,
