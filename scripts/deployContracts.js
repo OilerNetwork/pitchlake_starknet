@@ -52,6 +52,10 @@ async function deployVaultContract(enviornment, account) {
     "vault class hash is: ",
     constants.declaredContractsMapping[enviornment]["vault"]
   );
+  console.log(
+    "class hash should be: ",
+    hash.computeContractClassHash(vaultSierra)
+  );
 
   const deployResult = await account.deploy({
     classHash: constants.declaredContractsMapping[enviornment]["vault"],

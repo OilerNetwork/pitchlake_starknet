@@ -20,8 +20,8 @@
       },
       "vault": {
         "vaultManager": "0x4d75495e10ee26cae76478b6e491646ff0a10e0a062db1555131e47b07b7d24",
-        "ethContract": "0x2033eae676409ab84a5b003e5bb2eded303862cd62c79947e4deb27d81a9747",
-        "marketAggregatorContract": "0x74f7839de68327ad75c66bb46b7a17388545391e368fbeb600e6ca891d3dffd"
+        "ethContract": "0x661174522bcf1b498b3041f1cb764673a8debc04f6a3884f8f8128613fab6a9",
+        "marketAggregatorContract": "0x6689f37c9828b5ee8b82257fef733b93b0c82981bcee577d751e68ebb34f09"
       },
       "optionRound": "",
       "marketAggregator": ""
@@ -31,10 +31,10 @@
     "production": {},
     "staging": {},
     "dev": {
-      "eth": "0x2033eae676409ab84a5b003e5bb2eded303862cd62c79947e4deb27d81a9747",
-      "vault": "0x372b08bda0018b6b62c698fa5676679ea96a4f75ab08cec7bc2a062ec2534dd",
+      "eth": "0x661174522bcf1b498b3041f1cb764673a8debc04f6a3884f8f8128613fab6a9",
+      "vault": "0x6394503ba270debb3f15dbf3feec86eb404bea081f68c28ea2b9b36f680fa1",
       "optionRound": "",
-      "marketAggregator": "0x74f7839de68327ad75c66bb46b7a17388545391e368fbeb600e6ca891d3dffd"
+      "marketAggregator": "0x6689f37c9828b5ee8b82257fef733b93b0c82981bcee577d751e68ebb34f09"
     }
   }
 }
