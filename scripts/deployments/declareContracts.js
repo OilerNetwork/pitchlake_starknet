@@ -1,7 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 
-const constantsPath = path.resolve(__dirname, "./utils/constants.json");
+const constantsPath = path.resolve(__dirname, "../utils/constants.json");
 
 async function declareContract(
   enviornment,

@@ -4,8 +4,8 @@
     "staging": {},
     "dev": {
       "eth": "0x176b43a1bd1a895134a8e6548a44580df044375422ff71251f9b1e5d5269803",
-      "vault": "0x29f4dfeac235195a008ada2d1c52973f50a13ce11af640331cde057107f8015",
-      "optionRound": "0x7f4523e9ee121fb6b7ceda6d1b779825ee5851f97be30b503187dec09abfea6",
+      "vault": "0x51f3613acd65a91406ef2d854b793744a0c3406138e82e5ea09f5c745aab189",
+      "optionRound": "0x57f540ea2a941e0f3726816edb47a10ea2da31008b3ec067c4a257037ab28d9",
       "marketAggregator": "0x29b6aeb628708c09146562a5ee59874ae85f745c38e633e47030a73abc6a258"
     }
   },
@@ -14,14 +14,13 @@
     "staging": {},
     "dev": {
       "eth": {
-        "supplyValueLow": 1,
-        "supplyValueHigh": 0,
-        "recipientContractAddress": "0x4d75495e10ee26cae76478b6e491646ff0a10e0a062db1555131e47b07b7d24"
+        "supply": 1e+32,
+        "recipientContractAddress": "0x7ce7089cb75a590b9485f6851d8998fa885494cc7a70dbae8f3db572586b8a8"
       },
       "vault": {
-        "vaultManager": "0x4d75495e10ee26cae76478b6e491646ff0a10e0a062db1555131e47b07b7d24",
-        "ethContract": "0x7bcc12eebf30007b22fe7c9a296d27ccb69b3f019b246093b77679aed0ac554",
-        "marketAggregatorContract": "0x49c10951ff56130aeb6468d45d8be8b76b6a8f60565502d8f3c6a4a4382aa63",
+        "vaultManager": "0x7ce7089cb75a590b9485f6851d8998fa885494cc7a70dbae8f3db572586b8a8",
+        "ethContract": "0x5b290e38b078355ed698933c5ee284f1d96806b6ededb40a060b42a1299cb94",
+        "marketAggregatorContract": "0x68bb77b7a915af4788b4552ce9d614e8e1e876e34277855dfdc9887436e9296",
         "roundTransitionPeriod": "0x1",
         "auctionRunTime": "0x2",
         "optionRunTime": "0x3"
@@ -34,10 +33,10 @@
     "production": {},
     "staging": {},
     "dev": {
-      "eth": "0x7bcc12eebf30007b22fe7c9a296d27ccb69b3f019b246093b77679aed0ac554",
-      "vault": "0x7f4ceb2f52e6925bec96c93b357d57f998f7aa5393691c5ffb66ee3d2758f15",
+      "eth": "0x5b290e38b078355ed698933c5ee284f1d96806b6ededb40a060b42a1299cb94",
+      "vault": "0x5a8632fefc554a280c144b15e5257aebcde92836674074a4e8e88dca050d140",
       "optionRound": "",
-      "marketAggregator": "0x49c10951ff56130aeb6468d45d8be8b76b6a8f60565502d8f3c6a4a4382aa63"
+      "marketAggregator": "0x68bb77b7a915af4788b4552ce9d614e8e1e876e34277855dfdc9887436e9296"
     }
   }
 }

@@ -1,5 +1,5 @@
 const starknet = require("starknet");
-const { nodeUrlMapping, accountDetailsMapping } = require("./constants");
+const { nodeUrlMapping, accountDetailsMapping } = require("../constants");
 
 function getProvider(environment, port = null) {
   const nodeUrl =
@@ -44,7 +44,21 @@ function getAccount(environment, provider) {
   return account;
 }
 
+async function getContract(provider, account, contractAddress) {
+  const { abi: contractAbi } = await provider.getClassAt(contractAddress);
+  if (contractAbi === undefined) {
+    throw new Error("No ABI.");
+  }
+
+  const contract = new Contract(contractAbi, contractAddress, provider);
+
+  contract.connect(account);
+
+  return contract;
+}
+
 module.exports = {
   getProvider,
   getAccount,
+  getContract,
 };
