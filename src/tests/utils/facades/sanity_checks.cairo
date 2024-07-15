@@ -1,8 +1,8 @@
 use starknet::{ContractAddress, testing::{set_contract_address}};
-use openzeppelin::token::erc20::interface::{IERC20DispatcherTrait,};
+use openzeppelin::token::erc20::interface::{ERC20ABIDispatcherTrait,};
 use pitch_lake_starknet::{
     //vault::{IVaultDispatcherTrait},
-    contracts::option_round::{IOptionRoundDispatcherTrait, OptionRound::Bid},
+    contracts::option_round::{interface::IOptionRoundDispatcherTrait, types::Bid},
     tests::{
         utils::{
             helpers::{
@@ -133,7 +133,7 @@ fn test_event_testers() {
     round.option_round_dispatcher.rm_me(100);
     event_helpers::assert_event_auction_start(round.contract_address(), 100);
     event_helpers::assert_event_auction_bid_accepted(
-        round.contract_address(), round.contract_address(), 100, 100
+        round.contract_address(), round.contract_address(), 100, 100, 0
     );
     event_helpers::assert_event_auction_bid_rejected(
         round.contract_address(), round.contract_address(), 100, 100

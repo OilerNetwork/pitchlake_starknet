@@ -1,20 +1,26 @@
 //Helper functions for posterity
+use openzeppelin::token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
 use pitch_lake_starknet::contracts::vault::{
-    IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault, IVaultSafeDispatcherTrait,
-    VaultType
+    interface::{
+        IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcherTrait,
+    },
+    contract::Vault, types::VaultType
 };
 use starknet::{ContractAddress, testing::{set_contract_address}};
 use pitch_lake_starknet::{
     contracts::option_round::{
-        IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState, StartAuctionParams,
-        OptionRoundConstructorParams, Bid,
-        OptionRound::{
-            OptionRoundError, OptionRoundErrorIntoFelt252, //OptionRoundErrorIntoByteArray
+        types::{OptionRoundError, OptionRoundErrorIntoFelt252},
+        interface::{
+            IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState,
+            StartAuctionParams, SettleOptionRoundParams, OptionRoundConstructorParams, Bid,
         }
     },
     tests::{
         utils::{
-            helpers::general_helpers::{assert_two_arrays_equal_length, get_erc20_balance},
+            helpers::{
+                setup::eth_supply_and_approve_all_bidders,
+                general_helpers::{assert_two_arrays_equal_length, get_erc20_balance}
+            },
             lib::{test_accounts::{vault_manager, bystander}, structs::{OptionRoundParams}},
             facades::sanity_checks,
         }
@@ -35,12 +41,8 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     // to test this.
 
     // Start the next option round's auction
-    fn start_auction(
-        ref self: OptionRoundFacade, total_options_availabe: u256, starting_liquidity: u256
-    ) -> u256 {
-        let res = self
-            .option_round_dispatcher
-            .start_auction(total_options_availabe, starting_liquidity);
+    fn start_auction(ref self: OptionRoundFacade, params: StartAuctionParams,) -> u256 {
+        let res = self.start_auction_raw(params);
         match res {
             Result::Ok(total_options_available) => sanity_checks::start_auction(
                 ref self, total_options_available
@@ -49,9 +51,15 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         }
     }
 
+    fn start_auction_raw(
+        ref self: OptionRoundFacade, params: StartAuctionParams,
+    ) -> Result<u256, OptionRoundError> {
+        self.option_round_dispatcher.start_auction(params)
+    }
+
     // End the current option round's auction
     fn end_auction(ref self: OptionRoundFacade) -> (u256, u256) {
-        let res = self.option_round_dispatcher.end_auction();
+        let res = self.end_auction_raw();
         match res {
             Result::Ok((
                 clearing_price, total_options_sold
@@ -60,13 +68,32 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         }
     }
 
+    fn end_auction_raw(ref self: OptionRoundFacade) -> Result<(u256, u256), OptionRoundError> {
+        self.option_round_dispatcher.end_auction()
+    }
+
     // Settle the current option round
     fn settle_option_round(ref self: OptionRoundFacade, settlement_price: u256) -> u256 {
-        let res = self.option_round_dispatcher.settle_option_round(settlement_price);
-        match res {
+        let res = self.settle_option_round_raw(settlement_price);
+        let res = match res {
             Result::Ok(total_payout) => sanity_checks::settle_option_round(ref self, total_payout),
             Result::Err(e) => panic(array![e.into()]),
-        }
+        };
+
+        //Get next round id and approvals for next round
+        let vault_address = self.vault_address();
+        let vault_dispatcher = IVaultDispatcher { contract_address: vault_address };
+        let next_round_address = vault_dispatcher.get_option_round_address(self.get_round_id() + 1);
+        eth_supply_and_approve_all_bidders(next_round_address, vault_dispatcher.eth_address());
+        res
+    }
+
+    fn settle_option_round_raw(
+        ref self: OptionRoundFacade, settlement_price: u256,
+    ) -> Result<u256, OptionRoundError> {
+        self
+            .option_round_dispatcher
+            .settle_option_round(SettleOptionRoundParams { settlement_price })
     }
 
 
@@ -80,7 +107,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         set_contract_address(bidder);
         let res = self.place_bid_raw(amount, price, bidder);
         match res {
-            Result::Ok(bid_id) => { sanity_checks::place_bid(ref self, bidder, bid_id) },
+            Result::Ok(bid) => { sanity_checks::place_bid(ref self, bidder, bid.id) },
             Result::Err(e) => panic(array![e.into()]),
         }
     }
@@ -102,6 +129,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
                 Option::Some(bidder) => {
                     let bid_amount = amounts.pop_front().unwrap();
                     let bid_price = prices.pop_front().unwrap();
+
                     // Make bid
                     let res = self.place_bid(*bid_amount, *bid_price, *bidder);
                     // Append result
@@ -120,7 +148,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         amount: u256,
         price: u256,
         option_bidder_buyer: ContractAddress,
-    ) -> Result<felt252, OptionRoundError> {
+    ) -> Result<Bid, OptionRoundError> {
         set_contract_address(option_bidder_buyer);
         self.option_round_dispatcher.place_bid(amount, price)
     }
@@ -133,7 +161,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         mut amounts: Span<u256>,
         mut prices: Span<u256>,
         mut bidders: Span<ContractAddress>,
-    ) -> Array<Result<felt252, OptionRoundError>> {
+    ) -> Array<Result<Bid, OptionRoundError>> {
         assert_two_arrays_equal_length(bidders, amounts);
         assert_two_arrays_equal_length(bidders, prices);
         let mut results = array![];
@@ -182,6 +210,11 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         }
     }
 
+    fn refund_bid_raw(
+        ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
+    ) -> Result<u256, OptionRoundError> {
+        self.option_round_dispatcher.refund_unused_bids(option_bidder_buyer)
+    }
     // Refunds all unused bids of multiple option bidders
     // @return: The amounts refunded
     fn refund_bids(ref self: OptionRoundFacade, mut bidders: Span<ContractAddress>) -> Array<u256> {
@@ -203,7 +236,8 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     // @note: Call using bystander ?
     fn exercise_options(ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress) -> u256 {
         let individual_payout = self.get_payout_balance_for(option_bidder_buyer);
-        let res = self.option_round_dispatcher.exercise_options(option_bidder_buyer);
+        set_contract_address(option_bidder_buyer);
+        let res = self.option_round_dispatcher.exercise_options();
         match res {
             Result::Ok(payout) => sanity_checks::exercise_options(
                 ref self, payout, individual_payout
@@ -215,7 +249,8 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     fn exercise_options_raw(
         ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
     ) -> Result<u256, OptionRoundError> {
-        self.option_round_dispatcher.exercise_options(option_bidder_buyer)
+        set_contract_address(option_bidder_buyer);
+        self.option_round_dispatcher.exercise_options()
     }
 
     // Exercise options for multiple option buyers
@@ -237,13 +272,21 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         let option_erc20_balance_before = get_erc20_balance(
             self.contract_address(), option_bidder_buyer
         );
-        let res = self.option_round_dispatcher.tokenize_options(option_bidder_buyer);
+        set_contract_address(option_bidder_buyer);
+        let res = self.option_round_dispatcher.tokenize_options();
         match res {
             Result::Ok(options_minted) => sanity_checks::tokenize_options(
                 ref self, option_bidder_buyer, option_erc20_balance_before, options_minted,
             ),
             Result::Err(e) => panic(array![e.into()]),
         }
+    }
+
+    fn tokenize_options_raw(
+        ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
+    ) -> Result<u256, OptionRoundError> {
+        set_contract_address(option_bidder_buyer);
+        self.option_round_dispatcher.tokenize_options()
     }
 
     /// Reads ///
@@ -258,7 +301,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         self.option_round_dispatcher.get_auction_end_date()
     }
 
-    fn get_option_expiry_date(ref self: OptionRoundFacade) -> u64 {
+    fn get_option_settlement_date(ref self: OptionRoundFacade) -> u64 {
         self.option_round_dispatcher.get_option_settlement_date()
     }
 
@@ -302,7 +345,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
 
     fn get_bids_for(
         ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
-    ) -> Array<felt252> {
+    ) -> Array<Bid> {
         self.option_round_dispatcher.get_bids_for(option_bidder_buyer)
     }
 
@@ -321,7 +364,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     fn get_option_balance_for(
         ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
     ) -> u256 {
-        self.option_round_dispatcher.get_option_balance_for(option_bidder_buyer)
+        self.option_round_dispatcher.get_tokenizable_options_for(option_bidder_buyer)
     }
 
     /// Other
@@ -369,5 +412,26 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
 
     fn get_total_options_available(ref self: OptionRoundFacade) -> u256 {
         self.option_round_dispatcher.get_total_options_available()
+    }
+
+    /// ERC20 functions
+    fn to_erc20(ref self: OptionRoundFacade) -> ERC20ABIDispatcher {
+        ERC20ABIDispatcher { contract_address: self.contract_address() }
+    }
+
+    fn name(ref self: OptionRoundFacade) -> ByteArray {
+        self.to_erc20().name()
+    }
+
+    fn symbol(ref self: OptionRoundFacade) -> ByteArray {
+        self.to_erc20().symbol()
+    }
+
+    fn decimals(ref self: OptionRoundFacade) -> u8 {
+        self.to_erc20().decimals()
+    }
+
+    fn balance_of(ref self: OptionRoundFacade, owner: ContractAddress) -> u256 {
+        self.to_erc20().balance_of(owner)
     }
 }

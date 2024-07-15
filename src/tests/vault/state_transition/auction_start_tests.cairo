@@ -3,20 +3,20 @@ use starknet::{
     Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
     testing::{set_block_timestamp, set_contract_address}
 };
-use openzeppelin::token::erc20::interface::{
-    IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
-    IERC20SafeDispatcherTrait,
-};
+use openzeppelin::token::erc20::interface::{ERC20ABIDispatcherTrait,};
 use pitch_lake_starknet::{
     contracts::{
         eth::Eth,
         vault::{
-            IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault,
-            IVaultSafeDispatcherTrait
+            contract::Vault,
+            interface::{
+                IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait,
+                IVaultSafeDispatcherTrait
+            }
         },
         option_round::{
-            IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState,
-            OptionRound::OptionRoundError
+            interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,},
+            types::{OptionRoundState, OptionRoundError}
         },
     },
     tests::{

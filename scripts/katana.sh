@@ -13,4 +13,5 @@ done
 # Run your Node script
 echo "Running main.js on port $PORT"
 node ./scripts/main.js dev $PORT
+
 # STARKNET_NETWORK=katana poetry run python3 scripts/deploy_vault.py --port $PORT

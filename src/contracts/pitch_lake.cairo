@@ -16,7 +16,7 @@
 // reserve price (this will be difficult?)
 // liquidity cap
 // fossil
-use pitch_lake_starknet::contracts::vault::{IVaultDispatcher};
+use pitch_lake_starknet::contracts::vault::interface::{IVaultDispatcher};
 
 
 #[starknet::interface]
@@ -30,7 +30,9 @@ trait IPitchLake<TContractState> {
 mod PitchLake {
     use starknet::{ContractAddress};
     use starknet::contract_address::ContractAddressZeroable;
-    use pitch_lake_starknet::contracts::vault::{Vault, IVault, IVaultDispatcher};
+    use pitch_lake_starknet::contracts::vault::{
+        contract::Vault, interface::{IVault, IVaultDispatcher}
+    };
     use pitch_lake_starknet::contracts::market_aggregator::{
         IMarketAggregator, IMarketAggregatorDispatcher
     };

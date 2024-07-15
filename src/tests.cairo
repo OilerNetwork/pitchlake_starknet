@@ -24,13 +24,18 @@ mod option_round {
         mod update_bids_tests;
         mod tokenizing_options_tests;
     }
+    mod rb_tree {
+        mod rb_tree_tests;
+        mod rb_tree_mock_contract;
+    }
     mod state_transition {
         mod auction_end {
             mod auction_end_tests;
-            mod pending_to_refundable_bids_tests;
+            mod refundable_bids_tests;
             mod clearing_price_tests;
             mod option_distribution_tests;
             mod premium_earned_tests;
+            mod unsold_liquidity_tests;
         }
         mod auction_start {
             mod auction_start_tests;
@@ -42,6 +47,7 @@ mod option_round {
         mod caller_is_not_vault_tests;
     }
 }
+
 
 #[cfg(test)]
 mod utils {

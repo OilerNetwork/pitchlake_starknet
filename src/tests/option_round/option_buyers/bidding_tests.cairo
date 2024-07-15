@@ -1,22 +1,24 @@
+use core::array::ArrayTrait;
 use starknet::{
     ClassHash, ContractAddress, contract_address_const, deploy_syscall,
     Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
     testing::{set_block_timestamp, set_contract_address}
 };
-use openzeppelin::{
-    token::erc20::interface::{
-        IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
-        IERC20SafeDispatcherTrait,
-    },
-};
+use openzeppelin::{token::erc20::interface::{ERC20ABIDispatcherTrait,},};
 use pitch_lake_starknet::{
     contracts::{
         eth::Eth,
         vault::{
-            IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault,
-            IVaultSafeDispatcherTrait
+            contract::Vault,
+            interface::{
+                IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait,
+                IVaultSafeDispatcherTrait
+            }
         },
-        option_round::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
+        option_round::{
+            contract::OptionRound, types::OptionRoundState,
+            interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait}
+        },
     },
     tests::{
         utils::{
@@ -53,6 +55,42 @@ use pitch_lake_starknet::{
     },
 };
 use debug::PrintTrait;
+
+// Test PartialOrd & PartialEq for MockBid by printing varying scenarios
+// @note Test is ignored by default, to run the test run `scarb test -f test_bid_sort --include-ignored`
+//#[test]
+//#[available_gas(50000000)]
+//#[ignore]
+//fn test_bid_sort() {
+//    let mut lhs = array![
+//        MockBid { amount: 10, price: 10 },
+//        MockBid { amount: 10, price: 10 },
+//        MockBid { amount: 10, price: 10 },
+//        MockBid { amount: 10, price: 10 },
+//        MockBid { amount: 10, price: 10 },
+//    ];
+//    let mut rhs = array![
+//        MockBid { amount: 10, price: 10 },
+//        MockBid { amount: 10, price: 9 },
+//        MockBid { amount: 10, price: 11 },
+//        MockBid { amount: 9, price: 10 },
+//        MockBid { amount: 11, price: 10 },
+//    ];
+//    assert(lhs.len() == rhs.len(), 'lhs.len() != rhs.len()');
+//    loop {
+//        match lhs.pop_front() {
+//            Option::Some(l) => {
+//                let r = rhs.pop_front().unwrap();
+//                ("({}, {}) == ({}, {}): {}", l.amount, l.price, r.amount, r.price, l == r);
+//                println!("({}, {}) < ({}, {}): {}", l.amount, l.price, r.amount, r.price, l < r);
+//                println!("({}, {}) <= ({}, {}): {}", l.amount, l.price, r.amount, r.price, l <= r);
+//                println!("({}, {}) > ({}, {}): {}", l.amount, l.price, r.amount, r.price, l > r);
+//                println!("({}, {}) >= ({}, {}): {}", l.amount, l.price, r.amount, r.price, l >= r);
+//            },
+//            Option::None => { break (); }
+//        }
+//    };
+//}
 
 /// Failues ///
 
@@ -110,7 +148,7 @@ fn test_bid_price_below_reserve_fails() {
 
 // Test bidding before auction starts fails
 #[test]
-#[available_gas(50000000)]
+#[available_gas(500000000)]
 fn test_bid_before_auction_starts_failure() {
     let (mut vault, _) = setup_facade();
     accelerate_to_auctioning(ref vault);
@@ -118,7 +156,7 @@ fn test_bid_before_auction_starts_failure() {
     accelerate_to_settled(ref vault, 0);
 
     // Try to place bid before auction starts
-    let (_round1, mut round2) = vault.get_current_and_next_rounds();
+    let mut round2 = vault.get_current_round();
     let bidder = option_bidder_buyer_1();
     let bid_price = round2.get_reserve_price();
     let bid_amount = round2.get_total_options_available();
@@ -138,7 +176,7 @@ fn test_bid_before_auction_starts_failure() {
 
 // Test bidding after auction ends fails
 #[test]
-#[available_gas(50000000)]
+#[available_gas(5000000000)]
 fn test_bid_after_auction_ends_failure() {
     let (mut vault, _) = setup_facade();
     accelerate_to_auctioning(ref vault);
@@ -148,13 +186,13 @@ fn test_bid_after_auction_ends_failure() {
     accelerate_to_running(ref vault);
 
     // Try to place bid after auction ends
-    let (mut round2, _round3) = vault.get_current_and_next_rounds();
+    let mut round2 = vault.get_current_round();
     let bidder = option_bidder_buyer_1();
     let bid_price = round2.get_reserve_price();
     let bid_amount = round2.get_total_options_available();
-
     // Check bid rejected event
     clear_event_logs(array![round2.contract_address()]);
+
     match round2.place_bid_raw(bid_amount, bid_price, option_bidder_buyer_1()) {
         Result::Ok(_) => { panic!("Bid should have failed"); },
         Result::Err(_) => {
@@ -168,7 +206,7 @@ fn test_bid_after_auction_ends_failure() {
 
 // Test bidding after auction end date fail (if end_auction() is not called first)
 #[test]
-#[available_gas(50000000)]
+#[available_gas(500000000)]
 fn test_bid_after_auction_end_failure_2() {
     let (mut vault, _) = setup_facade();
     accelerate_to_auctioning(ref vault);
@@ -176,7 +214,7 @@ fn test_bid_after_auction_end_failure_2() {
     accelerate_to_settled(ref vault, 0);
     accelerate_to_auctioning(ref vault);
     timeskip_past_auction_end_date(ref vault);
-    let (mut round2, _round3) = vault.get_current_and_next_rounds();
+    let mut round2 = vault.get_current_round();
 
     // Try to place bid after auction end date (before entry point called)
     let bidder = option_bidder_buyer_1();
@@ -203,7 +241,7 @@ fn test_bid_after_auction_end_failure_2() {
 
 // Test bid accepted events
 #[test]
-#[available_gas(50000000)]
+#[available_gas(500000000)]
 fn test_bid_accepted_events() {
     let (mut vault_facade, _) = setup_facade();
     let options_available = accelerate_to_auctioning(ref vault_facade);
@@ -224,7 +262,11 @@ fn test_bid_accepted_events() {
                 let bid_amount = bid_amounts.pop_front().unwrap();
                 let bid_price = bid_prices.pop_front().unwrap();
                 assert_event_auction_bid_accepted(
-                    current_round.contract_address(), *ob, *bid_amount, *bid_price
+                    current_round.contract_address(),
+                    *ob,
+                    *bid_amount,
+                    *bid_price,
+                    0 //The 0 is nonce, nonce for each of the bidders should be 0 as it's there first bid
                 );
             },
             Option::None => { break; }
@@ -236,7 +278,7 @@ fn test_bid_accepted_events() {
 
 // Test bidding transfers eth from bidder to round
 #[test]
-#[available_gas(50000000)]
+#[available_gas(500000000)]
 fn test_bid_eth_transfer() {
     let (mut vault_facade, eth) = setup_facade();
     let options_available = accelerate_to_auctioning(ref vault_facade);
@@ -260,7 +302,6 @@ fn test_bid_eth_transfer() {
         eth.contract_address, current_round.contract_address()
     );
 
-    // Check round balance
     assert(round_balance_after == round_balance_before + bids_total, 'round balance after wrong');
     // Check ob balances
     loop {
@@ -283,7 +324,7 @@ fn test_bid_eth_transfer() {
 
 // Test bidding updates bid nonce
 #[test]
-#[available_gas(50000000)]
+#[available_gas(500000000)]
 fn test_bidding_updates_bid_nonce() {
     let (mut vault_facade, _) = setup_facade();
     let options_available = accelerate_to_auctioning(ref vault_facade);
@@ -306,7 +347,7 @@ fn test_bidding_updates_bid_nonce() {
 
 // Test failed bids do not update bid nonce
 #[test]
-#[available_gas(50000000)]
+#[available_gas(500000000)]
 fn test_failed_bid_nonce_unchanged() {
     let (mut vault_facade, _) = setup_facade();
     let options_available = accelerate_to_auctioning(ref vault_facade);
@@ -314,7 +355,8 @@ fn test_failed_bid_nonce_unchanged() {
     let reserve_price = current_round.get_reserve_price();
 
     // Bid parameters
-    let bidder = option_bidder_buyer_1();
+    let bidder = *option_bidders_get(1)[0];
+
     let bid_price = reserve_price;
     let mut bid_amount = options_available;
 
@@ -323,7 +365,7 @@ fn test_failed_bid_nonce_unchanged() {
         let nonce_before = current_round.get_bidding_nonce_for(bidder);
         if (i % 2 == 1) {
             //Failed bid in alternate rounds and check nonce update
-            current_round.place_bid(bid_amount, bid_price - 1, bidder);
+            current_round.place_bid_raw(bid_amount, bid_price - 1, bidder);
             let nonce_after = current_round.get_bidding_nonce_for(bidder);
             assert(nonce_before == nonce_after, 'Nonce Mismatch');
         } else {
@@ -336,7 +378,7 @@ fn test_failed_bid_nonce_unchanged() {
 
 // Test bid hashes match expected hash
 #[test]
-#[available_gas(50000000)]
+#[available_gas(500000000)]
 fn test_place_bid_id() {
     let (mut vault_facade, _) = setup_facade();
     let options_available = accelerate_to_auctioning(ref vault_facade);

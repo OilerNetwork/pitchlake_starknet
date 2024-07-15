@@ -1,16 +1,13 @@
 use core::option::OptionTrait;
 use core::array::SpanTrait;
-use openzeppelin::token::erc20::interface::{
-    IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
-    IERC20SafeDispatcherTrait,
-};
+use openzeppelin::token::erc20::interface::{ERC20ABIDispatcherTrait,};
 use starknet::{
     ClassHash, ContractAddress, contract_address_const, deploy_syscall,
     Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
     testing::{set_block_timestamp, set_contract_address}
 };
 use pitch_lake_starknet::{
-    contracts::{eth::Eth, vault::{Vault, VaultError}},
+    contracts::{eth::Eth, vault::{contract::Vault, types::VaultError}},
     tests::{
         utils::{
             helpers::{

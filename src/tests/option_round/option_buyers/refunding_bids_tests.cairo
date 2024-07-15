@@ -1,33 +1,36 @@
 use core::traits::TryInto;
 use starknet::{ContractAddress, testing::{set_block_timestamp, set_contract_address}};
-use openzeppelin::token::erc20::interface::{IERC20, IERC20Dispatcher, IERC20DispatcherTrait,};
-use pitch_lake_starknet::tests::{
-    utils::{
-        helpers::{
-            setup::{setup_facade},
-            general_helpers::{
-                scale_array, get_erc20_balance, get_erc20_balances, create_array_gradient,
-                create_array_linear,
+use openzeppelin::token::erc20::interface::{ERC20ABI, ERC20ABIDispatcher, ERC20ABIDispatcherTrait,};
+use pitch_lake_starknet::{
+    contracts::{option_round::types::OptionRoundError},
+    tests::{
+        utils::{
+            helpers::{
+                setup::{setup_facade},
+                general_helpers::{
+                    scale_array, get_erc20_balance, get_erc20_balances, create_array_gradient,
+                    create_array_linear,
+                },
+                event_helpers::{assert_event_unused_bids_refunded, clear_event_logs},
+                accelerators::{
+                    accelerate_to_auctioning, accelerate_to_running_custom, accelerate_to_running,
+                    accelerate_to_settled, timeskip_and_end_auction,
+                    accelerate_to_auctioning_custom, timeskip_past_auction_end_date,
+                },
             },
-            event_helpers::{assert_event_unused_bids_refunded, clear_event_logs},
-            accelerators::{
-                accelerate_to_auctioning, accelerate_to_running_custom, accelerate_to_running,
-                accelerate_to_settled, timeskip_and_end_auction, accelerate_to_auctioning_custom,
-                timeskip_past_auction_end_date,
+            lib::{
+                test_accounts::{
+                    liquidity_provider_1, option_bidder_buyer_1, option_bidder_buyer_2,
+                    option_bidder_buyer_3, option_bidders_get, option_bidder_buyer_4,
+                },
+                variables::{decimals},
+            },
+            facades::{
+                vault_facade::{VaultFacade, VaultFacadeTrait},
+                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait}
             },
         },
-        lib::{
-            test_accounts::{
-                liquidity_provider_1, option_bidder_buyer_1, option_bidder_buyer_2,
-                option_bidder_buyer_3, option_bidders_get, option_bidder_buyer_4,
-            },
-            variables::{decimals},
-        },
-        facades::{
-            vault_facade::{VaultFacade, VaultFacadeTrait},
-            option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait}
-        },
-    },
+    }
 };
 
 // @note Break up into separate files
@@ -43,7 +46,7 @@ use pitch_lake_starknet::tests::{
 // @return The vault facade, eth dispatcher, and span of option bidders
 fn setup_test(
     number_of_option_buyers: u32
-) -> (VaultFacade, IERC20Dispatcher, Span<ContractAddress>) {
+) -> (VaultFacade, ERC20ABIDispatcher, Span<ContractAddress>) {
     let (mut vault, eth) = setup_facade();
 
     // Auction participants
@@ -85,8 +88,7 @@ fn place_incremental_bids_internal(
 
 // Test refunding bids before the auction ends fails
 #[test]
-#[available_gas(50000000)]
-#[should_panic(expected: ('The auction is still on-going', 'ENTRYPOINT_FAILED',))]
+#[available_gas(500000000)]
 fn test_refunding_bids_before_auction_end_fails() {
     let number_of_option_bidders: u32 = 3;
     let (mut vault, _, mut option_bidders) = setup_test(number_of_option_bidders);
@@ -95,13 +97,18 @@ fn test_refunding_bids_before_auction_end_fails() {
     let (_, _, mut current_round) = place_incremental_bids_internal(ref vault, option_bidders);
 
     // Try to refund bids before auction ends
-    current_round.refund_bid(*option_bidders[0]);
+    let expected_error = OptionRoundError::AuctionNotEnded;
+    let res = current_round.refund_bid_raw(*option_bidders[0]);
+    match res {
+        Result::Ok(_) => { panic!("Should throw error"); },
+        Result::Err(e) => { assert(e == expected_error, 'Error Mismatch'); }
+    }
 }
 
 
 // Test refunding bids emits event correctly
 #[test]
-#[available_gas(50000000)]
+#[available_gas(5000000000)]
 fn test_refunding_bids_events() {
     let number_of_option_bidders: u32 = 3;
     let (mut vault, _, mut option_bidders) = setup_test(number_of_option_bidders);
@@ -112,6 +119,7 @@ fn test_refunding_bids_events() {
     // End auction
     timeskip_and_end_auction(ref vault);
 
+    clear_event_logs(array![current_round.contract_address()]);
     // Pop last bidder from array because their bids are not refundable
     match option_bidders.pop_back() {
         Option::Some(_) => {
@@ -137,7 +145,7 @@ fn test_refunding_bids_events() {
 
 // Test refunding bids sets refunded balance to 0
 #[test]
-#[available_gas(50000000)]
+#[available_gas(5000000000)]
 fn test_refund_bids_sets_refunded_balance_to_0() {
     let number_of_option_bidders: u32 = 3;
     let (mut vault, _, mut option_bidders) = setup_test(number_of_option_bidders);
@@ -161,7 +169,7 @@ fn test_refund_bids_sets_refunded_balance_to_0() {
 
 // Test refunding bids transfers eth from round to option bidder
 #[test]
-#[available_gas(50000000)]
+#[available_gas(5000000000)]
 fn test_refund_bids_eth_transfer() {
     let number_of_option_bidders: u32 = 3;
     let (mut vault, eth_dispatcher, mut option_bidders) = setup_test(number_of_option_bidders);

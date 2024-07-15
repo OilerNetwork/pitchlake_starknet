@@ -3,13 +3,19 @@ name: Tests
 on:
   push:
     branches:
-      - "**"
+      - main
+      - develop
   pull_request:
     branches:
       - "**"
+    types:
+      - reopened
+      - ready_for_review
+      - synchronize
 
 jobs:
   main:
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.draft == false)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -30,3 +36,4 @@ jobs:
 
           # Filter and echo the specific part of the output you are interested in
           echo "$output" | grep -E "Error: test result: FAILED. [0-9]+ passed; [0-9]+ failed; [0-9]+ ignored"
+

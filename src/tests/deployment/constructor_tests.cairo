@@ -1,6 +1,4 @@
-use openzeppelin::token::erc20::interface::{
-    IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcherTrait,
-};
+use openzeppelin::token::erc20::interface::{ERC20ABIDispatcherTrait,};
 use starknet::{
     ClassHash, ContractAddress, contract_address_const, deploy_syscall, SyscallResult,
     Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
@@ -10,12 +8,16 @@ use pitch_lake_starknet::{
     contracts::{
         eth::Eth,
         vault::{
-            IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault,
-            IVaultSafeDispatcherTrait
+            contract::Vault,
+            interface::{
+                IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait,
+                IVaultSafeDispatcherTrait
+            }
         },
         option_round::{
-            OptionRoundState, OptionRound, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,
-            OptionRoundConstructorParams,
+            contract::{OptionRound,},
+            interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,},
+            types::{OptionRoundState, OptionRoundConstructorParams,}
         },
         market_aggregator::{
             IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait,
@@ -79,10 +81,37 @@ fn test_vault_constructor() {
 #[available_gas(50000000)]
 fn test_option_round_constructor() {
     let (mut vault, _) = setup_facade();
-
     let mut current_round = vault.get_current_round();
-//assert(current_round.get_constructor_params() == args, 'r1 construcutor params wrong');
-// @note add other constructor args here
+
+    // Test constructor args
+    assert_eq!(current_round.name(), "Pitch Lake Option Round 1");
+    assert_eq!(current_round.symbol(), "PLOR1");
+    assert_eq!(current_round.decimals(), 6);
+
+    assert_eq!(current_round.vault_address(), vault.contract_address());
+    assert_eq!(current_round.get_round_id(), 1);
+
+    // Get time params
+    let now = starknet::get_block_timestamp();
+    let (auction_run_time, option_run_time, round_transition_period) = {
+        (
+            vault.get_auction_run_time(),
+            vault.get_option_run_time(),
+            vault.get_round_transition_period()
+        )
+    };
+
+    let auction_start_date = now + round_transition_period;
+    let auction_end_date = auction_start_date + auction_run_time;
+    let option_settlement_date = auction_end_date + option_run_time;
+
+    assert_eq!(current_round.get_auction_start_date(), auction_start_date);
+    assert_eq!(current_round.get_auction_end_date(), auction_end_date);
+    assert_eq!(current_round.get_option_settlement_date(), option_settlement_date);
+
+    assert!(current_round.get_state() == OptionRoundState::Open, "state does not match");
+// Test reserve price, cap level, strike price
+// - might need to deploy a custom option round for this
 }
 
 

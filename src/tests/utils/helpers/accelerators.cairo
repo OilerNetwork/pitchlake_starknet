@@ -9,10 +9,16 @@ use pitch_lake_starknet::{
             IMarketAggregatorDispatcherTrait, IMarketAggregatorSafeDispatcher,
             IMarketAggregatorSafeDispatcherTrait
         },
-        vault::{IVaultDispatcher, IVaultDispatcherTrait, Vault, VaultType}, option_round,
+        vault::{
+            contract::Vault, types::VaultType, interface::{IVaultDispatcher, IVaultDispatcherTrait}
+        },
         option_round::{
-            OptionRound, StartAuctionParams, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,
-            IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait, OptionRoundState,
+            contract::{OptionRound},
+            interface::{
+                IOptionRoundDispatcher, IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher,
+                IOptionRoundSafeDispatcherTrait
+            },
+            types::{StartAuctionParams, OptionRoundState,}
         },
     },
     tests::{
@@ -21,7 +27,7 @@ use pitch_lake_starknet::{
                 structs::{OptionRoundParams},
                 test_accounts::{
                     vault_manager, liquidity_provider_1, option_bidder_buyer_1, bystander,
-                    option_bidders_get,
+                    option_bidders_get, liquidity_providers_get,
                 },
                 variables::{decimals},
             },
@@ -48,7 +54,7 @@ use pitch_lake_starknet::{
 // Start the auction with LP1 depositing 100 eth
 fn accelerate_to_auctioning(ref self: VaultFacade) -> u256 {
     accelerate_to_auctioning_custom(
-        ref self, array![liquidity_provider_1()].span(), array![100 * decimals()].span()
+        ref self, array![*liquidity_providers_get(1)[0]].span(), array![100 * decimals()].span()
     )
 }
 
@@ -83,7 +89,7 @@ fn accelerate_to_running(ref self: VaultFacade) -> (u256, u256) {
     let bid_price = current_round.get_reserve_price();
     accelerate_to_running_custom(
         ref self,
-        array![option_bidder_buyer_1()].span(),
+        array![*option_bidders_get(1)[0]].span(),
         array![bid_amount].span(),
         array![bid_price].span()
     )
@@ -106,7 +112,9 @@ fn accelerate_to_running_custom(
 // Helper function to deploy custom option round, start auction, place bids,
 // then end auction
 // Used to test real number outcomes for option distributions
+// @note Re-name, add additional comments for clarity
 fn accelerate_to_running_custom_option_round(
+    vault_address: ContractAddress,
     total_options_available: u256,
     reserve_price: u256,
     bid_amounts: Span<u256>,
@@ -116,7 +124,6 @@ fn accelerate_to_running_custom_option_round(
     assert_two_arrays_equal_length(bid_amounts, bid_prices);
 
     // Deploy custom option round
-    let vault_address = contract_address_const::<'vault address'>();
     let auction_start_date: u64 = 1;
     let auction_end_date: u64 = 2;
     let option_settlement_date: u64 = 3;
@@ -135,11 +142,22 @@ fn accelerate_to_running_custom_option_round(
     // Start auction
     set_contract_address(vault_address);
     set_block_timestamp(auction_start_date + 1);
-    option_round.start_auction(total_options_available, 100 * decimals());
+
+    //Should this be called from the option round??
+    option_round
+        .start_auction(
+            StartAuctionParams {
+                total_options_available,
+                starting_liquidity: 100 * decimals(),
+                reserve_price: reserve_price,
+                cap_level: 2,
+                strike_price: 3,
+            }
+        );
 
     // Make bids
     let mut option_bidders = option_bidders_get(bid_amounts.len()).span();
-    option_round.place_bids(bid_amounts, bid_prices, option_bidders);
+    option_round.place_bids_raw(bid_amounts, bid_prices, option_bidders);
 
     // End auction
     set_contract_address(vault_address);
@@ -171,7 +189,7 @@ fn timeskip_past_auction_end_date(ref self: VaultFacade) {
 // Jump past the option expiry date
 fn timeskip_past_option_expiry_date(ref self: VaultFacade) {
     let mut current_round = self.get_current_round();
-    set_block_timestamp(current_round.get_option_expiry_date() + 1);
+    set_block_timestamp(current_round.get_option_settlement_date() + 1);
 }
 
 // Jump past the round transition period
@@ -207,11 +225,8 @@ fn timeskip_and_end_auction(ref self: VaultFacade) -> (u256, u256) {
 // Jump to the option expriry date and settle the round
 fn timeskip_and_settle_round(ref self: VaultFacade) -> u256 {
     let mut current_round = self.get_current_round();
-    set_block_timestamp(current_round.get_option_expiry_date() + 1);
+    set_block_timestamp(current_round.get_option_settlement_date() + 1);
     set_contract_address(bystander());
-    match self.vault_dispatcher.settle_option_round() {
-        Result::Ok(payout) => payout,
-        Result::Err(e) => panic(array!['Error:', e.into()])
-    }
+    self.settle_option_round()
 }
 

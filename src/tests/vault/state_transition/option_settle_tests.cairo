@@ -4,21 +4,21 @@ use starknet::{
     testing::{set_block_timestamp, set_contract_address}, contract_address::ContractAddressZeroable,
 };
 use openzeppelin::{
-    utils::serde::SerializedAppend,
-    token::erc20::interface::{
-        IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
-        IERC20SafeDispatcherTrait,
-    }
+    utils::serde::SerializedAppend, token::erc20::interface::{ERC20ABIDispatcherTrait}
 };
 use pitch_lake_starknet::{
     contracts::{
         vault::{
-            IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault,
-            IVaultSafeDispatcherTrait
+            contract::Vault,
+            interface::{
+                IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait,
+                IVaultSafeDispatcherTrait
+            }
         },
         eth::Eth,
         option_round::{
-            IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRound::OptionRoundError
+            types::OptionRoundError,
+            interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,}
         },
         market_aggregator::{
             IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait,
@@ -119,7 +119,7 @@ fn test_settling_option_round_while_settled_fails() {
 
 // Test settling an option round emits the correct event
 #[test]
-#[available_gas(50000000)]
+#[available_gas(5000000000)]
 fn test_option_round_settled_event() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
@@ -142,7 +142,7 @@ fn test_option_round_settled_event() {
 // Test every time a new round is deployed, the next round deployed event emits correctly
 // @dev The first round to be deployed after deployment is round 2
 #[test]
-#[available_gas(50000000)]
+#[available_gas(500000000)]
 fn test_next_round_deployed_event() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
@@ -180,7 +180,7 @@ fn test_next_round_deployed_event() {
 
 // Test settling an option round updates the current round id
 #[test]
-#[available_gas(50000000)]
+#[available_gas(500000000)]
 fn test_settling_option_round_updates_current_round_id() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
@@ -202,7 +202,7 @@ fn test_settling_option_round_updates_current_round_id() {
 // Test settling an option round updates the current round's state
 // @note should this be a state transition test in option round tests
 #[test]
-#[available_gas(50000000)]
+#[available_gas(500000000)]
 fn test_settle_option_round_updates_round_state() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
@@ -230,7 +230,7 @@ fn test_settle_option_round_updates_round_state() {
 
 // Test settling transfers the payout from the vault to the option round
 #[test]
-#[available_gas(50000000)]
+#[available_gas(90000000)]
 fn test_settling_option_round_transfers_payout() {
     let mut rounds_to_run = 3;
     let (mut vault, eth) = setup_facade();

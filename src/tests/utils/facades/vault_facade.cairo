@@ -1,9 +1,11 @@
 use starknet::{ContractAddress, testing::{set_contract_address, set_block_timestamp}};
-use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
+use openzeppelin::token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
 use pitch_lake_starknet::{
     contracts::{
-        vault::{VaultError, IVaultDispatcher, IVaultDispatcherTrait},
-        option_round::{OptionRound, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,},
+        vault::{types::VaultError, interface::{IVaultDispatcher, IVaultDispatcherTrait}},
+        option_round::{
+            contract::OptionRound, interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,}
+        },
         market_aggregator::{
             MarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
         },
@@ -21,7 +23,10 @@ use pitch_lake_starknet::{
             facades::{
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait}, sanity_checks,
             },
-            helpers::general_helpers::{assert_two_arrays_equal_length},
+            helpers::{
+                setup::eth_supply_and_approve_all_bidders,
+                general_helpers::{assert_two_arrays_equal_length}
+            },
         },
     }
 };
@@ -146,14 +151,19 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     fn settle_option_round(ref self: VaultFacade) -> u256 {
         // @dev Using bystander as caller so that gas fees do not throw off balance calculations
         set_contract_address(bystander());
+        let mut current_round = self.get_current_round();
         let res = self.vault_dispatcher.settle_option_round();
-        match res {
-            Result::Ok(total_payout) => {
-                let mut current_round = self.get_current_round();
-                sanity_checks::settle_option_round(ref current_round, total_payout)
-            },
+
+        let res = match res {
+            Result::Ok(total_payout) => sanity_checks::settle_option_round(
+                ref current_round, total_payout
+            ),
             Result::Err(e) => panic(array![e.into()]),
-        }
+        };
+
+        let next_round_address = self.get_option_round_address(current_round.get_round_id() + 1);
+        eth_supply_and_approve_all_bidders(next_round_address, self.get_eth_address());
+        res
     }
 
     fn settle_option_round_raw(ref self: VaultFacade) -> Result<u256, VaultError> {
@@ -167,7 +177,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         set_contract_address(bystander());
         let mut current_round = self.get_current_round();
         let start_date = current_round.get_auction_start_date();
-        let end_date = current_round.get_option_expiry_date();
+        let end_date = current_round.get_option_settlement_date();
         let market_aggregator = IMarketAggregatorSetterDispatcher {
             contract_address: self.get_market_aggregator(),
         };
@@ -229,19 +239,8 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         OptionRoundFacade { option_round_dispatcher }
     }
 
-    fn get_next_round(ref self: VaultFacade) -> OptionRoundFacade {
-        let contract_address = self
-            .vault_dispatcher
-            .get_option_round_address(self.vault_dispatcher.current_option_round_id() + 1);
-        let option_round_dispatcher = IOptionRoundDispatcher { contract_address };
-
-        OptionRoundFacade { option_round_dispatcher }
-    }
-
-    fn get_current_and_next_rounds(
-        ref self: VaultFacade
-    ) -> (OptionRoundFacade, OptionRoundFacade) {
-        (self.get_current_round(), self.get_next_round())
+    fn get_unsold_liquidity(ref self: VaultFacade, round_id: u256) -> u256 {
+        self.vault_dispatcher.get_unsold_liquidity(round_id)
     }
 
     /// Liquidity
@@ -370,7 +369,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         };
         let mut current_round = self.get_current_round();
         let start_date = current_round.get_auction_start_date();
-        let end_date = current_round.get_option_expiry_date();
+        let end_date = current_round.get_option_settlement_date();
 
         match market_aggregator.get_value(start_date, end_date) {
             Result::Ok((value, _)) => value,
@@ -389,10 +388,18 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         self.vault_dispatcher.eth_address()
     }
 
+    fn get_auction_run_time(ref self: VaultFacade) -> u64 {
+        self.vault_dispatcher.get_auction_run_time()
+    }
+
+    fn get_option_run_time(ref self: VaultFacade) -> u64 {
+        self.vault_dispatcher.get_option_run_time()
+    }
+
     // Gets the round transition period in seconds, 3 hours is a random number for testing
     // @note TODO impl this in contract later
     fn get_round_transition_period(ref self: VaultFacade) -> u64 {
-        self.get_round_transition_period()
+        self.vault_dispatcher.get_round_transition_period()
     }
 }
 
