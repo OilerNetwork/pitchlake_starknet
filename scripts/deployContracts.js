@@ -2,15 +2,10 @@
 const fs = require("fs");
 const path = require("path");
 const { hash, CallData, CairoCustomEnum } = require("starknet");
-const ethSierra = require("../target/dev/pitch_lake_starknet_Eth.contract_class.json");
 const vaultSierra = require("../target/dev/pitch_lake_starknet_Vault.contract_class.json");
-const optionRoundSieraa = require("../target/dev/pitch_lake_starknet_OptionRound.contract_class.json");
-const marketAggregatorSierra = require("../target/dev/pitch_lake_starknet_MarketAggregator.contract_class.json");
 
 const constantsPath = path.resolve(__dirname, "./utils/constants.json");
 let constants = JSON.parse(fs.readFileSync(constantsPath, "utf8"));
-
-const { getAccount, getProvider } = require("./utils/helper");
 
 async function deployEthContract(enviornment, account) {
   let constructorArgs = [
@@ -38,9 +33,7 @@ async function deployEthContract(enviornment, account) {
 }
 
 async function deployVaultContract(enviornment, account) {
-  const sierra = require("../target/dev/pitch_lake_starknet_Vault.contract_class.json");
-
-  const contractCallData = new CallData(sierra.abi);
+  const contractCallData = new CallData(vaultSierra.abi);
 
   const constructorCalldata = contractCallData.compile("constructor", {
     eth_address: constants.constructorArgs[enviornment]["vault"].ethContract,
@@ -85,12 +78,8 @@ async function deployMarketAggregator(enviornment, account) {
   );
 }
 
-async function main(enviornment, port = null) {
-  const provider = getProvider(enviornment, port);
-  const account = getAccount(enviornment, provider);
-  await deployEthContract(enviornment, account);
-  await deployMarketAggregator(enviornment, account);
-  await deployVaultContract(enviornment, account);
-}
-
-main(process.argv[2], process.argv[3]);
+module.exports = {
+  deployEthContract,
+  deployMarketAggregator,
+  deployVaultContract,
+};

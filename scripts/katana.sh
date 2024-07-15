@@ -11,11 +11,6 @@ while ! nc -z localhost $PORT; do
 done
 
 # Run your Node script
-echo "Running scripts on port $PORT"
-echo "Declaring all the contracts"
-node ./scripts/declareContracts.js dev $PORT
-echo "Declaration of all the contracts done"
-echo "Deploying all the contracts"
-node ./scripts/deployContracts.js dev $PORT
-echo "Deployment of all the contracts done "
+echo "Running main.js on port $PORT"
+node ./scripts/main.js dev $PORT
 # STARKNET_NETWORK=katana poetry run python3 scripts/deploy_vault.py --port $PORT
