@@ -5,7 +5,6 @@ const { hash, CallData, CairoCustomEnum } = require("starknet");
 const vaultSierra = require("../target/dev/pitch_lake_starknet_Vault.contract_class.json");
 
 const constantsPath = path.resolve(__dirname, "./utils/constants.json");
-// let constants = JSON.parse(fs.readFileSync(constantsPath, "utf8"));
 
 function getConstants() {
   return JSON.parse(fs.readFileSync(constantsPath, "utf8"));

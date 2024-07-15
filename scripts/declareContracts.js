@@ -2,9 +2,6 @@ const fs = require("fs");
 const path = require("path");
 
 const constantsPath = path.resolve(__dirname, "./utils/constants.json");
-// let constants = JSON.parse(fs.readFileSync(constantsPath, "utf8"));
-
-// const { getAccount, getProvider } = require("./utils/helper");
 
 async function declareContract(
   enviornment,

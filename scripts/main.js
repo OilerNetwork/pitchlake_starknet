@@ -36,15 +36,11 @@ async function declareContracts(enviornment, port = null) {
   );
 }
 
-function sleep(time) {
-  return new Promise((resolve) => setTimeout(resolve, time));
-}
-
 async function deployContracts(enviornment, port = null) {
   const provider = getProvider(enviornment, port);
   const account = getAccount(enviornment, provider);
 
-    await deployEthContract(enviornment, account);
+  await deployEthContract(enviornment, account);
   await deployMarketAggregator(enviornment, account);
   await deployVaultContract(enviornment, account);
 }
