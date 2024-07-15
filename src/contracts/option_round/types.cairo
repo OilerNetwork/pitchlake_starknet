@@ -1,6 +1,11 @@
 use starknet::ContractAddress;
 use core::fmt::{Formatter, Error, Display};
 
+
+// The parameters needed to construct an option round
+// @param vault_address: The address of the vault that deployed this round
+// @param round_id: The id of the round (the first round in a vault is round 0)
+
 #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
 struct OptionRoundConstructorParams {
     vault_address: ContractAddress,

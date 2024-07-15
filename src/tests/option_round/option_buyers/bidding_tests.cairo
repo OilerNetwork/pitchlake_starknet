@@ -7,7 +7,7 @@ use starknet::{
 use openzeppelin::{token::erc20::interface::{ERC20ABIDispatcherTrait,},};
 use pitch_lake_starknet::{
     contracts::{
-        eth::Eth,
+        components::eth::Eth,
         vault::{
             contract::Vault,
             interface::{
@@ -365,7 +365,7 @@ fn test_failed_bid_nonce_unchanged() {
         let nonce_before = current_round.get_bidding_nonce_for(bidder);
         if (i % 2 == 1) {
             //Failed bid in alternate rounds and check nonce update
-            current_round.place_bid_raw(bid_amount, bid_price - 1, bidder);
+            let _ = current_round.place_bid_raw(bid_amount, bid_price - 1, bidder);
             let nonce_after = current_round.get_bidding_nonce_for(bidder);
             assert(nonce_before == nonce_after, 'Nonce Mismatch');
         } else {

@@ -6,7 +6,7 @@ use starknet::{
 };
 use pitch_lake_starknet::{
     contracts::{
-        eth::Eth,
+        components::eth::Eth,
         vault::{
             contract::Vault,
             interface::{

@@ -8,7 +8,7 @@ use openzeppelin::token::erc20::interface::{ERC20ABIDispatcherTrait,};
 
 use pitch_lake_starknet::{
     contracts::{
-        eth::Eth,
+        components::eth::Eth,
         pitch_lake::{
             IPitchLakeDispatcher, IPitchLakeSafeDispatcher, IPitchLakeDispatcherTrait, PitchLake,
             IPitchLakeSafeDispatcherTrait
