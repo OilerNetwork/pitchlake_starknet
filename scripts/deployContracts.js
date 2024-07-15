@@ -41,8 +41,6 @@ async function deployVaultContract(enviornment, account) {
   const constants = getConstants();
   const contractCallData = new CallData(vaultSierra.abi);
 
-  console.log("before call data");
-
   const constructorCalldata = contractCallData.compile("constructor", {
     eth_address: constants.constructorArgs[enviornment]["vault"].ethContract,
     vault_manager: constants.constructorArgs[enviornment]["vault"].vaultManager,
@@ -53,22 +51,10 @@ async function deployVaultContract(enviornment, account) {
       constants.declaredContractsMapping[enviornment]["optionRound"],
   });
 
-  console.log("after call data");
-  console.log(
-    "vault class hash is: ",
-    constants.declaredContractsMapping[enviornment]["vault"]
-  );
-  console.log(
-    "class hash should be: ",
-    hash.computeContractClassHash(vaultSierra)
-  );
-
   const deployResult = await account.deploy({
     classHash: constants.declaredContractsMapping[enviornment]["vault"],
     constructorCalldata: constructorCalldata,
   });
-
-  console.log("after the deployment");
 
   constants.deployedContractsMapping[enviornment]["vault"] =
     deployResult.contract_address[0];
