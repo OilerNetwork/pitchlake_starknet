@@ -106,6 +106,9 @@ fn deploy_market_aggregator() -> IMarketAggregatorDispatcher {
 // Deploy the vault and market aggregator
 fn deploy_vault(vault_type: VaultType, eth_address: ContractAddress) -> IVaultDispatcher {
     let mut calldata = array![];
+    calldata.append_serde('rtp');
+    calldata.append_serde('art');
+    calldata.append_serde('ort');
     calldata.append_serde(eth_address);
     calldata.append_serde(vault_manager());
     calldata.append_serde(vault_type);

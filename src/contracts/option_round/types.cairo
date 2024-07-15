@@ -84,7 +84,7 @@ enum OptionRoundError {
 }
 
 
-//TRAITS 
+//TRAITS
 
 //Bid Traits
 impl BidPartialOrdTrait of PartialOrd<Bid> {
@@ -95,17 +95,7 @@ impl BidPartialOrdTrait of PartialOrd<Bid> {
         } else if lhs.price > rhs.price {
             false
         } else {
-            if lhs.nonce > rhs.nonce {
-                true
-            } else if (lhs.nonce < rhs.nonce) {
-                false
-            } else {
-                if lhs.amount >= rhs.amount {
-                    true
-                } else {
-                    false
-                }
-            }
+            lhs.nonce > rhs.nonce
         }
     }
 
@@ -122,17 +112,7 @@ impl BidPartialOrdTrait of PartialOrd<Bid> {
         } else if lhs.price < rhs.price {
             false
         } else {
-            if lhs.nonce < rhs.nonce {
-                true
-            } else if lhs.nonce > rhs.nonce {
-                false
-            } else {
-                if (lhs.amount < rhs.amount) {
-                    true
-                } else {
-                    false
-                }
-            }
+            lhs.nonce < rhs.nonce
         }
     }
 

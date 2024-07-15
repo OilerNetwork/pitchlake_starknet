@@ -35,6 +35,7 @@ use pitch_lake_starknet::{
 struct VaultFacade {
     vault_dispatcher: IVaultDispatcher,
 }
+
 #[generate_trait]
 impl VaultFacadeImpl of VaultFacadeTrait {
     /// Writes ///

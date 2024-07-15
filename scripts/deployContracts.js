@@ -41,6 +41,12 @@ async function deployVaultContract(enviornment, account) {
   const contractCallData = new CallData(vaultSierra.abi);
 
   const constructorCalldata = contractCallData.compile("constructor", {
+    round_transition_period:
+      constants.constructorArgs[enviornment]["vault"].roundTransitionPeriod,
+    auction_run_time:
+      constants.constructorArgs[enviornment]["vault"].auctionRunTime,
+    option_run_time:
+      constants.constructorArgs[enviornment]["vault"].optionRunTime,
     eth_address: constants.constructorArgs[enviornment]["vault"].ethContract,
     vault_manager: constants.constructorArgs[enviornment]["vault"].vaultManager,
     vault_type: new CairoCustomEnum({ InTheMoney: {} }),
@@ -80,7 +86,7 @@ async function deployMarketAggregator(enviornment, account) {
 
   console.log(
     "Market Aggregator contract is deployed successfully at - ",
-    deployResult
+    deployResult,
   );
 }
 
