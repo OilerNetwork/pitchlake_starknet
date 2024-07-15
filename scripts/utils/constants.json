@@ -1,0 +1,40 @@
+{
+  "declaredContractsMapping": {
+    "production": {},
+    "staging": {},
+    "dev": {
+      "eth": "0x176b43a1bd1a895134a8e6548a44580df044375422ff71251f9b1e5d5269803",
+      "vault": "0x51f3613acd65a91406ef2d854b793744a0c3406138e82e5ea09f5c745aab189",
+      "optionRound": "0x57f540ea2a941e0f3726816edb47a10ea2da31008b3ec067c4a257037ab28d9",
+      "marketAggregator": "0x29b6aeb628708c09146562a5ee59874ae85f745c38e633e47030a73abc6a258"
+    }
+  },
+  "constructorArgs": {
+    "production": {},
+    "staging": {},
+    "dev": {
+      "eth": {
+        "supplyValueLow": 1,
+        "supplyValueHigh": 0,
+        "recipientContractAddress": "0x4d75495e10ee26cae76478b6e491646ff0a10e0a062db1555131e47b07b7d24"
+      },
+      "vault": {
+        "vaultManager": "0x4d75495e10ee26cae76478b6e491646ff0a10e0a062db1555131e47b07b7d24",
+        "ethContract": "0x526680631cad920b0927c9d0c342c04dfb08900651cb2e4bae7901e3b22c59c",
+        "marketAggregatorContract": "0x657a5d904f419b7ad3631dcbe9d9ddaf2e4c2441244c702234d477ec5926b9d"
+      },
+      "optionRound": "",
+      "marketAggregator": ""
+    }
+  },
+  "deployedContractsMapping": {
+    "production": {},
+    "staging": {},
+    "dev": {
+      "eth": "0x526680631cad920b0927c9d0c342c04dfb08900651cb2e4bae7901e3b22c59c",
+      "vault": "0x3b81d99af15fd6c90a2890d5f16d58f3ad002043394dd37d6e91874d22add41",
+      "optionRound": "",
+      "marketAggregator": "0x657a5d904f419b7ad3631dcbe9d9ddaf2e4c2441244c702234d477ec5926b9d"
+    }
+  }
+}

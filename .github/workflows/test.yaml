@@ -1,4 +1,3 @@
-# copied from https://github.com/EkuboProtocol/governance/actions
 name: Tests
 
 on:
@@ -29,4 +28,12 @@ jobs:
 
       - name: Test the code
         run: |
-          scarb test
+          # Run the test and capture the output
+          output=$(scarb test)
+
+          # Echo the entire output (optional, for debugging purposes)
+          echo "$output"
+
+          # Filter and echo the specific part of the output you are interested in
+          echo "$output" | grep -E "Error: test result: FAILED. [0-9]+ passed; [0-9]+ failed; [0-9]+ ignored"
+
