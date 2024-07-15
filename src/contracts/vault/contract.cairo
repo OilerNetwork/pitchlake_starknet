@@ -75,7 +75,7 @@ mod Vault {
     // @round_addresses: Mapping of round id -> round address
     // @round_transition_period: Time between settling of current round and starting of next round
     // @auction_run_time: running time for the auction
-    // 
+    //
     #[storage]
     struct Storage {
         eth_address: ContractAddress,
@@ -96,11 +96,12 @@ mod Vault {
         option_run_time: u64,
     }
 
-    // @note Need to add eth address as a param here
-    //  - Will need to update setup functions to accomodate
     #[constructor]
     fn constructor(
         ref self: ContractState,
+        round_transition_period: u64,
+        auction_run_time: u64,
+        option_run_time: u64,
         eth_address: ContractAddress,
         vault_manager: ContractAddress,
         vault_type: VaultType,
@@ -117,9 +118,9 @@ mod Vault {
         // tests fail that should not
         // @note Should pass these in the constructor
         // - Need to update the setup functions to accomodate (and a couple tests)
-        self.round_transition_period.write(123);
-        self.auction_run_time.write(123);
-        self.option_run_time.write(123);
+        self.round_transition_period.write(round_transition_period);
+        self.auction_run_time.write(auction_run_time);
+        self.option_run_time.write(option_run_time);
 
         // @dev Deploy the 1st option round
         self.deploy_next_round();
