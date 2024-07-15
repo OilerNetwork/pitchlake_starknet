@@ -48,6 +48,10 @@ async function deployVaultContract(enviornment, account) {
   });
 
   console.log("after call data");
+  console.log(
+    "vault class hash is: ",
+    constants.declaredContractsMapping[enviornment]["vault"]
+  );
 
   const deployResult = await account.deploy({
     classHash: constants.declaredContractsMapping[enviornment]["vault"],
