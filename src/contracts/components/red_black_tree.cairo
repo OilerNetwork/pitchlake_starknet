@@ -1,4 +1,4 @@
-use pitch_lake_starknet::contracts::{utils::red_black_tree, option_round::types::{Bid}};
+use pitch_lake_starknet::contracts::{components::red_black_tree, option_round::types::{Bid}};
 use starknet::ContractAddress;
 
 #[starknet::interface]
@@ -20,7 +20,7 @@ const RED: bool = true;
 
 #[starknet::component]
 pub mod RBTreeComponent {
-    use pitch_lake_starknet::contracts::utils::red_black_tree::IRBTree;
+    use pitch_lake_starknet::contracts::components::red_black_tree::IRBTree;
     use super::{BLACK, RED, Bid, ContractAddress};
     use core::{array::ArrayTrait, option::OptionTrait, traits::{IndexView, TryInto}};
 

@@ -110,13 +110,18 @@ fn span_to_array<T, +Drop<T>, +Copy<T>>(mut span: Span<T>) -> Array<T> {
     arr
 }
 
-fn pow(mut value: u256, mut power: u8) -> u256 {
-    let mut res: u256 = 1;
-    while power > 0 {
-        res *= value;
-        power -= 1;
-    };
-    res
+fn pow<T, +Sub<T>, +Mul<T>, +Div<T>, +Rem<T>, +PartialEq<T>, +Into<u8, T>, +Drop<T>, +Copy<T>>(
+    base: T, exp: T
+) -> T {
+    if exp == 0_u8.into() {
+        1_u8.into()
+    } else if exp == 1_u8.into() {
+        base
+    } else if exp % 2_u8.into() == 0_u8.into() {
+        pow(base * base, exp / 2_u8.into())
+    } else {
+        base * pow(base * base, exp / 2_u8.into())
+    }
 }
 fn to_wei(mut values: Span<u256>, mut decimals: u8) -> Span<u256> {
     let mut arr_res = array![];
@@ -124,7 +129,7 @@ fn to_wei(mut values: Span<u256>, mut decimals: u8) -> Span<u256> {
     loop {
         match values.pop_front() {
             Option::Some(value) => {
-                let updated_value = *value * pow(10, decimals);
+                let updated_value = *value * (pow(10, decimals)).into();
                 arr_res.append(updated_value);
             },
             Option::None => { break; }

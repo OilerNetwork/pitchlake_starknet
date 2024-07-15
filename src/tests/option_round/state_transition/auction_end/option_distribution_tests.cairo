@@ -514,7 +514,7 @@ fn test_option_distribution_real_numbers_1() {
     //Convert prices to wei values
     let mut current_round = vault.get_current_round();
     let bid_prices = to_wei(bid_prices, current_round.decimals());
-    let reserve_price = 2 * pow(10, current_round.decimals());
+    let reserve_price = (2 * pow(10, current_round.decimals())).into();
 
     let expected_options_sold = 200;
     let mut expected_option_distribution = array![50, 142, 8, 0, 0, 0].span();
@@ -543,7 +543,7 @@ fn test_option_distribution_real_numbers_2() {
     //Convert prices to wei values
     let mut current_round = vault.get_current_round();
     let bid_prices = to_wei(bid_prices, current_round.decimals());
-    let reserve_price = 2 * pow(10, current_round.decimals());
+    let reserve_price = (2 * pow(10, current_round.decimals())).into();
 
     let expected_options_sold = 145;
     let mut expected_option_distribution = array![25, 20, 60, 40, 0, 0].span();
@@ -574,7 +574,7 @@ fn test_option_distribution_real_numbers_3() {
 
     let expected_options_sold = 500;
     let mut expected_option_distribution = array![400, 50, 30, 20, 0, 0].span();
-    let reserve_price = 2 * pow(10, current_round.decimals());
+    let reserve_price: u256 = (2 * pow(10, current_round.decimals())).into();
 
     auction_real_numbers_test_helper(
         vault.contract_address(),

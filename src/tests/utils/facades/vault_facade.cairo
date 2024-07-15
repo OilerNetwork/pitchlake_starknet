@@ -35,6 +35,7 @@ use pitch_lake_starknet::{
 struct VaultFacade {
     vault_dispatcher: IVaultDispatcher,
 }
+
 #[generate_trait]
 impl VaultFacadeImpl of VaultFacadeTrait {
     /// Writes ///
@@ -181,7 +182,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         let market_aggregator = IMarketAggregatorSetterDispatcher {
             contract_address: self.get_market_aggregator(),
         };
-        market_aggregator.set_value_without_proof(start_date, end_date, avg_base_fee);
+        let _ = market_aggregator.set_value_without_proof(start_date, end_date, avg_base_fee);
     }
 
     /// LP token related
