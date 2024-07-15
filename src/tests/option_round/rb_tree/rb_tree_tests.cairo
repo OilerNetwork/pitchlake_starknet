@@ -1248,7 +1248,7 @@ fn test_add_1_to_100_delete_100_to_1() {
     let mut i = 1;
     while i <= 100 {
         insert(rb_tree, i, i.try_into().unwrap());
-        println!("Inserted: {:?}", i);
+        //println!("Inserted: {:?}", i);
         let is_tree_valid = rb_tree.is_tree_valid();
         assert(is_tree_valid, 'Tree is not valid');
         i += 1;
@@ -1260,7 +1260,7 @@ fn test_add_1_to_100_delete_100_to_1() {
             array![mock_address(MOCK_ADDRESS).into(), i.try_into().unwrap()].span()
         );
         delete(rb_tree, id);
-        println!("Deleted: {:?}", i);
+        //println!("Deleted: {:?}", i);
         let is_tree_valid = rb_tree.is_tree_valid();
         assert(is_tree_valid, 'Tree is not valid');
         i -= 1;
@@ -1278,7 +1278,7 @@ fn test_add_1_to_100_delete_1_to_100() {
     let mut i = 1;
     while i <= 100 {
         insert(rb_tree, i, i.try_into().unwrap());
-        println!("Inserted: {:?}", i);
+        //println!("Inserted: {:?}", i);
         let is_tree_valid = rb_tree.is_tree_valid();
         assert(is_tree_valid, 'Tree is not valid');
         i += 1;
@@ -1290,7 +1290,7 @@ fn test_add_1_to_100_delete_1_to_100() {
             array![mock_address(MOCK_ADDRESS).into(), i.try_into().unwrap()].span()
         );
         delete(rb_tree, id);
-        println!("Deleted: {:?}", i);
+        //println!("Deleted: {:?}", i);
         let is_tree_valid = rb_tree.is_tree_valid();
         assert(is_tree_valid, 'Tree is not valid');
         i += 1;
@@ -1334,7 +1334,7 @@ fn testing_random_insertion_and_deletion() {
             inserted_node_ids.append(new_bid.id);
 
             let bid = rb_tree.find(new_bid.id);
-            println!("Inserting price {}", bid.price);
+            //println!("Inserting price {}", bid.price);
 
             assert(bid.price == price.try_into().unwrap(), 'Insertion error');
 
@@ -1360,7 +1360,7 @@ fn testing_random_insertion_and_deletion() {
             let is_tree_valid = rb_tree.is_tree_valid();
             assert(is_tree_valid, 'Tree is not valid');
 
-            println!("Deleted node no. {}", j);
+            //println!("Deleted node no. {}", j);
 
             j += 1;
         }
@@ -1402,7 +1402,7 @@ fn insert(rb_tree: IRBTreeDispatcher, price: u256, nonce: u64) -> felt252 {
 
 fn is_tree_valid(rb_tree: IRBTreeDispatcher) {
     let is_tree_valid = rb_tree.is_tree_valid();
-    println!("Is tree valid: {:?}", is_tree_valid);
+    //println!("Is tree valid: {:?}", is_tree_valid);
 }
 
 fn delete(rb_tree: IRBTreeDispatcher, bid_id: felt252) {
