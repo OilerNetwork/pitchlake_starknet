@@ -80,13 +80,12 @@ async function deployContracts(
   const provider = getProvider(enviornment, port);
   const account = getAccount(enviornment, provider);
 
-  console.log("HERE");
   let ethAddress = await deployEthContract(
     enviornment,
     account,
     hashes.ethHash
   );
-  console.log("HEREAFTER");
+
   if (!ethAddress) {
     throw Error("Eth deploy failed");
   }

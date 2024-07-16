@@ -44,7 +44,6 @@ async function supply(
     // const result2 = await provider.waitForTransaction(result.transaction_hash);
     // console.log(result, result2);
   } catch (err) {
-    console.log("PAPAPAP")
     console.log(err);
   }
 }
