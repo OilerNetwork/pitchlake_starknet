@@ -5,7 +5,7 @@ const fs = require("fs");
 const path = require("path");
 const { hash, CallData, CairoCustomEnum } = require("starknet");
 const vaultSierra = require("../target/dev/pitch_lake_starknet_Vault.contract_class.json");
-
+import { constructorArgs } from "./utils/constants";
 const constantsPath = path.resolve(__dirname, "./utils/constants.json");
 
 function getConstants() {
@@ -14,15 +14,10 @@ function getConstants() {
 
 async function deployEthContract(enviornment:string, account:Account) {
   const constants = getConstants();
-  let constructorArgs = [
-    constants.constructorArgs[enviornment]["eth"].supplyValueLow,
-    constants.constructorArgs[enviornment]["eth"].supplyValueHigh,
-    constants.constructorArgs[enviornment]["eth"].recipientContractAddress,
-  ];
-
+  let constructorArgsEth = [...Object.values(constructorArgs[enviornment].eth)];
   const deployResult = await account.deploy({
     classHash: constants.declaredContractsMapping[enviornment]["eth"],
-    constructorCalldata: constructorArgs,
+    constructorCalldata: constructorArgsEth,
   });
 
   constants.deployedContractsMapping[enviornment]["eth"] =

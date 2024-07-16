@@ -7,9 +7,8 @@ import {
 } from "./deployContracts";
 
 import { ABI } from "./utils/vault/abi";
-import fs from "fs";
 import { createTestAccounts } from "./deployAccounts";
-const { declareContract } = require("./declareContracts");
+import { declareContract } from "./declareContracts";
 const ethSierra = require("../target/dev/pitch_lake_starknet_Eth.contract_class.json");
 const ethCasm = require("../target/dev/pitch_lake_starknet_Eth.compiled_contract_class.json");
 const vaultSierra = require("../target/dev/pitch_lake_starknet_Vault.contract_class.json");
@@ -58,7 +57,8 @@ async function main(enviornment: string, port: string | null) {
   const provider = getProvider(enviornment, port);
   const contract = new Contract(ABI, vault, provider).typedv2(ABI);
   const { optionBuyers } = await createTestAccounts(provider);
-  contract.populate("deposit_liquidity", [20,optionBuyers[0]]);
+  const call =contract.populate("deposit_liquidity",);
+  contract.deposit_liquidity(20,optionBuyers[0]);
 }
 
 main(process.argv[2], process.argv[3]);

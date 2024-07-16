@@ -27,7 +27,7 @@ async function createTestAccounts(provider:RpcProvider) {
     console.log("Precalculated account address=", OZcontractAddress);
 
     //Fund accounts
-
+    
     const OZaccount = new Account(provider, OZcontractAddress, privateKey);
 
     const { transaction_hash, contract_address } =

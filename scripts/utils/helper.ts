@@ -1,12 +1,8 @@
-import { Provider, RpcProvider } from "starknet";
+import { Account, Provider, RpcProvider } from "starknet";
 
-const starknet = require("starknet");
-const { nodeUrlMapping, accountDetailsMapping } = require("./constants");
-function getProvider(environment:any, port:string|null) {
-  const nodeUrl =
-    environment === "dev"
-      ? nodeUrlMapping[environment](port)
-      : nodeUrlMapping[environment];
+import { nodeUrlMapping, accountDetailsMapping } from "./constants";
+function getProvider(environment: string, port: string | null) {
+  const nodeUrl = nodeUrlMapping[environment] + `${port ? ":port" : ""}`;
 
   if (environment === "dev" && port === null) {
     throw new Error("Port must be provided for dev environment");
@@ -16,14 +12,14 @@ function getProvider(environment:any, port:string|null) {
     throw new Error("Invalid environment");
   }
 
-  const provider:RpcProvider = new starknet.RpcProvider({
+  const provider: RpcProvider = new RpcProvider({
     nodeUrl: nodeUrl,
   });
 
   return provider;
 }
 
-function getAccount(environment:any, provider:Provider) {
+function getAccount(environment: any, provider: Provider) {
   const accountDetails = accountDetailsMapping[environment];
 
   if (
@@ -36,7 +32,7 @@ function getAccount(environment:any, provider:Provider) {
     );
   }
 
-  const account = new starknet.Account(
+  const account = new Account(
     provider,
     accountDetails.accountAddress,
     accountDetails.privateKey
@@ -45,7 +41,4 @@ function getAccount(environment:any, provider:Provider) {
   return account;
 }
 
-export {
-  getProvider,
-  getAccount,
-};
+export { getProvider, getAccount };

@@ -1,14 +1,14 @@
 import fs from "fs"
 import path from "path"
-import {Account} from "starknet"
+import {Account, CairoAssembly, CompiledContract} from "starknet"
 const constantsPath = path.resolve(__dirname, "./utils/constants.json");
 
 async function declareContract(
   enviornment:string,
   account:Account,
-  sierra:any,
-  casm:any,
-  placeholder:any
+  sierra:CompiledContract,
+  casm:CairoAssembly,
+  placeholder:string
 ) {
   try {
     let constants = JSON.parse(fs.readFileSync(constantsPath, "utf8"));
@@ -21,11 +21,13 @@ async function declareContract(
 
     fs.writeFileSync(constantsPath, JSON.stringify(constants, null, 2), "utf8");
     console.log(`Declare result for ${placeholder}: `, declareResult);
+    return declareResult.class_hash
   } catch (err) {
     console.log(`Contract ${placeholder} is already declared`, err);
   }
+  
 }
 
-module.exports = {
+ export {
   declareContract,
 };
