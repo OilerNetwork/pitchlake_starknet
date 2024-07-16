@@ -1,3 +1,5 @@
+import { Account } from "starknet";
+
 // deployContracts.js
 const fs = require("fs");
 const path = require("path");
@@ -10,7 +12,7 @@ function getConstants() {
   return JSON.parse(fs.readFileSync(constantsPath, "utf8"));
 }
 
-async function deployEthContract(enviornment, account) {
+async function deployEthContract(enviornment:string, account:Account) {
   const constants = getConstants();
   let constructorArgs = [
     constants.constructorArgs[enviornment]["eth"].supplyValueLow,
@@ -36,7 +38,7 @@ async function deployEthContract(enviornment, account) {
   return deployResult.contract_address[0];
 }
 
-async function deployVaultContract(enviornment, account) {
+async function deployVaultContract(enviornment:string, account:Account) {
   const constants = getConstants();
   const contractCallData = new CallData(vaultSierra.abi);
 
@@ -61,9 +63,10 @@ async function deployVaultContract(enviornment, account) {
   fs.writeFileSync(constantsPath, JSON.stringify(constants, null, 2), "utf8");
 
   console.log("Vault contract is deployed successfully at - ", deployResult);
+  return deployResult.contract_address[0]
 }
 
-async function deployMarketAggregator(enviornment, account) {
+async function deployMarketAggregator(enviornment:string, account:Account) {
   const constants = getConstants();
   const deployResult = await account.deploy({
     classHash:
@@ -82,9 +85,10 @@ async function deployMarketAggregator(enviornment, account) {
     "Market Aggregator contract is deployed successfully at - ",
     deployResult
   );
+  return deployResult.contract_address[0]
 }
 
-module.exports = {
+export {
   deployEthContract,
   deployMarketAggregator,
   deployVaultContract,

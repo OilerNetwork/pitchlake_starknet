@@ -1,14 +1,14 @@
-const fs = require("fs");
-const path = require("path");
-
+import fs from "fs"
+import path from "path"
+import {Account} from "starknet"
 const constantsPath = path.resolve(__dirname, "./utils/constants.json");
 
 async function declareContract(
-  enviornment,
-  account,
-  sierra,
-  casm,
-  placeholder
+  enviornment:string,
+  account:Account,
+  sierra:any,
+  casm:any,
+  placeholder:any
 ) {
   try {
     let constants = JSON.parse(fs.readFileSync(constantsPath, "utf8"));

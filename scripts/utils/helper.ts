@@ -1,7 +1,8 @@
+import { Provider, RpcProvider } from "starknet";
+
 const starknet = require("starknet");
 const { nodeUrlMapping, accountDetailsMapping } = require("./constants");
-
-function getProvider(environment, port = null) {
+function getProvider(environment:any, port:string|null) {
   const nodeUrl =
     environment === "dev"
       ? nodeUrlMapping[environment](port)
@@ -15,14 +16,14 @@ function getProvider(environment, port = null) {
     throw new Error("Invalid environment");
   }
 
-  const provider = new starknet.RpcProvider({
+  const provider:RpcProvider = new starknet.RpcProvider({
     nodeUrl: nodeUrl,
   });
 
   return provider;
 }
 
-function getAccount(environment, provider) {
+function getAccount(environment:any, provider:Provider) {
   const accountDetails = accountDetailsMapping[environment];
 
   if (
@@ -44,7 +45,7 @@ function getAccount(environment, provider) {
   return account;
 }
 
-module.exports = {
+export {
   getProvider,
   getAccount,
 };

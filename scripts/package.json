@@ -12,5 +12,8 @@
   "dependencies": {
     "dotenv": "^16.4.5",
     "starknet": "^6.10.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.10"
   }
 }
