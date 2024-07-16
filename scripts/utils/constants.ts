@@ -1,6 +1,7 @@
 // constants.js
 
 import { config } from "dotenv";
+import { cairo, Uint256 } from "starknet";
 
 type AccountDetailsType = {
   accountAddress: string | undefined;
@@ -8,15 +9,14 @@ type AccountDetailsType = {
   ethAddress?: string;
 };
 type EthConstructorArgs = {
-  supplyValueLow: number;
-  supplyValueHigh: number;
+  supply: Uint256;
   recipientContractAddress: string;
 };
 
 type VaultConstructorArgs = {
-  vaultManager: string;
-  ethContract: string;
-  marketAggregatorContract: string;
+  roundTransitionPeriod:string;
+  auctionRunTime:string;
+  optionRunTime:string;
 };
 
 type ConstructorArgs = {
@@ -34,18 +34,14 @@ const nodeUrlMapping: { [key: string]: string } = {
 const constructorArgs: { [key: string]: ConstructorArgs } = {
   dev: {
     eth: {
-      supplyValueLow: 1,
-      supplyValueHigh: 0,
+      supply:  cairo.uint256(1e32),
       recipientContractAddress:
-        "0x4d75495e10ee26cae76478b6e491646ff0a10e0a062db1555131e47b07b7d24",
+        "0x7ce7089cb75a590b9485f6851d8998fa885494cc7a70dbae8f3db572586b8a8",
     },
     vault: {
-      vaultManager:
-        "0x4d75495e10ee26cae76478b6e491646ff0a10e0a062db1555131e47b07b7d24",
-      ethContract:
-        "0x1c839470058b5864ffb47d975881ca2fefcd963c7473bead870ab24c9752ad8",
-      marketAggregatorContract:
-        "0x3dfacc4ae87e3b36fad25dd9e1bbc11ebc58210fadfa44dce06d9a694bfac5e",
+      roundTransitionPeriod: "0x1",
+      auctionRunTime: "0x2",
+      optionRunTime: "0x3",
     },
     optionRound: "",
     marketAggregator: "",

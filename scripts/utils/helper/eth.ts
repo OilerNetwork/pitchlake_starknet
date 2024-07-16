@@ -1,10 +1,7 @@
 import {
-  hash,
-  CallData,
-  CairoCustomEnum,
+
   cairo,
-  Contract,
-  json,
+
   Provider,
   Account,
 } from "starknet";
@@ -15,10 +12,10 @@ async function supply(
   account: Account,
   recipient: string,
   amount: number | string,
-  eth_address: string
+  ethAddress: string
 ) {
-  let contractAddress = eth_address;
-  const ethContract = await getContract(provider, account, contractAddress);
+  const ethContract = await getContract(provider, account, ethAddress);
+
 
   try {
     const balanceBefore = await ethContract.balance_of(recipient);
@@ -27,8 +24,8 @@ async function supply(
       cairo.uint256(amount),
     ]);
     const res = await ethContract.transfer(myCall.calldata);
-    await provider.waitForTransaction(res.transaction_hash);
 
+    await provider.waitForTransaction(res.transaction_hash);
     const balanceAfter = await ethContract.balance_of(recipient);
 
     console.log(

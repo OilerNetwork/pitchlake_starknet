@@ -10,14 +10,14 @@ import {
 } from "./deployments/deployContracts";
 
 import { declareContract } from "./deployments/declareContracts";
-import ethSierra from "../target/dev/pitch_lake_starknet_Eth.contract_class.json" assert {type:"json"};
-import ethCasm from "../target/dev/pitch_lake_starknet_Eth.compiled_contract_class.json" assert {type:"json"};
-import vaultSierra from "../target/dev/pitch_lake_starknet_Vault.contract_class.json" assert {type:"json"};
-import vaultCasm from "../target/dev/pitch_lake_starknet_Vault.compiled_contract_class.json" assert {type:"json"};
-import optionRoundSieraa from "../target/dev/pitch_lake_starknet_OptionRound.contract_class.json" assert {type:"json"};
-import optionRoundCasm from "../target/dev/pitch_lake_starknet_OptionRound.compiled_contract_class.json" assert {type:"json"};
-import marketAggregatorSierra from "../target/dev/pitch_lake_starknet_MarketAggregator.contract_class.json" assert {type:"json"};
-import marketAggregatorCasm from "../target/dev/pitch_lake_starknet_MarketAggregator.compiled_contract_class.json" assert {type:"json"};
+import ethSierra from "../target/dev/pitch_lake_starknet_Eth.contract_class.json" assert { type: "json" };
+import ethCasm from "../target/dev/pitch_lake_starknet_Eth.compiled_contract_class.json" assert { type: "json" };
+import vaultSierra from "../target/dev/pitch_lake_starknet_Vault.contract_class.json" assert { type: "json" };
+import vaultCasm from "../target/dev/pitch_lake_starknet_Vault.compiled_contract_class.json" assert { type: "json" };
+import optionRoundSieraa from "../target/dev/pitch_lake_starknet_OptionRound.contract_class.json" assert { type: "json" };
+import optionRoundCasm from "../target/dev/pitch_lake_starknet_OptionRound.compiled_contract_class.json" assert { type: "json" };
+import marketAggregatorSierra from "../target/dev/pitch_lake_starknet_MarketAggregator.contract_class.json" assert { type: "json" };
+import marketAggregatorCasm from "../target/dev/pitch_lake_starknet_MarketAggregator.compiled_contract_class.json" assert { type: "json" };
 import { supply, approval } from "./utils/helper/eth";
 import { liquidityProviders, optionBidders } from "./utils/constants";
 import { smokeTesting } from "./intergration_test/smokeTesting";
@@ -25,12 +25,7 @@ import { smokeTesting } from "./intergration_test/smokeTesting";
 async function declareContracts(enviornment: string, port?: string) {
   const provider = getProvider(enviornment, port);
   const account = getAccount(enviornment, provider);
-  let ethHash = await declareContract(
-    account,
-    ethSierra,
-    ethCasm,
-    "eth"
-  );
+  let ethHash = await declareContract(account, ethSierra, ethCasm, "eth");
   if (!ethHash) {
     throw Error("Eth Deploy Failed");
   }
@@ -85,35 +80,44 @@ async function deployContracts(
   const provider = getProvider(enviornment, port);
   const account = getAccount(enviornment, provider);
 
-  let ethAddress = await deployEthContract(enviornment, account, hashes.ethHash);
-  if(!ethAddress)
-    {
-      throw Error("Eth deploy failed")
-    }
+  console.log("HERE");
+  let ethAddress = await deployEthContract(
+    enviornment,
+    account,
+    hashes.ethHash
+  );
+  console.log("HEREAFTER");
+  if (!ethAddress) {
+    throw Error("Eth deploy failed");
+  }
 
   let marketAggregatorAddress = await deployMarketAggregator(
     enviornment,
     account,
     hashes.marketAggregatorHash
   );
-  if(!marketAggregatorAddress)
-    {
-      throw Error("MktAgg deploy failed")
-    }
- 
+  if (!marketAggregatorAddress) {
+    throw Error("MktAgg deploy failed");
+  }
+
   let vaultAddress = await deployVaultContract(
     enviornment,
     account,
-    hashes.vaultHash,
-    hashes.optionRoundHash
-  );
-  if(!vaultAddress)
     {
-      throw Error("Eth deploy failed")
-    }
-    return {
-      ethAddress,marketAggregatorAddress,vaultAddress
-    }
+      marketAggregatorContract: marketAggregatorAddress,
+      ethContract: ethAddress,
+      vaultManager: account.address,
+    },
+    { optionRound: hashes.optionRoundHash, vault: hashes.vaultHash }
+  );
+  if (!vaultAddress) {
+    throw Error("Eth deploy failed");
+  }
+  return {
+    ethAddress,
+    marketAggregatorAddress,
+    vaultAddress,
+  };
 }
 
 async function supplyEth(
@@ -163,9 +167,14 @@ async function main(enviornment: string, port?: string) {
 
   let contractAddresses = await deployContracts(enviornment, hashes, port);
 
-  await supplyEth(enviornment,contractAddresses.ethAddress,contractAddresses.vaultAddress, port);
+  await supplyEth(
+    enviornment,
+    contractAddresses.ethAddress,
+    contractAddresses.vaultAddress,
+    port
+  );
 
-  await smokeTesting(enviornment,contractAddresses.vaultAddress, port);
+  await smokeTesting(enviornment, contractAddresses.vaultAddress, port);
 }
 
 main(process.argv[2], process.argv[3]);

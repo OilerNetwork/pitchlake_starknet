@@ -25,23 +25,23 @@ async function deployEthContract(
 async function deployVaultContract(
   enviornment: string,
   account: Account,
-  contractHash: string,
-  classHashOptionRound: string
+  contractAddresses:{ethContract:string,marketAggregatorContract:string,vaultManager:string},
+  hashes:{vault:string,optionRound:string}
 ) {
   const contractCallData = new CallData(vaultSierra.abi);
 
   let constants = constructorArgs[enviornment];
   let vaultConstants = constants["vault"];
   const constructorCalldata = contractCallData.compile("constructor", {
-    eth_address: vaultConstants.ethContract,
-    vault_manager: vaultConstants.vaultManager,
+    eth_address: contractAddresses.ethContract,
+    vault_manager: contractAddresses.vaultManager,
     vault_type: new CairoCustomEnum({ InTheMoney: {} }),
-    market_aggregator: vaultConstants.marketAggregatorContract,
-    option_round_class_hash: classHashOptionRound,
+    market_aggregator: contractAddresses.marketAggregatorContract,
+    option_round_class_hash: hashes.optionRound,
   });
 
   const deployResult = await account.deploy({
-    classHash: contractHash,
+    classHash: hashes.vault,
     constructorCalldata: constructorCalldata,
   });
 
