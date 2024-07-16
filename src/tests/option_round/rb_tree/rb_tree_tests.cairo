@@ -1271,9 +1271,10 @@ fn insert(rb_tree: IRBTreeMockContractDispatcher, price: u256, nonce: u64) -> fe
     return id;
 }
 
-fn is_tree_valid(rb_tree: IRBTreeMockContractDispatcher) {
+fn is_tree_valid(rb_tree: IRBTreeMockContractDispatcher) -> bool {
     let is_tree_valid = rb_tree.is_tree_valid();
-//println!("Is tree valid: {:?}", is_tree_valid);
+    //println!("Is tree valid: {:?}", is_tree_valid);
+    is_tree_valid
 }
 
 fn delete(rb_tree: IRBTreeMockContractDispatcher, bid_id: felt252) {
