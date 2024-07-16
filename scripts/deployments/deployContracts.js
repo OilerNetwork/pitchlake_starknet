@@ -1,10 +1,10 @@
 // deployContracts.js
 const fs = require("fs");
 const path = require("path");
-const { hash, CallData, CairoCustomEnum } = require("starknet");
-const vaultSierra = require("../target/dev/pitch_lake_starknet_Vault.contract_class.json");
+const { hash, CallData, CairoCustomEnum, cairo } = require("starknet");
+const vaultSierra = require("../../target/dev/pitch_lake_starknet_Vault.contract_class.json");
 
-const constantsPath = path.resolve(__dirname, "./utils/constants.json");
+const constantsPath = path.resolve(__dirname, "../utils/constants.json");
 
 function getConstants() {
   return JSON.parse(fs.readFileSync(constantsPath, "utf8"));
@@ -13,8 +13,7 @@ function getConstants() {
 async function deployEthContract(enviornment, account) {
   const constants = getConstants();
   let constructorArgs = [
-    constants.constructorArgs[enviornment]["eth"].supplyValueLow,
-    constants.constructorArgs[enviornment]["eth"].supplyValueHigh,
+    cairo.uint256(constants.constructorArgs[enviornment]["eth"].supply),
     constants.constructorArgs[enviornment]["eth"].recipientContractAddress,
   ];
 
@@ -86,7 +85,7 @@ async function deployMarketAggregator(enviornment, account) {
 
   console.log(
     "Market Aggregator contract is deployed successfully at - ",
-    deployResult,
+    deployResult
   );
 }
 
