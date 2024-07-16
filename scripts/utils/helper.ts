@@ -1,9 +1,11 @@
 import { Account, Provider, RpcProvider } from "starknet";
 
 import { nodeUrlMapping, accountDetailsMapping } from "./constants";
-function getProvider(environment: string, port: string | null) {
-  const nodeUrl = nodeUrlMapping[environment] + `${port ? ":port" : ""}`;
 
+const  getProvider=(environment: string, port?: string) =>{
+  const nodeUrl = nodeUrlMapping[environment] + `${port ? `:${port}` : ""}`;
+
+  console.log("nodeurl",nodeUrl)
   if (environment === "dev" && port === null) {
     throw new Error("Port must be provided for dev environment");
   }
@@ -19,7 +21,7 @@ function getProvider(environment: string, port: string | null) {
   return provider;
 }
 
-function getAccount(environment: any, provider: Provider) {
+function getAccount(environment: string, provider: Provider) {
   const accountDetails = accountDetailsMapping[environment];
 
   if (

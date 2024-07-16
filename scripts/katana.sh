@@ -12,6 +12,6 @@ while ! nc -z localhost $PORT; do
 done
 # Run your Node script
 echo "Running main.js on port $output"
-npx ts-node ./scripts/main.ts dev $PORT 
+node --loader ts-node/esm main.ts dev 5050
 
 # STARKNET_NETWORK=katana poetry run python3 scripts/deploy_vault.py --port $PORT

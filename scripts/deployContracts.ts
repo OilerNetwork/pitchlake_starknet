@@ -1,80 +1,56 @@
 import { Account } from "starknet";
 
 // deployContracts.js
-const fs = require("fs");
-const path = require("path");
-const { hash, CallData, CairoCustomEnum } = require("starknet");
-const vaultSierra = require("../target/dev/pitch_lake_starknet_Vault.contract_class.json");
+import { hash, CallData, CairoCustomEnum } from "starknet";
+import vaultSierra  from "../target/dev/pitch_lake_starknet_Vault.contract_class.json" assert {type:"json"}
 import { constructorArgs } from "./utils/constants";
-const constantsPath = path.resolve(__dirname, "./utils/constants.json");
+import assert from "assert";
 
-function getConstants() {
-  return JSON.parse(fs.readFileSync(constantsPath, "utf8"));
-}
 
-async function deployEthContract(enviornment:string, account:Account) {
-  const constants = getConstants();
+async function deployEthContract(enviornment:string, account:Account,classHash:string) {
   let constructorArgsEth = [...Object.values(constructorArgs[enviornment].eth)];
   const deployResult = await account.deploy({
-    classHash: constants.declaredContractsMapping[enviornment]["eth"],
+    classHash,
     constructorCalldata: constructorArgsEth,
   });
-
-  constants.deployedContractsMapping[enviornment]["eth"] =
-    deployResult.contract_address[0];
-
-  constants.constructorArgs[enviornment]["vault"].ethContract =
-    deployResult.contract_address[0];
-  deployResult.contract_address[0];
-  fs.writeFileSync(constantsPath, JSON.stringify(constants, null, 2), "utf8");
 
   console.log("ETH contract is deployed successfully at - ", deployResult);
 
   return deployResult.contract_address[0];
 }
 
-async function deployVaultContract(enviornment:string, account:Account) {
-  const constants = getConstants();
+async function deployVaultContract(enviornment:string, account:Account,contractHash:string,classHashOptionRound:string) {
   const contractCallData = new CallData(vaultSierra.abi);
 
+
+  let constants = constructorArgs[enviornment];
+  let vaultConstants = constants["vault"];
   const constructorCalldata = contractCallData.compile("constructor", {
-    eth_address: constants.constructorArgs[enviornment]["vault"].ethContract,
-    vault_manager: constants.constructorArgs[enviornment]["vault"].vaultManager,
+    eth_address: vaultConstants.ethContract,
+    vault_manager: vaultConstants.vaultManager,
     vault_type: new CairoCustomEnum({ InTheMoney: {} }),
     market_aggregator:
-      constants.constructorArgs[enviornment]["vault"].marketAggregatorContract,
+      vaultConstants.marketAggregatorContract,
     option_round_class_hash:
-      constants.declaredContractsMapping[enviornment]["optionRound"],
+     classHashOptionRound
   });
 
   const deployResult = await account.deploy({
-    classHash: constants.declaredContractsMapping[enviornment]["vault"],
+    classHash: contractHash,
     constructorCalldata: constructorCalldata,
   });
-
-  constants.deployedContractsMapping[enviornment]["vault"] =
-    deployResult.contract_address[0];
-
-  fs.writeFileSync(constantsPath, JSON.stringify(constants, null, 2), "utf8");
 
   console.log("Vault contract is deployed successfully at - ", deployResult);
   return deployResult.contract_address[0]
 }
 
-async function deployMarketAggregator(enviornment:string, account:Account) {
-  const constants = getConstants();
+async function deployMarketAggregator(enviornment:string, account:Account, marketAggregatorClassHash:string) {
+
+
   const deployResult = await account.deploy({
     classHash:
-      constants.declaredContractsMapping[enviornment]["marketAggregator"],
+      marketAggregatorClassHash
   });
-
-  constants.deployedContractsMapping[enviornment]["marketAggregator"] =
-    deployResult.contract_address[0];
-
-  constants.constructorArgs[enviornment]["vault"].marketAggregatorContract =
-    deployResult.contract_address[0];
-
-  fs.writeFileSync(constantsPath, JSON.stringify(constants, null, 2), "utf8");
 
   console.log(
     "Market Aggregator contract is deployed successfully at - ",

@@ -1,13 +1,16 @@
 {
     "compilerOptions": {
-      "strict": true,
-      "module": "commonjs",
-      "esModuleInterop": true,
-      "resolveJsonModule": true,
-      "target": "es6",
+      "module": "ESNext",
+      "target": "ESNext",
       "moduleResolution": "node",
-      "sourceMap": true,
-      "outDir": "dist"
+      "outDir": "./dist",
+      "esModuleInterop": true,
+      "strict": true,
+      "resolveJsonModule": true
     },
-    "lib": ["es2015"]
+    "ts-node": {
+        "esm": true,
+        "compiler": "typescript",
+            "experimentalSpecifierResolution": "node"
+        }
   }

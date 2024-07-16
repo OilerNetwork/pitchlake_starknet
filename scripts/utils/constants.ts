@@ -3,10 +3,10 @@
 import { config } from "dotenv";
 
 type AccountDetailsType = {
-  accountAddress: string|undefined
-  privateKey:string|undefined
-  ethAddress?:string
-}
+  accountAddress: string | undefined;
+  privateKey: string | undefined;
+  ethAddress?: string;
+};
 type EthConstructorArgs = {
   supplyValueLow: number;
   supplyValueHigh: number;
@@ -26,13 +26,11 @@ type ConstructorArgs = {
   marketAggregator: string;
 };
 
-
-const nodeUrlMapping: { [key: string]: string } = {
+export const nodeUrlMapping: { [key: string]: string } = {
   production: "",
   staging: "",
-  dev: `http://localhost`,
+  dev: "http://localhost",
 };
-
 
 const constructorArgs: { [key: string]: ConstructorArgs } = {
   dev: {
@@ -54,7 +52,7 @@ const constructorArgs: { [key: string]: ConstructorArgs } = {
     marketAggregator: "",
   },
 };
-const accountDetailsMapping:{[key:string]:AccountDetailsType} = {
+export const accountDetailsMapping: { [key: string]: AccountDetailsType } = {
   production: {
     accountAddress: process.env.PRODUCTION_ACCOUNT_ADDRESS,
     privateKey: process.env.PRODUCTION_PRIVATE_KEY,
@@ -79,9 +77,4 @@ let declaredContractsMapping = {
   dev: {},
 };
 
-export {
-  nodeUrlMapping,
-  accountDetailsMapping,
-  declaredContractsMapping,
-  constructorArgs,
-};
+export { declaredContractsMapping, constructorArgs };
