@@ -1,5 +1,3 @@
-use pitch_lake_starknet::{contracts::{option_round::{types::{Bid}}}};
-
 #[starknet::contract]
 mod RBTreeMockContract {
     use pitch_lake_starknet::contracts::components::red_black_tree::RBTreeComponent;
