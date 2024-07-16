@@ -12,7 +12,7 @@ use openzeppelin::{
 };
 use pitch_lake_starknet::{
     contracts::{
-        components::eth::Eth,
+        components::{eth::Eth, red_black_tree::{IRBTreeDispatcher, IRBTreeDispatcherTrait}},
         pitch_lake::{
             IPitchLakeDispatcher, IPitchLakeSafeDispatcher, IPitchLakeDispatcherTrait, PitchLake,
             IPitchLakeSafeDispatcherTrait
@@ -35,9 +35,7 @@ use pitch_lake_starknet::{
         },
     },
     tests::{
-        option_round::rb_tree::{
-            rb_tree_tests::IRBTreeDispatcher, rb_tree_mock_contract::RBTreeMockContract
-        },
+        option_round::rb_tree::{rb_tree_mock_contract::{RBTreeMockContract}},
         utils::{
             lib::{
                 structs::{OptionRoundParams},

@@ -1,25 +1,17 @@
 use core::traits::TryInto;
 use pitch_lake_starknet::{
-    tests::option_round::{rb_tree::rb_tree_mock_contract::RBTreeMockContract},
-    contracts::option_round::types::Bid,
+    contracts::{
+        option_round::{types::{Bid}},
+        components::{red_black_tree::{IRBTreeDispatcher, IRBTreeDispatcherTrait}},
+    },
 };
 use starknet::{contract_address_const, ContractAddress};
 use core::pedersen::pedersen;
 use pitch_lake_starknet::tests::utils::helpers::setup::setup_rb_tree_test;
+
 const BLACK: bool = false;
 const RED: bool = true;
-
 const MOCK_ADDRESS: felt252 = 123456;
-
-#[starknet::interface]
-pub trait IRBTree<TContractState> {
-    fn insert(ref self: TContractState, value: Bid);
-    fn find(self: @TContractState, bid_id: felt252) -> Bid;
-    fn get_tree_structure(self: @TContractState) -> Array<Array<(u256, bool, u128)>>;
-    fn is_tree_valid(self: @TContractState) -> bool;
-    fn delete(ref self: TContractState, bid_id: felt252);
-    fn add_node(ref self: TContractState, value: Bid, color: bool, parent: felt252) -> felt252;
-}
 
 fn mock_address(value: felt252) -> ContractAddress {
     contract_address_const::<'liquidity_provider_1'>()
@@ -1264,9 +1256,10 @@ fn insert(rb_tree: IRBTreeDispatcher, price: u256, nonce: u64) -> felt252 {
     return id;
 }
 
-fn is_tree_valid(rb_tree: IRBTreeDispatcher) {
+fn is_tree_valid(rb_tree: IRBTreeDispatcher) -> bool {
     let is_tree_valid = rb_tree.is_tree_valid();
-//println!("Is tree valid: {:?}", is_tree_valid);
+    //println!("Is tree valid: {:?}", is_tree_valid);
+    is_tree_valid
 }
 
 fn delete(rb_tree: IRBTreeDispatcher, bid_id: felt252) {
