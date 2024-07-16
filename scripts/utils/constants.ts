@@ -1,14 +1,57 @@
 // constants.js
 
-require("dotenv").config();
+import { config } from "dotenv";
 
-const nodeUrlMapping = {
-  production: "",
-  staging: "",
-  dev: (port) => `http://localhost:${port}`,
+type AccountDetailsType = {
+  accountAddress: string | undefined;
+  privateKey: string | undefined;
+  ethAddress?: string;
+};
+type EthConstructorArgs = {
+  supplyValueLow: number;
+  supplyValueHigh: number;
+  recipientContractAddress: string;
 };
 
-const accountDetailsMapping = {
+type VaultConstructorArgs = {
+  vaultManager: string;
+  ethContract: string;
+  marketAggregatorContract: string;
+};
+
+type ConstructorArgs = {
+  eth: EthConstructorArgs;
+  vault: VaultConstructorArgs;
+  optionRound: string;
+  marketAggregator: string;
+};
+const nodeUrlMapping: { [key: string]: string } = {
+  production: "",
+  staging: "",
+  dev: `http://localhost`,
+};
+
+const constructorArgs: { [key: string]: ConstructorArgs } = {
+  dev: {
+    eth: {
+      supplyValueLow: 1,
+      supplyValueHigh: 0,
+      recipientContractAddress:
+        "0x4d75495e10ee26cae76478b6e491646ff0a10e0a062db1555131e47b07b7d24",
+    },
+    vault: {
+      vaultManager:
+        "0x4d75495e10ee26cae76478b6e491646ff0a10e0a062db1555131e47b07b7d24",
+      ethContract:
+        "0x1c839470058b5864ffb47d975881ca2fefcd963c7473bead870ab24c9752ad8",
+      marketAggregatorContract:
+        "0x3dfacc4ae87e3b36fad25dd9e1bbc11ebc58210fadfa44dce06d9a694bfac5e",
+    },
+    optionRound: "",
+    marketAggregator: "",
+  },
+};
+const accountDetailsMapping: { [key: string]: AccountDetailsType } = {
   production: {
     accountAddress: process.env.PRODUCTION_ACCOUNT_ADDRESS,
     privateKey: process.env.PRODUCTION_PRIVATE_KEY,
@@ -184,8 +227,9 @@ let declaredContractsMapping = {
   dev: {},
 };
 
-module.exports = {
+export {
   nodeUrlMapping,
+  constructorArgs,
   accountDetailsMapping,
   declaredContractsMapping,
   liquidityProviders,

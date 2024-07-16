@@ -1,24 +1,23 @@
-const fs = require("fs");
-const path = require("path");
-const {
+import {
   hash,
   CallData,
   CairoCustomEnum,
   cairo,
   Contract,
   json,
-} = require("starknet");
-const { getContract } = require("./common");
-const constantsPath = path.resolve(__dirname, "../constants.json");
+  Provider,
+  Account,
+} from "starknet";
+import { getContract } from "./common";
 
-function getConstants() {
-  return JSON.parse(fs.readFileSync(constantsPath, "utf8"));
-}
-
-async function supply(enviornment, provider, account, recipient, amount) {
-  const constants = getConstants();
-  let contractAddress = constants.deployedContractsMapping[enviornment]["eth"];
-
+async function supply(
+  provider: Provider,
+  account: Account,
+  recipient: string,
+  amount: number | string,
+  eth_address: string
+) {
+  let contractAddress = eth_address;
   const ethContract = await getContract(provider, account, contractAddress);
 
   try {
@@ -48,21 +47,23 @@ async function supply(enviornment, provider, account, recipient, amount) {
     // const result2 = await provider.waitForTransaction(result.transaction_hash);
     // console.log(result, result2);
   } catch (err) {
+    console.log("PAPAPAP")
     console.log(err);
   }
 }
 
-async function approval(enviornment, provider, account, amount) {
-  const constants = getConstants();
-  let contractAddress = constants.deployedContractsMapping[enviornment]["eth"];
-  let vaultContractAddress =
-    constants.deployedContractsMapping[enviornment]["vault"];
-
-  const ethContract = await getContract(provider, account, contractAddress);
-
+async function approval(
+  provider: Provider,
+  account: Account,
+  amount: number,
+  ethAddress: string,
+  approveFor: string
+) {
+  const ethContract = await getContract(provider, account, ethAddress);
+  ethContract.connect(account)
   try {
     const myCall = ethContract.populate("approve", [
-      vaultContractAddress,
+      approveFor,
       cairo.uint256(amount),
     ]);
     const res = await ethContract.approve(myCall.calldata);
@@ -84,7 +85,4 @@ async function approval(enviornment, provider, account, amount) {
   }
 }
 
-module.exports = {
-  supply,
-  approval,
-};
+export { supply, approval };
