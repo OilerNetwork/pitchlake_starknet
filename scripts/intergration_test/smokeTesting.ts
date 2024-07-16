@@ -5,7 +5,6 @@ import { getProvider, getCustomAccount } from "../utils/helper/common";
 import { getLPUnlockedBalance, deposit } from "../utils/vault";
 
 async function smokeTesting0(
-  enviornment: string,
   provider: Provider,
   vaultAddress: string
 ) {
@@ -39,7 +38,7 @@ async function smokeTesting0(
 
 async function smokeTesting(enviornment: string,vaultAddress:string, port?: string) {
   const provider = getProvider(enviornment, port);
-  await smokeTesting0(enviornment, provider,vaultAddress);
+  await smokeTesting0( provider,vaultAddress);
 }
 
 export { smokeTesting };

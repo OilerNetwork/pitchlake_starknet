@@ -85,7 +85,6 @@ async function deployContracts(
     account,
     hashes.ethHash
   );
-
   if (!ethAddress) {
     throw Error("Eth deploy failed");
   }

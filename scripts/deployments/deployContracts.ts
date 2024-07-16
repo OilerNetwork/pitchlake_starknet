@@ -30,9 +30,14 @@ async function deployVaultContract(
 ) {
   const contractCallData = new CallData(vaultSierra.abi);
 
-  let constants = constructorArgs[enviornment];
-  let vaultConstants = constants["vault"];
+  let constants = constructorArgs[enviornment].vault;
   const constructorCalldata = contractCallData.compile("constructor", {
+    round_transition_period:
+    constants.roundTransitionPeriod,
+  auction_run_time:
+    constants.auctionRunTime,
+  option_run_time:
+    constants.optionRunTime,
     eth_address: contractAddresses.ethContract,
     vault_manager: contractAddresses.vaultManager,
     vault_type: new CairoCustomEnum({ InTheMoney: {} }),
