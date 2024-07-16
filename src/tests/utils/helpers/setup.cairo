@@ -12,7 +12,7 @@ use openzeppelin::{
 };
 use pitch_lake_starknet::{
     contracts::{
-        components::eth::Eth,
+        components::{eth::Eth, red_black_tree::{IRBTreeDispatcher, IRBTreeDispatcherTrait}},
         pitch_lake::{
             IPitchLakeDispatcher, IPitchLakeSafeDispatcher, IPitchLakeDispatcherTrait, PitchLake,
             IPitchLakeSafeDispatcherTrait
@@ -35,10 +35,7 @@ use pitch_lake_starknet::{
         },
     },
     tests::{
-        option_round::rb_tree::{
-            //rb_tree_tests::IRBTreeDispatcher,
-            rb_tree_mock_contract::{RBTreeMockContract, IRBTreeMockContractDispatcher}
-        },
+        option_round::rb_tree::{rb_tree_mock_contract::{RBTreeMockContract}},
         utils::{
             lib::{
                 structs::{OptionRoundParams},
@@ -165,12 +162,12 @@ fn deploy_pitch_lake() -> IPitchLakeDispatcher {
     return IPitchLakeDispatcher { contract_address };
 }
 
-fn setup_rb_tree_test() -> IRBTreeMockContractDispatcher {
+fn setup_rb_tree_test() -> IRBTreeDispatcher {
     let (address, _) = deploy_syscall(
         RBTreeMockContract::TEST_CLASS_HASH.try_into().unwrap(), 0, array![].span(), false
     )
         .unwrap_syscall();
-    IRBTreeMockContractDispatcher { contract_address: address }
+    IRBTreeDispatcher { contract_address: address }
 }
 
 fn setup_facade() -> (VaultFacade, ERC20ABIDispatcher) {
