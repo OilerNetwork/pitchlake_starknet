@@ -1,10 +1,9 @@
 import { Account } from "starknet";
 
 // deployContracts.js
-import { hash, CallData, CairoCustomEnum } from "starknet";
+import {  CallData, CairoCustomEnum } from "starknet";
 import vaultSierra from "../../target/dev/pitch_lake_starknet_Vault.contract_class.json" assert { type: "json" };
 import { constructorArgs } from "../utils/constants";
-import assert from "assert";
 
 async function deployEthContract(
   enviornment: string,

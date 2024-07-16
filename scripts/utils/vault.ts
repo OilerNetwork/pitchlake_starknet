@@ -1,22 +1,16 @@
 import {
-  hash,
-  CallData,
-  CairoCustomEnum,
   cairo,
   Contract,
-  json,
   Provider,
   Account,
+  TypedContractV2,
 } from "starknet";
 import { getContract } from "./helper/common";
-
+import {ABI as vaultAbi} from "../abi/vaultAbi";
 export const getLPUnlockedBalance = async (
-  provider: Provider,
-  account: Account,
   address: string,
-  vaultAddress: string
+  vaultContract: TypedContractV2<typeof vaultAbi>
 ) => {
-  const vaultContract = await getContract(provider, account, vaultAddress);
 
   try {
     const res = await vaultContract.get_lp_unlocked_balance(address);
@@ -28,17 +22,13 @@ export const getLPUnlockedBalance = async (
 
 export const withdraw = async (
   provider: Provider,
-  account: Account,
   amount: number,
-  vaultAddress: string
+  vaultContract: TypedContractV2<typeof vaultAbi>
 ) => {
-  let contractAddress = vaultAddress;
 
-  const vaultContract = await getContract(provider, account, contractAddress);
 
   try {
-    const myCall = vaultContract.populate("withdraw", [cairo.uint256(amount)]);
-    const res = await vaultContract.withdraw(myCall.calldata);
+    const res = await vaultContract.withdraw(amount);
     await provider.waitForTransaction(res.transaction_hash);
   } catch (err) {
     console.log(err);
@@ -46,22 +36,19 @@ export const withdraw = async (
 };
 
 export const deposit = async (
-  provider: Provider,
-  account: Account,
-  address: string,
-  amount: number|string,
-  vaultAddress: string
+  from:Account,
+  beneficiary: string,
+  amount: number,
+  vaultContract: TypedContractV2<typeof vaultAbi>
 ) => {
-  const vaultContract = await getContract(provider, account, vaultAddress);
 
+  vaultContract.connect(from);
   try {
-    const myCall = vaultContract.populate("deposit_liquidity", [
-      cairo.uint256(amount),
-      address,
-    ]);
-    const res = await vaultContract.deposit_liquidity(myCall.calldata);
-    await provider.waitForTransaction(res.transaction_hash);
+   
+    await vaultContract.deposit_liquidity(amount,
+    beneficiary);
   } catch (err) {
     console.log(err);
   }
 };
+

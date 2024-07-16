@@ -1,44 +1,44 @@
-import { Provider } from "starknet";
+import { Account, Contract, Provider } from "starknet";
 
 import { liquidityProviders } from "../utils/constants";
-import { getProvider, getCustomAccount } from "../utils/helper/common";
+import { getProvider, getCustomAccount, getContract } from "../utils/helper/common";
 import { getLPUnlockedBalance, deposit } from "../utils/vault";
+import {ABI as vaultAbi} from "../abi/vaultAbi"
 
 async function smokeTesting0(
+  account:Account,
   provider: Provider,
   vaultAddress: string
 ) {
+
+
+  const vaultContract = new Contract(vaultAbi, vaultAddress, provider).typedv2(vaultAbi);
   const lp = getCustomAccount(
     provider,
     liquidityProviders[0].account,
     liquidityProviders[0].privateKey
   );
   const liquidityBefore = await getLPUnlockedBalance(
-    provider,
-    lp,
     liquidityProviders[0].account,
-    vaultAddress
+    vaultContract
   );
   await deposit(
-    provider,
-    lp,
+    account,
     liquidityProviders[0].account,
     1000,
-    vaultAddress
+    vaultContract
   );
   const liquidityAfter = await getLPUnlockedBalance(
-    provider,
-    lp,
     liquidityProviders[0].account,
-    vaultAddress
+    vaultContract
   );
 
   console.log("difference between both are: ", liquidityBefore, liquidityAfter);
 }
 
-async function smokeTesting(enviornment: string,vaultAddress:string, port?: string) {
+async function smokeTesting(enviornment: string,account:Account,vaultAddress:string, port?: string) {
   const provider = getProvider(enviornment, port);
-  await smokeTesting0( provider,vaultAddress);
+  await smokeTesting0( account,provider,vaultAddress);
 }
 
 export { smokeTesting };

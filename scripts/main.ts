@@ -20,11 +20,10 @@ import marketAggregatorSierra from "../target/dev/pitch_lake_starknet_MarketAggr
 import marketAggregatorCasm from "../target/dev/pitch_lake_starknet_MarketAggregator.compiled_contract_class.json" assert { type: "json" };
 import { supply, approval } from "./utils/helper/eth";
 import { liquidityProviders, optionBidders } from "./utils/constants";
-import { smokeTesting } from "./intergration_test/smokeTesting";
+import { smokeTesting } from "./integrationTests/smokeTesting";
+import { Account, Provider } from "starknet";
 
-async function declareContracts(enviornment: string, port?: string) {
-  const provider = getProvider(enviornment, port);
-  const account = getAccount(enviornment, provider);
+async function declareContracts(account:Account) {
   let ethHash = await declareContract(account, ethSierra, ethCasm, "eth");
   if (!ethHash) {
     throw Error("Eth Deploy Failed");
@@ -68,17 +67,16 @@ async function declareContracts(enviornment: string, port?: string) {
 }
 
 async function deployContracts(
+  
   enviornment: string,
+  account:Account,
   hashes: {
     ethHash: string;
     vaultHash: string;
     optionRoundHash: string;
     marketAggregatorHash: string;
   },
-  port?: string
 ) {
-  const provider = getProvider(enviornment, port);
-  const account = getAccount(enviornment, provider);
 
   let ethAddress = await deployEthContract(
     enviornment,
@@ -119,13 +117,12 @@ async function deployContracts(
 }
 
 async function supplyEth(
-  enviornment: string,
+  account:Account,
+  provider:Provider,
   ethAddress: string,
   approveFor: string,
-  port?: string
 ) {
-  const provider = getProvider(enviornment, port);
-  const account = getAccount(enviornment, provider);
+
 
   for (let i = 0; i < 2; i++) {
     const lp = getCustomAccount(
@@ -160,19 +157,22 @@ async function supplyEth(
   }
 }
 
-async function main(enviornment: string, port?: string) {
-  let hashes = await declareContracts(enviornment, port);
+async function main(environment: string, port?: string) {
+  const provider = getProvider(environment,port);
+  const devAccount = getAccount(environment,provider);
+  let hashes = await declareContracts(devAccount);
 
-  let contractAddresses = await deployContracts(enviornment, hashes, port);
+  let contractAddresses = await deployContracts(environment,devAccount, hashes);
 
   await supplyEth(
-    enviornment,
+    devAccount,
+    provider,
     contractAddresses.ethAddress,
     contractAddresses.vaultAddress,
-    port
   );
+  await approval(provider,devAccount,1000000,contractAddresses.ethAddress,contractAddresses.vaultAddress);
 
-  await smokeTesting(enviornment, contractAddresses.vaultAddress, port);
+  await smokeTesting(environment, devAccount,contractAddresses.vaultAddress, port);
 }
 
 main(process.argv[2], process.argv[3]);
