@@ -14,4 +14,7 @@ done
 echo "Running main.js on port $PORT"
 node ./scripts/main.js dev $PORT
 
+# echo "Running smokeTesting.js on port $PORT"
+# node ./scripts/intergration_test/smokeTesting.js dev $PORT
+
 # STARKNET_NETWORK=katana poetry run python3 scripts/deploy_vault.py --port $PORT
