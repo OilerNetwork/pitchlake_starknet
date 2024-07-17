@@ -42,9 +42,9 @@ export const depositAll = async (
   depositData: Array<DepositArgs>,
   vaultContract: TypedContractV2<typeof vaultAbi>
 ) => {
-  depositData.map(async (args: DepositArgs) => {
+  for (const args of depositData) {
       await deposit(args,vaultContract);
-  })
+  }
 };
 
 export const withdrawAll = async (

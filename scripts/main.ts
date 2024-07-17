@@ -166,6 +166,8 @@ async function main(environment: string, port?: string) {
     contractAddresses.vaultAddress
   );
 
+  //Can write to a file here and replace smoke test call to use multiple
+
   await smokeTesting(
     provider,
     contractAddresses.vaultAddress,

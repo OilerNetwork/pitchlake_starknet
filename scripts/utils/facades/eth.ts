@@ -1,5 +1,4 @@
-import { cairo, Provider, Account, TypedContractV2 } from "starknet";
-import { getContract } from "../helper/common";
+import { Account, TypedContractV2 } from "starknet";
 
 import { ABI as ethAbi } from "../../abi/ethAbi";
 import { ApprovalArgs } from "./types";

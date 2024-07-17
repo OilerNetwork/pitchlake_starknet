@@ -72,23 +72,20 @@ export const smokeTest = async (
   const depositAllArgs: Array<DepositArgs> = [
     {
       from: liquidityProviderA,
+      beneficiary: liquidityProviderB.address,
+      amount: depositAmount,
+    },
+    {
+      from: liquidityProviderA,
       beneficiary: liquidityProviderA.address,
       amount: depositAmount,
     },
 
   ];
 
+  await depositAll(depositAllArgs,vaultContract);
   //Debug
-  await deposit( {
-    from: liquidityProviderA,
-    beneficiary: liquidityProviderB.address,
-    amount: depositAmount,
-  }, vaultContract);
-  await deposit( {
-    from: liquidityProviderA,
-    beneficiary: liquidityProviderA.address,
-    amount: depositAmount,
-  }, vaultContract);
+
 
   const liquidityAfterA = await getLPUnlockedBalance(
     liquidityProviderA.address,

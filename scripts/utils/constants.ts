@@ -39,7 +39,7 @@ const constructorArgs: { [key: string]: ConstructorArgs } = {
         "0x7ce7089cb75a590b9485f6851d8998fa885494cc7a70dbae8f3db572586b8a8",
     },
     vault: {
-      roundTransitionPeriod: "0x1",
+      roundTransitionPeriod: "0x30",
       auctionRunTime: "0x22",
       optionRunTime: "0x3",
     },
