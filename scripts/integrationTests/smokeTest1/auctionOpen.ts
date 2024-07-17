@@ -1,15 +1,12 @@
 import { Provider, TypedContractV2 } from "starknet";
 import { ABI as vaultAbi } from "../../abi/vaultAbi";
 import { ABI as ethAbi } from "../../abi/ethAbi";
-import { ABI as optionRoundAbi } from "../../abi/optionRoundAbi";
 import { getCustomAccount } from "../../utils/helpers/common";
 import { liquidityProviders } from "../../utils/constants";
 import { approval, getBalance } from "../../utils/facades/eth";
 import {
-  deposit,
   depositAll,
   getLPUnlockedBalance,
-  withdraw,
   withdrawAll,
 } from "../../utils/facades/vault";
 
@@ -83,7 +80,7 @@ export const smokeTest = async (
 
   ];
 
-  depositAll(depositAllArgs,vaultContract);
+  await depositAll(depositAllArgs,vaultContract);
   //Debug
 
 

@@ -6,7 +6,7 @@ import { getCustomAccount } from "../../utils/helpers/common";
 import { optionBidders } from "../../utils/constants";
 import { approval } from "../../utils/facades/eth";
 import { getNow, setAndMineNextBlock } from "../../utils/katana";
-import { deposit } from "../../utils/facades/vault";
+import { deposit, startAuctionBystander } from "../../utils/facades/vault";
 export const smokeTest = async (
   provider: Provider,
   vaultContract: TypedContractV2<typeof vaultAbi>,
@@ -17,11 +17,7 @@ export const smokeTest = async (
   const optionRoundAddress=await vaultContract.get_option_round_address(optionRoundId);
   const optionRoundContract = new Contract(optionRoundAbi,optionRoundAddress,provider).typedv2(optionRoundAbi);
   
-  const currentTime =await getNow(provider);
-  const auctionStartDate = await optionRoundContract.get_auction_start_date();
-  
-  setAndMineNextBlock(Number(auctionStartDate)-Number(currentTime),provider.channel.nodeUrl);
-  const depositAmount = 1000;
+  await startAuctionBystander(provider,vaultContract);
   const optionBidderA = getCustomAccount(
     provider,
     optionBidders[0].account,
@@ -33,8 +29,8 @@ export const smokeTest = async (
     optionBidders[1].privateKey
   );
 
-  approval({owner:optionBidderA,spender:vaultContract.address,amount:10000},ethContract)
-  deposit({from:optionBidderA,beneficiary:optionBidderA.address,amount:1000},vaultContract)
+  await approval({owner:optionBidderA,spender:vaultContract.address,amount:10000},ethContract)
+  await deposit({from:optionBidderA,beneficiary:optionBidderA.address,amount:1000},vaultContract)
   //@note Wrap this into a try catch to avoid breaking thread and log errors correctly
   //Approve A for depositing
   await approval(

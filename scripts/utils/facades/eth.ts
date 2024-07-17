@@ -1,8 +1,6 @@
 import { Account, Contract, Provider, TypedContractV2 } from "starknet";
-
 import { ABI as ethAbi } from "../../abi/ethAbi";
 import { ApprovalArgs } from "./types";
-import { mineNextBlock } from "../katana";
 import { getCustomAccount } from "../helpers/common";
 import { liquidityProviders, optionBidders } from "../constants";
 

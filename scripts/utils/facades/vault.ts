@@ -1,7 +1,17 @@
-import { Account, TypedContractV2 } from "starknet";
-import { ABI as vaultAbi } from "../../abi/vaultAbi";
+import { Account, Contract, provider, Provider, TypedContractV2 } from "starknet";
+import { vaultAbi,optionRoundAbi } from "../../abi";
 import { DepositArgs, WithdrawArgs } from "./types";
+import { getNow, setAndMineNextBlock } from "../katana";
+import { getAccount } from "../helpers/common";
 
+class VaultFacade {
+  vaultContract?:TypedContractV2<typeof vaultAbi>;
+
+  constructor(vaultContract?:TypedContractV2<typeof vaultAbi>){
+    this.vaultContract=vaultContract
+
+  }
+}
 export const getLPUnlockedBalance = async (
   address: string,
   vaultContract: TypedContractV2<typeof vaultAbi>
@@ -61,3 +71,33 @@ export const withdrawAll = async (
     }
   }
 };
+
+
+
+//State Transitions
+export const startAuction = async (
+  account:Account,
+  vaultContract:TypedContractV2<typeof vaultAbi>
+)=>{
+  vaultContract.connect(account);
+  await vaultContract.start_auction();
+}
+
+
+//@note Only works for katana dev instance with a --dev flag
+export const startAuctionBystander = async (
+  provider:Provider,
+  vaultContract:TypedContractV2<typeof vaultAbi>
+)=>{
+  const devAccount = getAccount("dev",provider); 
+  const optionRoundId = await vaultContract.current_option_round_id();
+  const optionRoundAddress=await vaultContract.get_option_round_address(optionRoundId);
+  const optionRoundContract = new Contract(optionRoundAbi,optionRoundAddress,provider).typedv2(optionRoundAbi);
+  
+  const currentTime =await getNow(provider);
+  const auctionStartDate = await optionRoundContract.get_auction_start_date();
+  
+  await setAndMineNextBlock(Number(auctionStartDate)-Number(currentTime),provider.channel.nodeUrl);
+  vaultContract.connect(devAccount);
+  await vaultContract.start_auction();
+}
