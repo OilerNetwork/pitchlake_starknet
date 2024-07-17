@@ -14,9 +14,9 @@ type EthConstructorArgs = {
 };
 
 type VaultConstructorArgs = {
-  roundTransitionPeriod:string;
-  auctionRunTime:string;
-  optionRunTime:string;
+  roundTransitionPeriod: number;
+  auctionRunTime: number;
+  optionRunTime: number;
 };
 
 type ConstructorArgs = {
@@ -34,14 +34,14 @@ const nodeUrlMapping: { [key: string]: string } = {
 const constructorArgs: { [key: string]: ConstructorArgs } = {
   dev: {
     eth: {
-      supply:  cairo.uint256(1e32),
+      supply: cairo.uint256(1e32),
       recipientContractAddress:
         "0x7ce7089cb75a590b9485f6851d8998fa885494cc7a70dbae8f3db572586b8a8",
     },
     vault: {
-      roundTransitionPeriod: "0x20",
-      auctionRunTime: "0x22",
-      optionRunTime: "0x3",
+      roundTransitionPeriod: 32,
+      auctionRunTime: 23,
+      optionRunTime: 23,
     },
     optionRound: "",
     marketAggregator: "",

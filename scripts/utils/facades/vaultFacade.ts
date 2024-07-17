@@ -1,7 +1,7 @@
 import { Account, Contract, Provider, TypedContractV2 } from "starknet";
 import { optionRoundAbi, vaultAbi } from "../../abi";
 import { DepositArgs, WithdrawArgs } from "./types";
-import { getAccount } from "../helpers/common";
+import { getAccount, stringToHex } from "../helpers/common";
 import { getNow, setAndMineNextBlock } from "../katana";
 
 export class VaultFacade {
@@ -58,37 +58,31 @@ export class VaultFacade {
   //@note Only works for katana dev instance with a --dev flag
   async startAuctionBystander(provider: Provider) {
     try {
-        console.log("1")
       const devAccount = getAccount("dev", provider);
-      console.log("2")
       const optionRoundId = await this.vaultContract.current_option_round_id();
-      console.log("3")
-      const optionRoundAddress =
+      const optionRoundAddressDecimalString =
         await this.vaultContract.get_option_round_address(optionRoundId);
-        console.log("4",("0x"+optionRoundAddress.toString()));
-      
+      const optionRoundAddressHexString: string =
+        "0x" + stringToHex(optionRoundAddressDecimalString);
+
       const optionRoundContract = new Contract(
         optionRoundAbi,
-        optionRoundAddress,
+        optionRoundAddressHexString,
         provider
       ).typedv2(optionRoundAbi);
 
-      console.log("5")
       const currentTime = await getNow(provider);
       const auctionStartDate =
         await optionRoundContract.get_auction_start_date();
 
-        console.log("6")
       await setAndMineNextBlock(
         Number(auctionStartDate) - Number(currentTime),
         provider.channel.nodeUrl
       );
-      console.log("7");
       this.vaultContract.connect(devAccount);
-      console.log("8");
       await this.vaultContract.start_auction();
     } catch (err) {
-      console.log("ERROR IS HERE YES");
+      console.log("ERROR IS HERE YES", err);
     }
   }
 }

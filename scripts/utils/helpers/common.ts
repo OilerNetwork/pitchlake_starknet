@@ -72,4 +72,12 @@ async function getContract(
   return contract;
 }
 
-export { getProvider, getAccount, getContract, getCustomAccount };
+function stringToHex(decimalString: string): string {
+  decimalString = String(decimalString);
+
+  const num = BigInt(decimalString);
+
+  return num.toString(16);
+}
+
+export { getProvider, getAccount, getContract, getCustomAccount, stringToHex };
