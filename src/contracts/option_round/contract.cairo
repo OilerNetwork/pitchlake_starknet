@@ -1,30 +1,24 @@
 #[starknet::contract]
 mod OptionRound {
-    use core::num::traits::one::One;
-    use core::array::ArrayTrait;
-    use core::starknet::event::EventEmitter;
-    use core::option::OptionTrait;
-    use core::fmt::{Display, Formatter, Error};
-    use pitch_lake_starknet::contracts::components::red_black_tree::IRBTree;
+    use core::{
+        array::ArrayTrait, fmt::{Display, Error, Formatter}, num::traits::one::One,
+        option::OptionTrait, starknet::event::EventEmitter,
+    };
     use openzeppelin::token::erc20::{
-        ERC20Component, interface::{IERC20Metadata, ERC20ABIDispatcher, ERC20ABIDispatcherTrait,}
+        ERC20Component, interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait, IERC20Metadata},
     };
-    use starknet::{ContractAddress, get_caller_address, get_contract_address, get_block_timestamp};
-    use pitch_lake_starknet::contracts::{
-        market_aggregator::{IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait},
-        {
-            components::red_black_tree::{RBTreeComponent, RBTreeComponent::Node},
-            utils::utils::{min, max}
+    use pitch_lake_starknet::{
+        contracts::{
+            components::red_black_tree::{IRBTree, RBTreeComponent, RBTreeComponent::Node},
+            option_round::interface::IOptionRound, utils::utils::{max, min},
+            vault::{interface::{IVaultDispatcher, IVaultDispatcherTrait},},
         },
-        vault::{interface::{IVaultDispatcher, IVaultDispatcherTrait}, types::{VaultType}},
-        option_round::{
-            interface::IOptionRound,
-            types::{
-                Bid, OptionRoundState, OptionRoundConstructorParams, StartAuctionParams,
-                SettleOptionRoundParams, Errors
-            }
-        }
+        types::{
+            Bid, Errors, OptionRoundConstructorParams, OptionRoundState, SettleOptionRoundParams,
+            StartAuctionParams, VaultType
+        },
     };
+    use starknet::{get_block_timestamp, get_caller_address, get_contract_address, ContractAddress,};
 
     // ERC20 Component
     component!(path: ERC20Component, storage: erc20, event: ERC20Event);

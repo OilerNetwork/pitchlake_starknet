@@ -1,9 +1,7 @@
 use core::traits::TryInto;
 use pitch_lake_starknet::{
-    contracts::{
-        option_round::{types::{Bid}},
-        components::{red_black_tree::{IRBTreeDispatcher, IRBTreeDispatcherTrait}},
-    },
+    types::{Bid},
+    contracts::{components::{red_black_tree::{IRBTreeDispatcher, IRBTreeDispatcherTrait}},},
 };
 use starknet::{contract_address_const, ContractAddress};
 use core::pedersen::pedersen;

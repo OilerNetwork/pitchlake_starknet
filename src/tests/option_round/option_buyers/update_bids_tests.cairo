@@ -1,6 +1,6 @@
 use core::traits::Into;
 use pitch_lake_starknet::{
-    contracts::{option_round::types::Errors},
+    types::Errors,
     tests::{
         utils::{
             helpers::{

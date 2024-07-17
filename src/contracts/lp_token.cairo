@@ -4,9 +4,11 @@ use traits::{Into, TryInto};
 use openzeppelin::token::erc20::interface::ERC20ABIDispatcher;
 use openzeppelin::utils::serde::SerializedAppend;
 
-use pitch_lake_starknet::contracts::option_round::types::{OptionRoundState};
-use pitch_lake_starknet::contracts::market_aggregator::{
-    IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
+use pitch_lake_starknet::{
+    contracts::market_aggregator::{
+        IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
+    },
+    types::{OptionRoundState}
 };
 
 // @note Events for tokeninzing/positionizing in this contract or vault?

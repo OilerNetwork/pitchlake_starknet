@@ -1,6 +1,6 @@
 use starknet::{get_block_timestamp, testing::{set_contract_address, set_block_timestamp}};
 use pitch_lake_starknet::{
-    contracts::{option_round::types::{StartAuctionParams, Errors}},
+    types::{StartAuctionParams, Errors},
     tests::{
         utils::{
             helpers::{

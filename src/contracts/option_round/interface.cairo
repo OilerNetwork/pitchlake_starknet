@@ -1,14 +1,14 @@
 use starknet::{ContractAddress, StorePacking};
 use openzeppelin::token::erc20::interface::ERC20ABIDispatcher;
-use pitch_lake_starknet::contracts::{
-    option_round::{
-        contract::OptionRound,
-        types::{
-            OptionRoundState, StartAuctionParams, SettleOptionRoundParams,
-            OptionRoundConstructorParams, Bid,
-        }
+use pitch_lake_starknet::{
+    contracts::{
+        option_round::{contract::OptionRound,},
+        market_aggregator::{IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait},
     },
-    market_aggregator::{IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait},
+    types::{
+        OptionRoundState, StartAuctionParams, SettleOptionRoundParams, OptionRoundConstructorParams,
+        Bid,
+    }
 };
 
 // The option round contract interface

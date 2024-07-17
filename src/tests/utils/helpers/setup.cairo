@@ -11,6 +11,7 @@ use openzeppelin::{
     token::erc20::{ERC20Component, interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait,}}
 };
 use pitch_lake_starknet::{
+    types::{StartAuctionParams, OptionRoundState, VaultType},
     contracts::{
         components::{eth::Eth, red_black_tree::{IRBTreeDispatcher, IRBTreeDispatcherTrait}},
         pitch_lake::{
@@ -22,16 +23,13 @@ use pitch_lake_starknet::{
             IMarketAggregatorDispatcherTrait, IMarketAggregatorSafeDispatcher,
             IMarketAggregatorSafeDispatcherTrait
         },
-        vault::{
-            contract::Vault, types::VaultType, interface::{IVaultDispatcher, IVaultDispatcherTrait}
-        },
+        vault::{contract::Vault, interface::{IVaultDispatcher, IVaultDispatcherTrait}},
         option_round::{
             contract::OptionRound,
             interface::{
                 IOptionRoundDispatcher, IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher,
                 IOptionRoundSafeDispatcherTrait,
             },
-            types::{StartAuctionParams, OptionRoundState,}
         },
     },
     tests::{

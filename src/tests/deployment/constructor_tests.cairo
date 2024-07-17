@@ -17,13 +17,13 @@ use pitch_lake_starknet::{
         option_round::{
             contract::{OptionRound,},
             interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,},
-            types::{OptionRoundState, OptionRoundConstructorParams,}
         },
         market_aggregator::{
             IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait,
             IMarketAggregatorSafeDispatcher, IMarketAggregatorSafeDispatcherTrait
         },
     },
+    types::{OptionRoundState, OptionRoundConstructorParams},
     tests::{
         utils::{
             helpers::{

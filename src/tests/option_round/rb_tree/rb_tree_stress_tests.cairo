@@ -5,10 +5,8 @@ use pitch_lake_starknet::{
             insert, mock_address, MOCK_ADDRESS, delete, create_bid
         },
     },
-    contracts::{
-        option_round::types::Bid,
-        components::red_black_tree::{IRBTreeDispatcher, IRBTreeDispatcherTrait}
-    },
+    contracts::{components::red_black_tree::{IRBTreeDispatcher, IRBTreeDispatcherTrait}},
+    types::Bid,
 };
 use core::pedersen::pedersen;
 

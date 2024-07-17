@@ -76,9 +76,10 @@ use pitch_lake_starknet::{
             IPitchLake, IPitchLakeDispatcher, IPitchLakeDispatcherTrait, IPitchLakeSafeDispatcher,
             IPitchLakeSafeDispatcherTrait, PitchLake,
         },
-        vault::{types::{VaultType}, interface::{IVault, IVaultDispatcher, IVaultDispatcherTrait}},
+        vault::{interface::{IVault, IVaultDispatcher, IVaultDispatcherTrait}},
     },
     tests::utils::helpers::setup::{deploy_vault, deploy_market_aggregator, deploy_pitch_lake},
+    types::{VaultType},
 };
 use debug::PrintTrait;
 

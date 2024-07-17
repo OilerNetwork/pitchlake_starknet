@@ -1,8 +1,10 @@
 use starknet::{ContractAddress};
-use pitch_lake_starknet::contracts::{
-    option_round::types::{StartAuctionParams, OptionRoundState},
-    market_aggregator::{IMarketAggregator, IMarketAggregatorDispatcher},
-    vault::{contract::Vault, types::{VaultType}},
+use pitch_lake_starknet::{
+    contracts::{
+        market_aggregator::{IMarketAggregator, IMarketAggregatorDispatcher},
+        vault::{contract::Vault},
+    },
+    types::{VaultType, StartAuctionParams, OptionRoundState}
 };
 
 // The interface for the vault contract

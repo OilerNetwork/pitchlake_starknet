@@ -1,4 +1,4 @@
-use pitch_lake_starknet::contracts::{components::red_black_tree, option_round::types::{Bid}};
+use pitch_lake_starknet::{contracts::{components::red_black_tree}, types::{Bid}};
 use starknet::ContractAddress;
 
 #[starknet::interface]

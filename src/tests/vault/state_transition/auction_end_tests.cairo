@@ -15,11 +15,9 @@ use pitch_lake_starknet::{
                 IVaultSafeDispatcherTrait
             },
         },
-        option_round::{
-            interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,},
-            types::{OptionRoundState, Errors}
-        },
+        option_round::{interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,},},
     },
+    types::{OptionRoundState, Errors},
     tests::{
         utils::{
             helpers::{

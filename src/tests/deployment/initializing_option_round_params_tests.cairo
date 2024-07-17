@@ -13,9 +13,7 @@ use pitch_lake_starknet::{
             IPitchLakeDispatcher, IPitchLakeSafeDispatcher, IPitchLakeDispatcherTrait, PitchLake,
             IPitchLakeSafeDispatcherTrait
         },
-        vault::{
-            contract::Vault, interface::{IVaultDispatcher, IVaultDispatcherTrait}, types::VaultType
-        },
+        vault::{contract::Vault, interface::{IVaultDispatcher, IVaultDispatcherTrait},},
         option_round::interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
     },
     tests::{
@@ -34,6 +32,7 @@ use pitch_lake_starknet::{
             },
         },
     },
+    types::VaultType
 };
 use debug::PrintTrait;
 

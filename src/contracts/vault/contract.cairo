@@ -8,17 +8,19 @@ mod Vault {
         token::erc20::{ERC20Component, interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait,}},
         utils::serde::SerializedAppend
     };
-    use pitch_lake_starknet::contracts::{
-        vault::{types::{VaultType, Errors}, interface::IVault},
-        option_round::{
-            contract::OptionRound,
-            types::{
-                OptionRoundConstructorParams, StartAuctionParams, SettleOptionRoundParams,
-                OptionRoundState,
+    use pitch_lake_starknet::{
+        contracts::{
+            vault::interface::IVault,
+            option_round::{
+                contract::OptionRound,
+                interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
             },
-            interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
+            market_aggregator::{IMarketAggregatorDispatcher}
         },
-        market_aggregator::{IMarketAggregatorDispatcher}
+        types::{
+            OptionRoundConstructorParams, StartAuctionParams, SettleOptionRoundParams,
+            OptionRoundState, VaultType, Errors
+        }
     };
 
     // The type of vault

@@ -4,12 +4,11 @@ use pitch_lake_starknet::contracts::vault::{
     interface::{
         IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcherTrait,
     },
-    contract::Vault, types::VaultType
+    contract::Vault,
 };
 use starknet::{ContractAddress, testing::{set_contract_address}};
 use pitch_lake_starknet::{
     contracts::option_round::{
-        types::{Errors},
         interface::{
             IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState,
             StartAuctionParams, SettleOptionRoundParams, OptionRoundConstructorParams, Bid,
@@ -25,7 +24,8 @@ use pitch_lake_starknet::{
             lib::{test_accounts::{vault_manager, bystander}, structs::{OptionRoundParams}},
             facades::sanity_checks,
         }
-    }
+    },
+    types::{VaultType, Errors}
 };
 
 #[derive(Drop)]
