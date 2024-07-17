@@ -1,18 +1,7 @@
-import { Provider, Account, TypedContractV2 } from "starknet";
-import { getContract } from "./helper/common";
-import { ABI as vaultAbi } from "../abi/vaultAbi";
+import { Account, TypedContractV2 } from "starknet";
+import { ABI as vaultAbi } from "../../abi/vaultAbi";
+import { DepositArgs, WithdrawArgs } from "./types";
 
-type DepositArgs = {
-  from: Account;
-  beneficiary: string;
-  amount: number;
-};
-
-type WithdrawArgs = {
-  account: Account;
-  amount: number;
-  vaultContract: TypedContractV2<typeof vaultAbi>;
-};
 export const getLPUnlockedBalance = async (
   address: string,
   vaultContract: TypedContractV2<typeof vaultAbi>
@@ -26,8 +15,7 @@ export const getLPUnlockedBalance = async (
 };
 
 export const withdraw = async (
-  account: Account,
-  amount: number,
+  { account, amount }: WithdrawArgs,
   vaultContract: TypedContractV2<typeof vaultAbi>
 ) => {
   vaultContract.connect(account);
@@ -50,23 +38,16 @@ export const deposit = async (
   }
 };
 
-export const depositN = async (
+export const depositAll = async (
   depositData: Array<DepositArgs>,
   vaultContract: TypedContractV2<typeof vaultAbi>
 ) => {
-  await Promise.all(
-    depositData.map(async (data: DepositArgs) => {
-      vaultContract.connect(data.from);
-      try {
-        await vaultContract.deposit_liquidity(data.amount, data.beneficiary);
-      } catch (err) {
-        console.log(err);
-      }
-    })
-  );
+  depositData.map(async (args: DepositArgs) => {
+      await deposit(args,vaultContract);
+  })
 };
 
-export const withdrawN = async (
+export const withdrawAll = async (
   withdrawData: Array<WithdrawArgs>,
   vaultContract: TypedContractV2<typeof vaultAbi>
 ) => {
