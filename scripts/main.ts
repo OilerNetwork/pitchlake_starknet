@@ -8,7 +8,7 @@ import {
   deployMarketAggregator,
   deployVaultContract,
 } from "./deployments/deployContracts";
-import {ABI as ethAbi} from "./abi/ethAbi"
+import { ABI as ethAbi } from "./abi/ethAbi";
 import { declareContract } from "./deployments/declareContracts";
 import ethSierra from "../target/dev/pitch_lake_starknet_Eth.contract_class.json" assert { type: "json" };
 import ethCasm from "../target/dev/pitch_lake_starknet_Eth.compiled_contract_class.json" assert { type: "json" };
@@ -18,12 +18,12 @@ import optionRoundSieraa from "../target/dev/pitch_lake_starknet_OptionRound.con
 import optionRoundCasm from "../target/dev/pitch_lake_starknet_OptionRound.compiled_contract_class.json" assert { type: "json" };
 import marketAggregatorSierra from "../target/dev/pitch_lake_starknet_MarketAggregator.contract_class.json" assert { type: "json" };
 import marketAggregatorCasm from "../target/dev/pitch_lake_starknet_MarketAggregator.compiled_contract_class.json" assert { type: "json" };
-import { supply, approval } from "./utils/helper/eth";
+import { supply, approval } from "./utils/facades/eth";
 import { liquidityProviders, optionBidders } from "./utils/constants";
 import { smokeTesting } from "./integrationTests/smokeTesting";
 import { Account, Contract, Provider } from "starknet";
 
-async function declareContracts(account:Account) {
+async function declareContracts(account: Account) {
   let ethHash = await declareContract(account, ethSierra, ethCasm, "eth");
   if (!ethHash) {
     throw Error("Eth Deploy Failed");
@@ -67,17 +67,15 @@ async function declareContracts(account:Account) {
 }
 
 async function deployContracts(
-  
   enviornment: string,
-  account:Account,
+  account: Account,
   hashes: {
     ethHash: string;
     vaultHash: string;
     optionRoundHash: string;
     marketAggregatorHash: string;
-  },
+  }
 ) {
-
   let ethAddress = await deployEthContract(
     enviornment,
     account,
@@ -117,16 +115,15 @@ async function deployContracts(
 }
 
 async function supplyEth(
-  devAccount:Account,
-  provider:Provider,
+  devAccount: Account,
+  provider: Provider,
   ethAddress: string,
-  approveFor: string,
+  approveFor: string
 ) {
+  const ethContract = new Contract(ethAbi, ethAddress, provider).typedv2(
+    ethAbi
+  );
 
-
-  const ethContract = new Contract(ethAbi,ethAddress,provider).typedv2(ethAbi);
-  
- 
   for (let i = 0; i < 2; i++) {
     const lp = getCustomAccount(
       provider,
@@ -138,42 +135,42 @@ async function supplyEth(
       optionBidders[i].account,
       optionBidders[i].privateKey
     );
-    await supply(
-      devAccount,
-      liquidityProviders[i].account,
-      1000000,
+    await supply(devAccount,liquidityProviders[i].account, 1000000, ethContract);
+    await approval(
+      { owner: lp, amount: 1000000, spender: approveFor },
       ethContract
     );
-    await approval(lp,1000000, ethContract, approveFor);
     console.log(`Liquidity Provider ${i} funded `);
 
-    await supply(
-      devAccount,
-      optionBidders[i].account,
-      1000000,
-      ethContract
-    );
-    await approval( ob, 1000000, ethContract, approveFor);
+    await supply(devAccount, optionBidders[i].account, 1000000, ethContract);
+    await approval({owner:ob, amount:1000000,spender:approveFor}, ethContract, );
     console.log(`Option Bidder ${i} funded `);
   }
 }
 
 async function main(environment: string, port?: string) {
-  const provider = getProvider(environment,port);
-  const devAccount = getAccount(environment,provider);
+  const provider = getProvider(environment, port);
+  const devAccount = getAccount(environment, provider);
   let hashes = await declareContracts(devAccount);
 
-  let contractAddresses = await deployContracts(environment,devAccount, hashes);
+  let contractAddresses = await deployContracts(
+    environment,
+    devAccount,
+    hashes
+  );
 
   await supplyEth(
     devAccount,
     provider,
     contractAddresses.ethAddress,
-    contractAddresses.vaultAddress,
+    contractAddresses.vaultAddress
   );
 
-
-  await smokeTesting(environment, devAccount,contractAddresses.vaultAddress,contractAddresses.ethAddress, port);
+  await smokeTesting(
+    provider,
+    contractAddresses.vaultAddress,
+    contractAddresses.ethAddress
+  );
 }
 
 main(process.argv[2], process.argv[3]);

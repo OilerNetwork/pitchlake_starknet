@@ -1,7 +1,8 @@
 import { cairo, Provider, Account, TypedContractV2 } from "starknet";
-import { getContract } from "./common";
+import { getContract } from "../helper/common";
 
 import { ABI as ethAbi } from "../../abi/ethAbi";
+import { ApprovalArgs } from "./types";
 
 async function getBalance(
   account: string,
@@ -12,13 +13,13 @@ async function getBalance(
 }
 
 const supply = async (
-  devAccount:Account,
+  devAccount: Account,
   recipient: string,
   amount: number,
   ethContract: TypedContractV2<typeof ethAbi>
 ) => {
   try {
-    ethContract.connect(devAccount)
+    ethContract.connect(devAccount);
     const balanceBefore = await ethContract.balance_of(recipient);
 
     await ethContract.transfer(recipient, amount);
@@ -46,14 +47,12 @@ const supply = async (
 };
 
 async function approval(
-  approver: Account,
-  amount: number,
-  ethContract: TypedContractV2<typeof ethAbi>,
-  approveFor: string
+  { owner, amount, spender }: ApprovalArgs,
+  ethContract: TypedContractV2<typeof ethAbi>
 ) {
-  ethContract.connect(approver);
+  ethContract.connect(owner);
   try {
-    await ethContract.approve(approveFor, amount);
+    await ethContract.approve(spender, amount);
 
     // @note: don't delete it yet, waiting for response from starknet.js team
     // const result = await account.execute({
@@ -71,4 +70,20 @@ async function approval(
   }
 }
 
-export { supply, approval,getBalance };
+const approveAll = async (
+  approveData: Array<ApprovalArgs>,
+  ethContract: TypedContractV2<typeof ethAbi>
+) => {
+  await Promise.all(
+    approveData.map(async ({ owner, amount, spender }: ApprovalArgs) => {
+      ethContract.connect(owner);
+      try {
+        await ethContract.approve(spender, amount);
+      } catch (err) {
+        console.log(err);
+      }
+    })
+  );
+};
+
+export { supply, approval, getBalance, approveAll };

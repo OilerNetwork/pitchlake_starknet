@@ -40,7 +40,7 @@ const constructorArgs: { [key: string]: ConstructorArgs } = {
     },
     vault: {
       roundTransitionPeriod: "0x1",
-      auctionRunTime: "0x2",
+      auctionRunTime: "0x22",
       optionRunTime: "0x3",
     },
     optionRound: "",
