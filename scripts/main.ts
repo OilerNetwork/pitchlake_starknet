@@ -8,7 +8,7 @@ import {
   deployMarketAggregator,
   deployVaultContract,
 } from "./deployments/deployContracts";
-
+import {ABI as ethAbi} from "./abi/ethAbi"
 import { declareContract } from "./deployments/declareContracts";
 import ethSierra from "../target/dev/pitch_lake_starknet_Eth.contract_class.json" assert { type: "json" };
 import ethCasm from "../target/dev/pitch_lake_starknet_Eth.compiled_contract_class.json" assert { type: "json" };
@@ -21,7 +21,7 @@ import marketAggregatorCasm from "../target/dev/pitch_lake_starknet_MarketAggreg
 import { supply, approval } from "./utils/helper/eth";
 import { liquidityProviders, optionBidders } from "./utils/constants";
 import { smokeTesting } from "./integrationTests/smokeTesting";
-import { Account, Provider } from "starknet";
+import { Account, Contract, Provider } from "starknet";
 
 async function declareContracts(account:Account) {
   let ethHash = await declareContract(account, ethSierra, ethCasm, "eth");
@@ -117,13 +117,16 @@ async function deployContracts(
 }
 
 async function supplyEth(
-  account:Account,
+  devAccount:Account,
   provider:Provider,
   ethAddress: string,
   approveFor: string,
 ) {
 
 
+  const ethContract = new Contract(ethAbi,ethAddress,provider).typedv2(ethAbi);
+  
+ 
   for (let i = 0; i < 2; i++) {
     const lp = getCustomAccount(
       provider,
@@ -136,23 +139,21 @@ async function supplyEth(
       optionBidders[i].privateKey
     );
     await supply(
-      provider,
-      account,
+      devAccount,
       liquidityProviders[i].account,
       1000000,
-      ethAddress
+      ethContract
     );
-    await approval(provider, lp, 1000000, ethAddress, approveFor);
+    await approval(lp,1000000, ethContract, approveFor);
     console.log(`Liquidity Provider ${i} funded `);
 
     await supply(
-      provider,
-      account,
+      devAccount,
       optionBidders[i].account,
       1000000,
-      ethAddress
+      ethContract
     );
-    await approval(provider, ob, 1000000, ethAddress, approveFor);
+    await approval( ob, 1000000, ethContract, approveFor);
     console.log(`Option Bidder ${i} funded `);
   }
 }
@@ -170,9 +171,9 @@ async function main(environment: string, port?: string) {
     contractAddresses.ethAddress,
     contractAddresses.vaultAddress,
   );
-  await approval(provider,devAccount,1000000,contractAddresses.ethAddress,contractAddresses.vaultAddress);
 
-  await smokeTesting(environment, devAccount,contractAddresses.vaultAddress, port);
+
+  await smokeTesting(environment, devAccount,contractAddresses.vaultAddress,contractAddresses.ethAddress, port);
 }
 
 main(process.argv[2], process.argv[3]);

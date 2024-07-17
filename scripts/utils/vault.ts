@@ -1,6 +1,5 @@
 import {
-  cairo,
-  Contract,
+
   Provider,
   Account,
   TypedContractV2,
