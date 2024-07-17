@@ -16,10 +16,10 @@ use pitch_lake_starknet::{
             }
         },
         option_round::{
-            contract::OptionRound, types::OptionRoundState,
-            interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait}, types::{Errors},
+            contract::OptionRound, interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
         },
     },
+    types::{OptionRoundState, Errors, BidDisplay},
     tests::{
         utils::{
             helpers::{

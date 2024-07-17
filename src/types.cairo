@@ -120,11 +120,11 @@ impl BidPartialOrdTrait of PartialOrd<Bid> {
 }
 
 
-// Allows Bids to be printed using .print()
+// Allows Bids to be printed using println!
 impl BidDisplay of Display<Bid> {
     fn fmt(self: @Bid, ref f: Formatter) -> Result<(), Error> {
         let str: ByteArray = format!(
-            "ID:{}\nNonce:{}\nOwner:{}\nAmount:{}\n Price:{}\nTokenized:{}\nRefunded:{}",
+            "ID:{}\nNonce:{}\nOwner:{}\nAmount:{}\nPrice:{}\nTokenized:{}\nRefunded:{}",
             *self.id,
             *self.nonce,
             Into::<ContractAddress, felt252>::into(*self.owner),
@@ -138,7 +138,7 @@ impl BidDisplay of Display<Bid> {
     }
 }
 
-// Allows OptionRoundStates to be printed using .print()
+// Allows OptionRoundStates to be printed using println!
 impl OptionRoundStateDisplay of Display<OptionRoundState> {
     fn fmt(self: @OptionRoundState, ref f: Formatter) -> Result<(), Error> {
         let str: ByteArray = match self {
