@@ -10,17 +10,17 @@ mod contracts {
     mod vault {
         mod contract;
         mod interface;
-        mod types;
     }
     mod option_round {
         mod contract;
         mod interface;
-        mod types;
     }
 
     mod market_aggregator;
     mod lp_token;
 }
+
+mod types;
 
 #[cfg(test)]
 mod tests;
