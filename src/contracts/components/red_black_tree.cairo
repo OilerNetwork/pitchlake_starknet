@@ -64,7 +64,7 @@ pub mod RBTreeComponent {
             return node.value;
         }
 
-        fn update(ref self: ComponentState<TContractState>, bid_id: felt252, bid: Bid) {
+        fn _update(ref self: ComponentState<TContractState>, bid_id: felt252, bid: Bid) {
             let node: Node = self.tree.read(bid_id);
             if node.value.id == 0 {
                 return;
@@ -82,7 +82,7 @@ pub mod RBTreeComponent {
             self.delete_node(bid_id);
         }
 
-        fn find_clearing_price(ref self: ComponentState<TContractState>) -> (u256, u256) {
+        fn _find_clearing_price(ref self: ComponentState<TContractState>) -> (u256, u256) {
             let total_options_available = self._get_total_options_available();
             let root: felt252 = self.root.read();
             let root_node: Node = self.tree.read(root);
@@ -136,9 +136,9 @@ pub mod RBTreeComponent {
     }
 
     #[generate_trait]
-    pub impl InternalImpl<
+    pub impl RBTreeInternalImpl<
         TContractState, +HasComponent<TContractState>
-    > of InternalTrait<TContractState> {
+    > of RBTreeInternalTrait<TContractState> {
         fn traverse_postorder_clearing_price_from_node(
             ref self: ComponentState<TContractState>,
             current_id: felt252,
