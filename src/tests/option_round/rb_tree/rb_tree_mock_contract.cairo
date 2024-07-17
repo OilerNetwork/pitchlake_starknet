@@ -1,6 +1,6 @@
 #[starknet::contract]
 mod RBTreeMockContract {
-    use pitch_lake_starknet::contracts::components::red_black_tree::RBTreeComponent;
+    use pitch_lake_starknet::library::red_black_tree::RBTreeComponent;
 
     component!(path: RBTreeComponent, storage: rb_tree, event: RBTreeEvent);
 

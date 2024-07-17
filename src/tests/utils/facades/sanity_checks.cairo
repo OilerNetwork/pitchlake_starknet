@@ -1,7 +1,7 @@
 use starknet::{ContractAddress, testing::{set_contract_address}};
 use openzeppelin::token::erc20::interface::{ERC20ABIDispatcherTrait,};
 use pitch_lake_starknet::{
-    contracts::option_round::{interface::IOptionRoundDispatcherTrait}, types::Bid,
+    types::Bid, option_round::{interface::IOptionRoundDispatcherTrait},
     tests::{
         utils::{
             helpers::{

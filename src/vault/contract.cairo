@@ -9,14 +9,11 @@ mod Vault {
         utils::serde::SerializedAppend
     };
     use pitch_lake_starknet::{
-        contracts::{
-            vault::interface::IVault,
-            option_round::{
-                contract::OptionRound,
-                interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
-            },
-            market_aggregator::{IMarketAggregatorDispatcher}
+        vault::interface::IVault,
+        option_round::{
+            contract::OptionRound, interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
         },
+        contracts::{market_aggregator::{IMarketAggregatorDispatcher}},
         types::{
             OptionRoundConstructorParams, StartAuctionParams, SettleOptionRoundParams,
             OptionRoundState, VaultType, Errors

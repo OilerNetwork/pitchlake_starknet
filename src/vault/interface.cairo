@@ -1,9 +1,7 @@
 use starknet::{ContractAddress};
 use pitch_lake_starknet::{
-    contracts::{
-        market_aggregator::{IMarketAggregator, IMarketAggregatorDispatcher},
-        vault::{contract::Vault},
-    },
+    vault::{contract::Vault},
+    contracts::{market_aggregator::{IMarketAggregator, IMarketAggregatorDispatcher},},
     types::{VaultType, StartAuctionParams, OptionRoundState}
 };
 

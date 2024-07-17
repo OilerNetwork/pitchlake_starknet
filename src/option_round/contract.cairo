@@ -8,11 +8,11 @@ mod OptionRound {
         ERC20Component, interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait, IERC20Metadata},
     };
     use pitch_lake_starknet::{
-        contracts::{
-            components::red_black_tree::{IRBTree, RBTreeComponent, RBTreeComponent::Node},
-            option_round::interface::IOptionRound, utils::utils::{max, min},
-            vault::{interface::{IVaultDispatcher, IVaultDispatcherTrait},},
+        library::{
+            utils::{max, min}, red_black_tree::{IRBTree, RBTreeComponent, RBTreeComponent::Node}
         },
+        option_round::interface::IOptionRound,
+        vault::{interface::{IVaultDispatcher, IVaultDispatcherTrait},},
         types::{
             Bid, Errors, OptionRoundConstructorParams, OptionRoundState, SettleOptionRoundParams,
             StartAuctionParams, VaultType

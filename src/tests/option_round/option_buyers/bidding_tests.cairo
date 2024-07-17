@@ -6,20 +6,16 @@ use starknet::{
 };
 use openzeppelin::{token::erc20::interface::{ERC20ABIDispatcherTrait,},};
 use pitch_lake_starknet::{
-    contracts::{
-        components::eth::Eth,
-        vault::{
-            contract::Vault,
-            interface::{
-                IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait,
-                IVaultSafeDispatcherTrait
-            }
-        },
-        option_round::{
-            contract::OptionRound, interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
-        },
+    library::eth::Eth, types::{OptionRoundState, Errors, BidDisplay},
+    vault::{
+        contract::Vault,
+        interface::{
+            IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcherTrait
+        }
     },
-    types::{OptionRoundState, Errors, BidDisplay},
+    option_round::{
+        contract::OptionRound, interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
+    },
     tests::{
         utils::{
             helpers::{

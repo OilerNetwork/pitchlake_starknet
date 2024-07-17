@@ -1,4 +1,4 @@
-use pitch_lake_starknet::{contracts::{components::red_black_tree}, types::{Bid}};
+use pitch_lake_starknet::{library::red_black_tree, types::{Bid}};
 use starknet::ContractAddress;
 
 #[starknet::interface]
@@ -15,14 +15,15 @@ trait IRBTree<TContractState> {
     fn add_node(ref self: TContractState, bid: Bid, color: bool, parent: felt252) -> felt252;
 }
 
-const BLACK: bool = false;
-const RED: bool = true;
 
 #[starknet::component]
 pub mod RBTreeComponent {
-    use pitch_lake_starknet::contracts::components::red_black_tree::IRBTree;
-    use super::{BLACK, RED, Bid, ContractAddress};
+    use super::{Bid, ContractAddress};
     use core::{array::ArrayTrait, option::OptionTrait, traits::{IndexView, TryInto}};
+    use pitch_lake_starknet::library::red_black_tree::IRBTree;
+
+    const BLACK: bool = false;
+    const RED: bool = true;
 
     #[storage]
     struct Storage {

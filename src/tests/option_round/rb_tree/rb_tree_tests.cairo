@@ -1,11 +1,9 @@
-use core::traits::TryInto;
-use pitch_lake_starknet::{
-    types::{Bid},
-    contracts::{components::{red_black_tree::{IRBTreeDispatcher, IRBTreeDispatcherTrait}},},
-};
-use starknet::{contract_address_const, ContractAddress};
 use core::pedersen::pedersen;
-use pitch_lake_starknet::tests::utils::helpers::setup::setup_rb_tree_test;
+use starknet::{contract_address_const, ContractAddress};
+use pitch_lake_starknet::{
+    types::{Bid}, library::red_black_tree::{IRBTreeDispatcher, IRBTreeDispatcherTrait},
+    tests::utils::helpers::setup::setup_rb_tree_test,
+};
 
 const BLACK: bool = false;
 const RED: bool = true;

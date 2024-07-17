@@ -5,25 +5,22 @@ use starknet::{
     testing::{set_block_timestamp, set_contract_address}
 };
 use pitch_lake_starknet::{
+    library::eth::Eth, types::{OptionRoundState, OptionRoundConstructorParams},
+    vault::{
+        contract::Vault,
+        interface::{
+            IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcherTrait
+        }
+    },
+    option_round::{
+        contract::{OptionRound,}, interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,},
+    },
     contracts::{
-        components::eth::Eth,
-        vault::{
-            contract::Vault,
-            interface::{
-                IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait,
-                IVaultSafeDispatcherTrait
-            }
-        },
-        option_round::{
-            contract::{OptionRound,},
-            interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,},
-        },
         market_aggregator::{
             IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait,
             IMarketAggregatorSafeDispatcher, IMarketAggregatorSafeDispatcherTrait
         },
     },
-    types::{OptionRoundState, OptionRoundConstructorParams},
     tests::{
         utils::{
             helpers::{

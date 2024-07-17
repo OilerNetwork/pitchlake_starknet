@@ -1,6 +1,6 @@
 use starknet::{ContractAddress, Event};
 use core::fmt::{Formatter, Error, Display};
-use pitch_lake_starknet::contracts::option_round::contract::OptionRound;
+use pitch_lake_starknet::option_round::contract::OptionRound;
 
 /// Contract errors
 mod Errors {
@@ -124,7 +124,7 @@ impl BidPartialOrdTrait of PartialOrd<Bid> {
 impl BidDisplay of Display<Bid> {
     fn fmt(self: @Bid, ref f: Formatter) -> Result<(), Error> {
         let str: ByteArray = format!(
-            "ID:{}\nNonce:{}\nOwner:{}\nAmount:{}\nPrice:{}\nTokenized:{}\nRefunded:{}",
+            "ID:{}\nNonce:{}\nOwner:{}\nAmount:{}\n Price:{}\nTokenized:{}\nRefunded:{}",
             *self.id,
             *self.nonce,
             Into::<ContractAddress, felt252>::into(*self.owner),

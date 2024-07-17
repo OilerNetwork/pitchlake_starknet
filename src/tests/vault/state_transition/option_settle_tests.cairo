@@ -7,17 +7,15 @@ use openzeppelin::{
     utils::serde::SerializedAppend, token::erc20::interface::{ERC20ABIDispatcherTrait}
 };
 use pitch_lake_starknet::{
-    types::Errors,
+    types::Errors, library::eth::Eth,
+    vault::{
+        contract::Vault,
+        interface::{
+            IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcherTrait
+        }
+    },
+    option_round::{interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,}},
     contracts::{
-        vault::{
-            contract::Vault,
-            interface::{
-                IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait,
-                IVaultSafeDispatcherTrait
-            }
-        },
-        components::eth::Eth,
-        option_round::{interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,}},
         market_aggregator::{
             IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait,
             IMarketAggregatorSafeDispatcher, IMarketAggregatorSafeDispatcherTrait

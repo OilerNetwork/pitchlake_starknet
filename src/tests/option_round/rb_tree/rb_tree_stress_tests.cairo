@@ -1,14 +1,13 @@
+use core::pedersen::pedersen;
 use pitch_lake_starknet::{
+    types::Bid, library::red_black_tree::{IRBTreeDispatcher, IRBTreeDispatcherTrait},
     tests::{
         utils::helpers::setup::setup_rb_tree_test,
         option_round::rb_tree::rb_tree_tests::{
             insert, mock_address, MOCK_ADDRESS, delete, create_bid
         },
     },
-    contracts::{components::red_black_tree::{IRBTreeDispatcher, IRBTreeDispatcherTrait}},
-    types::Bid,
 };
-use core::pedersen::pedersen;
 
 #[test]
 #[available_gas(50000000000)]
