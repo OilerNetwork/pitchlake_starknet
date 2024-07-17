@@ -1,7 +1,7 @@
 import { Account } from "starknet";
 
 // deployContracts.js
-import {  CallData, CairoCustomEnum } from "starknet";
+import { CallData, CairoCustomEnum } from "starknet";
 import vaultSierra from "../../../target/dev/pitch_lake_starknet_Vault.contract_class.json" assert { type: "json" };
 import { constructorArgs } from "../constants";
 
@@ -24,19 +24,20 @@ async function deployEthContract(
 async function deployVaultContract(
   enviornment: string,
   account: Account,
-  contractAddresses:{ethContract:string,marketAggregatorContract:string,vaultManager:string},
-  hashes:{vault:string,optionRound:string}
+  contractAddresses: {
+    ethContract: string;
+    marketAggregatorContract: string;
+    vaultManager: string;
+  },
+  hashes: { vault: string; optionRound: string }
 ) {
   const contractCallData = new CallData(vaultSierra.abi);
 
   let constants = constructorArgs[enviornment].vault;
   const constructorCalldata = contractCallData.compile("constructor", {
-    round_transition_period:
-    constants.roundTransitionPeriod,
-  auction_run_time:
-    constants.auctionRunTime,
-  option_run_time:
-    constants.optionRunTime,
+    round_transition_period: constants.roundTransitionPeriod,
+    auction_run_time: constants.auctionRunTime,
+    option_run_time: constants.optionRunTime,
     eth_address: contractAddresses.ethContract,
     vault_manager: contractAddresses.vaultManager,
     vault_type: new CairoCustomEnum({ InTheMoney: {} }),
@@ -68,7 +69,6 @@ async function deployMarketAggregator(
   );
   return deployResult.contract_address[0];
 }
-
 
 async function deployContracts(
   enviornment: string,
@@ -118,4 +118,9 @@ async function deployContracts(
   };
 }
 
-export { deployEthContract, deployMarketAggregator, deployVaultContract, deployContracts };
+export {
+  deployEthContract,
+  deployMarketAggregator,
+  deployVaultContract,
+  deployContracts,
+};
