@@ -1,0 +1,89 @@
+import { Account, Contract, Provider, TypedContractV2 } from "starknet";
+import { ethAbi } from "../../abi";
+import { ApprovalArgs } from "./types";
+import { getCustomAccount } from "../helpers/common";
+import { liquidityProviders, optionBidders } from "../constants";
+
+export class EthFacade {
+  ethContract: TypedContractV2<typeof ethAbi>;
+
+  constructor(ethContract: TypedContractV2<typeof ethAbi>) {
+    this.ethContract = ethContract;
+  }
+
+  async getBalance(account: string) {
+    const balance = await this.ethContract.balance_of(account);
+    return balance;
+  }
+
+  async supply(devAccount: Account, recipient: string, amount: number) {
+    try {
+      this.ethContract.connect(devAccount);
+      await this.ethContract.transfer(recipient, amount);
+      // @note: don't delete it yet, waiting for response from starknet.js team
+      // const result = await account.execute({
+      //   contractAddress: ethContract,
+      //   entrypoint: "transfer",
+      //   calldata: CallData.compile({
+      //     recipient: liquidityProviders[0].account,
+      //     amount: cairo.uint256(10000),
+      //   }),
+      // });
+      // const result2 = await provider.waitForTransaction(result.transaction_hash);
+      // console.log(result, result2);
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  async approval({ owner, amount, spender }: ApprovalArgs) {
+    this.ethContract.connect(owner);
+    try {
+      this.ethContract.approve(spender, amount);
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  async approveAll(approveData: Array<ApprovalArgs>) {
+    for (const { owner, spender, amount } of approveData) {
+      this.ethContract.connect(owner);
+      try {
+        await this.ethContract.approve(spender, amount);
+      } catch (err) {
+        console.log(err);
+      }
+    }
+  }
+
+  async supplyEth(
+    devAccount: Account,
+    provider: Provider,
+    ethAddress: string,
+    approveFor: string
+  ) {
+    const ethContract = new Contract(ethAbi, ethAddress, provider).typedv2(
+      ethAbi
+    );
+
+    for (let i = 0; i < 6; i++) {
+      const lp = getCustomAccount(
+        provider,
+        liquidityProviders[i].account,
+        liquidityProviders[i].privateKey
+      );
+      const ob = getCustomAccount(
+        provider,
+        optionBidders[i].account,
+        optionBidders[i].privateKey
+      );
+      await this.supply(devAccount, liquidityProviders[i].account, 1000000);
+      await this.approval({ owner: lp, amount: 1000000, spender: approveFor });
+      console.log(`Liquidity Provider ${i} funded `);
+
+      await this.supply(devAccount, optionBidders[i].account, 1000000);
+      await this.approval({ owner: ob, amount: 1000000, spender: approveFor });
+      console.log(`Option Bidder ${i} funded `);
+    }
+  }
+}

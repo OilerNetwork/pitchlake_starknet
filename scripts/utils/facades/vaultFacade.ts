@@ -4,7 +4,7 @@ import { DepositArgs, WithdrawArgs } from "./types";
 import { getAccount } from "../helpers/common";
 import { getNow, setAndMineNextBlock } from "../katana";
 
-class VaultFacade {
+export class VaultFacade {
     vaultContract:TypedContractV2<typeof vaultAbi>;
   
     constructor(vaultContract:TypedContractV2<typeof vaultAbi>){
@@ -47,23 +47,17 @@ class VaultFacade {
     async depositAll (
         depositData: Array<DepositArgs>,
       ){
-        for (const args of depositData) {
-            await this.deposit(args);
+        for (const depositArgs of depositData) {
+            await this.deposit(depositArgs);
         }
       };
       
     async withdrawAll (
         withdrawData: Array<WithdrawArgs>,
-        vaultContract: TypedContractV2<typeof vaultAbi>
       ){
       
-        for (const data of withdrawData){
-          vaultContract.connect(data.account);
-          try {
-            await vaultContract.withdraw_liquidity(data.amount);
-          } catch (err) {
-            console.log(err);
-          }
+        for (const withdrawArgs of withdrawData){
+            await this.withdraw(withdrawArgs);
         }
       };
       

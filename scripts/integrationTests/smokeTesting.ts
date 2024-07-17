@@ -3,6 +3,8 @@ import { Contract, Provider } from "starknet";
 import { auctionOpenTests,auctionStartTests } from "./smokeTest1";
 import {ABI as vaultAbi} from "../abi/vaultAbi";
 import {ABI as ethAbi} from "../abi/ethAbi";
+import { VaultFacade } from "../utils/facades/vaultFacade";
+import { EthFacade } from "../utils/facades/ethFacade";
 async function smokeTesting(
   provider:Provider,
   vaultAddress: string,
@@ -12,8 +14,11 @@ async function smokeTesting(
     vaultAbi
   );
   const ethContract = new Contract(ethAbi, ethAddress,provider).typedv2(ethAbi);
-  await auctionOpenTests(provider, vaultContract,ethContract);
-  await auctionStartTests(provider,vaultContract,ethContract);
+
+  const vaultFacade = new VaultFacade(vaultContract);
+  const ethFacade = new EthFacade(ethContract);
+  await auctionOpenTests(provider, vaultFacade,ethFacade);
+  await auctionStartTests(provider,vaultFacade,ethFacade);
 
 }
 

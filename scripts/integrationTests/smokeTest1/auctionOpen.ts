@@ -1,24 +1,17 @@
-import { Provider, TypedContractV2 } from "starknet";
-import { ABI as vaultAbi } from "../../abi/vaultAbi";
-import { ABI as ethAbi } from "../../abi/ethAbi";
+import { Provider } from "starknet";
 import { getCustomAccount } from "../../utils/helpers/common";
 import { liquidityProviders } from "../../utils/constants";
-import { approval, getBalance } from "../../utils/facades/eth";
-import {
-  depositAll,
-  getLPUnlockedBalance,
-  withdrawAll,
-} from "../../utils/facades/vault";
-
 import assert from "assert";
 import { DepositArgs, WithdrawArgs } from "../../utils/facades/types";
+import { VaultFacade } from "../../utils/facades/vaultFacade";
+import { EthFacade } from "../../utils/facades/ethFacade";
 
 //@note Wrap functions into a try catch to avoid breaking thread, log errors correctly
 
 export const smokeTest = async (
   provider: Provider,
-  vaultContract: TypedContractV2<typeof vaultAbi>,
-  ethContract: TypedContractV2<typeof ethAbi>
+  vault: VaultFacade,
+  eth: EthFacade
 ) => {
   const depositAmount = 1000;
   const liquidityProviderA = getCustomAccount(
@@ -33,33 +26,22 @@ export const smokeTest = async (
   );
 
   //Approve A for depositing
-  await approval(
-    {
-      owner: liquidityProviderA,
-      amount: 1000000,
-      spender: vaultContract.address,
-    },
-    ethContract
+  await eth.approval({
+    owner: liquidityProviderA,
+    amount: 1000000,
+    spender: vault.vaultContract.address,
+  });
+
+  const liquidityBeforeA = await vault.getLPUnlockedBalance(
+    liquidityProviderA.address
   );
 
-  const liquidityBeforeA = await getLPUnlockedBalance(
-    liquidityProviderA.address,
-    vaultContract
-  );
+  const balanceBeforeA = await eth.getBalance(liquidityProviderA.address);
 
-  const balanceBeforeA = await getBalance(
-    liquidityProviderA.address,
-    ethContract
-  );
+  const balanceBeforeB = await eth.getBalance(liquidityProviderB.address);
 
-  const balanceBeforeB = await getBalance(
-    liquidityProviderB.address,
-    ethContract
-  );
-
-  const liquidityBeforeB = await getLPUnlockedBalance(
-    liquidityProviderB.address,
-    vaultContract
+  const liquidityBeforeB = await vault.getLPUnlockedBalance(
+    liquidityProviderB.address
   );
 
   //Deposits
@@ -77,32 +59,22 @@ export const smokeTest = async (
       beneficiary: liquidityProviderA.address,
       amount: depositAmount,
     },
-
   ];
 
-  await depositAll(depositAllArgs,vaultContract);
+  await vault.depositAll(depositAllArgs);
   //Debug
 
-
-  const liquidityAfterA = await getLPUnlockedBalance(
-    liquidityProviderA.address,
-    vaultContract
+  const liquidityAfterA = await vault.getLPUnlockedBalance(
+    liquidityProviderA.address
   );
 
-  const liquidityAfterB = await getLPUnlockedBalance(
-    liquidityProviderB.address,
-    vaultContract
+  const liquidityAfterB = await vault.getLPUnlockedBalance(
+    liquidityProviderB.address
   );
 
-  const balanceAfterA = await getBalance(
-    liquidityProviderA.address,
-    ethContract
-  );
+  const balanceAfterA = await eth.getBalance(liquidityProviderA.address);
 
-  const balanceAfterB = await getBalance(
-    liquidityProviderB.address,
-    ethContract
-  );
+  const balanceAfterB = await eth.getBalance(liquidityProviderB.address);
 
   //Asserts
   //1) Check liquidity for A has increased by depositAmount
@@ -110,7 +82,12 @@ export const smokeTest = async (
   //3) Check eth balance for A has dropped by 2*depositAmount
 
   //Debug
-  console.log("liquidityAfterA:",liquidityAfterA,"\nliquidityBeforeA:",liquidityBeforeA);
+  console.log(
+    "liquidityAfterA:",
+    liquidityAfterA,
+    "\nliquidityBeforeA:",
+    liquidityBeforeA
+  );
   assert(
     Number(liquidityAfterA) === Number(liquidityBeforeA) + depositAmount,
     "liquidity A mismatch"
@@ -131,28 +108,17 @@ export const smokeTest = async (
     { account: liquidityProviderA, amount: depositAmount / 2 },
     { account: liquidityProviderB, amount: depositAmount / 2 },
   ];
-  await withdrawAll(
-    withdrawAllData,
-    vaultContract
+  await vault.withdrawAll(withdrawAllData);
+
+  let liquidityAfterWithdrawA = await vault.getLPUnlockedBalance(
+    liquidityProviderA.address
+  );
+  let liquidityAfterWithdrawB = await vault.getLPUnlockedBalance(
+    liquidityProviderB.address
   );
 
-  let liquidityAfterWithdrawA = await getLPUnlockedBalance(
-    liquidityProviderA.address,
-    vaultContract
-  );
-  let liquidityAfterWithdrawB = await getLPUnlockedBalance(
-    liquidityProviderB.address,
-    vaultContract
-  );
-
-  let balanceAfterWithdrawA = await getBalance(
-    liquidityProviderA.address,
-    ethContract
-  );
-  let balanceAfterWithdrawB = await getBalance(
-    liquidityProviderB.address,
-    ethContract
-  );
+  let balanceAfterWithdrawA = await eth.getBalance(liquidityProviderA.address);
+  let balanceAfterWithdrawB = await eth.getBalance(liquidityProviderB.address);
 
   //Asserts
   //1) Check liquidity for A & B has decreased by depositAmount/2
