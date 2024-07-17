@@ -3,6 +3,7 @@ import { optionRoundAbi, vaultAbi } from "../../abi";
 import { DepositArgs, WithdrawArgs } from "./types";
 import { getAccount, stringToHex } from "../helpers/common";
 import { getNow, setAndMineNextBlock } from "../katana";
+import { accelerateToAuctioning } from "../helpers/accelerators";
 
 export class VaultFacade {
   vaultContract: TypedContractV2<typeof vaultAbi>;
@@ -59,27 +60,9 @@ export class VaultFacade {
   async startAuctionBystander(provider: Provider) {
     try {
       const devAccount = getAccount("dev", provider);
-      const optionRoundId = await this.vaultContract.current_option_round_id();
-      const optionRoundAddressDecimalString =
-        await this.vaultContract.get_option_round_address(optionRoundId);
-      const optionRoundAddressHexString: string =
-        "0x" + stringToHex(optionRoundAddressDecimalString);
-
-      const optionRoundContract = new Contract(
-        optionRoundAbi,
-        optionRoundAddressHexString,
-        provider
-      ).typedv2(optionRoundAbi);
-
-      const currentTime = await getNow(provider);
-      const auctionStartDate =
-        await optionRoundContract.get_auction_start_date();
-
-      await setAndMineNextBlock(
-        Number(auctionStartDate) - Number(currentTime),
-        provider.channel.nodeUrl
-      );
+      await accelerateToAuctioning(provider, this.vaultContract);
       this.vaultContract.connect(devAccount);
+
       await this.vaultContract.start_auction();
     } catch (err) {
       console.log("ERROR IS HERE YES", err);
