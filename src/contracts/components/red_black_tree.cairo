@@ -41,9 +41,9 @@ pub mod RBTreeComponent {
     }
 
     #[generate_trait]
-    pub impl RBTreeInternalImpl<
+    pub impl RBTreeImpl<
         TContractState, +HasComponent<TContractState>
-    > of RBTreeInternalTrait<TContractState> {
+    > of RBTreeTrait<TContractState> {
         fn _insert(ref self: ComponentState<TContractState>, value: Bid) {
             let new_node_id = value.id;
 
@@ -136,9 +136,9 @@ pub mod RBTreeComponent {
     }
 
     #[generate_trait]
-    pub impl RBTreeInternalDetailedImpl<
+    pub impl InternalImpl<
         TContractState, +HasComponent<TContractState>
-    > of RBTreeInternalDetailedTrait<TContractState> {
+    > of InternalTrait<TContractState> {
         fn traverse_postorder_clearing_price_from_node(
             ref self: ComponentState<TContractState>,
             current_id: felt252,

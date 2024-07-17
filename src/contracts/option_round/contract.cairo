@@ -4,7 +4,6 @@ mod OptionRound {
     use core::starknet::event::EventEmitter;
     use core::option::OptionTrait;
     use core::fmt::{Display, Formatter, Error};
-    use pitch_lake_starknet::contracts::components::red_black_tree::IRBTree;
     use openzeppelin::token::erc20::{
         ERC20Component, interface::{IERC20Metadata, ERC20ABIDispatcher, ERC20ABIDispatcherTrait,}
     };
@@ -36,10 +35,9 @@ mod OptionRound {
     impl ERC20InternalImpl = ERC20Component::InternalImpl<ContractState>;
     // RedBlackTree component
     component!(path: RBTreeComponent, storage: bids_tree, event: BidTreeEvent);
-    #[abi(embed_v0)]
-    impl RBTreeImpl = RBTreeComponent::RBTree<ContractState>;
-    impl RBTreeInternalImpl = RBTreeComponent::InternalImpl<ContractState>;
 
+    impl RBTreeImpl = RBTreeComponent::RBTreeImpl<ContractState>;
+    impl RBTreeInternalImpl = RBTreeComponent::InternalImpl<ContractState>;
 
     // *************************************************************************
     //                              STORAGE
@@ -343,7 +341,7 @@ mod OptionRound {
 
         // Get the details of a bid
         fn get_bid_details(self: @ContractState, bid_id: felt252) -> Bid {
-            let bid: Bid = self.bids_tree.find(bid_id);
+            let bid: Bid = self.bids_tree._find(bid_id);
             bid
         }
 
@@ -362,7 +360,7 @@ mod OptionRound {
                 .is_non_zero() {
                     i -= 1;
                     let hash = self.create_bid_id(option_buyer, i);
-                    let bid: Bid = self.bids_tree.find(hash);
+                    let bid: Bid = self.bids_tree._find(hash);
                     bids.append(bid);
                 };
             bids
@@ -389,7 +387,7 @@ mod OptionRound {
             let clearing_price = self.get_auction_clearing_price();
             // Add refundable balance from Partial Bid if it's there
             if (partial_bid_id != 0) {
-                let partial_bid: Bid = self.bids_tree.find(partial_bid_id);
+                let partial_bid: Bid = self.bids_tree._find(partial_bid_id);
 
                 //Since only clearing_bid can be partially sold, the clearing_bid_amount_sold is saved on the tree
                 let options_sold = self.bids_tree.clearing_bid_amount_sold.read();
@@ -445,7 +443,7 @@ mod OptionRound {
             //Check and sum bids that are not tokenized yet
             //Add options balance from Partial Bid if it's there
             if (partial_bid_id.is_non_zero()) {
-                let partial_bid: Bid = self.bids_tree.find(partial_bid_id);
+                let partial_bid: Bid = self.bids_tree._find(partial_bid_id);
 
                 //Since only clearing_bid can be partially sold, the clearing_bid_amount_sold is saved on the tree
                 let options_sold = self.bids_tree.clearing_bid_amount_sold.read();
@@ -484,7 +482,7 @@ mod OptionRound {
         // Get the payout balance for the option buyer
         fn get_payout_balance_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
             (self.total_payout() * self.get_total_options_balance_for(option_buyer))
-                / self.get_total_options_sold()
+                / self.bids_tree.get_total_options_sold()
         }
 
         // Get the id of the round
@@ -757,7 +755,7 @@ mod OptionRound {
                 is_tokenized: false,
                 is_refunded: false
             };
-            self.bids_tree.insert(bid);
+            self.bids_tree._insert(bid);
             self.bidder_nonces.write(bidder, nonce + 1);
 
             //Transfer Eth
@@ -804,8 +802,8 @@ mod OptionRound {
             new_bid.amount = new_amount;
             new_bid.price = new_price;
             new_bid.nonce = self.bids_tree.nonce.read();
-            self.bids_tree.delete(bid_id);
-            self.bids_tree.insert(new_bid);
+            self.bids_tree._delete(bid_id);
+            self.bids_tree._insert(new_bid);
 
             //Charge the difference
             let difference = (new_amount * new_price) - (old_bid.amount * old_bid.price);
@@ -857,7 +855,7 @@ mod OptionRound {
             let clearing_price = self.get_auction_clearing_price();
             // Add refundable balance from Partial Bid if it's there
             if (partial_bid_id != 0) {
-                let mut partial_bid: Bid = self.bids_tree.find(partial_bid_id);
+                let mut partial_bid: Bid = self.bids_tree._find(partial_bid_id);
 
                 //Since only clearing_bid can be partially sold, the clearing_bid_amount_sold is saved on the tree
                 let options_sold = self.bids_tree.clearing_bid_amount_sold.read();
@@ -872,7 +870,7 @@ mod OptionRound {
                 match refundable_bids.pop_front() {
                     Option::Some(bid) => {
                         if (!bid.is_refunded) {
-                            let mut refundable_bid: Bid = self.bids_tree.find(bid.id);
+                            let mut refundable_bid: Bid = self.bids_tree._find(bid.id);
                             refundable_bid.is_refunded = true;
                             self.bids_tree.update(refundable_bid.id, refundable_bid);
                             refundable_balance += bid.amount * bid.price;
@@ -887,7 +885,7 @@ mod OptionRound {
                 match tokenizable_bids.pop_front() {
                     Option::Some(bid) => {
                         if (!bid.is_refunded) {
-                            let mut refundable_bid: Bid = self.bids_tree.find(bid.id);
+                            let mut refundable_bid: Bid = self.bids_tree._find(bid.id);
                             refundable_bid.is_refunded = true;
                             self.bids_tree.update(refundable_bid.id, refundable_bid);
                             refundable_balance += bid.amount * (bid.price - clearing_price)
@@ -931,7 +929,7 @@ mod OptionRound {
             //Check and sum bids that are not tokenized yet
             //Add options balance from Partial Bid if it's there
             if (partial_bid_id.is_non_zero()) {
-                let mut partial_bid: Bid = self.bids_tree.find(partial_bid_id);
+                let mut partial_bid: Bid = self.bids_tree._find(partial_bid_id);
                 //Since only clearing_bid can be partially sold, the clearing_bid_amount_sold is saved on the tree
 
                 if (!partial_bid.is_tokenized) {
@@ -945,7 +943,7 @@ mod OptionRound {
                 match tokenizable_bids.pop_front() {
                     Option::Some(mut bid) => {
                         if (!bid.is_tokenized) {
-                            let mut bid: Bid = self.bids_tree.find(bid.id);
+                            let mut bid: Bid = self.bids_tree._find(bid.id);
                             bid.is_tokenized = true;
                             self.bids_tree.update(bid.id, bid);
                             options_to_exercise += bid.amount;
@@ -960,7 +958,7 @@ mod OptionRound {
             let eth_dispatcher = self.get_eth_dispatcher();
             let amount_eth = options_to_exercise
                 * self.total_payout()
-                / self.get_total_options_sold();
+                / self.bids_tree.get_total_options_sold();
             eth_dispatcher.transfer(option_buyer, amount_eth);
             self
                 .emit(
@@ -999,7 +997,7 @@ mod OptionRound {
             //Check and sum bids that are not tokenized yet
             //Add options balance from Partial Bid if it's there
             if (partial_bid_id.is_non_zero()) {
-                let mut partial_bid: Bid = self.bids_tree.find(partial_bid_id);
+                let mut partial_bid: Bid = self.bids_tree._find(partial_bid_id);
                 //Since only clearing_bid can be partially sold, the clearing_bid_amount_sold is saved on the tree
 
                 if (!partial_bid.is_tokenized) {
@@ -1013,7 +1011,7 @@ mod OptionRound {
                 match tokenizable_bids.pop_front() {
                     Option::Some(mut bid) => {
                         if (!bid.is_tokenized) {
-                            let mut bid: Bid = self.bids_tree.find(bid.id);
+                            let mut bid: Bid = self.bids_tree._find(bid.id);
                             bid.is_tokenized = true;
                             self.bids_tree.update(bid.id, bid);
                             options_to_mint += bid.amount;
@@ -1102,8 +1100,8 @@ mod OptionRound {
                 if (bid_id == clearing_bid_id) {
                     partial_bid = bid_id;
                 } else {
-                    let bid: Bid = self.bids_tree.find(bid_id);
-                    let clearing_bid: Bid = self.bids_tree.find(clearing_bid_id);
+                    let bid: Bid = self.bids_tree._find(bid_id);
+                    let clearing_bid: Bid = self.bids_tree._find(clearing_bid_id);
                     if (bid < clearing_bid) {
                         refundable_bids.append(bid);
                     } else {

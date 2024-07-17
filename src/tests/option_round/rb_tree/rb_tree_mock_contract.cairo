@@ -17,7 +17,7 @@ mod RBTreeMockContract {
 
     component!(path: RBTreeComponent, storage: rb_tree, event: RBTreeEvent);
 
-    impl RBTreeInternalImpl = RBTreeComponent::RBTreeInternalImpl<ContractState>;
+    impl RBTreeInternalImpl = RBTreeComponent::RBTreeImpl<ContractState>;
 
     #[storage]
     struct Storage {
