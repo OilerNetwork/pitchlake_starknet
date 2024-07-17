@@ -37,9 +37,11 @@ export const mineNextBlock = async (url: string) => {
 };
 
 export const setAndMineNextBlock = async (
+  provider: Provider,
   increaseTime: number,
   url: string
 ) => {
+  await mineNextBlock(provider.channel.nodeUrl);
   if (increaseTime > 0) await setNextBlock(increaseTime, url);
   await mineNextBlock(url);
 };
