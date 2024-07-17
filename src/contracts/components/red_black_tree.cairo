@@ -1,26 +1,10 @@
 use pitch_lake_starknet::contracts::{components::red_black_tree, option_round::types::{Bid}};
 use starknet::ContractAddress;
-
-#[starknet::interface]
-trait IRBTree<TContractState> {
-    fn insert(ref self: TContractState, value: Bid);
-    fn find(self: @TContractState, bid_id: felt252) -> Bid;
-    fn update(ref self: TContractState, bid_id: felt252, bid: Bid);
-    fn delete(ref self: TContractState, bid_id: felt252);
-    fn find_clearing_price(ref self: TContractState) -> (u256, u256);
-    fn get_tree_structure(self: @TContractState) -> Array<Array<(u256, bool, u128)>>;
-    fn is_tree_valid(self: @TContractState) -> bool;
-    fn _get_total_options_available(self: @TContractState) -> u256;
-    fn get_total_options_sold(self: @TContractState) -> u256;
-    fn add_node(ref self: TContractState, bid: Bid, color: bool, parent: felt252) -> felt252;
-}
-
 const BLACK: bool = false;
 const RED: bool = true;
 
 #[starknet::component]
 pub mod RBTreeComponent {
-    use pitch_lake_starknet::contracts::components::red_black_tree::IRBTree;
     use super::{BLACK, RED, Bid, ContractAddress};
     use core::{array::ArrayTrait, option::OptionTrait, traits::{IndexView, TryInto}};
 
@@ -56,11 +40,11 @@ pub mod RBTreeComponent {
         node: Node,
     }
 
-    #[embeddable_as(RBTree)]
-    impl RBTreeImpl<
+    #[generate_trait]
+    pub impl RBTreeInternalImpl<
         TContractState, +HasComponent<TContractState>
-    > of super::IRBTree<ComponentState<TContractState>> {
-        fn insert(ref self: ComponentState<TContractState>, value: Bid) {
+    > of RBTreeInternalTrait<TContractState> {
+        fn _insert(ref self: ComponentState<TContractState>, value: Bid) {
             let new_node_id = value.id;
 
             if self.root.read() == 0 {
@@ -75,7 +59,7 @@ pub mod RBTreeComponent {
             self.nonce.write(self.nonce.read() + 1);
         }
 
-        fn find(self: @ComponentState<TContractState>, bid_id: felt252) -> Bid {
+        fn _find(self: @ComponentState<TContractState>, bid_id: felt252) -> Bid {
             let node: Node = self.tree.read(bid_id);
             return node.value;
         }
@@ -89,7 +73,7 @@ pub mod RBTreeComponent {
             self.tree.write(bid_id, new_node);
         }
 
-        fn delete(ref self: ComponentState<TContractState>, bid_id: felt252) {
+        fn _delete(ref self: ComponentState<TContractState>, bid_id: felt252) {
             let node: Node = self.tree.read(bid_id);
             // Check if bid exists
             if node.value.id == 0 {
@@ -117,7 +101,7 @@ pub mod RBTreeComponent {
             (clearing_node.value.price, total_options_sold)
         }
 
-        fn get_tree_structure(
+        fn _get_tree_structure(
             self: @ComponentState<TContractState>
         ) -> Array<Array<(u256, bool, u128)>> {
             self.build_tree_structure_list()
@@ -131,11 +115,11 @@ pub mod RBTreeComponent {
             self.total_options_available.read()
         }
 
-        fn is_tree_valid(self: @ComponentState<TContractState>) -> bool {
+        fn _is_tree_valid(self: @ComponentState<TContractState>) -> bool {
             self.check_if_rb_tree_is_valid()
         }
 
-        fn add_node(
+        fn _add_node(
             ref self: ComponentState<TContractState>, bid: Bid, color: bool, parent: felt252
         ) -> felt252 {
             let new_node = Node { value: bid, left: 0, right: 0, parent: parent, color: color, };
@@ -152,9 +136,9 @@ pub mod RBTreeComponent {
     }
 
     #[generate_trait]
-    pub impl InternalImpl<
+    pub impl RBTreeInternalDetailedImpl<
         TContractState, +HasComponent<TContractState>
-    > of InternalTrait<TContractState> {
+    > of RBTreeInternalDetailedTrait<TContractState> {
         fn traverse_postorder_clearing_price_from_node(
             ref self: ComponentState<TContractState>,
             current_id: felt252,
