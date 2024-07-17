@@ -11,6 +11,32 @@ export class VaultFacade {
   constructor(vaultContract: TypedContractV2<typeof vaultAbi>) {
     this.vaultContract = vaultContract;
   }
+
+  async getTotalLocked() {
+    try {
+      const res = await this.vaultContract.get_total_locked_balance();
+      return res;
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  async getTotalUnLocked() {
+    try {
+      const res = await this.vaultContract.get_total_unlocked_balance();
+      return res;
+    } catch (err) {
+      console.log(err);
+    }
+  }
+  async getLPLockedBalance(address: string) {
+    try {
+      const res = await this.vaultContract.get_lp_locked_balance(address);
+      return res;
+    } catch (err) {
+      console.log(err);
+    }
+  }
   async getLPUnlockedBalance(address: string) {
     try {
       const res = await this.vaultContract.get_lp_unlocked_balance(address);

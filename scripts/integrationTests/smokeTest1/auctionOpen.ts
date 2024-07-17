@@ -2,18 +2,19 @@ import { Provider } from "starknet";
 import { getCustomAccount } from "../../utils/helpers/common";
 import { liquidityProviders } from "../../utils/constants";
 import assert from "assert";
-import { DepositArgs, WithdrawArgs } from "../../utils/facades/types";
+import { Constants, DepositArgs, WithdrawArgs } from "../../utils/facades/types";
 import { VaultFacade } from "../../utils/facades/vaultFacade";
 import { EthFacade } from "../../utils/facades/ethFacade";
 
 //@note Wrap functions into a try catch to avoid breaking thread, log errors correctly
 
+
 export const smokeTest = async (
   provider: Provider,
   vault: VaultFacade,
-  eth: EthFacade
+  eth: EthFacade,
+  constants:Constants
 ) => {
-  const depositAmount = 1000;
   const liquidityProviderA = getCustomAccount(
     provider,
     liquidityProviders[0].account,
@@ -52,12 +53,12 @@ export const smokeTest = async (
     {
       from: liquidityProviderA,
       beneficiary: liquidityProviderB.address,
-      amount: depositAmount,
+      amount: constants.depositAmount,
     },
     {
       from: liquidityProviderA,
       beneficiary: liquidityProviderA.address,
-      amount: depositAmount,
+      amount: constants.depositAmount,
     },
   ];
 
@@ -89,24 +90,24 @@ export const smokeTest = async (
     liquidityBeforeA
   );
   assert(
-    Number(liquidityAfterA) === Number(liquidityBeforeA) + depositAmount,
+    Number(liquidityAfterA) === Number(liquidityBeforeA) + constants.depositAmount,
     "liquidity A mismatch"
   );
   assert(
-    Number(liquidityAfterB) === Number(liquidityBeforeB) + depositAmount,
+    Number(liquidityAfterB) === Number(liquidityBeforeB) + constants.depositAmount,
     "liquidity B mismatch"
   );
   assert(
-    Number(balanceBeforeA) === Number(balanceAfterA) + 2 * depositAmount,
+    Number(balanceBeforeA) === Number(balanceAfterA) + 2 * constants.depositAmount,
     "Eth balance for a mismatch"
   );
 
   //Withdraws
-  //Withdraw depositAmount/2 from vaultContract for A and B positions
+  //Withdraw constants.depositAmount/2 from vaultContract for A and B positions
 
   const withdrawAllData: Array<WithdrawArgs> = [
-    { account: liquidityProviderA, amount: depositAmount / 2 },
-    { account: liquidityProviderB, amount: depositAmount / 2 },
+    { account: liquidityProviderA, amount: constants.depositAmount / 2 },
+    { account: liquidityProviderB, amount: constants.depositAmount / 2 },
   ];
   await vault.withdrawAll(withdrawAllData);
 
@@ -131,20 +132,20 @@ export const smokeTest = async (
   );
   assert(
     Number(liquidityAfterA) ==
-      Number(liquidityAfterWithdrawA) + depositAmount / 2,
+      Number(liquidityAfterWithdrawA) + constants.depositAmount / 2,
     "Mismatch A liquidity"
   );
   assert(
     Number(liquidityAfterB) ==
-      Number(liquidityAfterWithdrawB) + depositAmount / 2,
+      Number(liquidityAfterWithdrawB) + constants.depositAmount / 2,
     "Mismatch B liquidity"
   );
   assert(
-    Number(balanceAfterA) == Number(balanceAfterWithdrawA) - depositAmount / 2,
+    Number(balanceAfterA) == Number(balanceAfterWithdrawA) - constants.depositAmount / 2,
     "Mismatch A balance"
   );
   assert(
-    Number(balanceAfterB) == Number(balanceAfterWithdrawB) - depositAmount / 2,
+    Number(balanceAfterB) == Number(balanceAfterWithdrawB) - constants.depositAmount / 2,
     "Mismatch B balance"
   );
 };

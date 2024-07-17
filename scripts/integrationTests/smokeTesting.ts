@@ -17,8 +17,11 @@ async function smokeTesting(
 
   const vaultFacade = new VaultFacade(vaultContract);
   const ethFacade = new EthFacade(ethContract);
-  await auctionOpenTests(provider, vaultFacade,ethFacade);
-  await auctionStartTests(provider,vaultFacade,ethFacade);
+  const constants = {
+    depositAmount:1000
+  }
+  await auctionOpenTests(provider, vaultFacade,ethFacade,constants);
+  await auctionStartTests(provider,vaultFacade,ethFacade,constants);
 }
 
 export { smokeTesting };

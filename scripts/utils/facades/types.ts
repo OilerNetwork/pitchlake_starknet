@@ -33,3 +33,9 @@ export type UpdateBidArgs = {
   amount: number;
   price: number;
 };
+
+//Smoke Test types
+
+export type Constants = {
+  depositAmount:number
+}

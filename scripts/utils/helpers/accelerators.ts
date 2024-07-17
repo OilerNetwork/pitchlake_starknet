@@ -1,7 +1,7 @@
-import { Account, Contract, Provider, TypedContractV2 } from "starknet";
+import { Contract, Provider, TypedContractV2 } from "starknet";
 import { stringToHex } from "./common";
 import { optionRoundAbi, vaultAbi } from "../../abi";
-import { getNow, mineNextBlock, setAndMineNextBlock } from "../katana";
+import { getNow, setAndMineNextBlock } from "../katana";
 
 async function accelerateToAuctioning(
   provider: Provider,
