@@ -13,6 +13,7 @@ pub trait IRBTreeMockContract<TContractState> {
 #[starknet::contract]
 mod RBTreeMockContract {
     use pitch_lake_starknet::contracts::components::red_black_tree::RBTreeComponent;
+    use pitch_lake_starknet::{contracts::{option_round::{types::{Bid}}}};
 
     component!(path: RBTreeComponent, storage: rb_tree, event: RBTreeEvent);
 
