@@ -1,27 +1,25 @@
-use pitch_lake_starknet::tests::{
-    utils::{
-        helpers::{
-            accelerators::{
-                accelerate_to_running_custom, accelerate_to_auctioning,
-                accelerate_to_running_custom_option_round,
+use pitch_lake_starknet::{
+    contracts::option_round::types::Errors,
+    tests::{
+        utils::{
+            helpers::{
+                accelerators::{
+                    accelerate_to_running_custom, accelerate_to_auctioning,
+                    accelerate_to_running_custom_option_round,
+                },
+                setup::{setup_facade, deploy_custom_option_round},
+                general_helpers::{get_erc20_balance, assert_two_arrays_equal_length},
+                event_helpers::{assert_event_options_tokenized, clear_event_logs}
             },
-            setup::{setup_facade, deploy_custom_option_round},
-            general_helpers::{get_erc20_balance, assert_two_arrays_equal_length},
-            event_helpers::{assert_event_options_tokenized, clear_event_logs}
+            lib::{test_accounts::{option_bidders_get, option_bidder_buyer_1},},
+            facades::{
+                vault_facade::{VaultFacade, VaultFacadeTrait},
+                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundParams}
+            },
         },
-        lib::{test_accounts::{option_bidders_get, option_bidder_buyer_1},},
-        facades::{
-            vault_facade::{VaultFacade, VaultFacadeTrait},
-            option_round_facade::{
-                OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundParams, OptionRoundError
-            }
-        },
-    },
+    }
 };
 use starknet::{contract_address_const, testing::{set_block_timestamp}};
-// Test options can be tokenized
-// Test options cannot be tokenized twice
-// Test option balance returns erc20 balance and non tokenized balances
 
 // Test tokenizing options mints option tokens
 #[test]
@@ -107,18 +105,11 @@ fn test_tokenizing_options_before_auction_end_fails() {
     let (mut vault, _) = setup_facade();
     let mut current_round = vault.get_current_round();
     let option_bidder = option_bidder_buyer_1();
-    let expected_error = OptionRoundError::AuctionNotEnded;
-    let res = current_round.tokenize_options_raw(option_bidder);
-    match res {
-        Result::Ok(_) => { panic!("Should throw error") },
-        Result::Err(e) => { assert(e == expected_error, 'Error mismatch') }
-    }
+    let err = Errors::AuctionNotEnded;
+
+    current_round.tokenize_options_expect_error(option_bidder, err);
     accelerate_to_auctioning(ref vault);
-    let res = current_round.tokenize_options_raw(option_bidder);
-    match res {
-        Result::Ok(_) => { panic!("Should throw error") },
-        Result::Err(e) => { assert(e == expected_error, 'Error mismatch') }
-    }
+    current_round.tokenize_options_expect_error(option_bidder, err);
 }
 
 

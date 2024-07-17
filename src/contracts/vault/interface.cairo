@@ -2,7 +2,7 @@ use starknet::{ContractAddress};
 use pitch_lake_starknet::contracts::{
     option_round::types::{StartAuctionParams, OptionRoundState},
     market_aggregator::{IMarketAggregator, IMarketAggregatorDispatcher},
-    vault::{contract::Vault, types::{VaultType, VaultError}},
+    vault::{contract::Vault, types::{VaultType}},
 };
 
 // The interface for the vault contract
@@ -102,17 +102,17 @@ trait IVault<TContractState> {
     // Start the auction on the next round as long as the current round is Settled and the
     // round transition period has passed. Deploys the next next round and updates the current/next pointers.
     // @return the total options available in the auction
-    fn start_auction(ref self: TContractState) -> Result<u256, VaultError>;
+    fn start_auction(ref self: TContractState) -> u256;
 
     // End the auction in the current round as long as the current round is Auctioning and the auction
     // bidding period has ended.
     // @return the clearing price of the auction
     // @return the total options sold in the auction (@note keep or drop ?)
-    fn end_auction(ref self: TContractState) -> Result<(u256, u256), VaultError>;
+    fn end_auction(ref self: TContractState) -> (u256, u256);
 
     // Settle the current option round as long as the current round is Running and the option expiry time has passed.
     // @return The total payout of the option round
-    fn settle_option_round(ref self: TContractState) -> Result<u256, VaultError>;
+    fn settle_option_round(ref self: TContractState) -> u256;
 
     /// LP functions
 
@@ -120,11 +120,11 @@ trait IVault<TContractState> {
     // @return The liquidity provider's updated unlocked position
     fn deposit_liquidity(
         ref self: TContractState, amount: u256, liquidity_provider: ContractAddress
-    ) -> Result<u256, VaultError>;
+    ) -> u256;
 
     // Liquidity provider withdraws from the vailt
     // @return The liquidity provider's updated unlocked position
-    fn withdraw_liquidity(ref self: TContractState, amount: u256) -> Result<u256, VaultError>;
+    fn withdraw_liquidity(ref self: TContractState, amount: u256) -> u256;
 
     /// LP token related
 
@@ -152,5 +152,5 @@ trait IVault<TContractState> {
     // @dev move entry point to LPToken ?
     fn convert_lp_tokens_to_newer_lp_tokens(
         ref self: TContractState, source_round: u256, target_round: u256, amount: u256
-    ) -> Result<u256, VaultError>;
+    ) -> u256;
 }

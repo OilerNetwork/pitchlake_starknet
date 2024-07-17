@@ -58,29 +58,26 @@ enum OptionRoundState {
     Settled, // Option round has settled, remaining liquidity has rolled over to the next round
 }
 
-
-#[derive(Copy, Drop, Serde, PartialEq)]
-enum OptionRoundError {
+mod Errors {
     // All state transitions
-    CallerIsNotVault,
+    const CallerIsNotVault: felt252 = 'Caller not the Vault';
     // Starting auction
-    AuctionAlreadyStarted,
-    AuctionStartDateNotReached,
+    const AuctionAlreadyStarted: felt252 = 'Auction already started';
+    const AuctionStartDateNotReached: felt252 = 'Auction start date not reached';
     // Ending auction
-    NoAuctionToEnd,
-    AuctionEndDateNotReached,
-    AuctionNotEnded,
+    const NoAuctionToEnd: felt252 = 'No auction to end';
+    const AuctionEndDateNotReached: felt252 = 'Auction end date not reached';
+    const AuctionNotEnded: felt252 = 'Auction has not ended yet';
     // Settling round
-    OptionRoundAlreadySettled,
-    OptionSettlementDateNotReached,
-    OptionRoundNotSettled,
-    // Placing bids
-    BidBelowReservePrice,
-    BidAmountZero,
-    BiddingWhileNotAuctioning,
-    CallerNotBidOwner,
-    // Editing bids
-    BidCannotBeDecreased,
+    const OptionRoundAlreadySettled: felt252 = 'Option round already settled';
+    const OptionSettlementDateNotReached: felt252 = 'Settlement date not reached';
+    const OptionRoundNotSettled: felt252 = 'Option round not settled yet';
+    // Placing/editing bids
+    const BidBelowReservePrice: felt252 = 'Bid price below reserve price';
+    const BidAmountZero: felt252 = 'Bid amount cannot be 0';
+    const BiddingWhileNotAuctioning: felt252 = 'Can only bid while auctioning';
+    const CallerNotBidOwner: felt252 = 'Caller is not bid owner';
+    const BidCannotBeDecreased: felt252 = 'A bid cannot decrease';
 }
 
 
@@ -153,29 +150,5 @@ impl OptionRoundStateDisplay of Display<OptionRoundState> {
         };
         f.buffer.append(@str);
         Result::Ok(())
-    }
-}
-
-
-//OptionRoundError Traits
-
-impl OptionRoundErrorIntoFelt252 of Into<OptionRoundError, felt252> {
-    fn into(self: OptionRoundError) -> felt252 {
-        match self {
-            OptionRoundError::CallerIsNotVault => 'OptionRound: Caller not Vault',
-            OptionRoundError::AuctionStartDateNotReached => 'OptionRound: Auction start fail',
-            OptionRoundError::AuctionAlreadyStarted => 'OptionRound: Auction start fail',
-            OptionRoundError::AuctionEndDateNotReached => 'OptionRound: Auction end fail',
-            OptionRoundError::AuctionNotEnded => 'Auction has not ended',
-            OptionRoundError::NoAuctionToEnd => 'OptionRound: No auction to end',
-            OptionRoundError::OptionSettlementDateNotReached => 'OptionRound: Option settle fail',
-            OptionRoundError::OptionRoundNotSettled => 'OptionRound:Round not settled',
-            OptionRoundError::OptionRoundAlreadySettled => 'OptionRound: Option settle fail',
-            OptionRoundError::BidBelowReservePrice => 'OptionRound: Bid below reserve',
-            OptionRoundError::BidAmountZero => 'OptionRound: Bid amount zero',
-            OptionRoundError::BiddingWhileNotAuctioning => 'OptionRound: No auction running',
-            OptionRoundError::BidCannotBeDecreased => 'OptionRound: New bid too low',
-            OptionRoundError::CallerNotBidOwner => 'OptionROund: Caller not owner',
-        }
     }
 }

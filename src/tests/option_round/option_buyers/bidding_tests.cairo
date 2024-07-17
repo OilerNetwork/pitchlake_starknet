@@ -17,7 +17,7 @@ use pitch_lake_starknet::{
         },
         option_round::{
             contract::OptionRound, types::OptionRoundState,
-            interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait}
+            interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait}, types::{Errors},
         },
     },
     tests::{
@@ -134,16 +134,14 @@ fn test_bid_price_below_reserve_fails() {
     let bid_amount = options_available;
     clear_event_logs(array![current_round.contract_address()]);
 
-    // Check bid rejected event
-    match current_round.place_bid_raw(bid_amount, bid_price, bidder) {
-        Result::Ok(_) => { panic!("Bid should have failed"); },
-        Result::Err(_) => {
-            // Check bid rejected event
-            assert_event_auction_bid_rejected(
-                current_round.contract_address(), bidder, bid_amount, bid_price
-            );
-        }
-    }
+    // Check txn revert reason
+    current_round
+        .place_bid_expect_error(bid_amount, bid_price, bidder, Errors::BidBelowReservePrice);
+// @note Circle back depending if reverted txns emit events
+// Check bid rejected event
+//assert_event_auction_bid_rejected(
+//    current_round.contract_address(), bidder, bid_amount, bid_price
+//);
 }
 
 // Test bidding before auction starts fails
@@ -153,25 +151,20 @@ fn test_bid_before_auction_starts_failure() {
     let (mut vault, _) = setup_facade();
     accelerate_to_auctioning(ref vault);
     accelerate_to_running(ref vault);
-    accelerate_to_settled(ref vault, 0);
+    accelerate_to_settled(ref vault, 1);
 
     // Try to place bid before auction starts
     let mut round2 = vault.get_current_round();
     let bidder = option_bidder_buyer_1();
     let bid_price = round2.get_reserve_price();
     let bid_amount = round2.get_total_options_available();
-
-    // Check bid rejected event
     clear_event_logs(array![round2.contract_address()]);
-    match round2.place_bid_raw(bid_amount, bid_price, option_bidder_buyer_1()) {
-        Result::Ok(_) => { panic!("Bid should have failed"); },
-        Result::Err(_) => {
-            // Check bid rejected event
-            assert_event_auction_bid_rejected(
-                round2.contract_address(), bidder, bid_amount, bid_price
-            );
-        }
-    }
+
+    // Check txn revert reason
+    round2.place_bid_expect_error(bid_amount, bid_price, bidder, Errors::BiddingWhileNotAuctioning);
+// @note Circle back depending if reverted txns emit events
+// Check bid rejected event
+// assert_event_auction_bid_rejected(round2.contract_address(), bidder, bid_amount, bid_price);
 }
 
 // Test bidding after auction ends fails
@@ -190,18 +183,15 @@ fn test_bid_after_auction_ends_failure() {
     let bidder = option_bidder_buyer_1();
     let bid_price = round2.get_reserve_price();
     let bid_amount = round2.get_total_options_available();
-    // Check bid rejected event
     clear_event_logs(array![round2.contract_address()]);
 
-    match round2.place_bid_raw(bid_amount, bid_price, option_bidder_buyer_1()) {
-        Result::Ok(_) => { panic!("Bid should have failed"); },
-        Result::Err(_) => {
-            // Check bid rejected event
-            assert_event_auction_bid_rejected(
-                round2.contract_address(), bidder, bid_amount, bid_price
-            );
-        }
-    }
+    // Check txn revert reason
+    round2.place_bid_expect_error(bid_amount, bid_price, bidder, Errors::BiddingWhileNotAuctioning);
+// @note Circle back depending if reverted txns emit events
+// Check bid rejected event
+//assert_event_auction_bid_rejected(
+//    round2.contract_address(), bidder, bid_amount, bid_price
+//);
 }
 
 // Test bidding after auction end date fail (if end_auction() is not called first)
@@ -220,18 +210,14 @@ fn test_bid_after_auction_end_failure_2() {
     let bidder = option_bidder_buyer_1();
     let bid_price = round2.get_reserve_price();
     let bid_amount = round2.get_total_options_available();
-
-    // Check bid rejected event
     clear_event_logs(array![round2.contract_address()]);
-    match round2.place_bid_raw(bid_amount, bid_price, option_bidder_buyer_1()) {
-        Result::Ok(_) => { panic!("Bid should have failed"); },
-        Result::Err(_) => {
-            // Check bid rejected event
-            assert_event_auction_bid_rejected(
-                round2.contract_address(), bidder, bid_amount, bid_price
-            );
-        }
-    }
+
+    round2.place_bid_expect_error(bid_amount, bid_price, bidder, Errors::BiddingWhileNotAuctioning);
+// @note Circle back depending if reverted txns emit events
+// Check bid rejected event
+// assert_event_auction_bid_rejected(
+//     round2.contract_address(), bidder, bid_amount, bid_price
+// );
 }
 
 /// Event Tests ///
@@ -365,7 +351,10 @@ fn test_failed_bid_nonce_unchanged() {
         let nonce_before = current_round.get_bidding_nonce_for(bidder);
         if (i % 2 == 1) {
             //Failed bid in alternate rounds and check nonce update
-            let _ = current_round.place_bid_raw(bid_amount, bid_price - 1, bidder);
+            let _ = current_round
+                .place_bid_expect_error(
+                    bid_amount, bid_price - 1, bidder, Errors::BidBelowReservePrice
+                );
             let nonce_after = current_round.get_bidding_nonce_for(bidder);
             assert(nonce_before == nonce_after, 'Nonce Mismatch');
         } else {
