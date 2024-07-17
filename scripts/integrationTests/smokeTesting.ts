@@ -63,16 +63,20 @@ async function smokeTesting0(
   //1. Deposit from A with B as beneficiary
   //2. Deposit from A for self
   await deposit(
-    liquidityProviderA,
-    liquidityProviderB.address,
-    depositAmount,
+    {
+      from: liquidityProviderA,
+      beneficiary: liquidityProviderB.address,
+      amount: depositAmount,
+    },
     vaultContract
   );
 
   await deposit(
-    liquidityProviderA,
-    liquidityProviderA.address,
-    depositAmount,
+    {
+      from: liquidityProviderA,
+      beneficiary: liquidityProviderA.address,
+      amount: depositAmount,
+    },
     vaultContract
   );
 
@@ -108,7 +112,10 @@ async function smokeTesting0(
     Number(liquidityAfterB) === Number(liquidityBeforeB) + depositAmount,
     "liquidity B mismatch"
   );
-  assert(Number(balanceBeforeA)===Number(balanceAfterA)+2*depositAmount,'Eth balance for a mismatch');
+  assert(
+    Number(balanceBeforeA) === Number(balanceAfterA) + 2 * depositAmount,
+    "Eth balance for a mismatch"
+  );
 }
 
 async function smokeTesting(
