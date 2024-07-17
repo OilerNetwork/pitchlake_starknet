@@ -2,14 +2,8 @@ import {
   getAccount,
   getProvider,
   getCustomAccount,
-} from "./utils/helper/common";
-import {
-  deployEthContract,
-  deployMarketAggregator,
-  deployVaultContract,
-} from "./deployments/deployContracts";
+} from "./utils/helpers/common";
 import { ABI as ethAbi } from "./abi/ethAbi";
-import { declareContract } from "./deployments/declareContracts";
 import ethSierra from "../target/dev/pitch_lake_starknet_Eth.contract_class.json" assert { type: "json" };
 import ethCasm from "../target/dev/pitch_lake_starknet_Eth.compiled_contract_class.json" assert { type: "json" };
 import vaultSierra from "../target/dev/pitch_lake_starknet_Vault.contract_class.json" assert { type: "json" };
@@ -22,6 +16,8 @@ import { supply, approval } from "./utils/facades/eth";
 import { liquidityProviders, optionBidders } from "./utils/constants";
 import { smokeTesting } from "./integrationTests/smokeTesting";
 import { Account, Contract, Provider } from "starknet";
+import { declareContract } from "./utils/deployment/declareContracts";
+import { deployEthContract, deployMarketAggregator, deployVaultContract } from "./utils/deployment/deployContracts";
 
 async function declareContracts(account: Account) {
   let ethHash = await declareContract(account, ethSierra, ethCasm, "eth");

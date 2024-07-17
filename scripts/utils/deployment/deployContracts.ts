@@ -2,8 +2,8 @@ import { Account } from "starknet";
 
 // deployContracts.js
 import {  CallData, CairoCustomEnum } from "starknet";
-import vaultSierra from "../../target/dev/pitch_lake_starknet_Vault.contract_class.json" assert { type: "json" };
-import { constructorArgs } from "../utils/constants";
+import vaultSierra from "../../../target/dev/pitch_lake_starknet_Vault.contract_class.json" assert { type: "json" };
+import { constructorArgs } from "../constants";
 
 async function deployEthContract(
   enviornment: string,
@@ -69,4 +69,53 @@ async function deployMarketAggregator(
   return deployResult.contract_address[0];
 }
 
-export { deployEthContract, deployMarketAggregator, deployVaultContract };
+
+async function deployContracts(
+  enviornment: string,
+  account: Account,
+  hashes: {
+    ethHash: string;
+    vaultHash: string;
+    optionRoundHash: string;
+    marketAggregatorHash: string;
+  }
+) {
+  let ethAddress = await deployEthContract(
+    enviornment,
+    account,
+    hashes.ethHash
+  );
+  if (!ethAddress) {
+    throw Error("Eth deploy failed");
+  }
+
+  let marketAggregatorAddress = await deployMarketAggregator(
+    enviornment,
+    account,
+    hashes.marketAggregatorHash
+  );
+  if (!marketAggregatorAddress) {
+    throw Error("MktAgg deploy failed");
+  }
+
+  let vaultAddress = await deployVaultContract(
+    enviornment,
+    account,
+    {
+      marketAggregatorContract: marketAggregatorAddress,
+      ethContract: ethAddress,
+      vaultManager: account.address,
+    },
+    { optionRound: hashes.optionRoundHash, vault: hashes.vaultHash }
+  );
+  if (!vaultAddress) {
+    throw Error("Eth deploy failed");
+  }
+  return {
+    ethAddress,
+    marketAggregatorAddress,
+    vaultAddress,
+  };
+}
+
+export { deployEthContract, deployMarketAggregator, deployVaultContract, deployContracts };

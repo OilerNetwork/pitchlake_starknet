@@ -1,7 +1,10 @@
-import { Account, TypedContractV2 } from "starknet";
+import { Account, Contract, Provider, TypedContractV2 } from "starknet";
 
 import { ABI as ethAbi } from "../../abi/ethAbi";
 import { ApprovalArgs } from "./types";
+import { mineNextBlock } from "../katana";
+import { getCustomAccount } from "../helpers/common";
+import { liquidityProviders, optionBidders } from "../constants";
 
 async function getBalance(
   account: string,
@@ -19,16 +22,7 @@ const supply = async (
 ) => {
   try {
     ethContract.connect(devAccount);
-    const balanceBefore = await ethContract.balance_of(recipient);
-
     await ethContract.transfer(recipient, amount);
-
-    const balanceAfter = await ethContract.balance_of(recipient);
-
-    console.log(
-      `Balance before funding was: ${balanceBefore} and after is: ${balanceAfter}`
-    );
-
     // @note: don't delete it yet, waiting for response from starknet.js team
     // const result = await account.execute({
     //   contractAddress: ethContract,
@@ -45,13 +39,15 @@ const supply = async (
   }
 };
 
+
+
 async function approval(
   { owner, amount, spender }: ApprovalArgs,
   ethContract: TypedContractV2<typeof ethAbi>
 ) {
   ethContract.connect(owner);
   try {
-    await ethContract.approve(spender, amount);
+    ethContract.approve(spender, amount);
 
     // @note: don't delete it yet, waiting for response from starknet.js team
     // const result = await account.execute({
@@ -73,16 +69,55 @@ const approveAll = async (
   approveData: Array<ApprovalArgs>,
   ethContract: TypedContractV2<typeof ethAbi>
 ) => {
-  await Promise.all(
-    approveData.map(async ({ owner, amount, spender }: ApprovalArgs) => {
-      ethContract.connect(owner);
-      try {
-        await ethContract.approve(spender, amount);
-      } catch (err) {
-        console.log(err);
-      }
-    })
-  );
+  for (const { owner, spender, amount } of approveData) {
+    ethContract.connect(owner);
+    try {
+      await ethContract.approve(spender, amount);
+    } catch (err) {
+      console.log(err);
+    }
+  }
 };
 
-export { supply, approval, getBalance, approveAll };
+async function supplyEth(
+  devAccount: Account,
+  provider: Provider,
+  ethAddress: string,
+  approveFor: string
+) {
+  const ethContract = new Contract(ethAbi, ethAddress, provider).typedv2(
+    ethAbi
+  );
+
+  for (let i = 0; i < 6; i++) {
+    const lp = getCustomAccount(
+      provider,
+      liquidityProviders[i].account,
+      liquidityProviders[i].privateKey
+    );
+    const ob = getCustomAccount(
+      provider,
+      optionBidders[i].account,
+      optionBidders[i].privateKey
+    );
+    await supply(
+      devAccount,
+      liquidityProviders[i].account,
+      1000000,
+      ethContract
+    );
+    await approval(
+      { owner: lp, amount: 1000000, spender: approveFor },
+      ethContract
+    );
+    console.log(`Liquidity Provider ${i} funded `);
+
+    await supply(devAccount, optionBidders[i].account, 1000000, ethContract);
+    await approval(
+      { owner: ob, amount: 1000000, spender: approveFor },
+      ethContract
+    );
+    console.log(`Option Bidder ${i} funded `);
+  }
+}
+export { supply, approval, getBalance, approveAll, supplyEth };

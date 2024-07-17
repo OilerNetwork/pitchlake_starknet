@@ -51,14 +51,13 @@ export const withdrawAll = async (
   withdrawData: Array<WithdrawArgs>,
   vaultContract: TypedContractV2<typeof vaultAbi>
 ) => {
-  await Promise.all(
-    withdrawData.map(async (data: WithdrawArgs) => {
-      vaultContract.connect(data.account);
-      try {
-        await vaultContract.withdraw_liquidity(data.amount);
-      } catch (err) {
-        console.log(err);
-      }
-    })
-  );
+
+  for (const data of withdrawData){
+    vaultContract.connect(data.account);
+    try {
+      await vaultContract.withdraw_liquidity(data.amount);
+    } catch (err) {
+      console.log(err);
+    }
+  }
 };
