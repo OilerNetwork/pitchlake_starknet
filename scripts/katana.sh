@@ -12,6 +12,7 @@ katana --chain-id SN_SEPOLIA --host 127.0.0.1 --port 5050 --accounts "25" --seed
 
 # Run your Node script
 echo "Running main.js on port $PORT"
+cd scripts
 node --loader ts-node/esm main.ts dev 5050
 
 # echo "Running smokeTesting.js on port $PORT"
