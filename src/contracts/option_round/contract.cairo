@@ -861,7 +861,7 @@ mod OptionRound {
                 let options_sold = self.bids_tree.clearing_bid_amount_sold.read();
                 if (!partial_bid.is_refunded) {
                     partial_bid.is_refunded = true;
-                    self.bids_tree._update(partial_bid_id, partial_bid);
+                    self.bids_tree.update(partial_bid_id, partial_bid);
                     refundable_balance += (partial_bid.amount - options_sold) * partial_bid.price;
                 }
             }
@@ -872,7 +872,7 @@ mod OptionRound {
                         if (!bid.is_refunded) {
                             let mut refundable_bid: Bid = self.bids_tree._find(bid.id);
                             refundable_bid.is_refunded = true;
-                            self.bids_tree._update(refundable_bid.id, refundable_bid);
+                            self.bids_tree.update(refundable_bid.id, refundable_bid);
                             refundable_balance += bid.amount * bid.price;
                         }
                     },
@@ -887,7 +887,7 @@ mod OptionRound {
                         if (!bid.is_refunded) {
                             let mut refundable_bid: Bid = self.bids_tree._find(bid.id);
                             refundable_bid.is_refunded = true;
-                            self.bids_tree._update(refundable_bid.id, refundable_bid);
+                            self.bids_tree.update(refundable_bid.id, refundable_bid);
                             refundable_balance += bid.amount * (bid.price - clearing_price)
                         }
                     },
@@ -936,7 +936,7 @@ mod OptionRound {
                     let options_sold = self.bids_tree.clearing_bid_amount_sold.read();
                     options_to_exercise += options_sold;
                     partial_bid.is_tokenized = true;
-                    self.bids_tree._update(partial_bid_id, partial_bid);
+                    self.bids_tree.update(partial_bid_id, partial_bid);
                 }
             }
             loop {
@@ -945,7 +945,7 @@ mod OptionRound {
                         if (!bid.is_tokenized) {
                             let mut bid: Bid = self.bids_tree._find(bid.id);
                             bid.is_tokenized = true;
-                            self.bids_tree._update(bid.id, bid);
+                            self.bids_tree.update(bid.id, bid);
                             options_to_exercise += bid.amount;
                         }
                     },
@@ -1004,7 +1004,7 @@ mod OptionRound {
                     let options_sold = self.bids_tree.clearing_bid_amount_sold.read();
                     options_to_mint += options_sold;
                     partial_bid.is_tokenized = true;
-                    self.bids_tree._update(partial_bid_id, partial_bid);
+                    self.bids_tree.update(partial_bid_id, partial_bid);
                 }
             }
             loop {
@@ -1013,7 +1013,7 @@ mod OptionRound {
                         if (!bid.is_tokenized) {
                             let mut bid: Bid = self.bids_tree._find(bid.id);
                             bid.is_tokenized = true;
-                            self.bids_tree._update(bid.id, bid);
+                            self.bids_tree.update(bid.id, bid);
                             options_to_mint += bid.amount;
                         }
                     },

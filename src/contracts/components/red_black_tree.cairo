@@ -64,7 +64,7 @@ pub mod RBTreeComponent {
             return node.value;
         }
 
-        fn _update(ref self: ComponentState<TContractState>, bid_id: felt252, bid: Bid) {
+        fn update(ref self: ComponentState<TContractState>, bid_id: felt252, bid: Bid) {
             let node: Node = self.tree.read(bid_id);
             if node.value.id == 0 {
                 return;
