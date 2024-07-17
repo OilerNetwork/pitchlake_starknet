@@ -31,7 +31,6 @@ async function main(environment: string, port?: string) {
   );
 
   //Can write to a file here and replace smoke test call to use multiple
-
   await smokeTesting(
     provider,
     contractAddresses.vaultAddress,

@@ -65,7 +65,7 @@ export class VaultFacade {
       console.log("3")
       const optionRoundAddress =
         await this.vaultContract.get_option_round_address(optionRoundId);
-        console.log("4",("0x"+optionRoundAddress.toString(16)));
+        console.log("4",("0x"+optionRoundAddress.toString()));
       
       const optionRoundContract = new Contract(
         optionRoundAbi,
