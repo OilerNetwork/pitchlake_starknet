@@ -6,12 +6,11 @@ import {
   getCustomAccount,
   getContract,
 } from "../utils/helper/common";
-import { getLPUnlockedBalance, deposit } from "../utils/vault";
+import { getLPUnlockedBalance, deposit, withdraw } from "../utils/vault";
 import { ABI as vaultAbi } from "../abi/vaultAbi";
 import { ABI as ethAbi } from "../abi/ethAbi";
 import { getBalance, approval } from "../utils/helper/eth";
 async function smokeTesting0(
-  account: Account,
   provider: Provider,
   vaultAddress: string,
   ethAddress: string
@@ -116,6 +115,48 @@ async function smokeTesting0(
     Number(balanceBeforeA) === Number(balanceAfterA) + 2 * depositAmount,
     "Eth balance for a mismatch"
   );
+
+  //Withdraws
+  //Withdraw depositAmount/2 from vaultContract for A and B positions
+  await withdraw(liquidityProviderA, depositAmount / 2, vaultContract);
+  await withdraw(liquidityProviderB, depositAmount / 2, vaultContract);
+
+  let liquidityAfterWithdrawA = await getLPUnlockedBalance(
+    liquidityProviderA.address,
+    vaultContract
+  );
+  let liquidityAfterWithdrawB = await getLPUnlockedBalance(
+    liquidityProviderB.address,
+    vaultContract
+  );
+
+  let balanceAfterWithdrawA = await getBalance(
+    liquidityProviderA.address,
+    ethContract
+  );
+  let balanceAfterWithdrawB = await getBalance(
+    liquidityProviderB.address,
+    ethContract
+  );
+
+  //Asserts
+  //1) Check liquidity for A & B has decreased by depositAmount/2
+  //2) Check balance for A & B has increased by depositAmount/2
+  console.log("liquidityAfterA:",liquidityAfterA,"\nliquidityAfterWithdrawA", liquidityAfterWithdrawA)
+  assert(
+    Number(liquidityAfterA) ==
+      Number(liquidityAfterWithdrawA) + depositAmount / 2
+  ,'Mismatch A liquidity');
+  assert(
+    Number(liquidityAfterB) ==
+      Number(liquidityAfterWithdrawB) + depositAmount / 2
+  ,'Mismatch B liquidity');
+  assert(
+    Number(balanceAfterA) == Number(balanceAfterWithdrawA) - depositAmount / 2
+  ,'Mismatch A balance');
+  assert(
+    Number(balanceAfterB) == Number(balanceAfterWithdrawB) - depositAmount / 2
+  ,'Mismatch B balance');
 }
 
 async function smokeTesting(
@@ -126,7 +167,7 @@ async function smokeTesting(
   port?: string
 ) {
   const provider = getProvider(enviornment, port);
-  await smokeTesting0(account, provider, vaultAddress, ethAddress);
+  await smokeTesting0(provider, vaultAddress, ethAddress);
 }
 
 export { smokeTesting };
