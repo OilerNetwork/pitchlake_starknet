@@ -1,11 +1,10 @@
-import {
-  getAccount,
-  getProvider,
-} from "./utils/helpers/common";
-import { supplyEth } from "./utils/facades/eth";
+import { getAccount, getProvider } from "./utils/helpers/common";
 import { smokeTesting } from "./integrationTests/smokeTesting";
 import { declareContracts } from "./utils/deployment/declareContracts";
 import { deployContracts } from "./utils/deployment/deployContracts";
+import { EthFacade } from "./utils/facades/ethFacade";
+import { ethAbi } from "./abi";
+import { Contract } from "starknet";
 
 async function main(environment: string, port?: string) {
   const provider = getProvider(environment, port);
@@ -18,7 +17,13 @@ async function main(environment: string, port?: string) {
     hashes
   );
 
-  await supplyEth(
+  const eth = new EthFacade(new Contract(
+    ethAbi,
+    contractAddresses.ethAddress,
+    provider
+  ).typedv2(ethAbi));
+
+  await eth.supplyEth(
     devAccount,
     provider,
     contractAddresses.ethAddress,

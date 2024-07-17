@@ -19,7 +19,6 @@ async function smokeTesting(
   const ethFacade = new EthFacade(ethContract);
   await auctionOpenTests(provider, vaultFacade,ethFacade);
   await auctionStartTests(provider,vaultFacade,ethFacade);
-
 }
 
 export { smokeTesting };
