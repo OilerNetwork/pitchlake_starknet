@@ -1049,7 +1049,7 @@ mod OptionRound {
 
         // Calculate the clearing price and total options sold from the auction
         fn update_clearing_price(ref self: ContractState) -> (u256, u256) {
-            self.bids_tree._find_clearing_price()
+            self.bids_tree.find_clearing_price()
         }
 
         //Get bid tree nonce

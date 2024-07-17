@@ -82,7 +82,7 @@ pub mod RBTreeComponent {
             self.delete_node(bid_id);
         }
 
-        fn _find_clearing_price(ref self: ComponentState<TContractState>) -> (u256, u256) {
+        fn find_clearing_price(ref self: ComponentState<TContractState>) -> (u256, u256) {
             let total_options_available = self._get_total_options_available();
             let root: felt252 = self.root.read();
             let root_node: Node = self.tree.read(root);
