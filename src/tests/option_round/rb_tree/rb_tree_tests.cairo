@@ -1,9 +1,17 @@
 use core::traits::TryInto;
 use pitch_lake_starknet::{
     contracts::{
-        option_round::{types::{Bid}},
-        components::{red_black_tree::{IRBTreeDispatcher, IRBTreeDispatcherTrait}},
+        option_round::{
+            types::{Bid},
+        },
     },
+    tests::{
+        option_round::{
+            rb_tree::rb_tree_mock_contract::{
+                IRBTreeMockContractDispatcher, IRBTreeMockContractDispatcherTrait
+            }
+        }
+    }
 };
 use starknet::{contract_address_const, ContractAddress};
 use core::pedersen::pedersen;
@@ -1238,7 +1246,7 @@ fn create_bid(price: u256, nonce: u64) -> Bid {
     }
 }
 
-fn insert(rb_tree: IRBTreeDispatcher, price: u256, nonce: u64) -> felt252 {
+fn insert(rb_tree: IRBTreeMockContractDispatcher, price: u256, nonce: u64) -> felt252 {
     let bidder = mock_address(MOCK_ADDRESS);
     let id = poseidon::poseidon_hash_span(array![bidder.into(), nonce.try_into().unwrap()].span());
     rb_tree
@@ -1256,13 +1264,13 @@ fn insert(rb_tree: IRBTreeDispatcher, price: u256, nonce: u64) -> felt252 {
     return id;
 }
 
-fn is_tree_valid(rb_tree: IRBTreeDispatcher) -> bool {
+fn is_tree_valid(rb_tree: IRBTreeMockContractDispatcher) -> bool {
     let is_tree_valid = rb_tree.is_tree_valid();
     //println!("Is tree valid: {:?}", is_tree_valid);
     is_tree_valid
 }
 
-fn delete(rb_tree: IRBTreeDispatcher, bid_id: felt252) {
+fn delete(rb_tree: IRBTreeMockContractDispatcher, bid_id: felt252) {
     rb_tree.delete(bid_id);
 }
 

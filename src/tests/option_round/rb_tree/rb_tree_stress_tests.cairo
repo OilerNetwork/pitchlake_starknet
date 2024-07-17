@@ -1,13 +1,17 @@
 use pitch_lake_starknet::{
     tests::{
         utils::helpers::setup::setup_rb_tree_test,
-        option_round::rb_tree::rb_tree_tests::{
-            insert, mock_address, MOCK_ADDRESS, delete, create_bid
-        },
+        option_round::rb_tree::{
+            rb_tree_tests::{
+                insert, mock_address, MOCK_ADDRESS, delete, create_bid
+            },
+            rb_tree_mock_contract::{
+                IRBTreeMockContractDispatcher, IRBTreeMockContractDispatcherTrait
+            }
+        }
     },
     contracts::{
         option_round::types::Bid,
-        components::red_black_tree::{IRBTreeDispatcher, IRBTreeDispatcherTrait}
     },
 };
 use core::pedersen::pedersen;
