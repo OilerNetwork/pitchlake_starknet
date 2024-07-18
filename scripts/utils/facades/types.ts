@@ -48,3 +48,8 @@ export type Bid = {
   isTokenized: boolean;
   isRefunded: boolean;
 };
+export type RefundUnusedBidsArgs = {
+  from: Account;
+  optionBidder: string;
+};
+
