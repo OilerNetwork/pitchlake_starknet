@@ -1,11 +1,15 @@
 use starknet::{ContractAddress, testing::{set_contract_address, set_block_timestamp}};
 use openzeppelin::token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
 use pitch_lake_starknet::{
+    vault::{
+        interface::{
+            IVaultDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcher, IVaultSafeDispatcherTrait
+        }
+    },
+    option_round::{
+        contract::OptionRound, interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,}
+    },
     contracts::{
-        vault::{types::VaultError, interface::{IVaultDispatcher, IVaultDispatcherTrait}},
-        option_round::{
-            contract::OptionRound, interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,}
-        },
         market_aggregator::{
             MarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
         },
@@ -38,20 +42,20 @@ struct VaultFacade {
 
 #[generate_trait]
 impl VaultFacadeImpl of VaultFacadeTrait {
+    fn get_safe_dispatcher(ref self: VaultFacade) -> IVaultSafeDispatcher {
+        IVaultSafeDispatcher { contract_address: self.contract_address() }
+    }
+
     /// Writes ///
 
     /// LP functions
     fn deposit(ref self: VaultFacade, amount: u256, liquidity_provider: ContractAddress) -> u256 {
         // @note Previously, we were setting the contract address to bystander
         set_contract_address(liquidity_provider);
-        let res = self.vault_dispatcher.deposit_liquidity(amount, liquidity_provider);
-
-        match res {
-            Result::Ok(updated_unlocked_position) => {
-                sanity_checks::deposit(ref self, liquidity_provider, updated_unlocked_position)
-            },
-            Result::Err(e) => panic(array![e.into()]),
-        }
+        let updated_unlocked_position = self
+            .vault_dispatcher
+            .deposit_liquidity(amount, liquidity_provider);
+        sanity_checks::deposit(ref self, liquidity_provider, updated_unlocked_position)
     }
 
     fn deposit_multiple(
@@ -73,20 +77,19 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         updated_unlocked_positions
     }
 
-    fn withdraw_raw(
-        ref self: VaultFacade, amount: u256, liquidity_provider: ContractAddress
-    ) -> Result<u256, VaultError> {
+    #[feature("safe_dispatcher")]
+    fn withdraw_expect_error(
+        ref self: VaultFacade, amount: u256, liquidity_provider: ContractAddress, error: felt252,
+    ) {
         set_contract_address(liquidity_provider);
-        self.vault_dispatcher.withdraw_liquidity(amount)
+        let safe_vault = self.get_safe_dispatcher();
+        safe_vault.withdraw_liquidity(amount).expect_err(error);
     }
 
     fn withdraw(ref self: VaultFacade, amount: u256, liquidity_provider: ContractAddress) -> u256 {
-        match self.withdraw_raw(amount, liquidity_provider) {
-            Result::Ok(updated_unlocked_position) => sanity_checks::withdraw(
-                ref self, liquidity_provider, updated_unlocked_position
-            ),
-            Result::Err(e) => panic(array![e.into()]),
-        }
+        set_contract_address(liquidity_provider);
+        let updated_unlocked_position = self.vault_dispatcher.withdraw_liquidity(amount);
+        sanity_checks::withdraw(ref self, liquidity_provider, updated_unlocked_position)
     }
 
     fn withdraw_multiple(
@@ -95,17 +98,17 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         mut liquidity_providers: Span<ContractAddress>
     ) -> Array<u256> {
         assert_two_arrays_equal_length(liquidity_providers, amounts);
-        let mut spreads = array![];
+        let mut unlocked_bals = array![];
         loop {
             match liquidity_providers.pop_front() {
                 Option::Some(liquidity_provider) => {
                     let amount = amounts.pop_front().unwrap();
-                    spreads.append(self.withdraw(*amount, *liquidity_provider));
+                    unlocked_bals.append(self.withdraw(*amount, *liquidity_provider));
                 },
                 Option::None => { break (); }
             };
         };
-        spreads
+        unlocked_bals
     }
 
     /// State transition
@@ -113,63 +116,51 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     fn start_auction(ref self: VaultFacade) -> u256 {
         // @dev Using bystander as caller so that gas fees do not throw off balance calculations
         set_contract_address(bystander());
-        let res = self.vault_dispatcher.start_auction();
-        match res {
-            Result::Ok(total_options_available) => {
-                let mut current_round = self.get_current_round();
-                sanity_checks::start_auction(ref current_round, total_options_available)
-            },
-            Result::Err(e) => panic(array![e.into()]),
-        }
+        let mut current_round = self.get_current_round();
+        let total_options_available = self.vault_dispatcher.start_auction();
+        sanity_checks::start_auction(ref current_round, total_options_available)
     }
 
-    fn start_auction_raw(ref self: VaultFacade) -> Result<u256, VaultError> {
+    #[feature("safe_dispatcher")]
+    fn start_auction_expect_error(ref self: VaultFacade, error: felt252) {
         // @dev Using bystander as caller so that gas fees do not throw off balance calculations
         set_contract_address(bystander());
-        self.vault_dispatcher.start_auction()
+        let safe_vault = self.get_safe_dispatcher();
+        safe_vault.start_auction().expect_err(error);
     }
 
     fn end_auction(ref self: VaultFacade) -> (u256, u256) {
         // @dev Using bystander as caller so that gas fees do not throw off balance calculations
         set_contract_address(bystander());
-        let res = self.vault_dispatcher.end_auction();
-        match res {
-            Result::Ok((
-                clearing_price, total_options_sold
-            )) => {
-                let mut current_round = self.get_current_round();
-                sanity_checks::end_auction(ref current_round, clearing_price, total_options_sold)
-            },
-            Result::Err(e) => panic(array![e.into()]),
-        }
+        let (clearing_price, total_options_sold) = self.vault_dispatcher.end_auction();
+        let mut current_round = self.get_current_round();
+        sanity_checks::end_auction(ref current_round, clearing_price, total_options_sold)
     }
 
-    fn end_auction_raw(ref self: VaultFacade) -> Result<(u256, u256), VaultError> {
+    #[feature("safe_dispatcher")]
+    fn end_auction_expect_error(ref self: VaultFacade, error: felt252) {
         set_contract_address(bystander());
-        self.vault_dispatcher.end_auction()
+        let safe_vault = self.get_safe_dispatcher();
+        safe_vault.end_auction().expect_err(error);
     }
 
     fn settle_option_round(ref self: VaultFacade) -> u256 {
         // @dev Using bystander as caller so that gas fees do not throw off balance calculations
         set_contract_address(bystander());
         let mut current_round = self.get_current_round();
-        let res = self.vault_dispatcher.settle_option_round();
-
-        let res = match res {
-            Result::Ok(total_payout) => sanity_checks::settle_option_round(
-                ref current_round, total_payout
-            ),
-            Result::Err(e) => panic(array![e.into()]),
-        };
+        let total_payout = self.vault_dispatcher.settle_option_round();
+        sanity_checks::settle_option_round(ref current_round, total_payout);
 
         let next_round_address = self.get_option_round_address(current_round.get_round_id() + 1);
         eth_supply_and_approve_all_bidders(next_round_address, self.get_eth_address());
-        res
+        total_payout
     }
 
-    fn settle_option_round_raw(ref self: VaultFacade) -> Result<u256, VaultError> {
+    #[feature("safe_dispatcher")]
+    fn settle_option_round_expect_error(ref self: VaultFacade, error: felt252) {
         set_contract_address(bystander());
-        self.vault_dispatcher.settle_option_round()
+        let safe_vault = self.get_safe_dispatcher();
+        safe_vault.settle_option_round().expect_err(error);
     }
     /// Fossil
 
@@ -209,14 +200,9 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         liquidity_provider: ContractAddress
     ) -> u256 {
         set_contract_address(liquidity_provider);
-        let res = self
+        self
             .vault_dispatcher
-            .convert_lp_tokens_to_newer_lp_tokens(source_round, target_round, amount);
-
-        match res {
-            Result::Ok(lp_tokens) => lp_tokens,
-            Result::Err(e) => panic(array![e.into()]),
-        }
+            .convert_lp_tokens_to_newer_lp_tokens(source_round, target_round, amount)
     }
 
     /// Reads ///

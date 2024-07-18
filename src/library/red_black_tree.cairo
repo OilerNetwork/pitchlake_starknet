@@ -1,12 +1,13 @@
-use pitch_lake_starknet::contracts::{components::red_black_tree, option_round::types::{Bid}};
+use pitch_lake_starknet::{library::red_black_tree, types::{Bid}};
 use starknet::ContractAddress;
-const BLACK: bool = false;
-const RED: bool = true;
 
 #[starknet::component]
 pub mod RBTreeComponent {
-    use super::{BLACK, RED, Bid, ContractAddress};
+    use super::{Bid, ContractAddress};
     use core::{array::ArrayTrait, option::OptionTrait, traits::{IndexView, TryInto}};
+
+    const BLACK: bool = false;
+    const RED: bool = true;
 
     #[storage]
     struct Storage {

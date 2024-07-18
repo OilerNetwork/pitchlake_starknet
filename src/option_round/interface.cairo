@@ -1,13 +1,13 @@
 use starknet::{ContractAddress, StorePacking};
 use openzeppelin::token::erc20::interface::ERC20ABIDispatcher;
-use pitch_lake_starknet::contracts::{
-    market_aggregator::{IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait},
-    option_round::{
-        contract::OptionRound,
-        types::{
-            OptionRoundState, StartAuctionParams, SettleOptionRoundParams,
-            OptionRoundConstructorParams, Bid,
-        }
+use pitch_lake_starknet::{
+    option_round::{contract::OptionRound,},
+    contracts::{
+        market_aggregator::{IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait},
+    },
+    types::{
+        OptionRoundState, StartAuctionParams, SettleOptionRoundParams, OptionRoundConstructorParams,
+        Bid,
     }
 };
 
@@ -123,20 +123,16 @@ trait IOptionRound<TContractState> {
 
     // Try to start the option round's auction
     // @return the total options available in the auction
-    fn start_auction(
-        ref self: TContractState, params: StartAuctionParams
-    ) -> Result<u256, OptionRound::OptionRoundError>;
+    fn start_auction(ref self: TContractState, params: StartAuctionParams) -> u256;
 
     // Settle the auction if the auction time has passed
     // @return the clearing price of the auction
     // @return the total options sold in the auction (@note keep or drop ?)
-    fn end_auction(ref self: TContractState) -> Result<(u256, u256), OptionRound::OptionRoundError>;
+    fn end_auction(ref self: TContractState) -> (u256, u256);
 
     // Settle the option round if past the expiry date and in state::Running
     // @return The total payout of the option round
-    fn settle_option_round(
-        ref self: TContractState, params: SettleOptionRoundParams
-    ) -> Result<u256, OptionRound::OptionRoundError>;
+    fn settle_option_round(ref self: TContractState, params: SettleOptionRoundParams) -> u256;
 
     /// Option bidder functions
 
@@ -147,27 +143,23 @@ trait IOptionRound<TContractState> {
     // @return if the bid was accepted or rejected
 
     // @note check all tests match new format (option amount, option price)
-    fn place_bid(
-        ref self: TContractState, amount: u256, price: u256
-    ) -> Result<Bid, OptionRound::OptionRoundError>;
+    fn place_bid(ref self: TContractState, amount: u256, price: u256) -> Bid;
 
     fn update_bid(
         ref self: TContractState, bid_id: felt252, new_amount: u256, new_price: u256
-    ) -> Result<Bid, OptionRound::OptionRoundError>;
+    ) -> Bid;
 
     // Refund unused bids for an option bidder if the auction has ended
     // @param option_bidder: The bidder to refund the unused bid back to
     // @return the amount of the transfer
-    fn refund_unused_bids(
-        ref self: TContractState, option_bidder: ContractAddress
-    ) -> Result<u256, OptionRound::OptionRoundError>;
+    fn refund_unused_bids(ref self: TContractState, option_bidder: ContractAddress) -> u256;
 
     // Claim the payout for an option buyer's options if the option round has settled
     // @note the value that each option pays out might be 0 if non-exercisable
     // @param option_buyer: The option buyer to claim the payout for
     // @return the amount of the transfer
-    fn exercise_options(ref self: TContractState) -> Result<u256, OptionRound::OptionRoundError>;
+    fn exercise_options(ref self: TContractState) -> u256;
 
     // Convert options won from auction into erc20 tokens
-    fn tokenize_options(ref self: TContractState) -> Result<u256, OptionRound::OptionRoundError>;
+    fn tokenize_options(ref self: TContractState) -> u256;
 }

@@ -1,21 +1,15 @@
-use core::traits::TryInto;
+use core::pedersen::pedersen;
+use starknet::{contract_address_const, ContractAddress};
 use pitch_lake_starknet::{
-    contracts::{
-        option_round::{
-            types::{Bid},
-        },
-    },
+    types::{Bid},
     tests::{
         option_round::{
             rb_tree::rb_tree_mock_contract::{
                 IRBTreeMockContractDispatcher, IRBTreeMockContractDispatcherTrait
             }
-        }
-    }
+        },utils::helpers::setup::setup_rb_tree_test
+    },
 };
-use starknet::{contract_address_const, ContractAddress};
-use core::pedersen::pedersen;
-use pitch_lake_starknet::tests::utils::helpers::setup::setup_rb_tree_test;
 
 const BLACK: bool = false;
 const RED: bool = true;
@@ -1284,13 +1278,14 @@ fn compare_tree_structures(
     let mut i = 0;
 
     // Compare outer array
-    while i < actual
-        .len() {
-            let actual_inner = actual[i];
-            let expected_inner = expected[i];
-            compare_inner(actual_inner, expected_inner);
-            i += 1;
-        }
+    while
+    i < actual.len()
+    {
+        let actual_inner = actual[i];
+        let expected_inner = expected[i];
+        compare_inner(actual_inner, expected_inner);
+        i += 1;
+    }
 }
 
 fn compare_inner(actual: @Array<(u256, bool, u128)>, expected: @Array<(u256, bool, u128)>) {
@@ -1300,13 +1295,14 @@ fn compare_inner(actual: @Array<(u256, bool, u128)>, expected: @Array<(u256, boo
 
     let mut i = 0;
 
-    while i < actual
-        .len() {
-            let actual_tuple = *actual[i];
-            let expected_tuple = *expected[i];
-            compare_tuple(actual_tuple, expected_tuple);
-            i += 1;
-        }
+    while
+    i < actual.len()
+    {
+        let actual_tuple = *actual[i];
+        let expected_tuple = *expected[i];
+        compare_tuple(actual_tuple, expected_tuple);
+        i += 1;
+    }
 }
 
 fn compare_tuple(actual: (u256, bool, u128), expected: (u256, bool, u128)) {

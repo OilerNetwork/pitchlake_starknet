@@ -7,16 +7,14 @@ use starknet::{
 use openzeppelin::token::erc20::interface::{ERC20ABIDispatcherTrait,};
 
 use pitch_lake_starknet::{
+    library::eth::Eth,
+    vault::{contract::Vault, interface::{IVaultDispatcher, IVaultDispatcherTrait},},
+    option_round::interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
     contracts::{
-        components::eth::Eth,
         pitch_lake::{
             IPitchLakeDispatcher, IPitchLakeSafeDispatcher, IPitchLakeDispatcherTrait, PitchLake,
             IPitchLakeSafeDispatcherTrait
         },
-        vault::{
-            contract::Vault, interface::{IVaultDispatcher, IVaultDispatcherTrait}, types::VaultType
-        },
-        option_round::interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
     },
     tests::{
         utils::{
@@ -34,6 +32,7 @@ use pitch_lake_starknet::{
             },
         },
     },
+    types::VaultType
 };
 use debug::PrintTrait;
 

@@ -11,8 +11,17 @@ use openzeppelin::{
     token::erc20::{ERC20Component, interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait,}}
 };
 use pitch_lake_starknet::{
+    types::{StartAuctionParams, OptionRoundState, VaultType},
+    library::{eth::Eth},
+    vault::{contract::Vault, interface::{IVaultDispatcher, IVaultDispatcherTrait}},
+    option_round::{
+        contract::OptionRound,
+        interface::{
+            IOptionRoundDispatcher, IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher,
+            IOptionRoundSafeDispatcherTrait,
+        },
+    },
     contracts::{
-        components::{eth::Eth},
         pitch_lake::{
             IPitchLakeDispatcher, IPitchLakeSafeDispatcher, IPitchLakeDispatcherTrait, PitchLake,
             IPitchLakeSafeDispatcherTrait
@@ -22,20 +31,14 @@ use pitch_lake_starknet::{
             IMarketAggregatorDispatcherTrait, IMarketAggregatorSafeDispatcher,
             IMarketAggregatorSafeDispatcherTrait
         },
-        vault::{
-            contract::Vault, types::VaultType, interface::{IVaultDispatcher, IVaultDispatcherTrait}
-        },
-        option_round::{
-            contract::OptionRound,
-            interface::{
-                IOptionRoundDispatcher, IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher,
-                IOptionRoundSafeDispatcherTrait,
-            },
-            types::{StartAuctionParams, OptionRoundState,}
-        },
     },
     tests::{
-        option_round::rb_tree::{rb_tree_mock_contract::{RBTreeMockContract, IRBTreeMockContractDispatcher, IRBTreeMockContractDispatcherTrait }},
+        option_round::rb_tree::{
+            rb_tree_mock_contract::{
+                RBTreeMockContract, IRBTreeMockContractDispatcher,
+                IRBTreeMockContractDispatcherTrait
+            }
+        },
         utils::{
             lib::{
                 structs::{OptionRoundParams},

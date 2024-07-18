@@ -2,7 +2,7 @@ use core::traits::TryInto;
 use starknet::{ContractAddress, testing::{set_block_timestamp, set_contract_address}};
 use openzeppelin::token::erc20::interface::{ERC20ABI, ERC20ABIDispatcher, ERC20ABIDispatcherTrait,};
 use pitch_lake_starknet::{
-    contracts::{option_round::types::OptionRoundError},
+    types::{Errors},
     tests::{
         utils::{
             helpers::{
@@ -97,12 +97,7 @@ fn test_refunding_bids_before_auction_end_fails() {
     let (_, _, mut current_round) = place_incremental_bids_internal(ref vault, option_bidders);
 
     // Try to refund bids before auction ends
-    let expected_error = OptionRoundError::AuctionNotEnded;
-    let res = current_round.refund_bid_raw(*option_bidders[0]);
-    match res {
-        Result::Ok(_) => { panic!("Should throw error"); },
-        Result::Err(e) => { assert(e == expected_error, 'Error Mismatch'); }
-    }
+    current_round.refund_bid_expect_error(*option_bidders[0], Errors::AuctionNotEnded);
 }
 
 

@@ -8,17 +8,16 @@ mod Vault {
         token::erc20::{ERC20Component, interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait,}},
         utils::serde::SerializedAppend
     };
-    use pitch_lake_starknet::contracts::{
-        vault::{types::{VaultType, VaultError}, interface::IVault},
+    use pitch_lake_starknet::{
+        vault::interface::IVault,
         option_round::{
-            contract::OptionRound,
-            types::{
-                OptionRoundErrorIntoFelt252, OptionRoundConstructorParams, StartAuctionParams,
-                SettleOptionRoundParams, OptionRoundState
-            },
-            interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
+            contract::OptionRound, interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
         },
-        market_aggregator::{IMarketAggregatorDispatcher}
+        contracts::{market_aggregator::{IMarketAggregatorDispatcher}},
+        types::{
+            OptionRoundConstructorParams, StartAuctionParams, SettleOptionRoundParams,
+            OptionRoundState, VaultType, Errors
+        }
     };
 
     // The type of vault
@@ -298,7 +297,7 @@ mod Vault {
 
         /// State transition
 
-        fn start_auction(ref self: ContractState) -> Result<u256, VaultError> {
+        fn start_auction(ref self: ContractState) -> u256 {
             // Get a dispatcher for the current option round
             let current_round_id = self.current_option_round_id.read();
             let current_round = self.get_round_dispatcher(current_round_id);
@@ -310,12 +309,19 @@ mod Vault {
             let total_options_available = self
                 .calculate_total_options_available(starting_liquidity);
 
-            // @note replace with individual getters, add strike price
+            // Update total_locked_liquidity
+            self.total_locked_balance.write(starting_liquidity);
+
+            // Update total_unlocked_liquidity
+            self.total_unlocked_balance.write(0);
+
+            // Fetch params to start the auction
             let reserve_price = self.fetch_reserve_price();
             let cap_level = self.fetch_cap_level();
             let strike_price = self.fetch_strike_price();
-            // Try to start the auction on the current round
-            let res = current_round
+
+            // Start the auction on the current round and return the total options available
+            current_round
                 .start_auction(
                     StartAuctionParams {
                         total_options_available,
@@ -324,74 +330,54 @@ mod Vault {
                         cap_level,
                         strike_price
                     }
-                );
-            match res {
-                Result::Ok(total_options_available) => {
-                    // Update total_locked_liquidity
-                    self.total_locked_balance.write(starting_liquidity);
-
-                    // Update total_unlocked_liquidity
-                    self.total_unlocked_balance.write(0);
-
-                    // Return the total options available
-                    Result::Ok(total_options_available)
-                },
-                Result::Err(err) => { Result::Err(VaultError::OptionRoundError(err)) }
-            }
+                )
         }
 
-        fn end_auction(ref self: ContractState) -> Result<(u256, u256), VaultError> {
+        fn end_auction(ref self: ContractState) -> (u256, u256) {
             // Get a dispatcher for the current round
             let current_round_id = self.current_option_round_id();
             let current_round = self.get_round_dispatcher(current_round_id);
 
-            // Try to end the auction on the option round
-            let res = current_round.end_auction();
-            match res {
-                Result::Ok((
-                    clearing_price, total_options_sold
-                )) => {
-                    // Amount of liquidity currently locked and unlocked
-                    let mut locked_liquidity = self.get_total_locked_balance();
-                    let mut unlocked_liquidity = self.get_total_unlocked_balance();
+            // End the auction on the option round
+            let (clearing_price, total_options_sold) = current_round.end_auction();
 
-                    // Premiums earned from the auction are unlocked for liquidity providers to withdraw
-                    unlocked_liquidity += current_round.total_premiums();
+            // Get the amount of liquidity currently locked & unlocked
+            let mut locked_liquidity = self.get_total_locked_balance();
+            let mut unlocked_liquidity = self.get_total_unlocked_balance();
 
-                    // Handle any unsold liquidity
-                    let total_options_available = current_round.get_total_options_available();
-                    if (total_options_sold < total_options_available) {
-                        // Number of options that did not sell
-                        let unsold_options = total_options_available - total_options_sold;
+            // Premiums earned from the auction are unlocked for liquidity providers to withdraw
+            unlocked_liquidity += current_round.total_premiums();
 
-                        // Portion of the locked liquidity these unsold options represent
-                        // @note Consider adding precision factor
-                        let unsold_liquidity = (locked_liquidity * unsold_options)
-                            / total_options_available;
+            // Handle any unsold liquidity
+            let total_options_available = current_round.get_total_options_available();
+            if (total_options_sold < total_options_available) {
+                // Number of options that did not sell
+                let unsold_options = total_options_available - total_options_sold;
 
-                        // Decrement locked liquidity by the unsold liquidity and
-                        // update the storage variable
-                        locked_liquidity -= unsold_liquidity;
-                        self.total_locked_balance.write(locked_liquidity);
+                // Portion of the locked liquidity these unsold options represent
+                let unsold_liquidity = (locked_liquidity * unsold_options)
+                    / total_options_available;
 
-                        // Increment unlocked liquidity by the unsold liquidity
-                        unlocked_liquidity += unsold_liquidity;
+                // Decrement locked liquidity by the unsold liquidity and
+                // update the storage variable
+                locked_liquidity -= unsold_liquidity;
+                self.total_locked_balance.write(locked_liquidity);
 
-                        // Store how the unsold liquidity for this round for future balance calculations
-                        self.unsold_liquidity.write(current_round_id, unsold_liquidity);
-                    }
+                // Increment unlocked liquidity by the unsold liquidity
+                unlocked_liquidity += unsold_liquidity;
 
-                    // Update the total_unlocked_balance storage variable
-                    self.total_unlocked_balance.write(unlocked_liquidity);
-
-                    // Return the clearing_price & total_options_sold
-                    return Result::Ok((clearing_price, total_options_sold));
-                },
-                Result::Err(e) => { Result::Err(VaultError::OptionRoundError(e)) }
+                // Store how much liquidity goes unsold for future balance calculations
+                self.unsold_liquidity.write(current_round_id, unsold_liquidity);
             }
+
+            // Update the total_unlocked_balance storage variable
+            self.total_unlocked_balance.write(unlocked_liquidity);
+
+            // Return the clearing_price & total_options_sold
+            (clearing_price, total_options_sold)
         }
 
-        fn settle_option_round(ref self: ContractState) -> Result<u256, VaultError> {
+        fn settle_option_round(ref self: ContractState) -> u256 {
             // Get a dispatcher for the current option round
             let current_round_id = self.current_option_round_id();
             let current_round_dispatcher = self.get_round_dispatcher(current_round_id);
@@ -399,37 +385,30 @@ mod Vault {
             // Fetch the price to settle the option round
             let settlement_price = self.fetch_settlement_price();
 
-            // Try to settle the option round
-            let res = current_round_dispatcher
+            // Settle the option round
+            let total_payout = current_round_dispatcher
                 .settle_option_round(SettleOptionRoundParams { settlement_price });
-            match res {
-                Result::Ok(total_payout) => {
-                    // @dev Checking if payout > 0 to save gas if there is no payout
-                    let mut remaining_liquidity = self.get_total_locked_balance();
-                    if (total_payout > 0) {
-                        // Transfer total payout from the vault to the settled option round
-                        let eth_dispatcher = self.get_eth_dispatcher();
-                        eth_dispatcher
-                            .transfer(current_round_dispatcher.contract_address, total_payout);
-                        // The remaining liquidity for a round is how much was locked minus the total payout
-                        remaining_liquidity -= total_payout;
-                    }
 
-                    // The locked liquidity becomes 0 and the remaining liquidity becomes unlocked
-                    self.total_locked_balance.write(0);
-                    let total_unlocked_balance_before = self.get_total_unlocked_balance();
-                    self
-                        .total_unlocked_balance
-                        .write(remaining_liquidity + total_unlocked_balance_before);
+            // @dev The remaining liquidity for a round is how much was locked minus the total payout
+            let mut remaining_liquidity = self.get_total_locked_balance();
 
-                    // Deploy next option round contract, update current round id & round address mapping
-                    self.deploy_next_round();
-
-                    // Return the total payout of the option round
-                    Result::Ok(total_payout)
-                },
-                Result::Err(err) => { Result::Err(VaultError::OptionRoundError(err)) },
+            // If there is a payout, transfer it from the vault to the settled option round
+            if (total_payout > 0) {
+                let eth_dispatcher = self.get_eth_dispatcher();
+                eth_dispatcher.transfer(current_round_dispatcher.contract_address, total_payout);
+                remaining_liquidity -= total_payout;
             }
+
+            // The remaining liquidity becomes unlocked and the locked liquidity becomes 0
+            let total_unlocked_balance_before = self.get_total_unlocked_balance();
+            self.total_unlocked_balance.write(total_unlocked_balance_before + remaining_liquidity);
+            self.total_locked_balance.write(0);
+
+            // Deploy next option round contract, update current round id & round address mapping
+            self.deploy_next_round();
+
+            // Return the total payout
+            total_payout
         }
 
         /// Liquidity provider functions
@@ -437,7 +416,7 @@ mod Vault {
         // Caller deposits liquidity on behalf of the liquidity provider for the upcoming round
         fn deposit_liquidity(
             ref self: ContractState, amount: u256, liquidity_provider: ContractAddress
-        ) -> Result<u256, VaultError> {
+        ) -> u256 {
             // The liquidity provider's total unlocked balance before and after the deposit
             let lp_unlocked_balance_before = self.get_lp_unlocked_balance(liquidity_provider);
             let lp_unlocked_balance_after = lp_unlocked_balance_before + amount;
@@ -476,11 +455,11 @@ mod Vault {
                 );
 
             // Return the liquidity provider's updated unlocked balance
-            Result::Ok(lp_unlocked_balance_after)
+            lp_unlocked_balance_after
         }
 
         // Caller withdraws liquidity from their unlocked balance
-        fn withdraw_liquidity(ref self: ContractState, amount: u256) -> Result<u256, VaultError> {
+        fn withdraw_liquidity(ref self: ContractState, amount: u256) -> u256 {
             // Get the liquidity provider's unlocked balance broken up into its components
             let liquidity_provider = get_caller_address();
             let (remaining_liquidity, collectable_balance, upcoming_round_deposit) = self
@@ -490,9 +469,7 @@ mod Vault {
                 + upcoming_round_deposit;
 
             // Assert the amount being withdrawn is <= the liquidity provider's unlocked balance
-            if (amount > lp_unlocked_balance) {
-                return Result::Err(VaultError::InsufficientBalance);
-            }
+            assert(amount <= lp_unlocked_balance, Errors::InsufficientBalance);
 
             // If the amount being withdrawn is <= the upcoming round deposit, we only need to update the
             // liquidity provider's position in storage for the upcoming round
@@ -564,7 +541,7 @@ mod Vault {
                 );
 
             // Return the value of the caller's unlocked position after the withdrawal
-            Result::Ok(updated_lp_unlocked_balance)
+            updated_lp_unlocked_balance
         }
 
         /// LP token related
@@ -577,8 +554,8 @@ mod Vault {
 
         fn convert_lp_tokens_to_newer_lp_tokens(
             ref self: ContractState, source_round: u256, target_round: u256, amount: u256
-        ) -> Result<u256, VaultError> {
-            Result::Ok(1)
+        ) -> u256 {
+            1
         }
     }
 

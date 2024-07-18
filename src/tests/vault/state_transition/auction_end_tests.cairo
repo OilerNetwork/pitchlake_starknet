@@ -6,20 +6,14 @@ use starknet::{
 };
 use openzeppelin::token::erc20::interface::{ERC20ABIDispatcherTrait,};
 use pitch_lake_starknet::{
-    contracts::{
-        components::eth::Eth,
-        vault::{
-            contract::Vault,
-            interface::{
-                IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait,
-                IVaultSafeDispatcherTrait, VaultError
-            }
-        },
-        option_round::{
-            interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,},
-            types::{OptionRoundState, OptionRoundError}
+    library::eth::Eth, types::{OptionRoundState, Errors},
+    vault::{
+        contract::Vault,
+        interface::{
+            IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcherTrait
         },
     },
+    option_round::{interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,},},
     tests::{
         utils::{
             helpers::{
@@ -70,11 +64,7 @@ fn test_ending_auction_before_it_starts_fails() {
     let (mut vault_facade, _) = setup_facade();
 
     // Try to end auction before it starts
-    let expected_error: felt252 = OptionRoundError::NoAuctionToEnd.into();
-    match vault_facade.end_auction_raw() {
-        Result::Ok(_) => { panic!("Error expected") },
-        Result::Err(err) => { assert(err.into() == expected_error, 'Error Mismatch') }
-    }
+    vault_facade.end_auction_expect_error(Errors::NoAuctionToEnd);
 }
 
 // @note This test will not pass until auction start is implemented
@@ -86,11 +76,7 @@ fn test_ending_auction_before_auction_end_date_fails() {
     accelerate_to_auctioning(ref vault);
 
     // Try to end auction before auction end date
-    let expected_error: felt252 = OptionRoundError::AuctionEndDateNotReached.into();
-    match vault.end_auction_raw() {
-        Result::Ok(_) => { panic!("Error expected") },
-        Result::Err(err) => { assert(err.into() == expected_error, 'Error Mismatch') }
-    }
+    vault.end_auction_expect_error(Errors::AuctionEndDateNotReached);
 }
 
 // Test ending the auction after it already ended fails
@@ -100,11 +86,7 @@ fn test_ending_auction_while_round_running_fails() {
     let (mut vault_facade, _) = setup_test_running();
 
     // Try to end auction after it has already ended
-    let expected_error: felt252 = OptionRoundError::NoAuctionToEnd.into();
-    match vault_facade.end_auction_raw() {
-        Result::Ok(_) => { panic!("Error expected") },
-        Result::Err(err) => { assert(err.into() == expected_error, 'Error Mismatch') }
-    }
+    vault_facade.end_auction_expect_error(Errors::NoAuctionToEnd);
 }
 
 // Test ending the auction after the auction ends fails (next state)
@@ -117,11 +99,7 @@ fn test_ending_auction_while_round_settled_fails() {
     accelerate_to_settled(ref vault_facade, 0);
 
     // Try to end auction before round transition period is over
-    let expected_error: felt252 = OptionRoundError::NoAuctionToEnd.into();
-    match vault_facade.end_auction_raw() {
-        Result::Ok(_) => { panic!("Error expected") },
-        Result::Err(err) => { assert(err.into() == expected_error, 'Error Mismatch') }
-    }
+    vault_facade.end_auction_expect_error(Errors::NoAuctionToEnd);
 }
 
 

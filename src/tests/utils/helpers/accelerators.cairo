@@ -3,22 +3,20 @@ use starknet::{
     testing::{set_block_timestamp, set_contract_address}
 };
 use pitch_lake_starknet::{
+    types::{StartAuctionParams, OptionRoundState, VaultType},
+    vault::{contract::Vault, interface::{IVaultDispatcher, IVaultDispatcherTrait}},
+    option_round::{
+        contract::{OptionRound},
+        interface::{
+            IOptionRoundDispatcher, IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher,
+            IOptionRoundSafeDispatcherTrait
+        },
+    },
     contracts::{
         market_aggregator::{
             MarketAggregator, IMarketAggregator, IMarketAggregatorDispatcher,
             IMarketAggregatorDispatcherTrait, IMarketAggregatorSafeDispatcher,
             IMarketAggregatorSafeDispatcherTrait
-        },
-        vault::{
-            contract::Vault, types::VaultType, interface::{IVaultDispatcher, IVaultDispatcherTrait}
-        },
-        option_round::{
-            contract::{OptionRound},
-            interface::{
-                IOptionRoundDispatcher, IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher,
-                IOptionRoundSafeDispatcherTrait
-            },
-            types::{StartAuctionParams, OptionRoundState,}
         },
     },
     tests::{
@@ -143,7 +141,6 @@ fn accelerate_to_running_custom_option_round(
     set_contract_address(vault_address);
     set_block_timestamp(auction_start_date + 1);
 
-    //Should this be called from the option round??
     option_round
         .start_auction(
             StartAuctionParams {
@@ -157,7 +154,7 @@ fn accelerate_to_running_custom_option_round(
 
     // Make bids
     let mut option_bidders = option_bidders_get(bid_amounts.len()).span();
-    option_round.place_bids_raw(bid_amounts, bid_prices, option_bidders);
+    option_round.place_bids(bid_amounts, bid_prices, option_bidders);
 
     // End auction
     set_contract_address(vault_address);
@@ -205,10 +202,7 @@ fn timeskip_past_round_transition_period(ref self: VaultFacade) {
 fn timeskip_and_start_auction(ref self: VaultFacade) -> u256 {
     timeskip_past_round_transition_period(ref self);
     set_contract_address(bystander());
-    match self.vault_dispatcher.start_auction() {
-        Result::Ok(options_available) => options_available,
-        Result::Err(e) => panic(array!['Error:', e.into()])
-    }
+    self.vault_dispatcher.start_auction()
 }
 
 // Jump to the auction end date and end the auction
@@ -216,10 +210,7 @@ fn timeskip_and_end_auction(ref self: VaultFacade) -> (u256, u256) {
     let mut current_round = self.get_current_round();
     set_block_timestamp(current_round.get_auction_end_date() + 1);
     set_contract_address(bystander());
-    match self.vault_dispatcher.end_auction() {
-        Result::Ok((clearing_price, options_sold)) => (clearing_price, options_sold),
-        Result::Err(e) => panic(array!['Error:', e.into()])
-    }
+    self.vault_dispatcher.end_auction()
 }
 
 // Jump to the option expriry date and settle the round

@@ -1,8 +1,9 @@
 use core::array::SpanTrait;
 use starknet::{testing, ContractAddress,};
-use pitch_lake_starknet::contracts::{vault::contract::Vault, option_round::contract::OptionRound,};
-use openzeppelin::token::erc20::{ERC20Component, ERC20Component::Transfer};
-use openzeppelin::{utils::serde::SerializedAppend,};
+use openzeppelin::{
+    utils::serde::SerializedAppend, token::erc20::{ERC20Component, ERC20Component::Transfer}
+};
+use pitch_lake_starknet::{vault::contract::Vault, option_round::contract::OptionRound,};
 use debug::PrintTrait;
 // Helpers
 

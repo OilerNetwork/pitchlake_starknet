@@ -7,19 +7,15 @@ use openzeppelin::{
     utils::serde::SerializedAppend, token::erc20::interface::{ERC20ABIDispatcherTrait}
 };
 use pitch_lake_starknet::{
+    types::Errors, library::eth::Eth,
+    vault::{
+        contract::Vault,
+        interface::{
+            IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcherTrait
+        }
+    },
+    option_round::{interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,}},
     contracts::{
-        vault::{
-            contract::Vault,
-            interface::{
-                IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait,
-                IVaultSafeDispatcherTrait
-            }
-        },
-        components::eth::Eth,
-        option_round::{
-            types::OptionRoundError,
-            interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,}
-        },
         market_aggregator::{
             IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait,
             IMarketAggregatorSafeDispatcher, IMarketAggregatorSafeDispatcherTrait
@@ -76,11 +72,7 @@ fn test_settling_option_round_while_round_auctioning_fails() {
     accelerate_to_auctioning(ref vault_facade);
 
     // Settle option round before auction ends
-    let expected_error: felt252 = OptionRoundError::OptionSettlementDateNotReached.into();
-    match vault_facade.settle_option_round_raw() {
-        Result::Ok(_) => { panic!("Error expected") },
-        Result::Err(err) => { assert(err.into() == expected_error, 'Error Mismatch') }
-    }
+    vault_facade.settle_option_round_expect_error(Errors::OptionSettlementDateNotReached);
 }
 
 // Test settling an option round before the option expiry date fails
@@ -90,11 +82,7 @@ fn test_settling_option_round_before_settlement_date_fails() {
     let (mut vault_facade, _) = setup_test_running();
 
     // Settle option round before expiry
-    let expected_error: felt252 = OptionRoundError::OptionSettlementDateNotReached.into();
-    match vault_facade.settle_option_round_raw() {
-        Result::Ok(_) => { panic!("Error expected") },
-        Result::Err(err) => { assert(err.into() == expected_error, 'Error Mismatch') }
-    }
+    vault_facade.settle_option_round_expect_error(Errors::OptionSettlementDateNotReached);
 }
 
 // Test settling an option round while round settled fails
@@ -107,13 +95,8 @@ fn test_settling_option_round_while_settled_fails() {
     accelerate_to_settled(ref vault_facade, 0x123);
 
     // Settle option round after it has already settled
-    let expected_error: felt252 = OptionRoundError::OptionRoundAlreadySettled.into();
-    match vault_facade.settle_option_round_raw() {
-        Result::Ok(_) => { panic!("Error expected") },
-        Result::Err(err) => { assert(err.into() == expected_error, 'Error Mismatch') }
-    }
+    vault_facade.settle_option_round_expect_error(Errors::OptionRoundAlreadySettled);
 }
-
 
 /// Event Tests ///
 

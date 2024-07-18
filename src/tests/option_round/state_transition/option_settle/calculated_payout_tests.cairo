@@ -1,5 +1,5 @@
 use pitch_lake_starknet::{
-    contracts::utils::utils::{min, max},
+    library::utils::{min, max},
     tests::{
         utils::{
             helpers::{

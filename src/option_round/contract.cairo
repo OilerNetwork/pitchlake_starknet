@@ -1,28 +1,24 @@
 #[starknet::contract]
 mod OptionRound {
-    use core::array::ArrayTrait;
-    use core::starknet::event::EventEmitter;
-    use core::option::OptionTrait;
-    use core::fmt::{Display, Formatter, Error};
+    use core::{
+        array::ArrayTrait, fmt::{Display, Error, Formatter}, num::traits::one::One,
+        option::OptionTrait, starknet::event::EventEmitter,
+    };
     use openzeppelin::token::erc20::{
-        ERC20Component, interface::{IERC20Metadata, ERC20ABIDispatcher, ERC20ABIDispatcherTrait,}
+        ERC20Component, interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait, IERC20Metadata},
     };
-    use starknet::{ContractAddress, get_caller_address, get_contract_address, get_block_timestamp};
-    use pitch_lake_starknet::contracts::{
-        market_aggregator::{IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait},
-        {
-            components::red_black_tree::{RBTreeComponent, RBTreeComponent::Node},
-            utils::utils::{min, max}
+    use pitch_lake_starknet::{
+        library::{
+            utils::{max, min}, red_black_tree::{RBTreeComponent, RBTreeComponent::Node}
         },
-        vault::{interface::{IVaultDispatcher, IVaultDispatcherTrait}, types::VaultType},
-        option_round::{
-            interface::IOptionRound,
-            types::{
-                Bid, OptionRoundState, OptionRoundConstructorParams, StartAuctionParams,
-                SettleOptionRoundParams, OptionRoundError
-            }
-        }
+        option_round::interface::IOptionRound,
+        vault::{interface::{IVaultDispatcher, IVaultDispatcherTrait},},
+        types::{
+            Bid, Errors, OptionRoundConstructorParams, OptionRoundState, SettleOptionRoundParams,
+            StartAuctionParams, VaultType
+        },
     };
+    use starknet::{get_block_timestamp, get_caller_address, get_contract_address, ContractAddress,};
 
     // ERC20 Component
     component!(path: ERC20Component, storage: erc20, event: ERC20Event);
@@ -376,26 +372,26 @@ mod OptionRound {
         // From the partial bids, takes unsold value (total-sold)*price and adds to refundable_balance
         // From tokenizable bids, takes (clearing_price-bid_price)*amount and adds to refundable_balance
         // From refundable bids, adds the full amount*price to refundable_balance.
-
         fn get_refundable_bids_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
             // Get the refundable, tokenizable, and partially sold bid ids
             let (mut tokenizable_bids, mut refundable_bids, partial_bid_id) = self
                 .inspect_options_for(option_buyer);
 
-            // Check and sum bids that are not refunded yet
+            // Total refundable balance
             let mut refundable_balance = 0;
-            let clearing_price = self.get_auction_clearing_price();
+
             // Add refundable balance from Partial Bid if it's there
-            if (partial_bid_id != 0) {
+            if (partial_bid_id.is_non_zero()) {
                 let partial_bid: Bid = self.bids_tree._find(partial_bid_id);
 
-                //Since only clearing_bid can be partially sold, the clearing_bid_amount_sold is saved on the tree
+                // @dev Only the clearing_bid can be partially sold, the clearing_bid_amount_sold is saved in the tree
                 let options_sold = self.bids_tree.clearing_bid_amount_sold.read();
                 if (!partial_bid.is_refunded) {
                     refundable_balance += (partial_bid.amount - options_sold) * partial_bid.price;
                 }
             }
-            // Add refundable balance from all (not already refunded) refundable bids
+
+            // Add refundable balances from all (not already refunded) refundable bids
             loop {
                 match refundable_bids.pop_front() {
                     Option::Some(bid) => {
@@ -406,15 +402,14 @@ mod OptionRound {
                     Option::None => { break; }
                 }
             };
-            // Add refundable balance from all (not already refunded) over bids
+
+            // Add refundable balances from all (not already refunded) over bids
             // @dev An over bid in this context is when a bid's price is > the clearing price
-
-            //Add difference from tokenizable bids only if the state is not open or auctioning
-
+            let clearing_price = self.get_auction_clearing_price();
             loop {
                 match tokenizable_bids.pop_front() {
                     Option::Some(bid) => {
-                        if (!bid.is_refunded) {
+                        if (bid.price > clearing_price && !bid.is_refunded) {
                             refundable_balance += bid.amount * (bid.price - clearing_price)
                         }
                     },
@@ -471,7 +466,7 @@ mod OptionRound {
         //  u256: number of options held by option_buyer
         //  #Description
         //  Returns sum of total tokenizable options and option round tokens held by option_buyer
-        //  
+        //
         fn get_total_options_balance_for(
             self: @ContractState, option_buyer: ContractAddress
         ) -> u256 {
@@ -547,7 +542,7 @@ mod OptionRound {
         // #Params
         // @total_options_available: u256 Number of options to be made available for bidding
         // @starting_liquidity: u256 Liquidity provided to be sold
-        // @reserve_price: u256, Reserve price for the auction, this is the minimum price 
+        // @reserve_price: u256, Reserve price for the auction, this is the minimum price
         // @cap_level: u256, The payout cap for purchased options
         // @strike_price: u256, The settlement amount
         // #Return
@@ -558,32 +553,25 @@ mod OptionRound {
         // Updates state to auctioning, writes auction parameters to storage, emits AuctionStart event
         // @dev Params are set in the constructor and in this function in case newer values from
         // Fossil are produced in during the round transition period
-        fn start_auction(
-            ref self: ContractState, params: StartAuctionParams
-        ) -> Result<u256, OptionRoundError> {
+        fn start_auction(ref self: ContractState, params: StartAuctionParams) -> u256 {
             // Assert caller is Vault
-            if (!self.is_caller_the_vault()) {
-                return Result::Err(OptionRoundError::CallerIsNotVault);
-            }
+            self.assert_caller_is_vault();
 
             // Assert state is Open
-            if (self.get_state() != OptionRoundState::Open) {
-                return Result::Err(OptionRoundError::AuctionAlreadyStarted);
-            }
+            assert(self.get_state() == OptionRoundState::Open, Errors::AuctionAlreadyStarted);
 
+            // Assert now is >= auction start date
+            let now = get_block_timestamp();
+            let start_date = self.get_auction_start_date();
+            assert(now >= start_date, Errors::AuctionStartDateNotReached);
+
+            // Destructure params
             let StartAuctionParams { total_options_available,
             starting_liquidity,
             reserve_price,
             cap_level,
             strike_price } =
                 params;
-
-            // Assert now is >= auction start date
-            let now = get_block_timestamp();
-            let start_date = self.get_auction_start_date();
-            if (now < start_date) {
-                return Result::Err(OptionRoundError::AuctionStartDateNotReached);
-            }
 
             // Set starting liquidity & total options available
             self.starting_liquidity.write(starting_liquidity);
@@ -594,22 +582,25 @@ mod OptionRound {
             self.cap_level.write(cap_level);
             self.strike_price.write(strike_price);
 
-            // Update state to Auctioning
-            self.state.write(OptionRoundState::Auctioning);
-
             // Update auction end date if the auction starts later than expected
-            self.auction_end_date.write(self.get_auction_end_date() + now - start_date);
+            if (now > start_date) {
+                let end_date = self.get_auction_end_date();
+                self.auction_end_date.write(end_date + now - start_date);
+            }
+
+            // Update state to Auctioning
+            self.set_state(OptionRoundState::Auctioning);
 
             // Emit auction start event
             self
                 .emit(
                     Event::AuctionStarted(
-                        AuctionStarted { total_options_available: params.total_options_available }
+                        AuctionStarted { total_options_available: total_options_available }
                     )
                 );
 
             // Return the total options available
-            Result::Ok(total_options_available)
+            total_options_available
         }
 
 
@@ -622,29 +613,23 @@ mod OptionRound {
         // Check the caller is vault, state is 'Auctioning' and auction end time has passed
         // Updates state to 'Running', determines clearing price, sends premiums collected back to vault
         // and emits an AuctionEnded event
-        fn end_auction(ref self: ContractState) -> Result<(u256, u256), OptionRoundError> {
+        fn end_auction(ref self: ContractState) -> (u256, u256) {
             // Assert caller is Vault
-            if (!self.is_caller_the_vault()) {
-                return Result::Err(OptionRoundError::CallerIsNotVault);
-            }
+            self.assert_caller_is_vault();
 
             // Assert state is Auctioning
-            if (self.get_state() != OptionRoundState::Auctioning) {
-                return Result::Err(OptionRoundError::NoAuctionToEnd);
-            }
+            assert(self.get_state() == OptionRoundState::Auctioning, Errors::NoAuctionToEnd);
 
             // Assert now is >= auction end date
             let now = get_block_timestamp();
             let end_date = self.get_auction_end_date();
-            if (now < end_date) {
-                return Result::Err(OptionRoundError::AuctionEndDateNotReached);
-            }
-
-            // Update state to Running
-            self.state.write(OptionRoundState::Running);
+            assert(now >= end_date, Errors::AuctionEndDateNotReached);
 
             // Update option settlement date if the auction ends later than expected
-            self.option_settlement_date.write(self.get_option_settlement_date() + now - end_date);
+            if (now > end_date) {
+                let settlement_date = self.get_option_settlement_date();
+                self.option_settlement_date.write(settlement_date + now - end_date);
+            }
 
             // Calculate clearing price & total options sold
             let (clearing_price, total_options_sold) = self.update_clearing_price();
@@ -653,12 +638,14 @@ mod OptionRound {
             let eth = self.get_eth_dispatcher();
             eth.transfer(self.vault_address(), self.total_premiums());
 
+            // Update state to Running
+            self.set_state(OptionRoundState::Running);
+
             // Emit auction ended event
-            // @note Should we emit total options sold ?
             self.emit(Event::AuctionEnded(AuctionEnded { clearing_price }));
 
             // Return clearing price & total options sold
-            Result::Ok((clearing_price, total_options_sold))
+            (clearing_price, total_options_sold)
         }
 
         // fn settle_option_round
@@ -670,39 +657,35 @@ mod OptionRound {
         // Settle the option round
         // Checks caller is vault, state is 'Running' and settlement date is reached
         // Updates state to 'Settled',calculates payout, updates storage and emits 'OptionRoundSettled' event
-
-        fn settle_option_round(
-            ref self: ContractState, params: SettleOptionRoundParams
-        ) -> Result<u256, OptionRoundError> {
+        fn settle_option_round(ref self: ContractState, params: SettleOptionRoundParams) -> u256 {
             // Assert caller is Vault
-            if (!self.is_caller_the_vault()) {
-                return Result::Err(OptionRoundError::CallerIsNotVault);
-            }
+            self.assert_caller_is_vault();
 
             // Assert now is >= option settlement date
             let now = get_block_timestamp();
-            if (now < self.get_option_settlement_date()) {
-                return Result::Err(OptionRoundError::OptionSettlementDateNotReached);
-            }
+            let settlement_date = self.get_option_settlement_date();
+            assert(now >= settlement_date, Errors::OptionSettlementDateNotReached);
 
             // Assert state is Running
-            if (self.get_state() != OptionRoundState::Running) {
-                return Result::Err(OptionRoundError::OptionRoundAlreadySettled);
-            }
+            assert(
+                self.get_state() == OptionRoundState::Running, Errors::OptionRoundAlreadySettled
+            );
 
-            // Update state to Settled
-            self.state.write(OptionRoundState::Settled);
+            // Destructure params
+            let SettleOptionRoundParams { settlement_price } = params;
 
             // Calculate and set total payout
-            let SettleOptionRoundParams { settlement_price } = params;
             let total_payout = self.calculate_payout(settlement_price);
             self.total_payout.write(total_payout);
+
+            // Update state to Settled
+            self.set_state(OptionRoundState::Settled);
 
             // Emit option settled event
             self.emit(Event::OptionRoundSettled(OptionRoundSettled { settlement_price }));
 
             // Return total payout
-            Result::Ok(total_payout)
+            total_payout
         }
 
         /// Option bidder functions
@@ -719,32 +702,30 @@ mod OptionRound {
         // and the price is above reserve price
         // Gets bidder nonce for the caller, and the bids_tree nonce for the new bid, creates a new id: hash(nonce,address) for the bid
         // Inserts new bid into the tree, transfers eth, and emits BidAccepted event
+        fn place_bid(ref self: ContractState, amount: u256, price: u256) -> Bid {
+            // Assert state is Auctioning
+            // @note BidRejcted event if reverted txns emit events, dont think they do
+            assert(
+                self.get_state() == OptionRoundState::Auctioning, Errors::BiddingWhileNotAuctioning
+            );
+            // Assert now is < auction end date
+            // @dev This is for if a bid is placed before the end_auction function is called
+            // the auction end date has passed
+            assert(
+                get_block_timestamp() < self.get_auction_end_date(),
+                Errors::BiddingWhileNotAuctioning
+            );
 
-        fn place_bid(
-            ref self: ContractState, amount: u256, price: u256
-        ) -> Result<Bid, OptionRoundError> {
+            // Assert bid if for more than 0 options
+            // @note BidRejcted event if reverted txns emit events, dont think they do
+            assert(amount.is_non_zero(), Errors::BidAmountZero);
+
+            // Assert bid price is above reserve price
+            // @note BidRejcted event if reverted txns emit events, dont think they do
+            assert(price >= self.get_reserve_price(), Errors::BidBelowReservePrice);
+
+            // Insert bid into storage (red-black tree) and update bidder nonce
             let bidder = get_caller_address();
-
-            //Assert round is auctioning
-            if (self.get_state() != OptionRoundState::Auctioning
-                || self.get_auction_end_date() < get_block_timestamp()) {
-                self.emit(Event::BidRejected(BidRejected { account: bidder, amount, price }));
-                return Result::Err(OptionRoundError::BiddingWhileNotAuctioning);
-            }
-
-            //Assert bid if for more than 0 options
-            if (amount.is_zero()) {
-                self.emit(Event::BidRejected(BidRejected { account: bidder, amount, price }));
-                return Result::Err(OptionRoundError::BidAmountZero);
-            }
-            //Assert bid price is above reserve price
-            if (price < self.get_reserve_price()) {
-                self.emit(Event::BidRejected(BidRejected { account: bidder, amount, price }));
-                return Result::Err(OptionRoundError::BidBelowReservePrice);
-            }
-
-            //Create and store bid, then update bidder nonce
-
             let nonce = self.bidder_nonces.read(bidder);
             let bid = Bid {
                 id: self.create_bid_id(bidder, nonce),
@@ -758,11 +739,15 @@ mod OptionRound {
             self.bids_tree._insert(bid);
             self.bidder_nonces.write(bidder, nonce + 1);
 
-            //Transfer Eth
+            // Transfer Eth
             let eth_dispatcher = self.get_eth_dispatcher();
             eth_dispatcher.transfer_from(bidder, get_contract_address(), amount * price);
+
+            // Emit bid accepted event
             self.emit(Event::BidAccepted(BidAccepted { nonce, account: bidder, amount, price }));
-            Result::Ok(bid)
+
+            // Return the bid
+            bid
         }
 
         // fn update_bid
@@ -780,24 +765,24 @@ mod OptionRound {
         // New nonce is necessary to avoid bidders coming in early with low bids and updating them later
         fn update_bid(
             ref self: ContractState, bid_id: felt252, new_amount: u256, new_price: u256
-        ) -> Result<Bid, OptionRoundError> {
-            //Assert round is still auctioning
-            if (self.get_state() != OptionRoundState::Auctioning) {
-                return Result::Err(OptionRoundError::BiddingWhileNotAuctioning);
-            }
+        ) -> Bid {
+            // Assert round is Auctioning
+            assert(
+                self.get_state() == OptionRoundState::Auctioning, Errors::BiddingWhileNotAuctioning
+            );
 
+            // Assert caller owns the bid being updated
             let old_node: Node = self.bids_tree.tree.read(bid_id);
-            //Assert bid owner is the caller
-            if (old_node.value.owner != get_caller_address()) {
-                return Result::Err(OptionRoundError::CallerNotBidOwner);
-            }
-            //Assert new bid is > old bid
-            let mut old_bid: Bid = old_node.value;
-            if (new_amount < old_bid.amount || new_price < old_bid.price) {
-                return Result::Err(OptionRoundError::BidCannotBeDecreased);
-            }
+            assert(old_node.value.owner == get_caller_address(), Errors::CallerNotBidOwner);
 
-            //Update bid
+            // Assert new bid is > old bid
+            let mut old_bid: Bid = old_node.value;
+            assert(
+                new_amount >= old_bid.amount && new_price >= old_bid.price,
+                Errors::BidCannotBeDecreased
+            );
+
+            // Update bid
             let mut new_bid: Bid = old_bid;
             new_bid.amount = new_amount;
             new_bid.price = new_price;
@@ -805,7 +790,7 @@ mod OptionRound {
             self.bids_tree._delete(bid_id);
             self.bids_tree._insert(new_bid);
 
-            //Charge the difference
+            // Charge the difference
             let difference = (new_amount * new_price) - (old_bid.amount * old_bid.price);
             let eth_dispatcher = self.get_eth_dispatcher();
             eth_dispatcher.transfer_from(get_caller_address(), get_contract_address(), difference);
@@ -819,13 +804,13 @@ mod OptionRound {
                             account: get_caller_address(),
                             old_amount: old_bid.amount,
                             old_price: old_bid.price,
-                            new_amount: new_bid.amount,
-                            new_price: new_bid.price
+                            new_amount: new_amount,
+                            new_price: new_price
                         }
                     )
                 );
 
-            Result::Ok(new_bid)
+            new_bid
         }
 
         // fn refund_unused_bids
@@ -839,20 +824,21 @@ mod OptionRound {
         // Uses internal helper to get list of refundable bids, checks for any partial refundable bids
         // Adds balances from all refundable bids and updates bids.is_refunded to true
         // Transfers total refundable_balance amount to the target address
-        fn refund_unused_bids(
-            ref self: ContractState, option_bidder: ContractAddress
-        ) -> Result<u256, OptionRoundError> {
+        fn refund_unused_bids(ref self: ContractState, option_bidder: ContractAddress) -> u256 {
+            // Assert state is Running or Settled
             let state = self.get_state();
-            if (state == OptionRoundState::Auctioning || state == OptionRoundState::Open) {
-                return Result::Err(OptionRoundError::AuctionNotEnded);
-            }
-            // Get the refundable, tokenizable, and partially sold bid ids
+            assert(
+                state == OptionRoundState::Running || state == OptionRoundState::Settled,
+                Errors::AuctionNotEnded
+            );
+
+            // Get the refundable & tokenizable bids, and the partially sold bid id if it exists
             let (mut tokenizable_bids, mut refundable_bids, partial_bid_id) = self
                 .inspect_options_for(option_bidder);
 
-            // Check and sum bids that are not refunded yet
+            // Total refunable balance
             let mut refundable_balance = 0;
-            let clearing_price = self.get_auction_clearing_price();
+
             // Add refundable balance from Partial Bid if it's there
             if (partial_bid_id != 0) {
                 let mut partial_bid: Bid = self.bids_tree._find(partial_bid_id);
@@ -865,7 +851,8 @@ mod OptionRound {
                     refundable_balance += (partial_bid.amount - options_sold) * partial_bid.price;
                 }
             }
-            // Add refundable balance from all (not already refunded) refundable bids
+
+            // Add refundable balances from all (not already refunded) refundable bids
             loop {
                 match refundable_bids.pop_front() {
                     Option::Some(bid) => {
@@ -879,12 +866,14 @@ mod OptionRound {
                     Option::None => { break; }
                 }
             };
-            // Add refundable balance from all (not already refunded) over bids
+
+            // Add refundable balances from all (not already refunded) over-bids
             // @dev An over bid in this context is when a bid's price is > the clearing price
+            let clearing_price = self.get_auction_clearing_price();
             loop {
                 match tokenizable_bids.pop_front() {
                     Option::Some(bid) => {
-                        if (!bid.is_refunded) {
+                        if (bid.price > clearing_price && !bid.is_refunded) {
                             let mut refundable_bid: Bid = self.bids_tree._find(bid.id);
                             refundable_bid.is_refunded = true;
                             self.bids_tree._update(refundable_bid.id, refundable_bid);
@@ -894,9 +883,12 @@ mod OptionRound {
                     Option::None => { break; }
                 }
             };
+
+            // Transfer the refundable balance to the bidder
             let eth_dispatcher = self.get_eth_dispatcher();
             eth_dispatcher.transfer(option_bidder, refundable_balance);
 
+            // Emit bids refunded event
             self
                 .emit(
                     Event::UnusedBidsRefunded(
@@ -904,7 +896,7 @@ mod OptionRound {
                     )
                 );
 
-            Result::Ok(refundable_balance)
+            refundable_balance
         }
 
         // fn exercise_options
@@ -919,26 +911,32 @@ mod OptionRound {
         // Checks for any option_round tokens owned by option_buyer, burns the tokens
         // Transfers sum of eth_amount from bids + eth_amount from option round tokens to the bidder,
         // Emits OptionsExercised event
-        fn exercise_options(ref self: ContractState) -> Result<u256, OptionRoundError> {
+        fn exercise_options(ref self: ContractState) -> u256 {
+            // Assert the round is Settled
+            assert(self.get_state() == OptionRoundState::Settled, Errors::OptionRoundNotSettled);
+
+            // Get the refundable & tokenizable bids, and the partially sold bid id if it exists
             let option_buyer = get_caller_address();
-            if (self.get_state() != OptionRoundState::Settled) {
-                return Result::Err(OptionRoundError::OptionRoundNotSettled);
-            }
             let (mut tokenizable_bids, _, partial_bid_id) = self.inspect_options_for(option_buyer);
+
+            // Total options to exercisable
             let mut options_to_exercise = 0;
-            //Check and sum bids that are not tokenized yet
-            //Add options balance from Partial Bid if it's there
+
+            // Add tokenizable options from Partial Bid if it's there
             if (partial_bid_id.is_non_zero()) {
                 let mut partial_bid: Bid = self.bids_tree._find(partial_bid_id);
                 //Since only clearing_bid can be partially sold, the clearing_bid_amount_sold is saved on the tree
 
                 if (!partial_bid.is_tokenized) {
+                    // @dev Only the clearing_bid can be partially sold, the clearing_bid_amount_sold is saved in the tree
                     let options_sold = self.bids_tree.clearing_bid_amount_sold.read();
                     options_to_exercise += options_sold;
                     partial_bid.is_tokenized = true;
                     self.bids_tree._update(partial_bid_id, partial_bid);
                 }
             }
+
+            // Add tokenizable options from all (not already tokenized) tokenizable bids
             loop {
                 match tokenizable_bids.pop_front() {
                     Option::Some(mut bid) => {
@@ -952,26 +950,36 @@ mod OptionRound {
                     Option::None => { break; }
                 }
             };
-            let token_balance = self.erc20.ERC20_balances.read(option_buyer);
-            self.burn(option_buyer, token_balance);
-            options_to_exercise += token_balance;
-            let eth_dispatcher = self.get_eth_dispatcher();
-            let amount_eth = options_to_exercise
-                * self.total_payout()
+
+            // Account for the tokenized options held by the bidder if there are any
+            let erc20_option_balance = self.erc20.ERC20_balances.read(option_buyer);
+            if (erc20_option_balance.is_non_zero()) {
+                options_to_exercise += erc20_option_balance;
+                self.burn(option_buyer, erc20_option_balance);
+            }
+
+            // The bidder's share of the total payout
+            let share_of_payout = self.total_payout()
+                * options_to_exercise
                 / self.bids_tree.get_total_options_sold();
-            eth_dispatcher.transfer(option_buyer, amount_eth);
+
+            // Transfer the payout share to the bidder
+            let eth = self.get_eth_dispatcher();
+            eth.transfer(option_buyer, share_of_payout);
+
+            // Emit options exercised event
             self
                 .emit(
                     Event::OptionsExercised(
                         OptionsExercised {
                             account: option_buyer,
                             num_options: options_to_exercise,
-                            amount: amount_eth
+                            amount: share_of_payout
                         }
                     )
                 );
 
-            Result::Ok(amount_eth)
+            share_of_payout
         }
 
         // fn tokenize_options
@@ -982,31 +990,39 @@ mod OptionRound {
         // #Description
         // Mint ERC20 tokens for winning bids
         // Checks that state is 'Ended' or after
-        // Gets tokenizable and partial tokenizable bids from internal helper, 
+        // Gets tokenizable and partial tokenizable bids from internal helper,
         // Sums total number of tokenizable options from both,updates all tokenizable bids.is_tokenized to true,
         // Mints option round tokens to the bidder and emits OptionsTokenized event
-        fn tokenize_options(ref self: ContractState) -> Result<u256, OptionRoundError> {
-            let option_buyer = get_contract_address();
-            //Check that the round is past auctioning state
+        fn tokenize_options(ref self: ContractState) -> u256 {
+            // Assert the round is Running or Settled
             let state = self.get_state();
-            if (state == OptionRoundState::Auctioning || state == OptionRoundState::Open) {
-                return Result::Err(OptionRoundError::AuctionNotEnded);
-            }
+            assert(
+                state == OptionRoundState::Running || state == OptionRoundState::Settled,
+                Errors::AuctionNotEnded
+            );
+
+            // Get the refundable & tokenizable bids, and the partially sold bid id if it exists
+            let option_buyer = get_contract_address();
             let (mut tokenizable_bids, _, partial_bid_id) = self.inspect_options_for(option_buyer);
+
+            // Total tokenizable options
             let mut options_to_mint = 0;
-            //Check and sum bids that are not tokenized yet
-            //Add options balance from Partial Bid if it's there
+
+            // Add tokenizable options from Partial Bid if it's there
             if (partial_bid_id.is_non_zero()) {
                 let mut partial_bid: Bid = self.bids_tree._find(partial_bid_id);
                 //Since only clearing_bid can be partially sold, the clearing_bid_amount_sold is saved on the tree
 
                 if (!partial_bid.is_tokenized) {
+                    // @dev Only the clearing_bid can be partially sold, the clearing_bid_amount_sold is saved on the tree
                     let options_sold = self.bids_tree.clearing_bid_amount_sold.read();
                     options_to_mint += options_sold;
                     partial_bid.is_tokenized = true;
                     self.bids_tree._update(partial_bid_id, partial_bid);
                 }
             }
+
+            // Add tokenizable options from all (not already tokenized) tokenizable bids
             loop {
                 match tokenizable_bids.pop_front() {
                     Option::Some(mut bid) => {
@@ -1020,14 +1036,19 @@ mod OptionRound {
                     Option::None => { break; }
                 }
             };
+
+            // Mint the options to the bidder
             self.mint(option_buyer, options_to_mint);
+
+            // Emit options tokenized event
             self
                 .emit(
                     Event::OptionsTokenized(
                         OptionsTokenized { account: option_buyer, amount: options_to_mint }
                     )
                 );
-            Result::Ok(options_to_mint)
+
+            options_to_mint
         }
     }
 
@@ -1040,11 +1061,21 @@ mod OptionRound {
             get_caller_address() == self.vault_address.read()
         }
 
+        // Assert that the caller is the Vault
+        fn assert_caller_is_vault(self: @ContractState) {
+            assert(get_caller_address() == self.vault_address(), Errors::CallerIsNotVault);
+        }
+
         // Create the contract's ERC20 name and symbol
         fn get_name_symbol(self: @ContractState, round_id: u256) -> (ByteArray, ByteArray) {
             let name: ByteArray = format!("Pitch Lake Option Round {round_id}");
             let symbol: ByteArray = format!("PLOR{round_id}");
             return (name, symbol);
+        }
+
+        // Update the state of the round
+        fn set_state(ref self: ContractState, state: OptionRoundState) {
+            self.state.write(state);
         }
 
         // Calculate the clearing price and total options sold from the auction
