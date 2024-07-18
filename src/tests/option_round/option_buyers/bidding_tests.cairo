@@ -133,11 +133,6 @@ fn test_bid_price_below_reserve_fails() {
     // Check txn revert reason
     current_round
         .place_bid_expect_error(bid_amount, bid_price, bidder, Errors::BidBelowReservePrice);
-// @note Circle back depending if reverted txns emit events
-// Check bid rejected event
-//assert_event_auction_bid_rejected(
-//    current_round.contract_address(), bidder, bid_amount, bid_price
-//);
 }
 
 // Test bidding before auction starts fails
@@ -158,9 +153,6 @@ fn test_bid_before_auction_starts_failure() {
 
     // Check txn revert reason
     round2.place_bid_expect_error(bid_amount, bid_price, bidder, Errors::BiddingWhileNotAuctioning);
-// @note Circle back depending if reverted txns emit events
-// Check bid rejected event
-// assert_event_auction_bid_rejected(round2.contract_address(), bidder, bid_amount, bid_price);
 }
 
 // Test bidding after auction ends fails
@@ -183,11 +175,6 @@ fn test_bid_after_auction_ends_failure() {
 
     // Check txn revert reason
     round2.place_bid_expect_error(bid_amount, bid_price, bidder, Errors::BiddingWhileNotAuctioning);
-// @note Circle back depending if reverted txns emit events
-// Check bid rejected event
-//assert_event_auction_bid_rejected(
-//    round2.contract_address(), bidder, bid_amount, bid_price
-//);
 }
 
 // Test bidding after auction end date fail (if end_auction() is not called first)
@@ -209,11 +196,6 @@ fn test_bid_after_auction_end_failure_2() {
     clear_event_logs(array![round2.contract_address()]);
 
     round2.place_bid_expect_error(bid_amount, bid_price, bidder, Errors::BiddingWhileNotAuctioning);
-// @note Circle back depending if reverted txns emit events
-// Check bid rejected event
-// assert_event_auction_bid_rejected(
-//     round2.contract_address(), bidder, bid_amount, bid_price
-// );
 }
 
 /// Event Tests ///
@@ -255,6 +237,36 @@ fn test_bid_accepted_events() {
         };
     }
 }
+
+// Test get_bids_for returns the correct array of bids
+// @note circle back once we change array to returning [A, B, C] (current is C, B, A)
+#[test]
+#[available_gas(500000000)]
+fn test_get_bids_for() {
+    let (mut vault_facade, _) = setup_facade();
+    let mut current_round = vault_facade.get_current_round();
+    let options_available = accelerate_to_auctioning(ref vault_facade);
+    let reserve_price = current_round.get_reserve_price();
+
+    // Place bids (bidder 1 places 2 bids)
+    let mut option_bidders = option_bidders_get(3);
+    option_bidders.append(option_bidder_buyer_1());
+    let mut option_bidders = option_bidders.span();
+
+    let mut bid_amounts = create_array_gradient(options_available, 123, 4).span();
+    let mut bid_prices = create_array_gradient(reserve_price, reserve_price, 4).span();
+    let bids = current_round.place_bids(bid_amounts, bid_prices, option_bidders);
+
+    // Check bid arrays
+    let bids1 = current_round.get_bids_for(*option_bidders[0]);
+    let bids2 = current_round.get_bids_for(*option_bidders[1]);
+    let bids3 = current_round.get_bids_for(*option_bidders[2]);
+
+    assert(bids1 == array![*bids[0], *bids[3]], 'Bids 1 mismatch');
+    assert(bids2 == array![*bids[1]], 'Bids 2 mismatch');
+    assert(bids3 == array![*bids[2]], 'Bids 3 mismatch');
+}
+
 
 /// Liquidity Tests ///
 
@@ -382,8 +394,8 @@ fn test_place_bid_id() {
         let expected_hash = poseidon::poseidon_hash_span(
             array![bidder.into(), bid_nonce.into()].span()
         );
-        let bid_hash = current_round.place_bid(bid_amount, bid_price, bidder);
-        assert(bid_hash == expected_hash, 'Bid Id Incorrect');
+        let bid = current_round.place_bid(bid_amount, bid_price, bidder);
+        assert(bid.id == expected_hash, 'Bid Id Incorrect');
         i -= 1;
     };
 }
