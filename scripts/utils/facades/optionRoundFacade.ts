@@ -42,9 +42,7 @@ export class OptionRoundFacade {
     } else return res;
   }
   async getBidsFor(address: string) {
-    console.log("get bids for get called");
     const res = await this.optionRoundContract.get_bids_for(address);
-    console.log("got the res successfully", res);
     const bids: Array<Bid> = [];
 
     for (let data of res) {
@@ -63,7 +61,6 @@ export class OptionRoundFacade {
       } else {
         price = data.price;
       }
-      console.log("inside the getBid, before Bid object", address);
       const bid: Bid = {
         id: data.id,
         amount: amount,
@@ -79,16 +76,13 @@ export class OptionRoundFacade {
   }
 
   async getBidsForAll(accounts: Array<Account>) {
-    console.log("inside the get all bids");
     const bids = await Promise.all(
       accounts.map(async (account: Account) => {
-        console.log("checking for the bidss");
         const bidData = await this.getBidsFor(account.address);
         console.log(bidData);
         return bidData;
       })
     );
-    console.log("bids got all");
     return bids;
   }
   async updateBid({ bidId, from, amount, price }: UpdateBidArgs) {
