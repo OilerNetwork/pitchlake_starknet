@@ -6,7 +6,6 @@ import {
   WithdrawArgs,
 } from "../../utils/facades/types";
 import { VaultFacade } from "../../utils/facades/vaultFacade";
-import { EthFacade } from "../../utils/facades/erc20Facade";
 import { getLiquidityProviderAccounts } from "../../utils/helpers/accounts";
 import { TestRunner } from "../../utils/facades/TestRunner";
 

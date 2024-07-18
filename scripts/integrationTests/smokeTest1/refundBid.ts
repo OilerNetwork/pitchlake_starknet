@@ -1,7 +1,6 @@
 import { Provider } from "starknet";
 import { getAccount } from "../../utils/helpers/common";
 import { VaultFacade } from "../../utils/facades/vaultFacade";
-import { EthFacade } from "../../utils/facades/erc20Facade";
 import {
   getOptionRoundERC20Contract,
   getOptionRoundFacade,
