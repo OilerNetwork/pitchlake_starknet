@@ -15,8 +15,8 @@ import { liquidityProviders, optionBidders } from "../constants";
 export class EthFacade {
   ethContract: TypedContractV2<typeof ethAbi>;
 
-  constructor(ethContract: TypedContractV2<typeof ethAbi>) {
-    this.ethContract = ethContract;
+  constructor(ethAddress:string,provider:Provider) {
+    this.ethContract = new Contract(ethAbi, ethAddress,provider).typedv2(ethAbi);
   }
   
 

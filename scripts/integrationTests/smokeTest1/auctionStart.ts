@@ -14,13 +14,14 @@ import {
   getLiquidityProviderAccounts,
   getOptionBidderAccounts,
 } from "../../utils/helpers/accounts";
+import { TestRunner } from "../../utils/facades/TestRunner";
 
-export const smokeTest = async (
-  provider: Provider,
-  vaultFacade: VaultFacade,
-  ethFacade: EthFacade,
-  constants: Constants
-) => {
+export const smokeTest = async ({
+  provider,
+  vaultFacade,
+  ethFacade,
+  constants,
+}: TestRunner) => {
   const optionRoundFacade = await getOptionRoundFacade(
     provider,
     vaultFacade.vaultContract
@@ -171,9 +172,9 @@ async function checkpoint2({
   totalOptionAvailable,
   reservePrice,
 }: {
-  ethBalancesBefore: Array<number|bigint>,
-  ethBalancesAfter: Array<number|bigint>,
-  bidArrays:Array<Array<any>>,
+  ethBalancesBefore: Array<number | bigint>;
+  ethBalancesAfter: Array<number | bigint>;
+  bidArrays: Array<Array<any>>;
   totalOptionAvailable: number | bigint;
   reservePrice: number | bigint;
 }) {
