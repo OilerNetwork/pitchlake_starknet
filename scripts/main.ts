@@ -17,13 +17,15 @@ async function main(environment: string, port?: string) {
     hashes
   );
 
-  const eth = new EthFacade(new Contract(
+  const eth = new Contract(
     ethAbi,
     contractAddresses.ethAddress,
     provider
-  ).typedv2(ethAbi));
+  ).typedv2(ethAbi);
 
-  await eth.supplyEth(
+  const ethFacade = new EthFacade(eth);
+
+  await ethFacade.supplyEth(
     devAccount,
     provider,
     contractAddresses.ethAddress,

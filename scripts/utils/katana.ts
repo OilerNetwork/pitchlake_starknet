@@ -1,7 +1,6 @@
 import { Provider } from "starknet";
 
 export const setNextBlock = async (increase: number, url: string) => {
-  const time = Date.now();
   const options = {
     method: "POST",
     headers: { accept: "application/json", "content-type": "application/json" },
@@ -36,12 +35,11 @@ export const mineNextBlock = async (url: string) => {
     .catch((err) => console.error(err));
 };
 
-export const setAndMineNextBlock = async (
-  provider: Provider,
+export const timeskipNextBlock = async (
   increaseTime: number,
   url: string
 ) => {
-  await mineNextBlock(provider.channel.nodeUrl);
+  await mineNextBlock(url);
   if (increaseTime > 0) await setNextBlock(increaseTime, url);
   await mineNextBlock(url);
 };
