@@ -38,10 +38,6 @@ trait IVault<TContractState> {
     // Get the amount of time till starting the next round's auction
     fn get_round_transition_period(self: @TContractState) -> u64;
 
-    // Get the cap level of the vault
-    fn get_cap_level(self: @TContractState) -> u16;
-
-
     // @note Add getters for auction run time & option run time
     // - need to also add to facade, then use in tests for the (not yet created) setters (A1.1)
 

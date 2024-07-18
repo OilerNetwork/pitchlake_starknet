@@ -66,7 +66,6 @@ fn test_vault_constructor() {
     assert_eq!(vault.get_round_transition_period(), 'rtp'.try_into().unwrap());
     assert_eq!(vault.get_auction_run_time(), 'art'.try_into().unwrap());
     assert_eq!(vault.get_option_run_time(), 'ort'.try_into().unwrap());
-    assert_eq!(vault.get_cap_level(), 10000);
 
     // Check current round is 1
     assert(current_round_id == 1, 'current round should be 1');

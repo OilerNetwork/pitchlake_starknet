@@ -382,9 +382,5 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     fn get_round_transition_period(ref self: VaultFacade) -> u64 {
         self.vault_dispatcher.get_round_transition_period()
     }
-
-    fn get_cap_level(ref self: VaultFacade) -> u16 {
-      self.vault_dispatcher.get_cap_level()
-    }
 }
 

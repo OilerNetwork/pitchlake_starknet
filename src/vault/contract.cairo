@@ -54,7 +54,6 @@ mod Vault {
         round_transition_period: u64,
         auction_run_time: u64,
         option_run_time: u64,
-        cap_level: u16,
     }
 
     // *************************************************************************
@@ -66,7 +65,6 @@ mod Vault {
         round_transition_period: u64,
         auction_run_time: u64,
         option_run_time: u64,
-        cap_level: u16,
         eth_address: ContractAddress,
         vault_manager: ContractAddress,
         vault_type: VaultType,
@@ -81,7 +79,6 @@ mod Vault {
         self.round_transition_period.write(round_transition_period);
         self.auction_run_time.write(auction_run_time);
         self.option_run_time.write(option_run_time);
-        self.cap_level.write(cap_level);
 
         // @dev Deploy the 1st option round
         self.deploy_next_round();
@@ -191,10 +188,6 @@ mod Vault {
 
         fn get_round_transition_period(self: @ContractState) -> u64 {
             self.round_transition_period.read()
-        }
-
-        fn get_cap_level(self: @ContractState) -> u16 {
-            self.cap_level.read()
         }
 
         /// Rounds ///

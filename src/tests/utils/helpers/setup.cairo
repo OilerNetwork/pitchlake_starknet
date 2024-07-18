@@ -109,7 +109,6 @@ fn deploy_vault(vault_type: VaultType, eth_address: ContractAddress) -> IVaultDi
     calldata.append_serde('rtp');
     calldata.append_serde('art');
     calldata.append_serde('ort');
-    calldata.append_serde(10000);
     calldata.append_serde(eth_address);
     calldata.append_serde(vault_manager());
     calldata.append_serde(vault_type);
