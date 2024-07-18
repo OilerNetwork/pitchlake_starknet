@@ -1,4 +1,4 @@
-use pitch_lake_starknet::{contracts::{option_round::{types::{Bid}}}};
+use pitch_lake_starknet::types::Bid;
 
 #[starknet::interface]
 trait IRBTreeMockContract<TContractState> {

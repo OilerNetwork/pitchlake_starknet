@@ -7,12 +7,9 @@ use pitch_lake_starknet::{
             rb_tree::rb_tree_mock_contract::{
                 IRBTreeMockContractDispatcher, IRBTreeMockContractDispatcherTrait
             }
-        }
-    }
+        },utils::helpers::setup::setup_rb_tree_test
+    },
 };
-use starknet::{contract_address_const, ContractAddress};
-use core::pedersen::pedersen;
-use pitch_lake_starknet::tests::utils::helpers::setup::setup_rb_tree_test;
 
 const BLACK: bool = false;
 const RED: bool = true;

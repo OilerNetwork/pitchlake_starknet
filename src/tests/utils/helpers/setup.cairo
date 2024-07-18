@@ -12,7 +12,7 @@ use openzeppelin::{
 };
 use pitch_lake_starknet::{
     types::{StartAuctionParams, OptionRoundState, VaultType},
-    library::{eth::Eth, red_black_tree::{IRBTreeDispatcher, IRBTreeDispatcherTrait}},
+    library::{eth::Eth},
     vault::{contract::Vault, interface::{IVaultDispatcher, IVaultDispatcherTrait}},
     option_round::{
         contract::OptionRound,

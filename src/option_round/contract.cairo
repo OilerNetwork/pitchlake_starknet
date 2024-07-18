@@ -9,7 +9,7 @@ mod OptionRound {
     };
     use pitch_lake_starknet::{
         library::{
-            utils::{max, min}, red_black_tree::{IRBTree, RBTreeComponent, RBTreeComponent::Node}
+            utils::{max, min}, red_black_tree::{RBTreeComponent, RBTreeComponent::Node}
         },
         option_round::interface::IOptionRound,
         vault::{interface::{IVaultDispatcher, IVaultDispatcherTrait},},
