@@ -2,12 +2,14 @@
 use openzeppelin::token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
 use starknet::{ContractAddress, testing::{set_contract_address}};
 use pitch_lake_starknet::{
-    types::{VaultType, Errors},
+    types::{
+        VaultType, Errors, Bid, OptionRoundState, StartAuctionParams, SettleOptionRoundParams,
+        OptionRoundConstructorParams,
+    },
     option_round::{
         interface::{
-            IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState,
-            StartAuctionParams, SettleOptionRoundParams, OptionRoundConstructorParams, Bid,
-            IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait,
+            IOptionRoundDispatcher, IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher,
+            IOptionRoundSafeDispatcherTrait,
         }
     },
     vault::{
@@ -102,10 +104,10 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     // @return: The bid id
     fn place_bid(
         ref self: OptionRoundFacade, amount: u256, price: u256, bidder: ContractAddress,
-    ) -> felt252 {
+    ) -> Bid {
         set_contract_address(bidder);
         let bid: Bid = self.option_round_dispatcher.place_bid(amount, price);
-        sanity_checks::place_bid(ref self, bidder, bid.id)
+        sanity_checks::place_bid(ref self, bid)
     }
 
     // Place multiple bids for multiple option bidders
@@ -115,7 +117,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         mut amounts: Span<u256>,
         mut prices: Span<u256>,
         mut bidders: Span<ContractAddress>,
-    ) -> Array<felt252> {
+    ) -> Array<Bid> {
         assert_two_arrays_equal_length(bidders, amounts);
         assert_two_arrays_equal_length(bidders, prices);
         let mut results = array![];
@@ -182,11 +184,11 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     // Update a bid for an option bidder
     // @return: The updated bid
     fn update_bid(ref self: OptionRoundFacade, id: felt252, amount: u256, price: u256) -> Bid {
-        let bid = self.get_bid_details(id);
-        let bidder = bid.owner;
+        let old_bid = self.get_bid_details(id);
+        let bidder = old_bid.owner;
         set_contract_address(bidder);
-        let updated_bid = self.option_round_dispatcher.update_bid(id, amount, price);
-        sanity_checks::update_bid(ref self, id, updated_bid)
+        let new_bid = self.option_round_dispatcher.update_bid(id, amount, price);
+        sanity_checks::update_bid(ref self, old_bid, new_bid)
     }
 
     // @note add bidder as param for testing

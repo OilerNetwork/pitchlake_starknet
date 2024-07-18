@@ -11,8 +11,7 @@ use openzeppelin::{
     token::erc20::{ERC20Component, interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait,}}
 };
 use pitch_lake_starknet::{
-    types::{StartAuctionParams, OptionRoundState, VaultType},
-    library::{eth::Eth},
+    types::{StartAuctionParams, OptionRoundState, VaultType}, library::{eth::Eth},
     vault::{contract::Vault, interface::{IVaultDispatcher, IVaultDispatcherTrait}},
     option_round::{
         contract::OptionRound,

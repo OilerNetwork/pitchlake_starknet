@@ -31,13 +31,10 @@ use pitch_lake_starknet::tests::{
 };
 
 
-// Deploy vault and start auction
-// @return The vault facade, eth dispatcher, and span of option bidders
-
-// Place incremental bids
+// Deploy vault, start auction, and place incremental bids
 fn place_incremental_bids_internal(
     ref vault: VaultFacade, option_bidders: Span<ContractAddress>,
-) -> (Span<u256>, Span<u256>, OptionRoundFacade, Span<felt252>) {
+) -> (Span<u256>, Span<u256>, OptionRoundFacade, Span<Bid>) {
     let mut current_round = vault.get_current_round();
     let number_of_option_bidders = option_bidders.len();
     let options_available = current_round.get_total_options_available();
@@ -52,8 +49,8 @@ fn place_incremental_bids_internal(
     let mut bid_amounts = create_array_linear(options_available, bid_prices.len());
 
     // Place bids
-    let bid_ids = current_round.place_bids(bid_amounts.span(), bid_prices.span(), option_bidders);
-    (bid_amounts.span(), bid_prices.span(), current_round, bid_ids.span())
+    let bids = current_round.place_bids(bid_amounts.span(), bid_prices.span(), option_bidders);
+    (bid_amounts.span(), bid_prices.span(), current_round, bids.span())
 }
 
 

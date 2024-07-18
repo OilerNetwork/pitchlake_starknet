@@ -7,7 +7,8 @@ use pitch_lake_starknet::{
             rb_tree::rb_tree_mock_contract::{
                 IRBTreeMockContractDispatcher, IRBTreeMockContractDispatcherTrait
             }
-        },utils::helpers::setup::setup_rb_tree_test
+        },
+        utils::helpers::setup::setup_rb_tree_test
     },
 };
 
@@ -1278,14 +1279,13 @@ fn compare_tree_structures(
     let mut i = 0;
 
     // Compare outer array
-    while
-    i < actual.len()
-    {
-        let actual_inner = actual[i];
-        let expected_inner = expected[i];
-        compare_inner(actual_inner, expected_inner);
-        i += 1;
-    }
+    while i < actual
+        .len() {
+            let actual_inner = actual[i];
+            let expected_inner = expected[i];
+            compare_inner(actual_inner, expected_inner);
+            i += 1;
+        }
 }
 
 fn compare_inner(actual: @Array<(u256, bool, u128)>, expected: @Array<(u256, bool, u128)>) {
@@ -1295,14 +1295,13 @@ fn compare_inner(actual: @Array<(u256, bool, u128)>, expected: @Array<(u256, boo
 
     let mut i = 0;
 
-    while
-    i < actual.len()
-    {
-        let actual_tuple = *actual[i];
-        let expected_tuple = *expected[i];
-        compare_tuple(actual_tuple, expected_tuple);
-        i += 1;
-    }
+    while i < actual
+        .len() {
+            let actual_tuple = *actual[i];
+            let expected_tuple = *expected[i];
+            compare_tuple(actual_tuple, expected_tuple);
+            i += 1;
+        }
 }
 
 fn compare_tuple(actual: (u256, bool, u128), expected: (u256, bool, u128)) {

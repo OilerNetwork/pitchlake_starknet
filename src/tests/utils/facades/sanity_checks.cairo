@@ -60,16 +60,17 @@ fn exercise_options(
     individual_payout
 }
 
-fn place_bid(ref self: OptionRoundFacade, bidder: ContractAddress, id: felt252) -> felt252 {
-    let nonce: felt252 = (self.get_bidding_nonce_for(bidder) - 1).into();
-    let hash = poseidon::poseidon_hash_span(array![bidder.into(), nonce].span());
-    //assert(hash == id , 'Invalid hash generated');
-    id
-}
-fn update_bid(ref option_round: OptionRoundFacade, bid_id: felt252, bid: Bid) -> Bid {
-    let storage_bid = option_round.get_bid_details(bid_id);
-    //assert(bid == storage_bi, 'Bid Mismatch');
+fn place_bid(ref self: OptionRoundFacade, bid: Bid) -> Bid {
+    let nonce: felt252 = (self.get_bidding_nonce_for(bid.owner) - 1).into();
+    let expected_id = poseidon::poseidon_hash_span(array![bid.owner.into(), nonce].span());
+    assert(bid.id == expected_id, 'Invalid hash generated');
     bid
+}
+
+fn update_bid(ref option_round: OptionRoundFacade, old_bid: Bid, new_bid: Bid) -> Bid {
+    let storage_bid = option_round.get_bid_details(old_bid.id);
+    assert(new_bid == storage_bid, 'Bid Mismatch');
+    new_bid
 }
 
 fn tokenize_options(
@@ -137,8 +138,8 @@ fn test_event_testers() {
     event_helpers::assert_event_auction_bid_rejected(
         round.contract_address(), round.contract_address(), 100, 100
     );
-    event_helpers::assert_event_auction_end(round.contract_address(), 100);
-    event_helpers::assert_event_option_settle(round.contract_address(), 100);
+    event_helpers::assert_event_auction_end(round.contract_address(), 100, 100);
+    event_helpers::assert_event_option_settle(round.contract_address(), 100, 100);
     event_helpers::assert_event_option_round_deployed(
         vault.contract_address(), 1, vault.contract_address()
     );

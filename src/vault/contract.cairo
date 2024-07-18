@@ -20,44 +20,6 @@ mod Vault {
         }
     };
 
-    // The type of vault
-    // Events
-    #[event]
-    #[derive(PartialEq, Drop, starknet::Event)]
-    enum Event {
-        Deposit: Deposit,
-        Withdrawal: Withdrawal,
-        OptionRoundDeployed: OptionRoundDeployed,
-    }
-
-
-    #[derive(Drop, starknet::Event, PartialEq)]
-    struct Deposit {
-        #[key]
-        account: ContractAddress,
-        position_balance_before: u256,
-        position_balance_after: u256,
-    }
-
-    #[derive(Drop, starknet::Event, PartialEq)]
-    struct Withdrawal {
-        #[key]
-        account: ContractAddress,
-        position_balance_before: u256,
-        position_balance_after: u256,
-    }
-
-
-    #[derive(Drop, starknet::Event, PartialEq)]
-    struct OptionRoundDeployed {
-        // might not need
-        round_id: u256,
-        address: ContractAddress,
-    // option_round_params: OptionRoundParams
-    // possibly more members to this event
-    }
-
-
     // *************************************************************************
     //                              STORAGE
     // *************************************************************************
@@ -74,7 +36,6 @@ mod Vault {
     // @round_addresses: Mapping of round id -> round address
     // @round_transition_period: Time between settling of current round and starting of next round
     // @auction_run_time: running time for the auction
-    //
     #[storage]
     struct Storage {
         eth_address: ContractAddress,
@@ -95,6 +56,9 @@ mod Vault {
         option_run_time: u64,
     }
 
+    // *************************************************************************
+    //                              Constructor
+    // *************************************************************************
     #[constructor]
     fn constructor(
         ref self: ContractState,
@@ -112,11 +76,6 @@ mod Vault {
         self.vault_type.write(vault_type);
         self.market_aggregator.write(market_aggregator);
         self.option_round_class_hash.write(option_round_class_hash);
-
-        // Setting placeholder values for storage vars because if left as 0
-        // tests fail that should not
-        // @note Should pass these in the constructor
-        // - Need to update the setup functions to accomodate (and a couple tests)
         self.round_transition_period.write(round_transition_period);
         self.auction_run_time.write(auction_run_time);
         self.option_run_time.write(option_run_time);
@@ -125,7 +84,45 @@ mod Vault {
         self.deploy_next_round();
     }
 
+    // *************************************************************************
+    //                              EVENTS
+    // *************************************************************************
+    #[event]
+    #[derive(PartialEq, Drop, starknet::Event)]
+    enum Event {
+        Deposit: Deposit,
+        Withdrawal: Withdrawal,
+        OptionRoundDeployed: OptionRoundDeployed,
+    }
 
+    #[derive(Drop, starknet::Event, PartialEq)]
+    struct Deposit {
+        #[key]
+        account: ContractAddress,
+        position_balance_before: u256,
+        position_balance_after: u256,
+    }
+
+    #[derive(Drop, starknet::Event, PartialEq)]
+    struct Withdrawal {
+        #[key]
+        account: ContractAddress,
+        position_balance_before: u256,
+        position_balance_after: u256,
+    }
+
+    #[derive(Drop, starknet::Event, PartialEq)]
+    struct OptionRoundDeployed {
+        // might not need
+        round_id: u256,
+        address: ContractAddress,
+    // option_round_params: OptionRoundParams
+    // possibly more members to this event
+    }
+
+    // *************************************************************************
+    //                            IMPLEMENTATION
+    // *************************************************************************
     #[abi(embed_v0)]
     impl VaultImpl of IVault<ContractState> {
         fn rm_me2(ref self: ContractState) {
@@ -159,7 +156,9 @@ mod Vault {
                 );
         }
 
-        /// Reads ///
+        // ***********************************
+        //               READS
+        // ***********************************
 
         /// Other
 
@@ -191,8 +190,7 @@ mod Vault {
             self.round_transition_period.read()
         }
 
-
-        /// Rounds
+        /// Rounds ///
 
         fn current_option_round_id(self: @ContractState) -> u256 {
             self.current_option_round_id.read()
@@ -208,9 +206,7 @@ mod Vault {
             self.unsold_liquidity.read(round_id)
         }
 
-        /// Liquidity
-
-        // For liquidity providers
+        /// Liquidity ///
 
         // Get the value of a liquidity provider's position that is locked
         fn get_lp_locked_balance(
@@ -265,8 +261,6 @@ mod Vault {
                 + self.get_lp_unlocked_balance(liquidity_provider)
         }
 
-        // For Vault //
-
         fn get_total_locked_balance(self: @ContractState) -> u256 {
             self.total_locked_balance.read()
         }
@@ -279,13 +273,7 @@ mod Vault {
             self.get_total_locked_balance() + self.get_total_unlocked_balance()
         }
 
-        /// Premiums
-
-        fn get_premiums_earned(
-            self: @ContractState, liquidity_provider: ContractAddress, round_id: u256
-        ) -> u256 {
-            100
-        }
+        /// Premiums ///
 
         fn get_premiums_collected(
             self: @ContractState, liquidity_provider: ContractAddress, round_id: u256
@@ -293,9 +281,11 @@ mod Vault {
             self.premiums_collected.read((liquidity_provider, round_id))
         }
 
-        /// Writes ///
+        // ***********************************
+        //               WRITES
+        // ***********************************
 
-        /// State transition
+        /// State Transition ///
 
         fn start_auction(ref self: ContractState) -> u256 {
             // Get a dispatcher for the current option round
@@ -411,9 +401,8 @@ mod Vault {
             total_payout
         }
 
-        /// Liquidity provider functions
+        /// Liquidity Provider ///
 
-        // Caller deposits liquidity on behalf of the liquidity provider for the upcoming round
         fn deposit_liquidity(
             ref self: ContractState, amount: u256, liquidity_provider: ContractAddress
         ) -> u256 {
@@ -458,7 +447,6 @@ mod Vault {
             lp_unlocked_balance_after
         }
 
-        // Caller withdraws liquidity from their unlocked balance
         fn withdraw_liquidity(ref self: ContractState, amount: u256) -> u256 {
             // Get the liquidity provider's unlocked balance broken up into its components
             let liquidity_provider = get_caller_address();
@@ -544,7 +532,7 @@ mod Vault {
             updated_lp_unlocked_balance
         }
 
-        /// LP token related
+        /// OTHER (FOR NOW) ///
 
         fn convert_position_to_lp_tokens(ref self: ContractState, amount: u256) {}
 
@@ -559,8 +547,9 @@ mod Vault {
         }
     }
 
-
-    // Internal Functions
+    // *************************************************************************
+    //                          INTERNAL FUNCTIONS
+    // *************************************************************************
     #[generate_trait]
     impl InternalImpl of VaultInternalTrait {
         // Get a dispatcher for the ETH contract

@@ -78,6 +78,7 @@ fn place_incremental_bids_internal(
 
     // Place bids
     current_round.place_bids(bid_amounts.span(), bid_prices.span(), option_bidders);
+
     (bid_amounts.span(), bid_prices.span(), current_round)
 }
 

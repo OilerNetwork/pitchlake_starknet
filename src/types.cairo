@@ -21,6 +21,8 @@ mod Errors {
     const BiddingWhileNotAuctioning: felt252 = 'Can only bid while auctioning';
     const CallerNotBidOwner: felt252 = 'Caller is not bid owner';
     const BidCannotBeDecreased: felt252 = 'A bid cannot decrease';
+    /// Other Errors ///
+    const BidsShouldNotHaveSameTreeNonce: felt252 = 'Tree nonces should be unique';
 }
 
 /// An enum for each type of Vault
@@ -92,6 +94,7 @@ impl BidPartialOrdTrait of PartialOrd<Bid> {
         } else if lhs.price > rhs.price {
             false
         } else {
+            assert(lhs.nonce != rhs.nonce, Errors::BidsShouldNotHaveSameTreeNonce);
             lhs.nonce > rhs.nonce
         }
     }
@@ -103,6 +106,7 @@ impl BidPartialOrdTrait of PartialOrd<Bid> {
         } else if lhs.price < rhs.price {
             false
         } else {
+            assert(lhs.nonce != rhs.nonce, Errors::BidsShouldNotHaveSameTreeNonce);
             lhs.nonce < rhs.nonce
         }
     }

@@ -38,7 +38,6 @@ trait IVault<TContractState> {
     // Get the amount of time till starting the next round's auction
     fn get_round_transition_period(self: @TContractState) -> u64;
 
-
     // @note Add getters for auction run time & option run time
     // - need to also add to facade, then use in tests for the (not yet created) setters (A1.1)
 
@@ -76,17 +75,6 @@ trait IVault<TContractState> {
 
     /// Premiums
 
-    // Get the total premium LP has earned in the current round
-    // @note premiums for previous rounds
-    // @note, not sure this function is easily implementable, if a user accuates their position, the
-    // storage mappings would not be able to correclty value the position in the round_id, to know the
-    // amount of premiums earned in the round_id. We would need to modify the checkpoints to be a mapping
-    // instead of a single value (i.e. checkpoint 1 == x, checkpoint 2 == y, along with keeping track of
-    // the checkpoint nonces)
-    fn get_premiums_earned(
-        self: @TContractState, liquidity_provider: ContractAddress, round_id: u256
-    ) -> u256;
-
     // Get the total premiums collected by an LP in a round
     fn get_premiums_collected(
         self: @TContractState, liquidity_provider: ContractAddress, round_id: u256
@@ -116,7 +104,7 @@ trait IVault<TContractState> {
 
     /// LP functions
 
-    // Liquditiy provider deposits to the vault for the upcoming round
+    // Caller withdraws liquidity from their unlocked balance
     // @return The liquidity provider's updated unlocked position
     fn deposit_liquidity(
         ref self: TContractState, amount: u256, liquidity_provider: ContractAddress
@@ -127,8 +115,6 @@ trait IVault<TContractState> {
     fn withdraw_liquidity(ref self: TContractState, amount: u256) -> u256;
 
     /// LP token related
-
-    // Phase C ?
 
     // LP converts their collateral into LP tokens
     // @note all at once or can LP convert a partial amount ?

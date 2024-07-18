@@ -18,9 +18,7 @@ use pitch_lake_starknet::{
 fn test_add_1_to_100_delete_100_to_1() {
     let rb_tree = setup_rb_tree_test();
     let mut i = 1;
-    while
-    i <= 100
-    {
+    while i <= 100 {
         insert(rb_tree, i, i.try_into().unwrap());
         println!("Inserted: {:?}", i);
         let is_tree_valid = rb_tree.is_tree_valid();
@@ -29,9 +27,7 @@ fn test_add_1_to_100_delete_100_to_1() {
     };
 
     i = 100;
-    while
-    i >= 1
-    {
+    while i >= 1 {
         let id = poseidon::poseidon_hash_span(
             array![mock_address(MOCK_ADDRESS).into(), i.try_into().unwrap()].span()
         );
@@ -52,9 +48,7 @@ fn test_add_1_to_100_delete_100_to_1() {
 fn test_add_1_to_100_delete_1_to_100() {
     let rb_tree = setup_rb_tree_test();
     let mut i = 1;
-    while
-    i <= 100
-    {
+    while i <= 100 {
         insert(rb_tree, i, i.try_into().unwrap());
         println!("Inserted: {:?}", i);
         let is_tree_valid = rb_tree.is_tree_valid();
@@ -63,9 +57,7 @@ fn test_add_1_to_100_delete_1_to_100() {
     };
 
     i = 1;
-    while
-    i <= 100
-    {
+    while i <= 100 {
         let id = poseidon::poseidon_hash_span(
             array![mock_address(MOCK_ADDRESS).into(), i.try_into().unwrap()].span()
         );
@@ -101,47 +93,47 @@ fn testing_random_insertion_and_deletion() {
 
     let mut i: u32 = 0;
 
-    while
-    i < no_of_nodes.try_into().unwrap()
-    {
-        let price = random(i.try_into().unwrap());
-        let nonce = i.try_into().unwrap();
+    while i < no_of_nodes
+        .try_into()
+        .unwrap() {
+            let price = random(i.try_into().unwrap());
+            let nonce = i.try_into().unwrap();
 
-        let new_bid = create_bid(price.try_into().unwrap(), nonce);
+            let new_bid = create_bid(price.try_into().unwrap(), nonce);
 
-        rb_tree.insert(new_bid);
+            rb_tree.insert(new_bid);
 
-        inserted_node_ids.append(new_bid.id);
+            inserted_node_ids.append(new_bid.id);
 
-        let bid = rb_tree.find(new_bid.id);
-        println!("Inserting price {}", bid.price);
+            let bid = rb_tree.find(new_bid.id);
+            println!("Inserting price {}", bid.price);
 
-        assert(bid.price == price.try_into().unwrap(), 'Insertion error');
+            assert(bid.price == price.try_into().unwrap(), 'Insertion error');
 
-        let is_tree_valid = rb_tree.is_tree_valid();
-        assert(is_tree_valid, 'Tree is not valid');
+            let is_tree_valid = rb_tree.is_tree_valid();
+            assert(is_tree_valid, 'Tree is not valid');
 
-        i += 1;
-    };
+            i += 1;
+        };
 
     let mut j: u32 = 0;
 
-    while
-    j < no_of_nodes.try_into().unwrap()
-    {
-        let bid_id = inserted_node_ids.at(j);
+    while j < no_of_nodes
+        .try_into()
+        .unwrap() {
+            let bid_id = inserted_node_ids.at(j);
 
-        delete(rb_tree, *bid_id);
+            delete(rb_tree, *bid_id);
 
-        let found_bid = rb_tree.find(*bid_id);
+            let found_bid = rb_tree.find(*bid_id);
 
-        assert(found_bid.id == 0, 'Bid delete error');
+            assert(found_bid.id == 0, 'Bid delete error');
 
-        let is_tree_valid = rb_tree.is_tree_valid();
-        assert(is_tree_valid, 'Tree is not valid');
+            let is_tree_valid = rb_tree.is_tree_valid();
+            assert(is_tree_valid, 'Tree is not valid');
 
-        println!("Deleted node no. {}", j);
+            println!("Deleted node no. {}", j);
 
-        j += 1;
-    }
+            j += 1;
+        }
 }
