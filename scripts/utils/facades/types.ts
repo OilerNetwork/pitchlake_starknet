@@ -33,6 +33,35 @@ export type UpdateBidArgs = {
   price: number;
 };
 
+export type RefundableBidsArgs = {
+  optionBuyer: string;
+};
+
+export type PayoutBalanceArgs = {
+  optionBuyer: string;
+};
+
+export type OptionBalanceArgs = {
+  optionBuyer: string;
+};
+
+export type TokenizableOptionsArgs = {
+  optionBuyer: string;
+};
+
+export type RefundUnusedBidsArgs = {
+  from: Account;
+  optionBidder: string;
+};
+
+export type ExerciseOptionArgs = {
+  from: Account;
+};
+
+export type TokenizeOptionArgs = {
+  from: Account;
+};
+
 //Smoke Test types
 
 export type Constants = {
@@ -43,13 +72,8 @@ export type Bid = {
   id: string | number | bigint;
   nonce: number | bigint;
   owner: string;
-  amount: number | bigint ;
-  price: number | bigint ;
+  amount: number | bigint;
+  price: number | bigint;
   isTokenized: boolean;
   isRefunded: boolean;
 };
-export type RefundUnusedBidsArgs = {
-  from: Account;
-  optionBidder: string;
-};
-

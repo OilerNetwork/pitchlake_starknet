@@ -1,6 +1,17 @@
 import { Account, CairoUint256, TypedContractV2 } from "starknet";
+import {
+  Bid,
+  ExerciseOptionArgs,
+  OptionBalanceArgs,
+  PayoutBalanceArgs,
+  PlaceBidArgs,
+  RefundableBidsArgs,
+  RefundUnusedBidsArgs,
+  TokenizableOptionsArgs,
+  TokenizeOptionArgs,
+  UpdateBidArgs,
+} from "./types";
 import { optionRoundABI } from "../../abi";
-import { Bid, PlaceBidArgs, UpdateBidArgs } from "./types";
 
 export class OptionRoundFacade {
   optionRoundContract: TypedContractV2<typeof optionRoundABI>;
@@ -50,7 +61,6 @@ export class OptionRoundFacade {
       } else {
         price = data.price;
       }
-
       const bid: Bid = {
         id: data.id,
         amount: amount,
@@ -95,6 +105,107 @@ export class OptionRoundFacade {
   async placeBidsAll(placeBidData: Array<PlaceBidArgs>) {
     for (const placeBidArgs of placeBidData) {
       await this.placeBid(placeBidArgs);
+    }
+  }
+
+  async getRefundableBidsFor({ optionBuyer }: RefundableBidsArgs) {
+    try {
+      const res = await this.optionRoundContract.get_refundable_bids_for(
+        optionBuyer
+      );
+      if (typeof res !== "bigint" && typeof res !== "number") {
+        const data = new CairoUint256(res);
+        return data.toBigInt();
+      } else return res;
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  async getTotalOptionsBalanceFor({ optionBuyer }: OptionBalanceArgs) {
+    try {
+      const res = await this.optionRoundContract.get_total_options_balance_for(
+        optionBuyer
+      );
+      if (typeof res !== "bigint" && typeof res !== "number") {
+        const data = new CairoUint256(res);
+        return data.toBigInt();
+      } else return res;
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  async getPayoutBalanceFor({ optionBuyer }: PayoutBalanceArgs) {
+    try {
+      const res = await this.optionRoundContract.get_payout_balance_for(
+        optionBuyer
+      );
+      if (typeof res !== "bigint" && typeof res !== "number") {
+        const data = new CairoUint256(res);
+        return data.toBigInt();
+      } else return res;
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  async getTokenizableOptionsFor({ optionBuyer }: TokenizableOptionsArgs) {
+    try {
+      const res = await this.optionRoundContract.get_tokenizable_options_for(
+        optionBuyer
+      );
+      if (typeof res !== "bigint" && typeof res !== "number") {
+        const data = new CairoUint256(res);
+        return data.toBigInt();
+      } else return res;
+    } catch (err) {
+      console.log(err);
+    }
+  }
+  async refundUnusedBids({ from, optionBidder }: RefundUnusedBidsArgs) {
+    try {
+      this.optionRoundContract.connect(from);
+      const data = await this.optionRoundContract.refund_unused_bids(
+        optionBidder
+      );
+
+      console.log("refund unused bids inside -> ", data);
+      // @note: here it will return the total refundable_balance
+      // if (typeof res !== "bigint" && typeof res !== "number") {
+      //   const data = new CairoUint256(res);
+      //   return data.toBigInt();
+      // } else return res;
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  async exerciseOptions({ from }: ExerciseOptionArgs) {
+    try {
+      this.optionRoundContract.connect(from);
+      const data = await this.optionRoundContract.exercise_options();
+      // @note: here it will return the amount of transfer
+      // if (typeof res !== "bigint" && typeof res !== "number") {
+      //   const data = new CairoUint256(res);
+      //   return data.toBigInt();
+      // } else return res;
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  async tokenizeOptions({ from }: TokenizeOptionArgs) {
+    try {
+      this.optionRoundContract.connect(from);
+      const data = await this.optionRoundContract.tokenize_option();
+      // @note: here it will return the total number of tokenizable options
+      // if (typeof res !== "bigint" && typeof res !== "number") {
+      //   const data = new CairoUint256(res);
+      //   return data.toBigInt();
+      // } else return res;
+    } catch (err) {
+      console.log(err);
     }
   }
 }

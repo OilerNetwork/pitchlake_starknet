@@ -1,20 +1,29 @@
 import { Contract, Provider, provider, TypedContractV2 } from "starknet";
 import { VaultFacade } from "../facades/vaultFacade";
 import { stringToHex } from "./common";
-import { optionRoundABI, vaultABI } from "../../abi";
+import { erc20ABI, optionRoundABI, vaultABI } from "../../abi";
 import { OptionRoundFacade } from "../facades/optionRoundFacade";
 
 export const getOptionRoundFacade = async (
   provider: Provider,
-  vault:  TypedContractV2<typeof vaultABI>
+  vault: TypedContractV2<typeof vaultABI>
 ) => {
-
-  const optionRoundContract = await getOptionRoundContract(
-    provider,
-    vault
-  );
+  const optionRoundContract = await getOptionRoundContract(provider, vault);
   const optionRoundFacade = new OptionRoundFacade(optionRoundContract);
   return optionRoundFacade;
+};
+
+export const getOptionRoundERC20Contract = async (
+  provider: Provider,
+  optionRound: TypedContractV2<typeof optionRoundABI>
+) => {
+  // const optionRoundContract = await getOptionRoundContract(provider, vault);
+  const optionRoundERC20Contract = new Contract(
+    optionRoundABI,
+    optionRound.address,
+    provider
+  ).typedv2(erc20ABI);
+  return optionRoundERC20Contract;
 };
 
 export const getOptionRoundContract = async (
