@@ -1,6 +1,6 @@
 
 import { Contract, Provider } from "starknet";
-import { auctionOpenTests,auctionStartTests } from "./smokeTest1";
+import { auctionEndTetsts, auctionOpenTests,auctionStartTests } from "./smokeTest1";
 import {ABI as vaultAbi} from "../abi/vaultAbi";
 import {ABI as ethAbi} from "../abi/ethAbi";
 import { VaultFacade } from "../utils/facades/vaultFacade";
@@ -22,6 +22,7 @@ async function smokeTesting(
   }
   await auctionOpenTests(provider, vaultFacade,ethFacade,constants);
   await auctionStartTests(provider,vaultFacade,ethFacade,constants);
+  await auctionEndTetsts(provider,vaultFacade,ethFacade,constants);
 }
 
 export { smokeTesting };
