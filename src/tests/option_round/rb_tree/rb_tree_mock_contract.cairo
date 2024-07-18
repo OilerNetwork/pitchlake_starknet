@@ -19,6 +19,8 @@ mod RBTreeMockContract {
 
     impl RBTreeImpl = RBTreeComponent::RBTreeImpl<ContractState>;
     impl RBTreeTestingImpl = RBTreeComponent::RBTreeTestingImpl<ContractState>;
+    impl RBTreeOperationsImpl = RBTreeComponent::RBTreeOperationsImpl<ContractState>;
+    
 
     #[storage]
     struct Storage {
@@ -55,7 +57,8 @@ mod RBTreeMockContract {
         fn is_tree_valid(self: @ContractState) -> bool {
             self.rb_tree._is_tree_valid()
         }
-    
+        
+        // Internal function for testing
         fn add_node(ref self: ContractState, value: Bid, color: bool, parent: felt252) -> felt252 {
             self.rb_tree._add_node(value, color, parent)
         }

@@ -227,6 +227,22 @@ pub mod RBTreeComponent {
             node.color = color;
             self.tree.write(node_id, node);
         }
+
+        // Add a new node directly by accepting parent and value (bid)
+        fn _add_node(
+            ref self: ComponentState<TContractState>, bid: Bid, color: bool, parent: felt252
+        ) -> felt252 {
+            let new_node = Node { value: bid, left: 0, right: 0, parent: parent, color: color, };
+            let parent_node = self.tree.read(parent);
+            if bid <= parent_node.value {
+                self.update_left(parent, bid.id);
+            } else {
+                self.update_right(parent, bid.id);
+            }
+            self.update_parent(bid.id, parent);
+            self.tree.write(bid.id, new_node);
+            return bid.id;
+        }
     }
 
     #[generate_trait]
@@ -386,22 +402,6 @@ pub mod RBTreeComponent {
                 0
             };
             (true, current_black_height)
-        }
-
-        // Add a new node directly by accepting parent and value (bid)
-        fn _add_node(
-            ref self: ComponentState<TContractState>, bid: Bid, color: bool, parent: felt252
-        ) -> felt252 {
-            let new_node = Node { value: bid, left: 0, right: 0, parent: parent, color: color, };
-            let parent_node = self.tree.read(parent);
-            if bid <= parent_node.value {
-                self.update_left(parent, bid.id);
-            } else {
-                self.update_right(parent, bid.id);
-            }
-            self.update_parent(bid.id, parent);
-            self.tree.write(bid.id, new_node);
-            return bid.id;
         }
     }
 
