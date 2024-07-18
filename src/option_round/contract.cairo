@@ -8,9 +8,7 @@ mod OptionRound {
         ERC20Component, interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait, IERC20Metadata},
     };
     use pitch_lake_starknet::{
-        library::{
-            utils::{max, min}, red_black_tree::{RBTreeComponent, RBTreeComponent::Node}
-        },
+        library::{utils::{max, min}, red_black_tree::{RBTreeComponent, RBTreeComponent::Node}},
         option_round::interface::IOptionRound,
         vault::{interface::{IVaultDispatcher, IVaultDispatcherTrait},},
         types::{
@@ -350,15 +348,15 @@ mod OptionRound {
 
         // Get the bid ids for all of the bids the option buyer has placed
         fn get_bids_for(self: @ContractState, option_buyer: ContractAddress) -> Array<Bid> {
-            let mut i: u32 = self.bidder_nonces.read(option_buyer);
+            let nonce: u32 = self.bidder_nonces.read(option_buyer);
             let mut bids: Array<Bid> = array![];
-            while i
-                .is_non_zero() {
-                    i -= 1;
-                    let hash = self.create_bid_id(option_buyer, i);
-                    let bid: Bid = self.bids_tree._find(hash);
-                    bids.append(bid);
-                };
+            let mut i = 0;
+            while i < nonce {
+                let hash = self.create_bid_id(option_buyer, i);
+                let bid: Bid = self.bids_tree._find(hash);
+                bids.append(bid);
+                i += 1;
+            };
             bids
         }
 
