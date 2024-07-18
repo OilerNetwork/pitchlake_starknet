@@ -17,7 +17,8 @@ mod RBTreeMockContract {
 
     component!(path: RBTreeComponent, storage: rb_tree, event: RBTreeEvent);
 
-    impl RBTreeInternalImpl = RBTreeComponent::RBTreeImpl<ContractState>;
+    impl RBTreeImpl = RBTreeComponent::RBTreeImpl<ContractState>;
+    impl RBTreeTestingImpl = RBTreeComponent::RBTreeTestingImpl<ContractState>;
 
     #[storage]
     struct Storage {
@@ -33,6 +34,7 @@ mod RBTreeMockContract {
 
     #[abi(embed_v0)]
     impl RBTreeMockContractImpl of super::IRBTreeMockContract<ContractState> {
+        // Tree main functions
         fn insert(ref self:ContractState, value: Bid) {
             self.rb_tree._insert(value);
         }
@@ -40,17 +42,18 @@ mod RBTreeMockContract {
         fn find(self: @ContractState, bid_id: felt252) -> Bid {
             self.rb_tree._find(bid_id)
         }
-    
+            
+        fn delete(ref self: ContractState, bid_id: felt252) {
+            self.rb_tree._delete(bid_id);
+        }
+        
+        // Tree testing functions
         fn get_tree_structure(self: @ContractState) -> Array<Array<(u256, bool, u128)>> {
             self.rb_tree._get_tree_structure()
         }
     
         fn is_tree_valid(self: @ContractState) -> bool {
             self.rb_tree._is_tree_valid()
-        }
-    
-        fn delete(ref self: ContractState, bid_id: felt252) {
-            self.rb_tree._delete(bid_id);
         }
     
         fn add_node(ref self: ContractState, value: Bid, color: bool, parent: felt252) -> felt252 {
