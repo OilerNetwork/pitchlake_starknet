@@ -150,40 +150,7 @@ pub mod RBTreeComponent {
     }
 
     #[generate_trait]
-    pub impl RBTreeOperationsImpl<TContractState, +HasComponent<TContractState>> of RBTreeOperationsTrait<TContractState> {
-        fn insert_node_recursively(
-            ref self: ComponentState<TContractState>,
-            current_id: felt252,
-            new_node_id: felt252,
-            value: Bid
-        ) {
-            let mut current_node: Node = self.tree.read(current_id);
-            if value <= current_node.value {
-                if current_node.left == 0 {
-                    current_node.left = new_node_id;
-
-                    let new_node = self.create_leaf_node(@value, current_id);
-                    self.tree.write(new_node_id, new_node);
-                    self.tree.write(current_id, current_node);
-
-                    return;
-                }
-
-                self.insert_node_recursively(current_node.left, new_node_id, value);
-            } else {
-                if current_node.right == 0 {
-                    current_node.right = new_node_id;
-
-                    let new_node = self.create_leaf_node(@value, current_id);
-                    self.tree.write(new_node_id, new_node);
-                    self.tree.write(current_id, current_node);
-                    return;
-                }
-
-                self.insert_node_recursively(current_node.right, new_node_id, value);
-            }
-        }
-
+    impl RBTreeOperationsImpl<TContractState, +HasComponent<TContractState>> of RBTreeOperationsTrait<TContractState> {
         fn create_root_node(self: @ComponentState<TContractState>, value: @Bid) -> Node {
             Node { value: *value, left: 0, right: 0, parent: 0, color: BLACK, }
         }
@@ -643,6 +610,39 @@ pub mod RBTreeComponent {
     impl InsertBalance<
         TContractState, +HasComponent<TContractState>
     > of InsertBalanceTrait<TContractState> {
+        fn insert_node_recursively(
+            ref self: ComponentState<TContractState>,
+            current_id: felt252,
+            new_node_id: felt252,
+            value: Bid
+        ) {
+            let mut current_node: Node = self.tree.read(current_id);
+            if value <= current_node.value {
+                if current_node.left == 0 {
+                    current_node.left = new_node_id;
+
+                    let new_node = self.create_leaf_node(@value, current_id);
+                    self.tree.write(new_node_id, new_node);
+                    self.tree.write(current_id, current_node);
+
+                    return;
+                }
+
+                self.insert_node_recursively(current_node.left, new_node_id, value);
+            } else {
+                if current_node.right == 0 {
+                    current_node.right = new_node_id;
+
+                    let new_node = self.create_leaf_node(@value, current_id);
+                    self.tree.write(new_node_id, new_node);
+                    self.tree.write(current_id, current_node);
+                    return;
+                }
+
+                self.insert_node_recursively(current_node.right, new_node_id, value);
+            }
+        }
+
         fn balance_after_insertion(ref self: ComponentState<TContractState>, node_id: felt252) {
             let mut current = node_id;
             let mut current_node: Node = self.tree.read(current);
