@@ -42,7 +42,7 @@ export type PayoutBalanceArgs = {
 };
 
 export type OptionBalanceArgs = {
-  optionBuyer: string;
+  optionBuyer: Account;
 };
 
 export type TokenizableOptionsArgs = {

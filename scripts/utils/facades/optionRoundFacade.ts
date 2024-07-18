@@ -122,7 +122,21 @@ export class OptionRoundFacade {
     }
   }
 
-  async getTotalOptionsBalanceFor({ optionBuyer }: OptionBalanceArgs) {
+  async getTotalOptionsBalanceForAll(optionBuyers: Array<Account>) {
+    try {
+      const optionsBalances = await Promise.all(
+        optionBuyers.map(async (account: Account) => {
+          const balance = await this.getTotalOptionsBalanceFor(account.address);
+          return balance;
+        })
+      );
+      return optionsBalances;
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  async getTotalOptionsBalanceFor(optionBuyer: string) {
     try {
       const res = await this.optionRoundContract.get_total_options_balance_for(
         optionBuyer

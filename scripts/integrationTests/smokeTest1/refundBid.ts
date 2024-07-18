@@ -12,6 +12,7 @@ import {
   getOptionBidderAccounts,
 } from "../../utils/helpers/accounts";
 import { TestRunner } from "../../utils/facades/TestRunner";
+import { ERC20Facade } from "../../utils/facades/erc20Facade";
 
 export const smokeTest = async ({
   provider,
@@ -24,9 +25,9 @@ export const smokeTest = async ({
     vault.vaultContract
   );
 
-  const optionRoundERC20Contract = await getOptionRoundERC20Contract(
-    provider,
-    optionRoundFacade.optionRoundContract
+  const optionRoundERC20Contract = new ERC20Facade(
+    optionRoundFacade.optionRoundContract.address,
+    provider
   );
   const devAccount = getAccount("dev", provider);
 
@@ -35,12 +36,8 @@ export const smokeTest = async ({
   const reservePrice = await optionRoundFacade.getReservePrice();
   const optionBidderAccounts = getOptionBidderAccounts(provider, 3);
 
-  const balanceBeforeRefundC = await eth.getBalance(
-    optionBidderAccounts[0].address
-  );
-  const balanceBeforeRefundD = await eth.getBalance(
-    optionBidderAccounts[0].address
-  );
+  const balancesBefore = await eth.getBalancesAll(optionBidderAccounts);
+
   try {
     await optionRoundFacade.refundUnusedBids({
       from: devAccount,
@@ -53,33 +50,17 @@ export const smokeTest = async ({
   } catch (err) {
     console.log("Error while refunding the unused bids", err);
   }
-
-  const balanceAfterRefundC = await eth.getBalance(
-    optionBidderAccounts[0].address
-  );
-  const balanceAfterRefundD = await eth.getBalance(
-    optionBidderAccounts[1].address
-  );
+  const balancesAfter = await eth.getBalancesAll(optionBidderAccounts);
 
   checkpoint1({
-    balanceBeforeRefundC,
-    balanceBeforeRefundD,
-    balanceAfterRefundC,
-    balanceAfterRefundD,
+    balancesBefore,
+    balancesAfter,
     totalOptionAvailable,
     reservePrice,
   });
 
-  const optionAvailableBeforeTransferC =
-    await optionRoundFacade.getTotalOptionsBalanceFor({
-      optionBuyer: optionBidderAccounts[0].address,
-    });
-  const optionAvailableBeforeTransferD =
-    await optionRoundFacade.getTotalOptionsBalanceFor({
-      optionBuyer: optionBidderAccounts[1].address,
-    });
-
-  console.log(optionAvailableBeforeTransferC, optionAvailableBeforeTransferD);
+  const optionBalancesBefore =
+    await optionRoundFacade.getTotalOptionsBalanceForAll(optionBidderAccounts);
 
   try {
     await optionRoundFacade.tokenizeOptions({
@@ -90,12 +71,19 @@ export const smokeTest = async ({
   }
 
   try {
-    optionRoundERC20Contract.connect(optionBidderAccounts[0]);
-    await optionRoundERC20Contract.approve(
-      optionRoundERC20Contract.address,
+    optionRoundERC20Contract.erc20Contract.connect(optionBidderAccounts[0]);
+    await optionRoundERC20Contract.erc20Contract.approve(
+      optionRoundERC20Contract.erc20Contract.address,
       BigInt(totalOptionAvailable) / BigInt(4)
     );
-    await optionRoundERC20Contract.transfer(
+
+    // @dev @note: ideally this should be working:
+    // await optionRoundERC20Contract.approval({
+    //   owner: optionBidderAccounts[0],
+    //   amount: BigInt(totalOptionAvailable) / BigInt(4),
+    //   spender: optionRoundERC20Contract.erc20Contract.address,
+    // });
+    await optionRoundERC20Contract.erc20Contract.transfer(
       optionBidderAccounts[1].address,
       BigInt(totalOptionAvailable) / BigInt(4)
     );
@@ -103,95 +91,76 @@ export const smokeTest = async ({
     console.log("Error while transferring the tokenized options", err);
   }
 
-  const optionAvailableAfterTransferC =
-    await optionRoundFacade.getTotalOptionsBalanceFor({
-      optionBuyer: optionBidderAccounts[0].address,
-    });
-  const optionAvailableAfterTransferD =
-    await optionRoundFacade.getTotalOptionsBalanceFor({
-      optionBuyer: optionBidderAccounts[1].address,
-    });
+  const optionBalancesAfter =
+    await optionRoundFacade.getTotalOptionsBalanceForAll(optionBidderAccounts);
 
   checkpoint2({
-    optionAvailableBeforeTransferC,
-    optionAvailableBeforeTransferD,
-    optionAvailableAfterTransferC,
-    optionAvailableAfterTransferD,
+    optionBalancesBefore,
+    optionBalancesAfter,
     totalOptionAvailable,
   });
 };
 
 async function checkpoint1({
-  balanceBeforeRefundC,
-  balanceBeforeRefundD,
-  balanceAfterRefundC,
-  balanceAfterRefundD,
+  balancesBefore,
+  balancesAfter,
   totalOptionAvailable,
   reservePrice,
 }: {
-  balanceBeforeRefundC: bigint | number;
-  balanceBeforeRefundD: bigint | number;
-  balanceAfterRefundC: bigint | number;
-  balanceAfterRefundD: bigint | number;
+  balancesBefore: Array<bigint | number>;
+  balancesAfter: Array<bigint | number>;
   totalOptionAvailable: bigint | number;
   reservePrice: bigint | number;
 }) {
   assert(
-    BigInt(balanceBeforeRefundC) +
+    BigInt(balancesBefore[0]) +
       (BigInt(totalOptionAvailable) / BigInt(2)) * BigInt(reservePrice) ===
-      BigInt(balanceAfterRefundC),
+      BigInt(balancesAfter[0]),
     "Unused bids balance fail"
   );
   assert(
-    BigInt(balanceBeforeRefundD) +
+    BigInt(balancesBefore[1]) +
       (BigInt(totalOptionAvailable) / BigInt(2)) * BigInt(reservePrice) ===
-      BigInt(balanceAfterRefundD),
+      BigInt(balancesAfter[1]),
     "Unused bids balance fail"
   );
 }
 
 async function checkpoint2({
-  optionAvailableBeforeTransferC,
-  optionAvailableBeforeTransferD,
-  optionAvailableAfterTransferC,
-  optionAvailableAfterTransferD,
+  optionBalancesBefore,
+  optionBalancesAfter,
   totalOptionAvailable,
 }: {
-  optionAvailableBeforeTransferC: any;
-  optionAvailableBeforeTransferD: any;
-  optionAvailableAfterTransferC: any;
-  optionAvailableAfterTransferD: any;
+  optionBalancesBefore: any;
+  optionBalancesAfter: any;
   totalOptionAvailable: bigint | number;
 }) {
   assert(
-    BigInt(optionAvailableBeforeTransferC) ===
-      BigInt(optionAvailableBeforeTransferD),
+    BigInt(optionBalancesBefore[0]) === BigInt(optionBalancesBefore[1]),
     "Intial options should be equal"
   );
 
   assert(
-    BigInt(optionAvailableBeforeTransferC) +
-      BigInt(optionAvailableBeforeTransferD) ===
+    BigInt(optionBalancesBefore[0]) + BigInt(optionBalancesBefore[1]) ===
       BigInt(totalOptionAvailable),
     "Intial sum of options should be total options available"
   );
 
   assert(
-    BigInt(optionAvailableAfterTransferC) +
-      BigInt(optionAvailableAfterTransferD) ===
+    BigInt(optionBalancesAfter[0]) + BigInt(optionBalancesAfter[1]) ===
       BigInt(totalOptionAvailable),
     "After transfer sum of options should be total options available"
   );
   assert(
-    BigInt(optionAvailableBeforeTransferC) / BigInt(2) ===
-      BigInt(optionAvailableAfterTransferC),
+    BigInt(optionBalancesBefore[0]) / BigInt(2) ===
+      BigInt(optionBalancesAfter[0]),
     "Final option balance of C should be half of initial"
   );
 
   assert(
-    BigInt(optionAvailableBeforeTransferD) +
-      BigInt(optionAvailableBeforeTransferC) / BigInt(2) ===
-      BigInt(optionAvailableAfterTransferD),
+    BigInt(optionBalancesBefore[1]) +
+      BigInt(optionBalancesBefore[0]) / BigInt(2) ===
+      BigInt(optionBalancesAfter[1]),
     "Final option balance of D should be inital + half of C"
   );
 }
