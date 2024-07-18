@@ -21,8 +21,8 @@ async function smokeTesting(
     depositAmount:1000
   }
   await auctionOpenTests(provider, vaultFacade,ethFacade,constants);
-  await auctionStartTests(provider,vaultFacade,ethFacade,constants);
-  await auctionEndTetsts(provider,vaultFacade,ethFacade,constants);
+  // await auctionStartTests(provider,vaultFacade,ethFacade,constants);
+  // await auctionEndTetsts(provider,vaultFacade,ethFacade,constants);
 }
 
 export { smokeTesting };

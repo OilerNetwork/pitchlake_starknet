@@ -25,19 +25,19 @@ async function main(environment: string, port?: string) {
 
   const ethFacade = new EthFacade(eth);
 
-  // await eth.supplyEth(
-  //   devAccount,
-  //   provider,
-  //   contractAddresses.ethAddress,
-  //   contractAddresses.vaultAddress
-  // );
+  await eth.supplyEth(
+    devAccount,
+    provider,
+    contractAddresses.ethAddress,
+    contractAddresses.vaultAddress
+  );
 
-  // //Can write to a file here and replace smoke test call to use multiple
-  // await smokeTesting(
-  //   provider,
-  //   contractAddresses.vaultAddress,
-  //   contractAddresses.ethAddress
-  // );
+  //Can write to a file here and replace smoke test call to use multiple
+  await smokeTesting(
+    provider,
+    contractAddresses.vaultAddress,
+    contractAddresses.ethAddress
+  );
 }
 
 main(process.argv[2], process.argv[3]);

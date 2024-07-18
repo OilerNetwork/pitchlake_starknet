@@ -1,6 +1,5 @@
-import { CairoUint256, Provider, Uint256 } from "starknet";
-import { getAccount, getCustomAccount } from "../../utils/helpers/common";
-import { liquidityProviders, optionBidders } from "../../utils/constants";
+import {  Provider } from "starknet";
+import { getAccount } from "../../utils/helpers/common";
 import { VaultFacade } from "../../utils/facades/vaultFacade";
 import { EthFacade } from "../../utils/facades/ethFacade";
 import { getOptionRoundFacade } from "../../utils/helpers/setup";

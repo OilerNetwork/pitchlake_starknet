@@ -18,7 +18,18 @@ export class EthFacade {
   constructor(ethContract: TypedContractV2<typeof ethAbi>) {
     this.ethContract = ethContract;
   }
+  
 
+  async getBalancesAll(accounts:Array<Account>){
+
+    const balances = await Promise.all(
+      accounts.map(async(account:Account)=>{
+        const balance = await this.getBalance(account.address);
+        return balance
+      })
+    )
+    return balances
+  }
   async getBalance(account: string) {
     const balance = await this.ethContract.balance_of(account);
 

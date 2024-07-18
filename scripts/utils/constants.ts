@@ -66,7 +66,7 @@ const accountDetailsMapping: { [key: string]: AccountDetailsType } = {
   },
 };
 
-const liquidityProviderAccounts = [
+const liquidityProviders = [
   {
     account: "0x55df044c093d7b2408f6ad897f6d71a996afab8e1b17932e9c6438cb99593f",
     privateKey:
@@ -127,7 +127,7 @@ const liquidityProviderAccounts = [
   },
 ];
 
-const optionBidderAccounts = [
+const optionBidders = [
   {
     account:
       "0x430861531f7d3536e3c3b77abda9b83d7b4d3e1ddc525583a58c0d528fe2a0b",
@@ -228,7 +228,7 @@ export {
   constructorArgs,
   accountDetailsMapping,
   declaredContractsMapping,
-  liquidityProviderAccounts,
-  optionBidderAccounts,
+  liquidityProviders,
+  optionBidders,
   extras,
 };
