@@ -19,7 +19,7 @@ export const getOptionRoundERC20Contract = async (
 ) => {
   // const optionRoundContract = await getOptionRoundContract(provider, vault);
   const optionRoundERC20Contract = new Contract(
-    optionRoundABI,
+    erc20ABI,
     optionRound.address,
     provider
   ).typedv2(erc20ABI);

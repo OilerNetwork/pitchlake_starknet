@@ -80,6 +80,8 @@ export const smokeTest = async ({
       optionBuyer: optionBidderAccounts[1].address,
     });
 
+  console.log(optionAvailableBeforeTransferC, optionAvailableBeforeTransferD);
+
   try {
     await optionRoundFacade.tokenizeOptions({
       from: optionBidderAccounts[0],
@@ -90,6 +92,14 @@ export const smokeTest = async ({
 
   try {
     optionRoundERC20Contract.connect(optionBidderAccounts[0]);
+    await optionRoundERC20Contract.approve(
+      optionRoundERC20Contract.address,
+      BigInt(totalOptionAvailable) / BigInt(4)
+    );
+    await optionRoundERC20Contract.approve(
+      vault.vaultContract.address,
+      BigInt(totalOptionAvailable) / BigInt(4)
+    );
     await optionRoundERC20Contract.transfer(
       optionBidderAccounts[1].address,
       BigInt(totalOptionAvailable) / BigInt(4)
@@ -106,6 +116,14 @@ export const smokeTest = async ({
     await optionRoundFacade.getTotalOptionsBalanceFor({
       optionBuyer: optionBidderAccounts[1].address,
     });
+
+  checkpoint2({
+    optionAvailableBeforeTransferC,
+    optionAvailableBeforeTransferD,
+    optionAvailableAfterTransferC,
+    optionAvailableAfterTransferD,
+    totalOptionAvailable,
+  });
 };
 
 async function checkpoint1({
@@ -144,10 +162,10 @@ async function checkpoint2({
   optionAvailableAfterTransferD,
   totalOptionAvailable,
 }: {
-  optionAvailableBeforeTransferC: bigint | number;
-  optionAvailableBeforeTransferD: bigint | number;
-  optionAvailableAfterTransferC: bigint | number;
-  optionAvailableAfterTransferD: bigint | number;
+  optionAvailableBeforeTransferC: any;
+  optionAvailableBeforeTransferD: any;
+  optionAvailableAfterTransferC: any;
+  optionAvailableAfterTransferD: any;
   totalOptionAvailable: bigint | number;
 }) {
   assert(
