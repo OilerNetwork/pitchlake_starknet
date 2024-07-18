@@ -12,6 +12,7 @@ import {
   PlaceBidArgs,
 } from "../../utils/facades/types";
 import { mineNextBlock } from "../../utils/katana";
+
 export const smokeTest = async (
   provider: Provider,
   vaultFacade: VaultFacade,
@@ -56,6 +57,7 @@ export const smokeTest = async (
     optionBidders[2].account,
     optionBidders[2].privateKey
   );
+
   assert(
     stateAfter.activeVariant() === "Open",
     `Expected:Open\nReceived:${stateAfter.activeVariant()}`

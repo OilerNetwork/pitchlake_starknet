@@ -1,3 +1,4 @@
+
 import {
   Account,
   CairoUint256,
@@ -5,6 +6,7 @@ import {
   Provider,
   TypedContractV2,
 } from "starknet";
+
 import { ethAbi } from "../../abi";
 import { ApprovalArgs } from "./types";
 import { getCustomAccount } from "../helpers/common";
@@ -20,6 +22,7 @@ export class EthFacade {
   async getBalance(account: string) {
     const balance = await this.ethContract.balance_of(account);
 
+
     //Parse U256 to CairoUint256 to BigInt
     if (typeof balance !== "bigint" && typeof balance !== "number") {
       const data = new CairoUint256(balance);
@@ -32,6 +35,7 @@ export class EthFacade {
     recipient: string,
     amount: number | bigint
   ) {
+
     try {
       this.ethContract.connect(devAccount);
       await this.ethContract.transfer(recipient, amount);

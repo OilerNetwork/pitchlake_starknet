@@ -93,6 +93,7 @@ export const smokeTest = async (
     liquidityBeforeA
   );
 
+
   checkpoint1({
     liquidityBeforeA,
     liquidityAfterA,
@@ -102,6 +103,7 @@ export const smokeTest = async (
     balanceAfterA,
     constants,
   });
+
   //Withdraws
   //Withdraw constants.depositAmount/2 from vaultContract for A and B positions
 
@@ -198,6 +200,8 @@ function checkpoint2({
   balanceAfterWithdrawB: number | bigint;
   constants: Constants;
 }) {
+
+
   assert(
     Number(liquidityAfterA) ==
       Number(liquidityAfterWithdrawA) + constants.depositAmount / 2,
@@ -219,3 +223,4 @@ function checkpoint2({
     "Mismatch B balance"
   );
 }
+
