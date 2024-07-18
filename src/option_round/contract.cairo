@@ -77,6 +77,7 @@ mod OptionRound {
     // *************************************************************************
     //                              EVENTS
     // *************************************************************************
+
     #[event]
     #[derive(Drop, starknet::Event, PartialEq)]
     enum Event {
@@ -94,6 +95,7 @@ mod OptionRound {
         #[flat]
         ERC20Event: ERC20Component::Event,
     }
+
     // Emitted when the auction starts
     // @param total_options_available Max number of options that can be sold in the auction
     // @note Discuss if any other params should be emitted
@@ -101,6 +103,24 @@ mod OptionRound {
     struct AuctionStarted {
         total_options_available: u256,
     //...
+    }
+
+    // Emitted when the auction ends
+    // @param clearing_price The resulting price per each option of the batch auction
+    // @note Discuss if any other params should be emitted (options sold ?)
+    #[derive(Drop, starknet::Event, PartialEq)]
+    struct AuctionEnded {
+        clearing_price: u256,
+        total_options_sold: u256
+    }
+
+    // Emitted when the option round settles
+    // @param settlement_price The TWAP of basefee for the option round period, used to calculate the payout
+    // @note Discuss if any other params should be emitted (total payout ?)
+    #[derive(Drop, starknet::Event, PartialEq)]
+    struct OptionRoundSettled {
+        total_payout: u256,
+        settlement_price: u256
     }
 
     // Emitted when a bid is accepted
@@ -145,22 +165,6 @@ mod OptionRound {
         account: ContractAddress,
         amount: u256,
     //...
-    }
-
-    // Emitted when the auction ends
-    // @param clearing_price The resulting price per each option of the batch auction
-    // @note Discuss if any other params should be emitted (options sold ?)
-    #[derive(Drop, starknet::Event, PartialEq)]
-    struct AuctionEnded {
-        clearing_price: u256
-    }
-
-    // Emitted when the option round settles
-    // @param settlement_price The TWAP of basefee for the option round period, used to calculate the payout
-    // @note Discuss if any other params should be emitted (total payout ?)
-    #[derive(Drop, starknet::Event, PartialEq)]
-    struct OptionRoundSettled {
-        settlement_price: u256
     }
 
     // Emitted when a bidder refunds their unused bids
@@ -267,8 +271,8 @@ mod OptionRound {
                         }
                     )
                 );
-            self.emit(Event::AuctionEnded(AuctionEnded { clearing_price: x }));
-            self.emit(Event::OptionRoundSettled(OptionRoundSettled { settlement_price: x }));
+            self.emit(Event::AuctionEnded(AuctionEnded { clearing_price: x, total_options_sold: x }));
+            self.emit(Event::OptionRoundSettled(OptionRoundSettled { total_payout: x, settlement_price: x }));
             self
                 .emit(
                     Event::UnusedBidsRefunded(
@@ -640,7 +644,7 @@ mod OptionRound {
             self.set_state(OptionRoundState::Running);
 
             // Emit auction ended event
-            self.emit(Event::AuctionEnded(AuctionEnded { clearing_price }));
+            self.emit(Event::AuctionEnded(AuctionEnded { clearing_price, total_options_sold}));
 
             // Return clearing price & total options sold
             (clearing_price, total_options_sold)
@@ -680,7 +684,7 @@ mod OptionRound {
             self.set_state(OptionRoundState::Settled);
 
             // Emit option settled event
-            self.emit(Event::OptionRoundSettled(OptionRoundSettled { settlement_price }));
+            self.emit(Event::OptionRoundSettled(OptionRoundSettled { total_payout, settlement_price }));
 
             // Return total payout
             total_payout

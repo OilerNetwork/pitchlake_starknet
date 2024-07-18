@@ -125,11 +125,11 @@ fn test_auction_ended_option_round_event() {
 
         // End auction
         clear_event_logs(array![current_round.contract_address()]);
-        let (clearing_price, _) = timeskip_and_end_auction(ref vault);
+        let (clearing_price, total_options_sold) = timeskip_and_end_auction(ref vault);
 
         // Check the event emits correctly
         assert(clearing_price > 0, 'clearing price shd be > 0');
-        assert_event_auction_end(current_round.contract_address(), clearing_price);
+        assert_event_auction_end(current_round.contract_address(), clearing_price, total_options_sold);
 
         accelerate_to_settled(ref vault, 0);
         rounds_to_run -= 1;
