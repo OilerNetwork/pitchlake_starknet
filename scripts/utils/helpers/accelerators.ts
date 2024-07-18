@@ -1,12 +1,12 @@
 import {  Provider, TypedContractV2 } from "starknet";
 import { getAccount } from "./common";
-import {  vaultAbi } from "../../abi";
+import {  vaultABI } from "../../abi";
 import { getNow, timeskipNextBlock } from "../katana";
 import { getOptionRoundContract } from "./setup";
 
 async function accelerateToAuctioning(
   provider: Provider,
-  vaultContract: TypedContractV2<typeof vaultAbi>
+  vaultContract: TypedContractV2<typeof vaultABI>
 ) {
 
     const optionRoundContract = await getOptionRoundContract(provider,vaultContract)
@@ -25,7 +25,7 @@ async function accelerateToAuctioning(
 
 async function accelerateToRunning(
   provider: Provider,
-  vaultContract: TypedContractV2<typeof vaultAbi>
+  vaultContract: TypedContractV2<typeof vaultABI>
 ) {
   const optionRoundContract = await getOptionRoundContract(provider,vaultContract)
 

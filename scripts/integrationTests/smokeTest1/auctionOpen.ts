@@ -8,14 +8,15 @@ import {
 import { VaultFacade } from "../../utils/facades/vaultFacade";
 import { EthFacade } from "../../utils/facades/ethFacade";
 import { getLiquidityProviderAccounts } from "../../utils/helpers/accounts";
+import { TestRunner } from "../../utils/facades/TestRunner";
 
 //@note Wrap functions into a try catch to avoid breaking thread, log errors correctly
 
 export const smokeTest = async (
-  provider: Provider,
-  vault: VaultFacade,
-  eth: EthFacade,
-  constants: Constants
+  {provider,
+  vaultFacade:vault,
+  ethFacade:eth,
+  constants}:TestRunner
 ) => {
   const liquidityProviderAccounts = getLiquidityProviderAccounts(provider, 2);
 

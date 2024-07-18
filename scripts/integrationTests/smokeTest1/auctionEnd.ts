@@ -9,13 +9,13 @@ import {
   getLiquidityProviderAccounts,
   getOptionBidderAccounts,
 } from "../../utils/helpers/accounts";
+import { TestRunner } from "../../utils/facades/TestRunner";
 
-export const smokeTest = async (
-  provider: Provider,
-  vaultFacade: VaultFacade,
-  ethFacade: EthFacade,
-  constants: Constants
-) => {
+export const smokeTest = async ({
+  provider,
+  vaultFacade,
+  constants,
+}: TestRunner) => {
   const optionRoundFacade = await getOptionRoundFacade(
     provider,
     vaultFacade.vaultContract
@@ -24,7 +24,6 @@ export const smokeTest = async (
   try {
     await vaultFacade.endAuction(devAccount);
   } catch (err) {
-    console.log("EXPECTED");
     //Failure expected when contracts are changed to revert
   }
 
@@ -173,10 +172,28 @@ async function checkpoint1({
   totalUnlocked: number | bigint;
   constants: Constants;
 }) {
-  assert(BigInt(lpUnlockedBalances[0]) === BigInt(totalPremiums) / BigInt(2),"LP Unlocked for A mismatch");
-  assert(BigInt(lpUnlockedBalances[1]) === BigInt(totalPremiums) / BigInt(2),"LP Unlocked for B mismatch");
-  assert(BigInt(lpLockedBalances[0]) === BigInt(constants.depositAmount) / BigInt(2),"LP Locked for A mismatch");
-  assert(BigInt(lpLockedBalances[1]) === BigInt(constants.depositAmount) / BigInt(2),"LP Locked for B mismatch");
-  assert(BigInt(totalLocked) === BigInt(constants.depositAmount),"totalLocked mismatch");
-  assert(BigInt(totalUnlocked) === BigInt(totalPremiums),"totalUnlocked for A mismatch");
+  assert(
+    BigInt(lpUnlockedBalances[0]) === BigInt(totalPremiums) / BigInt(2),
+    "LP Unlocked for A mismatch"
+  );
+  assert(
+    BigInt(lpUnlockedBalances[1]) === BigInt(totalPremiums) / BigInt(2),
+    "LP Unlocked for B mismatch"
+  );
+  assert(
+    BigInt(lpLockedBalances[0]) === BigInt(constants.depositAmount) / BigInt(2),
+    "LP Locked for A mismatch"
+  );
+  assert(
+    BigInt(lpLockedBalances[1]) === BigInt(constants.depositAmount) / BigInt(2),
+    "LP Locked for B mismatch"
+  );
+  assert(
+    BigInt(totalLocked) === BigInt(constants.depositAmount),
+    "totalLocked mismatch"
+  );
+  assert(
+    BigInt(totalUnlocked) === BigInt(totalPremiums),
+    "totalUnlocked for A mismatch"
+  );
 }

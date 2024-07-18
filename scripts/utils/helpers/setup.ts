@@ -1,12 +1,12 @@
 import { Contract, Provider, provider, TypedContractV2 } from "starknet";
 import { VaultFacade } from "../facades/vaultFacade";
 import { stringToHex } from "./common";
-import { optionRoundAbi, vaultAbi } from "../../abi";
+import { optionRoundABI, vaultABI } from "../../abi";
 import { OptionRoundFacade } from "../facades/optionRoundFacade";
 
 export const getOptionRoundFacade = async (
   provider: Provider,
-  vault:  TypedContractV2<typeof vaultAbi>
+  vault:  TypedContractV2<typeof vaultABI>
 ) => {
 
   const optionRoundContract = await getOptionRoundContract(
@@ -19,7 +19,7 @@ export const getOptionRoundFacade = async (
 
 export const getOptionRoundContract = async (
   provider: Provider,
-  vault: TypedContractV2<typeof vaultAbi>
+  vault: TypedContractV2<typeof vaultABI>
 ) => {
   const optionRoundId = await vault.current_option_round_id();
   const optionRoundAddressDecimalString = await vault.get_option_round_address(
@@ -28,9 +28,9 @@ export const getOptionRoundContract = async (
   const optionRoundAddress =
     "0x" + stringToHex(optionRoundAddressDecimalString);
   const optionRoundContract = new Contract(
-    optionRoundAbi,
+    optionRoundABI,
     optionRoundAddress,
     provider
-  ).typedv2(optionRoundAbi);
+  ).typedv2(optionRoundABI);
   return optionRoundContract;
 };

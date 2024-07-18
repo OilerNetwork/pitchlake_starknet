@@ -1,17 +1,24 @@
-import { Account, CairoUint256, Provider, TypedContractV2 } from "starknet";
-import { vaultAbi } from "../../abi";
+import {
+  Account,
+  CairoUint256,
+  Contract,
+  Provider,
+  TypedContractV2,
+} from "starknet";
+import { vaultABI } from "../../abi";
 import { DepositArgs, WithdrawArgs } from "./types";
-import { getAccount } from "../helpers/common";
 import {
   accelerateToAuctioning,
   accelerateToRunning,
 } from "../helpers/accelerators";
 
 export class VaultFacade {
-  vaultContract: TypedContractV2<typeof vaultAbi>;
+  vaultContract: TypedContractV2<typeof vaultABI>;
 
-  constructor(vaultContract: TypedContractV2<typeof vaultAbi>) {
-    this.vaultContract = vaultContract;
+  constructor(vaultAddress: string, provider: Provider) {
+    this.vaultContract = new Contract(vaultABI, vaultAddress, provider).typedv2(
+      vaultABI
+    );
   }
 
   async endAuction(account: Account) {
@@ -88,7 +95,11 @@ export class VaultFacade {
   async deposit({ from, beneficiary, amount }: DepositArgs) {
     this.vaultContract.connect(from);
     try {
-      await this.vaultContract.deposit_liquidity(amount, beneficiary);
+      const data = await this.vaultContract.deposit_liquidity(
+        amount,
+        beneficiary
+      );
+      data;
     } catch (err) {
       console.log(err);
     }

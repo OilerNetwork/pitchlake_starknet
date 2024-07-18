@@ -7,16 +7,16 @@ import {
   TypedContractV2,
 } from "starknet";
 
-import { ethAbi } from "../../abi";
+import { erc20ABI } from "../../abi";
 import { ApprovalArgs } from "./types";
 import { getCustomAccount } from "../helpers/common";
 import { liquidityProviders, optionBidders } from "../constants";
 
 export class EthFacade {
-  ethContract: TypedContractV2<typeof ethAbi>;
+  ethContract: TypedContractV2<typeof erc20ABI>;
 
-  constructor(ethContract: TypedContractV2<typeof ethAbi>) {
-    this.ethContract = ethContract;
+  constructor(ethAddress:string,provider:Provider) {
+    this.ethContract = new Contract(erc20ABI, ethAddress,provider).typedv2(erc20ABI);
   }
   
 
@@ -87,8 +87,8 @@ export class EthFacade {
     ethAddress: string,
     approveFor: string
   ) {
-    const ethContract = new Contract(ethAbi, ethAddress, provider).typedv2(
-      ethAbi
+    const ethContract = new Contract(erc20ABI, ethAddress, provider).typedv2(
+      erc20ABI
     );
 
     for (let i = 0; i < 6; i++) {
