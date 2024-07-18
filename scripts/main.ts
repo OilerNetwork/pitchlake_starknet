@@ -3,7 +3,7 @@ import { smokeTesting } from "./integrationTests/smokeTesting";
 import { declareContracts } from "./utils/deployment/declareContracts";
 import { deployContracts } from "./utils/deployment/deployContracts";
 import { EthFacade } from "./utils/facades/ethFacade";
-import { ethAbi } from "./abi";
+import { erc20ABI } from "./abi";
 import { Contract } from "starknet";
 import { TestRunner } from "./utils/facades/TestRunner";
 

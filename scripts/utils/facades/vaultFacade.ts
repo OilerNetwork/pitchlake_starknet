@@ -5,7 +5,7 @@ import {
   Provider,
   TypedContractV2,
 } from "starknet";
-import { vaultAbi } from "../../abi";
+import { vaultABI } from "../../abi";
 import { DepositArgs, WithdrawArgs } from "./types";
 import {
   accelerateToAuctioning,
@@ -13,11 +13,11 @@ import {
 } from "../helpers/accelerators";
 
 export class VaultFacade {
-  vaultContract: TypedContractV2<typeof vaultAbi>;
+  vaultContract: TypedContractV2<typeof vaultABI>;
 
   constructor(vaultAddress: string, provider: Provider) {
-    this.vaultContract = new Contract(vaultAbi, vaultAddress, provider).typedv2(
-      vaultAbi
+    this.vaultContract = new Contract(vaultABI, vaultAddress, provider).typedv2(
+      vaultABI
     );
   }
 

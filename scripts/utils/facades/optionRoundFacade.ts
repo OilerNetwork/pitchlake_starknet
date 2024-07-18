@@ -1,11 +1,11 @@
 import { Account, CairoUint256, TypedContractV2 } from "starknet";
-import { optionRoundAbi } from "../../abi";
+import { optionRoundABI } from "../../abi";
 import { Bid, PlaceBidArgs, UpdateBidArgs } from "./types";
 
 export class OptionRoundFacade {
-  optionRoundContract: TypedContractV2<typeof optionRoundAbi>;
+  optionRoundContract: TypedContractV2<typeof optionRoundABI>;
 
-  constructor(optionRoundContract: TypedContractV2<typeof optionRoundAbi>) {
+  constructor(optionRoundContract: TypedContractV2<typeof optionRoundABI>) {
     this.optionRoundContract = optionRoundContract;
   }
 
