@@ -2,18 +2,21 @@ import { Provider } from "starknet";
 import { getCustomAccount } from "../../utils/helpers/common";
 import { liquidityProviders } from "../../utils/constants";
 import assert from "assert";
-import { Constants, DepositArgs, WithdrawArgs } from "../../utils/facades/types";
+import {
+  Constants,
+  DepositArgs,
+  WithdrawArgs,
+} from "../../utils/facades/types";
 import { VaultFacade } from "../../utils/facades/vaultFacade";
 import { EthFacade } from "../../utils/facades/ethFacade";
 
 //@note Wrap functions into a try catch to avoid breaking thread, log errors correctly
 
-
 export const smokeTest = async (
   provider: Provider,
   vault: VaultFacade,
   eth: EthFacade,
-  constants:Constants
+  constants: Constants
 ) => {
   const liquidityProviderA = getCustomAccount(
     provider,
@@ -89,18 +92,17 @@ export const smokeTest = async (
     "\nliquidityBeforeA:",
     liquidityBeforeA
   );
-  assert(
-    Number(liquidityAfterA) === Number(liquidityBeforeA) + constants.depositAmount,
-    "liquidity A mismatch"
-  );
-  assert(
-    Number(liquidityAfterB) === Number(liquidityBeforeB) + constants.depositAmount,
-    "liquidity B mismatch"
-  );
-  assert(
-    Number(balanceBeforeA) === Number(balanceAfterA) + 2 * constants.depositAmount,
-    "Eth balance for a mismatch"
-  );
+
+
+  checkpoint1({
+    liquidityBeforeA,
+    liquidityAfterA,
+    liquidityBeforeB,
+    liquidityAfterB,
+    balanceBeforeA,
+    balanceAfterA,
+    constants,
+  });
 
   //Withdraws
   //Withdraw constants.depositAmount/2 from vaultContract for A and B positions
@@ -130,6 +132,76 @@ export const smokeTest = async (
     "\nliquidityAfterWithdrawA",
     liquidityAfterWithdrawA
   );
+
+  checkpoint2({
+    liquidityAfterA,
+    liquidityAfterB,
+    liquidityAfterWithdrawA,
+    liquidityAfterWithdrawB,
+    balanceAfterA,
+    balanceAfterB,
+    balanceAfterWithdrawA,
+    balanceAfterWithdrawB,
+    constants,
+  });
+};
+
+function checkpoint1({
+  liquidityBeforeA,
+  liquidityAfterA,
+  liquidityBeforeB,
+  liquidityAfterB,
+  balanceBeforeA,
+  balanceAfterA,
+  constants,
+}: {
+  liquidityBeforeA: number | bigint;
+  liquidityAfterA: number | bigint;
+  liquidityBeforeB: number | bigint;
+  liquidityAfterB: number | bigint;
+  balanceBeforeA: number | bigint;
+  balanceAfterA: number | bigint;
+  constants: Constants;
+}) {
+  assert(
+    Number(liquidityAfterA) ===
+      Number(liquidityBeforeA) + constants.depositAmount,
+    "liquidity A mismatch"
+  );
+  assert(
+    Number(liquidityAfterB) ===
+      Number(liquidityBeforeB) + constants.depositAmount,
+    "liquidity B mismatch"
+  );
+  assert(
+    Number(balanceBeforeA) ===
+      Number(balanceAfterA) + 2 * constants.depositAmount,
+    "Eth balance for a mismatch"
+  );
+}
+function checkpoint2({
+  liquidityAfterA,
+  liquidityAfterWithdrawA,
+  liquidityAfterB,
+  liquidityAfterWithdrawB,
+  balanceAfterA,
+  balanceAfterWithdrawA,
+  balanceAfterB,
+  balanceAfterWithdrawB,
+  constants,
+}: {
+  liquidityAfterA: number | bigint;
+  liquidityAfterWithdrawA: number | bigint;
+  liquidityAfterB: number | bigint;
+  liquidityAfterWithdrawB: number | bigint;
+  balanceAfterA: number | bigint;
+  balanceAfterWithdrawA: number | bigint;
+  balanceAfterB: number | bigint;
+  balanceAfterWithdrawB: number | bigint;
+  constants: Constants;
+}) {
+
+
   assert(
     Number(liquidityAfterA) ==
       Number(liquidityAfterWithdrawA) + constants.depositAmount / 2,
@@ -141,11 +213,14 @@ export const smokeTest = async (
     "Mismatch B liquidity"
   );
   assert(
-    Number(balanceAfterA) == Number(balanceAfterWithdrawA) - constants.depositAmount / 2,
+    Number(balanceAfterA) ==
+      Number(balanceAfterWithdrawA) - constants.depositAmount / 2,
     "Mismatch A balance"
   );
   assert(
-    Number(balanceAfterB) == Number(balanceAfterWithdrawB) - constants.depositAmount / 2,
+    Number(balanceAfterB) ==
+      Number(balanceAfterWithdrawB) - constants.depositAmount / 2,
     "Mismatch B balance"
   );
-};
+}
+

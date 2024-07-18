@@ -1,4 +1,4 @@
-import { Account, Contract, Provider, TypedContractV2 } from "starknet";
+import { Account, CairoUint256, Contract, Provider, TypedContractV2 } from "starknet";
 import { optionRoundAbi, vaultAbi } from "../../abi";
 import { DepositArgs, WithdrawArgs } from "./types";
 import { getAccount, stringToHex } from "../helpers/common";
@@ -13,37 +13,34 @@ export class VaultFacade {
   }
 
   async getTotalLocked() {
-    try {
       const res = await this.vaultContract.get_total_locked_balance();
       return res;
-    } catch (err) {
-      console.log(err);
-    }
+
   }
 
   async getTotalUnLocked() {
-    try {
       const res = await this.vaultContract.get_total_unlocked_balance();
       return res;
-    } catch (err) {
-      console.log(err);
-    }
+  
   }
   async getLPLockedBalance(address: string) {
-    try {
       const res = await this.vaultContract.get_lp_locked_balance(address);
+      if(typeof res!=="bigint" && typeof res!=="number")
+        {
+          const data = new CairoUint256(res);
+          return data.toBigInt()
+        }
       return res;
-    } catch (err) {
-      console.log(err);
-    }
   }
   async getLPUnlockedBalance(address: string) {
-    try {
+    
       const res = await this.vaultContract.get_lp_unlocked_balance(address);
+      if(typeof res!=="bigint" && typeof res!=="number")
+      {
+        const data = new CairoUint256(res);
+        return data.toBigInt()
+      }
       return res;
-    } catch (err) {
-      console.log(err);
-    }
   }
 
   async withdraw({ account, amount }: WithdrawArgs) {
