@@ -1010,7 +1010,7 @@ mod OptionRound {
             );
 
             // Get the refundable & tokenizable bids, and the partially sold bid id if it exists
-            let option_buyer = get_contract_address();
+            let option_buyer = get_caller_address();
             let (mut tokenizable_bids, _, partial_bid_id) = self.inspect_options_for(option_buyer);
 
             // Total tokenizable options

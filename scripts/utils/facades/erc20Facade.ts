@@ -1,4 +1,3 @@
-
 import {
   Account,
   CairoUint256,
@@ -12,27 +11,26 @@ import { ApprovalArgs } from "./types";
 import { getCustomAccount } from "../helpers/common";
 import { liquidityProviders, optionBidders } from "../constants";
 
-export class EthFacade {
-  ethContract: TypedContractV2<typeof erc20ABI>;
+export class ERC20Facade {
+  erc20Contract: TypedContractV2<typeof erc20ABI>;
 
-  constructor(ethAddress:string,provider:Provider) {
-    this.ethContract = new Contract(erc20ABI, ethAddress,provider).typedv2(erc20ABI);
+  constructor(ercAddress: string, provider: Provider) {
+    this.erc20Contract = new Contract(erc20ABI, ercAddress, provider).typedv2(
+      erc20ABI
+    );
   }
-  
 
-  async getBalancesAll(accounts:Array<Account>){
-
+  async getBalancesAll(accounts: Array<Account>) {
     const balances = await Promise.all(
-      accounts.map(async(account:Account)=>{
+      accounts.map(async (account: Account) => {
         const balance = await this.getBalance(account.address);
-        return balance
+        return balance;
       })
-    )
-    return balances
+    );
+    return balances;
   }
   async getBalance(account: string) {
-    const balance = await this.ethContract.balance_of(account);
-
+    const balance = await this.erc20Contract.balance_of(account);
 
     //Parse U256 to CairoUint256 to BigInt
     if (typeof balance !== "bigint" && typeof balance !== "number") {
@@ -46,13 +44,12 @@ export class EthFacade {
     recipient: string,
     amount: number | bigint
   ) {
-
     try {
-      this.ethContract.connect(devAccount);
-      await this.ethContract.transfer(recipient, amount);
+      this.erc20Contract.connect(devAccount);
+      await this.erc20Contract.transfer(recipient, amount);
       // @note: don't delete it yet, waiting for response from starknet.js team
       // const result = await account.execute({
-      //   contractAddress: ethContract,
+      //   contractAddress: ercContract,
       //   entrypoint: "transfer",
       //   calldata: CallData.compile({
       //     recipient: liquidityProviders[0].account,
@@ -67,9 +64,9 @@ export class EthFacade {
   }
 
   async approval({ owner, amount, spender }: ApprovalArgs) {
-    this.ethContract.connect(owner);
+    this.erc20Contract.connect(owner);
     try {
-      this.ethContract.approve(spender, amount);
+      this.erc20Contract.approve(spender, amount);
     } catch (err) {
       console.log(err);
     }
@@ -81,15 +78,17 @@ export class EthFacade {
     }
   }
 
-  async supplyEth(
+  async supplyERC20(
     devAccount: Account,
     provider: Provider,
-    ethAddress: string,
+    erc20Address: string,
     approveFor: string
   ) {
-    const ethContract = new Contract(erc20ABI, ethAddress, provider).typedv2(
-      erc20ABI
-    );
+    const erc20Contract = new Contract(
+      erc20ABI,
+      erc20Address,
+      provider
+    ).typedv2(erc20ABI);
 
     for (let i = 0; i < 6; i++) {
       const lp = getCustomAccount(

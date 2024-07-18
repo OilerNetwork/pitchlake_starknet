@@ -1,7 +1,6 @@
 import { Provider, Uint256 } from "starknet";
 import { getAccount } from "../../utils/helpers/common";
 import { VaultFacade } from "../../utils/facades/vaultFacade";
-import { EthFacade } from "../../utils/facades/ethFacade";
 import { getOptionRoundFacade } from "../../utils/helpers/setup";
 import assert from "assert";
 import {
