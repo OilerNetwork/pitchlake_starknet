@@ -75,9 +75,45 @@ mod OptionRound {
     }
 
     // *************************************************************************
+    //                              Constructor
+    // *************************************************************************
+    #[constructor]
+    fn constructor(
+        ref self: ContractState,
+        vault_address: ContractAddress,
+        round_id: u256,
+        auction_start_date: u64,
+        auction_end_date: u64,
+        option_settlement_date: u64,
+        reserve_price: u256,
+        cap_level: u256,
+        strike_price: u256
+    ) {
+        let (name, symbol) = self.get_name_symbol(round_id);
+        // Initialize the ERC20 component
+        self.erc20.initializer(name, symbol);
+        // Set the vault address and round id
+        self.vault_address.write(vault_address);
+        self.round_id.write(round_id);
+
+        // Set dates
+        self.auction_start_date.write(auction_start_date);
+        self.auction_end_date.write(auction_end_date);
+        self.option_settlement_date.write(option_settlement_date);
+
+        // Set round state to open
+        self.state.write(OptionRoundState::Open);
+
+        // Write option round params to storage now or once auction starts
+        self.reserve_price.write(reserve_price);
+        self.cap_level.write(cap_level);
+        self.strike_price.write(strike_price);
+    }
+
+
+    // *************************************************************************
     //                              EVENTS
     // *************************************************************************
-
     #[event]
     #[derive(Drop, starknet::Event, PartialEq)]
     enum Event {
@@ -189,49 +225,9 @@ mod OptionRound {
         amount: u256
     }
 
-
-    // *************************************************************************
-    //                              Constructor
-    // *************************************************************************
-
-    #[constructor]
-    fn constructor(
-        ref self: ContractState,
-        vault_address: ContractAddress,
-        round_id: u256,
-        auction_start_date: u64,
-        auction_end_date: u64,
-        option_settlement_date: u64,
-        reserve_price: u256,
-        cap_level: u256,
-        strike_price: u256
-    ) {
-        let (name, symbol) = self.get_name_symbol(round_id);
-        // Initialize the ERC20 component
-        self.erc20.initializer(name, symbol);
-        // Set the vault address and round id
-        self.vault_address.write(vault_address);
-        self.round_id.write(round_id);
-
-        // Set dates
-        self.auction_start_date.write(auction_start_date);
-        self.auction_end_date.write(auction_end_date);
-        self.option_settlement_date.write(option_settlement_date);
-
-        // Set round state to open
-        self.state.write(OptionRoundState::Open);
-
-        // Write option round params to storage now or once auction starts
-        self.reserve_price.write(reserve_price);
-        self.cap_level.write(cap_level);
-        self.strike_price.write(strike_price);
-    }
-
-
     // *************************************************************************
     //                            IMPLEMENTATION
     // *************************************************************************
-
     #[abi(embed_v0)]
     impl ERC20MetadataImpl of IERC20Metadata<ContractState> {
         fn name(self: @ContractState) -> ByteArray {
@@ -247,7 +243,6 @@ mod OptionRound {
             6
         }
     }
-
 
     #[abi(embed_v0)]
     impl OptionRoundImpl of IOptionRound<ContractState> {
@@ -271,8 +266,16 @@ mod OptionRound {
                         }
                     )
                 );
-            self.emit(Event::AuctionEnded(AuctionEnded { clearing_price: x, total_options_sold: x }));
-            self.emit(Event::OptionRoundSettled(OptionRoundSettled { total_payout: x, settlement_price: x }));
+            self
+                .emit(
+                    Event::AuctionEnded(AuctionEnded { clearing_price: x, total_options_sold: x })
+                );
+            self
+                .emit(
+                    Event::OptionRoundSettled(
+                        OptionRoundSettled { total_payout: x, settlement_price: x }
+                    )
+                );
             self
                 .emit(
                     Event::UnusedBidsRefunded(
@@ -644,7 +647,7 @@ mod OptionRound {
             self.set_state(OptionRoundState::Running);
 
             // Emit auction ended event
-            self.emit(Event::AuctionEnded(AuctionEnded { clearing_price, total_options_sold}));
+            self.emit(Event::AuctionEnded(AuctionEnded { clearing_price, total_options_sold }));
 
             // Return clearing price & total options sold
             (clearing_price, total_options_sold)
@@ -684,7 +687,10 @@ mod OptionRound {
             self.set_state(OptionRoundState::Settled);
 
             // Emit option settled event
-            self.emit(Event::OptionRoundSettled(OptionRoundSettled { total_payout, settlement_price }));
+            self
+                .emit(
+                    Event::OptionRoundSettled(OptionRoundSettled { total_payout, settlement_price })
+                );
 
             // Return total payout
             total_payout
@@ -1054,8 +1060,9 @@ mod OptionRound {
         }
     }
 
-
-    // Internal Functions
+    // *************************************************************************
+    //                          INTERNAL FUNCTIONS
+    // *************************************************************************
     #[generate_trait]
     impl InternalImpl of OptionRoundInternalTrait {
         // Return if the caller is the Vault or not

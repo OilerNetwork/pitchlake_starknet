@@ -306,12 +306,6 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         spreads
     }
 
-    fn get_premiums_for(
-        ref self: VaultFacade, liquidity_provider: ContractAddress, round_id: u256
-    ) -> u256 {
-        self.vault_dispatcher.get_premiums_earned(liquidity_provider, round_id)
-    }
-
     // @note add get_premiums_for_multiple()
 
     // For Vault
@@ -387,6 +381,10 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     // @note TODO impl this in contract later
     fn get_round_transition_period(ref self: VaultFacade) -> u64 {
         self.vault_dispatcher.get_round_transition_period()
+    }
+
+    fn get_cap_level(ref self: VaultFacade) -> u16 {
+      self.vault_dispatcher.get_cap_level()
     }
 }
 

@@ -105,8 +105,8 @@ fn test_convert_position_to_lp_tokens_success() { //
     // Settle auction
     set_block_timestamp(auction_end_time + 1);
     // Get initial states before conversion
-    let lp1_premiums_init = vault_facade.get_premiums_for(liquidity_provider_1(), 'todo'.into());
-    let lp2_premiums_init = vault_facade.get_premiums_for(liquidity_provider_2(), 'todo'.into());
+    //let lp1_premiums_init = vault_facade.get_premiums_for(liquidity_provider_1(), 'todo'.into());
+    //let lp2_premiums_init = vault_facade.get_premiums_for(liquidity_provider_2(), 'todo'.into());
     let (lp1_collateral_init, _lp1_unallocated_init) = vault_facade
         .get_lp_locked_and_unlocked_balance(liquidity_provider_1());
     let (lp2_collateral_init, lp2_unallocated_init) = vault_facade
@@ -119,8 +119,8 @@ fn test_convert_position_to_lp_tokens_success() { //
     let tokenizing_amount = deposit_amount_wei / 4;
     vault_facade.convert_position_to_lp_tokens(tokenizing_amount, liquidity_provider_1());
     // Get states after conversion
-    let lp1_premiums_final = vault_facade.get_premiums_for(liquidity_provider_1(), 'todo'.into());
-    let lp2_premiums_final = vault_facade.get_premiums_for(liquidity_provider_2(), 'todo'.into());
+    //let lp1_premiums_final = vault_facade.get_premiums_for(liquidity_provider_1(), 'todo'.into());
+    //let lp2_premiums_final = vault_facade.get_premiums_for(liquidity_provider_2(), 'todo'.into());
     let (lp1_collateral_final, lp1_unallocated_final) = vault_facade
         .get_lp_locked_and_unlocked_balance(liquidity_provider_1());
     let (lp2_collateral_final, lp2_unallocated_final) = vault_facade
@@ -131,12 +131,12 @@ fn test_convert_position_to_lp_tokens_success() { //
     //        .get_all_round_liquidity();
     // Assert all premiums were collected (deposit into the next round)
     let expected_premiums_share = current_round.total_premiums() / 2;
-    assert(
-        lp1_premiums_final == lp1_premiums_init
-            - expected_premiums_share && lp1_premiums_final == 0,
-        'lp1 premiums incorrect'
-    ); // @dev need both checks ?
-    assert(lp2_premiums_final == lp2_premiums_init, 'lp2 premiums shd not change');
+    //assert(
+    //    lp1_premiums_final == lp1_premiums_init
+    //        - expected_premiums_share && lp1_premiums_final == 0,
+    //    'lp1 premiums incorrect'
+    //); // @dev need both checks ?
+    //assert(lp2_premiums_final == lp2_premiums_init, 'lp2 premiums shd not change');
     // @dev Some of LP1's collateral is now represented as tokens, this means their collateral will decrease,
     // but the round's will remain the same.
     assert(

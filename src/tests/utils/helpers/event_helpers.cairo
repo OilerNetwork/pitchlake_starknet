@@ -118,7 +118,9 @@ fn assert_event_auction_bid_rejected(
 }
 
 // Check AuctionEnd emits correctly
-fn assert_event_auction_end(option_round_address: ContractAddress, clearing_price: u256, total_options_sold: u256) {
+fn assert_event_auction_end(
+    option_round_address: ContractAddress, clearing_price: u256, total_options_sold: u256
+) {
     match pop_log::<OptionRound::Event>(option_round_address) {
         Option::Some(e) => {
             let expected = OptionRound::Event::AuctionEnded(
@@ -132,7 +134,9 @@ fn assert_event_auction_end(option_round_address: ContractAddress, clearing_pric
 
 // Check OptionSettle emits correctly
 // @dev Settlment price is the price determining the payout for the round
-fn assert_event_option_settle(option_round_address: ContractAddress, total_payout: u256, settlement_price: u256) {
+fn assert_event_option_settle(
+    option_round_address: ContractAddress, total_payout: u256, settlement_price: u256
+) {
     match pop_log::<OptionRound::Event>(option_round_address) {
         Option::Some(e) => {
             let expected = OptionRound::Event::OptionRoundSettled(
