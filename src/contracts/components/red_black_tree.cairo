@@ -406,9 +406,9 @@ pub mod RBTreeComponent {
     }
 
     #[generate_trait]
-    impl DeleteBalance<
+    impl RBTreeDeleteBalance<
         TContractState, +HasComponent<TContractState>
-    > of DeleteBalanceTrait<TContractState> {
+    > of RBTreeDeleteBalanceTrait<TContractState> {
         fn delete_node(ref self: ComponentState<TContractState>, delete_id: felt252) {
             let mut y = delete_id;
             let mut node_delete: Node = self.tree.read(delete_id);
@@ -607,9 +607,9 @@ pub mod RBTreeComponent {
     }
 
     #[generate_trait]
-    impl InsertBalance<
+    impl RBTreeInsertBalance<
         TContractState, +HasComponent<TContractState>
-    > of InsertBalanceTrait<TContractState> {
+    > of RBTreeInsertBalanceTrait<TContractState> {
         fn insert_node_recursively(
             ref self: ComponentState<TContractState>,
             current_id: felt252,
