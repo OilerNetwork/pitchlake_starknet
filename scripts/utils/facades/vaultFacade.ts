@@ -24,11 +24,19 @@ export class VaultFacade {
   }
   async getTotalLocked() {
     const res = await this.vaultContract.get_total_locked_balance();
+    if (typeof res !== "bigint" && typeof res !== "number") {
+      const data = new CairoUint256(res);
+      return data.toBigInt();
+    }
     return res;
   }
 
   async getTotalUnLocked() {
     const res = await this.vaultContract.get_total_unlocked_balance();
+    if (typeof res !== "bigint" && typeof res !== "number") {
+      const data = new CairoUint256(res);
+      return data.toBigInt();
+    }
     return res;
   }
 

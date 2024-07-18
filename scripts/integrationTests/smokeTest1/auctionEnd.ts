@@ -1,17 +1,14 @@
-import {  Provider } from "starknet";
+import { Provider } from "starknet";
 import { getAccount } from "../../utils/helpers/common";
 import { VaultFacade } from "../../utils/facades/vaultFacade";
 import { EthFacade } from "../../utils/facades/ethFacade";
 import { getOptionRoundFacade } from "../../utils/helpers/setup";
-import { OptionRoundFacade } from "../../utils/facades/optionRoundFacade";
 import assert from "assert";
+import { Constants } from "../../utils/facades/types";
 import {
-  ApprovalArgs,
-  Constants,
-  PlaceBidArgs,
-} from "../../utils/facades/types";
-import { mineNextBlock } from "../../utils/katana";
-import { getLiquidityProviderAccounts, getOptionBidderAccounts } from "../../utils/helpers/accounts";
+  getLiquidityProviderAccounts,
+  getOptionBidderAccounts,
+} from "../../utils/helpers/accounts";
 
 export const smokeTest = async (
   provider: Provider,
@@ -38,12 +35,28 @@ export const smokeTest = async (
     `Expected:Auctioning\nReceived:${state.activeVariant()}`
   );
 
-  const liquidityProviderAccounts = getLiquidityProviderAccounts(provider,2);
-  const optionBidderAccounts = getOptionBidderAccounts(provider,3);
-  
+  const liquidityProviderAccounts = getLiquidityProviderAccounts(provider, 2);
+  const optionBidderAccounts = getOptionBidderAccounts(provider, 3);
+
   await vaultFacade.endAuctionBystander(provider);
 
-  const totalPremiums = optionRoundFacade.getTotalPremiums();
+  const lpUnlockedBalances = await vaultFacade.getLPUnlockedBalanceAll(
+    liquidityProviderAccounts
+  );
+  const lpLockedBalances = await vaultFacade.getLPLockedBalanceAll(
+    liquidityProviderAccounts
+  );
+  const totalPremiums = await optionRoundFacade.getTotalPremiums();
+  const totalLocked = await vaultFacade.getTotalLocked();
+  const totalUnlocked = await vaultFacade.getTotalUnLocked();
+  checkpoint1({
+    lpLockedBalances,
+    lpUnlockedBalances,
+    totalPremiums,
+    totalLocked,
+    totalUnlocked,
+    constants,
+  });
   const stateAfter: any =
     await optionRoundFacade.optionRoundContract.get_state();
 
@@ -145,10 +158,25 @@ export const smokeTest = async (
   //   });
 };
 
-async function checkpoint1(
-  vaultFacade: VaultFacade,
-  optionRoundFacade: OptionRoundFacade,
-  constants: Constants
-) {
-    
+async function checkpoint1({
+  lpLockedBalances,
+  lpUnlockedBalances,
+  totalPremiums,
+  totalLocked,
+  totalUnlocked,
+  constants,
+}: {
+  lpLockedBalances: Array<number | bigint>;
+  lpUnlockedBalances: Array<number | bigint>;
+  totalPremiums: number | bigint;
+  totalLocked: number | bigint;
+  totalUnlocked: number | bigint;
+  constants: Constants;
+}) {
+  assert(BigInt(lpUnlockedBalances[0]) === BigInt(totalPremiums) / BigInt(2),"LP Unlocked for A mismatch");
+  assert(BigInt(lpUnlockedBalances[1]) === BigInt(totalPremiums) / BigInt(2),"LP Unlocked for B mismatch");
+  assert(BigInt(lpLockedBalances[0]) === BigInt(constants.depositAmount) / BigInt(2),"LP Locked for A mismatch");
+  assert(BigInt(lpLockedBalances[1]) === BigInt(constants.depositAmount) / BigInt(2),"LP Locked for B mismatch");
+  assert(BigInt(totalLocked) === BigInt(constants.depositAmount),"totalLocked mismatch");
+  assert(BigInt(totalUnlocked) === BigInt(totalPremiums),"totalUnlocked for A mismatch");
 }
