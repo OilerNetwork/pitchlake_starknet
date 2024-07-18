@@ -37,7 +37,7 @@ mod OptionRound {
     component!(path: RBTreeComponent, storage: bids_tree, event: BidTreeEvent);
 
     impl RBTreeImpl = RBTreeComponent::RBTreeImpl<ContractState>;
-    impl RBTreeInternalImpl = RBTreeComponent::RBTreeInternalImpl<ContractState>;
+    impl RBTreeOptionImpl = RBTreeComponent::RBTreeOptionTrait<ContractState>;
 
     // *************************************************************************
     //                              STORAGE

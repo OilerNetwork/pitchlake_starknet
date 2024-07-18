@@ -83,7 +83,7 @@ pub mod RBTreeComponent {
     }
 
     #[generate_trait]
-    pub impl RBTreeAuctionImpl<TContractState, +HasComponent<TContractState>> of RBTreeAuctionTrait<TContractState> {
+    pub impl RBTreeOptionImpl<TContractState, +HasComponent<TContractState>> of RBTreeOptionTrait<TContractState> {
         fn find_clearing_price(ref self: ComponentState<TContractState>) -> (u256, u256) {
             let total_options_available = self._get_total_options_available();
             let root: felt252 = self.root.read();
