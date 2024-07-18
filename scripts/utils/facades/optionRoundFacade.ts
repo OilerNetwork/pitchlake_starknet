@@ -1,5 +1,4 @@
-
-import { CairoUint256, TypedContractV2 } from "starknet";
+import { Account, CairoUint256, TypedContractV2 } from "starknet";
 import { optionRoundAbi } from "../../abi";
 import { Bid, PlaceBidArgs, UpdateBidArgs } from "./types";
 
@@ -10,6 +9,13 @@ export class OptionRoundFacade {
     this.optionRoundContract = optionRoundContract;
   }
 
+  async getTotalPremiums() {
+    const res = await this.optionRoundContract.total_premiums();
+    if (typeof res !== "bigint" && typeof res !== "number") {
+      const data = new CairoUint256(res);
+      return data.toBigInt();
+    } else return res;
+  }
   async getTotalOptionsAvailable() {
     const res = await this.optionRoundContract.get_total_options_available();
     if (typeof res !== "bigint" && typeof res !== "number") {
@@ -56,6 +62,16 @@ export class OptionRoundFacade {
       };
       bids.push(bid);
     }
+    return bids;
+  }
+
+  async getBidsForAll(accounts: Array<Account>) {
+    const bids = await Promise.all(
+      accounts.map(async (account: Account) => {
+        const bidData = await this.getBidsFor(account.address);
+        return bidData;
+      })
+    );
     return bids;
   }
   async updateBid({ bidId, from, amount, price }: UpdateBidArgs) {

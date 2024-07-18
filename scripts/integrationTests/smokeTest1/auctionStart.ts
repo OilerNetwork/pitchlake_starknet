@@ -1,10 +1,8 @@
-import { CairoUint256, Provider, Uint256 } from "starknet";
-import { getAccount, getCustomAccount } from "../../utils/helpers/common";
-import { liquidityProviders, optionBidders } from "../../utils/constants";
+import { Provider, Uint256 } from "starknet";
+import { getAccount } from "../../utils/helpers/common";
 import { VaultFacade } from "../../utils/facades/vaultFacade";
 import { EthFacade } from "../../utils/facades/ethFacade";
-import { setupOptionRound } from "../../utils/helpers/setup";
-import { OptionRoundFacade } from "../../utils/facades/optionRoundFacade";
+import { getOptionRoundFacade } from "../../utils/helpers/setup";
 import assert from "assert";
 import {
   ApprovalArgs,
@@ -12,6 +10,10 @@ import {
   PlaceBidArgs,
 } from "../../utils/facades/types";
 import { mineNextBlock } from "../../utils/katana";
+import {
+  getLiquidityProviderAccounts,
+  getOptionBidderAccounts,
+} from "../../utils/helpers/accounts";
 
 export const smokeTest = async (
   provider: Provider,
@@ -19,7 +21,10 @@ export const smokeTest = async (
   ethFacade: EthFacade,
   constants: Constants
 ) => {
-  const optionRoundFacade = await setupOptionRound(vaultFacade, provider);
+  const optionRoundFacade = await getOptionRoundFacade(
+    provider,
+    vaultFacade.vaultContract
+  );
   const devAccount = getAccount("dev", provider);
   try {
     await vaultFacade.startAuction(devAccount);
@@ -30,33 +35,8 @@ export const smokeTest = async (
   const stateAfter: any =
     await optionRoundFacade.optionRoundContract.get_state();
 
-  const liquidityProviderA = getCustomAccount(
-    provider,
-    liquidityProviders[0].account,
-    liquidityProviders[0].privateKey
-  );
-
-  const liquidityProviderB = getCustomAccount(
-    provider,
-    liquidityProviders[1].account,
-    liquidityProviders[1].privateKey
-  );
-  const optionBidderA = getCustomAccount(
-    provider,
-    optionBidders[0].account,
-    optionBidders[0].privateKey
-  );
-  const optionBidderB = getCustomAccount(
-    provider,
-    optionBidders[1].account,
-    optionBidders[1].privateKey
-  );
-
-  const optionBidderC = getCustomAccount(
-    provider,
-    optionBidders[2].account,
-    optionBidders[2].privateKey
-  );
+  const liquidityProviderAccounts = getLiquidityProviderAccounts(provider, 2);
+  const optionBidderAccounts = getOptionBidderAccounts(provider, 2);
 
   assert(
     stateAfter.activeVariant() === "Open",
@@ -65,27 +45,19 @@ export const smokeTest = async (
 
   await vaultFacade.startAuctionBystander(provider);
 
-  const unlockedBalanceA = await vaultFacade.getLPUnlockedBalance(
-    liquidityProviderA.address
+  const unlockedBalances = await vaultFacade.getLPUnlockedBalanceAll(
+    liquidityProviderAccounts
   );
-  const unlockedBalanceB = await vaultFacade.getLPUnlockedBalance(
-    liquidityProviderB.address
-  );
-  const lockedBalanceA = await vaultFacade.getLPLockedBalance(
-    liquidityProviderA.address
-  );
-  const lockedBalanceB = await vaultFacade.getLPLockedBalance(
-    liquidityProviderB.address
+  const lockedBalances = await vaultFacade.getLPLockedBalanceAll(
+    liquidityProviderAccounts
   );
   const totalLockedAmount = await vaultFacade.getTotalLocked();
   const totalUnlockedAmount = await vaultFacade.getTotalUnLocked();
 
   //Asserts
   checkpoint1({
-    unlockedBalanceA,
-    unlockedBalanceB,
-    lockedBalanceA,
-    lockedBalanceB,
+    unlockedBalances,
+    lockedBalances,
     totalLockedAmount,
     totalUnlockedAmount,
     constants,
@@ -95,12 +67,12 @@ export const smokeTest = async (
 
   const approveAllData: Array<ApprovalArgs> = [
     {
-      owner: optionBidderA,
+      owner: optionBidderAccounts[0],
       amount: BigInt("90000000000000000000"),
       spender: optionRoundFacade.optionRoundContract.address,
     },
     {
-      owner: optionBidderB,
+      owner: optionBidderAccounts[1],
       amount: BigInt("90000000000000000000"),
       spender: optionRoundFacade.optionRoundContract.address,
     },
@@ -113,99 +85,74 @@ export const smokeTest = async (
   const totalOptionAvailable =
     await optionRoundFacade.getTotalOptionsAvailable();
 
-  const balanceBeforeBidA = await ethFacade.getBalance(optionBidderA.address);
-  const balanceBeforeBidB = await ethFacade.getBalance(optionBidderB.address);
-  console.log(
-    "reservePrice",
-    Number(reservePrice),
-    "\ntotalOptionsAvailable:",
-    totalOptionAvailable
+  const ethBalancesBefore = await ethFacade.getBalancesAll(
+    optionBidderAccounts
   );
 
   const placeBidsData: Array<PlaceBidArgs> = [
     {
-      from: optionBidderA,
+      from: optionBidderAccounts[0],
       amount: BigInt(totalOptionAvailable) / BigInt(2),
       price: BigInt(3) * BigInt(reservePrice),
     },
     {
-      from: optionBidderB,
+      from: optionBidderAccounts[1],
       amount: BigInt(totalOptionAvailable) / BigInt(2),
       price: BigInt(2) * BigInt(reservePrice),
     },
     {
-      from: optionBidderB,
+      from: optionBidderAccounts[1],
       amount: BigInt(totalOptionAvailable) / BigInt(2),
       price: BigInt(reservePrice),
     },
   ];
   await optionRoundFacade.placeBidsAll(placeBidsData);
 
-  const balanceAfterBidA = await ethFacade.getBalance(optionBidderA.address);
-  const balanceAfterBidB = await ethFacade.getBalance(optionBidderB.address);
+  const ethBalancesAfter = await ethFacade.getBalancesAll(optionBidderAccounts);
 
-  const bidsForA = await optionRoundFacade.getBidsFor(optionBidderA.address);
-  const bidsForB = await optionRoundFacade.getBidsFor(optionBidderB.address);
+  const bidArrays = await optionRoundFacade.getBidsForAll(optionBidderAccounts);
 
   checkpoint2({
-    balanceBeforeBidA,
-    balanceAfterBidA,
-    balanceBeforeBidB,
-    balanceAfterBidB,
+    ethBalancesBefore,
+    ethBalancesAfter,
+    bidArrays,
     reservePrice,
     totalOptionAvailable,
-    bidsForA,
-    bidsForB,
   });
 };
 
 async function checkpoint1({
-  lockedBalanceA,
-  lockedBalanceB,
-  unlockedBalanceA,
-  unlockedBalanceB,
+  lockedBalances,
+  unlockedBalances,
   totalLockedAmount,
   totalUnlockedAmount,
   constants,
 }: {
-  lockedBalanceA: bigint | number | Uint256 | undefined;
-  lockedBalanceB: bigint | number | Uint256 | undefined;
-  unlockedBalanceA: bigint | number | Uint256 | undefined;
-  unlockedBalanceB: bigint | number | Uint256 | undefined;
+  lockedBalances: Array<bigint | number>;
+  unlockedBalances: Array<bigint | number>;
   totalLockedAmount: bigint | number | Uint256 | undefined;
   totalUnlockedAmount: bigint | number | Uint256 | undefined;
   constants: Constants;
 }) {
-
-  const data = {
-    lockedBalanceA,
-    lockedBalanceB,
-    unlockedBalanceA,
-    unlockedBalanceB,
-    totalLockedAmount,
-    totalUnlockedAmount,
-    constants,
-  }
-  console.log("checkpoint1:\n",data)
   assert(
-    Number(unlockedBalanceA) === 0,
-    `UnlockedBalanceA 0 expected, found ${unlockedBalanceA}`
+    Number(unlockedBalances[0]) === 0,
+    `UnlockedBalanceA 0 expected, found ${unlockedBalances[0]}`
   );
   assert(
-    Number(unlockedBalanceB) === 0,
-    `UnlockedBalanceB 0 expected, found ${unlockedBalanceB}`
+    Number(unlockedBalances[1]) === 0,
+    `UnlockedBalanceB 0 expected, found ${unlockedBalances[1]}`
   );
   assert(
-    Number(lockedBalanceA) === constants.depositAmount / 2,
-    `LockedBalanceA ${
-      constants.depositAmount / 2
-    } expected, found ${lockedBalanceA}`
+    Number(lockedBalances[0]) === constants.depositAmount / 2,
+    `LockedBalanceA ${constants.depositAmount / 2} expected, found ${
+      lockedBalances[0]
+    }`
   );
   assert(
-    Number(lockedBalanceB) === constants.depositAmount / 2,
-    `LockedBalanceB ${
-      constants.depositAmount / 2
-    } expected, found ${lockedBalanceB}`
+    Number(lockedBalances[1]) === constants.depositAmount / 2,
+    `LockedBalanceB ${constants.depositAmount / 2} expected, found ${
+      lockedBalances[1]
+    }`
   );
   assert(
     Number(totalUnlockedAmount) === 0,
@@ -218,62 +165,56 @@ async function checkpoint1({
 }
 
 async function checkpoint2({
-  balanceBeforeBidA,
-  balanceAfterBidA,
-  balanceBeforeBidB,
-  balanceAfterBidB,
+  ethBalancesBefore,
+  ethBalancesAfter,
+  bidArrays,
   totalOptionAvailable,
   reservePrice,
-  bidsForA,
-  bidsForB,
 }: {
-  balanceBeforeBidA: number | bigint;
-  balanceAfterBidA: number | bigint;
-  balanceBeforeBidB: number | bigint;
-  balanceAfterBidB: number | bigint;
+  ethBalancesBefore: Array<number|bigint>,
+  ethBalancesAfter: Array<number|bigint>,
+  bidArrays:Array<Array<any>>,
   totalOptionAvailable: number | bigint;
   reservePrice: number | bigint;
-  bidsForA: Array<any>;
-  bidsForB: Array<any>;
 }) {
-  console.log("Bids from A:\n", bidsForA, "\nBids from B:\n", bidsForB);
+  console.log("Bids from A:\n", bidArrays[0], "\nBids from B:\n", bidArrays[1]);
   assert(
-    BigInt(balanceBeforeBidA) - BigInt(balanceAfterBidA) ===
+    BigInt(ethBalancesBefore[0]) - BigInt(ethBalancesAfter[0]) ===
       (BigInt(3) * BigInt(reservePrice) * BigInt(totalOptionAvailable)) /
         BigInt(2),
     "Error A"
   );
   assert(
-    BigInt(balanceBeforeBidB) - BigInt(balanceAfterBidB) ===
+    BigInt(ethBalancesBefore[1]) - BigInt(ethBalancesAfter[1]) ===
       (BigInt(3) * BigInt(reservePrice) * BigInt(totalOptionAvailable)) /
         BigInt(2),
     "Error B"
   );
 
-  assert(bidsForA.length === 1, "No. of Bids for A wrong");
+  assert(bidArrays[0].length === 1, "No. of Bids for A wrong");
   assert(
-    bidsForA[0].amount === BigInt(totalOptionAvailable) / BigInt(2),
+    bidArrays[0][0].amount === BigInt(totalOptionAvailable) / BigInt(2),
     "Bid for A amount wrong"
   );
   assert(
-    bidsForA[0].price === BigInt(3) * BigInt(reservePrice),
+    bidArrays[0][0].price === BigInt(3) * BigInt(reservePrice),
     "Bid for A price wrong"
   );
-  assert(bidsForB.length === 2, "No. of Bids for B wrong");
+  assert(bidArrays[1].length === 2, "No. of Bids for B wrong");
   assert(
-    bidsForB[1].amount === BigInt(totalOptionAvailable) / BigInt(2),
+    bidArrays[1][1].amount === BigInt(totalOptionAvailable) / BigInt(2),
     "First bid for B amount wrong"
   );
   assert(
-    bidsForB[1].price === BigInt(2) * BigInt(reservePrice),
+    bidArrays[1][1].price === BigInt(2) * BigInt(reservePrice),
     "First bid for B price wrong"
   );
   assert(
-    bidsForB[0].amount === BigInt(totalOptionAvailable) / BigInt(2),
+    bidArrays[1][0].amount === BigInt(totalOptionAvailable) / BigInt(2),
     "Second bid for B amount wrong "
   );
   assert(
-    BigInt(bidsForB[0].price) === BigInt(reservePrice),
-    `Second bid for B price wrong.\n Expected:${reservePrice}, Actual:${bidsForB[1].price}`
+    BigInt(bidArrays[1][0].price) === BigInt(reservePrice),
+    `Second bid for B price wrong.\n Expected:${reservePrice}, Actual:${bidArrays[1][0].price}`
   );
 }

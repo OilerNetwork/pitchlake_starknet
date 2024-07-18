@@ -1,9 +1,11 @@
-import { Account, CairoUint256, Contract, Provider, TypedContractV2 } from "starknet";
-import { optionRoundAbi, vaultAbi } from "../../abi";
+import { Account, CairoUint256, Provider, TypedContractV2 } from "starknet";
+import { vaultAbi } from "../../abi";
 import { DepositArgs, WithdrawArgs } from "./types";
-import { getAccount, stringToHex } from "../helpers/common";
-import { getNow, setAndMineNextBlock } from "../katana";
-import { accelerateToAuctioning } from "../helpers/accelerators";
+import { getAccount } from "../helpers/common";
+import {
+  accelerateToAuctioning,
+  accelerateToRunning,
+} from "../helpers/accelerators";
 
 export class VaultFacade {
   vaultContract: TypedContractV2<typeof vaultAbi>;
@@ -12,37 +14,60 @@ export class VaultFacade {
     this.vaultContract = vaultContract;
   }
 
-  async getTotalLocked() {
-      const res = await this.vaultContract.get_total_locked_balance();
-      return res;
+  async endAuction(account: Account) {
+    this.vaultContract.connect(account);
+    const res = await this.vaultContract.end_auction();
+  }
 
+  async endAuctionBystander(provider: Provider) {
+    await accelerateToRunning(provider, this.vaultContract);
+  }
+  async getTotalLocked() {
+    const res = await this.vaultContract.get_total_locked_balance();
+    return res;
   }
 
   async getTotalUnLocked() {
-      const res = await this.vaultContract.get_total_unlocked_balance();
-      return res;
-  
-  }
-  async getLPLockedBalance(address: string) {
-      const res = await this.vaultContract.get_lp_locked_balance(address);
-      if(typeof res!=="bigint" && typeof res!=="number")
-        {
-          const data = new CairoUint256(res);
-          return data.toBigInt()
-        }
-      return res;
-  }
-  async getLPUnlockedBalance(address: string) {
-    
-      const res = await this.vaultContract.get_lp_unlocked_balance(address);
-      if(typeof res!=="bigint" && typeof res!=="number")
-      {
-        const data = new CairoUint256(res);
-        return data.toBigInt()
-      }
-      return res;
+    const res = await this.vaultContract.get_total_unlocked_balance();
+    return res;
   }
 
+  async getLPLockedBalance(address: string) {
+    const res = await this.vaultContract.get_lp_locked_balance(address);
+    if (typeof res !== "bigint" && typeof res !== "number") {
+      const data = new CairoUint256(res);
+      return data.toBigInt();
+    }
+    return res;
+  }
+  async getLPLockedBalanceAll(accounts: Array<Account>) {
+    const balances = await Promise.all(
+      accounts.map(async (account: Account) => {
+        const res = await this.getLPLockedBalance(account.address);
+        return res;
+      })
+    );
+    return balances;
+  }
+
+  async getLPUnlockedBalance(address: string) {
+    const res = await this.vaultContract.get_lp_unlocked_balance(address);
+    if (typeof res !== "bigint" && typeof res !== "number") {
+      const data = new CairoUint256(res);
+      return data.toBigInt();
+    }
+    return res;
+  }
+
+  async getLPUnlockedBalanceAll(accounts: Array<Account>) {
+    const balances = await Promise.all(
+      accounts.map(async (account: Account) => {
+        const res = await this.getLPUnlockedBalance(account.address);
+        return res;
+      })
+    );
+    return balances;
+  }
   async withdraw({ account, amount }: WithdrawArgs) {
     this.vaultContract.connect(account);
     try {
@@ -81,14 +106,6 @@ export class VaultFacade {
 
   //@note Only works for katana dev instance with a --dev flag
   async startAuctionBystander(provider: Provider) {
-    try {
-      const devAccount = getAccount("dev", provider);
-      await accelerateToAuctioning(provider, this.vaultContract);
-      this.vaultContract.connect(devAccount);
-
-      await this.vaultContract.start_auction();
-    } catch (err) {
-      console.log("ERROR IS HERE YES", err);
-    }
+    await accelerateToAuctioning(provider, this.vaultContract);
   }
 }

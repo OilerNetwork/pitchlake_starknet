@@ -80,4 +80,6 @@ function stringToHex(decimalString: string): string {
   return num.toString(16);
 }
 
+
 export { getProvider, getAccount, getContract, getCustomAccount, stringToHex };
+
