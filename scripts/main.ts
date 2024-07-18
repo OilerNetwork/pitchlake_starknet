@@ -25,7 +25,7 @@ async function main(environment: string, port?: string) {
 
   const ethFacade = new EthFacade(eth);
 
-  await eth.supplyEth(
+  await ethFacade.supplyEth(
     devAccount,
     provider,
     contractAddresses.ethAddress,

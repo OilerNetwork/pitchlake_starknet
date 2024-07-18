@@ -129,8 +129,8 @@ function checkpoint1({
     "liquidity B mismatch"
   );
   assert(
-    Number(lpUnlockedBalancesBefore[0]) ===
-      Number(lpUnlockedBalancesAfter[0]) + 2 * constants.depositAmount,
+    Number(ethBalancesBefore[0]) ===
+      Number(ethBalancesAfter[0]) + 2 * constants.depositAmount,
     "Eth balance for a mismatch"
   );
 }
