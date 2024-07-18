@@ -23,7 +23,6 @@ export class VaultFacade {
 
   async endAuction(account: Account) {
     this.vaultContract.connect(account);
-    const a = this.vaultContract.populateTransaction;
     const res = await this.vaultContract.end_auction();
   }
 
