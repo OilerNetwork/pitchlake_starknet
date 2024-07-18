@@ -42,7 +42,9 @@ export class OptionRoundFacade {
     } else return res;
   }
   async getBidsFor(address: string) {
+    console.log("get bids for get called");
     const res = await this.optionRoundContract.get_bids_for(address);
+    console.log("got the res successfully", res);
     const bids: Array<Bid> = [];
 
     for (let data of res) {
@@ -61,7 +63,7 @@ export class OptionRoundFacade {
       } else {
         price = data.price;
       }
-
+      console.log("inside the getBid, before Bid object", address);
       const bid: Bid = {
         id: data.id,
         amount: amount,
@@ -77,12 +79,16 @@ export class OptionRoundFacade {
   }
 
   async getBidsForAll(accounts: Array<Account>) {
+    console.log("inside the get all bids");
     const bids = await Promise.all(
       accounts.map(async (account: Account) => {
+        console.log("checking for the bidss");
         const bidData = await this.getBidsFor(account.address);
+        console.log(bidData);
         return bidData;
       })
     );
+    console.log("bids got all");
     return bids;
   }
   async updateBid({ bidId, from, amount, price }: UpdateBidArgs) {
@@ -170,6 +176,8 @@ export class OptionRoundFacade {
       const data = await this.optionRoundContract.refund_unused_bids(
         optionBidder
       );
+
+      console.log("refund unused bids inside -> ", data);
       // @note: here it will return the total refundable_balance
       // if (typeof res !== "bigint" && typeof res !== "number") {
       //   const data = new CairoUint256(res);
@@ -180,12 +188,10 @@ export class OptionRoundFacade {
     }
   }
 
-  async exerciseOptions({ from, optionBidder }: ExerciseOptionArgs) {
+  async exerciseOptions({ from }: ExerciseOptionArgs) {
     try {
       this.optionRoundContract.connect(from);
-      const data = await this.optionRoundContract.exercise_options(
-        optionBidder
-      );
+      const data = await this.optionRoundContract.exercise_options();
       // @note: here it will return the amount of transfer
       // if (typeof res !== "bigint" && typeof res !== "number") {
       //   const data = new CairoUint256(res);
@@ -196,12 +202,10 @@ export class OptionRoundFacade {
     }
   }
 
-  async tokenizeOptions({ from, optionBidder }: TokenizeOptionArgs) {
+  async tokenizeOptions({ from }: TokenizeOptionArgs) {
     try {
       this.optionRoundContract.connect(from);
-      const data = await this.optionRoundContract.tokenize_options(
-        optionBidder
-      );
+      const data = await this.optionRoundContract.tokenize_option();
       // @note: here it will return the total number of tokenizable options
       // if (typeof res !== "bigint" && typeof res !== "number") {
       //   const data = new CairoUint256(res);

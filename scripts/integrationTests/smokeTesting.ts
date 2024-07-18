@@ -27,9 +27,13 @@ async function smokeTesting(
     depositAmount: 1000,
   };
   await auctionOpenTests(provider, vaultFacade, ethFacade, constants);
+  console.log(1);
   await auctionStartTests(provider, vaultFacade, ethFacade, constants);
+  console.log(2);
   await auctionEndTetsts(provider, vaultFacade, ethFacade, constants);
+  console.log(3);
   await refundTokenizeBids(provider, vaultFacade, ethFacade, constants);
+  console.log(4);
 }
 
 export { smokeTesting };

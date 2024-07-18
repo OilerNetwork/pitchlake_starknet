@@ -26,11 +26,14 @@ export const smokeTest = async (
     vaultFacade.vaultContract
   );
   const devAccount = getAccount("dev", provider);
+  console.log("auuction about to start");
   try {
     await vaultFacade.startAuction(devAccount);
   } catch (err) {
     //Failure expected when contracts are changed to revert
   }
+
+  console.log("auction started");
 
   const stateAfter: any =
     await optionRoundFacade.optionRoundContract.get_state();
@@ -62,6 +65,8 @@ export const smokeTest = async (
     totalUnlockedAmount,
     constants,
   });
+
+  console.log("checkpoint 1 in start auction passed");
 
   //Approve OptionBidders
 
@@ -108,9 +113,15 @@ export const smokeTest = async (
   ];
   await optionRoundFacade.placeBidsAll(placeBidsData);
 
+  console.log("bids placed successfully");
+
   const ethBalancesAfter = await ethFacade.getBalancesAll(optionBidderAccounts);
 
+  console.log("after getting the eth balance");
+
   const bidArrays = await optionRoundFacade.getBidsForAll(optionBidderAccounts);
+
+  console.log("before check point 2");
 
   checkpoint2({
     ethBalancesBefore,
@@ -119,6 +130,8 @@ export const smokeTest = async (
     reservePrice,
     totalOptionAvailable,
   });
+
+  console.log("checkout 2 also passed");
 };
 
 async function checkpoint1({
@@ -171,9 +184,9 @@ async function checkpoint2({
   totalOptionAvailable,
   reservePrice,
 }: {
-  ethBalancesBefore: Array<number|bigint>,
-  ethBalancesAfter: Array<number|bigint>,
-  bidArrays:Array<Array<any>>,
+  ethBalancesBefore: Array<number | bigint>;
+  ethBalancesAfter: Array<number | bigint>;
+  bidArrays: Array<Array<any>>;
   totalOptionAvailable: number | bigint;
   reservePrice: number | bigint;
 }) {

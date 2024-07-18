@@ -56,12 +56,10 @@ export type RefundUnusedBidsArgs = {
 
 export type ExerciseOptionArgs = {
   from: Account;
-  optionBidder: string;
 };
 
 export type TokenizeOptionArgs = {
   from: Account;
-  optionBidder: string;
 };
 
 //Smoke Test types

@@ -2,9 +2,13 @@ import { Provider } from "starknet";
 import { getAccount } from "../../utils/helpers/common";
 import { VaultFacade } from "../../utils/facades/vaultFacade";
 import { EthFacade } from "../../utils/facades/ethFacade";
-import { getOptionRoundFacade } from "../../utils/helpers/setup";
+import {
+  getOptionRoundERC20Facade,
+  getOptionRoundFacade,
+} from "../../utils/helpers/setup";
 import assert from "assert";
 import { Constants } from "../../utils/facades/types";
+import { ethAbi } from "../../abi";
 import {
   getLiquidityProviderAccounts,
   getOptionBidderAccounts,
@@ -20,181 +24,161 @@ export const smokeTest = async (
     provider,
     vaultFacade.vaultContract
   );
-  const devAccount = getAccount("dev", provider);
-  try {
-    await vaultFacade.endAuction(devAccount);
-  } catch (err) {
-    console.log("EXPECTED");
-    //Failure expected when contracts are changed to revert
-  }
 
-  const state: any = await optionRoundFacade.optionRoundContract.get_state();
-
-  assert(
-    state.activeVariant() === "Auctioning",
-    `Expected:Auctioning\nReceived:${state.activeVariant()}`
+  const optionRoundERC20Contract = await getOptionRoundERC20Facade(
+    provider,
+    optionRoundFacade.optionRoundContract
   );
+  const devAccount = getAccount("dev", provider);
 
-  const liquidityProviderAccounts = getLiquidityProviderAccounts(provider, 2);
+  const totalOptionAvailable =
+    await optionRoundFacade.getTotalOptionsAvailable();
+  const reservePrice = await optionRoundFacade.getReservePrice();
   const optionBidderAccounts = getOptionBidderAccounts(provider, 3);
 
-  await vaultFacade.endAuctionBystander(provider);
+  const balanceBeforeRefundC = await ethFacade.getBalance(
+    optionBidderAccounts[0].address
+  );
+  const balanceBeforeRefundD = await ethFacade.getBalance(
+    optionBidderAccounts[0].address
+  );
+  try {
+    await optionRoundFacade.refundUnusedBids({
+      from: devAccount,
+      optionBidder: optionBidderAccounts[0].address,
+    });
+    await optionRoundFacade.refundUnusedBids({
+      from: devAccount,
+      optionBidder: optionBidderAccounts[1].address,
+    });
+  } catch (err) {
+    console.log("Error while refunding the unused bids", err);
+  }
 
-  const lpUnlockedBalances = await vaultFacade.getLPUnlockedBalanceAll(
-    liquidityProviderAccounts
+  const balanceAfterRefundC = await ethFacade.getBalance(
+    optionBidderAccounts[0].address
   );
-  const lpLockedBalances = await vaultFacade.getLPLockedBalanceAll(
-    liquidityProviderAccounts
+  const balanceAfterRefundD = await ethFacade.getBalance(
+    optionBidderAccounts[1].address
   );
-  const totalPremiums = await optionRoundFacade.getTotalPremiums();
-  const totalLocked = await vaultFacade.getTotalLocked();
-  const totalUnlocked = await vaultFacade.getTotalUnLocked();
+
   checkpoint1({
-    lpLockedBalances,
-    lpUnlockedBalances,
-    totalPremiums,
-    totalLocked,
-    totalUnlocked,
-    constants,
+    balanceBeforeRefundC,
+    balanceBeforeRefundD,
+    balanceAfterRefundC,
+    balanceAfterRefundD,
+    totalOptionAvailable,
+    reservePrice,
   });
-  const stateAfter: any =
-    await optionRoundFacade.optionRoundContract.get_state();
 
-  assert(
-    stateAfter.activeVariant() === "Running",
-    `Expected:Running\nReceived:${stateAfter.activeVariant()}`
-  );
-  //   const unlockedBalanceA = await vaultFacade.getLPUnlockedBalance(
-  //     liquidityProviderA.address
-  //   );
-  //   const unlockedBalanceB = await vaultFacade.getLPUnlockedBalance(
-  //     liquidityProviderB.address
-  //   );
-  //   const lockedBalanceA = await vaultFacade.getLPLockedBalance(
-  //     liquidityProviderA.address
-  //   );
-  //   const lockedBalanceB = await vaultFacade.getLPLockedBalance(
-  //     liquidityProviderB.address
-  //   );
-  //   const totalLockedAmount = await vaultFacade.getTotalLocked();
-  //   const totalUnlockedAmount = await vaultFacade.getTotalUnLocked();
+  const optionAvailableBeforeTransferC =
+    await optionRoundFacade.getTotalOptionsBalanceFor({
+      optionBuyer: optionBidderAccounts[0].address,
+    });
+  const optionAvailableBeforeTransferD =
+    await optionRoundFacade.getTotalOptionsBalanceFor({
+      optionBuyer: optionBidderAccounts[1].address,
+    });
 
-  //   //Asserts
-  //   checkpoint1({
-  //     unlockedBalanceA,
-  //     unlockedBalanceB,
-  //     lockedBalanceA,
-  //     lockedBalanceB,
-  //     totalLockedAmount,
-  //     totalUnlockedAmount,
-  //     constants,
-  //   });
+  try {
+    await optionRoundFacade.tokenizeOptions({
+      from: optionBidderAccounts[0],
+    });
+  } catch (err) {
+    console.log("Error while tokenizing the option", err);
+  }
 
-  //   //Approve OptionBidders
+  try {
+    optionRoundERC20Contract.connect(optionBidderAccounts[0]);
+    await optionRoundERC20Contract.transfer(
+      optionBidderAccounts[1].address,
+      BigInt(totalOptionAvailable) / BigInt(4)
+    );
+  } catch (err) {
+    console.log("Error while transferring the tokenized options", err);
+  }
 
-  //   const approveAllData: Array<ApprovalArgs> = [
-  //     {
-  //       owner: optionBidderA,
-  //       amount: BigInt("90000000000000000000"),
-  //       spender: optionRoundFacade.optionRoundContract.address,
-  //     },
-  //     {
-  //       owner: optionBidderB,
-  //       amount: BigInt("90000000000000000000"),
-  //       spender: optionRoundFacade.optionRoundContract.address,
-  //     },
-  //   ];
-  //   await ethFacade.approveAll(approveAllData);
-  //   await mineNextBlock(provider.channel.nodeUrl);
-
-  //   //Place bids according to story script
-  //   const reservePrice = await optionRoundFacade.getReservePrice();
-  //   const totalOptionAvailable =
-  //     await optionRoundFacade.getTotalOptionsAvailable();
-
-  //   const balanceBeforeBidA = await ethFacade.getBalance(optionBidderA.address);
-  //   const balanceBeforeBidB = await ethFacade.getBalance(optionBidderB.address);
-  //   console.log(
-  //     "reservePrice",
-  //     Number(reservePrice),
-  //     "\ntotalOptionsAvailable:",
-  //     totalOptionAvailable
-  //   );
-
-  //   const placeBidsData: Array<PlaceBidArgs> = [
-  //     {
-  //       from: optionBidderA,
-  //       amount: BigInt(totalOptionAvailable) / BigInt(2),
-  //       price: BigInt(3) * BigInt(reservePrice),
-  //     },
-  //     {
-  //       from: optionBidderB,
-  //       amount: BigInt(totalOptionAvailable) / BigInt(2),
-  //       price: BigInt(2) * BigInt(reservePrice),
-  //     },
-  //     {
-  //       from: optionBidderB,
-  //       amount: BigInt(totalOptionAvailable) / BigInt(2),
-  //       price: BigInt(reservePrice),
-  //     },
-  //   ];
-  //   await optionRoundFacade.placeBidsAll(placeBidsData);
-
-  //   const balanceAfterBidA = await ethFacade.getBalance(optionBidderA.address);
-  //   const balanceAfterBidB = await ethFacade.getBalance(optionBidderB.address);
-
-  //   const bidsForA = await optionRoundFacade.getBidsFor(optionBidderA.address);
-  //   const bidsForB = await optionRoundFacade.getBidsFor(optionBidderB.address);
-
-  //   checkpoint2({
-  //     balanceBeforeBidA,
-  //     balanceAfterBidA,
-  //     balanceBeforeBidB,
-  //     balanceAfterBidB,
-  //     reservePrice,
-  //     totalOptionAvailable,
-  //     bidsForA,
-  //     bidsForB,
-  //   });
+  const optionAvailableAfterTransferC =
+    await optionRoundFacade.getTotalOptionsBalanceFor({
+      optionBuyer: optionBidderAccounts[0].address,
+    });
+  const optionAvailableAfterTransferD =
+    await optionRoundFacade.getTotalOptionsBalanceFor({
+      optionBuyer: optionBidderAccounts[1].address,
+    });
 };
 
 async function checkpoint1({
-  lpLockedBalances,
-  lpUnlockedBalances,
-  totalPremiums,
-  totalLocked,
-  totalUnlocked,
-  constants,
+  balanceBeforeRefundC,
+  balanceBeforeRefundD,
+  balanceAfterRefundC,
+  balanceAfterRefundD,
+  totalOptionAvailable,
+  reservePrice,
 }: {
-  lpLockedBalances: Array<number | bigint>;
-  lpUnlockedBalances: Array<number | bigint>;
-  totalPremiums: number | bigint;
-  totalLocked: number | bigint;
-  totalUnlocked: number | bigint;
-  constants: Constants;
+  balanceBeforeRefundC: bigint | number;
+  balanceBeforeRefundD: bigint | number;
+  balanceAfterRefundC: bigint | number;
+  balanceAfterRefundD: bigint | number;
+  totalOptionAvailable: bigint | number;
+  reservePrice: bigint | number;
 }) {
   assert(
-    BigInt(lpUnlockedBalances[0]) === BigInt(totalPremiums) / BigInt(2),
-    "LP Unlocked for A mismatch"
+    BigInt(balanceBeforeRefundC) +
+      (BigInt(totalOptionAvailable) / BigInt(2)) * BigInt(reservePrice) ===
+      BigInt(balanceAfterRefundC),
+    "Unused bids balance fail"
   );
   assert(
-    BigInt(lpUnlockedBalances[1]) === BigInt(totalPremiums) / BigInt(2),
-    "LP Unlocked for B mismatch"
+    BigInt(balanceBeforeRefundD) +
+      (BigInt(totalOptionAvailable) / BigInt(2)) * BigInt(reservePrice) ===
+      BigInt(balanceAfterRefundD),
+    "Unused bids balance fail"
+  );
+}
+
+async function checkpoint2({
+  optionAvailableBeforeTransferC,
+  optionAvailableBeforeTransferD,
+  optionAvailableAfterTransferC,
+  optionAvailableAfterTransferD,
+  totalOptionAvailable,
+}: {
+  optionAvailableBeforeTransferC: bigint | number;
+  optionAvailableBeforeTransferD: bigint | number;
+  optionAvailableAfterTransferC: bigint | number;
+  optionAvailableAfterTransferD: bigint | number;
+  totalOptionAvailable: bigint | number;
+}) {
+  assert(
+    BigInt(optionAvailableBeforeTransferC) ===
+      BigInt(optionAvailableBeforeTransferD),
+    "Intial options should be equal"
+  );
+
+  assert(
+    BigInt(optionAvailableBeforeTransferC) +
+      BigInt(optionAvailableBeforeTransferD) ===
+      BigInt(totalOptionAvailable),
+    "Intial sum of options should be total options available"
+  );
+
+  assert(
+    BigInt(optionAvailableAfterTransferC) +
+      BigInt(optionAvailableAfterTransferD) ===
+      BigInt(totalOptionAvailable),
+    "After transfer sum of options should be total options available"
   );
   assert(
-    BigInt(lpLockedBalances[0]) === BigInt(constants.depositAmount) / BigInt(2),
-    "LP Locked for A mismatch"
+    BigInt(optionAvailableBeforeTransferC) / BigInt(2) ===
+      BigInt(optionAvailableAfterTransferC),
+    "Final option balance of C should be half of initial"
   );
+
   assert(
-    BigInt(lpLockedBalances[1]) === BigInt(constants.depositAmount) / BigInt(2),
-    "LP Locked for B mismatch"
-  );
-  assert(
-    BigInt(totalLocked) === BigInt(constants.depositAmount),
-    "totalLocked mismatch"
-  );
-  assert(
-    BigInt(totalUnlocked) === BigInt(totalPremiums),
-    "totalUnlocked for A mismatch"
+    BigInt(optionAvailableBeforeTransferD) +
+      BigInt(optionAvailableBeforeTransferC) / BigInt(2) ===
+      BigInt(optionAvailableAfterTransferD),
+    "Final option balance of D should be inital + half of C"
   );
 }
