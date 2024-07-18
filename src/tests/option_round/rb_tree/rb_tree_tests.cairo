@@ -22,7 +22,7 @@ const RED: bool = true;
 const MOCK_ADDRESS: felt252 = 123456;
 
 fn mock_address(value: felt252) -> ContractAddress {
-    contract_address_const::<'liquidity_provider_1'>()
+    contract_address_const::<'test_contract_address'>()
 }
 
 // Tests for insertion
