@@ -1,7 +1,7 @@
 import { Provider } from "starknet";
 import { getAccount } from "../../utils/helpers/common";
 import { VaultFacade } from "../../utils/facades/vaultFacade";
-import { EthFacade } from "../../utils/facades/ethFacade";
+import { EthFacade } from "../../utils/facades/erc20Facade";
 import {
   getOptionRoundERC20Contract,
   getOptionRoundFacade,
@@ -94,10 +94,6 @@ export const smokeTest = async ({
     optionRoundERC20Contract.connect(optionBidderAccounts[0]);
     await optionRoundERC20Contract.approve(
       optionRoundERC20Contract.address,
-      BigInt(totalOptionAvailable) / BigInt(4)
-    );
-    await optionRoundERC20Contract.approve(
-      vault.vaultContract.address,
       BigInt(totalOptionAvailable) / BigInt(4)
     );
     await optionRoundERC20Contract.transfer(

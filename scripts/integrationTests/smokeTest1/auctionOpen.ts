@@ -6,18 +6,18 @@ import {
   WithdrawArgs,
 } from "../../utils/facades/types";
 import { VaultFacade } from "../../utils/facades/vaultFacade";
-import { EthFacade } from "../../utils/facades/ethFacade";
+import { EthFacade } from "../../utils/facades/erc20Facade";
 import { getLiquidityProviderAccounts } from "../../utils/helpers/accounts";
 import { TestRunner } from "../../utils/facades/TestRunner";
 
 //@note Wrap functions into a try catch to avoid breaking thread, log errors correctly
 
-export const smokeTest = async (
-  {provider,
-  vaultFacade:vault,
-  ethFacade:eth,
-  constants}:TestRunner
-) => {
+export const smokeTest = async ({
+  provider,
+  vaultFacade: vault,
+  ethFacade: eth,
+  constants,
+}: TestRunner) => {
   const liquidityProviderAccounts = getLiquidityProviderAccounts(provider, 2);
 
   //Approve A for depositing
