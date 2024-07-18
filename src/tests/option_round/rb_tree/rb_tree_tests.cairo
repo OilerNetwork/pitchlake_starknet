@@ -1,16 +1,25 @@
 use core::pedersen::pedersen;
 use starknet::{contract_address_const, ContractAddress};
 use pitch_lake_starknet::{
-    types::{Bid}, library::red_black_tree::{IRBTreeDispatcher, IRBTreeDispatcherTrait},
-    tests::utils::helpers::setup::setup_rb_tree_test,
+    types::{Bid},
+    tests::{
+        option_round::{
+            rb_tree::rb_tree_mock_contract::{
+                IRBTreeMockContractDispatcher, IRBTreeMockContractDispatcherTrait
+            }
+        }
+    }
 };
+use starknet::{contract_address_const, ContractAddress};
+use core::pedersen::pedersen;
+use pitch_lake_starknet::tests::utils::helpers::setup::setup_rb_tree_test;
 
 const BLACK: bool = false;
 const RED: bool = true;
 const MOCK_ADDRESS: felt252 = 123456;
 
 fn mock_address(value: felt252) -> ContractAddress {
-    contract_address_const::<'liquidity_provider_1'>()
+    contract_address_const::<'test_contract_address'>()
 }
 
 // Tests for insertion
@@ -1234,7 +1243,7 @@ fn create_bid(price: u256, nonce: u64) -> Bid {
     }
 }
 
-fn insert(rb_tree: IRBTreeDispatcher, price: u256, nonce: u64) -> felt252 {
+fn insert(rb_tree: IRBTreeMockContractDispatcher, price: u256, nonce: u64) -> felt252 {
     let bidder = mock_address(MOCK_ADDRESS);
     let id = poseidon::poseidon_hash_span(array![bidder.into(), nonce.try_into().unwrap()].span());
     rb_tree
@@ -1252,13 +1261,13 @@ fn insert(rb_tree: IRBTreeDispatcher, price: u256, nonce: u64) -> felt252 {
     return id;
 }
 
-fn is_tree_valid(rb_tree: IRBTreeDispatcher) -> bool {
+fn is_tree_valid(rb_tree: IRBTreeMockContractDispatcher) -> bool {
     let is_tree_valid = rb_tree.is_tree_valid();
     //println!("Is tree valid: {:?}", is_tree_valid);
     is_tree_valid
 }
 
-fn delete(rb_tree: IRBTreeDispatcher, bid_id: felt252) {
+fn delete(rb_tree: IRBTreeMockContractDispatcher, bid_id: felt252) {
     rb_tree.delete(bid_id);
 }
 
@@ -1272,13 +1281,14 @@ fn compare_tree_structures(
     let mut i = 0;
 
     // Compare outer array
-    while i < actual
-        .len() {
-            let actual_inner = actual[i];
-            let expected_inner = expected[i];
-            compare_inner(actual_inner, expected_inner);
-            i += 1;
-        }
+    while
+    i < actual.len()
+    {
+        let actual_inner = actual[i];
+        let expected_inner = expected[i];
+        compare_inner(actual_inner, expected_inner);
+        i += 1;
+    }
 }
 
 fn compare_inner(actual: @Array<(u256, bool, u128)>, expected: @Array<(u256, bool, u128)>) {
@@ -1288,13 +1298,14 @@ fn compare_inner(actual: @Array<(u256, bool, u128)>, expected: @Array<(u256, boo
 
     let mut i = 0;
 
-    while i < actual
-        .len() {
-            let actual_tuple = *actual[i];
-            let expected_tuple = *expected[i];
-            compare_tuple(actual_tuple, expected_tuple);
-            i += 1;
-        }
+    while
+    i < actual.len()
+    {
+        let actual_tuple = *actual[i];
+        let expected_tuple = *expected[i];
+        compare_tuple(actual_tuple, expected_tuple);
+        i += 1;
+    }
 }
 
 fn compare_tuple(actual: (u256, bool, u128), expected: (u256, bool, u128)) {

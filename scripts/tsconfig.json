@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+      "module": "ESNext",
+      "target": "ESNext",
+      "moduleResolution": "node",
+      "outDir": "./dist",
+      "esModuleInterop": true,
+      "strict": true,
+      "resolveJsonModule": true
+    },
+    "ts-node": {
+        "esm": true,
+        "compiler": "typescript",
+            "experimentalSpecifierResolution": "node"
+        }
+  }

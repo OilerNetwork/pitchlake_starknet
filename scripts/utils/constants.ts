@@ -1,14 +1,53 @@
 // constants.js
 
-require("dotenv").config();
+import { config } from "dotenv";
+import { cairo, Uint256 } from "starknet";
 
-const nodeUrlMapping = {
-  production: "",
-  staging: "",
-  dev: (port) => `http://localhost:${port}`,
+type AccountDetailsType = {
+  accountAddress: string | undefined;
+  privateKey: string | undefined;
+  ethAddress?: string;
+};
+type EthConstructorArgs = {
+  supply: Uint256;
+  recipientContractAddress: string;
 };
 
-const accountDetailsMapping = {
+type VaultConstructorArgs = {
+  roundTransitionPeriod: number;
+  auctionRunTime: number;
+  optionRunTime: number;
+};
+
+type ConstructorArgs = {
+  eth: EthConstructorArgs;
+  vault: VaultConstructorArgs;
+  optionRound: string;
+  marketAggregator: string;
+};
+const nodeUrlMapping: { [key: string]: string } = {
+  production: "",
+  staging: "",
+  dev: `http://localhost`,
+};
+
+const constructorArgs: { [key: string]: ConstructorArgs } = {
+  dev: {
+    eth: {
+      supply: cairo.uint256(1e32),
+      recipientContractAddress:
+        "0x7ce7089cb75a590b9485f6851d8998fa885494cc7a70dbae8f3db572586b8a8",
+    },
+    vault: {
+      roundTransitionPeriod: 32,
+      auctionRunTime: 23,
+      optionRunTime: 23,
+    },
+    optionRound: "",
+    marketAggregator: "",
+  },
+};
+const accountDetailsMapping: { [key: string]: AccountDetailsType } = {
   production: {
     accountAddress: process.env.PRODUCTION_ACCOUNT_ADDRESS,
     privateKey: process.env.PRODUCTION_PRIVATE_KEY,
@@ -184,8 +223,9 @@ let declaredContractsMapping = {
   dev: {},
 };
 
-module.exports = {
+export {
   nodeUrlMapping,
+  constructorArgs,
   accountDetailsMapping,
   declaredContractsMapping,
   liquidityProviders,

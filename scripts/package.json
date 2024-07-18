@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "type":"module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -11,6 +12,10 @@
   "license": "ISC",
   "dependencies": {
     "dotenv": "^16.4.5",
-    "starknet": "^6.10.2"
+    "starknet": "^6.10.2",
+    "ts-node": "^10.9.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.3"
   }
 }

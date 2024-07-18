@@ -33,7 +33,12 @@ use pitch_lake_starknet::{
         },
     },
     tests::{
-        option_round::rb_tree::{rb_tree_mock_contract::{RBTreeMockContract}},
+        option_round::rb_tree::{
+            rb_tree_mock_contract::{
+                RBTreeMockContract, IRBTreeMockContractDispatcher,
+                IRBTreeMockContractDispatcherTrait
+            }
+        },
         utils::{
             lib::{
                 structs::{OptionRoundParams},
@@ -160,12 +165,12 @@ fn deploy_pitch_lake() -> IPitchLakeDispatcher {
     return IPitchLakeDispatcher { contract_address };
 }
 
-fn setup_rb_tree_test() -> IRBTreeDispatcher {
+fn setup_rb_tree_test() -> IRBTreeMockContractDispatcher {
     let (address, _) = deploy_syscall(
         RBTreeMockContract::TEST_CLASS_HASH.try_into().unwrap(), 0, array![].span(), false
     )
         .unwrap_syscall();
-    IRBTreeDispatcher { contract_address: address }
+    IRBTreeMockContractDispatcher { contract_address: address }
 }
 
 fn setup_facade() -> (VaultFacade, ERC20ABIDispatcher) {
