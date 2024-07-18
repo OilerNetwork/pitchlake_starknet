@@ -64,7 +64,7 @@ pub mod RBTreeComponent {
             return node.value;
         }
 
-        fn update(ref self: ComponentState<TContractState>, bid_id: felt252, bid: Bid) {
+        fn _update(ref self: ComponentState<TContractState>, bid_id: felt252, bid: Bid) {
             let node: Node = self.tree.read(bid_id);
             if node.value.id == 0 {
                 return;
@@ -75,13 +75,15 @@ pub mod RBTreeComponent {
 
         fn _delete(ref self: ComponentState<TContractState>, bid_id: felt252) {
             let node: Node = self.tree.read(bid_id);
-            // Check if bid exists
             if node.value.id == 0 {
                 return;
             }
             self.delete_node(bid_id);
         }
+    }
 
+    #[generate_trait]
+    pub impl RBTreeAuctionImpl<TContractState, +HasComponent<TContractState>> of RBTreeAuctionTrait<TContractState> {
         fn find_clearing_price(ref self: ComponentState<TContractState>) -> (u256, u256) {
             let total_options_available = self._get_total_options_available();
             let root: felt252 = self.root.read();
@@ -101,12 +103,6 @@ pub mod RBTreeComponent {
             (clearing_node.value.price, total_options_sold)
         }
 
-        fn _get_tree_structure(
-            self: @ComponentState<TContractState>
-        ) -> Array<Array<(u256, bool, u128)>> {
-            self.build_tree_structure_list()
-        }
-
         fn get_total_options_sold(self: @ComponentState<TContractState>) -> u256 {
             self.total_options_sold.read()
         }
@@ -115,30 +111,6 @@ pub mod RBTreeComponent {
             self.total_options_available.read()
         }
 
-        fn _is_tree_valid(self: @ComponentState<TContractState>) -> bool {
-            self.check_if_rb_tree_is_valid()
-        }
-
-        fn _add_node(
-            ref self: ComponentState<TContractState>, bid: Bid, color: bool, parent: felt252
-        ) -> felt252 {
-            let new_node = Node { value: bid, left: 0, right: 0, parent: parent, color: color, };
-            let parent_node = self.tree.read(parent);
-            if bid <= parent_node.value {
-                self.update_left(parent, bid.id);
-            } else {
-                self.update_right(parent, bid.id);
-            }
-            self.update_parent(bid.id, parent);
-            self.tree.write(bid.id, new_node);
-            return bid.id;
-        }
-    }
-
-    #[generate_trait]
-    pub impl RBTreeInternalImpl<
-        TContractState, +HasComponent<TContractState>
-    > of RBTreeInternalTrait<TContractState> {
         fn traverse_postorder_clearing_price_from_node(
             ref self: ComponentState<TContractState>,
             current_id: felt252,
@@ -175,24 +147,10 @@ pub mod RBTreeComponent {
                     current_node.left, remaining_options, clearing_price, current_id
                 )
         }
-        fn find_node(
-            ref self: ComponentState<TContractState>, current: felt252, value: Bid
-        ) -> felt252 {
-            if current == 0 {
-                return 0;
-            }
+    }
 
-            let node: Node = self.tree.read(current);
-
-            if value == node.value {
-                return current;
-            } else if value < node.value {
-                return self.find_node(node.left, value);
-            } else {
-                return self.find_node(node.right, value);
-            }
-        }
-
+    #[generate_trait]
+    pub impl RBTreeOperationsImpl<TContractState, +HasComponent<TContractState>> of RBTreeOperationsTrait<TContractState> {
         fn insert_node_recursively(
             ref self: ComponentState<TContractState>,
             current_id: felt252,
@@ -224,21 +182,6 @@ pub mod RBTreeComponent {
 
                 self.insert_node_recursively(current_node.right, new_node_id, value);
             }
-        }
-
-        fn remove_from_array<T, +Drop<T>, +PartialEq<T>>(
-            self: @ComponentState<TContractState>, element: T, mut array: Array<T>
-        ) -> Array<T> {
-            let mut new_array: Array<T> = array![];
-            loop {
-                match array.pop_front() {
-                    Option::Some(value) => { if (value != element) {
-                        new_array.append(value);
-                    } },
-                    Option::None => { break; }
-                }
-            };
-            new_array
         }
 
         fn create_root_node(self: @ComponentState<TContractState>, value: @Bid) -> Node {
@@ -316,6 +259,181 @@ pub mod RBTreeComponent {
             let mut node: Node = self.tree.read(node_id);
             node.color = color;
             self.tree.write(node_id, node);
+        }
+
+        fn _add_node(
+            ref self: ComponentState<TContractState>, bid: Bid, color: bool, parent: felt252
+        ) -> felt252 {
+            let new_node = Node { value: bid, left: 0, right: 0, parent: parent, color: color, };
+            let parent_node = self.tree.read(parent);
+            if bid <= parent_node.value {
+                self.update_left(parent, bid.id);
+            } else {
+                self.update_right(parent, bid.id);
+            }
+            self.update_parent(bid.id, parent);
+            self.tree.write(bid.id, new_node);
+            return bid.id;
+        }
+    }
+
+    #[generate_trait]
+    pub impl RBTreeTestingImpl<TContractState, +HasComponent<TContractState>> of RBTreeTestingTrait<TContractState> {
+        fn _get_tree_structure(
+            self: @ComponentState<TContractState>
+        ) -> Array<Array<(u256, bool, u128)>> {
+            self.build_tree_structure_list()
+        }
+
+        fn _is_tree_valid(self: @ComponentState<TContractState>) -> bool {
+            self.check_if_rb_tree_is_valid()
+        }
+
+        fn get_node_positions_by_level(
+            self: @ComponentState<TContractState>
+        ) -> Array<Array<(felt252, u128)>> {
+            let mut queue: Array<(felt252, u128)> = ArrayTrait::new();
+            let root_id = self.root.read();
+            let initial_level = 0;
+            let mut current_level = 0;
+            let mut filled_position_in_levels: Array<Array<(felt252, u128)>> = ArrayTrait::new();
+            let mut filled_position_in_level: Array<(felt252, u128)> = ArrayTrait::new();
+            let mut node_positions: Felt252Dict<u128> = Default::default();
+
+            self
+                .collect_position_and_levels_of_nodes(
+                    root_id, 0, initial_level, ref node_positions
+                );
+            queue.append((root_id, 0));
+
+            while !queue
+                .is_empty() {
+                    let (node_id, level) = queue.pop_front().unwrap();
+                    let node = self.tree.read(node_id);
+
+                    if level > current_level {
+                        current_level = level;
+                        filled_position_in_levels.append(filled_position_in_level);
+                        filled_position_in_level = ArrayTrait::new();
+                    }
+
+                    let position = node_positions.get(node_id);
+
+                    filled_position_in_level.append((node_id, position));
+
+                    if node.left != 0 {
+                        queue.append((node.left, current_level + 1));
+                    }
+
+                    if node.right != 0 {
+                        queue.append((node.right, current_level + 1));
+                    }
+                };
+            filled_position_in_levels.append(filled_position_in_level);
+            return filled_position_in_levels;
+        }
+
+        fn build_tree_structure_list(
+            self: @ComponentState<TContractState>
+        ) -> Array<Array<(u256, bool, u128)>> {
+            if (self.root.read() == 0) {
+                return ArrayTrait::new();
+            }
+            let filled_position_in_levels_original = self.get_node_positions_by_level();
+            let mut filled_position_in_levels: Array<Array<(u256, bool, u128)>> = ArrayTrait::new();
+            let mut filled_position_in_level: Array<(u256, bool, u128)> = ArrayTrait::new();
+            let mut i = 0;
+            while i < filled_position_in_levels_original
+                .len() {
+                    let level = filled_position_in_levels_original.at(i.try_into().unwrap());
+                    let mut j = 0;
+                    while j < level
+                        .len() {
+                            let (node_id, position) = level.at(j.try_into().unwrap());
+                            let node = self.tree.read(*node_id);
+                            filled_position_in_level
+                                .append((node.value.price, node.color, *position));
+                            j += 1;
+                        };
+                    filled_position_in_levels.append(filled_position_in_level);
+                    filled_position_in_level = ArrayTrait::new();
+                    i += 1;
+                };
+            return filled_position_in_levels;
+        }
+
+        fn collect_position_and_levels_of_nodes(
+            self: @ComponentState<TContractState>,
+            node_id: felt252,
+            position: u128,
+            level: u256,
+            ref node_positions: Felt252Dict<u128>
+        ) {
+            if node_id == 0 {
+                return;
+            }
+
+            let node = self.tree.read(node_id);
+
+            node_positions.insert(node_id, position);
+
+            self
+                .collect_position_and_levels_of_nodes(
+                    node.left, position * 2, level + 1, ref node_positions
+                );
+            self
+                .collect_position_and_levels_of_nodes(
+                    node.right, position * 2 + 1, level + 1, ref node_positions
+                );
+        }
+
+        fn check_if_rb_tree_is_valid(self: @ComponentState<TContractState>) -> bool {
+            let root = self.root.read();
+            if root == 0 {
+                return true; // An empty tree is a valid RB tree
+            }
+
+            // Check if root is black
+            if !self.is_black(root) {
+                return false;
+            }
+
+            // Check other properties
+            let (is_valid, _) = self.validate_node(root);
+            is_valid
+        }
+
+        fn validate_node(self: @ComponentState<TContractState>, node: felt252) -> (bool, u32) {
+            if node == 0 {
+                return (true, 1); // Null nodes are considered black
+            }
+
+            let node_data = self.tree.read(node);
+
+            let (left_valid, left_black_height) = self.validate_node(node_data.left);
+            let (right_valid, right_black_height) = self.validate_node(node_data.right);
+
+            if !left_valid || !right_valid {
+                return (false, 0);
+            }
+
+            // Check Red-Black properties
+            if self.is_red(node) {
+                if self.is_red(node_data.left) || self.is_red(node_data.right) {
+                    return (false, 0); // Red node cannot have red children
+                }
+            }
+
+            if left_black_height != right_black_height {
+                return (false, 0); // Black height must be the same for both subtrees
+            }
+
+            let current_black_height = left_black_height + if self.is_black(node) {
+                1
+            } else {
+                0
+            };
+            (true, current_black_height)
         }
     }
 
@@ -501,6 +619,7 @@ pub mod RBTreeComponent {
             };
             current
         }
+
 
         fn get_default_node(ref self: ComponentState<TContractState>) -> Node {
             Node { value: self.get_default_bid(), left: 0, right: 0, parent: 0, color: BLACK, }
@@ -703,163 +822,6 @@ pub mod RBTreeComponent {
 
             // Return the new root of the subtree
             y
-        }
-    }
-
-    #[generate_trait]
-    impl RBTreeStructure<
-        TContractState, +HasComponent<TContractState>
-    > of RBTreeGetStructureTrait<TContractState> {
-        fn get_node_positions_by_level(
-            self: @ComponentState<TContractState>
-        ) -> Array<Array<(felt252, u128)>> {
-            let mut queue: Array<(felt252, u128)> = ArrayTrait::new();
-            let root_id = self.root.read();
-            let initial_level = 0;
-            let mut current_level = 0;
-            let mut filled_position_in_levels: Array<Array<(felt252, u128)>> = ArrayTrait::new();
-            let mut filled_position_in_level: Array<(felt252, u128)> = ArrayTrait::new();
-            let mut node_positions: Felt252Dict<u128> = Default::default();
-
-            self
-                .collect_position_and_levels_of_nodes(
-                    root_id, 0, initial_level, ref node_positions
-                );
-            queue.append((root_id, 0));
-
-            while !queue
-                .is_empty() {
-                    let (node_id, level) = queue.pop_front().unwrap();
-                    let node = self.tree.read(node_id);
-
-                    if level > current_level {
-                        current_level = level;
-                        filled_position_in_levels.append(filled_position_in_level);
-                        filled_position_in_level = ArrayTrait::new();
-                    }
-
-                    let position = node_positions.get(node_id);
-
-                    filled_position_in_level.append((node_id, position));
-
-                    if node.left != 0 {
-                        queue.append((node.left, current_level + 1));
-                    }
-
-                    if node.right != 0 {
-                        queue.append((node.right, current_level + 1));
-                    }
-                };
-            filled_position_in_levels.append(filled_position_in_level);
-            return filled_position_in_levels;
-        }
-
-        fn build_tree_structure_list(
-            self: @ComponentState<TContractState>
-        ) -> Array<Array<(u256, bool, u128)>> {
-            if (self.root.read() == 0) {
-                return ArrayTrait::new();
-            }
-            let filled_position_in_levels_original = self.get_node_positions_by_level();
-            let mut filled_position_in_levels: Array<Array<(u256, bool, u128)>> = ArrayTrait::new();
-            let mut filled_position_in_level: Array<(u256, bool, u128)> = ArrayTrait::new();
-            let mut i = 0;
-            while i < filled_position_in_levels_original
-                .len() {
-                    let level = filled_position_in_levels_original.at(i.try_into().unwrap());
-                    let mut j = 0;
-                    while j < level
-                        .len() {
-                            let (node_id, position) = level.at(j.try_into().unwrap());
-                            let node = self.tree.read(*node_id);
-                            filled_position_in_level
-                                .append((node.value.price, node.color, *position));
-                            j += 1;
-                        };
-                    filled_position_in_levels.append(filled_position_in_level);
-                    filled_position_in_level = ArrayTrait::new();
-                    i += 1;
-                };
-            return filled_position_in_levels;
-        }
-
-        fn collect_position_and_levels_of_nodes(
-            self: @ComponentState<TContractState>,
-            node_id: felt252,
-            position: u128,
-            level: u256,
-            ref node_positions: Felt252Dict<u128>
-        ) {
-            if node_id == 0 {
-                return;
-            }
-
-            let node = self.tree.read(node_id);
-
-            node_positions.insert(node_id, position);
-
-            self
-                .collect_position_and_levels_of_nodes(
-                    node.left, position * 2, level + 1, ref node_positions
-                );
-            self
-                .collect_position_and_levels_of_nodes(
-                    node.right, position * 2 + 1, level + 1, ref node_positions
-                );
-        }
-    }
-
-    #[generate_trait]
-    impl RBTreeValidation<
-        TContractState, +HasComponent<TContractState>
-    > of RBTreeValidationTrait<TContractState> {
-        fn check_if_rb_tree_is_valid(self: @ComponentState<TContractState>) -> bool {
-            let root = self.root.read();
-            if root == 0 {
-                return true; // An empty tree is a valid RB tree
-            }
-
-            // Check if root is black
-            if !self.is_black(root) {
-                return false;
-            }
-
-            // Check other properties
-            let (is_valid, _) = self.validate_node(root);
-            is_valid
-        }
-
-        fn validate_node(self: @ComponentState<TContractState>, node: felt252) -> (bool, u32) {
-            if node == 0 {
-                return (true, 1); // Null nodes are considered black
-            }
-
-            let node_data = self.tree.read(node);
-
-            let (left_valid, left_black_height) = self.validate_node(node_data.left);
-            let (right_valid, right_black_height) = self.validate_node(node_data.right);
-
-            if !left_valid || !right_valid {
-                return (false, 0);
-            }
-
-            // Check Red-Black properties
-            if self.is_red(node) {
-                if self.is_red(node_data.left) || self.is_red(node_data.right) {
-                    return (false, 0); // Red node cannot have red children
-                }
-            }
-
-            if left_black_height != right_black_height {
-                return (false, 0); // Black height must be the same for both subtrees
-            }
-
-            let current_black_height = left_black_height + if self.is_black(node) {
-                1
-            } else {
-                0
-            };
-            (true, current_black_height)
         }
     }
 }
