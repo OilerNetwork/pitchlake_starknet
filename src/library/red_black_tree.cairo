@@ -52,6 +52,7 @@ pub mod RBTreeComponent {
                 let root_node = self.create_root_node(@value);
                 self.tree.write(new_node_id, root_node);
                 self.root.write(new_node_id);
+                self.nonce.write(self.nonce.read() + 1);
                 return;
             }
 
@@ -84,7 +85,9 @@ pub mod RBTreeComponent {
     }
 
     #[generate_trait]
-    pub impl RBTreeOptionRoundImpl<TContractState, +HasComponent<TContractState>> of RBTreeOptionRoundTrait<TContractState> {
+    pub impl RBTreeOptionRoundImpl<
+        TContractState, +HasComponent<TContractState>
+    > of RBTreeOptionRoundTrait<TContractState> {
         fn find_clearing_price(ref self: ComponentState<TContractState>) -> (u256, u256) {
             let total_options_available = self._get_total_options_available();
             let root: felt252 = self.root.read();
@@ -151,7 +154,9 @@ pub mod RBTreeComponent {
     }
 
     #[generate_trait]
-    impl RBTreeOperationsImpl<TContractState, +HasComponent<TContractState>> of RBTreeOperationsTrait<TContractState> {
+    impl RBTreeOperationsImpl<
+        TContractState, +HasComponent<TContractState>
+    > of RBTreeOperationsTrait<TContractState> {
         fn create_root_node(self: @ComponentState<TContractState>, value: @Bid) -> Node {
             Node { value: *value, left: 0, right: 0, parent: 0, color: BLACK, }
         }
@@ -247,7 +252,9 @@ pub mod RBTreeComponent {
     }
 
     #[generate_trait]
-    pub impl RBTreeTestingImpl<TContractState, +HasComponent<TContractState>> of RBTreeTestingTrait<TContractState> {
+    pub impl RBTreeTestingImpl<
+        TContractState, +HasComponent<TContractState>
+    > of RBTreeTestingTrait<TContractState> {
         fn _get_tree_structure(
             self: @ComponentState<TContractState>
         ) -> Array<Array<(u256, bool, u128)>> {
