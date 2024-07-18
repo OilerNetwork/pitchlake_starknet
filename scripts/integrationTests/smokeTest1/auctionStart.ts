@@ -203,19 +203,19 @@ async function checkpoint2({
   );
   assert(bidArrays[1].length === 2, "No. of Bids for B wrong");
   assert(
-    bidArrays[1][1].amount === BigInt(totalOptionAvailable) / BigInt(2),
+    bidArrays[1][0].amount === BigInt(totalOptionAvailable) / BigInt(2),
     "First bid for B amount wrong"
   );
   assert(
-    bidArrays[1][1].price === BigInt(2) * BigInt(reservePrice),
+    bidArrays[1][0].price === BigInt(2) * BigInt(reservePrice),
     "First bid for B price wrong"
   );
   assert(
-    bidArrays[1][0].amount === BigInt(totalOptionAvailable) / BigInt(2),
+    bidArrays[1][1].amount === BigInt(totalOptionAvailable) / BigInt(2),
     "Second bid for B amount wrong "
   );
   assert(
-    BigInt(bidArrays[1][0].price) === BigInt(reservePrice),
+    BigInt(bidArrays[1][1].price) === BigInt(reservePrice),
     `Second bid for B price wrong.\n Expected:${reservePrice}, Actual:${bidArrays[1][0].price}`
   );
 }
