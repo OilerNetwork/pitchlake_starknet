@@ -360,10 +360,10 @@ mod OptionRound {
             let mut bids: Array<Bid> = array![];
             while i
                 .is_non_zero() {
+                    i -= 1;
                     let hash = self.create_bid_id(option_buyer, i);
                     let bid: Bid = self.bids_tree.find(hash);
                     bids.append(bid);
-                    i -= 1;
                 };
             bids
         }
