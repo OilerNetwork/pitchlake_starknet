@@ -8,6 +8,11 @@ mod option_round {
     mod interface;
 }
 
+mod market_aggregator {
+    mod contract;
+    mod interface;
+}
+
 mod library {
     mod eth;
     mod red_black_tree;
