@@ -1,16 +1,17 @@
 mod vault {
-    mod contract;
     mod interface;
+    mod contract;
 }
 
 mod option_round {
-    mod contract;
     mod interface;
+    mod contract;
 }
 
 mod market_aggregator {
-    mod contract;
     mod interface;
+    mod contract;
+    mod types;
 }
 
 mod library {
