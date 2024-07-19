@@ -13,7 +13,9 @@ mod Vault {
         option_round::{
             contract::OptionRound, interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
         },
-        contracts::{market_aggregator::{IMarketAggregatorDispatcher}},
+        market_aggregator::interface::{
+            IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
+        },
         types::{
             OptionRoundConstructorParams, StartAuctionParams, SettleOptionRoundParams,
             OptionRoundState, VaultType, Errors
@@ -79,7 +81,6 @@ mod Vault {
         self.round_transition_period.write(round_transition_period);
         self.auction_run_time.write(auction_run_time);
         self.option_run_time.write(option_run_time);
-
         // @dev Deploy the 1st option round
         self.deploy_next_round();
     }
@@ -287,6 +288,21 @@ mod Vault {
 
         /// State Transition ///
 
+        // Fetch newer values if they exist and update the current option round
+        fn update_round_params(ref self: ContractState) {
+            // Verfiy in round transition period
+            let current_round_id = self.current_option_round_id.read();
+            let current_round = self.get_round_dispatcher(current_round_id);
+            let from = current_round.get_auction_start_date();
+            let to = current_round.get_option_settlement_date();
+
+            let reserve_price = self.fetch_reserve_price_for_time_period(from, to);
+            let cap_level = self.fetch_cap_level_for_time_period(from, to);
+            let strike_price = self.fetch_strike_price_for_time_period(from, to);
+
+            current_round.update_round_params(reserve_price, cap_level, strike_price);
+        }
+
         fn start_auction(ref self: ContractState) -> u256 {
             // Get a dispatcher for the current option round
             let current_round_id = self.current_option_round_id.read();
@@ -297,7 +313,9 @@ mod Vault {
 
             // Calculate the total options available to sell in the auction
             let total_options_available = self
-                .calculate_total_options_available(starting_liquidity);
+                .calculate_total_options_available(
+                    starting_liquidity, current_round.get_cap_level()
+                );
 
             // Update total_locked_liquidity
             self.total_locked_balance.write(starting_liquidity);
@@ -306,9 +324,12 @@ mod Vault {
             self.total_unlocked_balance.write(0);
 
             // Fetch params to start the auction
-            let reserve_price = self.fetch_reserve_price();
-            let cap_level = self.fetch_cap_level();
-            let strike_price = self.fetch_strike_price();
+            let from = current_round.get_auction_start_date();
+            let to = current_round.get_option_settlement_date();
+
+            let reserve_price = self.fetch_reserve_price_for_time_period(from, to);
+            let cap_level = self.fetch_cap_level_for_time_period(from, to);
+            let strike_price = self.fetch_strike_price_for_time_period(from, to);
 
             // Start the auction on the current round and return the total options available
             current_round
@@ -367,17 +388,26 @@ mod Vault {
             (clearing_price, total_options_sold)
         }
 
-        fn settle_option_round(ref self: ContractState) -> u256 {
+        fn settle_option_round(ref self: ContractState) -> (u256, u256) {
             // Get a dispatcher for the current option round
             let current_round_id = self.current_option_round_id();
             let current_round_dispatcher = self.get_round_dispatcher(current_round_id);
 
             // Fetch the price to settle the option round
-            let settlement_price = self.fetch_settlement_price();
+            let from = current_round_dispatcher.get_auction_start_date();
+            let to = current_round_dispatcher.get_option_settlement_date();
+            let settlement_price = self.fetch_TWAP_for_time_period(from, to);
 
             // Settle the option round
-            let total_payout = current_round_dispatcher
+            let (total_payout, settlement_price) = current_round_dispatcher
                 .settle_option_round(SettleOptionRoundParams { settlement_price });
+
+            //println!(
+            //    "settlement_price:\n{}strike_price:\n{}\npayout:\n{}",
+            //    settlement_price,
+            //    current_round_dispatcher.get_strike_price(),
+            //    total_payout
+            //);
 
             // @dev The remaining liquidity for a round is how much was locked minus the total payout
             let mut remaining_liquidity = self.get_total_locked_balance();
@@ -398,7 +428,7 @@ mod Vault {
             self.deploy_next_round();
 
             // Return the total payout
-            total_payout
+            (total_payout, settlement_price)
         }
 
         /// Liquidity Provider ///
@@ -567,7 +597,7 @@ mod Vault {
         // Deploy the next option round contract, update the current round id & round address mapping
         fn deploy_next_round(ref self: ContractState) {
             // The round id for the next round
-            let next_round_id = self.current_option_round_id() + 1;
+            let next_round_id: u256 = self.current_option_round_id() + 1;
 
             // The constructor params for the next round
             let mut calldata: Array<felt252> = array![];
@@ -579,19 +609,26 @@ mod Vault {
             let auction_start_date = now + self.round_transition_period.read();
             let auction_end_date = auction_start_date + self.auction_run_time.read();
             let option_settlement_date = auction_end_date + self.option_run_time.read();
+            //println!("deploying round from\n{}\nto\n{}", auction_start_date ,option_settlement_date);
             calldata.append_serde(auction_start_date); // auction start date
             calldata.append_serde(auction_end_date);
             calldata.append_serde(option_settlement_date);
-            // Reserve price, cap level, & strike price
-            calldata.append_serde(self.fetch_reserve_price());
-            calldata.append_serde(self.fetch_cap_level());
-            calldata.append_serde(self.fetch_strike_price());
+            // Reserve price, cap level, & strike price adjust these to take to and from
+            let reserve_price: u256 = self
+                .fetch_reserve_price_for_time_period(auction_start_date, option_settlement_date);
+            let cap_level: u16 = self
+                .fetch_cap_level_for_time_period(auction_start_date, option_settlement_date);
+            let strike_price: u256 = self
+                .fetch_strike_price_for_time_period(auction_start_date, option_settlement_date);
+            calldata.append_serde(reserve_price);
+            calldata.append_serde(cap_level);
+            calldata.append_serde(strike_price);
 
             // Deploy the next option round contract
             let (next_round_address, _) = deploy_syscall(
                 self.option_round_class_hash.read(), 'some salt', calldata.span(), false
             )
-                .unwrap();
+                .expect('Deploy next round failed');
 
             // Update the current round id & round address mapping
             self.current_option_round_id.write(next_round_id);
@@ -753,27 +790,68 @@ mod Vault {
         // we use the newer values to set the params
         // Phase F (fossil)
 
-        fn fetch_reserve_price(self: @ContractState) -> u256 {
-            1000000
+        fn get_market_aggregaotor_dispatcher(self: @ContractState) -> IMarketAggregatorDispatcher {
+            IMarketAggregatorDispatcher { contract_address: self.get_market_aggregator() }
         }
 
-        fn fetch_cap_level(self: @ContractState) -> u256 {
-            1000000
+        fn fetch_reserve_price_for_time_period(self: @ContractState, from: u64, to: u64) -> u256 {
+            let mk_agg = self.get_market_aggregaotor_dispatcher();
+            let res = mk_agg.get_reserve_price_for_time_period(from, to);
+            match res {
+                Option::Some(reserve_price) => { reserve_price },
+                //Option::None => panic!("No reserve price found")
+                Option::None => { 0 }
+            }
         }
 
-        fn fetch_strike_price(self: @ContractState) -> u256 {
-            1000000
+        fn fetch_cap_level_for_time_period(self: @ContractState, from: u64, to: u64) -> u16 {
+            let mk_agg = self.get_market_aggregaotor_dispatcher();
+            let res = mk_agg.get_cap_level_for_time_period(from, to);
+            match res {
+                Option::Some(cap_level) => cap_level,
+                //Option::None => panic!("No cap level found")
+                Option::None => 0
+            }
         }
 
-        fn fetch_settlement_price(self: @ContractState) -> u256 {
-            2 * self.get_round_dispatcher(self.current_option_round_id()).get_reserve_price()
+        fn fetch_strike_price_for_time_period(self: @ContractState, from: u64, to: u64) -> u256 {
+            //let mk_agg = self.get_market_aggregaotor_dispatcher();
+            //let res = mk_agg.get_TWAP_for_time_period(from, to);
+            //match res {
+            //    Option::Some(strike_price) => strike_price,
+            //    Option::None => panic!("No strike price found")
+            //}
+            1000000000
+        }
+
+        fn fetch_TWAP_for_time_period(self: @ContractState, from: u64, to: u64) -> u256 {
+            let mk_agg = self.get_market_aggregaotor_dispatcher();
+            let res = mk_agg.get_TWAP_for_time_period(from, to);
+            match res {
+                Option::Some(TWAP) => TWAP,
+                //Option::None => panic!("No TWAP found")
+                Option::None => 0
+            }
         }
 
         fn calculate_total_options_available(
-            self: @ContractState, starting_liquidity: u256
+            self: @ContractState, starting_liquidity: u256, cap_level: u16
         ) -> u256 {
+            let current_round_id = self.current_option_round_id();
+            let current_round = self.get_round_dispatcher(current_round_id);
             //Calculate total options accordingly
-            100000000
+            let strike = current_round.get_strike_price();
+            //println!("strike: {}", strike);
+            //println!("cl: {}", cap_level);
+            let cap = (strike * cap_level.into()) / 10000;
+            let total_options = starting_liquidity / cap;
+
+            //println!("starting liquidity: {}", starting_liquidity);
+            //println!("cap: {}", cap);
+            //println!("total options: {}", total_options);
+
+            //(starting_liquidity * cap_level.into()) / 10000
+            total_options
         }
     }
 }

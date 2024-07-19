@@ -2,9 +2,7 @@ use starknet::{ContractAddress, StorePacking};
 use openzeppelin::token::erc20::interface::ERC20ABIDispatcher;
 use pitch_lake_starknet::{
     option_round::{contract::OptionRound,},
-    contracts::{
-        market_aggregator::{IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait},
-    },
+    market_aggregator::interface::{IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait},
     types::{
         OptionRoundState, StartAuctionParams, SettleOptionRoundParams, OptionRoundConstructorParams,
         Bid,
@@ -105,7 +103,7 @@ trait IOptionRound<TContractState> {
     fn get_strike_price(self: @TContractState) -> u256;
 
     // The cap level of the options
-    fn get_cap_level(self: @TContractState) -> u256;
+    fn get_cap_level(self: @TContractState) -> u16;
 
     // Minimum price per option in the auction
     fn get_reserve_price(self: @TContractState) -> u256;
@@ -121,6 +119,10 @@ trait IOptionRound<TContractState> {
 
     /// State transitions
 
+    fn update_round_params(
+        ref self: TContractState, reserve_price: u256, cap_level: u16, strike_price: u256
+    );
+
     // Try to start the option round's auction
     // @return the total options available in the auction
     fn start_auction(ref self: TContractState, params: StartAuctionParams) -> u256;
@@ -132,7 +134,9 @@ trait IOptionRound<TContractState> {
 
     // Settle the option round if past the expiry date and in state::Running
     // @return The total payout of the option round
-    fn settle_option_round(ref self: TContractState, params: SettleOptionRoundParams) -> u256;
+    fn settle_option_round(
+        ref self: TContractState, params: SettleOptionRoundParams
+    ) -> (u256, u256);
 
     /// Option bidder functions
 

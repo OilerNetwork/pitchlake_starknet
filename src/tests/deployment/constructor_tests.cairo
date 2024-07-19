@@ -15,11 +15,11 @@ use pitch_lake_starknet::{
     option_round::{
         contract::{OptionRound,}, interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,},
     },
-    contracts::{
-        market_aggregator::{
+    market_aggregator::{
+        interface::{
             IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait,
-            IMarketAggregatorSafeDispatcher, IMarketAggregatorSafeDispatcherTrait
         },
+        types::Errors
     },
     tests::{
         utils::{
@@ -32,10 +32,7 @@ use pitch_lake_starknet::{
             facades::{
                 vault_facade::VaultFacadeTrait,
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
-            },
-            mocks::mock_market_aggregator::{
-                MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
-                IMarketAggregatorSetterDispatcherTrait
+                market_aggregator_facade::{MarketAggregatorFacadeTrait}
             },
             lib::{
                 variables::{decimals},
@@ -63,9 +60,9 @@ fn test_vault_constructor() {
     let current_round_id = vault.get_current_round_id();
 
     // Constructor args
-    assert_eq!(vault.get_round_transition_period(), 'rtp'.try_into().unwrap());
-    assert_eq!(vault.get_auction_run_time(), 'art'.try_into().unwrap());
-    assert_eq!(vault.get_option_run_time(), 'ort'.try_into().unwrap());
+    assert_eq!(vault.get_round_transition_period(), 1000);
+    assert_eq!(vault.get_auction_run_time(), 1000);
+    assert_eq!(vault.get_option_run_time(), 1000);
 
     // Check current round is 1
     assert(current_round_id == 1, 'current round should be 1');
@@ -123,12 +120,10 @@ fn test_option_round_constructor() {
 #[available_gas(50000000)]
 fn test_market_aggregator_deployed() {
     let (mut vault_facade, _) = setup_facade();
-    // Get market aggregator dispatcher
-    let _mkt_agg = IMarketAggregatorDispatcher {
-        contract_address: vault_facade.get_market_aggregator()
-    };
+    let mk_agg = vault_facade.get_market_aggregator_facade();
 
+    assert(mk_agg.contract_address.is_non_zero(), 'mk agg addr shd be set');
     // Entry point will fail if contract not deployed
-    assert(vault_facade.get_market_aggregator_value() == 0, 'avg basefee shd be 0');
+    assert_eq!(mk_agg.get_TWAP_for_time_period(1, 1).is_none(), false);
 }
 

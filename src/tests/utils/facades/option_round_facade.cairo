@@ -60,7 +60,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
 
     // Settle the current option round
     fn settle_option_round(ref self: OptionRoundFacade, settlement_price: u256) -> u256 {
-        let total_payout = self
+        let (total_payout, _) = self
             .option_round_dispatcher
             .settle_option_round(SettleOptionRoundParams { settlement_price });
 
@@ -401,7 +401,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         self.option_round_dispatcher.get_strike_price()
     }
 
-    fn get_cap_level(ref self: OptionRoundFacade) -> u256 {
+    fn get_cap_level(ref self: OptionRoundFacade) -> u16 {
         self.option_round_dispatcher.get_cap_level()
     }
 

@@ -6,6 +6,7 @@ use pitch_lake_starknet::option_round::contract::OptionRound;
 mod Errors {
     /// Vault Errors ///
     const InsufficientBalance: felt252 = 'Insufficient unlocked balance';
+    //const MustBeInRoundTransitionPeriod: felt252 = 'Current round must be Open';
     /// OptionRound Errors ///
     const CallerIsNotVault: felt252 = 'Caller not the Vault';
     const AuctionAlreadyStarted: felt252 = 'Auction already started';
@@ -60,7 +61,7 @@ struct StartAuctionParams {
     total_options_available: u256,
     starting_liquidity: u256,
     reserve_price: u256,
-    cap_level: u256,
+    cap_level: u16,
     strike_price: u256,
 }
 
