@@ -1,4 +1,3 @@
-
 import { getAccount } from "../../utils/helpers/common";
 import { getOptionRoundFacade } from "../../utils/helpers/setup";
 import assert from "assert";
@@ -8,16 +7,14 @@ import {
   getOptionBidderAccounts,
 } from "../../utils/helpers/accounts";
 import { TestRunner } from "../../utils/facades/TestRunner";
+import { LibraryError } from "starknet";
 
 export const smokeTest = async ({
   provider,
   vaultFacade,
-  constants,
+  constants: { depositAmount },
+  ethFacade,
 }: TestRunner) => {
-
-
-
-
   const optionRoundFacade = await getOptionRoundFacade(
     provider,
     vaultFacade.vaultContract
@@ -26,10 +23,13 @@ export const smokeTest = async ({
   const liquidityProviderAccounts = getLiquidityProviderAccounts(provider, 2);
   const optionBidderAccounts = getOptionBidderAccounts(provider, 3);
   const devAccount = getAccount("dev", provider);
-  
+
   try {
     await vaultFacade.settleAuction(devAccount);
+    throw Error("Should have reverted");
   } catch (err) {
+    const error = err as LibraryError;
+    assert(error.message !== "Should have reverted", error.message);
     //Failure expected when contracts are changed to revert
   }
 
@@ -39,165 +39,135 @@ export const smokeTest = async ({
     state.activeVariant() === "Running",
     `Expected:Running\nReceived:${state.activeVariant()}`
   );
+  const totalPremiums = await optionRoundFacade.getTotalPremiums();
 
+  const ethBalanceBefore = await ethFacade.getBalance(
+    liquidityProviderAccounts[0].address
+  );
+
+
+  vaultFacade.withdraw({
+    account: liquidityProviderAccounts[0],
+    amount: BigInt(totalPremiums) / BigInt(4),
+  });
+
+  const ethBalanceAfter = await ethFacade.getBalance(
+    liquidityProviderAccounts[0].address
+  );
+  const lpUnlockedBalanceAfter = await vaultFacade.getLPLockedBalance(
+    liquidityProviderAccounts[0].address
+  );
+
+  const totalUnlocked = await vaultFacade.getTotalUnLocked();
+
+  checkpoint1({
+    ethBalanceBefore,
+    ethBalanceAfter,
+    lpUnlockedBalanceAfter,
+    totalUnlocked,
+    totalPremiums,
+  });
 
   await vaultFacade.settleAuctionBystander(provider);
+
+  const stateAfter: any =
+    await optionRoundFacade.optionRoundContract.get_state();
 
   const lpUnlockedBalances = await vaultFacade.getLPUnlockedBalanceAll(
     liquidityProviderAccounts
   );
-  const lpLockedBalances = await vaultFacade.getLPLockedBalanceAll(
-    liquidityProviderAccounts
-  );
-  const totalPremiums = await optionRoundFacade.getTotalPremiums();
+  const totalPayout = await optionRoundFacade.getTotalPayout();
   const totalLocked = await vaultFacade.getTotalLocked();
-  const totalUnlocked = await vaultFacade.getTotalUnLocked();
-  checkpoint1({
-    lpLockedBalances,
-    lpUnlockedBalances,
-    totalPremiums,
-    totalLocked,
-    totalUnlocked,
-    constants,
-  });
-  const stateAfter: any =
-    await optionRoundFacade.optionRoundContract.get_state();
-
   assert(
     stateAfter.activeVariant() === "Running",
     `Expected:Running\nReceived:${stateAfter.activeVariant()}`
   );
-  //   const unlockedBalanceA = await vaultFacade.getLPUnlockedBalance(
-  //     liquidityProviderA.address
-  //   );
-  //   const unlockedBalanceB = await vaultFacade.getLPUnlockedBalance(
-  //     liquidityProviderB.address
-  //   );
-  //   const lockedBalanceA = await vaultFacade.getLPLockedBalance(
-  //     liquidityProviderA.address
-  //   );
-  //   const lockedBalanceB = await vaultFacade.getLPLockedBalance(
-  //     liquidityProviderB.address
-  //   );
-  //   const totalLockedAmount = await vaultFacade.getTotalLocked();
-  //   const totalUnlockedAmount = await vaultFacade.getTotalUnLocked();
 
-  //   //Asserts
-  //   checkpoint1({
-  //     unlockedBalanceA,
-  //     unlockedBalanceB,
-  //     lockedBalanceA,
-  //     lockedBalanceB,
-  //     totalLockedAmount,
-  //     totalUnlockedAmount,
-  //     constants,
-  //   });
-
-  //   //Approve OptionBidders
-
-  //   const approveAllData: Array<ApprovalArgs> = [
-  //     {
-  //       owner: optionBidderA,
-  //       amount: BigInt("90000000000000000000"),
-  //       spender: optionRoundFacade.optionRoundContract.address,
-  //     },
-  //     {
-  //       owner: optionBidderB,
-  //       amount: BigInt("90000000000000000000"),
-  //       spender: optionRoundFacade.optionRoundContract.address,
-  //     },
-  //   ];
-  //   await ethFacade.approveAll(approveAllData);
-  //   await mineNextBlock(provider.channel.nodeUrl);
-
-  //   //Place bids according to story script
-  //   const reservePrice = await optionRoundFacade.getReservePrice();
-  //   const totalOptionAvailable =
-  //     await optionRoundFacade.getTotalOptionsAvailable();
-
-  //   const balanceBeforeBidA = await ethFacade.getBalance(optionBidderA.address);
-  //   const balanceBeforeBidB = await ethFacade.getBalance(optionBidderB.address);
-  //   console.log(
-  //     "reservePrice",
-  //     Number(reservePrice),
-  //     "\ntotalOptionsAvailable:",
-  //     totalOptionAvailable
-  //   );
-
-  //   const placeBidsData: Array<PlaceBidArgs> = [
-  //     {
-  //       from: optionBidderA,
-  //       amount: BigInt(totalOptionAvailable) / BigInt(2),
-  //       price: BigInt(3) * BigInt(reservePrice),
-  //     },
-  //     {
-  //       from: optionBidderB,
-  //       amount: BigInt(totalOptionAvailable) / BigInt(2),
-  //       price: BigInt(2) * BigInt(reservePrice),
-  //     },
-  //     {
-  //       from: optionBidderB,
-  //       amount: BigInt(totalOptionAvailable) / BigInt(2),
-  //       price: BigInt(reservePrice),
-  //     },
-  //   ];
-  //   await optionRoundFacade.placeBidsAll(placeBidsData);
-
-  //   const balanceAfterBidA = await ethFacade.getBalance(optionBidderA.address);
-  //   const balanceAfterBidB = await ethFacade.getBalance(optionBidderB.address);
-
-  //   const bidsForA = await optionRoundFacade.getBidsFor(optionBidderA.address);
-  //   const bidsForB = await optionRoundFacade.getBidsFor(optionBidderB.address);
-
-  //   checkpoint2({
-  //     balanceBeforeBidA,
-  //     balanceAfterBidA,
-  //     balanceBeforeBidB,
-  //     balanceAfterBidB,
-  //     reservePrice,
-  //     totalOptionAvailable,
-  //     bidsForA,
-  //     bidsForB,
-  //   });
+  checkpoint2({
+    lpUnlockedBalances,
+    totalPremiums,
+    totalPayout,
+    totalLocked,
+    totalUnlocked,
+    depositAmount,
+  });
 };
 
 async function checkpoint1({
-  lpLockedBalances,
-  lpUnlockedBalances,
-  totalPremiums,
-  totalLocked,
+  ethBalanceBefore,
+  ethBalanceAfter,
+  lpUnlockedBalanceAfter,
   totalUnlocked,
-  constants,
+  totalPremiums,
 }: {
-  lpLockedBalances: Array<number | bigint>;
-  lpUnlockedBalances: Array<number | bigint>;
-  totalPremiums: number | bigint;
-  totalLocked: number | bigint;
+  ethBalanceBefore: number | bigint;
+  ethBalanceAfter: number | bigint;
+  lpUnlockedBalanceAfter: number | bigint;
   totalUnlocked: number | bigint;
-  constants: Constants;
+  totalPremiums: number | bigint;
 }) {
   assert(
-    BigInt(lpUnlockedBalances[0]) === BigInt(totalPremiums) / BigInt(2),
+    BigInt(ethBalanceAfter) - BigInt(ethBalanceBefore) ===
+      BigInt(totalPremiums) / BigInt(4),
     "LP Unlocked for A mismatch"
   );
   assert(
-    BigInt(lpUnlockedBalances[1]) === BigInt(totalPremiums) / BigInt(2),
+    BigInt(lpUnlockedBalanceAfter) === BigInt(totalPremiums) / BigInt(4),
     "LP Unlocked for B mismatch"
   );
   assert(
-    BigInt(lpLockedBalances[0]) === BigInt(constants.depositAmount) / BigInt(2),
+    BigInt(totalUnlocked) === (BigInt(3) * BigInt(totalPremiums)) / BigInt(4),
     "LP Locked for A mismatch"
   );
+}
+
+async function checkpoint2({
+  lpUnlockedBalances,
+  totalPremiums,
+  totalPayout,
+  totalLocked,
+  totalUnlocked,
+  depositAmount,
+}: {
+  lpUnlockedBalances: Array<number | bigint>;
+  totalPremiums: number | bigint;
+  totalPayout: number | bigint;
+  totalLocked: number | bigint;
+  totalUnlocked: number | bigint;
+  depositAmount: number | bigint;
+}) {
+  // - A’s unlocked balance should be 1/2 deposit amount + 1/4 total premiums - 1/2 total payout
+
   assert(
-    BigInt(lpLockedBalances[1]) === BigInt(constants.depositAmount) / BigInt(2),
-    "LP Locked for B mismatch"
+    lpUnlockedBalances[0] ===
+      BigInt(depositAmount) / BigInt(2) +
+        BigInt(totalPremiums) / BigInt(4) -
+        BigInt(totalPayout) / BigInt(2),
+    "lpUnlocked for A Mismatch"
   );
+
+  // - B’s unlocked balance should be 1/2 deposit amount + 1/2 total premiums - 1/2 total payout
+
   assert(
-    BigInt(totalLocked) === BigInt(constants.depositAmount),
-    "totalLocked mismatch"
+    lpUnlockedBalances[1] ===
+      BigInt(depositAmount) / BigInt(2) +
+        BigInt(totalPremiums) / BigInt(2) -
+        BigInt(totalPayout) / BigInt(2),
+    "lpUnlocked for B Mismatch"
   );
+  // - The total locked should == 0
+
   assert(
-    BigInt(totalUnlocked) === BigInt(totalPremiums),
-    "totalUnlocked for A mismatch"
+    Number(totalLocked) === 0,
+    `total Locked should be zero, found: ${totalLocked}`
+  );
+  // - The total unlocked should == deposit amount + 3/4 total premiums - total payout
+
+  assert(
+    totalUnlocked ===
+      BigInt(depositAmount) +
+        (BigInt(3) * BigInt(totalPremiums)) / BigInt(4) -
+        BigInt(totalPayout),
+    "totalUnlocked mismatch"
   );
 }

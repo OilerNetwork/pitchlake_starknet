@@ -12,12 +12,12 @@ export type ApprovalArgs = {
 export type DepositArgs = {
   from: Account;
   beneficiary: string;
-  amount: number;
+  amount: number|bigint;
 };
 
 export type WithdrawArgs = {
   account: Account;
-  amount: number;
+  amount: number| bigint;
 };
 
 //OptionRoundTypes
@@ -29,8 +29,8 @@ export type PlaceBidArgs = {
 export type UpdateBidArgs = {
   bidId: string;
   from: Account;
-  amount: number;
-  price: number;
+  amount: number|bigint;
+  price: number|bigint;
 };
 
 export type RefundableBidsArgs = {

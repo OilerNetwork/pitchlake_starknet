@@ -1,4 +1,4 @@
-import { Provider } from "starknet";
+import { LibraryError, Provider } from "starknet";
 import { getAccount } from "../../utils/helpers/common";
 import { VaultFacade } from "../../utils/facades/vaultFacade";
 import { getOptionRoundFacade } from "../../utils/helpers/setup";
@@ -22,7 +22,10 @@ export const smokeTest = async ({
   const devAccount = getAccount("dev", provider);
   try {
     await vaultFacade.endAuction(devAccount);
+    throw Error("Should have reverted");
   } catch (err) {
+    const error = err as LibraryError;
+    assert(error.message !== "Should have reverted", error.message);
     //Failure expected when contracts are changed to revert
   }
 
