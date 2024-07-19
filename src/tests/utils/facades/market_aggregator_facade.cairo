@@ -48,104 +48,77 @@ impl MarketAggregatorFacadeImpl of MarketAggregatorFacadeTrait {
     }
 
     // Getters
-    fn _get_data(
-        self: @MarketAggregatorFacade, data_id: felt252, period_id: felt252, from: u64, to: u64
-    ) -> Option<felt252> {
-        self.get_dispatcher().get_data(data_id, period_id, from, to)
-    }
+    //fn _get_data(
+    //    self: @MarketAggregatorFacade, data_id: felt252, period_id: felt252, from: u64, to: u64
+    //) -> Option<felt252> {
+    //    self.get_dispatcher().get_data(data_id, period_id, from, to)
+    //}
 
     fn get_reserve_price_for_block_period(
         self: @MarketAggregatorFacade, from: u64, to: u64
     ) -> Option<u256> {
-        let data_id = self.get_data_id_reserve_price();
-        let period_id = self.get_dispatcher().get_period_id_block();
-        let res = self._get_data(data_id, period_id, from, to).unwrap();
-        Option::Some(res.into())
+        self.get_dispatcher().get_reserve_price_for_block_period(from, to)
     }
 
     fn get_reserve_price_for_time_period(
         self: @MarketAggregatorFacade, from: u64, to: u64
     ) -> Option<u256> {
-        let data_id = self.get_data_id_reserve_price();
-        let period_id = self.get_dispatcher().get_period_id_time();
-        let res = self._get_data(data_id, period_id, from, to).unwrap();
-        Option::Some(res.into())
+        self.get_dispatcher().get_reserve_price_for_time_period(from, to)
     }
 
     fn get_cap_level_for_block_period(
         self: @MarketAggregatorFacade, from: u64, to: u64
     ) -> Option<u16> {
-        let data_id = self.get_data_id_cap_level();
-        let period_id = self.get_dispatcher().get_period_id_block();
-        let res = self._get_data(data_id, period_id, from, to).unwrap();
-        Option::Some(res.try_into().unwrap())
+        self.get_dispatcher().get_cap_level_for_block_period(from, to)
     }
 
     fn get_cap_level_for_time_period(
         self: @MarketAggregatorFacade, from: u64, to: u64
     ) -> Option<u16> {
-        let data_id = self.get_data_id_cap_level();
-        let period_id = self.get_dispatcher().get_period_id_time();
-        let res = self._get_data(data_id, period_id, from, to).unwrap();
-        Option::Some(res.try_into().unwrap())
+        self.get_dispatcher().get_cap_level_for_time_period(from, to)
     }
 
 
     fn get_TWAP_for_block_period(
         self: @MarketAggregatorFacade, from: u64, to: u64
     ) -> Option<u256> {
-        let data_id = self.get_data_id_TWAP();
-        let period_id = self.get_dispatcher().get_period_id_block();
-        let res = self._get_data(data_id, period_id, from, to).unwrap();
-        Option::Some(res.into())
+        self.get_dispatcher().get_TWAP_for_block_period(from, to)
     }
 
     fn get_TWAP_for_time_period(self: @MarketAggregatorFacade, from: u64, to: u64) -> Option<u256> {
-        let data_id = self.get_data_id_TWAP();
-        let period_id = self.get_dispatcher().get_period_id_time();
-        let res: Option<felt252> = self._get_data(data_id, period_id, from, to);
-        match res {
-            Option::Some(value) => Option::Some(value.into()),
-            Option::None => Option::Some(0),
-        }
+        self.get_dispatcher().get_TWAP_for_time_period(from, to)
     }
 
     // Setters
     fn set_reserve_price_for_block_period(
         self: @MarketAggregatorFacade, from: u64, to: u64, value: u256
     ) {
-        let data_id = self.get_data_id_reserve_price();
-        let period_id = self.get_dispatcher().get_period_id_block();
-        self
-            .get_mock_dispatcher()
-            .set_data(data_id, period_id, from, to, value.try_into().unwrap());
+        self.get_mock_dispatcher().set_reserve_price_for_block_period(from, to, value)
     }
 
     fn set_reserve_price_for_time_period(
         self: @MarketAggregatorFacade, from: u64, to: u64, value: u256
     ) {
-        self
-            .get_mock_dispatcher()
-            .set_reserve_price_for_time_period(from, to, value.try_into().unwrap());
+        self.get_mock_dispatcher().set_reserve_price_for_time_period(from, to, value);
     }
 
     fn set_cap_level_for_block_period(
         self: @MarketAggregatorFacade, from: u64, to: u64, value: u16
     ) {
-        self.get_mock_dispatcher().set_cap_level_for_block_period(from, to, value.into());
+        self.get_mock_dispatcher().set_cap_level_for_block_period(from, to, value);
     }
     fn set_cap_level_for_time_period(
         self: @MarketAggregatorFacade, from: u64, to: u64, value: u16
     ) {
-        self.get_mock_dispatcher().set_cap_level_for_time_period(from, to, value.into());
+        self.get_mock_dispatcher().set_cap_level_for_time_period(from, to, value);
     }
 
     fn set_TWAP_for_block_period(self: @MarketAggregatorFacade, from: u64, to: u64, value: u256) {
-        self.get_mock_dispatcher().set_TWAP_for_block_period(from, to, value.try_into().unwrap());
+        self.get_mock_dispatcher().set_TWAP_for_block_period(from, to, value);
     }
 
     fn set_TWAP_for_time_period(self: @MarketAggregatorFacade, from: u64, to: u64, value: u256) {
-        self.get_mock_dispatcher().set_TWAP_for_time_period(from, to, value.try_into().unwrap());
+        self.get_mock_dispatcher().set_TWAP_for_time_period(from, to, value);
     }
 }
 

@@ -10,9 +10,9 @@ trait IMarketAggregator<TContractState> {
     fn get_data_id_reserve_price(self: @TContractState) -> felt252;
     fn get_data_id_TWAP(self: @TContractState) -> felt252;
     /// GETTERS ///
-    fn get_data(
-        self: @TContractState, data_id: felt252, period_id: felt252, from: u64, to: u64,
-    ) -> Option<felt252>;
+    //fn get_data(
+    //    self: @TContractState, data_id: felt252, period_id: felt252, from: u64, to: u64,
+    //) -> Option<felt252>;
 
     fn get_reserve_price_for_time_period(self: @TContractState, from: u64, to: u64) -> Option<u256>;
     fn get_reserve_price_for_block_period(
@@ -32,14 +32,14 @@ trait IMarketAggregator<TContractState> {
 #[starknet::interface]
 trait IMarketAggregatorMock<TContractState> {
     /// SETTERS ///
-    fn set_data(
-        ref self: TContractState,
-        data_id: felt252,
-        period_id: felt252,
-        from: u64,
-        to: u64,
-        value: felt252
-    );
+    //fn set_data(
+    //    ref self: TContractState,
+    //    data_id: felt252,
+    //    period_id: felt252,
+    //    from: u64,
+    //    to: u64,
+    //    value: felt252
+    //);
 
     fn set_reserve_price_for_time_period(
         ref self: TContractState, from: u64, to: u64, reserve_price: u256
