@@ -66,11 +66,6 @@ export const smokeTest = async ({
 
   //Withdraws
 
-
-
-
-
-
   //Withdraw constants.depositAmount/2 from vaultContract for A and B positions
   //Withdraw again for B, greater than depositAmount/2 + 1, should revert
   const withdrawAllData: Array<WithdrawArgs> = [
@@ -93,24 +88,24 @@ export const smokeTest = async ({
     liquidityProviderAccounts
   );
 
-  // try {
-  //   await vault.withdraw({
-  //     account: liquidityProviderAccounts[1],
-  //     amount: depositAmount / 2 + 1,
-  //   });
-  // } catch (err: unknown) {
-  //   const error = err as LibraryError;
-  //   // if (error.message==="Should have reverted")
-  //   //   throw Error("Failed");
-
-  //   // else
-  //   // console.log("ERROR",err)
-  // }
+  try {
+    await vault.withdraw({
+      account: liquidityProviderAccounts[1],
+      amount: depositAmount / 2 + 1,
+    });
+    throw Error("Should have reverted");
+  } catch (err: unknown) {
+    const error = err as LibraryError;
+    assert(error.message !== "Should have reverted");
+  }
 
   const lpUnlockedBalancesAfterWithdraw2 = await vault.getLPUnlockedBalanceAll(
     liquidityProviderAccounts
   );
-  console.log("lpUnlockedBalancesAfterWithdraw2:",lpUnlockedBalancesAfterWithdraw2);
+  console.log(
+    "lpUnlockedBalancesAfterWithdraw2:",
+    lpUnlockedBalancesAfterWithdraw2
+  );
   //Asserts
   //1) Check liquidity for A & B has decreased by depositAmount/2
   //2) Check balance for A & B has increased by depositAmount/2

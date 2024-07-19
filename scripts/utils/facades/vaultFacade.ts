@@ -78,11 +78,7 @@ export class VaultFacade {
   }
   async withdraw({ account, amount }: WithdrawArgs) {
     this.vaultContract.connect(account);
-    try {
       await this.vaultContract.withdraw_liquidity(amount);
-    } catch (err) {
-      console.log(err);
-    }
   }
 
   async deposit({ from, beneficiary, amount }: DepositArgs) {

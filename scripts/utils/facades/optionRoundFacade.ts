@@ -20,6 +20,13 @@ export class OptionRoundFacade {
     this.optionRoundContract = optionRoundContract;
   }
 
+  async getTotalPayout() {
+    const res = await this.optionRoundContract.total_payout();
+    if (typeof res !== "bigint" && typeof res !== "number") {
+      const data = new CairoUint256(res);
+      return data.toBigInt();
+    } else return res;
+  }
   async getTotalPremiums() {
     const res = await this.optionRoundContract.total_premiums();
     if (typeof res !== "bigint" && typeof res !== "number") {
