@@ -22,12 +22,6 @@ use pitch_lake_starknet::tests::{
             option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundParams},
             vault_facade::{VaultFacade, VaultFacadeTrait},
         },
-        mocks::{
-            mock_market_aggregator::{
-                MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
-                IMarketAggregatorSetterDispatcherTrait
-            }
-        },
     },
 };
 use debug::PrintTrait;

@@ -29,6 +29,5 @@ mod tests;
 // @note Refactor these into their own modules
 mod contracts {
     mod pitch_lake;
-    mod market_aggregator;
     mod lp_token;
 }

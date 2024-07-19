@@ -15,11 +15,9 @@ use pitch_lake_starknet::{
         }
     },
     option_round::{interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,}},
-    contracts::{
-        market_aggregator::{
-            IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait,
-            IMarketAggregatorSafeDispatcher, IMarketAggregatorSafeDispatcherTrait
-        },
+    market_aggregator::interface::{
+        IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait,
+        IMarketAggregatorSafeDispatcher, IMarketAggregatorSafeDispatcherTrait
     },
     tests::{
         utils::{
@@ -51,10 +49,6 @@ use pitch_lake_starknet::{
                 option_round_facade::{
                     OptionRoundParams, OptionRoundState, OptionRoundFacade, OptionRoundFacadeTrait
                 },
-            },
-            mocks::mock_market_aggregator::{
-                MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
-                IMarketAggregatorSetterDispatcherTrait
             },
         },
     }

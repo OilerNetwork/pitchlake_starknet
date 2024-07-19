@@ -52,14 +52,12 @@ mod option_round {
 
 #[cfg(test)]
 mod utils {
-    mod mocks {
-        mod mock_market_aggregator;
-    }
     mod facades {
         mod vault_facade;
         mod option_round_facade;
         mod lp_token_facade;
         mod sanity_checks;
+        mod market_aggregator_facade;
     }
 
     mod helpers {
