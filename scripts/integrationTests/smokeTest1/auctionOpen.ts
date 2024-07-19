@@ -1,13 +1,8 @@
-import { Provider } from "starknet";
 import assert from "assert";
-import {
-  Constants,
-  DepositArgs,
-  WithdrawArgs,
-} from "../../utils/facades/types";
-import { VaultFacade } from "../../utils/facades/vaultFacade";
+import { DepositArgs, WithdrawArgs } from "../../utils/facades/types";
 import { getLiquidityProviderAccounts } from "../../utils/helpers/accounts";
 import { TestRunner } from "../../utils/facades/TestRunner";
+import { LibraryError } from "starknet";
 
 //@note Wrap functions into a try catch to avoid breaking thread, log errors correctly
 
@@ -15,7 +10,7 @@ export const smokeTest = async ({
   provider,
   vaultFacade: vault,
   ethFacade: eth,
-  constants,
+  constants: { depositAmount },
 }: TestRunner) => {
   const liquidityProviderAccounts = getLiquidityProviderAccounts(provider, 2);
 
@@ -39,12 +34,12 @@ export const smokeTest = async ({
     {
       from: liquidityProviderAccounts[0],
       beneficiary: liquidityProviderAccounts[1].address,
-      amount: constants.depositAmount,
+      amount: depositAmount,
     },
     {
       from: liquidityProviderAccounts[0],
       beneficiary: liquidityProviderAccounts[0].address,
-      amount: constants.depositAmount,
+      amount: depositAmount,
     },
   ];
 
@@ -66,20 +61,26 @@ export const smokeTest = async ({
     lpUnlockedBalancesAfter,
     ethBalancesBefore,
     ethBalancesAfter,
-    constants,
+    depositAmount,
   });
 
   //Withdraws
-  //Withdraw constants.depositAmount/2 from vaultContract for A and B positions
 
+
+
+
+
+
+  //Withdraw constants.depositAmount/2 from vaultContract for A and B positions
+  //Withdraw again for B, greater than depositAmount/2 + 1, should revert
   const withdrawAllData: Array<WithdrawArgs> = [
     {
       account: liquidityProviderAccounts[0],
-      amount: constants.depositAmount / 2,
+      amount: depositAmount / 2,
     },
     {
       account: liquidityProviderAccounts[1],
-      amount: constants.depositAmount / 2,
+      amount: depositAmount / 2,
     },
   ];
   await vault.withdrawAll(withdrawAllData);
@@ -92,6 +93,24 @@ export const smokeTest = async ({
     liquidityProviderAccounts
   );
 
+  // try {
+  //   await vault.withdraw({
+  //     account: liquidityProviderAccounts[1],
+  //     amount: depositAmount / 2 + 1,
+  //   });
+  // } catch (err: unknown) {
+  //   const error = err as LibraryError;
+  //   // if (error.message==="Should have reverted")
+  //   //   throw Error("Failed");
+
+  //   // else
+  //   // console.log("ERROR",err)
+  // }
+
+  const lpUnlockedBalancesAfterWithdraw2 = await vault.getLPUnlockedBalanceAll(
+    liquidityProviderAccounts
+  );
+  console.log("lpUnlockedBalancesAfterWithdraw2:",lpUnlockedBalancesAfterWithdraw2);
   //Asserts
   //1) Check liquidity for A & B has decreased by depositAmount/2
   //2) Check balance for A & B has increased by depositAmount/2
@@ -101,7 +120,7 @@ export const smokeTest = async ({
     lpUnlockedBalancesAfter: lpUnlockedBalancesAfterWithdraw,
     ethBalancesBefore: ethBalancesAfter,
     ethBalancesAfter: ethBalancesAfterWithdraw,
-    constants,
+    depositAmount,
   });
 };
 
@@ -110,27 +129,27 @@ function checkpoint1({
   lpUnlockedBalancesAfter,
   ethBalancesBefore,
   ethBalancesAfter,
-  constants,
+  depositAmount,
 }: {
   lpUnlockedBalancesBefore: Array<number | bigint>;
   lpUnlockedBalancesAfter: Array<number | bigint>;
   ethBalancesBefore: Array<number | bigint>;
   ethBalancesAfter: Array<number | bigint>;
-  constants: Constants;
+  depositAmount: number;
 }) {
   assert(
     Number(lpUnlockedBalancesAfter[0]) ===
-      Number(lpUnlockedBalancesBefore[0]) + constants.depositAmount,
+      Number(lpUnlockedBalancesBefore[0]) + depositAmount,
     "liquidity A mismatch"
   );
   assert(
     Number(lpUnlockedBalancesAfter[1]) ===
-      Number(lpUnlockedBalancesBefore[1]) + constants.depositAmount,
+      Number(lpUnlockedBalancesBefore[1]) + depositAmount,
     "liquidity B mismatch"
   );
   assert(
     Number(ethBalancesBefore[0]) ===
-      Number(ethBalancesAfter[0]) + 2 * constants.depositAmount,
+      Number(ethBalancesAfter[0]) + 2 * depositAmount,
     "Eth balance for a mismatch"
   );
 }
@@ -139,32 +158,32 @@ function checkpoint2({
   lpUnlockedBalancesBefore,
   ethBalancesAfter,
   ethBalancesBefore,
-  constants,
+  depositAmount,
 }: {
   lpUnlockedBalancesAfter: Array<number | bigint>;
   lpUnlockedBalancesBefore: Array<number | bigint>;
   ethBalancesAfter: Array<number | bigint>;
   ethBalancesBefore: Array<number | bigint>;
-  constants: Constants;
+  depositAmount: number;
 }) {
   assert(
     Number(lpUnlockedBalancesBefore[0]) ==
-      Number(lpUnlockedBalancesAfter[0]) + constants.depositAmount / 2,
+      Number(lpUnlockedBalancesAfter[0]) + depositAmount / 2,
     "Mismatch A liquidity"
   );
   assert(
     Number(lpUnlockedBalancesBefore[1]) ==
-      Number(lpUnlockedBalancesAfter[1]) + constants.depositAmount / 2,
+      Number(lpUnlockedBalancesAfter[1]) + depositAmount / 2,
     "Mismatch B liquidity"
   );
   assert(
     Number(ethBalancesBefore[0]) ==
-      Number(ethBalancesAfter[0]) - constants.depositAmount / 2,
+      Number(ethBalancesAfter[0]) - depositAmount / 2,
     "Mismatch A balance"
   );
   assert(
     Number(ethBalancesBefore[1]) ==
-      Number(ethBalancesAfter[1]) - constants.depositAmount / 2,
+      Number(ethBalancesAfter[1]) - depositAmount / 2,
     "Mismatch B balance"
   );
 }
