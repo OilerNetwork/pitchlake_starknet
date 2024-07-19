@@ -1,6 +1,5 @@
-import { LibraryError, Provider } from "starknet";
+import { LibraryError } from "starknet";
 import { getAccount } from "../../utils/helpers/common";
-import { VaultFacade } from "../../utils/facades/vaultFacade";
 import { getOptionRoundFacade } from "../../utils/helpers/setup";
 import assert from "assert";
 import { Constants } from "../../utils/facades/types";

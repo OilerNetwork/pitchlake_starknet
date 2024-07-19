@@ -1,5 +1,4 @@
-import { Contract, Provider, provider, TypedContractV2 } from "starknet";
-import { VaultFacade } from "../facades/vaultFacade";
+import { Contract, Provider, TypedContractV2 } from "starknet";
 import { stringToHex } from "./common";
 import { erc20ABI, optionRoundABI, vaultABI } from "../../abi";
 import { OptionRoundFacade } from "../facades/optionRoundFacade";

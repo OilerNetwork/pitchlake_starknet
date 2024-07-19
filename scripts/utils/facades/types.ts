@@ -54,10 +54,6 @@ export type RefundUnusedBidsArgs = {
   optionBidder: string;
 };
 
-export type ExerciseOptionArgs = {
-  from: Account;
-};
-
 export type TokenizeOptionArgs = {
   from: Account;
 };

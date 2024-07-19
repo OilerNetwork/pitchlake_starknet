@@ -1,7 +1,6 @@
 import { getAccount } from "../../utils/helpers/common";
 import { getOptionRoundFacade } from "../../utils/helpers/setup";
 import assert from "assert";
-import { Constants } from "../../utils/facades/types";
 import {
   getLiquidityProviderAccounts,
   getOptionBidderAccounts,

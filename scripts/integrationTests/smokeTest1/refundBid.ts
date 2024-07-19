@@ -1,14 +1,9 @@
-import { Provider } from "starknet";
 import { getAccount } from "../../utils/helpers/common";
-import { VaultFacade } from "../../utils/facades/vaultFacade";
 import {
-  getOptionRoundERC20Contract,
   getOptionRoundFacade,
 } from "../../utils/helpers/setup";
 import assert from "assert";
-import { Constants } from "../../utils/facades/types";
 import {
-  getLiquidityProviderAccounts,
   getOptionBidderAccounts,
 } from "../../utils/helpers/accounts";
 import { TestRunner } from "../../utils/facades/TestRunner";
@@ -18,7 +13,6 @@ export const smokeTest = async ({
   provider,
   vaultFacade: vault,
   ethFacade: eth,
-  constants,
 }: TestRunner) => {
   const optionRoundFacade = await getOptionRoundFacade(
     provider,
