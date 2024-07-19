@@ -10,6 +10,7 @@ import { DepositArgs, WithdrawArgs } from "./types";
 import {
   accelerateToAuctioning,
   accelerateToRunning,
+  accelerateToSettled,
 } from "../helpers/accelerators";
 
 export class VaultFacade {
@@ -21,14 +22,6 @@ export class VaultFacade {
     );
   }
 
-  async endAuction(account: Account) {
-    this.vaultContract.connect(account);
-    const res = await this.vaultContract.end_auction();
-  }
-
-  async endAuctionBystander(provider: Provider) {
-    await accelerateToRunning(provider, this.vaultContract);
-  }
   async getTotalLocked() {
     const res = await this.vaultContract.get_total_locked_balance();
     if (typeof res !== "bigint" && typeof res !== "number") {
@@ -127,4 +120,23 @@ export class VaultFacade {
   async startAuctionBystander(provider: Provider) {
     await accelerateToAuctioning(provider, this.vaultContract);
   }
+
+
+  async endAuction(account: Account) {
+    this.vaultContract.connect(account);
+    const res = await this.vaultContract.end_auction();
+  }
+
+  async endAuctionBystander(provider: Provider) {
+    await accelerateToRunning(provider, this.vaultContract);
+  }
+
+  async settleAuction(account:Account){
+    this.vaultContract.connect(account);
+  }
+
+  async settleAuctionBystander(provider:Provider){
+    await accelerateToSettled(provider,this.vaultContract)
+  }
 }
+
