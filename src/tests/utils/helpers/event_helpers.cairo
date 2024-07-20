@@ -135,12 +135,17 @@ fn assert_event_auction_end(
 // Check OptionSettle emits correctly
 // @dev Settlment price is the price determining the payout for the round
 fn assert_event_option_settle(
-    option_round_address: ContractAddress, total_payout: u256, settlement_price: u256
+    option_round_address: ContractAddress,
+    total_payout: u256,
+    payout_per_option: u256,
+    settlement_price: u256
 ) {
     match pop_log::<OptionRound::Event>(option_round_address) {
         Option::Some(e) => {
             let expected = OptionRound::Event::OptionRoundSettled(
-                OptionRound::OptionRoundSettled { total_payout, settlement_price }
+                OptionRound::OptionRoundSettled {
+                    total_payout, payout_per_option, settlement_price
+                }
             );
             assert_events_equal(e, expected);
         },
