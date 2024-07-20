@@ -109,8 +109,12 @@ fn test_option_round_settled_event() {
         let settlement_price = round.get_strike_price() + rounds_to_run.into();
         clear_event_logs(array![round.contract_address()]);
         let total_payout = accelerate_to_settled(ref vault, settlement_price);
+        let individual_payout = total_payout / round.total_options_sold();
+
         // Check the event emits correctly
-        assert_event_option_settle(round.contract_address(), total_payout, settlement_price);
+        assert_event_option_settle(
+            round.contract_address(), total_payout, individual_payout, settlement_price
+        );
 
         rounds_to_run -= 1;
     }
