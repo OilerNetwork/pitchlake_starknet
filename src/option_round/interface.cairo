@@ -3,10 +3,7 @@ use openzeppelin::token::erc20::interface::ERC20ABIDispatcher;
 use pitch_lake_starknet::{
     option_round::{contract::OptionRound,},
     market_aggregator::interface::{IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait},
-    types::{
-        OptionRoundState, StartAuctionParams, SettleOptionRoundParams, OptionRoundConstructorParams,
-        Bid,
-    }
+    types::{OptionRoundState, OptionRoundConstructorParams, Bid,}
 };
 
 // The option round contract interface

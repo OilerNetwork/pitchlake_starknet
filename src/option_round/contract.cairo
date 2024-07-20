@@ -12,8 +12,7 @@ mod OptionRound {
         option_round::interface::IOptionRound,
         vault::{interface::{IVaultDispatcher, IVaultDispatcherTrait},},
         types::{
-            Bid, Errors, OptionRoundConstructorParams, OptionRoundState, SettleOptionRoundParams,
-            StartAuctionParams, VaultType, Consts::{BPS},
+            Bid, Errors, OptionRoundConstructorParams, OptionRoundState, VaultType, Consts::{BPS},
         },
     };
     use starknet::{get_block_timestamp, get_caller_address, get_contract_address, ContractAddress,};

@@ -64,18 +64,17 @@ struct OptionRoundConstructorParams {
     round_id: u256,
 }
 
-// The parameters sent from a Vault to start a round's auction
-#[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
-struct StartAuctionParams {
-    starting_liquidity: u256,
-}
+//// The parameters sent from a Vault to start a round's auction
+//#[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
+//struct StartAuctionParams {
+//    starting_liquidity: u256,
+//}
 
-// The parameters sent from a Vault to settle a round
-#[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
-struct SettleOptionRoundParams {
-    settlement_price: u256
-}
-
+//// The parameters sent from a Vault to settle a round
+//#[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
+//struct SettleOptionRoundParams {
+//    settlement_price: u256
+//}
 
 // The struct for a bid placed in a round's auction
 #[derive(Copy, Drop, Serde, starknet::Store, PartialEq, Display)]

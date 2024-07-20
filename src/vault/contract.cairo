@@ -16,10 +16,7 @@ mod Vault {
         market_aggregator::interface::{
             IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
         },
-        types::{
-            OptionRoundConstructorParams, StartAuctionParams, SettleOptionRoundParams,
-            OptionRoundState, VaultType, Errors, Consts::{BPS},
-        }
+        types::{OptionRoundConstructorParams, OptionRoundState, VaultType, Errors, Consts::{BPS},}
     };
 
     // *************************************************************************
