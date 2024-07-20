@@ -6,24 +6,33 @@ use pitch_lake_starknet::option_round::contract::OptionRound;
 mod Errors {
     /// Vault Errors ///
     const InsufficientBalance: felt252 = 'Insufficient unlocked balance';
-    //const MustBeInRoundTransitionPeriod: felt252 = 'Current round must be Open';
     /// OptionRound Errors ///
     const CallerIsNotVault: felt252 = 'Caller not the Vault';
-    const AuctionAlreadyStarted: felt252 = 'Auction already started';
+    // Starting an auction
     const AuctionStartDateNotReached: felt252 = 'Auction start date not reached';
-    const NoAuctionToEnd: felt252 = 'No auction to end';
+    const AuctionAlreadyStarted: felt252 = 'Auction already started';
+    // Ending an auction
     const AuctionEndDateNotReached: felt252 = 'Auction end date not reached';
-    const AuctionNotEnded: felt252 = 'Auction has not ended yet';
-    const OptionRoundAlreadySettled: felt252 = 'Option round already settled';
+    const AuctionAlreadyEnded: felt252 = 'Auction has already ended';
+    // Settling an option round
     const OptionSettlementDateNotReached: felt252 = 'Settlement date not reached';
-    const OptionRoundNotSettled: felt252 = 'Option round not settled yet';
-    const BidBelowReservePrice: felt252 = 'Bid price below reserve price';
-    const BidAmountZero: felt252 = 'Bid amount cannot be 0';
+    const OptionRoundAlreadySettled: felt252 = 'Option round already settled';
+    // Bidding & upating bids
     const BiddingWhileNotAuctioning: felt252 = 'Can only bid while auctioning';
+    const BidAmountZero: felt252 = 'Bid amount cannot be 0';
+    const BidBelowReservePrice: felt252 = 'Bid price below reserve price';
     const CallerNotBidOwner: felt252 = 'Caller is not bid owner';
     const BidCannotBeDecreased: felt252 = 'A bid cannot decrease';
-    /// Other Errors ///
+    // Refunding bids & tokenizing options
+    const AuctionNotEnded: felt252 = 'Auction has not ended yet';
+    const OptionRoundNotSettled: felt252 = 'Option round not settled yet';
+    /// Internal Errors ///
+    const OptionRoundDeploymentFailed: felt252 = 'Option round deployment failed';
     const BidsShouldNotHaveSameTreeNonce: felt252 = 'Tree nonces should be unique';
+}
+
+mod Consts {
+    const BPS: u256 = 10000;
 }
 
 /// An enum for each type of Vault
@@ -58,11 +67,7 @@ struct OptionRoundConstructorParams {
 // The parameters sent from a Vault to start a round's auction
 #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
 struct StartAuctionParams {
-    total_options_available: u256,
     starting_liquidity: u256,
-    reserve_price: u256,
-    cap_level: u16,
-    strike_price: u256,
 }
 
 // The parameters sent from a Vault to settle a round
