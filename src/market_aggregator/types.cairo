@@ -11,6 +11,5 @@ mod DataTypes {
 
 mod Errors {
     const VALUE_ALREADY_SET: felt252 = 'Value already set in storage';
-    const CAP_LEVEL_TOO_BIG: felt252 = 'Cap level must be <= 10,000';
 }
 
