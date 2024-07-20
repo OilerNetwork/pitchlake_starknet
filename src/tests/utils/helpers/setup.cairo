@@ -11,7 +11,7 @@ use openzeppelin::{
     token::erc20::{ERC20Component, interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait,}}
 };
 use pitch_lake_starknet::{
-    types::{StartAuctionParams, OptionRoundState, VaultType}, library::{eth::Eth},
+    types::{OptionRoundState, VaultType}, library::{eth::Eth},
     vault::{contract::Vault, interface::{IVaultDispatcher, IVaultDispatcherTrait}},
     option_round::{
         contract::OptionRound,
@@ -199,7 +199,8 @@ fn setup_facade() -> (VaultFacade, ERC20ABIDispatcher) {
             //println!("setting from\n{}\nto\n{}", from ,to);
             mk_agg.set_reserve_price_for_time_period(from, to, 2000000000);
             mk_agg.set_cap_level_for_time_period(from, to, 5000);
-            mk_agg.set_TWAP_for_time_period(from, to, 4000000000);
+            mk_agg.set_strike_price_for_time_period(from, to, 400000000);
+            mk_agg.set_TWAP_for_time_period(from, to, 8000000000);
 
             from += duration;
             to += duration;
@@ -229,8 +230,6 @@ fn setup_facade() -> (VaultFacade, ERC20ABIDispatcher) {
     set_contract_address(bystander());
     eth_dispatcher.approve(vault_dispatcher.contract_address, 100000 * decimals());
 
-    let mut vault = VaultFacade { vault_dispatcher };
-
     // Clear eth transfer events
     clear_event_logs(array![eth_dispatcher.contract_address]);
     return (VaultFacade { vault_dispatcher }, eth_dispatcher);
@@ -243,26 +242,28 @@ fn deploy_custom_option_round(
     auction_end_date: u64,
     option_settlement_date: u64,
     reserve_price: u256,
-    cap_level: u256,
+    cap_level: u16,
     strike_price: u256
 ) -> OptionRoundFacade {
     let mut calldata = array![];
     calldata.append_serde(vault_address);
     calldata.append_serde(option_round_id);
+
     calldata.append_serde(auction_start_date);
     calldata.append_serde(auction_end_date);
     calldata.append_serde(option_settlement_date);
+
     calldata.append_serde(reserve_price);
     calldata.append_serde(cap_level);
     calldata.append_serde(strike_price);
 
     let now = get_block_timestamp();
-    let salt = 'some salt' + now.into();
+    let salt = 'something salty' + now.into();
 
     let (contract_address, _) = deploy_syscall(
         OptionRound::TEST_CLASS_HASH.try_into().unwrap(), salt, calldata.span(), true
     )
-        .expect('DEPLOY_VAULT_FAILED');
+        .expect('Deploy Custom Round Failed');
 
     let vault_dispatcher = IVaultDispatcher { contract_address: vault_address };
     eth_supply_and_approve_all_bidders(contract_address, vault_dispatcher.eth_address());
