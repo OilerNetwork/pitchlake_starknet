@@ -93,17 +93,11 @@ trait IOptionRound<TContractState> {
     // The state of the option round
     fn get_state(self: @TContractState) -> OptionRoundState;
 
-    // Average base fee over last few months, used to calculate strike price
-    fn get_current_average_basefee(self: @TContractState) -> u256;
-
-    // Standard deviation of base fee over last few months, used to calculate strike price
-    fn get_standard_deviation(self: @TContractState) -> u256;
-
     // The strike price of the options
     fn get_strike_price(self: @TContractState) -> u256;
 
     // The cap level of the options
-    fn get_cap_level(self: @TContractState) -> u16;
+    fn get_cap_level(self: @TContractState) -> u128;
 
     // Minimum price per option in the auction
     fn get_reserve_price(self: @TContractState) -> u256;
@@ -120,12 +114,12 @@ trait IOptionRound<TContractState> {
     /// State transitions
 
     fn update_round_params(
-        ref self: TContractState, reserve_price: u256, cap_level: u16, strike_price: u256
+        ref self: TContractState, reserve_price: u256, cap_level: u128, strike_price: u256
     );
 
     // Try to start the option round's auction
     // @return the total options available in the auction
-    fn start_auction(ref self: TContractState, params: StartAuctionParams) -> u256;
+    fn start_auction(ref self: TContractState, starting_liquidity: u256) -> u256;
 
     // Settle the auction if the auction time has passed
     // @return the clearing price of the auction
