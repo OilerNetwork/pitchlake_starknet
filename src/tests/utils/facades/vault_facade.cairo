@@ -112,19 +112,9 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     }
 
     /// State transition
-    fn update_round_params(ref self: VaultFacade, reserve_price: u256, cap_level: u16, TWAP: u256) {
-        // Get current rounds period
-        let mut current_round = self.get_current_round();
-        let from = current_round.get_auction_start_date();
-        let to = current_round.get_option_settlement_date();
 
-        // Mock mk agg for the current_round's period
-        let mk_agg = self.get_market_aggregator_facade();
-        mk_agg.set_reserve_price_for_time_period(from, to, reserve_price);
-        mk_agg.set_cap_level_for_time_period(from, to, cap_level);
-        mk_agg.set_TWAP_for_time_period(from, to, TWAP);
-
-        // Force a refresh of the round's params
+    // Force a refresh of the round's params
+    fn update_round_params(ref self: VaultFacade) {
         self.vault_dispatcher.update_round_params();
     }
 

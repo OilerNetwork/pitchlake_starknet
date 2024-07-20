@@ -2,10 +2,7 @@
 use openzeppelin::token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
 use starknet::{ContractAddress, testing::{set_contract_address}};
 use pitch_lake_starknet::{
-    types::{
-        VaultType, Errors, Bid, OptionRoundState, StartAuctionParams, SettleOptionRoundParams,
-        OptionRoundConstructorParams,
-    },
+    types::{VaultType, Errors, Bid, OptionRoundState, OptionRoundConstructorParams, Consts::BPS,},
     option_round::{
         interface::{
             IOptionRoundDispatcher, IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher,
@@ -23,10 +20,17 @@ use pitch_lake_starknet::{
         utils::{
             helpers::{
                 setup::eth_supply_and_approve_all_bidders,
-                general_helpers::{assert_two_arrays_equal_length, get_erc20_balance}
+                general_helpers::{assert_two_arrays_equal_length, get_erc20_balance},
+                accelerators::{accelerate_to_auctioning_custom},
             },
-            lib::{test_accounts::{vault_manager, bystander}, structs::{OptionRoundParams}},
-            facades::sanity_checks,
+            lib::{
+                test_accounts::{vault_manager, bystander, liquidity_provider_1},
+                structs::{OptionRoundParams}
+            },
+            facades::{
+                sanity_checks, market_aggregator_facade::{MarketAggregatorFacadeTrait},
+                vault_facade::{VaultFacade, VaultFacadeTrait},
+            },
         }
     },
 };
@@ -42,13 +46,67 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         IOptionRoundSafeDispatcher { contract_address: self.contract_address() }
     }
 
+    fn get_vault_facade(ref self: OptionRoundFacade) -> VaultFacade {
+        VaultFacade {
+            vault_dispatcher: IVaultDispatcher { contract_address: self.vault_address() }
+        }
+    }
+
     /// Writes ///
 
     /// State transition
 
+    // Update the params of the option round
+    // @note this sets strike price as well, meaning this function is only to be used where the
+    // the strike is irrelevant to the test (i.e only in option distribution tests)
+    fn update_params(
+        ref self: OptionRoundFacade, reserve_price: u256, cap_level: u128, strike_price: u256
+    ) {
+        /// Mock values in mk agg
+        let mut vault = self.get_vault_facade();
+        let mk_agg_facade = vault.get_market_aggregator_facade();
+
+        let from = self.get_auction_start_date();
+        let to = self.get_option_settlement_date();
+
+        mk_agg_facade.set_reserve_price_for_time_period(from, to, reserve_price);
+        mk_agg_facade.set_cap_level_for_time_period(from, to, cap_level);
+        mk_agg_facade.set_strike_price_for_time_period(from, to, strike_price);
+
+        // Force refresh the params in the vault
+        vault.update_round_params();
+    }
+
+    // Mock values of the option round and start the auction
+    fn setup_mock_auction(
+        ref self: OptionRoundFacade,
+        ref vault: VaultFacade,
+        options_available: u256,
+        reserve_price: u256,
+    ) {
+        // Calculate what starting liquidity == options_available
+        // M = L/ CL
+        // L = M * CL
+        let strike_price = 1000000000; // 1 gwei
+        let cap_level: u128 = 5000; // 50.00 % above strike
+        let capped_payout_per_option = (strike_price * cap_level.into()) / BPS;
+        let starting_liquidity = (options_available * capped_payout_per_option);
+
+        // Update the params of the option round
+        self.update_params(reserve_price, cap_level, strike_price);
+
+        let total_options_available = accelerate_to_auctioning_custom(
+            ref vault, array![liquidity_provider_1()].span(), array![starting_liquidity].span()
+        );
+
+        assert(total_options_available == options_available, 'options available mismatch');
+    }
+
     // Start the next option round's auction
-    fn start_auction(ref self: OptionRoundFacade, params: StartAuctionParams,) -> u256 {
-        let total_options_available = self.option_round_dispatcher.start_auction(params);
+    fn start_auction(ref self: OptionRoundFacade, starting_liquidity: u256) -> u256 {
+        let total_options_available = self
+            .option_round_dispatcher
+            .start_auction(starting_liquidity);
         sanity_checks::start_auction(ref self, total_options_available)
     }
 
@@ -60,9 +118,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
 
     // Settle the current option round
     fn settle_option_round(ref self: OptionRoundFacade, settlement_price: u256) -> u256 {
-        let (total_payout, _) = self
-            .option_round_dispatcher
-            .settle_option_round(SettleOptionRoundParams { settlement_price });
+        let (total_payout, _) = self.option_round_dispatcher.settle_option_round(settlement_price);
 
         // Set ETH approvals for next round
         let vault_dispatcher = IVaultDispatcher { contract_address: self.vault_address() };
@@ -74,10 +130,10 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
 
     #[feature("safe_dispatcher")]
     fn start_auction_expect_error(
-        ref self: OptionRoundFacade, params: StartAuctionParams, error: felt252,
+        ref self: OptionRoundFacade, starting_liquidity: u256, error: felt252,
     ) {
         let safe_option_round = self.get_safe_dispatcher();
-        safe_option_round.start_auction(params).expect_err(error);
+        safe_option_round.start_auction(starting_liquidity).expect_err(error);
     }
 
     #[feature("safe_dispatcher")]
@@ -92,9 +148,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         ref self: OptionRoundFacade, settlement_price: u256, error: felt252,
     ) {
         let safe_option_round = self.get_safe_dispatcher();
-        safe_option_round
-            .settle_option_round(SettleOptionRoundParams { settlement_price })
-            .expect_err(error);
+        safe_option_round.settle_option_round(settlement_price).expect_err(error);
     }
 
 
@@ -150,6 +204,36 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         set_contract_address(option_bidder_buyer);
         let safe_option_round = self.get_safe_dispatcher();
         safe_option_round.place_bid(amount, price).expect_err(error);
+    }
+
+    // Place bids for option bidders, ignoring failed rejected bids
+    // @return: An result for whether the bid was accepted or rejected
+    #[feature("safe_dispatcher")]
+    fn place_bids_ignore_errors(
+        ref self: OptionRoundFacade,
+        mut amounts: Span<u256>,
+        mut prices: Span<u256>,
+        mut bidders: Span<ContractAddress>,
+    ) {
+        assert_two_arrays_equal_length(bidders, amounts);
+        assert_two_arrays_equal_length(bidders, prices);
+        let safe_option_round = self.get_safe_dispatcher();
+
+        loop {
+            match bidders.pop_front() {
+                Option::Some(bidder) => {
+                    let bid_amount = amounts.pop_front().unwrap();
+                    let bid_price = prices.pop_front().unwrap();
+                    // Make bid
+                    set_contract_address(*bidder);
+                    match safe_option_round.place_bid(*bid_amount, *bid_price) {
+                        Result::Ok(_) => {},
+                        Result::Err(_) => {}
+                    }
+                },
+                Option::None => { break (); }
+            }
+        }
     }
 
 
@@ -389,19 +473,11 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
 
     /// Previously OptionRoundParms
 
-    fn get_current_average_basefee(ref self: OptionRoundFacade) -> u256 {
-        self.option_round_dispatcher.get_current_average_basefee()
-    }
-
-    fn get_standard_deviation(ref self: OptionRoundFacade) -> u256 {
-        self.option_round_dispatcher.get_standard_deviation()
-    }
-
     fn get_strike_price(ref self: OptionRoundFacade) -> u256 {
         self.option_round_dispatcher.get_strike_price()
     }
 
-    fn get_cap_level(ref self: OptionRoundFacade) -> u16 {
+    fn get_cap_level(ref self: OptionRoundFacade) -> u128 {
         self.option_round_dispatcher.get_cap_level()
     }
 
