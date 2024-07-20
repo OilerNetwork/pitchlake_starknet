@@ -69,8 +69,8 @@ mod MarketAggregator {
         ) -> Option<u256> {
             let (is_set, reserve_price) = self.strike_prices.read((BLOCK, from, to));
             match is_set {
-          true => Option::Some(reserve_price),
-          false => Option::None
+                true => Option::Some(reserve_price),
+                false => Option::None
             }
         }
 
@@ -79,8 +79,8 @@ mod MarketAggregator {
         ) -> Option<u256> {
             let (is_set, reserve_price) = self.strike_prices.read((TIME, from, to));
             match is_set {
-          true => Option::Some(reserve_price),
-          false => Option::None
+                true => Option::Some(reserve_price),
+                false => Option::None
             }
         }
 

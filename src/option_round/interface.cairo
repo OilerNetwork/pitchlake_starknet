@@ -128,9 +128,7 @@ trait IOptionRound<TContractState> {
 
     // Settle the option round if past the expiry date and in state::Running
     // @return The total payout of the option round
-    fn settle_option_round(
-        ref self: TContractState, params: SettleOptionRoundParams
-    ) -> (u256, u256);
+    fn settle_option_round(ref self: TContractState, settlement_price: u256) -> (u256, u256);
 
     /// Option bidder functions
 

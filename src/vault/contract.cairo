@@ -365,7 +365,7 @@ mod Vault {
 
             // @dev Settle the round
             let (total_payout, settlement_price) = current_round_dispatcher
-                .settle_option_round(SettleOptionRoundParams { settlement_price });
+                .settle_option_round(settlement_price);
 
             // @dev The remaining liquidity for a round is how much was locked minus the total payout
             let mut remaining_liquidity = self.get_total_locked_balance();
@@ -772,14 +772,13 @@ mod Vault {
         }
 
         fn fetch_strike_price_for_time_period(self: @ContractState, from: u64, to: u64) -> u256 {
-          let mk_agg = self.get_market_aggregator_dispatcher();
-          let res = mk_agg.get_strike_price_for_time_period(from, to);
-          match res {
-              Option::Some(strike_price) => strike_price,
-              //Option::None => panic!("No strike price found")
-              Option::None => 0
-          }
-
+            let mk_agg = self.get_market_aggregator_dispatcher();
+            let res = mk_agg.get_strike_price_for_time_period(from, to);
+            match res {
+                Option::Some(strike_price) => strike_price,
+                //Option::None => panic!("No strike price found")
+                Option::None => 0
+            }
         }
 
         fn fetch_TWAP_for_time_period(self: @ContractState, from: u64, to: u64) -> u256 {

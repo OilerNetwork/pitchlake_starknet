@@ -87,7 +87,7 @@ fn test_tokenizing_options_events() {
     let (mut vault, _) = setup_facade();
     let (mut current_round, mut option_bidders) = test_helper(ref vault);
 
-        // Check options tokenized event emits correctly
+    // Check options tokenized event emits correctly
     clear_event_logs(array![current_round.contract_address()]);
     loop {
         match option_bidders.pop_front() {
@@ -128,7 +128,7 @@ fn test_tokenizing_options_twice_does_nothing() {
     let (mut vault, _) = setup_facade();
     let (mut current_round, mut option_bidders) = test_helper(ref vault);
 
-        // Check that tokenizing options twice does nothing for each bidder
+    // Check that tokenizing options twice does nothing for each bidder
     loop {
         match option_bidders.pop_front() {
             Option::Some(bidder) => {
@@ -167,7 +167,7 @@ fn test_tokenizing_options_sets_option_storage_balance_to_0() {
     let (mut vault, _) = setup_facade();
     let (mut current_round, mut option_bidders) = test_helper(ref vault);
 
-        loop {
+    loop {
         match option_bidders.pop_front() {
             Option::Some(bidder) => {
                 // Tokenize options

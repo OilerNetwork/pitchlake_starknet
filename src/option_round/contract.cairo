@@ -670,9 +670,7 @@ mod OptionRound {
         // Checks caller is vault, state is 'Running' and settlement date is reached
         // Updates state to 'Settled',calculates payout, updates storage and emits 'OptionRoundSettled' event
         // Returns total payout and settlement price
-        fn settle_option_round(
-            ref self: ContractState, params: SettleOptionRoundParams
-        ) -> (u256, u256) {
+        fn settle_option_round(ref self: ContractState, settlement_price: u256) -> (u256, u256) {
             self.assert_caller_is_vault();
 
             // Assert now is >= option settlement date
@@ -681,9 +679,6 @@ mod OptionRound {
             let settlement_date = self.get_option_settlement_date();
             assert(now >= settlement_date, Errors::OptionSettlementDateNotReached);
             assert(state == OptionRoundState::Running, Errors::OptionRoundAlreadySettled);
-
-            // Destructure params
-            let SettleOptionRoundParams { settlement_price } = params;
 
             // Calculate and set total payout
             let strike_price = self.get_strike_price();
