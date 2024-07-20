@@ -13,7 +13,7 @@ mod OptionRound {
         vault::{interface::{IVaultDispatcher, IVaultDispatcherTrait},},
         types::{
             Bid, Errors, OptionRoundConstructorParams, OptionRoundState, SettleOptionRoundParams,
-            StartAuctionParams, VaultType
+            StartAuctionParams, VaultType, Consts::{BPS},
         },
     };
     use starknet::{get_block_timestamp, get_caller_address, get_contract_address, ContractAddress,};
@@ -44,7 +44,7 @@ mod OptionRound {
     // @reserve_price: The minimum bid price per option
     // @strike_price: The strike price of the options
     // @starting_liquidity: The amount of liquidity this round starts with (locked upon auction starting)
-    // @total_payout: The amount the option round pays out upon settlemnt
+    // @payout_per_option: The amount the option round pays out per option upon settlement
     // @auction_start_date: The auction start date
     // @auction_end_date: The auction end date
     // @option_settlement_date: The option settlement date
@@ -58,12 +58,11 @@ mod OptionRound {
         market_aggregator: ContractAddress,
         state: OptionRoundState,
         round_id: u256,
-        cap_level: u16,
+        cap_level: u128,
         reserve_price: u256,
         strike_price: u256,
         starting_liquidity: u256,
-        // updating to payout per option
-        payout: u256,
+        payout_per_option: u256,
         auction_start_date: u64,
         auction_end_date: u64,
         option_settlement_date: u64,
@@ -87,7 +86,7 @@ mod OptionRound {
         auction_end_date: u64,
         option_settlement_date: u64,
         reserve_price: u256,
-        cap_level: u16,
+        cap_level: u128,
         strike_price: u256
     ) {
         let (name, symbol) = self.get_name_symbol(round_id);
@@ -163,6 +162,7 @@ mod OptionRound {
     #[derive(Drop, starknet::Event, PartialEq)]
     struct OptionRoundSettled {
         total_payout: u256,
+        payout_per_option: u256,
         settlement_price: u256
     }
 
@@ -280,7 +280,9 @@ mod OptionRound {
             self
                 .emit(
                     Event::OptionRoundSettled(
-                        OptionRoundSettled { total_payout: x, settlement_price: x }
+                        OptionRoundSettled {
+                            total_payout: x, payout_per_option: x, settlement_price: x
+                        }
                     )
                 );
             self
@@ -334,10 +336,10 @@ mod OptionRound {
 
         // Get the total payout of the round
         fn total_payout(self: @ContractState) -> u256 {
-            self.payout.read() * self.total_options_sold()
+            self.payout_per_option.read() * self.total_options_sold()
         }
 
-        // @note add entry point for payou per option
+        // @note add entry point for payout per option
 
         // Get the clearing price of the auction
         fn get_auction_clearing_price(self: @ContractState) -> u256 {
@@ -442,7 +444,6 @@ mod OptionRound {
         // iterates through the list of bids and returns total tokenizable options
         // From the partial bids, takes the amount that was sold and adds to options_balance,
         // From tokenizable bids, if not tokenized yet, adds to options_balance, updates flag
-
         fn get_tokenizable_options_for(
             self: @ContractState, option_buyer: ContractAddress
         ) -> u256 {
@@ -516,23 +517,13 @@ mod OptionRound {
             self.vault_address.read()
         }
 
-        /// Previously OptionRoundParams
-
-        fn get_current_average_basefee(self: @ContractState) -> u256 {
-            100
-        }
-
-        fn get_standard_deviation(self: @ContractState) -> u256 {
-            100
-        }
-
         // Get the strike price for the round
         fn get_strike_price(self: @ContractState) -> u256 {
             self.strike_price.read()
         }
 
         // Get the cap level for the round
-        fn get_cap_level(self: @ContractState) -> u16 {
+        fn get_cap_level(self: @ContractState) -> u128 {
             self.cap_level.read()
         }
 
@@ -553,10 +544,17 @@ mod OptionRound {
         /// State transition
 
         fn update_round_params(
-            ref self: ContractState, reserve_price: u256, cap_level: u16, strike_price: u256
+            ref self: ContractState, reserve_price: u256, cap_level: u128, strike_price: u256
         ) {
+            let state = self.get_state();
+            let now = get_block_timestamp();
+            let auction_start_date = self.get_auction_start_date();
+
             self.assert_caller_is_vault();
-            assert(self.get_state() == OptionRoundState::Open, Errors::AuctionAlreadyStarted);
+            assert(
+                state == OptionRoundState::Open && now < auction_start_date,
+                Errors::AuctionAlreadyStarted
+            );
 
             self.reserve_price.write(reserve_price);
             self.cap_level.write(cap_level);
@@ -578,51 +576,32 @@ mod OptionRound {
         // Updates state to auctioning, writes auction parameters to storage, emits AuctionStart event
         // @dev Params are set in the constructor and in this function in case newer values from
         // Fossil are produced in during the round transition period
-        fn start_auction(ref self: ContractState, params: StartAuctionParams) -> u256 {
-            // Assert caller is Vault
-            self.assert_caller_is_vault();
 
-            // Assert state is Open
-            assert(self.get_state() == OptionRoundState::Open, Errors::AuctionAlreadyStarted);
-
-            // Assert now is >= auction start date
+        // @dev An auction can start only if the state is Open, the current time is >= auction_start_date,
+        // and the caller is the Vault
+        fn start_auction(ref self: ContractState, starting_liquidity: u256) -> u256 {
+            let state = self.get_state();
             let now = get_block_timestamp();
-            let start_date = self.get_auction_start_date();
-            assert(now >= start_date, Errors::AuctionStartDateNotReached);
+            let auction_start_date = self.get_auction_start_date();
 
-            // Destructure params
-            let StartAuctionParams { total_options_available,
-            starting_liquidity,
-            reserve_price,
-            cap_level,
-            strike_price } =
-                params;
+            self.assert_caller_is_vault();
+            assert(now >= auction_start_date, Errors::AuctionStartDateNotReached);
+            assert(state == OptionRoundState::Open, Errors::AuctionAlreadyStarted);
 
-            //println!("total_options_available: {}", total_options_available);
-            //println!("starting_liquidity: {}", starting_liquidity);
-            //println!("reserve_price: {}", reserve_price);
-            //println!("cap_level: {}", cap_level);
-            //println!("strike_price: {}", strike_price);
+            // @dev Calculate total options available
+            let strike_price = self.get_strike_price();
+            let cap_level = self.get_cap_level();
+            let total_options_available = self
+                .calculate_total_options_available(
+                    starting_liquidity, strike_price, cap_level.into()
+                );
 
-            // Set starting liquidity & total options available
+            // @dev Write auction params to storage & update state
             self.starting_liquidity.write(starting_liquidity);
             self.bids_tree.total_options_available.write(total_options_available);
-
-            // Set auction params
-            self.reserve_price.write(reserve_price);
-            self.cap_level.write(cap_level);
-            self.strike_price.write(strike_price);
-
-            // Update auction end date if the auction starts later than expected
-            //if (now > start_date) {
-            //    let end_date = self.get_auction_end_date();
-            //    self.auction_end_date.write(end_date + now - start_date);
-            //}
-
-            // Update state to Auctioning
             self.set_state(OptionRoundState::Auctioning);
 
-            // Emit auction start event
+            // @dev Emit auction start event
             self
                 .emit(
                     Event::AuctionStarted(
@@ -630,8 +609,13 @@ mod OptionRound {
                     )
                 );
 
-            // Return the total options available
             total_options_available
+        // Set auction params
+        // Update auction end date if the auction starts later than expected
+        //if (now > start_date) {
+        //    let end_date = self.get_auction_end_date();
+        //    self.auction_end_date.write(end_date + now - start_date);
+        //}
         }
 
 
@@ -645,16 +629,13 @@ mod OptionRound {
         // Updates state to 'Running', determines clearing price, sends premiums collected back to vault
         // and emits an AuctionEnded event
         fn end_auction(ref self: ContractState) -> (u256, u256) {
-            // Assert caller is Vault
-            self.assert_caller_is_vault();
-
-            // Assert state is Auctioning
-            assert(self.get_state() == OptionRoundState::Auctioning, Errors::NoAuctionToEnd);
-
-            // Assert now is >= auction end date
+            let state = self.get_state();
             let now = get_block_timestamp();
             let end_date = self.get_auction_end_date();
+
+            self.assert_caller_is_vault();
             assert(now >= end_date, Errors::AuctionEndDateNotReached);
+            assert(state == OptionRoundState::Auctioning, Errors::AuctionAlreadyEnded);
 
             // Update option settlement date if the auction ends later than expected
             //if (now > end_date) {
@@ -692,25 +673,25 @@ mod OptionRound {
         fn settle_option_round(
             ref self: ContractState, params: SettleOptionRoundParams
         ) -> (u256, u256) {
-            // Assert caller is Vault
             self.assert_caller_is_vault();
 
             // Assert now is >= option settlement date
+            let state = self.get_state();
             let now = get_block_timestamp();
             let settlement_date = self.get_option_settlement_date();
             assert(now >= settlement_date, Errors::OptionSettlementDateNotReached);
-
-            // Assert state is Running
-            assert(
-                self.get_state() == OptionRoundState::Running, Errors::OptionRoundAlreadySettled
-            );
+            assert(state == OptionRoundState::Running, Errors::OptionRoundAlreadySettled);
 
             // Destructure params
             let SettleOptionRoundParams { settlement_price } = params;
 
             // Calculate and set total payout
-            let payout_per_option = self.calculate_payout(settlement_price);
-            self.payout.write(payout_per_option);
+            let strike_price = self.get_strike_price();
+            let cap_level = self.get_cap_level().into();
+            let payout_per_option = self
+                .calculate_payout_per_option(strike_price, cap_level, settlement_price,);
+
+            self.payout_per_option.write(payout_per_option);
 
             // Update state to Settled
             self.set_state(OptionRoundState::Settled);
@@ -719,7 +700,9 @@ mod OptionRound {
             self
                 .emit(
                     Event::OptionRoundSettled(
-                        OptionRoundSettled { total_payout: self.total_payout(), settlement_price }
+                        OptionRoundSettled {
+                            total_payout: self.total_payout(), payout_per_option, settlement_price
+                        }
                     )
                 );
 
@@ -744,16 +727,22 @@ mod OptionRound {
         fn place_bid(ref self: ContractState, amount: u256, price: u256) -> Bid {
             // Assert state is Auctioning
             // @note BidRejcted event if reverted txns emit events, dont think they do
-            assert(
-                self.get_state() == OptionRoundState::Auctioning, Errors::BiddingWhileNotAuctioning
-            );
-            // Assert now is < auction end date
+            let now = get_block_timestamp();
+            let auction_end_date = self.get_auction_end_date();
+            assert(now < auction_end_date, Errors::BiddingWhileNotAuctioning);
+            let state = self.get_state();
+            assert(state == OptionRoundState::Auctioning, Errors::BiddingWhileNotAuctioning);
+
+            // @dev
+            // Assert now is < auction end date if not Auctioning
             // @dev This is for if a bid is placed before the end_auction function is called
             // the auction end date has passed
-            assert(
-                get_block_timestamp() < self.get_auction_end_date(),
-                Errors::BiddingWhileNotAuctioning
-            );
+            if (self.get_state() != OptionRoundState::Auctioning) {
+                assert(
+                    get_block_timestamp() < self.get_auction_end_date(),
+                    Errors::BiddingWhileNotAuctioning
+                );
+            }
 
             // Assert bid if for more than 0 options
             // @note BidRejcted event if reverted txns emit events, dont think they do
@@ -1184,22 +1173,34 @@ mod OptionRound {
 
             (tokenizable_bids, refundable_bids, partial_bid)
         }
-        fn calculate_options(ref self: ContractState, starting_liquidity: u256) -> u256 {
-            //Calculate total options accordingly
-            0
+
+        // Calculate the maximum payout for a single option
+        fn _max_payout_per_option(
+            self: @ContractState, strike_price: u256, cap_level: u256
+        ) -> u256 {
+            (strike_price * cap_level) / BPS
         }
 
-        fn calculate_payout(ref self: ContractState, settlement_price: u256,) -> u256 {
-            // @dev This is `min((1 + cl) * k, settlement_price) - k)`
-            // without the possibility of a sub overflow error
-            let K = self.get_strike_price();
-            let cl = self.get_cap_level();
-            let cap = (K * cl.into()) / 10000;
-            let min = min(cap, settlement_price);
-            if min > K {
-                min - K
+        // Calcualte the total number of options available to sell in the auction
+        fn calculate_total_options_available(
+            self: @ContractState, starting_liquidity: u256, strike_price: u256, cap_level: u256
+        ) -> u256 {
+            let capped = self._max_payout_per_option(strike_price, cap_level);
+
+            starting_liquidity / capped
+        }
+
+        // Calculate the payout per each option at settlement
+        fn calculate_payout_per_option(
+            ref self: ContractState, strike_price: u256, cap_level: u256, settlement_price: u256
+        ) -> u256 {
+            if (settlement_price <= strike_price) {
+                0
             } else {
-                cap
+                let uncapped = settlement_price - strike_price;
+                let capped = self._max_payout_per_option(strike_price, cap_level);
+
+                min(capped, uncapped)
             }
         }
 
