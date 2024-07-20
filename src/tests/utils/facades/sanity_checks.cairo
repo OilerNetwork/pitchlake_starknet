@@ -139,7 +139,7 @@ fn test_event_testers() {
         round.contract_address(), round.contract_address(), 100, 100
     );
     event_helpers::assert_event_auction_end(round.contract_address(), 100, 100);
-    event_helpers::assert_event_option_settle(round.contract_address(), 100, 100);
+    event_helpers::assert_event_option_settle(round.contract_address(), 100, 100, 100);
     event_helpers::assert_event_option_round_deployed(
         vault.contract_address(), 1, vault.contract_address()
     );
