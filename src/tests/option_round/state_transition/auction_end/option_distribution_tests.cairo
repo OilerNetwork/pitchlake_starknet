@@ -168,10 +168,10 @@ fn test_bidding_same_amount_higher_price_wins() {
     }
 }
 
-// Test bids with the same price, higher amounts are favored in the auction
+// Test bids with the same price, the earlier bids are favored in the auction
 #[test]
 #[available_gas(500000000)]
-fn test_bidding_same_price_higher_amount_wins() {
+fn test_bidding_same_price_earlier_bids_win() {
     let number_of_option_bidders = 5;
     let (mut vault, _, mut option_bidders, total_options_available) = setup_test_auctioning_bidders(
         number_of_option_bidders
@@ -186,18 +186,16 @@ fn test_bidding_same_price_higher_amount_wins() {
     );
     accelerate_to_running_custom(ref vault, option_bidders, bid_amounts.span(), bid_prices.span());
 
-    // Check last bidder (winner) receives all options, others receive 0
-    match option_bidders.pop_back() {
+    // Check first bidder (winner) receives all options, others receive 0
+    match option_bidders.pop_front() {
         Option::Some(ob) => {
             let winner_option_balance = current_round.get_option_balance_for(*ob);
-            assert(
-                winner_option_balance == total_options_available, 'winner should get all options'
-            );
+            assert_eq!(winner_option_balance, total_options_available);
             loop {
                 match option_bidders.pop_front() {
                     Option::Some(ob) => {
                         let loser_option_balance = current_round.get_option_balance_for(*ob);
-                        assert(loser_option_balance == 0, 'loser should get no options')
+                        assert_eq!(loser_option_balance, 0)
                     },
                     Option::None => { break (); }
                 }
@@ -594,6 +592,7 @@ fn auction_real_numbers_test_helper(
     let bid_amounts = to_wei_multi(bid_amounts, d);
     let bid_prices = to_wei_multi(bid_prices, d);
     let expected_options_sold = to_wei(expected_options_sold, d);
+    expected_option_distribution = to_wei_multi(expected_option_distribution, d);
 
     // Mock values of the option round and start the auction
     current_round.setup_mock_auction(ref vault, options_available, reserve_price);
