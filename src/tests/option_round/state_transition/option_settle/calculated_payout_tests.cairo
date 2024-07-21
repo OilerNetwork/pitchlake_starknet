@@ -1,5 +1,5 @@
 use pitch_lake_starknet::{
-    library::utils::{min, max},
+    types::Consts::BPS, library::utils::{min, max},
     tests::{
         utils::{
             helpers::{
@@ -19,17 +19,20 @@ use pitch_lake_starknet::{
 
 
 fn calculate_expected_payout(ref round: OptionRoundFacade, settlement_price: u256,) -> u256 {
-    // @dev This is `min((1 + cl) * k, settlement_price) - k)`
-    // without the possibility of a sub overflow error
-    let K = round.get_strike_price();
-    let cl = round.get_cap_level();
-    let cap = (K * cl.into()) / 10000;
-    let min = min(cap, settlement_price);
-    if min > K {
-        min - K
+    let strike_price = round.get_strike_price();
+    let cap_level = round.get_cap_level();
+    let max_payout_per_option = (cap_level.into() * strike_price) / BPS;
+
+    let payout_per_option = if (settlement_price <= strike_price) {
+        0
     } else {
-        cap
-    }
+        let uncapped = settlement_price - strike_price;
+        let capped = max_payout_per_option;
+
+        min(capped, uncapped)
+    };
+
+    payout_per_option * round.total_options_sold()
 }
 
 // @note These tests should move to ./src/tests/option_round/state_transition/option_settled_tests.cairo
