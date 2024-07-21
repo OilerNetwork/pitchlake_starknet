@@ -1,9 +1,5 @@
 #[starknet::contract]
 mod OptionRound {
-    use core::{
-        array::ArrayTrait, fmt::{Display, Error, Formatter}, num::traits::one::One,
-        option::OptionTrait, starknet::event::EventEmitter,
-    };
     use openzeppelin::token::erc20::{
         ERC20Component, interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait, IERC20Metadata},
     };
@@ -12,7 +8,7 @@ mod OptionRound {
         option_round::interface::IOptionRound,
         vault::{interface::{IVaultDispatcher, IVaultDispatcherTrait},},
         types::{
-            Bid, Errors, OptionRoundConstructorParams, OptionRoundState, VaultType, Consts::{BPS},
+            Bid, Errors, OptionRoundConstructorParams, OptionRoundState, VaultType, Consts::BPS,
         },
     };
     use starknet::{get_block_timestamp, get_caller_address, get_contract_address, ContractAddress,};
@@ -107,12 +103,6 @@ mod OptionRound {
         self.reserve_price.write(reserve_price);
         self.cap_level.write(cap_level);
         self.strike_price.write(strike_price);
-    //println!(
-    //    "deploying with\nreserve_price: {}\ncap_level: {}\nstrike_price: {}",
-    //    reserve_price,
-    //    cap_level,
-    //    strike_price
-    //);
     }
 
 
@@ -252,56 +242,6 @@ mod OptionRound {
 
     #[abi(embed_v0)]
     impl OptionRoundImpl of IOptionRound<ContractState> {
-        // @note This function is being used for to check event testers are working correctly
-        // @note Should be renamed, and moved (look if possible to make a contract emit event from our tests instead of through a dispatcher/call)
-        fn rm_me(ref self: ContractState, x: u256) {
-            self.emit(Event::AuctionStarted(AuctionStarted { total_options_available: x }));
-            self
-                .emit(
-                    Event::BidAccepted(
-                        BidAccepted {
-                            nonce: 0, account: starknet::get_contract_address(), amount: x, price: x
-                        }
-                    )
-                );
-            self
-                .emit(
-                    Event::BidRejected(
-                        BidRejected {
-                            account: starknet::get_contract_address(), amount: x, price: x
-                        }
-                    )
-                );
-            self
-                .emit(
-                    Event::AuctionEnded(AuctionEnded { clearing_price: x, total_options_sold: x })
-                );
-            self
-                .emit(
-                    Event::OptionRoundSettled(
-                        OptionRoundSettled {
-                            total_payout: x, payout_per_option: x, settlement_price: x
-                        }
-                    )
-                );
-            self
-                .emit(
-                    Event::UnusedBidsRefunded(
-                        UnusedBidsRefunded { account: starknet::get_contract_address(), amount: x }
-                    )
-                );
-            self
-                .emit(
-                    Event::OptionsExercised(
-                        OptionsExercised {
-                            account: starknet::get_contract_address(), num_options: x, amount: x
-                        }
-                    )
-                );
-
-            IVaultDispatcher { contract_address: self.vault_address.read() }.rm_me2();
-        }
-
         // ***********************************
         //               READS
         // ***********************************
@@ -1024,7 +964,7 @@ mod OptionRound {
             );
 
             // Get the refundable & tokenizable bids, and the partially sold bid id if it exists
-            let option_buyer = get_contract_address();
+            let option_buyer = get_caller_address();
             let (mut tokenizable_bids, _, partial_bid_id) = self.inspect_options_for(option_buyer);
 
             // Total tokenizable options
@@ -1156,6 +1096,7 @@ mod OptionRound {
                 } else {
                     let bid: Bid = self.bids_tree._find(bid_id);
                     let clearing_bid: Bid = self.bids_tree._find(clearing_bid_id);
+
                     if (bid < clearing_bid) {
                         refundable_bids.append(bid);
                     } else {
