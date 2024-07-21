@@ -9,8 +9,6 @@ use pitch_lake_starknet::{
 // The option round contract interface
 #[starknet::interface]
 trait IOptionRound<TContractState> {
-    // @note This function is being used for testing (event testers)
-    fn rm_me(ref self: TContractState, x: u256);
     /// Reads ///
 
     /// Dates

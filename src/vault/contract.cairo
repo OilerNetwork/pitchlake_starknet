@@ -123,37 +123,6 @@ mod Vault {
     // *************************************************************************
     #[abi(embed_v0)]
     impl VaultImpl of IVault<ContractState> {
-        fn rm_me2(ref self: ContractState) {
-            self
-                .emit(
-                    Event::OptionRoundDeployed(
-                        OptionRoundDeployed {
-                            round_id: 1, address: starknet::get_contract_address(),
-                        }
-                    )
-                );
-            self
-                .emit(
-                    Event::Deposit(
-                        Deposit {
-                            account: starknet::get_contract_address(),
-                            position_balance_before: 100,
-                            position_balance_after: 100
-                        }
-                    )
-                );
-            self
-                .emit(
-                    Event::Withdrawal(
-                        Withdrawal {
-                            account: starknet::get_contract_address(),
-                            position_balance_before: 100,
-                            position_balance_after: 100
-                        }
-                    )
-                );
-        }
-
         // ***********************************
         //               READS
         // ***********************************

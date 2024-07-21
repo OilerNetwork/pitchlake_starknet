@@ -8,10 +8,6 @@ use pitch_lake_starknet::{
 // The interface for the vault contract
 #[starknet::interface]
 trait IVault<TContractState> {
-    // Being used for testing event asserters work correctly. Need to look into
-    // emitting events from our tests instead of via entry point
-    fn rm_me2(ref self: TContractState);
-
     /// Reads ///
 
     /// Other
