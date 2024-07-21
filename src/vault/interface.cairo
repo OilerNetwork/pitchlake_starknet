@@ -1,17 +1,13 @@
 use starknet::{ContractAddress};
 use pitch_lake_starknet::{
     vault::{contract::Vault},
-    contracts::{market_aggregator::{IMarketAggregator, IMarketAggregatorDispatcher},},
-    types::{VaultType, StartAuctionParams, OptionRoundState}
+    market_aggregator::interface::{IMarketAggregator, IMarketAggregatorDispatcher},
+    types::{VaultType, OptionRoundState}
 };
 
 // The interface for the vault contract
 #[starknet::interface]
 trait IVault<TContractState> {
-    // Being used for testing event asserters work correctly. Need to look into
-    // emitting events from our tests instead of via entry point
-    fn rm_me2(ref self: TContractState);
-
     /// Reads ///
 
     /// Other
@@ -87,6 +83,9 @@ trait IVault<TContractState> {
 
     /// State transition
 
+    /// Update the params of the current round if there are newer data from Fossil
+    fn update_round_params(ref self: TContractState);
+
     // Start the auction on the next round as long as the current round is Settled and the
     // round transition period has passed. Deploys the next next round and updates the current/next pointers.
     // @return the total options available in the auction
@@ -100,7 +99,7 @@ trait IVault<TContractState> {
 
     // Settle the current option round as long as the current round is Running and the option expiry time has passed.
     // @return The total payout of the option round
-    fn settle_option_round(ref self: TContractState) -> u256;
+    fn settle_option_round(ref self: TContractState) -> (u256, u256);
 
     /// LP functions
 

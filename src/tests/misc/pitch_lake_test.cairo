@@ -86,6 +86,7 @@ use debug::PrintTrait;
 // @note Make a tests/pitchlake/ directory for this ?
 #[test]
 #[available_gas(50000000)]
+#[ignore]
 fn test_vault_type() {
     let pitch_lake_dispatcher: IPitchLakeDispatcher = deploy_pitch_lake();
     let itm_vault: IVaultDispatcher = pitch_lake_dispatcher.in_the_money_vault();

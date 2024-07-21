@@ -9,23 +9,23 @@ use pitch_lake_starknet::{
     option_round::{
         contract::OptionRound, interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,}
     },
-    contracts::{
-        market_aggregator::{
-            MarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
-        },
+    market_aggregator::{
+        contract::{MarketAggregator}, types::{DataTypes, PeriodTypes},
+        interface::{
+            IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait,
+            IMarketAggregatorMockDispatcher, IMarketAggregatorMockDispatcherTrait
+        }
     },
     tests::{
         utils::{
-            mocks::mock_market_aggregator::{
-                MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
-                IMarketAggregatorSetterDispatcherTrait,
-            },
             lib::{
                 test_accounts::{vault_manager, liquidity_provider_1, bystander},
                 variables::{decimals},
             },
             facades::{
-                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait}, sanity_checks,
+                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
+                market_aggregator_facade::{MarketAggregatorFacade, MarketAggregatorFacadeTrait},
+                sanity_checks,
             },
             helpers::{
                 setup::eth_supply_and_approve_all_bidders,
@@ -113,6 +113,11 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     /// State transition
 
+    // Force a refresh of the round's params
+    fn update_round_params(ref self: VaultFacade) {
+        self.vault_dispatcher.update_round_params();
+    }
+
     fn start_auction(ref self: VaultFacade) -> u256 {
         // @dev Using bystander as caller so that gas fees do not throw off balance calculations
         set_contract_address(bystander());
@@ -148,7 +153,10 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         // @dev Using bystander as caller so that gas fees do not throw off balance calculations
         set_contract_address(bystander());
         let mut current_round = self.get_current_round();
-        let total_payout = self.vault_dispatcher.settle_option_round();
+
+        // Settle the current round
+        let (total_payout, _) = self.vault_dispatcher.settle_option_round();
+
         sanity_checks::settle_option_round(ref current_round, total_payout);
 
         let next_round_address = self.get_option_round_address(current_round.get_round_id() + 1);
@@ -164,17 +172,22 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     }
     /// Fossil
 
-    // Set the mock market aggregator data for the period of the current round
-    fn set_market_aggregator_value(ref self: VaultFacade, avg_base_fee: u256) {
-        set_contract_address(bystander());
-        let mut current_round = self.get_current_round();
-        let start_date = current_round.get_auction_start_date();
-        let end_date = current_round.get_option_settlement_date();
-        let market_aggregator = IMarketAggregatorSetterDispatcher {
-            contract_address: self.get_market_aggregator(),
-        };
-        let _ = market_aggregator.set_value_without_proof(start_date, end_date, avg_base_fee);
+    fn get_market_aggregator_facade(ref self: VaultFacade) -> MarketAggregatorFacade {
+        MarketAggregatorFacade { contract_address: self.get_market_aggregator() }
     }
+
+
+    //    // Set the mock market aggregator data for the period of the current round
+    //    fn set_market_aggregator_value(ref self: VaultFacade, avg_base_fee: u256) {
+    //        set_contract_address(bystander());
+    //        let mut current_round = self.get_current_round();
+    //        let start_date = current_round.get_auction_start_date();
+    //        let end_date = current_round.get_option_settlement_date();
+    //        let market_aggregator = IMarketAggregatorSetterDispatcher {
+    //            contract_address: self.get_market_aggregator(),
+    //        };
+    //        let _ = market_aggregator.set_value_without_proof(start_date, end_date, avg_base_fee);
+    //    }
 
     /// LP token related
 
@@ -341,21 +354,6 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     fn get_market_aggregator(ref self: VaultFacade) -> ContractAddress {
         self.vault_dispatcher.get_market_aggregator()
-    }
-
-    // Get the market aggregator data for the period of the current round
-    fn get_market_aggregator_value(ref self: VaultFacade) -> u256 {
-        let market_aggregator = IMarketAggregatorDispatcher {
-            contract_address: self.get_market_aggregator(),
-        };
-        let mut current_round = self.get_current_round();
-        let start_date = current_round.get_auction_start_date();
-        let end_date = current_round.get_option_settlement_date();
-
-        match market_aggregator.get_value(start_date, end_date) {
-            Result::Ok((value, _)) => value,
-            Result::Err(e) => panic(array![e]),
-        }
     }
 
     // Manager of the vault

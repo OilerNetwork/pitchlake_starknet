@@ -135,12 +135,17 @@ fn assert_event_auction_end(
 // Check OptionSettle emits correctly
 // @dev Settlment price is the price determining the payout for the round
 fn assert_event_option_settle(
-    option_round_address: ContractAddress, total_payout: u256, settlement_price: u256
+    option_round_address: ContractAddress,
+    total_payout: u256,
+    payout_per_option: u256,
+    settlement_price: u256
 ) {
     match pop_log::<OptionRound::Event>(option_round_address) {
         Option::Some(e) => {
             let expected = OptionRound::Event::OptionRoundSettled(
-                OptionRound::OptionRoundSettled { total_payout, settlement_price }
+                OptionRound::OptionRoundSettled {
+                    total_payout, payout_per_option, settlement_price
+                }
             );
             assert_events_equal(e, expected);
         },
@@ -166,8 +171,8 @@ fn assert_event_unused_bids_refunded(
 fn assert_event_options_tokenized(
     contract: ContractAddress, account: ContractAddress, amount: u256
 ) {
-    // We pop here twice since the method fires a ERC20 mint event and a OptionsTokenized event
-    match testing::pop_log_raw(contract) {
+    // We pop here twice since the method fires a ERC20 transfer event before the OptionsTokenized event
+    match pop_log::<ERC20Component::Transfer>(contract) {
         Option::Some(_) => {
             match pop_log::<OptionRound::Event>(contract) {
                 Option::Some(e) => {
@@ -186,21 +191,15 @@ fn assert_event_options_tokenized(
 fn assert_event_options_exercised(
     contract: ContractAddress, account: ContractAddress, num_options: u256, amount: u256
 ) {
-    // We pop here twice since the method fires a ERC20 burn event and a OptionsExercised event
-    match testing::pop_log_raw(contract) {
-        Option::Some(_) => {
-            match pop_log::<OptionRound::Event>(contract) {
-                Option::Some(e) => {
-                    let expected = OptionRound::Event::OptionsExercised(
-                        OptionRound::OptionsExercised { account, num_options, amount }
-                    );
-                    assert_events_equal(e, expected);
-                },
-                Option::None => { panic(array!['No events found']); },
-            }
+    match pop_log::<OptionRound::Event>(contract) {
+        Option::Some(e) => {
+            let expected = OptionRound::Event::OptionsExercised(
+                OptionRound::OptionsExercised { account, num_options, amount }
+            );
+            assert_events_equal(e, expected);
         },
-        Option::None => { panic!("ERC20 event not found") }
-    }
+        Option::None => { panic(array!['No events found']); },
+    };
 }
 
 // ERC20 Events

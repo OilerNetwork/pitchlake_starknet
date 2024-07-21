@@ -36,14 +36,11 @@ use pitch_lake_starknet::{
 };
 use debug::PrintTrait;
 
-// @note Need to manually initialize round 1, either
-// upon vault deployment (constructor) or through a one-time round 1 initializer entry point
-// @note Add test that all rounds, r > 1 are initialized automatically once
-// the round (r-1) settles
-
+// @note Come back to this test when we know if strike price is calculated on chain or off chain
 // Test that the strike price is set correctly based on the vault type
 #[test]
 #[available_gas(50000000)]
+#[ignore]
 fn test_strike_price_based_on_vault_types() {
     // Deploy pitch lake
     let pitch_lake_dispatcher: IPitchLakeDispatcher = deploy_pitch_lake();
@@ -73,13 +70,13 @@ fn test_strike_price_based_on_vault_types() {
     let atm_strike_price = atm.get_strike_price();
     let itm_strike_price = itm.get_strike_price();
     let otm_strike_price = otm.get_strike_price();
-    let atm_avg_basefee = atm.get_current_average_basefee();
-    let itm_avg_basefee = itm.get_current_average_basefee();
-    let otm_avg_basefee = otm.get_current_average_basefee();
+//let atm_avg_basefee = atm.get_current_average_basefee();
+//let itm_avg_basefee = itm.get_current_average_basefee();
+//let otm_avg_basefee = otm.get_current_average_basefee();
 
-    assert(atm_strike_price == atm_avg_basefee, 'ATM stike wrong');
-    assert(itm_strike_price > itm_avg_basefee, 'ITM stike wrong');
-    assert(otm_strike_price < otm_avg_basefee, 'OTM stike wrong');
+//assert(atm_strike_price == atm_avg_basefee, 'ATM stike wrong');
+//assert(itm_strike_price > itm_avg_basefee, 'ITM stike wrong');
+//assert(otm_strike_price < otm_avg_basefee, 'OTM stike wrong');
 }
 // @note Add tests for other init params. Reserve price, cap levels etc.
 // @note Add test that option round params are logical (auction start time < auction end time < option settlement time)

@@ -2,20 +2,13 @@ use starknet::{ContractAddress, StorePacking};
 use openzeppelin::token::erc20::interface::ERC20ABIDispatcher;
 use pitch_lake_starknet::{
     option_round::{contract::OptionRound,},
-    contracts::{
-        market_aggregator::{IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait},
-    },
-    types::{
-        OptionRoundState, StartAuctionParams, SettleOptionRoundParams, OptionRoundConstructorParams,
-        Bid,
-    }
+    market_aggregator::interface::{IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait},
+    types::{OptionRoundState, OptionRoundConstructorParams, Bid,}
 };
 
 // The option round contract interface
 #[starknet::interface]
 trait IOptionRound<TContractState> {
-    // @note This function is being used for testing (event testers)
-    fn rm_me(ref self: TContractState, x: u256);
     /// Reads ///
 
     /// Dates
@@ -95,17 +88,11 @@ trait IOptionRound<TContractState> {
     // The state of the option round
     fn get_state(self: @TContractState) -> OptionRoundState;
 
-    // Average base fee over last few months, used to calculate strike price
-    fn get_current_average_basefee(self: @TContractState) -> u256;
-
-    // Standard deviation of base fee over last few months, used to calculate strike price
-    fn get_standard_deviation(self: @TContractState) -> u256;
-
     // The strike price of the options
     fn get_strike_price(self: @TContractState) -> u256;
 
     // The cap level of the options
-    fn get_cap_level(self: @TContractState) -> u256;
+    fn get_cap_level(self: @TContractState) -> u128;
 
     // Minimum price per option in the auction
     fn get_reserve_price(self: @TContractState) -> u256;
@@ -121,9 +108,13 @@ trait IOptionRound<TContractState> {
 
     /// State transitions
 
+    fn update_round_params(
+        ref self: TContractState, reserve_price: u256, cap_level: u128, strike_price: u256
+    );
+
     // Try to start the option round's auction
     // @return the total options available in the auction
-    fn start_auction(ref self: TContractState, params: StartAuctionParams) -> u256;
+    fn start_auction(ref self: TContractState, starting_liquidity: u256) -> u256;
 
     // Settle the auction if the auction time has passed
     // @return the clearing price of the auction
@@ -132,7 +123,7 @@ trait IOptionRound<TContractState> {
 
     // Settle the option round if past the expiry date and in state::Running
     // @return The total payout of the option round
-    fn settle_option_round(ref self: TContractState, params: SettleOptionRoundParams) -> u256;
+    fn settle_option_round(ref self: TContractState, settlement_price: u256) -> (u256, u256);
 
     /// Option bidder functions
 

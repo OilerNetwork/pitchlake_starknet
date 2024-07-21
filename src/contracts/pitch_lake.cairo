@@ -12,7 +12,7 @@ mod PitchLake {
     use starknet::{ContractAddress, contract_address::ContractAddressZeroable};
     use pitch_lake_starknet::{
         vault::{interface::{IVault, IVaultDispatcher}},
-        contracts::market_aggregator::{IMarketAggregator, IMarketAggregatorDispatcher}
+        market_aggregator::interface::{IMarketAggregator, IMarketAggregatorDispatcher}
     };
 
     #[storage]

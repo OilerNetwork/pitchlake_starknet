@@ -5,7 +5,7 @@ use openzeppelin::token::erc20::interface::ERC20ABIDispatcher;
 use openzeppelin::utils::serde::SerializedAppend;
 
 use pitch_lake_starknet::{
-    contracts::market_aggregator::{
+    market_aggregator::interface::{
         IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
     },
     types::{OptionRoundState}

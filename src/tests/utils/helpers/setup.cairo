@@ -11,7 +11,7 @@ use openzeppelin::{
     token::erc20::{ERC20Component, interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait,}}
 };
 use pitch_lake_starknet::{
-    types::{StartAuctionParams, OptionRoundState, VaultType}, library::{eth::Eth},
+    types::{OptionRoundState, VaultType}, library::{eth::Eth},
     vault::{contract::Vault, interface::{IVaultDispatcher, IVaultDispatcherTrait}},
     option_round::{
         contract::OptionRound,
@@ -20,15 +20,17 @@ use pitch_lake_starknet::{
             IOptionRoundSafeDispatcherTrait,
         },
     },
+    market_aggregator::{
+        contract::MarketAggregator,
+        interface::{
+            IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait,
+            IMarketAggregatorSafeDispatcher, IMarketAggregatorSafeDispatcherTrait
+        }
+    },
     contracts::{
         pitch_lake::{
             IPitchLakeDispatcher, IPitchLakeSafeDispatcher, IPitchLakeDispatcherTrait, PitchLake,
             IPitchLakeSafeDispatcherTrait
-        },
-        market_aggregator::{
-            MarketAggregator, IMarketAggregator, IMarketAggregatorDispatcher,
-            IMarketAggregatorDispatcherTrait, IMarketAggregatorSafeDispatcher,
-            IMarketAggregatorSafeDispatcherTrait
         },
     },
     tests::{
@@ -56,10 +58,7 @@ use pitch_lake_starknet::{
             facades::{
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
                 vault_facade::{VaultFacade, VaultFacadeTrait},
-            },
-            mocks::mock_market_aggregator::{
-                MockMarketAggregator, IMarketAggregatorSetterDispatcher,
-                IMarketAggregatorSetterDispatcherTrait
+                market_aggregator_facade::{MarketAggregatorFacade, MarketAggregatorFacadeTrait}
             },
         },
     },
@@ -73,7 +72,7 @@ const SUPPLY: u256 = 99999999999999999999999999999999;
 fn deploy_eth() -> ERC20ABIDispatcher {
     let mut calldata = array![];
 
-    calldata.append_serde(SUPPLY);
+    calldata.append_serde(1000 * a_lot_of_eth());
     calldata.append_serde(weth_owner());
 
     let (contract_address, _): (ContractAddress, Span<felt252>) = deploy_syscall(
@@ -87,32 +86,41 @@ fn deploy_eth() -> ERC20ABIDispatcher {
 }
 
 // Deploy market aggregator for testing
-fn deploy_market_aggregator() -> IMarketAggregatorDispatcher {
+fn deploy_market_aggregator() -> MarketAggregatorFacade {
     let mut calldata = array![];
+    let salt: felt252 = starknet::get_block_timestamp().into();
 
     let (contract_address, _) = deploy_syscall(
-        MockMarketAggregator::TEST_CLASS_HASH.try_into().unwrap(),
-        'some salt',
-        calldata.span(),
-        true
+        MarketAggregator::TEST_CLASS_HASH.try_into().unwrap(), salt, calldata.span(), true
     )
         .expect('DEPLOY_MARKET_AGGREGATOR_FAILED');
 
+    /// Mock mk agg values
+    //    let mk_agg = MarketAggregatorFacade {contract_address};
+    //    let from = 0;
+    //    let to: u64 = from + 'rtp'.try_into().unwrap() + 'art'.try_into().unwrap() + 'ord'.try_into().unwrap();
+    //    mk_agg.set_reserve_price_for_time_period(from, to, 4000000000);
+    //    mk_agg.set_cap_level_for_time_period(from, to, 5000);
+    //    mk_agg.set_TWAP_for_time_period(from, to, 300000000);
+
     // Clear the event log
     clear_event_logs(array![contract_address]);
-    return IMarketAggregatorDispatcher { contract_address };
+    return MarketAggregatorFacade { contract_address };
 }
 
 // Deploy the vault and market aggregator
-fn deploy_vault(vault_type: VaultType, eth_address: ContractAddress) -> IVaultDispatcher {
+fn deploy_vault(
+    vault_type: VaultType, eth_address: ContractAddress, mk_agg_address: ContractAddress
+) -> IVaultDispatcher {
+    /// Deploy market aggregator
     let mut calldata = array![];
-    calldata.append_serde('rtp');
-    calldata.append_serde('art');
-    calldata.append_serde('ort');
+    calldata.append_serde(1000);
+    calldata.append_serde(1000);
+    calldata.append_serde(1000);
     calldata.append_serde(eth_address);
     calldata.append_serde(vault_manager());
     calldata.append_serde(vault_type);
-    calldata.append_serde(deploy_market_aggregator().contract_address); // needed ?
+    calldata.append_serde(mk_agg_address); // needed ?
     calldata.append_serde(OptionRound::TEST_CLASS_HASH);
     // @dev Making salt timestamp dependent so we can easily deploy new instances for testing
     let now = get_block_timestamp();
@@ -135,9 +143,15 @@ fn deploy_pitch_lake() -> IPitchLakeDispatcher {
     let eth_dispatcher = deploy_eth();
     let eth_address = eth_dispatcher.contract_address;
 
-    let ITM: IVaultDispatcher = deploy_vault(VaultType::InTheMoney, eth_address);
-    let OTM: IVaultDispatcher = deploy_vault(VaultType::OutOfMoney, eth_address);
-    let ATM: IVaultDispatcher = deploy_vault(VaultType::AtTheMoney, eth_address);
+    let mkagg1 = deploy_market_aggregator().contract_address;
+    starknet::testing::set_block_timestamp(1);
+    let mkagg2 = deploy_market_aggregator().contract_address;
+    starknet::testing::set_block_timestamp(2);
+    let mkagg3 = deploy_market_aggregator().contract_address;
+
+    let ITM: IVaultDispatcher = deploy_vault(VaultType::InTheMoney, eth_address, mkagg1);
+    let OTM: IVaultDispatcher = deploy_vault(VaultType::OutOfMoney, eth_address, mkagg2);
+    let ATM: IVaultDispatcher = deploy_vault(VaultType::AtTheMoney, eth_address, mkagg3);
     let mkagg = deploy_market_aggregator();
 
     calldata.append_serde(ITM.contract_address);
@@ -173,9 +187,30 @@ fn setup_rb_tree_test() -> IRBTreeMockContractDispatcher {
 }
 
 fn setup_facade() -> (VaultFacade, ERC20ABIDispatcher) {
+    /// Mock mk agg values
+    let mk_agg = deploy_market_aggregator();
+    let now = starknet::get_block_timestamp();
+    let mut from = now + 1000;
+    let mut to = now + 3000;
+    let duration = 2000 + 1000;
+    let mut i = 5;
+    while i
+        .is_non_zero() {
+            //println!("setting from\n{}\nto\n{}", from ,to);
+            mk_agg.set_reserve_price_for_time_period(from, to, 2000000000);
+            mk_agg.set_cap_level_for_time_period(from, to, 5000);
+            mk_agg.set_strike_price_for_time_period(from, to, 400000000);
+            mk_agg.set_TWAP_for_time_period(from, to, 8000000000);
+
+            from += duration;
+            to += duration;
+
+            i -= 1;
+        };
+
     let eth_dispatcher: ERC20ABIDispatcher = deploy_eth();
     let vault_dispatcher: IVaultDispatcher = deploy_vault(
-        VaultType::InTheMoney, eth_dispatcher.contract_address
+        VaultType::InTheMoney, eth_dispatcher.contract_address, mk_agg.contract_address
     );
 
     // Supply eth to test accounts and approve vault to transfer lp eth
@@ -197,7 +232,6 @@ fn setup_facade() -> (VaultFacade, ERC20ABIDispatcher) {
 
     // Clear eth transfer events
     clear_event_logs(array![eth_dispatcher.contract_address]);
-
     return (VaultFacade { vault_dispatcher }, eth_dispatcher);
 }
 
@@ -208,26 +242,28 @@ fn deploy_custom_option_round(
     auction_end_date: u64,
     option_settlement_date: u64,
     reserve_price: u256,
-    cap_level: u256,
+    cap_level: u16,
     strike_price: u256
 ) -> OptionRoundFacade {
     let mut calldata = array![];
     calldata.append_serde(vault_address);
     calldata.append_serde(option_round_id);
+
     calldata.append_serde(auction_start_date);
     calldata.append_serde(auction_end_date);
     calldata.append_serde(option_settlement_date);
+
     calldata.append_serde(reserve_price);
     calldata.append_serde(cap_level);
     calldata.append_serde(strike_price);
 
     let now = get_block_timestamp();
-    let salt = 'some salt' + now.into();
+    let salt = 'something salty' + now.into();
 
     let (contract_address, _) = deploy_syscall(
         OptionRound::TEST_CLASS_HASH.try_into().unwrap(), salt, calldata.span(), true
     )
-        .expect('DEPLOY_VAULT_FAILED');
+        .expect('Deploy Custom Round Failed');
 
     let vault_dispatcher = IVaultDispatcher { contract_address: vault_address };
     eth_supply_and_approve_all_bidders(contract_address, vault_dispatcher.eth_address());
@@ -296,13 +332,17 @@ fn eth_supply_and_approve_all_bidders(
     eth_supply_and_approve_all(contract_address, eth_address, option_biddders.span());
 }
 
+fn a_lot_of_eth() -> u256 {
+    decimals() * decimals() * decimals() //10^36 ETH
+}
+
 fn eth_supply(eth_address: ContractAddress, mut receivers: Span<ContractAddress>) {
     let eth_dispatcher = ERC20ABIDispatcher { contract_address: eth_address };
     loop {
         match receivers.pop_front() {
             Option::Some(receiver) => {
                 set_contract_address(weth_owner());
-                let ob_amount_wei: u256 = 100000 * decimals(); // 100,000 ETH
+                let ob_amount_wei: u256 = a_lot_of_eth();
 
                 eth_dispatcher.transfer(*receiver, ob_amount_wei);
             },
@@ -320,7 +360,7 @@ fn eth_approval(
         match approvers.pop_front() {
             Option::Some(approver) => {
                 set_contract_address(weth_owner());
-                let ob_amount_wei: u256 = 100000 * decimals(); // 100,000 ETH
+                let ob_amount_wei: u256 = a_lot_of_eth();
 
                 //Debug
                 // let felt_ca: felt252 = contract_address.into();
