@@ -45,10 +45,6 @@ use pitch_lake_starknet::{
                 vault_facade::{VaultFacade, VaultFacadeTrait},
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
             },
-            mocks::mock_market_aggregator::{
-                MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
-                IMarketAggregatorSetterDispatcherTrait
-            },
         },
     },
 };
@@ -64,10 +60,9 @@ fn test_ending_auction_before_it_starts_fails() {
     let (mut vault_facade, _) = setup_facade();
 
     // Try to end auction before it starts
-    vault_facade.end_auction_expect_error(Errors::NoAuctionToEnd);
+    vault_facade.end_auction_expect_error(Errors::AuctionEndDateNotReached);
 }
 
-// @note This test will not pass until auction start is implemented
 // Test ending the auction before the auction end date fails
 #[test]
 #[available_gas(200000000)]
@@ -86,7 +81,7 @@ fn test_ending_auction_while_round_running_fails() {
     let (mut vault_facade, _) = setup_test_running();
 
     // Try to end auction after it has already ended
-    vault_facade.end_auction_expect_error(Errors::NoAuctionToEnd);
+    vault_facade.end_auction_expect_error(Errors::AuctionAlreadyEnded);
 }
 
 // Test ending the auction after the auction ends fails (next state)
@@ -99,7 +94,7 @@ fn test_ending_auction_while_round_settled_fails() {
     accelerate_to_settled(ref vault_facade, 0);
 
     // Try to end auction before round transition period is over
-    vault_facade.end_auction_expect_error(Errors::NoAuctionToEnd);
+    vault_facade.end_auction_expect_error(Errors::AuctionAlreadyEnded);
 }
 
 

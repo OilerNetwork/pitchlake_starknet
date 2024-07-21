@@ -2,18 +2,20 @@ use starknet::{
     contract_address_const, ContractAddress, testing::{set_block_timestamp, set_contract_address}
 };
 use openzeppelin::token::erc20::interface::{ERC20ABIDispatcherTrait,};
+use pitch_lake_starknet::types::Consts::BPS;
 use pitch_lake_starknet::tests::{
     utils::{
         helpers::{
             accelerators::{
-                accelerate_to_auctioning, accelerate_to_running, accelerate_to_running_custom,
-                timeskip_and_settle_round, timeskip_and_end_auction,
-                accelerate_to_running_custom_option_round,
+                accelerate_to_auctioning, accelerate_to_auctioning_custom, accelerate_to_running,
+                accelerate_to_running_custom, timeskip_and_settle_round, timeskip_and_end_auction,
+            //accelerate_to_running_custom_option_round,
             },
             setup::{setup_facade, setup_test_auctioning_bidders, deploy_custom_option_round},
             general_helpers::{
-                pow, to_wei, sum_u256_array, create_array_linear, create_array_gradient,
-                create_array_gradient_reverse, assert_two_arrays_equal_length,
+                pow, to_wei, to_wei_multi, sum_u256_array, create_array_linear,
+                create_array_gradient, create_array_gradient_reverse,
+                assert_two_arrays_equal_length,
             },
         },
         lib::{
@@ -166,10 +168,10 @@ fn test_bidding_same_amount_higher_price_wins() {
     }
 }
 
-// Test bids with the same price, higher amounts are favored in the auction
+// Test bids with the same price, the earlier bids are favored in the auction
 #[test]
 #[available_gas(500000000)]
-fn test_bidding_same_price_higher_amount_wins() {
+fn test_bidding_same_price_earlier_bids_win() {
     let number_of_option_bidders = 5;
     let (mut vault, _, mut option_bidders, total_options_available) = setup_test_auctioning_bidders(
         number_of_option_bidders
@@ -184,18 +186,16 @@ fn test_bidding_same_price_higher_amount_wins() {
     );
     accelerate_to_running_custom(ref vault, option_bidders, bid_amounts.span(), bid_prices.span());
 
-    // Check last bidder (winner) receives all options, others receive 0
-    match option_bidders.pop_back() {
+    // Check first bidder (winner) receives all options, others receive 0
+    match option_bidders.pop_front() {
         Option::Some(ob) => {
             let winner_option_balance = current_round.get_option_balance_for(*ob);
-            assert(
-                winner_option_balance == total_options_available, 'winner should get all options'
-            );
+            assert_eq!(winner_option_balance, total_options_available);
             loop {
                 match option_bidders.pop_front() {
                     Option::Some(ob) => {
                         let loser_option_balance = current_round.get_option_balance_for(*ob);
-                        assert(loser_option_balance == 0, 'loser should get no options')
+                        assert_eq!(loser_option_balance, 0)
                     },
                     Option::None => { break (); }
                 }
@@ -508,19 +508,15 @@ fn test_option_distribution_real_numbers_1() {
     let (mut vault, _) = setup_facade();
     let options_available = 200;
 
+    let reserve_price = 2;
+    let expected_options_sold = 200;
     let bid_amounts = array![50, 142, 235, 222, 75, 35].span();
     let bid_prices = array![20, 11, 11, 2, 1, 1].span();
 
-    //Convert prices to wei values
-    let mut current_round = vault.get_current_round();
-    let bid_prices = to_wei(bid_prices, current_round.decimals());
-    let reserve_price = (2 * pow(10, current_round.decimals())).into();
-
-    let expected_options_sold = 200;
     let mut expected_option_distribution = array![50, 142, 8, 0, 0, 0].span();
 
     auction_real_numbers_test_helper(
-        vault.contract_address(),
+        ref vault,
         options_available,
         reserve_price,
         bid_amounts,
@@ -537,19 +533,15 @@ fn test_option_distribution_real_numbers_2() {
     let (mut vault, _) = setup_facade();
     let options_available = 200;
 
+    let reserve_price = 2;
+    let expected_options_sold = 145;
     let bid_amounts = array![25, 20, 60, 40, 75, 35].span();
     let bid_prices = array![25, 24, 15, 2, 1, 1].span();
 
-    //Convert prices to wei values
-    let mut current_round = vault.get_current_round();
-    let bid_prices = to_wei(bid_prices, current_round.decimals());
-    let reserve_price = (2 * pow(10, current_round.decimals())).into();
-
-    let expected_options_sold = 145;
     let mut expected_option_distribution = array![25, 20, 60, 40, 0, 0].span();
 
     auction_real_numbers_test_helper(
-        vault.contract_address(),
+        ref vault,
         options_available,
         reserve_price,
         bid_amounts,
@@ -565,19 +557,15 @@ fn test_option_distribution_real_numbers_3() {
     let (mut vault, _) = setup_facade();
     let options_available = 500;
 
+    let expected_options_sold = 500;
+    let reserve_price: u256 = 2;
     let bid_amounts = array![400, 50, 30, 50, 75, 30].span();
     let bid_prices = array![50, 40, 30, 20, 2, 2].span();
 
-    //Convert prices to wei values
-    let mut current_round = vault.get_current_round();
-    let bid_prices = to_wei(bid_prices, current_round.decimals());
-
-    let expected_options_sold = 500;
     let mut expected_option_distribution = array![400, 50, 30, 20, 0, 0].span();
-    let reserve_price: u256 = (2 * pow(10, current_round.decimals())).into();
 
     auction_real_numbers_test_helper(
-        vault.contract_address(),
+        ref vault,
         options_available,
         reserve_price,
         bid_amounts,
@@ -589,7 +577,7 @@ fn test_option_distribution_real_numbers_3() {
 
 // @note Need to make sure rejected bids do not revert here, switch to using raw calls
 fn auction_real_numbers_test_helper(
-    vault_address: ContractAddress,
+    ref vault: VaultFacade,
     options_available: u256,
     reserve_price: u256,
     bid_amounts: Span<u256>,
@@ -597,9 +585,22 @@ fn auction_real_numbers_test_helper(
     expected_options_sold: u256,
     mut expected_option_distribution: Span<u256>,
 ) {
-    let (_, options_sold, mut option_round) = accelerate_to_running_custom_option_round(
-        vault_address, options_available, reserve_price, bid_amounts, bid_prices
-    );
+    let mut current_round: OptionRoundFacade = vault.get_current_round();
+    let d = current_round.decimals();
+    let options_available = to_wei(options_available, d);
+    let reserve_price = to_wei(reserve_price, d);
+    let bid_amounts = to_wei_multi(bid_amounts, d);
+    let bid_prices = to_wei_multi(bid_prices, d);
+    let expected_options_sold = to_wei(expected_options_sold, d);
+    expected_option_distribution = to_wei_multi(expected_option_distribution, d);
+
+    // Mock values of the option round and start the auction
+    current_round.setup_mock_auction(ref vault, options_available, reserve_price);
+
+    // Place bids, ignoring the failed bids
+    let bidders = option_bidders_get(bid_amounts.len()).span();
+    current_round.place_bids_ignore_errors(bid_amounts, bid_prices, bidders);
+    let (_, options_sold) = timeskip_and_end_auction(ref vault);
 
     // Check that the correct number of options were sold and distributed
     assert(options_sold == expected_options_sold, 'options sold should match');
@@ -607,7 +608,7 @@ fn auction_real_numbers_test_helper(
     loop {
         match option_bidders.pop_front() {
             Option::Some(bidder) => {
-                let options = option_round.get_option_balance_for(*bidder);
+                let options = current_round.get_option_balance_for(*bidder);
                 let expected_options = expected_option_distribution.pop_front().unwrap();
                 assert(options == *expected_options, 'options should match');
             },
