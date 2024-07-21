@@ -98,7 +98,9 @@ fn test_premium_amount_for_liquidity_providers_4() {
     // LPs
     let liquidity_providers = liquidity_providers_get(5);
     // Deposit amounts
-    let amounts = array![25, 25, 25, 25, 1];
+    let amounts = array![
+        25 * decimals(), 25 * decimals(), 25 * decimals(), 25 * decimals(), 1 * decimals()
+    ];
 
     _test_premiums_collectable_helper(ref vault_facade, liquidity_providers.span(), amounts.span());
 }
