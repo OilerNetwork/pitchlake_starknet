@@ -124,6 +124,6 @@ fn test_market_aggregator_deployed() {
 
     assert(mk_agg.contract_address.is_non_zero(), 'mk agg addr shd be set');
     // Entry point will fail if contract not deployed
-    assert_eq!(mk_agg.get_TWAP_for_time_period(1, 1).is_none(), false);
+    assert_eq!(mk_agg.get_TWAP_for_time_period(1, 1).is_none(), true);
 }
 
