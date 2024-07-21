@@ -3,7 +3,7 @@ use starknet::{
     testing::{set_contract_address, set_block_timestamp}
 };
 use pitch_lake_starknet::{
-    types::{StartAuctionParams, Errors},
+    types::{Errors},
     tests::{
         utils::{
             helpers::{
