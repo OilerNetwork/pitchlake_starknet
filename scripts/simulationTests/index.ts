@@ -18,7 +18,9 @@ async function simulationTesting(testRunner: TestRunner) {
     testRunner.provider,
     simulationSheets
   );
-  simulator.simulateRound(simulationParams[0]);
+  await simulator.simulateRound(simulationParams[0]);
+  await simulator.simulateRound(simulationParams[0]);
+  await simulator.simulateRound(simulationParams[0]);
 }
 
 export { simulationTesting };
