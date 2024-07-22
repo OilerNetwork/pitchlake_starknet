@@ -82,10 +82,10 @@ fn tokenize_options(
     let option_erc20_balance_after = get_erc20_balance(
         option_round.contract_address(), option_bidder
     );
-       assert(
-         option_erc20_balance_after == option_erc20_balance_before + options_minted,
-         'ERC20 Balance Mismatch'
-       );
+    assert(
+        option_erc20_balance_after == option_erc20_balance_before + options_minted,
+        'ERC20 Balance Mismatch'
+    );
     options_minted
 }
 
