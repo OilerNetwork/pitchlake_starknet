@@ -1,8 +1,6 @@
 import { Account, CairoUint256, TypedContractV2 } from "starknet";
 import {
   Bid,
-  ExerciseOptionArgs,
-  OptionBalanceArgs,
   PayoutBalanceArgs,
   PlaceBidArgs,
   RefundableBidsArgs,
@@ -20,6 +18,13 @@ export class OptionRoundFacade {
     this.optionRoundContract = optionRoundContract;
   }
 
+  async getTotalPayout() {
+    const res = await this.optionRoundContract.total_payout();
+    if (typeof res !== "bigint" && typeof res !== "number") {
+      const data = new CairoUint256(res);
+      return data.toBigInt();
+    } else return res;
+  }
   async getTotalPremiums() {
     const res = await this.optionRoundContract.total_premiums();
     if (typeof res !== "bigint" && typeof res !== "number") {
@@ -195,8 +200,13 @@ export class OptionRoundFacade {
     }
   }
 
-  async exerciseOptions({ from }: ExerciseOptionArgs) {
-    try {
+  async exerciseOptionsAll(exerciseOptionData:Array<Account>){
+    for(const exerciseOptionsArgs of exerciseOptionData)
+    {
+      await this.exerciseOptions(exerciseOptionsArgs)
+    }
+  }
+  async exerciseOptions(from: Account) {
       this.optionRoundContract.connect(from);
       const data = await this.optionRoundContract.exercise_options();
       // @note: here it will return the amount of transfer
@@ -204,9 +214,6 @@ export class OptionRoundFacade {
       //   const data = new CairoUint256(res);
       //   return data.toBigInt();
       // } else return res;
-    } catch (err) {
-      console.log(err);
-    }
   }
 
   async tokenizeOptions({ from }: TokenizeOptionArgs) {

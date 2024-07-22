@@ -78,6 +78,9 @@ async function deployContracts(
     vaultHash: string;
     optionRoundHash: string;
     marketAggregatorHash: string;
+  },
+  constants:{
+    
   }
 ) {
   let ethAddress = await deployEthContract(

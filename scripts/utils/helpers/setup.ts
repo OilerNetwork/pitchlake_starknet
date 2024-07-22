@@ -1,14 +1,18 @@
-import { Contract, Provider, provider, TypedContractV2 } from "starknet";
-import { VaultFacade } from "../facades/vaultFacade";
+import { CairoUint256, Contract, Provider, TypedContractV2 } from "starknet";
 import { stringToHex } from "./common";
 import { erc20ABI, optionRoundABI, vaultABI } from "../../abi";
 import { OptionRoundFacade } from "../facades/optionRoundFacade";
 
 export const getOptionRoundFacade = async (
   provider: Provider,
-  vault: TypedContractV2<typeof vaultABI>
+  vault: TypedContractV2<typeof vaultABI>,
+  prev?: boolean
 ) => {
-  const optionRoundContract = await getOptionRoundContract(provider, vault);
+  const optionRoundContract = await getOptionRoundContract(
+    provider,
+    vault,
+    prev
+  );
   const optionRoundFacade = new OptionRoundFacade(optionRoundContract);
   return optionRoundFacade;
 };
@@ -28,11 +32,20 @@ export const getOptionRoundERC20Contract = async (
 
 export const getOptionRoundContract = async (
   provider: Provider,
-  vault: TypedContractV2<typeof vaultABI>
+  vault: TypedContractV2<typeof vaultABI>,
+  prev?: boolean
 ) => {
-  const optionRoundId = await vault.current_option_round_id();
+  let optionRoundId = await vault.current_option_round_id();
+  let id;
+  if (typeof optionRoundId !== "number" && typeof optionRoundId !== "bigint") {
+    const temp = new CairoUint256(optionRoundId);
+    id = temp.toBigInt();
+  } else id = BigInt(optionRoundId);
+  if (prev) {
+    id = id - BigInt(1);
+  }
   const optionRoundAddressDecimalString = await vault.get_option_round_address(
-    optionRoundId
+    id
   );
   const optionRoundAddress =
     "0x" + stringToHex(optionRoundAddressDecimalString);

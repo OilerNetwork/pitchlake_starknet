@@ -12,12 +12,12 @@ export type ApprovalArgs = {
 export type DepositArgs = {
   from: Account;
   beneficiary: string;
-  amount: number;
+  amount: number|bigint;
 };
 
 export type WithdrawArgs = {
   account: Account;
-  amount: number;
+  amount: number| bigint;
 };
 
 //OptionRoundTypes
@@ -65,7 +65,12 @@ export type TokenizeOptionArgs = {
 //Smoke Test types
 
 export type Constants = {
-  depositAmount: number;
+  depositAmount: number|bigint;
+  reservePrice:number|bigint;
+  settlementPrice:number|bigint;
+  strikePrice:number|bigint;
+  capLevel:number|bigint;
+
 };
 
 export type Bid = {
