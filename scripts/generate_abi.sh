@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Define contracts and their file paths
+# Add contracts here as "contract_name:abi_name"
 contracts=(
     "OptionRound:optionRound"
     "Vault:vault"
