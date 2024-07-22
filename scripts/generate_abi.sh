@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# Script for generating the ABI files from the contract JSON files
 OPTION_ROUND_JSON="../target/dev/pitch_lake_starknet_OptionRound.contract_class.json"
 VAULT_JSON="../target/dev/pitch_lake_starknet_Vault.contract_class.json"
 

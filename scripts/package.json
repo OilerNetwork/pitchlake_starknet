@@ -5,8 +5,7 @@
   "main": "index.js",
   "type":"module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "generate-abis": "npx abi-wan-kanabi --input ../target/dev/pitch_lake_starknet_OptionRound.contract_class.json --output ./abi/optionRound.ts && npx abi-wan-kanabi --input ../target/dev/pitch_lake_starknet_Vault.contract_class.json --output ./abi/vault.ts"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
