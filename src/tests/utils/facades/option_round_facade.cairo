@@ -77,6 +77,13 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         vault.update_round_params();
     }
 
+    #[feature("safe_dispatcher")]
+    fn update_round_params_expect_error(ref self: OptionRoundFacade, error: felt252) {
+        let safe = self.get_safe_dispatcher();
+        safe.update_round_params(1_u256, 2_128, 3_u256).expect_err(error);
+    }
+
+
     // Mock values of the option round and start the auction
     fn setup_mock_auction(
         ref self: OptionRoundFacade,
