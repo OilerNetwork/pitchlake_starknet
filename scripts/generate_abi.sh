@@ -2,7 +2,10 @@
 
 # Script for generating the ABI files from the contract JSON files
 OPTION_ROUND_JSON="../target/dev/pitch_lake_starknet_OptionRound.contract_class.json"
+OPTION_ROUND_ABI="./abi/optionRound.ts"
+
 VAULT_JSON="../target/dev/pitch_lake_starknet_Vault.contract_class.json"
+VAULT_ABI="./abi/vault.ts"
 
 if [ ! -f "$OPTION_ROUND_JSON" ] || [ ! -f "$VAULT_JSON" ]; then
     echo "One or both JSON files are missing. Executing 'scarb build'..."
@@ -11,5 +14,5 @@ if [ ! -f "$OPTION_ROUND_JSON" ] || [ ! -f "$VAULT_JSON" ]; then
     cd scripts
 fi
 
-npx abi-wan-kanabi --input "$OPTION_ROUND_JSON" --output ./abi/optionRound.ts && \
-npx abi-wan-kanabi --input "$VAULT_JSON" --output ./abi/vault.ts
+npx abi-wan-kanabi --input "$OPTION_ROUND_JSON" --output "$OPTION_ROUND_ABI" && \
+npx abi-wan-kanabi --input "$VAULT_JSON" --output "$VAULT_ABI"
