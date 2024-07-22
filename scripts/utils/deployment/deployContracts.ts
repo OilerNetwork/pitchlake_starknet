@@ -21,6 +21,8 @@ async function deployEthContract(
   return deployResult.contract_address[0];
 }
 
+
+
 async function deployVaultContract(
   enviornment: string,
   account: Account,
@@ -79,9 +81,6 @@ async function deployContracts(
     optionRoundHash: string;
     marketAggregatorHash: string;
   },
-  constants:{
-    
-  }
 ) {
   let ethAddress = await deployEthContract(
     enviornment,

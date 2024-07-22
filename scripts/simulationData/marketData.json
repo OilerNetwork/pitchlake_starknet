@@ -1,0 +1,16 @@
+[
+  {
+    "marketData": {
+      "reservePrice": 4000000000,
+      "strikePrice": 8000000000,
+      "settlementPrice": 16000000000,
+      "capLevel": 5000
+    }
+  },
+  {
+    "reservePrice": 4000000000,
+    "strikePrice": 8000000000,
+    "settlementPrice": 16000000000,
+    "capLevel": 5000
+  }
+]

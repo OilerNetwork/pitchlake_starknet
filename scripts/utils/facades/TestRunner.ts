@@ -11,6 +11,14 @@ export type ResultSheet = {
   after:Map<StoragePoints,(number|bigint)|Array<number|bigint>>
 };
 
+export type simulationParameters = {
+  liquidityProviders:Array<Account>;
+  optionBidders:Array<Account>;
+  depositAmounts:Array<bigint|number>;
+  bidAmounts:Array<bigint|number>;
+  constants:Constants;
+}
+
 
 export class TestRunner {
   public provider: Provider;

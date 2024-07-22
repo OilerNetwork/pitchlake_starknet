@@ -1,6 +1,7 @@
-import { Account, CairoUint256, TypedContractV2 } from "starknet";
+import { Account, CairoUint256, LibraryError, TypedContractV2 } from "starknet";
 import {
   Bid,
+  ExerciseOptionArgs,
   PayoutBalanceArgs,
   PlaceBidArgs,
   RefundableBidsArgs,
@@ -16,6 +17,14 @@ export class OptionRoundFacade {
 
   constructor(optionRoundContract: TypedContractV2<typeof optionRoundABI>) {
     this.optionRoundContract = optionRoundContract;
+  }
+
+  async getRoundId() {
+    const res = await this.optionRoundContract.get_round_id();
+    if (typeof res !== "bigint" && typeof res !== "number") {
+      const data = new CairoUint256(res);
+      return data.toBigInt();
+    } else return res;
   }
 
   async getTotalPayout() {
@@ -102,8 +111,10 @@ export class OptionRoundFacade {
     this.optionRoundContract.connect(from);
     try {
       const data = await this.optionRoundContract.place_bid(amount, price);
+      console.log("SUCCESS",data)
     } catch (err) {
-      console.log(err);
+      const error = err as LibraryError;
+      console.log(error.name);
     }
   }
 
@@ -200,13 +211,13 @@ export class OptionRoundFacade {
     }
   }
 
-  async exerciseOptionsAll(exerciseOptionData:Array<Account>){
+  async exerciseOptionsAll(exerciseOptionData:Array<ExerciseOptionArgs>){
     for(const exerciseOptionsArgs of exerciseOptionData)
     {
       await this.exerciseOptions(exerciseOptionsArgs)
     }
   }
-  async exerciseOptions(from: Account) {
+  async exerciseOptions({from}:ExerciseOptionArgs) {
       this.optionRoundContract.connect(from);
       const data = await this.optionRoundContract.exercise_options();
       // @note: here it will return the amount of transfer
