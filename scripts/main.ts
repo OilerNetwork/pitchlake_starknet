@@ -2,22 +2,29 @@ import { getAccount, getProvider } from "./utils/helpers/common";
 import { smokeTesting } from "./integrationTests/smokeTesting";
 import { declareContracts } from "./utils/deployment/declareContracts";
 import { deployContracts } from "./utils/deployment/deployContracts";
-import { erc20ABI } from "./abi";
-import { Contract } from "starknet";
 import { TestRunner } from "./utils/facades/TestRunner";
+import { Constants } from "./utils/facades/types";
 
 async function main(environment: string, port?: string) {
   const provider = getProvider(environment, port);
   const devAccount = getAccount(environment, provider);
   let hashes = await declareContracts(devAccount);
-
+  const constants:Constants={
+    depositAmount:BigInt(10000000000000),
+    reservePrice:BigInt(4000000000),
+    strikePrice:BigInt(8000000000),
+    settlementPrice:BigInt(16000000000),
+    capLevel:5000,
+  }
   let { ethAddress, vaultAddress } = await deployContracts(
     environment,
     devAccount,
-    hashes
+    hashes,
+    constants,
   );
 
-  const testRunner = new TestRunner(provider, vaultAddress, ethAddress);
+  const testRunner = new TestRunner(provider, vaultAddress, ethAddress,constants);
+
 
   await testRunner.ethFacade.supplyERC20(
     devAccount,

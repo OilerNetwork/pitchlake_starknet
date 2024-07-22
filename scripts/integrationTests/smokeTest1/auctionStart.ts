@@ -27,10 +27,10 @@ export const smokeTest = async ({
   const devAccount = getAccount("dev", provider);
   try {
     await vaultFacade.startAuction(devAccount);
-    throw Error("Should have reverted")
+    throw Error("Should have reverted");
   } catch (err) {
-    const error = err as LibraryError
-    assert(error.message!=="Should have reverted",error.message)
+    const error = err as LibraryError;
+    assert(error.message !== "Should have reverted", error.message);
     //Failure expected when contracts are changed to revert
   }
 
@@ -45,7 +45,7 @@ export const smokeTest = async ({
     `Expected:Open\nReceived:${stateAfter.activeVariant()}`
   );
 
-  await vaultFacade.startAuctionBystander(provider);
+  await vaultFacade.startAuctionBystander(provider, constants);
 
   const unlockedBalances = await vaultFacade.getLPUnlockedBalanceAll(
     liquidityProviderAccounts
@@ -62,7 +62,7 @@ export const smokeTest = async ({
     lockedBalances,
     totalLockedAmount,
     totalUnlockedAmount,
-    constants,
+    depositAmount: constants.depositAmount,
   });
 
   //Approve OptionBidders
@@ -128,13 +128,13 @@ async function checkpoint1({
   unlockedBalances,
   totalLockedAmount,
   totalUnlockedAmount,
-  constants,
+  depositAmount,
 }: {
   lockedBalances: Array<bigint | number>;
   unlockedBalances: Array<bigint | number>;
-  totalLockedAmount: bigint | number | Uint256 | undefined;
-  totalUnlockedAmount: bigint | number | Uint256 | undefined;
-  constants: Constants;
+  totalLockedAmount: bigint | number;
+  totalUnlockedAmount: bigint | number;
+  depositAmount: number | bigint;
 }) {
   assert(
     Number(unlockedBalances[0]) === 0,
@@ -145,24 +145,26 @@ async function checkpoint1({
     `UnlockedBalanceB 0 expected, found ${unlockedBalances[1]}`
   );
   assert(
-    Number(lockedBalances[0]) === constants.depositAmount / 2,
-    `LockedBalanceA ${constants.depositAmount / 2} expected, found ${
+    BigInt(lockedBalances[0]) === BigInt(depositAmount) / BigInt(2),
+    `LockedBalanceA ${BigInt(depositAmount) / BigInt(2)} expected, found ${
       lockedBalances[0]
     }`
   );
   assert(
-    Number(lockedBalances[1]) === constants.depositAmount / 2,
-    `LockedBalanceB ${constants.depositAmount / 2} expected, found ${
+    BigInt(lockedBalances[1]) === BigInt(depositAmount) / BigInt(2),
+    `LockedBalanceB ${BigInt(depositAmount) / BigInt(2)} expected, found ${
       lockedBalances[1]
     }`
   );
   assert(
-    Number(totalUnlockedAmount) === 0,
+    BigInt(totalUnlockedAmount) === BigInt(0),
     `Total unlocked 0 expected, found ${totalUnlockedAmount}`
   );
   assert(
-    Number(totalLockedAmount) === constants.depositAmount,
-    `Total Locked amount ${constants.depositAmount} expected, found ${totalLockedAmount}`
+    BigInt(totalLockedAmount) === BigInt(depositAmount),
+    `Total Locked amount ${BigInt(
+      depositAmount
+    )} expected, found ${totalLockedAmount}`
   );
 }
 

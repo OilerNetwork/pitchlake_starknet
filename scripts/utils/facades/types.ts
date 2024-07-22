@@ -29,8 +29,8 @@ export type PlaceBidArgs = {
 export type UpdateBidArgs = {
   bidId: string;
   from: Account;
-  amount: number|bigint;
-  price: number|bigint;
+  amount: number;
+  price: number;
 };
 
 export type RefundableBidsArgs = {
@@ -54,6 +54,10 @@ export type RefundUnusedBidsArgs = {
   optionBidder: string;
 };
 
+export type ExerciseOptionArgs = {
+  from: Account;
+};
+
 export type TokenizeOptionArgs = {
   from: Account;
 };
@@ -61,7 +65,12 @@ export type TokenizeOptionArgs = {
 //Smoke Test types
 
 export type Constants = {
-  depositAmount: number;
+  depositAmount: number|bigint;
+  reservePrice:number|bigint;
+  settlementPrice:number|bigint;
+  strikePrice:number|bigint;
+  capLevel:number|bigint;
+
 };
 
 export type Bid = {

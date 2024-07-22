@@ -15,14 +15,12 @@ async function accelerateToAuctioning(
   const currentTime = await getNow(provider);
   const auctionStartDate = await optionRoundContract.get_auction_start_date();
 
+  console.log("currentTime:",currentTime,"\nauctionStartDate:",auctionStartDate);;
   await timeskipNextBlock(
     Number(auctionStartDate) - Number(currentTime),
     provider.channel.nodeUrl
   );
 
-  const devAccount = getAccount("dev", provider);
-  vaultContract.connect(devAccount);
-  await vaultContract.start_auction();
 }
 
 async function accelerateToRunning(
@@ -41,9 +39,6 @@ async function accelerateToRunning(
     Number(auctionEndDate) - Number(currentTime),
     provider.channel.nodeUrl
   );
-  const devAccount = getAccount("dev", provider);
-  vaultContract.connect(devAccount);
-  await vaultContract.end_auction();
 }
 
 async function accelerateToSettled(
@@ -60,11 +55,9 @@ async function accelerateToSettled(
     await optionRoundContract.get_option_settlement_date();
 
   await timeskipNextBlock(
-    Number(optionSettleDate) - Number(currentTime),
+    Number(optionSettleDate) - Number(currentTime)+1,
     provider.channel.nodeUrl
   );
-  const devAccount = getAccount("dev", provider);
-  vaultContract.connect(devAccount);
-  await vaultContract.end_auction();
+ 
 }
 export { accelerateToAuctioning, accelerateToRunning, accelerateToSettled };

@@ -104,11 +104,11 @@ export class ERC20Facade {
       await this.supply(
         devAccount,
         liquidityProviders[i].account,
-        BigInt("1000000000000000")
+        BigInt("100000000000000000")
       );
       await this.approval({
         owner: lp,
-        amount: BigInt("1000000000000000"),
+        amount: BigInt("100000000000000000"),
         spender: approveFor,
       });
       console.log(`Liquidity Provider ${i} funded `);
@@ -116,11 +116,11 @@ export class ERC20Facade {
       await this.supply(
         devAccount,
         optionBidders[i].account,
-        BigInt("1000000000000000")
+        BigInt("100000000000000000")
       );
       await this.approval({
         owner: ob,
-        amount: BigInt("1000000000000000"),
+        amount: BigInt("100000000000000000"),
         spender: approveFor,
       });
       console.log(`Option Bidder ${i} funded `);

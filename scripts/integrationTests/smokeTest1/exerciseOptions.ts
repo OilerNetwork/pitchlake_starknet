@@ -14,7 +14,8 @@ export const smokeTest = async ({
 }: TestRunner) => {
   const optionRoundFacade = await getOptionRoundFacade(
     provider,
-    vaultFacade.vaultContract
+    vaultFacade.vaultContract,
+    true
   );
 
   const optionBidderAccounts = getOptionBidderAccounts(provider, 3);
