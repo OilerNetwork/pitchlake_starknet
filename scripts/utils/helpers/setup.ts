@@ -2,9 +2,9 @@ import { CairoUint256, Contract, Provider, TypedContractV2 } from "starknet";
 import { stringToHex } from "./common";
 import { erc20ABI, optionRoundABI, vaultABI } from "../../abi";
 import { OptionRoundFacade } from "../facades/optionRoundFacade";
-import { SimulationParameters, SimulationSheet } from "../facades/Simulator";
+import { SimulationParameters, SimulationSheet } from "../facades/RoundSimulator";
 import { getLiquidityProviderAccounts, getOptionBidderAccounts } from "./accounts";
-import { DepositArgs, ExerciseOptionArgs, PlaceBidArgs } from "../facades/types";
+import { DepositArgs, ExerciseOptionArgs, PlaceBidArgs, RefundUnusedBidsArgs } from "../facades/types";
 
 export const getOptionRoundFacade = async (
   provider: Provider,
@@ -86,6 +86,14 @@ export const generateSimulationParams = (
         return data;
       }
     );
+    let ref: { [key: string]: boolean } = {};
+    const refundAllArgs: Array<RefundUnusedBidsArgs> = [];
+    bidAllArgs.map((bids) => {
+      if (!ref[bids.from.address]) {
+        ref[bids.from.address] = true;
+        refundAllArgs.push({ from: bids.from, optionBidder: bids.from.address });
+      }
+    });
 
     const exerciseOptionsAllArgs: Array<ExerciseOptionArgs> =
       simulationSheet.exerciseOptions.map((bidder) => ({
@@ -96,6 +104,7 @@ export const generateSimulationParams = (
       bidAllArgs,
       marketData: simulationSheet.marketData,
       exerciseOptionsAllArgs,
+      refundAllArgs
     };
     return data;
   });

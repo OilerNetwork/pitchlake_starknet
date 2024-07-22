@@ -1,4 +1,4 @@
-import { Account } from "starknet";
+import {  TypedContractV2 } from "starknet";
 import {
   ApprovalArgs,
   DepositArgs,
@@ -9,7 +9,9 @@ import {
   RefundUnusedBidsArgs,
 } from "./types";
 import { TestRunner } from "./TestRunner";
-import { getOptionRoundFacade } from "../helpers/setup";
+import { getOptionRoundContract, getOptionRoundFacade } from "../helpers/setup";
+import { optionRoundABI } from "../../abi";
+import { OptionRoundFacade } from "./optionRoundFacade";
 
 export type SimulationSheet = {
   liquidityProviders: Array<number>;
@@ -24,22 +26,28 @@ export type SimulationSheet = {
 export type SimulationParameters = {
   depositAllArgs: Array<DepositArgs>;
   bidAllArgs: Array<PlaceBidArgs>;
-  marketData: MarketData;
+  refundAllArgs: Array<RefundUnusedBidsArgs>;
   exerciseOptionsAllArgs: Array<ExerciseOptionArgs>;
+  marketData: MarketData;
 };
 
-export class Simulator {
+export class RoundSimulator {
   public testRunner: TestRunner;
+  public optionRoundFacade: OptionRoundFacade;
 
-  constructor(testRunner: TestRunner) {
+  constructor(
+    testRunner: TestRunner,
+    optionRoundContract: TypedContractV2<typeof optionRoundABI>
+  ) {
     this.testRunner = testRunner;
+    this.optionRoundFacade = new OptionRoundFacade(optionRoundContract);
   }
 
   async simulateRound(params: SimulationParameters) {
     //Add market agg setter here or somewhere in openState
     await this.simulateOpenState(params.depositAllArgs);
     await this.simulateAuctioningState(params.bidAllArgs, params.marketData);
-    await this.simulateRunningState(params.bidAllArgs);
+    await this.simulateRunningState(params.refundAllArgs);
     await this.simulateSettledState(params.exerciseOptionsAllArgs);
   }
 
@@ -55,47 +63,35 @@ export class Simulator {
       this.testRunner.provider,
       marketData
     );
-    const optionRoundFacade = await getOptionRoundFacade(
-      this.testRunner.provider,
-      this.testRunner.vaultFacade.vaultContract
-    );
     const approvalArgs = bidAllArgs.map((arg) => {
       const data: ApprovalArgs = {
         owner: arg.from,
-        spender: optionRoundFacade.optionRoundContract.address,
+        spender: this.optionRoundFacade.optionRoundContract.address,
         amount: BigInt(arg.amount) * BigInt(arg.price),
       };
       return data;
     });
     await this.testRunner.ethFacade.approveAll(approvalArgs);
-    await optionRoundFacade.placeBidsAll(bidAllArgs);
+    await this.optionRoundFacade.placeBidsAll(bidAllArgs);
   }
-  async simulateRunningState(bidAllArgs: Array<PlaceBidArgs>) {
-    const optionRoundFacade = await getOptionRoundFacade(
-      this.testRunner.provider,
-      this.testRunner.vaultFacade.vaultContract
-    );
-    let ref: { [key: string]: boolean } = {};
-    const refundArgs: Array<RefundUnusedBidsArgs> = [];
-    bidAllArgs.map((bids) => {
-      if (!ref[bids.from.address]) {
-        ref[bids.from.address] = true;
-        refundArgs.push({ from: bids.from, optionBidder: bids.from.address });
-      }
-    });
+  async simulateRunningState(refundAllArgs: Array<RefundUnusedBidsArgs>) {
+
     await this.testRunner.vaultFacade.endAuctionBystander(
       this.testRunner.provider
     );
-    await optionRoundFacade.refundUnusedBidsAll(refundArgs);
+    await this.optionRoundFacade.refundUnusedBidsAll(refundAllArgs);
   }
   async simulateSettledState(exerciseOptionsArgs: Array<ExerciseOptionArgs>) {
-    const optionRoundFacade = await getOptionRoundFacade(
-      this.testRunner.provider,
-      this.testRunner.vaultFacade.vaultContract
-    );
     await this.testRunner.vaultFacade.settleOptionRoundBystander(
       this.testRunner.provider
     );
-    await optionRoundFacade.exerciseOptionsAll(exerciseOptionsArgs);
+    await this.optionRoundFacade.exerciseOptionsAll(exerciseOptionsArgs);
+
+    //Update optionRoundFacade
+    const optionRoundContract = await getOptionRoundContract(
+      this.testRunner.provider,
+      this.testRunner.vaultFacade.vaultContract
+    );
+    this.optionRoundFacade = new OptionRoundFacade(optionRoundContract);
   }
 }
