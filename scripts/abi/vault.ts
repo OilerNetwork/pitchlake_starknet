@@ -2,11 +2,11 @@ export const ABI = [
   {
     "type": "impl",
     "name": "VaultImpl",
-    "interface_name": "pitch_lake_starknet::contracts::vault::IVault"
+    "interface_name": "pitch_lake_starknet::vault::interface::IVault"
   },
   {
     "type": "enum",
-    "name": "pitch_lake_starknet::contracts::vault::Vault::VaultType",
+    "name": "pitch_lake_starknet::types::VaultType",
     "variants": [
       {
         "name": "InTheMoney",
@@ -37,112 +37,9 @@ export const ABI = [
     ]
   },
   {
-    "type": "enum",
-    "name": "pitch_lake_starknet::contracts::option_round::OptionRound::OptionRoundError",
-    "variants": [
-      {
-        "name": "CallerIsNotVault",
-        "type": "()"
-      },
-      {
-        "name": "AuctionAlreadyStarted",
-        "type": "()"
-      },
-      {
-        "name": "AuctionStartDateNotReached",
-        "type": "()"
-      },
-      {
-        "name": "NoAuctionToEnd",
-        "type": "()"
-      },
-      {
-        "name": "AuctionEndDateNotReached",
-        "type": "()"
-      },
-      {
-        "name": "AuctionNotEnded",
-        "type": "()"
-      },
-      {
-        "name": "OptionRoundAlreadySettled",
-        "type": "()"
-      },
-      {
-        "name": "OptionSettlementDateNotReached",
-        "type": "()"
-      },
-      {
-        "name": "BidBelowReservePrice",
-        "type": "()"
-      },
-      {
-        "name": "BidAmountZero",
-        "type": "()"
-      },
-      {
-        "name": "BiddingWhileNotAuctioning",
-        "type": "()"
-      },
-      {
-        "name": "BidCannotBeDecreased",
-        "type": "()"
-      }
-    ]
-  },
-  {
-    "type": "enum",
-    "name": "pitch_lake_starknet::contracts::vault::Vault::VaultError",
-    "variants": [
-      {
-        "name": "OptionRoundError",
-        "type": "pitch_lake_starknet::contracts::option_round::OptionRound::OptionRoundError"
-      },
-      {
-        "name": "InsufficientBalance",
-        "type": "()"
-      }
-    ]
-  },
-  {
-    "type": "enum",
-    "name": "core::result::Result::<core::integer::u256, pitch_lake_starknet::contracts::vault::Vault::VaultError>",
-    "variants": [
-      {
-        "name": "Ok",
-        "type": "core::integer::u256"
-      },
-      {
-        "name": "Err",
-        "type": "pitch_lake_starknet::contracts::vault::Vault::VaultError"
-      }
-    ]
-  },
-  {
-    "type": "enum",
-    "name": "core::result::Result::<(core::integer::u256, core::integer::u256), pitch_lake_starknet::contracts::vault::Vault::VaultError>",
-    "variants": [
-      {
-        "name": "Ok",
-        "type": "(core::integer::u256, core::integer::u256)"
-      },
-      {
-        "name": "Err",
-        "type": "pitch_lake_starknet::contracts::vault::Vault::VaultError"
-      }
-    ]
-  },
-  {
     "type": "interface",
-    "name": "pitch_lake_starknet::contracts::vault::IVault",
+    "name": "pitch_lake_starknet::vault::interface::IVault",
     "items": [
-      {
-        "type": "function",
-        "name": "rm_me2",
-        "inputs": [],
-        "outputs": [],
-        "state_mutability": "external"
-      },
       {
         "type": "function",
         "name": "vault_manager",
@@ -160,7 +57,7 @@ export const ABI = [
         "inputs": [],
         "outputs": [
           {
-            "type": "pitch_lake_starknet::contracts::vault::Vault::VaultType"
+            "type": "pitch_lake_starknet::types::VaultType"
           }
         ],
         "state_mutability": "view"
@@ -183,6 +80,28 @@ export const ABI = [
         "outputs": [
           {
             "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_auction_run_time",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::u64"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_option_run_time",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::u64"
           }
         ],
         "state_mutability": "view"
@@ -308,26 +227,6 @@ export const ABI = [
       },
       {
         "type": "function",
-        "name": "get_premiums_earned",
-        "inputs": [
-          {
-            "name": "liquidity_provider",
-            "type": "core::starknet::contract_address::ContractAddress"
-          },
-          {
-            "name": "round_id",
-            "type": "core::integer::u256"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "core::integer::u256"
-          }
-        ],
-        "state_mutability": "view"
-      },
-      {
-        "type": "function",
         "name": "get_premiums_collected",
         "inputs": [
           {
@@ -364,11 +263,18 @@ export const ABI = [
       },
       {
         "type": "function",
+        "name": "update_round_params",
+        "inputs": [],
+        "outputs": [],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
         "name": "start_auction",
         "inputs": [],
         "outputs": [
           {
-            "type": "core::result::Result::<core::integer::u256, pitch_lake_starknet::contracts::vault::Vault::VaultError>"
+            "type": "core::integer::u256"
           }
         ],
         "state_mutability": "external"
@@ -379,7 +285,7 @@ export const ABI = [
         "inputs": [],
         "outputs": [
           {
-            "type": "core::result::Result::<(core::integer::u256, core::integer::u256), pitch_lake_starknet::contracts::vault::Vault::VaultError>"
+            "type": "(core::integer::u256, core::integer::u256)"
           }
         ],
         "state_mutability": "external"
@@ -390,7 +296,7 @@ export const ABI = [
         "inputs": [],
         "outputs": [
           {
-            "type": "core::result::Result::<core::integer::u256, pitch_lake_starknet::contracts::vault::Vault::VaultError>"
+            "type": "(core::integer::u256, core::integer::u256)"
           }
         ],
         "state_mutability": "external"
@@ -410,7 +316,7 @@ export const ABI = [
         ],
         "outputs": [
           {
-            "type": "core::result::Result::<core::integer::u256, pitch_lake_starknet::contracts::vault::Vault::VaultError>"
+            "type": "core::integer::u256"
           }
         ],
         "state_mutability": "external"
@@ -426,7 +332,7 @@ export const ABI = [
         ],
         "outputs": [
           {
-            "type": "core::result::Result::<core::integer::u256, pitch_lake_starknet::contracts::vault::Vault::VaultError>"
+            "type": "core::integer::u256"
           }
         ],
         "state_mutability": "external"
@@ -478,7 +384,7 @@ export const ABI = [
         ],
         "outputs": [
           {
-            "type": "core::result::Result::<core::integer::u256, pitch_lake_starknet::contracts::vault::Vault::VaultError>"
+            "type": "core::integer::u256"
           }
         ],
         "state_mutability": "external"
@@ -490,6 +396,18 @@ export const ABI = [
     "name": "constructor",
     "inputs": [
       {
+        "name": "round_transition_period",
+        "type": "core::integer::u64"
+      },
+      {
+        "name": "auction_run_time",
+        "type": "core::integer::u64"
+      },
+      {
+        "name": "option_run_time",
+        "type": "core::integer::u64"
+      },
+      {
         "name": "eth_address",
         "type": "core::starknet::contract_address::ContractAddress"
       },
@@ -499,7 +417,7 @@ export const ABI = [
       },
       {
         "name": "vault_type",
-        "type": "pitch_lake_starknet::contracts::vault::Vault::VaultType"
+        "type": "pitch_lake_starknet::types::VaultType"
       },
       {
         "name": "market_aggregator",
@@ -513,7 +431,7 @@ export const ABI = [
   },
   {
     "type": "event",
-    "name": "pitch_lake_starknet::contracts::vault::Vault::Deposit",
+    "name": "pitch_lake_starknet::vault::contract::Vault::Deposit",
     "kind": "struct",
     "members": [
       {
@@ -535,7 +453,7 @@ export const ABI = [
   },
   {
     "type": "event",
-    "name": "pitch_lake_starknet::contracts::vault::Vault::Withdrawal",
+    "name": "pitch_lake_starknet::vault::contract::Vault::Withdrawal",
     "kind": "struct",
     "members": [
       {
@@ -557,7 +475,7 @@ export const ABI = [
   },
   {
     "type": "event",
-    "name": "pitch_lake_starknet::contracts::vault::Vault::OptionRoundDeployed",
+    "name": "pitch_lake_starknet::vault::contract::Vault::OptionRoundDeployed",
     "kind": "struct",
     "members": [
       {
@@ -574,22 +492,22 @@ export const ABI = [
   },
   {
     "type": "event",
-    "name": "pitch_lake_starknet::contracts::vault::Vault::Event",
+    "name": "pitch_lake_starknet::vault::contract::Vault::Event",
     "kind": "enum",
     "variants": [
       {
         "name": "Deposit",
-        "type": "pitch_lake_starknet::contracts::vault::Vault::Deposit",
+        "type": "pitch_lake_starknet::vault::contract::Vault::Deposit",
         "kind": "nested"
       },
       {
         "name": "Withdrawal",
-        "type": "pitch_lake_starknet::contracts::vault::Vault::Withdrawal",
+        "type": "pitch_lake_starknet::vault::contract::Vault::Withdrawal",
         "kind": "nested"
       },
       {
         "name": "OptionRoundDeployed",
-        "type": "pitch_lake_starknet::contracts::vault::Vault::OptionRoundDeployed",
+        "type": "pitch_lake_starknet::vault::contract::Vault::OptionRoundDeployed",
         "kind": "nested"
       }
     ]
