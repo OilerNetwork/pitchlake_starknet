@@ -6,7 +6,7 @@ import {
   getOptionBidderAccounts,
 } from "../../utils/helpers/accounts";
 import { TestRunner } from "../../utils/facades/TestRunner";
-import { LibraryError } from "starknet";
+import { eth, LibraryError } from "starknet";
 
 export const smokeTest = async ({
   provider,
@@ -24,7 +24,7 @@ export const smokeTest = async ({
   const devAccount = getAccount("dev", provider);
 
   try {
-    await vaultFacade.settleAuction(devAccount);
+    await vaultFacade.settleOptionRound(devAccount);
     throw Error("Should have reverted");
   } catch (err) {
     const error = err as LibraryError;
@@ -45,7 +45,7 @@ export const smokeTest = async ({
   );
 
 
-  vaultFacade.withdraw({
+  await vaultFacade.withdraw({
     account: liquidityProviderAccounts[0],
     amount: BigInt(totalPremiums) / BigInt(4),
   });
@@ -67,7 +67,8 @@ export const smokeTest = async ({
     totalPremiums,
   });
 
-  await vaultFacade.settleAuctionBystander(provider);
+  await vaultFacade.settleOptionRoundBystander(provider);
+
 
   const stateAfter: any =
     await optionRoundFacade.optionRoundContract.get_state();
@@ -78,7 +79,7 @@ export const smokeTest = async ({
   const totalPayout = await optionRoundFacade.getTotalPayout();
   const totalLocked = await vaultFacade.getTotalLocked();
   assert(
-    stateAfter.activeVariant() === "Running",
+    stateAfter.activeVariant() === "Settled",
     `Expected:Running\nReceived:${stateAfter.activeVariant()}`
   );
 
@@ -105,6 +106,7 @@ async function checkpoint1({
   totalUnlocked: number | bigint;
   totalPremiums: number | bigint;
 }) {
+  console.log("ethBalanceAfter:",ethBalanceAfter,"\nethBalanceBefore:",ethBalanceBefore,"\ntotalPremiums",totalPremiums,"lpUnlockedBalanceAfter:",lpUnlockedBalanceAfter);
   assert(
     BigInt(ethBalanceAfter) - BigInt(ethBalanceBefore) ===
       BigInt(totalPremiums) / BigInt(4),

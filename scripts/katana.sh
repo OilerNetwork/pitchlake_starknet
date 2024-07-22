@@ -6,6 +6,10 @@ PORT=$(python3 -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.ge
 echo "Starting katana on port $PORT"
 katana --chain-id SN_SEPOLIA --host 127.0.0.1 --port 5050 --accounts "25" --seed "1" -b 2000 --dev &
 
+npx abi-wan-kanabi --input target/dev/pitch_lake_starknet_Eth.contract_class.json --output scripts/abi/erc20.ts
+npx abi-wan-kanabi --input target/dev/pitch_lake_starknet_Vault.contract_class.json --output scripts/abi/vault.ts
+npx abi-wan-kanabi --input target/dev/pitch_lake_starknet_OptionRound.contract_class.json --output scripts/abi/optionRound.ts
+npx abi-wan-kanabi --input target/dev/pitch_lake_starknet_MarketAggregator.contract_class.json --output scripts/abi/MarketAggregator.ts
 # while ! nc -z localhost $PORT; do   
 #   sleep 0.1 # wait for 1/10 of the second before check again
 # done
