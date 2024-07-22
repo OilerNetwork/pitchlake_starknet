@@ -6,7 +6,7 @@ import {
   TypedContractV2,
 } from "starknet";
 import { optionRoundABI, vaultABI } from "../../abi";
-import { Constants, DepositArgs, MarketData, WithdrawArgs } from "./types";
+import { DepositArgs, MarketData, WithdrawArgs } from "./types";
 import {
   accelerateToAuctioning,
   accelerateToRunning,
@@ -149,6 +149,7 @@ export class VaultFacade {
       startDate,
       settleDate,
       marketData.reservePrice
+
     );
     await marketAggFacade.setCapLevel(
       devAccount,

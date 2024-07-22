@@ -1,8 +1,10 @@
+
 import { getOptionRoundFacade } from "../../utils/helpers/setup";
 import assert from "assert";
 import { getOptionBidderAccounts } from "../../utils/helpers/accounts";
 import { TestRunner } from "../../utils/facades/TestRunner";
 import { ExerciseOptionArgs } from "../../utils/facades/types";
+
 
 export const smokeTest = async ({
   provider,
@@ -26,6 +28,7 @@ export const smokeTest = async ({
     return { from: bidder } as ExerciseOptionArgs;
   });
   await optionRoundFacade.exerciseOptionsAll(exerciseOptionsAllArgs);
+
 
   const ethBalancesAfter = await ethFacade.getBalancesAll(optionBidderAccounts);
   const totalPayout = await optionRoundFacade.getTotalPayout();

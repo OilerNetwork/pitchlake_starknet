@@ -19,6 +19,7 @@ export class OptionRoundFacade {
     this.optionRoundContract = optionRoundContract;
   }
 
+
   async getRoundId() {
     const res = await this.optionRoundContract.get_round_id();
     if (typeof res !== "bigint" && typeof res !== "number") {
@@ -26,7 +27,6 @@ export class OptionRoundFacade {
       return data.toBigInt();
     } else return res;
   }
-
   async getTotalPayout() {
     const res = await this.optionRoundContract.total_payout();
     if (typeof res !== "bigint" && typeof res !== "number") {
@@ -230,6 +230,7 @@ export class OptionRoundFacade {
     for (const exerciseOptionsArgs of exerciseOptionData) {
       await this.exerciseOptions(exerciseOptionsArgs);
     }
+
   }
 
   async tokenizeOptions({ from }: TokenizeOptionArgs) {
