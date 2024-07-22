@@ -10,6 +10,8 @@ katana --chain-id SN_SEPOLIA --host 127.0.0.1 --port 5050 --accounts "25" --seed
 #   sleep 0.1 # wait for 1/10 of the second before check again
 # done
 
+./generate_abi.sh
+
 # Run your Node script
 echo "Running main.js on port $PORT"
 cd scripts
