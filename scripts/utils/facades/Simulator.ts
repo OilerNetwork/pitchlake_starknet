@@ -5,6 +5,8 @@ import {
   ExerciseOptionArgs,
   MarketData,
   PlaceBidArgs,
+  RefundableBidsArgs,
+  RefundUnusedBidsArgs,
 } from "./types";
 import { TestRunner } from "./TestRunner";
 import { getOptionRoundFacade } from "../helpers/setup";
@@ -37,7 +39,7 @@ export class Simulator {
     //Add market agg setter here or somewhere in openState
     await this.simulateOpenState(params.depositAllArgs);
     await this.simulateAuctioningState(params.bidAllArgs, params.marketData);
-    await this.simulateRunningState();
+    await this.simulateRunningState(params.bidAllArgs);
     await this.simulateSettledState(params.exerciseOptionsAllArgs);
   }
 
@@ -68,10 +70,23 @@ export class Simulator {
     await this.testRunner.ethFacade.approveAll(approvalArgs);
     await optionRoundFacade.placeBidsAll(bidAllArgs);
   }
-  async simulateRunningState() {
+  async simulateRunningState(bidAllArgs: Array<PlaceBidArgs>) {
+    const optionRoundFacade = await getOptionRoundFacade(
+      this.testRunner.provider,
+      this.testRunner.vaultFacade.vaultContract
+    );
+    let ref: { [key: string]: boolean } = {};
+    const refundArgs: Array<RefundUnusedBidsArgs> = [];
+    bidAllArgs.map((bids) => {
+      if (!ref[bids.from.address]) {
+        ref[bids.from.address] = true;
+        refundArgs.push({ from: bids.from, optionBidder: bids.from.address });
+      }
+    });
     await this.testRunner.vaultFacade.endAuctionBystander(
       this.testRunner.provider
     );
+    await optionRoundFacade.refundUnusedBidsAll(refundArgs);
   }
   async simulateSettledState(exerciseOptionsArgs: Array<ExerciseOptionArgs>) {
     const optionRoundFacade = await getOptionRoundFacade(
