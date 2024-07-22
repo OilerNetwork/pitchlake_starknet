@@ -2,16 +2,16 @@
 
 # Define contracts and their file paths
 contracts=(
-    "pitch_lake_starknet_OptionRound:optionRound"
-    "pitch_lake_starknet_Vault:vault"
+    "OptionRound:optionRound"
+    "Vault:vault"
 )
 
 build_needed=false
 
 # Check if any JSON file is missing
 for contract in "${contracts[@]}"; do
-    IFS=':' read -r json_name abi_name <<< "$contract"
-    json_file="../target/dev/${json_name}.contract_class.json"
+    IFS=':' read -r contract_name abi_name <<< "$contract"
+    json_file="../target/dev/pitch_lake_starknet_${contract_name}.contract_class.json"
     
     if [ ! -f "$json_file" ]; then
         echo "Missing file: $json_file"
@@ -27,8 +27,8 @@ fi
 
 # Generate ABIs
 for contract in "${contracts[@]}"; do
-    IFS=':' read -r json_name abi_name <<< "$contract"
-    json_file="../target/dev/${json_name}.contract_class.json"
+    IFS=':' read -r contract_name abi_name <<< "$contract"
+    json_file="../target/dev/pitch_lake_starknet_${contract_name}.contract_class.json"
     abi_file="./abi/${abi_name}.ts"
     
     npx abi-wan-kanabi --input "$json_file" --output "$abi_file"
