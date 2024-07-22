@@ -6,6 +6,7 @@ contracts=(
     "OptionRound:optionRound"
     "Vault:vault"
     "MarketAggregator:marketAggregator"
+    "Eth:eth"
 )
 
 echo "Running scarb build..."
