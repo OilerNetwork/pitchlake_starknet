@@ -1,18 +1,35 @@
 #!/bin/bash
 
-# Script for generating the ABI files from the contract JSON files
-OPTION_ROUND_JSON="../target/dev/pitch_lake_starknet_OptionRound.contract_class.json"
-OPTION_ROUND_ABI="./abi/optionRound.ts"
+# Define contracts and their file paths
+contracts=(
+    "pitch_lake_starknet_OptionRound:optionRound"
+    "pitch_lake_starknet_Vault:vault"
+)
 
-VAULT_JSON="../target/dev/pitch_lake_starknet_Vault.contract_class.json"
-VAULT_ABI="./abi/vault.ts"
+build_needed=false
 
-if [ ! -f "$OPTION_ROUND_JSON" ] || [ ! -f "$VAULT_JSON" ]; then
-    echo "One or both JSON files are missing. Executing 'scarb build'..."
-    cd ..
-    scarb build
-    cd scripts
+# Check if any JSON file is missing
+for contract in "${contracts[@]}"; do
+    IFS=':' read -r json_name abi_name <<< "$contract"
+    json_file="../target/dev/${json_name}.contract_class.json"
+    
+    if [ ! -f "$json_file" ]; then
+        echo "Missing file: $json_file"
+        build_needed=true
+    fi
+done
+
+# Run scarb build if any file was missing
+if $build_needed; then
+    echo "Running scarb build..."
+    cd .. && scarb build && cd scripts
 fi
 
-npx abi-wan-kanabi --input "$OPTION_ROUND_JSON" --output "$OPTION_ROUND_ABI" && \
-npx abi-wan-kanabi --input "$VAULT_JSON" --output "$VAULT_ABI"
+# Generate ABIs
+for contract in "${contracts[@]}"; do
+    IFS=':' read -r json_name abi_name <<< "$contract"
+    json_file="../target/dev/${json_name}.contract_class.json"
+    abi_file="./abi/${abi_name}.ts"
+    
+    npx abi-wan-kanabi --input "$json_file" --output "$abi_file"
+done
