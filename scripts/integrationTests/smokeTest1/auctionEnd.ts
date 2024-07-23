@@ -32,7 +32,7 @@ export const smokeTest = async ({
     `Expected:Auctioning\nReceived:${state.activeVariant()}`
   );
 
-  const liquidityProviderAccounts = getLiquidityProviderAccounts(provider, 2);
+  const liquidityProviderAccounts = getLiquidityProviderAccounts(2);
 
   await vaultFacade.endAuctionBystander(provider);
 

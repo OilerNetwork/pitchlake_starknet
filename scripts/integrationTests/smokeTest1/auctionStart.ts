@@ -34,8 +34,8 @@ export const smokeTest = async ({
   const stateAfter: any =
     await optionRoundFacade.optionRoundContract.get_state();
 
-  const liquidityProviderAccounts = getLiquidityProviderAccounts(provider, 2);
-  const optionBidderAccounts = getOptionBidderAccounts(provider, 2);
+  const liquidityProviderAccounts = getLiquidityProviderAccounts(2);
+  const optionBidderAccounts = getOptionBidderAccounts(2);
 
   assert(
     stateAfter.activeVariant() === "Open",

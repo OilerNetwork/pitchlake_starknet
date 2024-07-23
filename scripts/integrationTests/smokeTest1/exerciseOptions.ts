@@ -15,7 +15,7 @@ export const smokeTest = async ({
     true
   );
 
-  const optionBidderAccounts = getOptionBidderAccounts(provider, 3);
+  const optionBidderAccounts = getOptionBidderAccounts(3);
 
   const ethBalancesBefore = await ethFacade.getBalancesAll(
     optionBidderAccounts

@@ -17,8 +17,7 @@ export const smokeTest = async ({
     vaultFacade.vaultContract
   );
 
-  const liquidityProviderAccounts = getLiquidityProviderAccounts(provider, 2);
-  const optionBidderAccounts = getOptionBidderAccounts(provider, 3);
+  const liquidityProviderAccounts = getLiquidityProviderAccounts(2);
   const devAccount = getAccount("dev", provider);
 
   try {

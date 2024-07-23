@@ -79,12 +79,12 @@ export class TestRunner {
     }
   }
 
-  getLiquidityProviderAccounts = (provider: Provider, length: number) => {
+  getLiquidityProviderAccounts = (length: number) => {
     const liquidityProviderAccounts: Array<Account> = [];
     for (let i = 0; i < length; i++) {
       liquidityProviderAccounts.push(
         getCustomAccount(
-          provider,
+          this.provider,
           liquidityProviders[i].account,
           liquidityProviders[i].privateKey
         )
@@ -93,12 +93,12 @@ export class TestRunner {
     return liquidityProviderAccounts;
   };
 
-  getOptionBidderAccounts = (provider: Provider, length: number) => {
+  getOptionBidderAccounts = (length: number) => {
     const optionBidderAccounts: Array<Account> = [];
     for (let i = 0; i < length; i++) {
       optionBidderAccounts.push(
         getCustomAccount(
-          provider,
+          this.provider,
           optionBidders[i].account,
           optionBidders[i].privateKey
         )

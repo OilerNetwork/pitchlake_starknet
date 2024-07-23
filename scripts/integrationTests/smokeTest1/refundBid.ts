@@ -26,7 +26,7 @@ export const smokeTest = async ({
   const totalOptionAvailable =
     await optionRoundFacade.getTotalOptionsAvailable();
   const reservePrice = await optionRoundFacade.getReservePrice();
-  const optionBidderAccounts = getOptionBidderAccounts(provider, 3);
+  const optionBidderAccounts = getOptionBidderAccounts(3);
 
   const balancesBefore = await eth.getBalancesAll(optionBidderAccounts);
 
