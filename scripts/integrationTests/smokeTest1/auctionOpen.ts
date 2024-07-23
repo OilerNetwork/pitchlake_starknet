@@ -6,7 +6,6 @@ import { LibraryError } from "starknet";
 //@note Wrap functions into a try catch to avoid breaking thread, log errors correctly
 
 export const smokeTest = async ({
-  provider,
   vaultFacade: vault,
   ethFacade: eth,
   constants: { depositAmount },
