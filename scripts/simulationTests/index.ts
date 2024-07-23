@@ -25,19 +25,15 @@ async function simulationTesting(testRunner: TestRunner) {
   const simulationParams = generateSimulationParams(
     testRunner.provider,
     simulationSheets
-  );
-  const round1 = await simulator.simulateRound(simulationParams[0]);
-  const round2 = await simulator.simulateRound(simulationParams[0]);
-  const round3 = await simulator.simulateRound(simulationParams[0]);
-
- 
-  const data:Results = {results:[]};
-  data.results.push(round1);
-  data.results.push(round2);
-  data.results.push(round3);
-  console.log("DATA",{data})
+);
+const data:Results = {results:[]};
+for (const roundParams of simulationParams){
+    const roundData = await simulator.simulateRound(roundParams);
+    data.results.push(roundData);
+}
+console.log("DATA",data)
   const stringified = JSON.stringify(data);
-  fs.writeFile('myjsonfile.json', stringified, 'utf8',()=>{});
+  fs.writeFile(`./simulationData/simulationResults.json`, stringified, 'utf8',()=>{});
 
 }
 

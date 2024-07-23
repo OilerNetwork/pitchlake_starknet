@@ -12,5 +12,33 @@
       "settlementPrice": 16000000000,
       "capLevel": 5000
     }
+  },
+  {
+    "liquidityProviders": [1, 2],
+    "depositAmounts": ["5000000000000", "5000000000000"],
+    "optionBidders": [1, 3],
+    "bidAmounts": [5000, 7000],
+    "bidPrices": ["8000000000", "10000000000"],
+    "exerciseOptions": [1],
+    "marketData": {
+      "reservePrice": 4000000000,
+      "strikePrice": 8000000000,
+      "settlementPrice": 16000000000,
+      "capLevel": 5000
+    }
+  },
+  {
+    "liquidityProviders": [1, 2],
+    "depositAmounts": ["5000000000000", "5000000000000"],
+    "optionBidders": [1, 3],
+    "bidAmounts": [5000, 7000],
+    "bidPrices": ["8000000000", "10000000000"],
+    "exerciseOptions": [1],
+    "marketData": {
+      "reservePrice": 4000000000,
+      "strikePrice": 8000000000,
+      "settlementPrice": 16000000000,
+      "capLevel": 5000
+    }
   }
 ]
