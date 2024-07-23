@@ -24,7 +24,6 @@ export type SimulationSheet = {
   bidAmounts: Array<number | string>;
   bidPrices: Array<number | string>;
   marketData: MarketData;
-  exerciseOptions: Array<number>;
 };
 
 export type SimulationParameters = {

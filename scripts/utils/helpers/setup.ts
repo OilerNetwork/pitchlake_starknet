@@ -96,7 +96,7 @@ export const generateSimulationParams = (
     });
 
     const exerciseOptionsAllArgs: Array<ExerciseOptionArgs> =
-      simulationSheet.exerciseOptions.map((bidder) => ({
+      simulationSheet.optionBidders.map((bidder) => ({
         from: optionBidderAccounts[bidder - 1],
       }));
     const data: SimulationParameters = {
