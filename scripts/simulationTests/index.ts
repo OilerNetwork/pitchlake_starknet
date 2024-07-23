@@ -33,7 +33,7 @@ for (const roundParams of simulationParams){
 }
 console.log("DATA",data)
   const stringified = JSON.stringify(data);
-  fs.writeFile(`./simulationData/simulationResults.json`, stringified, 'utf8',()=>{});
+  fs.writeFile(`./simulationData/simulationResults-${Math.floor(Date.now()/1000)}.json`, stringified, 'utf8',()=>{});
 
 }
 
