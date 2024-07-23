@@ -28,7 +28,9 @@ async function simulationTesting(testRunner: TestRunner) {
       reservePrice:Math.floor(data.reserve_price),
       settlementPrice:Math.floor(data.settlement_price),
       strikePrice:Math.floor(data.strike_price),
-      capLevel:Math.floor(data.cap_level)
+      capLevel:Math.floor(data.cap_level),
+      startTime:data.starting_timestamp,
+      endTime:data.ending_timestamp,
     }
   })
 
@@ -60,7 +62,7 @@ const plugMarketData=(marketDataArr:Array<MarketData>,simulationSheet:Array<Simu
   return simulationSheet.map((sheet,index)=>{
     return {
       ...sheet,
-      marketData:marketDataArr[index]
+      marketData:marketDataArr[index],
     }
   })
 }

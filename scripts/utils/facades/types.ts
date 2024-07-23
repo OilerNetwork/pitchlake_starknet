@@ -88,4 +88,6 @@ export type MarketData = {
   settlementPrice: number | bigint;
   strikePrice: number | bigint;
   capLevel: number | bigint;
+  startTime?:number|bigint;
+  endTime?:number|bigint;
 };

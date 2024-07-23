@@ -5,7 +5,6 @@ import {
   ExerciseOptionArgs,
   MarketData,
   PlaceBidArgs,
-  RefundableBidsArgs,
   RefundUnusedBidsArgs,
 } from "./types";
 import { TestRunner } from "./TestRunner";
@@ -37,6 +36,14 @@ export type SimulationParameters = {
   marketData: MarketData;
 };
 
+export type StateData = {
+  lockedUnlockedBalances: {
+    lpLockedBalances: Array<string>;
+    lpUnlockedBalances: Array<string>;
+  };
+  ethBalancesBidders: Array<string>;
+  timeStamp?: string | number;
+};
 export class RoundSimulator {
   public testRunner: TestRunner;
   public optionRoundFacade: OptionRoundFacade;
@@ -60,17 +67,35 @@ export class RoundSimulator {
     );
     this.optionRoundFacade = new OptionRoundFacade(optionRoundContract);
     //Add market agg setter here or somewhere in openState
-    const openStateData = await this.simulateOpenState(params.depositAllArgs);
-    const auctioningStateData = await this.simulateAuctioningState(
+
+    const openStateData: StateData = await this.simulateOpenState(
+      params.depositAllArgs
+    );
+    const auctioningStateData: StateData = await this.simulateAuctioningState(
       params.bidAllArgs,
       params.marketData
     );
-    const runningStateData = await this.simulateRunningState(
+    const runningStateData: StateData = await this.simulateRunningState(
       params.refundAllArgs
     );
-    const settledStateData = await this.simulateSettledState(
+    const settledStateData: StateData = await this.simulateSettledState(
       params.exerciseOptionsAllArgs
     );
+
+    if (params.marketData.startTime && params.marketData.endTime) {
+
+      //Mock timestamps if present on the marketData
+      const difference =
+        Number(params.marketData.endTime) - Number(params.marketData.startTime);
+      openStateData.timeStamp =
+        Number(params.marketData.startTime) + Math.floor(difference / 8);
+      auctioningStateData.timeStamp =
+        Number(params.marketData.startTime) + Math.floor((3 * difference) / 8);
+      runningStateData.timeStamp =
+        Number(params.marketData.startTime) + Math.floor((5 * difference) / 8);
+      settledStateData.timeStamp =
+        Number(params.marketData.startTime) + Math.floor((7 * difference) / 8);
+    }
 
     return {
       openStateData,
@@ -157,11 +182,11 @@ export class RoundSimulator {
       this.testRunner.provider
     );
 
-    const lpLockedUnlockedBalances = await this.captureLockedUnlockedBalances();
+    const lockedUnlockedBalances = await this.captureLockedUnlockedBalances();
     await this.optionRoundFacade.refundUnusedBidsAll(refundAllArgs);
     const ethBalancesBidders = await this.captureEthBalancesOptionBidders();
     return {
-      lpLockedUnlockedBalances,
+      lockedUnlockedBalances,
       ethBalancesBidders,
     };
   }
@@ -171,13 +196,13 @@ export class RoundSimulator {
       this.testRunner.provider
     );
 
-    const lpLockedUnlockedBalances = await this.captureLockedUnlockedBalances();
+    const lockedUnlockedBalances = await this.captureLockedUnlockedBalances();
     console.log("3");
     await this.optionRoundFacade.exerciseOptionsAll(exerciseOptionsArgs);
     const ethBalancesBidders = await this.captureEthBalancesOptionBidders();
 
     return {
-      lpLockedUnlockedBalances,
+      lockedUnlockedBalances,
       ethBalancesBidders,
     };
   }
