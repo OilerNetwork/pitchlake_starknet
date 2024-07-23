@@ -10,7 +10,6 @@ export const smokeTest = async ({
   constants: { depositAmount },
   ethFacade,
   getLiquidityProviderAccounts,
-  getOptionBidderAccounts
 }: TestRunner) => {
   const optionRoundFacade = await getOptionRoundFacade(
     provider,

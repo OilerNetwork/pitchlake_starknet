@@ -12,7 +12,7 @@ export const smokeTest = async ({
   constants: { depositAmount },
   getLiquidityProviderAccounts
 }: TestRunner) => {
-  const liquidityProviderAccounts = getLiquidityProviderAccounts(provider, 2);
+  const liquidityProviderAccounts = getLiquidityProviderAccounts(2);
 
   //Approve A for depositing
   await eth.approval({
