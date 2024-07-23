@@ -55,65 +55,40 @@ export class RoundSimulator {
   }
 
   async simulateRound(params: SimulationParameters) {
-    const optionRoundContract = await getOptionRoundContract(
-      this.testRunner.provider,
-      this.testRunner.vaultFacade.vaultContract
-    );
-    this.optionRoundFacade = new OptionRoundFacade(optionRoundContract);
+
     //Add market agg setter here or somewhere in openState
     const openStateData = await this.simulateOpenState(params.depositAllArgs);
-    const auctioningStateData = await this.simulateAuctioningState(
+    const AuctioningStateData = await this.simulateAuctioningState(
       params.bidAllArgs,
       params.marketData
     );
-    const runningStateData = await this.simulateRunningState(
-      params.refundAllArgs
-    );
+    const RunningStateData = this.simulateRunningState(params.refundAllArgs);
     const settledStateData = await this.simulateSettledState(
       params.exerciseOptionsAllArgs
     );
-
-    return {
-      openStateData,
-      auctioningStateData,
-      runningStateData,
-      settledStateData,
-    };
   }
 
   async captureLockedUnlockedBalances() {
-    const lpLockedBalancesBigInt =
+    const lpLockedBalances =
       await this.testRunner.vaultFacade.getLPLockedBalanceAll(this.lpAccounts);
-    const lpUnlockedBalancesBigint =
+    const lpUnlockedBalances =
       await this.testRunner.vaultFacade.getLPUnlockedBalanceAll(
         this.lpAccounts
       );
-    const lpLockedBalances = lpLockedBalancesBigInt.map((balance) => {
-      return balance.toString();
-    });
-    const lpUnlockedBalances = lpUnlockedBalancesBigint.map((balance) => {
-      return balance.toString();
-    });
     return { lpLockedBalances, lpUnlockedBalances };
   }
 
   async captureEthBalancesLiquidityProviders() {
-    const ethBalancesBigInt = await this.testRunner.ethFacade.getBalancesAll(
+    const ethBalances = await this.testRunner.ethFacade.getBalancesAll(
       this.lpAccounts
     );
-    const ethBalances = ethBalancesBigInt.map((balance) => {
-      return balance.toString();
-    });
     return ethBalances;
   }
 
   async captureEthBalancesOptionBidders() {
-    const ethBalancesBigInt = await this.testRunner.ethFacade.getBalancesAll(
+    const ethBalances = await this.testRunner.ethFacade.getBalancesAll(
       this.bidderAccounts
     );
-    const ethBalances = ethBalancesBigInt.map((balance) => {
-      return balance.toString();
-    });
     return ethBalances;
   }
   async simulateOpenState(depositAllArgs: Array<DepositArgs>) {
@@ -154,7 +129,7 @@ export class RoundSimulator {
     };
   }
   async simulateRunningState(refundAllArgs: Array<RefundUnusedBidsArgs>) {
-    const data = await this.testRunner.vaultFacade.endAuctionBystander(
+    await this.testRunner.vaultFacade.endAuctionBystander(
       this.testRunner.provider
     );
 
@@ -167,16 +142,22 @@ export class RoundSimulator {
     };
   }
   async simulateSettledState(exerciseOptionsArgs: Array<ExerciseOptionArgs>) {
-    const data = await this.optionRoundFacade.optionRoundContract.get_state();
+    console.log("1");
     await this.testRunner.vaultFacade.settleOptionRoundBystander(
       this.testRunner.provider
     );
-
-    const lpLockedUnlockedBalances = await this.captureLockedUnlockedBalances();
-    console.log("3");
+    console.log("2");
+  
+    const lpLockedUnlockedBalances = await this.captureLockedUnlockedBalances();  console.log("3");
     await this.optionRoundFacade.exerciseOptionsAll(exerciseOptionsArgs);
     const ethBalancesBidders = await this.captureEthBalancesOptionBidders();
 
+    //Update optionRoundFacade
+    const optionRoundContract = await getOptionRoundContract(
+      this.testRunner.provider,
+      this.testRunner.vaultFacade.vaultContract
+    );
+    this.optionRoundFacade = new OptionRoundFacade(optionRoundContract);
     return {
       lpLockedUnlockedBalances,
       ethBalancesBidders,
