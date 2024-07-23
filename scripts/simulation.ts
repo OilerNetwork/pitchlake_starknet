@@ -3,7 +3,6 @@ import { declareContracts } from "./utils/deployment/declareContracts";
 import { deployContracts } from "./utils/deployment/deployContracts";
 import { TestRunner } from "./utils/facades/TestRunner";
 import { Constants, MarketData } from "./utils/facades/types";
-import marketData from "./simulationData/marketData.json" assert { type: "json" };
 import { simulationTesting } from "./simulationTests";
 import { SimulationParameters } from "./utils/facades/RoundSimulator";
 async function main(environment: string, port?: string) {
