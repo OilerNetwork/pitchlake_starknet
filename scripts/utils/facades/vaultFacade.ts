@@ -12,7 +12,7 @@ import {
   accelerateToRunning,
   accelerateToSettled,
 } from "../helpers/accelerators";
-import { getAccount, stringToHex } from "../helpers/common";
+import { convertToBigInt, getAccount, stringToHex } from "../helpers/common";
 import { MarketAggregatorFacade } from "./marketAggregatorFacade";
 import { getOptionRoundContract } from "../helpers/setup";
 
@@ -38,29 +38,17 @@ export class VaultFacade {
 
   async getTotalLocked() {
     const res = await this.vaultContract.get_total_locked_balance();
-    if (typeof res !== "bigint" && typeof res !== "number") {
-      const data = new CairoUint256(res);
-      return data.toBigInt();
-    }
-    return res;
+    return convertToBigInt(res);
   }
 
   async getTotalUnLocked() {
     const res = await this.vaultContract.get_total_unlocked_balance();
-    if (typeof res !== "bigint" && typeof res !== "number") {
-      const data = new CairoUint256(res);
-      return data.toBigInt();
-    }
-    return res;
+    return convertToBigInt(res);
   }
 
   async getLPLockedBalance(address: string) {
     const res = await this.vaultContract.get_lp_locked_balance(address);
-    if (typeof res !== "bigint" && typeof res !== "number") {
-      const data = new CairoUint256(res);
-      return data.toBigInt();
-    }
-    return res;
+    return convertToBigInt(res);
   }
   async getLPLockedBalanceAll(accounts: Array<Account>) {
     const balances = await Promise.all(
@@ -74,11 +62,7 @@ export class VaultFacade {
 
   async getLPUnlockedBalance(address: string) {
     const res = await this.vaultContract.get_lp_unlocked_balance(address);
-    if (typeof res !== "bigint" && typeof res !== "number") {
-      const data = new CairoUint256(res);
-      return data.toBigInt();
-    }
-    return res;
+    return convertToBigInt(res);
   }
 
   async getLPUnlockedBalanceAll(accounts: Array<Account>) {

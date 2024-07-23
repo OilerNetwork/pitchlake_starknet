@@ -10,6 +10,7 @@ import {
   UpdateBidArgs,
 } from "./types";
 import { optionRoundABI } from "../../abi";
+import { convertToBigInt } from "../helpers/common";
 
 export class OptionRoundFacade {
   optionRoundContract: TypedContractV2<typeof optionRoundABI>;
@@ -20,46 +21,27 @@ export class OptionRoundFacade {
 
   async getTotalPayout() {
     const res = await this.optionRoundContract.total_payout();
-    if (typeof res !== "bigint" && typeof res !== "number") {
-      const data = new CairoUint256(res);
-      return data.toBigInt();
-    } else return res;
+    return convertToBigInt(res);
   }
   async getTotalPremiums() {
     const res = await this.optionRoundContract.total_premiums();
-    if (typeof res !== "bigint" && typeof res !== "number") {
-      const data = new CairoUint256(res);
-      return data.toBigInt();
-    } else return res;
+    return convertToBigInt(res);
   }
   async getTotalOptionsAvailable() {
     const res = await this.optionRoundContract.get_total_options_available();
-    if (typeof res !== "bigint" && typeof res !== "number") {
-      const data = new CairoUint256(res);
-      return data.toBigInt();
-    } else return res;
+    return convertToBigInt(res);
   }
   async getReservePrice() {
     const res = await this.optionRoundContract.get_reserve_price();
-    if (typeof res !== "bigint" && typeof res !== "number") {
-      const data = new CairoUint256(res);
-      return data.toBigInt();
-    } else return res;
+    return convertToBigInt(res);
   }
   async getBidsFor(address: string) {
     const res = await this.optionRoundContract.get_bids_for(address);
     const bids: Array<Bid> = [];
 
     for (let data of res) {
-      let amount: number | bigint;
-      let price: number | bigint;
-      if (typeof data.amount !== "bigint" && typeof data.amount !== "number") {
-        const res = new CairoUint256(data.amount);
-        amount = res.toBigInt();
-      } else {
-        amount = data.amount;
-      }
-
+      let amount = convertToBigInt(data.amount);
+      let price = convertToBigInt(data.price);
       if (typeof data.price !== "bigint" && typeof data.price !== "number") {
         const res = new CairoUint256(data.price);
         price = res.toBigInt();
@@ -118,10 +100,7 @@ export class OptionRoundFacade {
       const res = await this.optionRoundContract.get_refundable_bids_for(
         optionBuyer
       );
-      if (typeof res !== "bigint" && typeof res !== "number") {
-        const data = new CairoUint256(res);
-        return data.toBigInt();
-      } else return res;
+      return convertToBigInt(res);
     } catch (err) {
       console.log(err);
     }
@@ -146,10 +125,7 @@ export class OptionRoundFacade {
       const res = await this.optionRoundContract.get_total_options_balance_for(
         optionBuyer
       );
-      if (typeof res !== "bigint" && typeof res !== "number") {
-        const data = new CairoUint256(res);
-        return data.toBigInt();
-      } else return res;
+      return convertToBigInt(res);
     } catch (err) {
       console.log(err);
     }
@@ -160,10 +136,7 @@ export class OptionRoundFacade {
       const res = await this.optionRoundContract.get_payout_balance_for(
         optionBuyer
       );
-      if (typeof res !== "bigint" && typeof res !== "number") {
-        const data = new CairoUint256(res);
-        return data.toBigInt();
-      } else return res;
+      return convertToBigInt(res);
     } catch (err) {
       console.log(err);
     }
@@ -174,10 +147,7 @@ export class OptionRoundFacade {
       const res = await this.optionRoundContract.get_tokenizable_options_for(
         optionBuyer
       );
-      if (typeof res !== "bigint" && typeof res !== "number") {
-        const data = new CairoUint256(res);
-        return data.toBigInt();
-      } else return res;
+      return convertToBigInt(res);
     } catch (err) {
       console.log(err);
     }
