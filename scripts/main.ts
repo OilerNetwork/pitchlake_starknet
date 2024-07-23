@@ -25,7 +25,6 @@ async function main(environment: string, port?: string) {
 
   const testRunner = new TestRunner(provider, vaultAddress, ethAddress,constants);
 
-
   await testRunner.ethFacade.supplyERC20(
     devAccount,
     provider,

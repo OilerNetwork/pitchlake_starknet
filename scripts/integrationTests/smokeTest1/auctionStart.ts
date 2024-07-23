@@ -1,17 +1,12 @@
-import { LibraryError, Uint256 } from "starknet";
+import { LibraryError } from "starknet";
 import { getAccount } from "../../utils/helpers/common";
 import { getOptionRoundFacade } from "../../utils/helpers/setup";
 import assert from "assert";
 import {
   ApprovalArgs,
-  Constants,
   PlaceBidArgs,
 } from "../../utils/facades/types";
 import { mineNextBlock } from "../../utils/katana";
-import {
-  getLiquidityProviderAccounts,
-  getOptionBidderAccounts,
-} from "../../utils/helpers/accounts";
 import { TestRunner } from "../../utils/facades/TestRunner";
 
 export const smokeTest = async ({
@@ -19,6 +14,8 @@ export const smokeTest = async ({
   vaultFacade,
   ethFacade,
   constants,
+  getLiquidityProviderAccounts,
+  getOptionBidderAccounts
 }: TestRunner) => {
   const optionRoundFacade = await getOptionRoundFacade(
     provider,

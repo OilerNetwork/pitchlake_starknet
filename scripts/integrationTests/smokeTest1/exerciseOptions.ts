@@ -1,16 +1,13 @@
 
 import { getOptionRoundFacade } from "../../utils/helpers/setup";
 import assert from "assert";
-import {
-  getOptionBidderAccounts,
-} from "../../utils/helpers/accounts";
 import { TestRunner } from "../../utils/facades/TestRunner";
 
 export const smokeTest = async ({
   provider,
   vaultFacade,
-  constants: { depositAmount },
   ethFacade,
+  getOptionBidderAccounts
 }: TestRunner) => {
   const optionRoundFacade = await getOptionRoundFacade(
     provider,

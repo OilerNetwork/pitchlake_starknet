@@ -1,5 +1,4 @@
 import { Provider, TypedContractV2 } from "starknet";
-import { getAccount } from "./common";
 import { vaultABI } from "../../abi";
 import { getNow, timeskipNextBlock } from "../katana";
 import { getOptionRoundContract } from "./setup";

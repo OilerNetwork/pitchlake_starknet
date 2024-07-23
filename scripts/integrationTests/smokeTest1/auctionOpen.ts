@@ -1,6 +1,5 @@
 import assert from "assert";
 import { DepositArgs, WithdrawArgs } from "../../utils/facades/types";
-import { getLiquidityProviderAccounts } from "../../utils/helpers/accounts";
 import { TestRunner } from "../../utils/facades/TestRunner";
 import { LibraryError } from "starknet";
 
@@ -11,6 +10,7 @@ export const smokeTest = async ({
   vaultFacade: vault,
   ethFacade: eth,
   constants: { depositAmount },
+  getLiquidityProviderAccounts
 }: TestRunner) => {
   const liquidityProviderAccounts = getLiquidityProviderAccounts(provider, 2);
 
