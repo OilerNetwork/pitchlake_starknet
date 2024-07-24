@@ -3,22 +3,16 @@ use starknet::{
     Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
     testing::{set_block_timestamp, set_contract_address}
 };
-use openzeppelin::token::erc20::interface::{
-    IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
-    IERC20SafeDispatcherTrait,
-};
+use openzeppelin::token::erc20::interface::{ERC20ABIDispatcherTrait,};
 use pitch_lake_starknet::{
-    contracts::{
-        eth::Eth,
-        vault::{
-            IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault,
-            IVaultSafeDispatcherTrait
-        },
-        option_round::{
-            IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState,
-            OptionRound::OptionRoundError
-        },
+    types::{OptionRoundState, Errors}, library::eth::Eth,
+    vault::{
+        contract::Vault,
+        interface::{
+            IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcherTrait
+        }
     },
+    option_round::{interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,},},
     tests::{
         utils::{
             helpers::{
@@ -63,11 +57,7 @@ fn test_starting_auction_while_round_auctioning_fails() {
     accelerate_to_auctioning(ref vault_facade);
 
     // Try to start auction while round is Auctioning
-    let expected_error: felt252 = OptionRoundError::AuctionAlreadyStarted.into();
-    match vault_facade.start_auction_raw() {
-        Result::Ok(_) => { panic!("Error expected") },
-        Result::Err(err) => { assert(err.into() == expected_error, 'Error Mismatch') }
-    }
+    vault_facade.start_auction_expect_error(Errors::AuctionAlreadyStarted);
 }
 
 // Test starting an auction after one ends fails
@@ -79,11 +69,7 @@ fn test_starting_auction_while_round_running_fails() {
     accelerate_to_running(ref vault_facade);
 
     // Try to start auction while round is Running
-    let expected_error: felt252 = OptionRoundError::AuctionAlreadyStarted.into();
-    match vault_facade.start_auction_raw() {
-        Result::Ok(_) => { panic!("Error expected") },
-        Result::Err(err) => { assert(err.into() == expected_error, 'Error Mismatch') }
-    }
+    vault_facade.start_auction_expect_error(Errors::AuctionAlreadyStarted);
 }
 
 // Test starting an auction before the round transition period is over fails
@@ -96,11 +82,7 @@ fn test_starting_auction_while_round_settled_before_round_transition_period_over
     accelerate_to_settled(ref vault_facade, 0);
 
     // Try to start auction while round is Settled, before round transition period is over
-    let expected_error: felt252 = OptionRoundError::AuctionStartDateNotReached.into();
-    match vault_facade.start_auction_raw() {
-        Result::Ok(_) => { panic!("Error expected") },
-        Result::Err(err) => { assert(err.into() == expected_error, 'Error Mismatch') }
-    }
+    vault_facade.start_auction_expect_error(Errors::AuctionStartDateNotReached);
 }
 
 
@@ -118,11 +100,12 @@ fn test_auction_started_option_round_event() {
     while rounds_to_run > 0_u32 {
         let mut current_round = vault.get_current_round();
         let total_options_available = accelerate_to_auctioning(ref vault);
+
         // Check the event emits correctly
         assert_event_auction_start(current_round.contract_address(), total_options_available);
 
         accelerate_to_running(ref vault);
-        accelerate_to_settled(ref vault, current_round.get_strike_price());
+        accelerate_to_settled(ref vault, 2 * current_round.get_strike_price());
 
         rounds_to_run -= 1;
     }

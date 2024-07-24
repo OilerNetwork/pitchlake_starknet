@@ -1,8 +1,5 @@
 use starknet::testing::{set_block_timestamp, set_contract_address, ContractAddress};
-use openzeppelin::token::erc20::interface::{
-    IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
-    IERC20SafeDispatcherTrait,
-};
+use openzeppelin::token::erc20::interface::{ERC20ABIDispatcherTrait,};
 use pitch_lake_starknet::tests::{
     utils::{
         helpers::{
@@ -25,12 +22,6 @@ use pitch_lake_starknet::tests::{
             option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundParams},
             vault_facade::{VaultFacade, VaultFacadeTrait},
         },
-        mocks::{
-            mock_market_aggregator::{
-                MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
-                IMarketAggregatorSetterDispatcherTrait
-            }
-        },
     },
 };
 use debug::PrintTrait;
@@ -48,8 +39,6 @@ fn test_premium_amount_0_before_auction_end() {
     accelerate_to_auctioning(ref vault_facade);
     // Make bids
     let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
-    let reserve_price = current_round.get_reserve_price();
-    let total_options_available = current_round.get_total_options_available();
 
     // Bid for all options at reserve price
     let bid_amount = current_round.get_total_options_available();
@@ -109,7 +98,9 @@ fn test_premium_amount_for_liquidity_providers_4() {
     // LPs
     let liquidity_providers = liquidity_providers_get(5);
     // Deposit amounts
-    let amounts = array![25, 25, 25, 25, 1];
+    let amounts = array![
+        25 * decimals(), 25 * decimals(), 25 * decimals(), 25 * decimals(), 1 * decimals()
+    ];
 
     _test_premiums_collectable_helper(ref vault_facade, liquidity_providers.span(), amounts.span());
 }

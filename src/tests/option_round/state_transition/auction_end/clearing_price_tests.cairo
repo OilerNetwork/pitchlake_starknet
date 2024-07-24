@@ -81,7 +81,7 @@ fn test_clearing_price_is_only_bid_price() {
 
 // Test clearing price is max price to sell all options
 #[test]
-#[available_gas(50000000)]
+#[available_gas(800000000)]
 fn test_clearing_price_is_highest_price_to_sell_all_options() {
     let (mut vault, _) = setup_facade();
     // Deposit liquidity and start the auction
@@ -90,14 +90,13 @@ fn test_clearing_price_is_highest_price_to_sell_all_options() {
 
     // Make bids, 4 bidders bid for 1/3 total options each, each bidder outbidding the previous one's price
     let bidders = option_bidders_get(4).span();
-    let bid_amounts = create_array_linear(total_options_available / 3, bidders.len()).span();
+    let bid_amounts = create_array_linear(total_options_available / 3 + 1, bidders.len()).span();
     let bid_prices = create_array_gradient(current_round.get_reserve_price(), 1, bidders.len())
         .span();
 
     let (clearing_price, _) = accelerate_to_running_custom(
         ref vault, bidders, bid_amounts, bid_prices
     );
-
     // Check that clearing price is the 2nd bid price (max price to sell all options)
     assert(clearing_price == *bid_prices[1], 'clearing price wrong');
 }

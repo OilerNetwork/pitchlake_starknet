@@ -1,23 +1,4 @@
-// https://www.sciencedirect.com/book/9780123745071/auction-theory
-// https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4123018
-
-// TODO:
-// underlying
-// setting expiry
-// setting strike price
-// collateralization
-// settlement
-// premium
-// batch auction
-// historical volatility
-// liquidity provision
-// option minting
-// liquidity roll-over
-// reserve price (this will be difficult?)
-// liquidity cap
-// fossil
-use pitch_lake_starknet::contracts::vault::{IVaultDispatcher};
-
+use pitch_lake_starknet::vault::interface::{IVaultDispatcher};
 
 #[starknet::interface]
 trait IPitchLake<TContractState> {
@@ -28,11 +9,10 @@ trait IPitchLake<TContractState> {
 
 #[starknet::contract]
 mod PitchLake {
-    use starknet::{ContractAddress};
-    use starknet::contract_address::ContractAddressZeroable;
-    use pitch_lake_starknet::contracts::vault::{Vault, IVault, IVaultDispatcher};
-    use pitch_lake_starknet::contracts::market_aggregator::{
-        IMarketAggregator, IMarketAggregatorDispatcher
+    use starknet::{ContractAddress, contract_address::ContractAddressZeroable};
+    use pitch_lake_starknet::{
+        vault::{interface::{IVault, IVaultDispatcher}},
+        market_aggregator::interface::{IMarketAggregator, IMarketAggregatorDispatcher}
     };
 
     #[storage]

@@ -1,16 +1,13 @@
 use core::option::OptionTrait;
 use core::array::SpanTrait;
-use openzeppelin::token::erc20::interface::{
-    IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
-    IERC20SafeDispatcherTrait,
-};
+use openzeppelin::token::erc20::interface::{ERC20ABIDispatcherTrait,};
 use starknet::{
     ClassHash, ContractAddress, contract_address_const, deploy_syscall,
     Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
     testing::{set_block_timestamp, set_contract_address}
 };
 use pitch_lake_starknet::{
-    contracts::{eth::Eth, vault::{Vault, VaultError}},
+    types::Errors, library::eth::Eth, vault::{contract::Vault},
     tests::{
         utils::{
             helpers::{
@@ -63,11 +60,10 @@ fn test_withdrawing_more_than_unlocked_balance_fails() {
 
     // Try to withdraw more than unlocked balance
     let unlocked_balance = vault.get_lp_unlocked_balance(liquidity_provider);
-    let expected_error: felt252 = VaultError::InsufficientBalance.into();
-    match vault.withdraw_raw(unlocked_balance + 1, liquidity_provider) {
-        Result::Ok(_) => { panic!("Error expected") },
-        Result::Err(e) => { assert(e.into() == expected_error, 'Error mismatch'); }
-    }
+    vault
+        .withdraw_expect_error(
+            unlocked_balance + 1, liquidity_provider, Errors::InsufficientBalance
+        );
 }
 
 
@@ -127,7 +123,7 @@ fn test_withdrawing_from_vault_eth_transfer() {
     let vault_balance_before = eth.balance_of(vault.contract_address());
 
     // Withdraw from vault
-    vault.withdraw_multiple(deposit_amounts, liquidity_providers,);
+    vault.withdraw_multiple(deposit_amounts, liquidity_providers);
     let total_withdrawals = sum_u256_array(deposit_amounts);
 
     // Liquidity provider and vault eth balances after withdrawal

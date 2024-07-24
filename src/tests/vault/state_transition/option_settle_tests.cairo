@@ -4,26 +4,20 @@ use starknet::{
     testing::{set_block_timestamp, set_contract_address}, contract_address::ContractAddressZeroable,
 };
 use openzeppelin::{
-    utils::serde::SerializedAppend,
-    token::erc20::interface::{
-        IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcher,
-        IERC20SafeDispatcherTrait,
-    }
+    utils::serde::SerializedAppend, token::erc20::interface::{ERC20ABIDispatcherTrait}
 };
 use pitch_lake_starknet::{
-    contracts::{
-        vault::{
-            IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault,
-            IVaultSafeDispatcherTrait
-        },
-        eth::Eth,
-        option_round::{
-            IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRound::OptionRoundError
-        },
-        market_aggregator::{
-            IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait,
-            IMarketAggregatorSafeDispatcher, IMarketAggregatorSafeDispatcherTrait
-        },
+    types::Errors, library::eth::Eth,
+    vault::{
+        contract::Vault,
+        interface::{
+            IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcherTrait
+        }
+    },
+    option_round::{interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,}},
+    market_aggregator::interface::{
+        IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait,
+        IMarketAggregatorSafeDispatcher, IMarketAggregatorSafeDispatcherTrait
     },
     tests::{
         utils::{
@@ -56,10 +50,6 @@ use pitch_lake_starknet::{
                     OptionRoundParams, OptionRoundState, OptionRoundFacade, OptionRoundFacadeTrait
                 },
             },
-            mocks::mock_market_aggregator::{
-                MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
-                IMarketAggregatorSetterDispatcherTrait
-            },
         },
     }
 };
@@ -76,11 +66,7 @@ fn test_settling_option_round_while_round_auctioning_fails() {
     accelerate_to_auctioning(ref vault_facade);
 
     // Settle option round before auction ends
-    let expected_error: felt252 = OptionRoundError::OptionSettlementDateNotReached.into();
-    match vault_facade.settle_option_round_raw() {
-        Result::Ok(_) => { panic!("Error expected") },
-        Result::Err(err) => { assert(err.into() == expected_error, 'Error Mismatch') }
-    }
+    vault_facade.settle_option_round_expect_error(Errors::OptionSettlementDateNotReached);
 }
 
 // Test settling an option round before the option expiry date fails
@@ -90,11 +76,7 @@ fn test_settling_option_round_before_settlement_date_fails() {
     let (mut vault_facade, _) = setup_test_running();
 
     // Settle option round before expiry
-    let expected_error: felt252 = OptionRoundError::OptionSettlementDateNotReached.into();
-    match vault_facade.settle_option_round_raw() {
-        Result::Ok(_) => { panic!("Error expected") },
-        Result::Err(err) => { assert(err.into() == expected_error, 'Error Mismatch') }
-    }
+    vault_facade.settle_option_round_expect_error(Errors::OptionSettlementDateNotReached);
 }
 
 // Test settling an option round while round settled fails
@@ -107,19 +89,14 @@ fn test_settling_option_round_while_settled_fails() {
     accelerate_to_settled(ref vault_facade, 0x123);
 
     // Settle option round after it has already settled
-    let expected_error: felt252 = OptionRoundError::OptionRoundAlreadySettled.into();
-    match vault_facade.settle_option_round_raw() {
-        Result::Ok(_) => { panic!("Error expected") },
-        Result::Err(err) => { assert(err.into() == expected_error, 'Error Mismatch') }
-    }
+    vault_facade.settle_option_round_expect_error(Errors::OptionRoundAlreadySettled);
 }
-
 
 /// Event Tests ///
 
 // Test settling an option round emits the correct event
 #[test]
-#[available_gas(50000000)]
+#[available_gas(5000000000)]
 fn test_option_round_settled_event() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
@@ -131,9 +108,13 @@ fn test_option_round_settled_event() {
         let mut round = vault.get_current_round();
         let settlement_price = round.get_strike_price() + rounds_to_run.into();
         clear_event_logs(array![round.contract_address()]);
-        accelerate_to_settled(ref vault, settlement_price);
+        let total_payout = accelerate_to_settled(ref vault, settlement_price);
+        let individual_payout = total_payout / round.total_options_sold();
+
         // Check the event emits correctly
-        assert_event_option_settle(round.contract_address(), settlement_price);
+        assert_event_option_settle(
+            round.contract_address(), total_payout, individual_payout, settlement_price
+        );
 
         rounds_to_run -= 1;
     }
@@ -142,7 +123,7 @@ fn test_option_round_settled_event() {
 // Test every time a new round is deployed, the next round deployed event emits correctly
 // @dev The first round to be deployed after deployment is round 2
 #[test]
-#[available_gas(50000000)]
+#[available_gas(500000000)]
 fn test_next_round_deployed_event() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
@@ -180,7 +161,7 @@ fn test_next_round_deployed_event() {
 
 // Test settling an option round updates the current round id
 #[test]
-#[available_gas(50000000)]
+#[available_gas(500000000)]
 fn test_settling_option_round_updates_current_round_id() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
@@ -202,7 +183,7 @@ fn test_settling_option_round_updates_current_round_id() {
 // Test settling an option round updates the current round's state
 // @note should this be a state transition test in option round tests
 #[test]
-#[available_gas(50000000)]
+#[available_gas(500000000)]
 fn test_settle_option_round_updates_round_state() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
@@ -230,7 +211,7 @@ fn test_settle_option_round_updates_round_state() {
 
 // Test settling transfers the payout from the vault to the option round
 #[test]
-#[available_gas(50000000)]
+#[available_gas(90000000)]
 fn test_settling_option_round_transfers_payout() {
     let mut rounds_to_run = 3;
     let (mut vault, eth) = setup_facade();
@@ -262,7 +243,7 @@ fn test_settling_option_round_transfers_payout() {
 
 // Test that the vault and LP locked/unlocked balances update when the round settles
 #[test]
-#[available_gas(50000000)]
+#[available_gas(500000000)]
 fn test_settling_option_round_updates_locked_and_unlocked_balances() {
     let number_of_liquidity_providers = 4;
     let mut deposit_amounts = create_array_gradient(

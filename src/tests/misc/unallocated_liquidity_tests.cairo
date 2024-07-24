@@ -18,10 +18,6 @@ use pitch_lake_starknet::tests::{
             option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
             vault_facade::{VaultFacade, VaultFacadeTrait},
         },
-        mocks::mock_market_aggregator::{
-            MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
-            IMarketAggregatorSetterDispatcherTrait
-        },
     },
 };
 // @note Return to this file post clean up to see if tests still needed

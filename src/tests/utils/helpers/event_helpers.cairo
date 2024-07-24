@@ -1,7 +1,10 @@
+use core::array::SpanTrait;
 use starknet::{testing, ContractAddress,};
-use pitch_lake_starknet::contracts::{vault::{Vault}, option_round::{OptionRound}};
-use openzeppelin::token::erc20::{ERC20Component, ERC20Component::Transfer};
-use openzeppelin::{utils::serde::SerializedAppend,};
+use openzeppelin::{
+    utils::serde::SerializedAppend, token::erc20::{ERC20Component, ERC20Component::Transfer}
+};
+use pitch_lake_starknet::{vault::contract::Vault, option_round::contract::OptionRound,};
+use debug::PrintTrait;
 // Helpers
 
 // Pop the earliest unpopped logged event for the contract as the requested type
@@ -53,8 +56,8 @@ fn assert_event_auction_start(
     // @note Reminder to clear event logs at the end of the accelerators
     match pop_log::<OptionRound::Event>(option_round_address) {
         Option::Some(e) => {
-            let expected = OptionRound::Event::AuctionStart(
-                OptionRound::AuctionStart { total_options_available }
+            let expected = OptionRound::Event::AuctionStarted(
+                OptionRound::AuctionStarted { total_options_available }
             );
             assert_events_equal(e, expected);
         },
@@ -64,16 +67,38 @@ fn assert_event_auction_start(
 
 // Check AuctionAcceptedBid emits correctly
 fn assert_event_auction_bid_accepted(
-    contract: ContractAddress, account: ContractAddress, amount: u256, price: u256,
+    contract: ContractAddress, account: ContractAddress, amount: u256, price: u256, nonce: u32
 ) {
     match pop_log::<OptionRound::Event>(contract) {
         Option::Some(e) => {
-            let expected = OptionRound::Event::AuctionAcceptedBid(
-                OptionRound::AuctionAcceptedBid { account, amount, price }
+            let expected = OptionRound::Event::BidAccepted(
+                OptionRound::BidAccepted { account, amount, price, nonce }
             );
             assert_events_equal(e, expected);
         },
         Option::None => { panic(array!['Could not find event']); },
+    }
+}
+
+fn assert_event_auction_bid_updated(
+    contract: ContractAddress,
+    account: ContractAddress,
+    old_amount: u256,
+    old_price: u256,
+    new_amount: u256,
+    new_price: u256,
+    id: felt252
+) {
+    match pop_log::<OptionRound::Event>(contract) {
+        Option::Some(e) => {
+            let expected = OptionRound::Event::BidUpdated(
+                OptionRound::BidUpdated {
+                    id, account, old_amount, old_price, new_amount, new_price
+                }
+            );
+            assert_events_equal(e, expected);
+        },
+        Option::None => { panic(array!['Could not find event']); }
     }
 }
 
@@ -83,8 +108,8 @@ fn assert_event_auction_bid_rejected(
 ) {
     match pop_log::<OptionRound::Event>(contract) {
         Option::Some(e) => {
-            let expected = OptionRound::Event::AuctionRejectedBid(
-                OptionRound::AuctionRejectedBid { account, amount, price }
+            let expected = OptionRound::Event::BidRejected(
+                OptionRound::BidRejected { account, amount, price }
             );
             assert_events_equal(e, expected);
         },
@@ -93,11 +118,13 @@ fn assert_event_auction_bid_rejected(
 }
 
 // Check AuctionEnd emits correctly
-fn assert_event_auction_end(option_round_address: ContractAddress, clearing_price: u256) {
+fn assert_event_auction_end(
+    option_round_address: ContractAddress, clearing_price: u256, total_options_sold: u256
+) {
     match pop_log::<OptionRound::Event>(option_round_address) {
         Option::Some(e) => {
-            let expected = OptionRound::Event::AuctionEnd(
-                OptionRound::AuctionEnd { clearing_price }
+            let expected = OptionRound::Event::AuctionEnded(
+                OptionRound::AuctionEnded { clearing_price, total_options_sold }
             );
             assert_events_equal(e, expected);
         },
@@ -107,11 +134,18 @@ fn assert_event_auction_end(option_round_address: ContractAddress, clearing_pric
 
 // Check OptionSettle emits correctly
 // @dev Settlment price is the price determining the payout for the round
-fn assert_event_option_settle(option_round_address: ContractAddress, settlement_price: u256) {
+fn assert_event_option_settle(
+    option_round_address: ContractAddress,
+    total_payout: u256,
+    payout_per_option: u256,
+    settlement_price: u256
+) {
     match pop_log::<OptionRound::Event>(option_round_address) {
         Option::Some(e) => {
-            let expected = OptionRound::Event::OptionSettle(
-                OptionRound::OptionSettle { settlement_price }
+            let expected = OptionRound::Event::OptionRoundSettled(
+                OptionRound::OptionRoundSettled {
+                    total_payout, payout_per_option, settlement_price
+                }
             );
             assert_events_equal(e, expected);
         },
@@ -134,6 +168,25 @@ fn assert_event_unused_bids_refunded(
     }
 }
 
+fn assert_event_options_tokenized(
+    contract: ContractAddress, account: ContractAddress, amount: u256
+) {
+    // We pop here twice since the method fires a ERC20 transfer event before the OptionsTokenized event
+    match pop_log::<ERC20Component::Transfer>(contract) {
+        Option::Some(_) => {
+            match pop_log::<OptionRound::Event>(contract) {
+                Option::Some(e) => {
+                    let expected = OptionRound::Event::OptionsTokenized(
+                        OptionRound::OptionsTokenized { account, amount }
+                    );
+                    assert_events_equal(e, expected);
+                },
+                Option::None => { panic(array!['No events found']); },
+            }
+        },
+        Option::None => { panic!("ERC20 event not found") }
+    }
+}
 // Check OptionsExercised emits correctly
 fn assert_event_options_exercised(
     contract: ContractAddress, account: ContractAddress, num_options: u256, amount: u256
@@ -146,7 +199,7 @@ fn assert_event_options_exercised(
             assert_events_equal(e, expected);
         },
         Option::None => { panic(array!['No events found']); },
-    }
+    };
 }
 
 // ERC20 Events

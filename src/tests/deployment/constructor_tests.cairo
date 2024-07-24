@@ -1,26 +1,25 @@
-use openzeppelin::token::erc20::interface::{
-    IERC20, IERC20Dispatcher, IERC20DispatcherTrait, IERC20SafeDispatcherTrait,
-};
+use openzeppelin::token::erc20::interface::{ERC20ABIDispatcherTrait,};
 use starknet::{
     ClassHash, ContractAddress, contract_address_const, deploy_syscall, SyscallResult,
     Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
     testing::{set_block_timestamp, set_contract_address}
 };
 use pitch_lake_starknet::{
-    contracts::{
-        eth::Eth,
-        vault::{
-            IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, Vault,
-            IVaultSafeDispatcherTrait
-        },
-        option_round::{
-            OptionRoundState, OptionRound, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,
-            OptionRoundConstructorParams,
-        },
-        market_aggregator::{
+    library::eth::Eth, types::{OptionRoundState, OptionRoundConstructorParams},
+    vault::{
+        contract::Vault,
+        interface::{
+            IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcherTrait
+        }
+    },
+    option_round::{
+        contract::{OptionRound,}, interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,},
+    },
+    market_aggregator::{
+        interface::{
             IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait,
-            IMarketAggregatorSafeDispatcher, IMarketAggregatorSafeDispatcherTrait
         },
+        types::Errors
     },
     tests::{
         utils::{
@@ -33,10 +32,7 @@ use pitch_lake_starknet::{
             facades::{
                 vault_facade::VaultFacadeTrait,
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
-            },
-            mocks::mock_market_aggregator::{
-                MockMarketAggregator, IMarketAggregatorSetter, IMarketAggregatorSetterDispatcher,
-                IMarketAggregatorSetterDispatcherTrait
+                market_aggregator_facade::{MarketAggregatorFacadeTrait}
             },
             lib::{
                 variables::{decimals},
@@ -63,6 +59,11 @@ fn test_vault_constructor() {
     let mut current_round = vault.get_current_round();
     let current_round_id = vault.get_current_round_id();
 
+    // Constructor args
+    assert_eq!(vault.get_round_transition_period(), 1000);
+    assert_eq!(vault.get_auction_run_time(), 1000);
+    assert_eq!(vault.get_option_run_time(), 1000);
+
     // Check current round is 1
     assert(current_round_id == 1, 'current round should be 1');
     // Check current round is open and next round is settled
@@ -79,10 +80,37 @@ fn test_vault_constructor() {
 #[available_gas(50000000)]
 fn test_option_round_constructor() {
     let (mut vault, _) = setup_facade();
-
     let mut current_round = vault.get_current_round();
-//assert(current_round.get_constructor_params() == args, 'r1 construcutor params wrong');
-// @note add other constructor args here
+
+    // Test constructor args
+    assert_eq!(current_round.name(), "Pitch Lake Option Round 1");
+    assert_eq!(current_round.symbol(), "PLOR1");
+    assert_eq!(current_round.decimals(), 6);
+
+    assert_eq!(current_round.vault_address(), vault.contract_address());
+    assert_eq!(current_round.get_round_id(), 1);
+
+    // Get time params
+    let now = starknet::get_block_timestamp();
+    let (auction_run_time, option_run_time, round_transition_period) = {
+        (
+            vault.get_auction_run_time(),
+            vault.get_option_run_time(),
+            vault.get_round_transition_period()
+        )
+    };
+
+    let auction_start_date = now + round_transition_period;
+    let auction_end_date = auction_start_date + auction_run_time;
+    let option_settlement_date = auction_end_date + option_run_time;
+
+    assert_eq!(current_round.get_auction_start_date(), auction_start_date);
+    assert_eq!(current_round.get_auction_end_date(), auction_end_date);
+    assert_eq!(current_round.get_option_settlement_date(), option_settlement_date);
+
+    assert!(current_round.get_state() == OptionRoundState::Open, "state does not match");
+// Test reserve price, cap level, strike price
+// - might need to deploy a custom option round for this
 }
 
 
@@ -92,12 +120,10 @@ fn test_option_round_constructor() {
 #[available_gas(50000000)]
 fn test_market_aggregator_deployed() {
     let (mut vault_facade, _) = setup_facade();
-    // Get market aggregator dispatcher
-    let _mkt_agg = IMarketAggregatorDispatcher {
-        contract_address: vault_facade.get_market_aggregator()
-    };
+    let mk_agg = vault_facade.get_market_aggregator_facade();
 
+    assert(mk_agg.contract_address.is_non_zero(), 'mk agg addr shd be set');
     // Entry point will fail if contract not deployed
-    assert(vault_facade.get_market_aggregator_value() == 0, 'avg basefee shd be 0');
+    assert_eq!(mk_agg.get_TWAP_for_time_period(1, 1).is_none(), true);
 }
 

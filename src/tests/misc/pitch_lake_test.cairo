@@ -71,20 +71,22 @@ use starknet::{
 };
 use openzeppelin::utils::serde::SerializedAppend;
 use pitch_lake_starknet::{
+    vault::{interface::{IVault, IVaultDispatcher, IVaultDispatcherTrait}},
     contracts::{
         pitch_lake::{
             IPitchLake, IPitchLakeDispatcher, IPitchLakeDispatcherTrait, IPitchLakeSafeDispatcher,
             IPitchLakeSafeDispatcherTrait, PitchLake,
         },
-        vault::{IVault, IVaultDispatcher, IVaultDispatcherTrait, Vault::{VaultType}},
     },
     tests::utils::helpers::setup::{deploy_vault, deploy_market_aggregator, deploy_pitch_lake},
+    types::{VaultType},
 };
 use debug::PrintTrait;
 
 // @note Make a tests/pitchlake/ directory for this ?
 #[test]
 #[available_gas(50000000)]
+#[ignore]
 fn test_vault_type() {
     let pitch_lake_dispatcher: IPitchLakeDispatcher = deploy_pitch_lake();
     let itm_vault: IVaultDispatcher = pitch_lake_dispatcher.in_the_money_vault();

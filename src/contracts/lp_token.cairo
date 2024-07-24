@@ -1,12 +1,14 @@
 use starknet::{ContractAddress, StorePacking};
 use array::{Array};
 use traits::{Into, TryInto};
-use openzeppelin::token::erc20::interface::IERC20Dispatcher;
+use openzeppelin::token::erc20::interface::ERC20ABIDispatcher;
 use openzeppelin::utils::serde::SerializedAppend;
 
-use pitch_lake_starknet::contracts::option_round::{OptionRoundState};
-use pitch_lake_starknet::contracts::market_aggregator::{
-    IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
+use pitch_lake_starknet::{
+    market_aggregator::interface::{
+        IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
+    },
+    types::{OptionRoundState}
 };
 
 // @note Events for tokeninzing/positionizing in this contract or vault?
