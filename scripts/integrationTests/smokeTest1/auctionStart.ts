@@ -46,7 +46,7 @@ export const smokeTest = async ({
     `Expected:Open\nReceived:${stateAfter.activeVariant()}`
   );
 
-  await startAuctionBystander(constants);
+  await startAuctionBystander();
 
   const unlockedBalances = await getLPUnlockedBalanceAll(
     liquidityProviderAccounts

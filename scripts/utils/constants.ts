@@ -1,6 +1,5 @@
 // constants.js
 
-import { config } from "dotenv";
 import { cairo, Uint256 } from "starknet";
 
 type AccountDetailsType = {

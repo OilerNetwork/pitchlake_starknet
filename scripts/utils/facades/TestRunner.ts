@@ -7,7 +7,6 @@ import { liquidityProviders, optionBidders } from "../constants";
 import { MarketAggregatorFacade } from "./marketAggregatorFacade";
 import { getOptionRoundContract } from "../helpers/setup";
 import { getNow, timeskipNextBlock } from "../katana";
-import { vaultABI } from "../../abi";
 
 export type ResultSheet = {
   accounts: Array<Account>;
@@ -160,7 +159,7 @@ export class TestRunner {
   }
 
    //@note Only works for katana dev instance with a --dev flag
-   async startAuctionBystander(constants: Constants) {
+   async startAuctionBystander() {
     const devAccount = getAccount("dev", this.provider);
     //Set market aggregator reserve_price
     const marketAggregatorString =
@@ -180,26 +179,26 @@ export class TestRunner {
       devAccount,
       startDate,
       settleDate,
-      constants.reservePrice
+      this.constants.reservePrice
     );
     await marketAggFacade.setCapLevel(
       devAccount,
       startDate,
       settleDate,
-      constants.capLevel
+      this.constants.capLevel
     );
 
     await marketAggFacade.setStrikePrice(
       devAccount,
       startDate,
       settleDate,
-      constants.strikePrice
+      this.constants.strikePrice
     );
     await marketAggFacade.setTWAP(
       devAccount,
       startDate,
       settleDate,
-      constants.settlementPrice
+      this.constants.settlementPrice
     );
     await this.vaultFacade.vaultContract.update_round_params();
 
