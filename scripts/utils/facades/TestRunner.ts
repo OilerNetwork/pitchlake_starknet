@@ -1,7 +1,7 @@
 import { Account, Provider } from "starknet";
 import { ERC20Facade } from "./erc20Facade";
 import { VaultFacade } from "./vaultFacade";
-import { Constants } from "./types";
+import { ApprovalArgs, Constants, DepositArgs, WithdrawArgs } from "./types";
 import { getCustomAccount } from "../helpers/common";
 import { liquidityProviders, optionBidders } from "../constants";
 
@@ -56,12 +56,12 @@ export class TestRunner {
     for (const param of params) {
       switch (param) {
         case StoragePoints.lpLocked: {
-          const res = await this.vaultFacade.getLPLockedBalanceAll(accounts);
+          const res = await this.getLPLockedBalanceAll(accounts);
           resultSheet.before.set(StoragePoints.lpLocked, res);
           break;
         }
         case StoragePoints.lpUnlocked: {
-          const res = await this.vaultFacade.getLPUnlockedBalanceAll(accounts);
+          const res = await this.getLPUnlockedBalanceAll(accounts);
           resultSheet.before.set(StoragePoints.lpUnlocked, res);
           break;
         }
@@ -106,6 +106,54 @@ export class TestRunner {
     }
     return optionBidderAccounts;
   };
+
+  async getLPLockedBalanceAll(accounts: Array<Account>) {
+    const balances = await Promise.all(
+      accounts.map(async (account: Account) => {
+        const res = await this.vaultFacade.getLPLockedBalance(account.address);
+        return res;
+      })
+    );
+    return balances;
+  }
+
+  async getLPUnlockedBalanceAll(accounts: Array<Account>) {
+    const balances = await Promise.all(
+      accounts.map(async (account: Account) => {
+        const res = await this.vaultFacade.getLPUnlockedBalance(account.address);
+        return res;
+      })
+    );
+    return balances;
+  }
+
+  async getBalancesAll(accounts: Array<Account>) {
+    const balances = await Promise.all(
+      accounts.map(async (account: Account) => {
+        const balance = await this.ethFacade.getBalance(account.address);
+        return balance;
+      })
+    );
+    return balances;
+  }
+
+  async approveAll(approveData: Array<ApprovalArgs>) {
+    for (const approvalArgs of approveData) {
+      await this.ethFacade.approval(approvalArgs);
+    }
+  }
+  
+  async depositAll(depositData: Array<DepositArgs>) {
+    for (const depositArgs of depositData) {
+      await this.vaultFacade.deposit(depositArgs);
+    }
+  }
+
+  async withdrawAll(withdrawData: Array<WithdrawArgs>) {
+    for (const withdrawArgs of withdrawData) {
+      await this.vaultFacade.withdraw(withdrawArgs);
+    }
+  }
 }
 
 enum StoragePoints {

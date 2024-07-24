@@ -50,30 +50,13 @@ export class VaultFacade {
     const res = await this.vaultContract.get_lp_locked_balance(address);
     return convertToBigInt(res);
   }
-  async getLPLockedBalanceAll(accounts: Array<Account>) {
-    const balances = await Promise.all(
-      accounts.map(async (account: Account) => {
-        const res = await this.getLPLockedBalance(account.address);
-        return res;
-      })
-    );
-    return balances;
-  }
+
 
   async getLPUnlockedBalance(address: string) {
     const res = await this.vaultContract.get_lp_unlocked_balance(address);
     return convertToBigInt(res);
   }
 
-  async getLPUnlockedBalanceAll(accounts: Array<Account>) {
-    const balances = await Promise.all(
-      accounts.map(async (account: Account) => {
-        const res = await this.getLPUnlockedBalance(account.address);
-        return res;
-      })
-    );
-    return balances;
-  }
   async withdraw({ account, amount }: WithdrawArgs) {
     this.vaultContract.connect(account);
     await this.vaultContract.withdraw_liquidity(amount);
@@ -89,18 +72,6 @@ export class VaultFacade {
       data;
     } catch (err) {
       console.log(err);
-    }
-  }
-
-  async depositAll(depositData: Array<DepositArgs>) {
-    for (const depositArgs of depositData) {
-      await this.deposit(depositArgs);
-    }
-  }
-
-  async withdrawAll(withdrawData: Array<WithdrawArgs>) {
-    for (const withdrawArgs of withdrawData) {
-      await this.withdraw(withdrawArgs);
     }
   }
 

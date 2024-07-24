@@ -20,15 +20,6 @@ export class ERC20Facade {
     );
   }
 
-  async getBalancesAll(accounts: Array<Account>) {
-    const balances = await Promise.all(
-      accounts.map(async (account: Account) => {
-        const balance = await this.getBalance(account.address);
-        return balance;
-      })
-    );
-    return balances;
-  }
   async getBalance(account: string) {
     const balance = await this.erc20Contract.balance_of(account);
 
@@ -69,12 +60,6 @@ export class ERC20Facade {
       this.erc20Contract.approve(spender, amount);
     } catch (err) {
       console.log(err);
-    }
-  }
-
-  async approveAll(approveData: Array<ApprovalArgs>) {
-    for (const approvalArgs of approveData) {
-      await this.approval(approvalArgs);
     }
   }
 
