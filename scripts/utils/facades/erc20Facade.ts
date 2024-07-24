@@ -66,7 +66,7 @@ export class ERC20Facade {
   async approval({ owner, amount, spender }: ApprovalArgs) {
     this.erc20Contract.connect(owner);
     try {
-      this.erc20Contract.approve(spender, amount);
+      await this.erc20Contract.approve(spender, amount);
     } catch (err) {
       console.log(err);
     }

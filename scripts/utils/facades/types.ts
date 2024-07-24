@@ -12,12 +12,12 @@ export type ApprovalArgs = {
 export type DepositArgs = {
   from: Account;
   beneficiary: string;
-  amount: number|bigint;
+  amount: number | bigint;
 };
 
 export type WithdrawArgs = {
   account: Account;
-  amount: number| bigint;
+  amount: number | bigint;
 };
 
 //OptionRoundTypes
@@ -62,17 +62,6 @@ export type TokenizeOptionArgs = {
   from: Account;
 };
 
-//Smoke Test types
-
-export type Constants = {
-  depositAmount: number|bigint;
-  reservePrice:number|bigint;
-  settlementPrice:number|bigint;
-  strikePrice:number|bigint;
-  capLevel:number|bigint;
-
-};
-
 export type Bid = {
   id: string | number | bigint;
   nonce: number | bigint;
@@ -81,4 +70,24 @@ export type Bid = {
   price: number | bigint;
   isTokenized: boolean;
   isRefunded: boolean;
+};
+
+//Smoke Test types
+
+export type Constants = {
+  depositAmount: number | bigint;
+  reservePrice: number | bigint;
+  settlementPrice: number | bigint;
+  strikePrice: number | bigint;
+  capLevel: number | bigint;
+};
+
+//Simulation Types
+export type MarketData = {
+  reservePrice: number | bigint;
+  settlementPrice: number | bigint;
+  strikePrice: number | bigint;
+  capLevel: number | bigint;
+  startTime?:number|bigint;
+  endTime?:number|bigint;
 };

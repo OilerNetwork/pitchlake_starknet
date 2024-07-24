@@ -1,6 +1,7 @@
-import { Account, CairoUint256, TypedContractV2 } from "starknet";
+import { Account, CairoUint256, LibraryError, TypedContractV2 } from "starknet";
 import {
   Bid,
+  ExerciseOptionArgs,
   PayoutBalanceArgs,
   PlaceBidArgs,
   RefundableBidsArgs,
@@ -18,6 +19,14 @@ export class OptionRoundFacade {
     this.optionRoundContract = optionRoundContract;
   }
 
+
+  async getRoundId() {
+    const res = await this.optionRoundContract.get_round_id();
+    if (typeof res !== "bigint" && typeof res !== "number") {
+      const data = new CairoUint256(res);
+      return data.toBigInt();
+    } else return res;
+  }
   async getTotalPayout() {
     const res = await this.optionRoundContract.total_payout();
     if (typeof res !== "bigint" && typeof res !== "number") {
@@ -102,8 +111,10 @@ export class OptionRoundFacade {
     this.optionRoundContract.connect(from);
     try {
       const data = await this.optionRoundContract.place_bid(amount, price);
+      console.log("SUCCESS", data);
     } catch (err) {
-      console.log(err);
+      const error = err as LibraryError;
+      console.log(error.name);
     }
   }
 
@@ -182,38 +193,44 @@ export class OptionRoundFacade {
       console.log(err);
     }
   }
+
   async refundUnusedBids({ from, optionBidder }: RefundUnusedBidsArgs) {
-    try {
-      this.optionRoundContract.connect(from);
-      const data = await this.optionRoundContract.refund_unused_bids(
-        optionBidder
-      );
+    this.optionRoundContract.connect(from);
+    const data = await this.optionRoundContract.refund_unused_bids(
+      optionBidder
+    );
 
-      console.log("refund unused bids inside -> ", data);
-      // @note: here it will return the total refundable_balance
-      // if (typeof res !== "bigint" && typeof res !== "number") {
-      //   const data = new CairoUint256(res);
-      //   return data.toBigInt();
-      // } else return res;
-    } catch (err) {
-      console.log(err);
+    console.log("refund unused bids inside -> ", data);
+    // @note: here it will return the total refundable_balance
+    // if (typeof res !== "bigint" && typeof res !== "number") {
+    //   const data = new CairoUint256(res);
+    //   return data.toBigInt();
+    // } else return res;s
+  }
+
+  async refundUnusedBidsAll(
+    refundUnusedBidsAllArgs: Array<RefundUnusedBidsArgs>
+  ) {
+    for (const refundArgs of refundUnusedBidsAllArgs) {
+      await this.refundUnusedBids(refundArgs);
     }
   }
 
-  async exerciseOptionsAll(exerciseOptionData:Array<Account>){
-    for(const exerciseOptionsArgs of exerciseOptionData)
-    {
-      await this.exerciseOptions(exerciseOptionsArgs)
-    }
+  async exerciseOptions({ from }: ExerciseOptionArgs) {
+    this.optionRoundContract.connect(from);
+    const data = await this.optionRoundContract.exercise_options();
+    // @note: here it will return the amount of transfer
+    // if (typeof res !== "bigint" && typeof res !== "number") {
+    //   const data = new CairoUint256(res);
+    //   return data.toBigInt();
+    // } else return res;
   }
-  async exerciseOptions(from: Account) {
-      this.optionRoundContract.connect(from);
-      const data = await this.optionRoundContract.exercise_options();
-      // @note: here it will return the amount of transfer
-      // if (typeof res !== "bigint" && typeof res !== "number") {
-      //   const data = new CairoUint256(res);
-      //   return data.toBigInt();
-      // } else return res;
+
+  async exerciseOptionsAll(exerciseOptionData: Array<ExerciseOptionArgs>) {
+    for (const exerciseOptionsArgs of exerciseOptionData) {
+      await this.exerciseOptions(exerciseOptionsArgs);
+    }
+
   }
 
   async tokenizeOptions({ from }: TokenizeOptionArgs) {

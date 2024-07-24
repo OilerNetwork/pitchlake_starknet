@@ -6,7 +6,7 @@ import {
   TypedContractV2,
 } from "starknet";
 import { optionRoundABI, vaultABI } from "../../abi";
-import { Constants, DepositArgs, WithdrawArgs } from "./types";
+import { DepositArgs, MarketData, WithdrawArgs } from "./types";
 import {
   accelerateToAuctioning,
   accelerateToRunning,
@@ -127,7 +127,8 @@ export class VaultFacade {
   }
 
   //@note Only works for katana dev instance with a --dev flag
-  async startAuctionBystander(provider: Provider, constants: Constants) {
+  async startAuctionBystander(provider: Provider, marketData: MarketData) {
+    console.log("MARKETDATA:",marketData);
     const devAccount = getAccount("dev", provider);
     //Set market aggregator reserve_price
     const marketAggregatorString =
@@ -147,26 +148,27 @@ export class VaultFacade {
       devAccount,
       startDate,
       settleDate,
-      constants.reservePrice
+      marketData.reservePrice
+
     );
     await marketAggFacade.setCapLevel(
       devAccount,
       startDate,
       settleDate,
-      constants.capLevel
+      marketData.capLevel
     );
 
     await marketAggFacade.setStrikePrice(
       devAccount,
       startDate,
       settleDate,
-      constants.strikePrice
+      marketData.strikePrice
     );
     await marketAggFacade.setTWAP(
       devAccount,
       startDate,
       settleDate,
-      constants.settlementPrice
+      marketData.settlementPrice
     );
     await this.vaultContract.update_round_params();
 
@@ -184,8 +186,7 @@ export class VaultFacade {
   async endAuctionBystander(provider: Provider) {
     const devAccount = getAccount("dev", provider);
     await accelerateToRunning(provider, this.vaultContract);
-    this.vaultContract.connect(devAccount);
-    await this.vaultContract.end_auction();
+    await this.endAuction(devAccount);
   }
 
   async settleOptionRound(account: Account) {

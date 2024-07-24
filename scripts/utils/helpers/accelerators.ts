@@ -36,7 +36,7 @@ async function accelerateToRunning(
   const auctionEndDate = await optionRoundContract.get_auction_end_date();
 
   await timeskipNextBlock(
-    Number(auctionEndDate) - Number(currentTime),
+    Number(auctionEndDate) - Number(currentTime)+1,
     provider.channel.nodeUrl
   );
 }
@@ -55,7 +55,7 @@ async function accelerateToSettled(
     await optionRoundContract.get_option_settlement_date();
 
   await timeskipNextBlock(
-    Number(optionSettleDate) - Number(currentTime)+1,
+    Number(optionSettleDate) - Number(currentTime),
     provider.channel.nodeUrl
   );
  

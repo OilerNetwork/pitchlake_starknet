@@ -2,6 +2,9 @@ import { CairoUint256, Contract, Provider, TypedContractV2 } from "starknet";
 import { stringToHex } from "./common";
 import { erc20ABI, optionRoundABI, vaultABI } from "../../abi";
 import { OptionRoundFacade } from "../facades/optionRoundFacade";
+import { SimulationParameters, SimulationSheet } from "../facades/RoundSimulator";
+import { getLiquidityProviderAccounts, getOptionBidderAccounts } from "./accounts";
+import { DepositArgs, ExerciseOptionArgs, PlaceBidArgs, RefundUnusedBidsArgs } from "../facades/types";
 
 export const getOptionRoundFacade = async (
   provider: Provider,
@@ -55,4 +58,55 @@ export const getOptionRoundContract = async (
     provider
   ).typedv2(optionRoundABI);
   return optionRoundContract;
+};
+
+export const generateSimulationParams = (
+  provider: Provider,
+  simulationSheets: Array<SimulationSheet>
+) => {
+  const liquidityProviderAccounts = getLiquidityProviderAccounts(provider, 5);
+  const optionBidderAccounts = getOptionBidderAccounts(provider, 5);
+  const simulationParams = simulationSheets.map((simulationSheet) => {
+    const depositAllArgs = simulationSheet.liquidityProviders.map(
+      (provider, index) => {
+        return {
+          from: liquidityProviderAccounts[provider - 1],
+          beneficiary: liquidityProviderAccounts[provider - 1].address,
+          amount: simulationSheet.depositAmounts[index],
+        } as DepositArgs;
+      }
+    );
+    const bidAllArgs: Array<PlaceBidArgs> = simulationSheet.optionBidders.map(
+      (bidder, index) => {
+        const data: PlaceBidArgs = {
+          from: optionBidderAccounts[bidder - 1],
+          amount: BigInt(simulationSheet.bidAmounts[index]),
+          price: BigInt(simulationSheet.bidPrices[index]),
+        };
+        return data;
+      }
+    );
+    let ref: { [key: string]: boolean } = {};
+    const refundAllArgs: Array<RefundUnusedBidsArgs> = [];
+    bidAllArgs.map((bids) => {
+      if (!ref[bids.from.address]) {
+        ref[bids.from.address] = true;
+        refundAllArgs.push({ from: bids.from, optionBidder: bids.from.address });
+      }
+    });
+
+    const exerciseOptionsAllArgs: Array<ExerciseOptionArgs> =
+      simulationSheet.optionBidders.map((bidder) => ({
+        from: optionBidderAccounts[bidder - 1],
+      }));
+    const data: SimulationParameters = {
+      depositAllArgs,
+      bidAllArgs,
+      marketData: simulationSheet.marketData,
+      exerciseOptionsAllArgs,
+      refundAllArgs
+    };
+    return data;
+  });
+  return simulationParams;
 };
