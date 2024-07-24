@@ -12,7 +12,6 @@ import { TestRunner } from "../../utils/facades/TestRunner";
 export const smokeTest = async ({
   provider,
   vaultFacade,
-  ethFacade,
   constants,
   getLiquidityProviderAccounts,
   getOptionBidderAccounts,
