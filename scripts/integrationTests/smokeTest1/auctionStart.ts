@@ -18,7 +18,8 @@ export const smokeTest = async ({
   getLPUnlockedBalanceAll,
   getLPLockedBalanceAll,
   approveAll,
-  getBalancesAll
+  getBalancesAll,
+  startAuctionBystander
 }: TestRunner) => {
   const optionRoundFacade = await getOptionRoundFacade(
     provider,
@@ -45,7 +46,7 @@ export const smokeTest = async ({
     `Expected:Open\nReceived:${stateAfter.activeVariant()}`
   );
 
-  await vaultFacade.startAuctionBystander(provider, constants);
+  await startAuctionBystander(constants);
 
   const unlockedBalances = await getLPUnlockedBalanceAll(
     liquidityProviderAccounts

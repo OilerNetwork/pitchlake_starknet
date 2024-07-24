@@ -10,7 +10,8 @@ export const smokeTest = async ({
   constants: { depositAmount },
   ethFacade,
   getLiquidityProviderAccounts,
-  getLPUnlockedBalanceAll
+  getLPUnlockedBalanceAll,
+  settleOptionRoundBystander
 }: TestRunner) => {
   const optionRoundFacade = await getOptionRoundFacade(
     provider,
@@ -64,7 +65,7 @@ export const smokeTest = async ({
     totalPremiums,
   });
 
-  await vaultFacade.settleOptionRoundBystander(provider);
+  await settleOptionRoundBystander();
 
 
   const stateAfter: any =

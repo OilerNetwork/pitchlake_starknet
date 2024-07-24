@@ -160,18 +160,18 @@ export class TestRunner {
   }
 
    //@note Only works for katana dev instance with a --dev flag
-   async startAuctionBystander(provider: Provider, constants: Constants) {
-    const devAccount = getAccount("dev", provider);
+   async startAuctionBystander(constants: Constants) {
+    const devAccount = getAccount("dev", this.provider);
     //Set market aggregator reserve_price
     const marketAggregatorString =
       await this.vaultFacade.vaultContract.get_market_aggregator();
     const marketAggregatorAddress = "0x" + stringToHex(marketAggregatorString);
     const marketAggFacade = new MarketAggregatorFacade(
       marketAggregatorAddress,
-      provider
+      this.provider
     );
     const optionRound = await getOptionRoundContract(
-      provider,
+      this.provider,
       this.vaultFacade.vaultContract
     );
     const startDate = await optionRound.get_auction_start_date();
@@ -224,8 +224,8 @@ export class TestRunner {
     );
   }
 
-  async endAuctionBystander(provider: Provider) {
-    const devAccount = getAccount("dev", provider);
+  async endAuctionBystander() {
+    const devAccount = getAccount("dev", this.provider);
     await this.accelerateToRunning();
     this.vaultFacade.vaultContract.connect(devAccount);
     await this.vaultFacade.vaultContract.end_auction();
@@ -246,13 +246,13 @@ export class TestRunner {
     );
   }
 
-  async settleOptionRoundBystander(provider: Provider) {
+  async settleOptionRoundBystander() {
     await this.accelerateToSettled();
-    const devAccount = getAccount("dev", provider);
+    const devAccount = getAccount("dev", this.provider);
     await this.vaultFacade.settleOptionRound(devAccount);
   }
 
-  async  accelerateToSettled( ) {
+  async accelerateToSettled( ) {
     const optionRoundContract = await getOptionRoundContract(
       this.provider,
       this.vaultFacade.vaultContract
@@ -266,7 +266,7 @@ export class TestRunner {
       Number(optionSettleDate) - Number(currentTime)+1,
       this.provider.channel.nodeUrl
     );
-   
+
   }
 }
 
