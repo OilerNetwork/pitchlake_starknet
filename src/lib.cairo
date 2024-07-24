@@ -1,3 +1,12 @@
+mod types;
+
+mod library {
+    mod eth;
+    mod red_black_tree;
+    mod utils;
+}
+
+
 mod vault {
     mod interface;
     mod contract;
@@ -14,20 +23,13 @@ mod market_aggregator {
     mod types;
 }
 
-mod library {
-    mod eth;
-    mod red_black_tree;
-    mod utils;
-}
-
-mod types;
-
-#[cfg(test)]
-mod tests;
-
 
 // @note Refactor these into their own modules
 mod contracts {
     mod pitch_lake;
     mod lp_token;
 }
+
+#[cfg(test)]
+mod tests;
+

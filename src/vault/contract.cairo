@@ -756,25 +756,5 @@ mod Vault {
                 Option::None => 0
             }
         }
-
-        fn calculate_total_options_available(
-            self: @ContractState, starting_liquidity: u256, cap_level: u16
-        ) -> u256 {
-            let current_round_id = self.current_option_round_id();
-            let current_round = self.get_round_dispatcher(current_round_id);
-            //Calculate total options accordingly
-            let strike = current_round.get_strike_price();
-            //println!("strike: {}", strike);
-            //println!("cl: {}", cap_level);
-            let cap = (strike * cap_level.into()) / 10000;
-            let total_options = starting_liquidity / cap;
-
-            //println!("starting liquidity: {}", starting_liquidity);
-            //println!("cap: {}", cap);
-            //println!("total options: {}", total_options);
-
-            //(starting_liquidity * cap_level.into()) / 10000
-            total_options
-        }
     }
 }

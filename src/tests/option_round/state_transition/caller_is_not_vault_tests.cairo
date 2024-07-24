@@ -22,6 +22,7 @@ use pitch_lake_starknet::{
             facades::{
                 vault_facade::{VaultFacade, VaultFacadeTrait},
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundParams},
+                market_aggregator_facade::{MarketAggregatorFacade, MarketAggregatorFacadeTrait},
             },
         },
     }
@@ -73,5 +74,78 @@ fn test_only_vault_can_settle_option_round() {
 
     set_contract_address(not_vault());
     current_round.settle_option_round_expect_error(0x123, err);
+}
+
+
+#[test]
+#[available_gas(50000000)]
+fn test_only_vault_can_update_round_params() {
+    let (mut vault, _) = setup_facade();
+    let mut round = vault.get_current_round();
+
+    set_contract_address(not_vault());
+    round.update_round_params_expect_error(err);
+}
+
+#[test]
+#[available_gas(50000000)]
+fn test_update_round_params_on_round() {
+    let (mut vault, _) = setup_facade();
+    let mut round = vault.get_current_round();
+
+    let reserve_price0 = round.get_reserve_price();
+    let cap_level0 = round.get_cap_level();
+    let strike_price0 = round.get_strike_price();
+
+    set_contract_address(vault.contract_address());
+    round.update_params(1, 2, 3);
+
+    let reserve_price = round.get_reserve_price();
+    let cap_level = round.get_cap_level();
+    let strike_price = round.get_strike_price();
+
+    assert_eq!(reserve_price, 1);
+    assert_eq!(cap_level, 2);
+    assert_eq!(strike_price, 3);
+    assert(reserve_price != reserve_price0, 'reserve price did not change');
+    assert(cap_level != cap_level0, 'cap level did not change');
+    assert(strike_price != strike_price0, 'strike price did not change');
+}
+
+#[test]
+#[available_gas(50000000)]
+fn test_update_round_params_on_vault() {
+    let (mut vault, _) = setup_facade();
+    let mut round = vault.get_current_round();
+
+    let reserve_price0 = round.get_reserve_price();
+    let cap_level0 = round.get_cap_level();
+    let strike_price0 = round.get_strike_price();
+
+    // Mock values on mk agg
+    let mk_agg = vault.get_market_aggregator_facade();
+    let from = round.get_auction_start_date();
+    let to = round.get_option_settlement_date();
+
+    let new_reserve_price = 1;
+    let new_cap_level = 2;
+    let new_strike_price = 3;
+
+    mk_agg.set_reserve_price_for_time_period(from, to, new_reserve_price);
+    mk_agg.set_cap_level_for_time_period(from, to, new_cap_level);
+    mk_agg.set_strike_price_for_time_period(from, to, new_strike_price);
+
+    vault.update_round_params();
+
+    let reserve_price = round.get_reserve_price();
+    let cap_level = round.get_cap_level();
+    let strike_price = round.get_strike_price();
+
+    assert_eq!(reserve_price, new_reserve_price);
+    assert_eq!(cap_level, new_cap_level);
+    assert_eq!(strike_price, new_strike_price);
+    assert(reserve_price != reserve_price0, 'reserve price did not change');
+    assert(cap_level != cap_level0, 'cap level did not change');
+    assert(strike_price != strike_price0, 'strike price did not change');
 }
 
