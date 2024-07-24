@@ -1,4 +1,4 @@
-import { Account, Provider, TypedContractV2 } from "starknet";
+import { Account, Provider } from "starknet";
 import { ERC20Facade } from "./erc20Facade";
 import { VaultFacade } from "./vaultFacade";
 import { ApprovalArgs, Constants, DepositArgs, WithdrawArgs } from "./types";
