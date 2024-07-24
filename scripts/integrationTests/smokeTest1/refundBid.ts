@@ -9,7 +9,6 @@ import { ERC20Facade } from "../../utils/facades/erc20Facade";
 export const smokeTest = async ({
   provider,
   vaultFacade: vault,
-  ethFacade: eth,
   getOptionBidderAccounts,
   getBalancesAll
 }: TestRunner) => {
