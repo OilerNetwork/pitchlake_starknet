@@ -3,17 +3,14 @@ import {
   getOptionRoundFacade,
 } from "../../utils/helpers/setup";
 import assert from "assert";
-import {
-  getOptionBidderAccounts,
-} from "../../utils/helpers/accounts";
 import { TestRunner } from "../../utils/facades/TestRunner";
 import { ERC20Facade } from "../../utils/facades/erc20Facade";
 
 export const smokeTest = async ({
   provider,
   vaultFacade: vault,
-  ethFacade: eth,
-  getBalancesAll
+  getBalancesAll,
+  getOptionBidderAccounts
 }: TestRunner) => {
   const optionRoundFacade = await getOptionRoundFacade(
     provider,
@@ -29,7 +26,7 @@ export const smokeTest = async ({
   const totalOptionAvailable =
     await optionRoundFacade.getTotalOptionsAvailable();
   const reservePrice = await optionRoundFacade.getReservePrice();
-  const optionBidderAccounts = getOptionBidderAccounts(provider, 3);
+  const optionBidderAccounts = getOptionBidderAccounts(3);
 
   const balancesBefore = await getBalancesAll(optionBidderAccounts);
 
