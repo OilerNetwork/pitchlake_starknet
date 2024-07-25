@@ -1,4 +1,4 @@
-import { Account, Contract, Provider, RpcProvider } from "starknet";
+import { Account, CairoUint256, Contract, Provider, RpcProvider, Uint256 } from "starknet";
 import { nodeUrlMapping, accountDetailsMapping } from "../constants";
 
 function getProvider(environment: string, port?: string) {
@@ -80,6 +80,14 @@ function stringToHex(decimalString: string): string {
   return num.toString(16);
 }
 
+function convertToBigInt(quantity: number | bigint | Uint256) {
+  if (typeof quantity !== "bigint" && typeof quantity !== "number") {
+    const res = new CairoUint256(quantity);
+    quantity = res.toBigInt();
+  } 
+  return quantity;
+}
 
-export { getProvider, getAccount, getContract, getCustomAccount, stringToHex };
+
+export { getProvider, getAccount, getContract, getCustomAccount, stringToHex, convertToBigInt };
 
