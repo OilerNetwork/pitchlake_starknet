@@ -3,10 +3,6 @@ import { getAccount } from "../../utils/helpers/common";
 import { getOptionRoundFacade } from "../../utils/helpers/setup";
 import assert from "assert";
 import { Constants } from "../../utils/facades/types";
-import {
-  getLiquidityProviderAccounts,
-  getOptionBidderAccounts,
-} from "../../utils/helpers/accounts";
 import { TestRunner } from "../../utils/facades/TestRunner";
 
 export const smokeTest = async ({
@@ -15,7 +11,8 @@ export const smokeTest = async ({
   constants,
   getLPLockedBalanceAll,
   getLPUnlockedBalanceAll,
-  endAuctionBystander
+  endAuctionBystander,
+  getLiquidityProviderAccounts,
 }: TestRunner) => {
   const optionRoundFacade = await getOptionRoundFacade(
     provider,
@@ -38,8 +35,7 @@ export const smokeTest = async ({
     `Expected:Auctioning\nReceived:${state.activeVariant()}`
   );
 
-  const liquidityProviderAccounts = getLiquidityProviderAccounts(provider, 2);
-  const optionBidderAccounts = getOptionBidderAccounts(provider, 3);
+  const liquidityProviderAccounts = getLiquidityProviderAccounts(2);
 
   await endAuctionBystander();
 

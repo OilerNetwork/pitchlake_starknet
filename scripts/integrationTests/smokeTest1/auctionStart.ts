@@ -7,10 +7,6 @@ import {
   PlaceBidArgs,
 } from "../../utils/facades/types";
 import { mineNextBlock } from "../../utils/katana";
-import {
-  getLiquidityProviderAccounts,
-  getOptionBidderAccounts,
-} from "../../utils/helpers/accounts";
 import { TestRunner } from "../../utils/facades/TestRunner";
 
 export const smokeTest = async ({
@@ -21,7 +17,9 @@ export const smokeTest = async ({
   getLPLockedBalanceAll,
   getBalancesAll,
   approveAll,
-  startAuctionBystander
+  startAuctionBystander,
+  getLiquidityProviderAccounts,
+  getOptionBidderAccounts
 }: TestRunner) => {
   const optionRoundFacade = await getOptionRoundFacade(
     provider,
@@ -40,8 +38,8 @@ export const smokeTest = async ({
   const stateAfter: any =
     await optionRoundFacade.optionRoundContract.get_state();
 
-  const liquidityProviderAccounts = getLiquidityProviderAccounts(provider, 2);
-  const optionBidderAccounts = getOptionBidderAccounts(provider, 2);
+  const liquidityProviderAccounts = getLiquidityProviderAccounts(2);
+  const optionBidderAccounts = getOptionBidderAccounts(2);
 
   assert(
     stateAfter.activeVariant() === "Open",

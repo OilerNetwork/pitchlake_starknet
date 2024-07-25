@@ -5,8 +5,9 @@ import { ApprovalArgs, Constants, DepositArgs, MarketData, WithdrawArgs } from "
 import { vaultABI } from "../../abi";
 import { getOptionRoundContract } from "../helpers/setup";
 import { getNow, timeskipNextBlock } from "../katana";
-import { getAccount, stringToHex } from "../helpers/common";
+import { getAccount, getCustomAccount, stringToHex } from "../helpers/common";
 import { MarketAggregatorFacade } from "./marketAggregatorFacade";
+import { liquidityProviders, optionBidders } from "../constants";
 
 export type ResultSheet = {
   accounts: Array<Account>;
@@ -233,6 +234,36 @@ export class TestRunner {
     const devAccount = getAccount("dev", this.provider);
     await this.vaultFacade.settleOptionRound(devAccount);
   }
+
+  getLiquidityProviderAccounts = (
+    length: number
+  ) => {
+    const liquidityProviderAccounts: Array<Account> = [];
+    for (let i = 0; i < length; i++) {
+      liquidityProviderAccounts.push(
+        getCustomAccount(
+          this.provider,
+          liquidityProviders[i].account,
+          liquidityProviders[i].privateKey
+        )
+      );
+    }
+    return liquidityProviderAccounts;
+  };
+  
+  getOptionBidderAccounts = (length: number) => {
+    const optionBidderAccounts: Array<Account> = [];
+    for (let i = 0; i < length; i++) {
+      optionBidderAccounts.push(
+        getCustomAccount(
+          this.provider,
+          optionBidders[i].account,
+          optionBidders[i].privateKey
+        )
+      );
+    }
+    return optionBidderAccounts;
+  };
 }
 
 enum StoragePoints {

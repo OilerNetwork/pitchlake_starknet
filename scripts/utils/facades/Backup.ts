@@ -5,17 +5,12 @@ import {
   ExerciseOptionArgs,
   MarketData,
   PlaceBidArgs,
-  RefundableBidsArgs,
   RefundUnusedBidsArgs,
 } from "./types";
 import { TestRunner } from "./TestRunner";
-import { getOptionRoundContract, getOptionRoundFacade } from "../helpers/setup";
+import { getOptionRoundContract } from "../helpers/setup";
 import { optionRoundABI } from "../../abi";
 import { OptionRoundFacade } from "./optionRoundFacade";
-import {
-  getLiquidityProviderAccounts,
-  getOptionBidderAccounts,
-} from "../helpers/accounts";
 
 export type SimulationSheet = {
   liquidityProviders: Array<number>;
@@ -50,8 +45,8 @@ export class RoundSimulator {
   ) {
     this.testRunner = testRunner;
     this.optionRoundFacade = new OptionRoundFacade(optionRoundContract);
-    this.lpAccounts = getLiquidityProviderAccounts(testRunner.provider, 5);
-    this.bidderAccounts = getOptionBidderAccounts(testRunner.provider, 5);
+    this.lpAccounts = testRunner.getLiquidityProviderAccounts(5);
+    this.bidderAccounts = testRunner.getOptionBidderAccounts(5);
   }
 
   async simulateRound(params: SimulationParameters) {

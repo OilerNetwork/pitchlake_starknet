@@ -1,10 +1,6 @@
 import { getAccount } from "../../utils/helpers/common";
 import { getOptionRoundFacade } from "../../utils/helpers/setup";
 import assert from "assert";
-import {
-  getLiquidityProviderAccounts,
-  getOptionBidderAccounts,
-} from "../../utils/helpers/accounts";
 import { TestRunner } from "../../utils/facades/TestRunner";
 import { eth, LibraryError } from "starknet";
 
@@ -14,15 +10,17 @@ export const smokeTest = async ({
   constants: { depositAmount },
   ethFacade,
   getLPUnlockedBalanceAll,
-  settleOptionRoundBystander
+  settleOptionRoundBystander,
+  getLiquidityProviderAccounts,
+  getOptionBidderAccounts
 }: TestRunner) => {
   const optionRoundFacade = await getOptionRoundFacade(
     provider,
     vaultFacade.vaultContract
   );
 
-  const liquidityProviderAccounts = getLiquidityProviderAccounts(provider, 2);
-  const optionBidderAccounts = getOptionBidderAccounts(provider, 3);
+  const liquidityProviderAccounts = getLiquidityProviderAccounts(2);
+
   const devAccount = getAccount("dev", provider);
 
   try {
