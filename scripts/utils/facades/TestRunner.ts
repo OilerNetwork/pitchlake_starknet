@@ -1,8 +1,7 @@
-import { Account, Provider, TypedContractV2 } from "starknet";
+import { Account, Provider } from "starknet";
 import { ERC20Facade } from "./erc20Facade";
 import { VaultFacade } from "./vaultFacade";
 import { ApprovalArgs, Constants, DepositArgs, MarketData, WithdrawArgs } from "./types";
-import { vaultABI } from "../../abi";
 import { getOptionRoundContract } from "../helpers/setup";
 import { getNow, timeskipNextBlock } from "../katana";
 import { getAccount, getCustomAccount, stringToHex } from "../helpers/common";
@@ -39,7 +38,7 @@ export class TestRunner {
     this.provider = provider;
   }
 
-  async testResults(accounts:Array<Account>,params: Array<StoragePoints>, method: Methods) {
+  testResults = async (accounts:Array<Account>,params: Array<StoragePoints>, method: Methods) => {
 
 
   const before:Map<StoragePoints,(number|bigint)|Array<number|bigint>> = new Map;
@@ -77,7 +76,7 @@ export class TestRunner {
     }
   }
 
-  async getLPUnlockedBalanceAll(accounts: Array<Account>) {
+  getLPUnlockedBalanceAll = async (accounts: Array<Account>) => {
     const balances = await Promise.all(
       accounts.map(async (account: Account) => {
         const res = await this.vaultFacade.getLPUnlockedBalance(account.address);
@@ -87,7 +86,7 @@ export class TestRunner {
     return balances;
   }
 
-  async getLPLockedBalanceAll(accounts: Array<Account>) {
+  getLPLockedBalanceAll = async (accounts: Array<Account>) => {
     const balances = await Promise.all(
       accounts.map(async (account: Account) => {
         const res = await this.vaultFacade.getLPLockedBalance(account.address);
@@ -97,19 +96,19 @@ export class TestRunner {
     return balances;
   }
 
-  async depositAll(depositData: Array<DepositArgs>) {
+  depositAll = async (depositData: Array<DepositArgs>) => {
     for (const depositArgs of depositData) {
       await this.vaultFacade.deposit(depositArgs);
     }
   }
 
-  async withdrawAll(withdrawData: Array<WithdrawArgs>) {
+  withdrawAll = async (withdrawData: Array<WithdrawArgs>) => {
     for (const withdrawArgs of withdrawData) {
       await this.vaultFacade.withdraw(withdrawArgs);
     }
   }
 
-  async getBalancesAll(accounts: Array<Account>) {
+  getBalancesAll = async (accounts: Array<Account>) => {
     const balances = await Promise.all(
       accounts.map(async (account: Account) => {
         const balance = await this.ethFacade.getBalance(account.address);
@@ -119,13 +118,13 @@ export class TestRunner {
     return balances;
   }
 
-  async approveAll(approveData: Array<ApprovalArgs>) {
+  approveAll = async (approveData: Array<ApprovalArgs>) => {
     for (const approvalArgs of approveData) {
       await this.ethFacade.approval(approvalArgs);
     }
   }
 
-  async accelerateToAuctioning() {
+  accelerateToAuctioning = async () => {
     const optionRoundContract = await getOptionRoundContract(
       this.provider,
       this.vaultFacade.vaultContract
@@ -140,7 +139,7 @@ export class TestRunner {
     );
   }
 
-  async accelerateToRunning() {
+  accelerateToRunning = async () => {
     const optionRoundContract = await getOptionRoundContract(
       this.provider,
       this.vaultFacade.vaultContract
@@ -155,7 +154,7 @@ export class TestRunner {
     );
   }
   
-  async accelerateToSettled() {
+  accelerateToSettled = async () => {
     const optionRoundContract = await getOptionRoundContract(
       this.provider,
       this.vaultFacade.vaultContract
@@ -172,7 +171,7 @@ export class TestRunner {
   }
 
   //@note Only works for katana dev instance with a --dev flag
-  async startAuctionBystander(marketData: MarketData) {
+  startAuctionBystander = async (marketData: MarketData) => {
     console.log("MARKETDATA:",marketData);
     const devAccount = getAccount("dev", this.provider);
     //Set market aggregator reserve_price
@@ -205,13 +204,13 @@ export class TestRunner {
     await this.vaultFacade.vaultContract.start_auction();
   }
 
-  async endAuctionBystander() {
+  endAuctionBystander = async () => {
     const devAccount = getAccount("dev", this.provider);
     await this.accelerateToRunning();
     await this.vaultFacade.endAuction(devAccount);
   }
 
-  async settleOptionRoundBystander() {
+  settleOptionRoundBystander = async () => {
     await this.accelerateToSettled();
     const devAccount = getAccount("dev", this.provider);
     await this.vaultFacade.settleOptionRound(devAccount);
