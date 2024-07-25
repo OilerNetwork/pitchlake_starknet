@@ -4,7 +4,6 @@ import { getOptionRoundFacade } from "../../utils/helpers/setup";
 import assert from "assert";
 import {
   ApprovalArgs,
-  Constants,
   PlaceBidArgs,
 } from "../../utils/facades/types";
 import { mineNextBlock } from "../../utils/katana";
@@ -19,6 +18,8 @@ export const smokeTest = async ({
   vaultFacade,
   ethFacade,
   constants,
+  getLPUnlockedBalanceAll,
+  getLPLockedBalanceAll
 }: TestRunner) => {
   const optionRoundFacade = await getOptionRoundFacade(
     provider,
@@ -47,10 +48,10 @@ export const smokeTest = async ({
 
   await vaultFacade.startAuctionBystander(provider, constants);
 
-  const unlockedBalances = await vaultFacade.getLPUnlockedBalanceAll(
+  const unlockedBalances = await getLPUnlockedBalanceAll(
     liquidityProviderAccounts
   );
-  const lockedBalances = await vaultFacade.getLPLockedBalanceAll(
+  const lockedBalances = await getLPLockedBalanceAll(
     liquidityProviderAccounts
   );
   const totalLockedAmount = await vaultFacade.getTotalLocked();

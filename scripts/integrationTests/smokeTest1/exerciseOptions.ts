@@ -9,7 +9,6 @@ import { ExerciseOptionArgs } from "../../utils/facades/types";
 export const smokeTest = async ({
   provider,
   vaultFacade,
-  constants: { depositAmount },
   ethFacade,
 }: TestRunner) => {
   const optionRoundFacade = await getOptionRoundFacade(

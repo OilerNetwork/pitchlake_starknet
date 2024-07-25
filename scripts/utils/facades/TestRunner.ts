@@ -1,7 +1,7 @@
 import { Account, Provider } from "starknet";
 import { ERC20Facade } from "./erc20Facade";
 import { VaultFacade } from "./vaultFacade";
-import { Constants } from "./types";
+import { Constants, DepositArgs, WithdrawArgs } from "./types";
 
 export type ResultSheet = {
   accounts: Array<Account>;
@@ -45,13 +45,13 @@ export class TestRunner {
       switch (param){
         case StoragePoints.lpLocked:
           {
-            const res = await this.vaultFacade.getLPLockedBalanceAll(accounts);
+            const res = await this.getLPLockedBalanceAll(accounts);
             resultSheet.before.set(StoragePoints.lpLocked,res);
             break;
           }
         case StoragePoints.lpUnlocked:
           {
-            const res = await this.vaultFacade.getLPUnlockedBalanceAll(accounts);
+            const res = await this.getLPUnlockedBalanceAll(accounts);
             resultSheet.before.set(StoragePoints.lpUnlocked,res);
             break;
           }
@@ -68,6 +68,38 @@ export class TestRunner {
             break;
           }
       }
+    }
+  }
+
+  async getLPUnlockedBalanceAll(accounts: Array<Account>) {
+    const balances = await Promise.all(
+      accounts.map(async (account: Account) => {
+        const res = await this.vaultFacade.getLPUnlockedBalance(account.address);
+        return res;
+      })
+    );
+    return balances;
+  }
+
+  async getLPLockedBalanceAll(accounts: Array<Account>) {
+    const balances = await Promise.all(
+      accounts.map(async (account: Account) => {
+        const res = await this.vaultFacade.getLPLockedBalance(account.address);
+        return res;
+      })
+    );
+    return balances;
+  }
+
+  async depositAll(depositData: Array<DepositArgs>) {
+    for (const depositArgs of depositData) {
+      await this.vaultFacade.deposit(depositArgs);
+    }
+  }
+
+  async withdrawAll(withdrawData: Array<WithdrawArgs>) {
+    for (const withdrawArgs of withdrawData) {
+      await this.vaultFacade.withdraw(withdrawArgs);
     }
   }
 }

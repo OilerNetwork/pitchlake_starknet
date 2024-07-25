@@ -11,6 +11,9 @@ export const smokeTest = async ({
   vaultFacade: vault,
   ethFacade: eth,
   constants: { depositAmount },
+  getLPUnlockedBalanceAll,
+  depositAll,
+  withdrawAll
 }: TestRunner) => {
   const liquidityProviderAccounts = getLiquidityProviderAccounts(provider, 2);
 
@@ -23,7 +26,7 @@ export const smokeTest = async ({
 
   const ethBalancesBefore = await eth.getBalancesAll(liquidityProviderAccounts);
 
-  const lpUnlockedBalancesBefore = await vault.getLPUnlockedBalanceAll(
+  const lpUnlockedBalancesBefore = await getLPUnlockedBalanceAll(
     liquidityProviderAccounts
   );
   //Deposits
@@ -43,10 +46,10 @@ export const smokeTest = async ({
     },
   ];
 
-  await vault.depositAll(depositAllArgs);
+  await depositAll(depositAllArgs);
   //Debug
 
-  const lpUnlockedBalancesAfter = await vault.getLPUnlockedBalanceAll(
+  const lpUnlockedBalancesAfter = await getLPUnlockedBalanceAll(
     liquidityProviderAccounts
   );
   const ethBalancesAfter = await eth.getBalancesAll(liquidityProviderAccounts);
@@ -78,9 +81,9 @@ export const smokeTest = async ({
       amount: BigInt(depositAmount) / BigInt(2),
     },
   ];
-  await vault.withdrawAll(withdrawAllData);
+  await withdrawAll(withdrawAllData);
 
-  const lpUnlockedBalancesAfterWithdraw = await vault.getLPUnlockedBalanceAll(
+  const lpUnlockedBalancesAfterWithdraw = await getLPUnlockedBalanceAll(
     liquidityProviderAccounts
   );
 
@@ -99,7 +102,7 @@ export const smokeTest = async ({
     assert(error.message !== "Should have reverted");
   }
 
-  const lpUnlockedBalancesAfterWithdraw2 = await vault.getLPUnlockedBalanceAll(
+  const lpUnlockedBalancesAfterWithdraw2 = await getLPUnlockedBalanceAll(
     liquidityProviderAccounts
   );
   //Asserts

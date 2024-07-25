@@ -107,9 +107,9 @@ export class RoundSimulator {
 
   async captureLockedUnlockedBalances() {
     const lpLockedBalancesBigInt =
-      await this.testRunner.vaultFacade.getLPLockedBalanceAll(this.lpAccounts);
+      await this.testRunner.getLPLockedBalanceAll(this.lpAccounts);
     const lpUnlockedBalancesBigint =
-      await this.testRunner.vaultFacade.getLPUnlockedBalanceAll(
+      await this.testRunner.getLPUnlockedBalanceAll(
         this.lpAccounts
       );
     const lpLockedBalances = lpLockedBalancesBigInt.map((balance) => {
@@ -141,7 +141,7 @@ export class RoundSimulator {
     return ethBalances;
   }
   async simulateOpenState(depositAllArgs: Array<DepositArgs>) {
-    await this.testRunner.vaultFacade.depositAll(depositAllArgs);
+    await this.testRunner.depositAll(depositAllArgs);
     const lockedUnlockedBalances = await this.captureLockedUnlockedBalances();
     const ethBalancesBidders = await this.captureEthBalancesOptionBidders();
     return {
