@@ -1,7 +1,7 @@
 import { Account, Provider } from "starknet";
 import { ERC20Facade } from "./erc20Facade";
 import { VaultFacade } from "./vaultFacade";
-import { Constants, DepositArgs, WithdrawArgs } from "./types";
+import { ApprovalArgs, Constants, DepositArgs, WithdrawArgs } from "./types";
 
 export type ResultSheet = {
   accounts: Array<Account>;
@@ -100,6 +100,22 @@ export class TestRunner {
   async withdrawAll(withdrawData: Array<WithdrawArgs>) {
     for (const withdrawArgs of withdrawData) {
       await this.vaultFacade.withdraw(withdrawArgs);
+    }
+  }
+
+  async getBalancesAll(accounts: Array<Account>) {
+    const balances = await Promise.all(
+      accounts.map(async (account: Account) => {
+        const balance = await this.ethFacade.getBalance(account.address);
+        return balance;
+      })
+    );
+    return balances;
+  }
+
+  async approveAll(approveData: Array<ApprovalArgs>) {
+    for (const approvalArgs of approveData) {
+      await this.ethFacade.approval(approvalArgs);
     }
   }
 }

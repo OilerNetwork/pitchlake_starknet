@@ -10,6 +10,7 @@ export const smokeTest = async ({
   provider,
   vaultFacade,
   ethFacade,
+  getBalancesAll
 }: TestRunner) => {
   const optionRoundFacade = await getOptionRoundFacade(
     provider,
@@ -19,7 +20,7 @@ export const smokeTest = async ({
 
   const optionBidderAccounts = getOptionBidderAccounts(provider, 3);
 
-  const ethBalancesBefore = await ethFacade.getBalancesAll(
+  const ethBalancesBefore = await getBalancesAll(
     optionBidderAccounts
   );
 
@@ -29,7 +30,7 @@ export const smokeTest = async ({
   await optionRoundFacade.exerciseOptionsAll(exerciseOptionsAllArgs);
 
 
-  const ethBalancesAfter = await ethFacade.getBalancesAll(optionBidderAccounts);
+  const ethBalancesAfter = await getBalancesAll(optionBidderAccounts);
   const totalPayout = await optionRoundFacade.getTotalPayout();
 
   checkpoint1({
@@ -39,7 +40,7 @@ export const smokeTest = async ({
   });
 
   await optionRoundFacade.exerciseOptionsAll(exerciseOptionsAllArgs);
-  const ethBalancesAfterTwice = await ethFacade.getBalancesAll(
+  const ethBalancesAfterTwice = await getBalancesAll(
     optionBidderAccounts
   );
 

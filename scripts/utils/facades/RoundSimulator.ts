@@ -122,7 +122,7 @@ export class RoundSimulator {
   }
 
   async captureEthBalancesLiquidityProviders() {
-    const ethBalancesBigInt = await this.testRunner.ethFacade.getBalancesAll(
+    const ethBalancesBigInt = await this.testRunner.getBalancesAll(
       this.lpAccounts
     );
     const ethBalances = ethBalancesBigInt.map((balance) => {
@@ -132,7 +132,7 @@ export class RoundSimulator {
   }
 
   async captureEthBalancesOptionBidders() {
-    const ethBalancesBigInt = await this.testRunner.ethFacade.getBalancesAll(
+    const ethBalancesBigInt = await this.testRunner.getBalancesAll(
       this.bidderAccounts
     );
     const ethBalances = ethBalancesBigInt.map((balance) => {
@@ -168,7 +168,7 @@ export class RoundSimulator {
       };
       return data;
     });
-    await this.testRunner.ethFacade.approveAll(approvalArgs);
+    await this.testRunner.approveAll(approvalArgs);
 
     await this.optionRoundFacade.placeBidsAll(bidAllArgs);
     const ethBalancesBidders = await this.captureEthBalancesOptionBidders();

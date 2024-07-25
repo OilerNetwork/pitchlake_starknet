@@ -13,7 +13,8 @@ export const smokeTest = async ({
   constants: { depositAmount },
   getLPUnlockedBalanceAll,
   depositAll,
-  withdrawAll
+  withdrawAll,
+  getBalancesAll
 }: TestRunner) => {
   const liquidityProviderAccounts = getLiquidityProviderAccounts(provider, 2);
 
@@ -24,7 +25,7 @@ export const smokeTest = async ({
     spender: vault.vaultContract.address,
   });
 
-  const ethBalancesBefore = await eth.getBalancesAll(liquidityProviderAccounts);
+  const ethBalancesBefore = await getBalancesAll(liquidityProviderAccounts);
 
   const lpUnlockedBalancesBefore = await getLPUnlockedBalanceAll(
     liquidityProviderAccounts
@@ -52,7 +53,7 @@ export const smokeTest = async ({
   const lpUnlockedBalancesAfter = await getLPUnlockedBalanceAll(
     liquidityProviderAccounts
   );
-  const ethBalancesAfter = await eth.getBalancesAll(liquidityProviderAccounts);
+  const ethBalancesAfter = await getBalancesAll(liquidityProviderAccounts);
 
   //Asserts
   //1) Check liquidity for A has increased by depositAmount
@@ -87,7 +88,7 @@ export const smokeTest = async ({
     liquidityProviderAccounts
   );
 
-  const ethBalancesAfterWithdraw = await eth.getBalancesAll(
+  const ethBalancesAfterWithdraw = await getBalancesAll(
     liquidityProviderAccounts
   );
 

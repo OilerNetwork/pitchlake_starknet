@@ -79,14 +79,14 @@ export class RoundSimulator {
   }
 
   async captureEthBalancesLiquidityProviders() {
-    const ethBalances = await this.testRunner.ethFacade.getBalancesAll(
+    const ethBalances = await this.testRunner.getBalancesAll(
       this.lpAccounts
     );
     return ethBalances;
   }
 
   async captureEthBalancesOptionBidders() {
-    const ethBalances = await this.testRunner.ethFacade.getBalancesAll(
+    const ethBalances = await this.testRunner.getBalancesAll(
       this.bidderAccounts
     );
     return ethBalances;
@@ -119,7 +119,7 @@ export class RoundSimulator {
       };
       return data;
     });
-    await this.testRunner.ethFacade.approveAll(approvalArgs);
+    await this.testRunner.approveAll(approvalArgs);
 
     await this.optionRoundFacade.placeBidsAll(bidAllArgs);
     const ethBalancesBidders = await this.captureEthBalancesOptionBidders();
