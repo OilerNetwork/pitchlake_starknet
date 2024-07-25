@@ -40,7 +40,7 @@ async function simulationTesting(testRunner: TestRunner) {
 
   const simulationSheets = plugMarketData(simulationMarketData,inputSheets);
   const simulationParams = generateSimulationParams(
-    testRunner.provider,
+    testRunner,
     simulationSheets
 );
 

@@ -3,8 +3,8 @@ import { stringToHex } from "./common";
 import { erc20ABI, optionRoundABI, vaultABI } from "../../abi";
 import { OptionRoundFacade } from "../facades/optionRoundFacade";
 import { SimulationParameters, SimulationSheet } from "../facades/RoundSimulator";
-import { getLiquidityProviderAccounts, getOptionBidderAccounts } from "./accounts";
 import { DepositArgs, ExerciseOptionArgs, PlaceBidArgs, RefundUnusedBidsArgs } from "../facades/types";
+import { TestRunner } from "../facades/TestRunner";
 
 export const getOptionRoundFacade = async (
   provider: Provider,
@@ -61,11 +61,11 @@ export const getOptionRoundContract = async (
 };
 
 export const generateSimulationParams = (
-  provider: Provider,
+  { getLiquidityProviderAccounts, getOptionBidderAccounts }: TestRunner,
   simulationSheets: Array<SimulationSheet>
 ) => {
-  const liquidityProviderAccounts = getLiquidityProviderAccounts(provider, 5);
-  const optionBidderAccounts = getOptionBidderAccounts(provider, 5);
+  const liquidityProviderAccounts = getLiquidityProviderAccounts(5);
+  const optionBidderAccounts = getOptionBidderAccounts(5);
   const simulationParams = simulationSheets.map((simulationSheet) => {
     const depositAllArgs = simulationSheet.liquidityProviders.map(
       (provider, index) => {

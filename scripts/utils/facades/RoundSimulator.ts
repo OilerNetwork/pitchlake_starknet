@@ -11,10 +11,6 @@ import { TestRunner } from "./TestRunner";
 import { getOptionRoundContract, getOptionRoundFacade } from "../helpers/setup";
 import { optionRoundABI } from "../../abi";
 import { OptionRoundFacade } from "./optionRoundFacade";
-import {
-  getLiquidityProviderAccounts,
-  getOptionBidderAccounts,
-} from "../helpers/accounts";
 
 export type SimulationSheet = {
   liquidityProviders: Array<number>;
@@ -56,8 +52,8 @@ export class RoundSimulator {
   ) {
     this.testRunner = testRunner;
     this.optionRoundFacade = new OptionRoundFacade(optionRoundContract);
-    this.lpAccounts = getLiquidityProviderAccounts(testRunner.provider, 5);
-    this.bidderAccounts = getOptionBidderAccounts(testRunner.provider, 5);
+    this.lpAccounts = testRunner.getLiquidityProviderAccounts(5);
+    this.bidderAccounts = testRunner.getOptionBidderAccounts(5);
   }
 
   async simulateRound(params: SimulationParameters) {
@@ -107,9 +103,9 @@ export class RoundSimulator {
 
   async captureLockedUnlockedBalances() {
     const lpLockedBalancesBigInt =
-      await this.testRunner.vaultFacade.getLPLockedBalanceAll(this.lpAccounts);
+      await this.testRunner.getLPLockedBalanceAll(this.lpAccounts);
     const lpUnlockedBalancesBigint =
-      await this.testRunner.vaultFacade.getLPUnlockedBalanceAll(
+      await this.testRunner.getLPUnlockedBalanceAll(
         this.lpAccounts
       );
     const lpLockedBalances = lpLockedBalancesBigInt.map((balance) => {
@@ -122,7 +118,7 @@ export class RoundSimulator {
   }
 
   async captureEthBalancesLiquidityProviders() {
-    const ethBalancesBigInt = await this.testRunner.ethFacade.getBalancesAll(
+    const ethBalancesBigInt = await this.testRunner.getBalancesAll(
       this.lpAccounts
     );
     const ethBalances = ethBalancesBigInt.map((balance) => {
@@ -132,7 +128,7 @@ export class RoundSimulator {
   }
 
   async captureEthBalancesOptionBidders() {
-    const ethBalancesBigInt = await this.testRunner.ethFacade.getBalancesAll(
+    const ethBalancesBigInt = await this.testRunner.getBalancesAll(
       this.bidderAccounts
     );
     const ethBalances = ethBalancesBigInt.map((balance) => {
@@ -141,7 +137,7 @@ export class RoundSimulator {
     return ethBalances;
   }
   async simulateOpenState(depositAllArgs: Array<DepositArgs>) {
-    await this.testRunner.vaultFacade.depositAll(depositAllArgs);
+    await this.testRunner.depositAll(depositAllArgs);
     const lockedUnlockedBalances = await this.captureLockedUnlockedBalances();
     const ethBalancesBidders = await this.captureEthBalancesOptionBidders();
     return {
@@ -154,10 +150,7 @@ export class RoundSimulator {
     bidAllArgs: Array<PlaceBidArgs>,
     marketData: MarketData
   ) {
-    await this.testRunner.vaultFacade.startAuctionBystander(
-      this.testRunner.provider,
-      marketData
-    );
+    await this.testRunner.startAuctionBystander(marketData);
 
     const lockedUnlockedBalances = await this.captureLockedUnlockedBalances();
     const approvalArgs = bidAllArgs.map((arg) => {
@@ -168,7 +161,7 @@ export class RoundSimulator {
       };
       return data;
     });
-    await this.testRunner.ethFacade.approveAll(approvalArgs);
+    await this.testRunner.approveAll(approvalArgs);
 
     await this.optionRoundFacade.placeBidsAll(bidAllArgs);
     const ethBalancesBidders = await this.captureEthBalancesOptionBidders();
@@ -178,9 +171,7 @@ export class RoundSimulator {
     };
   }
   async simulateRunningState(refundAllArgs: Array<RefundUnusedBidsArgs>) {
-    const data = await this.testRunner.vaultFacade.endAuctionBystander(
-      this.testRunner.provider
-    );
+    const data = await this.testRunner.endAuctionBystander();
 
     const lockedUnlockedBalances = await this.captureLockedUnlockedBalances();
     await this.optionRoundFacade.refundUnusedBidsAll(refundAllArgs);
@@ -192,9 +183,7 @@ export class RoundSimulator {
   }
   async simulateSettledState(exerciseOptionsArgs: Array<ExerciseOptionArgs>) {
     const data = await this.optionRoundFacade.optionRoundContract.get_state();
-    await this.testRunner.vaultFacade.settleOptionRoundBystander(
-      this.testRunner.provider
-    );
+    await this.testRunner.settleOptionRoundBystander();
 
     const lockedUnlockedBalances = await this.captureLockedUnlockedBalances();
     console.log("3");

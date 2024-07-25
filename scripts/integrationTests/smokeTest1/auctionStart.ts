@@ -4,21 +4,22 @@ import { getOptionRoundFacade } from "../../utils/helpers/setup";
 import assert from "assert";
 import {
   ApprovalArgs,
-  Constants,
   PlaceBidArgs,
 } from "../../utils/facades/types";
 import { mineNextBlock } from "../../utils/katana";
-import {
-  getLiquidityProviderAccounts,
-  getOptionBidderAccounts,
-} from "../../utils/helpers/accounts";
 import { TestRunner } from "../../utils/facades/TestRunner";
 
 export const smokeTest = async ({
   provider,
   vaultFacade,
-  ethFacade,
   constants,
+  getLPUnlockedBalanceAll,
+  getLPLockedBalanceAll,
+  getBalancesAll,
+  approveAll,
+  startAuctionBystander,
+  getLiquidityProviderAccounts,
+  getOptionBidderAccounts
 }: TestRunner) => {
   const optionRoundFacade = await getOptionRoundFacade(
     provider,
@@ -37,20 +38,20 @@ export const smokeTest = async ({
   const stateAfter: any =
     await optionRoundFacade.optionRoundContract.get_state();
 
-  const liquidityProviderAccounts = getLiquidityProviderAccounts(provider, 2);
-  const optionBidderAccounts = getOptionBidderAccounts(provider, 2);
+  const liquidityProviderAccounts = getLiquidityProviderAccounts(2);
+  const optionBidderAccounts = getOptionBidderAccounts(2);
 
   assert(
     stateAfter.activeVariant() === "Open",
     `Expected:Open\nReceived:${stateAfter.activeVariant()}`
   );
 
-  await vaultFacade.startAuctionBystander(provider, constants);
+  await startAuctionBystander(constants);
 
-  const unlockedBalances = await vaultFacade.getLPUnlockedBalanceAll(
+  const unlockedBalances = await getLPUnlockedBalanceAll(
     liquidityProviderAccounts
   );
-  const lockedBalances = await vaultFacade.getLPLockedBalanceAll(
+  const lockedBalances = await getLPLockedBalanceAll(
     liquidityProviderAccounts
   );
   const totalLockedAmount = await vaultFacade.getTotalLocked();
@@ -79,7 +80,7 @@ export const smokeTest = async ({
       spender: optionRoundFacade.optionRoundContract.address,
     },
   ];
-  await ethFacade.approveAll(approveAllData);
+  await approveAll(approveAllData);
   await mineNextBlock(provider.channel.nodeUrl);
 
   //Place bids according to story script
@@ -87,7 +88,7 @@ export const smokeTest = async ({
   const totalOptionAvailable =
     await optionRoundFacade.getTotalOptionsAvailable();
 
-  const ethBalancesBefore = await ethFacade.getBalancesAll(
+  const ethBalancesBefore = await getBalancesAll(
     optionBidderAccounts
   );
 
@@ -110,7 +111,7 @@ export const smokeTest = async ({
   ];
   await optionRoundFacade.placeBidsAll(placeBidsData);
 
-  const ethBalancesAfter = await ethFacade.getBalancesAll(optionBidderAccounts);
+  const ethBalancesAfter = await getBalancesAll(optionBidderAccounts);
 
   const bidArrays = await optionRoundFacade.getBidsForAll(optionBidderAccounts);
 
