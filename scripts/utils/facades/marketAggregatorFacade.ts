@@ -1,5 +1,6 @@
 import { Account, Contract, Provider, TypedContractV2 } from "starknet";
 import { marketAggregatorABI } from "../../abi";
+import { MarketData } from "./types";
 
 export class MarketAggregatorFacade {
   marketAggregatorContract: TypedContractV2<typeof marketAggregatorABI>;
@@ -62,6 +63,40 @@ export class MarketAggregatorFacade {
       from,
       to,
       reservePrice
+    );
+  }
+
+  async setMarketParameters(
+    devAccount: Account,
+    startDate: number | bigint,
+    settleDate: number | bigint,
+    marketData: MarketData
+  ) {
+    await this.setReservePrice(
+      devAccount,
+      startDate,
+      settleDate,
+      marketData.reservePrice
+
+    );
+    await this.setCapLevel(
+      devAccount,
+      startDate,
+      settleDate,
+      marketData.capLevel
+    );
+
+    await this.setStrikePrice(
+      devAccount,
+      startDate,
+      settleDate,
+      marketData.strikePrice
+    );
+    await this.setTWAP(
+      devAccount,
+      startDate,
+      settleDate,
+      marketData.settlementPrice
     );
   }
 }

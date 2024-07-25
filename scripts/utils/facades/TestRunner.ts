@@ -189,32 +189,14 @@ export class TestRunner {
     );
     const startDate = await optionRound.get_auction_start_date();
     const settleDate = await optionRound.get_option_settlement_date();
-    await marketAggFacade.setReservePrice(
+    
+    await marketAggFacade.setMarketParameters(
       devAccount,
       startDate,
       settleDate,
-      marketData.reservePrice
+      marketData
+    )
 
-    );
-    await marketAggFacade.setCapLevel(
-      devAccount,
-      startDate,
-      settleDate,
-      marketData.capLevel
-    );
-
-    await marketAggFacade.setStrikePrice(
-      devAccount,
-      startDate,
-      settleDate,
-      marketData.strikePrice
-    );
-    await marketAggFacade.setTWAP(
-      devAccount,
-      startDate,
-      settleDate,
-      marketData.settlementPrice
-    );
     await this.vaultFacade.vaultContract.update_round_params();
 
     await this.accelerateToAuctioning();
