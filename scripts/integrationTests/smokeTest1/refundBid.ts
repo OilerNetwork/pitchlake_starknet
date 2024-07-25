@@ -13,6 +13,7 @@ export const smokeTest = async ({
   provider,
   vaultFacade: vault,
   ethFacade: eth,
+  getBalancesAll
 }: TestRunner) => {
   const optionRoundFacade = await getOptionRoundFacade(
     provider,
@@ -30,7 +31,7 @@ export const smokeTest = async ({
   const reservePrice = await optionRoundFacade.getReservePrice();
   const optionBidderAccounts = getOptionBidderAccounts(provider, 3);
 
-  const balancesBefore = await eth.getBalancesAll(optionBidderAccounts);
+  const balancesBefore = await getBalancesAll(optionBidderAccounts);
 
   try {
     await optionRoundFacade.refundUnusedBids({
@@ -44,7 +45,7 @@ export const smokeTest = async ({
   } catch (err) {
     console.log("Error while refunding the unused bids", err);
   }
-  const balancesAfter = await eth.getBalancesAll(optionBidderAccounts);
+  const balancesAfter = await getBalancesAll(optionBidderAccounts);
 
   checkpoint1({
     balancesBefore,

@@ -154,10 +154,7 @@ export class RoundSimulator {
     bidAllArgs: Array<PlaceBidArgs>,
     marketData: MarketData
   ) {
-    await this.testRunner.vaultFacade.startAuctionBystander(
-      this.testRunner.provider,
-      marketData
-    );
+    await this.testRunner.startAuctionBystander(marketData);
 
     const lockedUnlockedBalances = await this.captureLockedUnlockedBalances();
     const approvalArgs = bidAllArgs.map((arg) => {
@@ -178,9 +175,7 @@ export class RoundSimulator {
     };
   }
   async simulateRunningState(refundAllArgs: Array<RefundUnusedBidsArgs>) {
-    const data = await this.testRunner.vaultFacade.endAuctionBystander(
-      this.testRunner.provider
-    );
+    const data = await this.testRunner.endAuctionBystander();
 
     const lockedUnlockedBalances = await this.captureLockedUnlockedBalances();
     await this.optionRoundFacade.refundUnusedBidsAll(refundAllArgs);
@@ -192,9 +187,7 @@ export class RoundSimulator {
   }
   async simulateSettledState(exerciseOptionsArgs: Array<ExerciseOptionArgs>) {
     const data = await this.optionRoundFacade.optionRoundContract.get_state();
-    await this.testRunner.vaultFacade.settleOptionRoundBystander(
-      this.testRunner.provider
-    );
+    await this.testRunner.settleOptionRoundBystander();
 
     const lockedUnlockedBalances = await this.captureLockedUnlockedBalances();
     console.log("3");

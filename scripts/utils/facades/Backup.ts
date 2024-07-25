@@ -105,8 +105,7 @@ export class RoundSimulator {
     bidAllArgs: Array<PlaceBidArgs>,
     marketData: MarketData
   ) {
-    await this.testRunner.vaultFacade.startAuctionBystander(
-      this.testRunner.provider,
+    await this.testRunner.startAuctionBystander(
       marketData
     );
 
@@ -129,9 +128,7 @@ export class RoundSimulator {
     };
   }
   async simulateRunningState(refundAllArgs: Array<RefundUnusedBidsArgs>) {
-    await this.testRunner.vaultFacade.endAuctionBystander(
-      this.testRunner.provider
-    );
+    await this.testRunner.endAuctionBystander();
 
     const lpLockedUnlockedBalances = await this.captureLockedUnlockedBalances();
     await this.optionRoundFacade.refundUnusedBidsAll(refundAllArgs);
@@ -143,9 +140,7 @@ export class RoundSimulator {
   }
   async simulateSettledState(exerciseOptionsArgs: Array<ExerciseOptionArgs>) {
     console.log("1");
-    await this.testRunner.vaultFacade.settleOptionRoundBystander(
-      this.testRunner.provider
-    );
+    await this.testRunner.settleOptionRoundBystander();
     console.log("2");
   
     const lpLockedUnlockedBalances = await this.captureLockedUnlockedBalances();  console.log("3");

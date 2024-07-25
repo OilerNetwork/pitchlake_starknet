@@ -1,7 +1,12 @@
-import { Account, Provider } from "starknet";
+import { Account, Provider, TypedContractV2 } from "starknet";
 import { ERC20Facade } from "./erc20Facade";
 import { VaultFacade } from "./vaultFacade";
-import { ApprovalArgs, Constants, DepositArgs, WithdrawArgs } from "./types";
+import { ApprovalArgs, Constants, DepositArgs, MarketData, WithdrawArgs } from "./types";
+import { vaultABI } from "../../abi";
+import { getOptionRoundContract } from "../helpers/setup";
+import { getNow, timeskipNextBlock } from "../katana";
+import { getAccount, stringToHex } from "../helpers/common";
+import { MarketAggregatorFacade } from "./marketAggregatorFacade";
 
 export type ResultSheet = {
   accounts: Array<Account>;
@@ -117,6 +122,116 @@ export class TestRunner {
     for (const approvalArgs of approveData) {
       await this.ethFacade.approval(approvalArgs);
     }
+  }
+
+  async accelerateToAuctioning() {
+    const optionRoundContract = await getOptionRoundContract(
+      this.provider,
+      this.vaultFacade.vaultContract
+    );
+    const currentTime = await getNow(this.provider);
+    const auctionStartDate = await optionRoundContract.get_auction_start_date();
+  
+    console.log("currentTime:",currentTime,"\nauctionStartDate:",auctionStartDate);;
+    await timeskipNextBlock(
+      Number(auctionStartDate) - Number(currentTime),
+      this.provider.channel.nodeUrl
+    );
+  }
+
+  async accelerateToRunning() {
+    const optionRoundContract = await getOptionRoundContract(
+      this.provider,
+      this.vaultFacade.vaultContract
+    );
+  
+    const currentTime = await getNow(this.provider);
+    const auctionEndDate = await optionRoundContract.get_auction_end_date();
+  
+    await timeskipNextBlock(
+      Number(auctionEndDate) - Number(currentTime)+1,
+      this.provider.channel.nodeUrl
+    );
+  }
+  
+  async accelerateToSettled() {
+    const optionRoundContract = await getOptionRoundContract(
+      this.provider,
+      this.vaultFacade.vaultContract
+    );
+  
+    const currentTime = await getNow(this.provider);
+    const optionSettleDate =
+      await optionRoundContract.get_option_settlement_date();
+  
+    await timeskipNextBlock(
+      Number(optionSettleDate) - Number(currentTime),
+      this.provider.channel.nodeUrl
+    );
+  }
+
+  //@note Only works for katana dev instance with a --dev flag
+  async startAuctionBystander(marketData: MarketData) {
+    console.log("MARKETDATA:",marketData);
+    const devAccount = getAccount("dev", this.provider);
+    //Set market aggregator reserve_price
+    const marketAggregatorString =
+      await this.vaultFacade.vaultContract.get_market_aggregator();
+    const marketAggregatorAddress = "0x" + stringToHex(marketAggregatorString);
+    const marketAggFacade = new MarketAggregatorFacade(
+      marketAggregatorAddress,
+      this.provider
+    );
+    const optionRound = await getOptionRoundContract(
+      this.provider,
+      this.vaultFacade.vaultContract
+    );
+    const startDate = await optionRound.get_auction_start_date();
+    const settleDate = await optionRound.get_option_settlement_date();
+    await marketAggFacade.setReservePrice(
+      devAccount,
+      startDate,
+      settleDate,
+      marketData.reservePrice
+
+    );
+    await marketAggFacade.setCapLevel(
+      devAccount,
+      startDate,
+      settleDate,
+      marketData.capLevel
+    );
+
+    await marketAggFacade.setStrikePrice(
+      devAccount,
+      startDate,
+      settleDate,
+      marketData.strikePrice
+    );
+    await marketAggFacade.setTWAP(
+      devAccount,
+      startDate,
+      settleDate,
+      marketData.settlementPrice
+    );
+    await this.vaultFacade.vaultContract.update_round_params();
+
+    await this.accelerateToAuctioning();
+
+    this.vaultFacade.vaultContract.connect(devAccount);
+    await this.vaultFacade.vaultContract.start_auction();
+  }
+
+  async endAuctionBystander() {
+    const devAccount = getAccount("dev", this.provider);
+    await this.accelerateToRunning();
+    await this.vaultFacade.endAuction(devAccount);
+  }
+
+  async settleOptionRoundBystander() {
+    await this.accelerateToSettled();
+    const devAccount = getAccount("dev", this.provider);
+    await this.vaultFacade.settleOptionRound(devAccount);
   }
 }
 
