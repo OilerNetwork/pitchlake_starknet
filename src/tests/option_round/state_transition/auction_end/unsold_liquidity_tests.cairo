@@ -4,7 +4,7 @@ use pitch_lake_starknet::{
             helpers::{
                 accelerators::{
                     accelerate_to_auctioning, accelerate_to_running, accelerate_to_running_custom,
-                    timeskip_and_end_auction, accelerate_to_auctioning_custom,
+                    timeskip_and_end_auction, accelerate_to_auctioning_custom, accelerate_to_settled,
                 },
                 setup::{setup_facade, setup_test_auctioning_bidders},
                 general_helpers::{
@@ -14,6 +14,7 @@ use pitch_lake_starknet::{
             },
             lib::{
                 test_accounts::{
+                    liquidity_provider_1, liquidity_provider_2, liquidity_provider_3,
                     option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
                     option_bidder_buyer_4, option_bidders_get, liquidity_providers_get,
                 },
@@ -179,5 +180,45 @@ fn test_unsold_liquidity_is_unlocked_for_liquidity_providers() {
             Option::None => { break (); }
         }
     };
+}
+
+// Test unsold liquidity adds to liquidity provider's unlocked when round settles
+#[test]
+#[available_gas(50000000)]
+fn test_unsold_liquidity_is_unlocked_for_liquidity_providers_end_of_round() {
+    let (mut vault, _) = setup_facade();
+    let mut current_round = vault.get_current_round();
+    let deposit_amount = 20 * decimals();
+    let liquidity_provider = liquidity_provider_1();
+    let options_available = accelerate_to_auctioning_custom(
+        ref vault, array![liquidity_provider].span(), array![deposit_amount].span()
+    );
+
+    // Get liquidity providers locked and unlocked balances before auction end
+    let (locked_balance_before, unlocked_balance_before): (u256, u256) = vault
+        .get_lp_locked_and_unlocked_balance(liquidity_provider);
+
+    // Bid for 1/2 the options, end auction and round (no payout)
+    let option_bidders = array![option_bidder_buyer_1()].span();
+    let bid_amounts = array![options_available / 2].span();
+    let bid_prices = array![current_round.get_reserve_price()].span();
+    accelerate_to_running_custom(ref vault, option_bidders, bid_amounts, bid_prices);
+    accelerate_to_settled(ref vault, current_round.get_strike_price() - 1);
+
+    // Unsold liquidity and premiums
+    let unsold_liq = vault.get_unsold_liquidity(current_round.get_round_id());
+    let total_premium = current_round.total_premiums();
+
+    // Get liquidity providers locked and unlocked balances after round settles
+    let (locked_balance_after, unlocked_balance_after): (u256, u256) = vault
+        .get_lp_locked_and_unlocked_balance(liquidity_provider);
+
+    assert(locked_balance_before == deposit_amount, 'locked before wrong');
+    assert(unlocked_balance_before == 0, 'unlocked before wrong');
+
+    assert(locked_balance_after == 0, 'locked after wrong');
+    assert(
+        unlocked_balance_after == deposit_amount/2 + total_premium + unsold_liq,        'unlocked after wrong'
+    );
 }
 
