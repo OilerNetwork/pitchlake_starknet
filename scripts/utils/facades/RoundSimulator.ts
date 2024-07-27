@@ -37,6 +37,10 @@ export type StateData = {
     lpLockedBalances: Array<string>;
     lpUnlockedBalances: Array<string>;
   };
+  vaultBalances:{
+    vaultLocked:string;
+    vaultUnlocked:string;
+  }
   ethBalancesBidders: Array<string>;
   timeStamp?: string | number;
 };
@@ -71,13 +75,17 @@ export class RoundSimulator {
       params.bidAllArgs,
       params.marketData
     );
+    const optionsAvailable = await this.optionRoundFacade.getTotalOptionsAvailable();
     const runningStateData: StateData = await this.simulateRunningState(
       params.refundAllArgs
     );
     const settledStateData: StateData = await this.simulateSettledState(
       params.exerciseOptionsAllArgs
     );
+    const optionsSold = await this.optionRoundFacade.optionRoundContract.total_options_sold();
 
+    const ethBalanceVault = await this.testRunner.ethFacade.getBalance(this.testRunner.vaultFacade.vaultContract.address);
+    const ethBalanceRound = await this.testRunner.ethFacade.getBalance(this.optionRoundFacade.optionRoundContract.address);
     if (params.marketData.startTime && params.marketData.endTime) {
 
       //Mock timestamps if present on the marketData
@@ -94,6 +102,10 @@ export class RoundSimulator {
     }
 
     return {
+      ethBalanceRound:ethBalanceRound.toString(),
+      ethBalanceVault:ethBalanceVault.toString(),
+      optionsAvailable:optionsAvailable.toString(),
+      optionsSold:optionsSold.toString(),
       openStateData,
       auctioningStateData,
       runningStateData,
@@ -127,6 +139,15 @@ export class RoundSimulator {
     return ethBalances;
   }
 
+  async captureVaultBalances() {
+    const locked = await this.testRunner.vaultFacade.getTotalLocked();
+    const unlocked = await this.testRunner.vaultFacade.getTotalUnLocked();
+    return {
+      vaultLocked:locked.toString(),
+      vaultUnlocked:unlocked.toString()
+    } 
+  }
+
   async captureEthBalancesOptionBidders() {
     const ethBalancesBigInt = await this.testRunner.getBalancesAll(
       this.bidderAccounts
@@ -140,9 +161,11 @@ export class RoundSimulator {
     await this.testRunner.depositAll(depositAllArgs);
     const lockedUnlockedBalances = await this.captureLockedUnlockedBalances();
     const ethBalancesBidders = await this.captureEthBalancesOptionBidders();
+    const vaultBalances = await this.captureVaultBalances();
     return {
       lockedUnlockedBalances,
       ethBalancesBidders,
+      vaultBalances,
     };
     //Add market data setter abstraction after Jithin's merge
   }
@@ -153,6 +176,7 @@ export class RoundSimulator {
     await this.testRunner.startAuctionBystander(marketData);
 
     const lockedUnlockedBalances = await this.captureLockedUnlockedBalances();
+    const vaultBalances = await this.captureVaultBalances();
     const approvalArgs = bidAllArgs.map((arg) => {
       const data: ApprovalArgs = {
         owner: arg.from,
@@ -168,17 +192,20 @@ export class RoundSimulator {
     return {
       lockedUnlockedBalances,
       ethBalancesBidders,
+      vaultBalances
     };
   }
   async simulateRunningState(refundAllArgs: Array<RefundUnusedBidsArgs>) {
     const data = await this.testRunner.endAuctionBystander();
 
     const lockedUnlockedBalances = await this.captureLockedUnlockedBalances();
+    const vaultBalances = await this.captureVaultBalances();
     await this.optionRoundFacade.refundUnusedBidsAll(refundAllArgs);
     const ethBalancesBidders = await this.captureEthBalancesOptionBidders();
     return {
       lockedUnlockedBalances,
       ethBalancesBidders,
+      vaultBalances
     };
   }
   async simulateSettledState(exerciseOptionsArgs: Array<ExerciseOptionArgs>) {
@@ -186,6 +213,7 @@ export class RoundSimulator {
     await this.testRunner.settleOptionRoundBystander();
 
     const lockedUnlockedBalances = await this.captureLockedUnlockedBalances();
+    const vaultBalances = await this.captureVaultBalances();
     console.log("3");
     await this.optionRoundFacade.exerciseOptionsAll(exerciseOptionsArgs);
     const ethBalancesBidders = await this.captureEthBalancesOptionBidders();
@@ -193,6 +221,7 @@ export class RoundSimulator {
     return {
       lockedUnlockedBalances,
       ethBalancesBidders,
+      vaultBalances,
     };
   }
 }
