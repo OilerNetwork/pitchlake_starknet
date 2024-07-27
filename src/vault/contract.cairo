@@ -672,8 +672,7 @@ mod Vault {
                         let this_round = self.get_round_dispatcher(i);
                         let remaininig_liquidity = this_round.starting_liquidity()
                             + this_round.total_premiums()
-                            - this_round.total_payout()
-                            - self.unsold_liquidity.read(i);
+                            - this_round.total_payout();
 
                         // What portion of the remaining liquidity the liquidity provider owned
                         let mut lp_portion_of_remaining_liquidity = (remaininig_liquidity
