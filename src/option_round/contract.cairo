@@ -877,6 +877,12 @@ mod OptionRound {
             // Assert the round is Settled
             assert(self.get_state() == OptionRoundState::Settled, Errors::OptionRoundNotSettled);
 
+            // If payout is 0 return 0
+            let total_payout = self.total_payout();
+            if (total_payout == 0) {
+                return 0;
+            }
+
             // Get the refundable & tokenizable bids, and the partially sold bid id if it exists
             let option_buyer = get_caller_address();
             let (mut tokenizable_bids, _, partial_bid_id) = self.inspect_options_for(option_buyer);
@@ -921,7 +927,9 @@ mod OptionRound {
             }
 
             // The bidder's share of the total payout
-            let share_of_payout = self.total_payout()
+            // @dev If total options sold is 0, then the total payout is 0,
+            // therefore we already exit early, avoiding a division by 0 error
+            let share_of_payout = total_payout
                 * options_to_exercise
                 / self.bids_tree.get_total_options_sold();
 
