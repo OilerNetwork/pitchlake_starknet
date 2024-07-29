@@ -10,4 +10,4 @@ out/
 
 .DS_Store
 .env
-scripts/simulationData/simulationOutput/*.json
+scripts/simulationData/simulationOutput/simulationResults*.json
