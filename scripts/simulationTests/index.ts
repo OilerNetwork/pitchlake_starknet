@@ -1,5 +1,8 @@
 import { TestRunner } from "../utils/facades/TestRunner";
-import { SimulationSheet,RoundSimulator } from "../utils/facades/RoundSimulator";
+import {
+  SimulationSheet,
+  RoundSimulator,
+} from "../utils/facades/RoundSimulator";
 import marketData from "../simulationData/marketData.json" assert { type: "json" };
 import {
   generateSimulationParams,
@@ -18,17 +21,6 @@ async function simulationTesting(testRunner: TestRunner) {
     testRunner.provider,
     testRunner.vaultFacade.vaultContract
   );
-
-  const simulationMarketData: Array<MarketData> = marketData.map((data) => {
-    return {
-      reservePrice: Math.floor(data.reserve_price),
-      settlementPrice: Math.floor(data.settlement_price),
-      strikePrice: Math.floor(data.strike_price),
-      capLevel: Math.floor(data.cap_level),
-      startTime: data.starting_timestamp,
-      endTime: data.ending_timestamp,
-    };
-  });
 
   const simulator = new RoundSimulator(testRunner, optionRoundContract);
 
@@ -87,7 +79,8 @@ export const generateSheet = () => {
         ...initial,
         bidPrices: initial.optionBidders.map((bidder) => {
           return marketData.reservePrice;
-        }, marketData),
+        }),
+        marketData,
       } as SimulationSheet;
     } else
       return {
