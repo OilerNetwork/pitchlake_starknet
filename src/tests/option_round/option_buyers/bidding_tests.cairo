@@ -22,7 +22,7 @@ use pitch_lake_starknet::{
                 general_helpers::{
                     multiply_arrays, scale_array, sum_u256_array, get_erc20_balance,
                     get_erc20_balances, get_total_bids_amount, create_array_linear,
-                    create_array_gradient,
+                    create_array_gradient, to_wei
                 },
                 setup::{setup_facade, decimals, deploy_vault, clear_event_logs,},
                 accelerators::{
@@ -309,6 +309,59 @@ fn test_bid_eth_transfer() {
         };
     }
 }
+
+// Test bidding transfers eth from bidder to round
+#[test]
+#[available_gas(500000000)]
+fn test_bid_0_reserve_price() {
+    let (mut vault, eth) = setup_facade();
+    let mut current_round = vault.get_current_round();
+
+    // Mock auction params
+    let options_available = to_wei(1, current_round.decimals());
+    let reserve_price = 0;
+    current_round.setup_mock_auction(ref vault, options_available, reserve_price);
+
+    // Eth balances before bid
+    let mut option_bidders = option_bidders_get(3).span();
+    let mut ob_balances_before = get_erc20_balances(eth.contract_address, option_bidders).span();
+    let round_balance_before = get_erc20_balance(
+        eth.contract_address, current_round.contract_address()
+    );
+    // Place bids
+    let mut bid_prices = create_array_gradient(reserve_price, reserve_price, 3).span();
+    let mut bid_amounts = create_array_linear(options_available, 3).span();
+    let bids_total = get_total_bids_amount(bid_prices, bid_amounts);
+    current_round.place_bids(bid_amounts, bid_prices, option_bidders);
+    // Eth balances after bid
+    let mut ob_balances_after = get_erc20_balances(eth.contract_address, option_bidders).span();
+    let round_balance_after = get_erc20_balance(
+        eth.contract_address, current_round.contract_address()
+    );
+
+    //println!(
+    //    "options_available:{}\nreserve_price:{}",
+    //    current_round.get_total_options_available(),
+    //    current_round.get_reserve_price()
+    //);
+    //println!("bid amounts: {:?}", bid_amounts);
+    //println!("bid prices: {:?}", bid_prices);
+
+    assert(round_balance_after == round_balance_before + bids_total, 'round balance after wrong');
+    // Check ob balances
+    loop {
+        match ob_balances_before.pop_front() {
+            Option::Some(ob_balance_before) => {
+                //let ob_bid_price = bid_prices.pop_front().unwrap();
+                let ob_balance_after = ob_balances_after.pop_front().unwrap();
+                //let ob_amount = bid_amounts.pop_front().unwrap();
+                assert(*ob_balance_after == *ob_balance_before, 'ob balance after wrong');
+            },
+            Option::None => { break; }
+        };
+    }
+}
+
 
 /// Nonce Tests ///
 
