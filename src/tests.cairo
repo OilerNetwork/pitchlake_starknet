@@ -1,18 +1,15 @@
 #[cfg(test)]
-mod deployment {
-    mod constructor_tests;
-    mod initializing_option_round_params_tests;
-}
-
-#[cfg(test)]
-mod misc {
-    //mod eth_test;
-    mod pitch_lake_test;
-    mod lp_token {
-        mod lp_token_tests;
-        mod deployment_tests;
+mod vault {
+    mod state_transition {
+        mod auction_end_tests;
+        mod auction_start_tests;
+        mod option_settle_tests;
     }
-    mod unallocated_liquidity_tests;
+
+    mod liquidity_providers {
+        mod deposit_tests;
+        mod withdraw_tests;
+    }
 }
 
 #[cfg(test)]
@@ -49,6 +46,22 @@ mod option_round {
     }
 }
 
+#[cfg(test)]
+mod deployment {
+    mod constructor_tests;
+    mod initializing_option_round_params_tests;
+}
+
+#[cfg(test)]
+mod misc {
+    //mod eth_test;
+    mod pitch_lake_test;
+    mod lp_token {
+        mod lp_token_tests;
+        mod deployment_tests;
+    }
+    mod unallocated_liquidity_tests;
+}
 
 #[cfg(test)]
 mod utils {
@@ -75,17 +88,4 @@ mod utils {
 }
 
 
-#[cfg(test)]
-mod vault {
-    mod state_transition {
-        mod auction_end_tests;
-        mod auction_start_tests;
-        mod option_settle_tests;
-    }
-
-    mod liquidity_providers {
-        mod deposit_tests;
-        mod withdraw_tests;
-    }
-}
 
