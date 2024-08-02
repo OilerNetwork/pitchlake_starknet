@@ -53,13 +53,13 @@ const initial = {
   liquidityProviders: [1, 2],
   depositAmounts: ["50000000000000", "50000000000000"],
   optionBidders: [1, 3],
-  bidAmounts: [5000, 7000],
+  bidAmounts: [0.4, 0.9],
 };
 const repeating = {
   liquidityProviders: [],
   depositAmounts: [],
   optionBidders: [1, 3],
-  bidAmounts: [5000, 7000],
+  bidAmounts: [0.4, 0.8],
 };
 
 export const generateSheet = () => {

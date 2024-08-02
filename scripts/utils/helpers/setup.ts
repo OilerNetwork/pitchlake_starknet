@@ -80,7 +80,7 @@ export const generateSimulationParams = (
       (bidder, index) => {
         const data: PlaceBidArgs = {
           from: optionBidderAccounts[bidder - 1],
-          amount: BigInt(simulationSheet.bidAmounts[index]),
+          amount: Number(simulationSheet.bidAmounts[index]),
           price: BigInt(simulationSheet.bidPrices[index]),
         };
         return data;

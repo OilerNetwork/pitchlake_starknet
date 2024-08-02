@@ -17,6 +17,7 @@ type VaultConstructorArgs = {
   roundTransitionPeriod: number;
   auctionRunTime: number;
   optionRunTime: number;
+  kFactor:number;
 };
 
 type ConstructorArgs = {
@@ -39,12 +40,14 @@ const constructorArgs: { [key: string]: ConstructorArgs } = {
         "0x7ce7089cb75a590b9485f6851d8998fa885494cc7a70dbae8f3db572586b8a8",
     },
     vault: {
-      roundTransitionPeriod: 32,
-      auctionRunTime: 23,
-      optionRunTime: 23,
+      roundTransitionPeriod: 32000,
+      auctionRunTime: 23000,
+      optionRunTime: 23000,
+      kFactor:10000,
     },
     optionRound: "",
     marketAggregator: "",
+   
   },
 };
 const accountDetailsMapping: { [key: string]: AccountDetailsType } = {

@@ -18,6 +18,10 @@ export type SimulationSheet = {
   depositAmounts: Array<number | string>;
   bidAmounts: Array<number | string>;
   bidPrices: Array<number | string>;
+  withdrawalsFromQueue?:Array<number>;
+  withdrawalsFromQueueAmounts?:Array<number|string>;
+  withdrawals?:Array<number>;
+  withdrawalAmounts?:Array<number|string>;
   marketData: MarketData;
 };
 
@@ -177,7 +181,16 @@ export class RoundSimulator {
 
     const lockedUnlockedBalances = await this.captureLockedUnlockedBalances();
     const vaultBalances = await this.captureVaultBalances();
-    const approvalArgs = bidAllArgs.map((arg) => {
+    const optionsAvailable = await this.optionRoundFacade.getTotalOptionsAvailable();
+
+    const bidAllArgsAdjusted = bidAllArgs.map((args)=>{
+      return {
+        from:args.from,
+        amount:Math.floor(Number(args.amount)*Number(optionsAvailable)),
+        price:args.price,
+      } as PlaceBidArgs
+    })
+    const approvalArgs = bidAllArgsAdjusted.map((arg) => {
       const data: ApprovalArgs = {
         owner: arg.from,
         spender: this.optionRoundFacade.optionRoundContract.address,
@@ -185,9 +198,13 @@ export class RoundSimulator {
       };
       return data;
     });
+
+    console.log("bidAllArgs:",bidAllArgsAdjusted,"\nApproveArgs:",approvalArgs)
     await this.testRunner.approveAll(approvalArgs);
 
-    await this.optionRoundFacade.placeBidsAll(bidAllArgs);
+    
+    
+    await this.optionRoundFacade.placeBidsAll(bidAllArgsAdjusted);
     const ethBalancesBidders = await this.captureEthBalancesOptionBidders();
     return {
       lockedUnlockedBalances,
