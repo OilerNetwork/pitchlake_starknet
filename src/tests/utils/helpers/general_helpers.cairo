@@ -1,4 +1,5 @@
 use openzeppelin::token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait,};
+use pitch_lake_starknet::library::utils::divide_with_precision;
 use starknet::{ContractAddress};
 
 /// Array helpers ///
@@ -165,13 +166,13 @@ fn get_erc20_balances(
 // @dev Scaling with bps for precision
 // @dev Used to determine how many premiums and payouts belong to an account
 fn get_portion_of_amount(mut arr: Span<u256>, amount: u256) -> Array<u256> {
-    let precision_factor = 10000;
     let mut total = sum_u256_array(arr);
     let mut portions = array![];
     loop {
         match arr.pop_front() {
-            Option::Some(el) => {
-                let portion = ((precision_factor * *el * amount) / total) / precision_factor;
+            Option::Some(value) => {
+                let portion = divide_with_precision(*value * amount, total);
+                //let portion = ((precision_factor * *el * amount) / total) / precision_factor;
                 portions.append(portion);
             },
             Option::None => { break (); }

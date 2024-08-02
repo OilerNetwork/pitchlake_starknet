@@ -6,6 +6,7 @@ use pitch_lake_starknet::option_round::contract::OptionRound;
 mod Errors {
     /// Vault Errors ///
     const InsufficientBalance: felt252 = 'Insufficient unlocked balance';
+    const WithdrawalQueuedWhileUnlocked: felt252 = 'Withdrawal only while locked';
     /// OptionRound Errors ///
     const CallerIsNotVault: felt252 = 'Caller not the Vault';
     // Starting an auction
@@ -33,6 +34,7 @@ mod Errors {
 
 mod Consts {
     const BPS: u256 = 10000;
+    const PRECISION: u256 = 1;
 }
 
 /// An enum for each type of Vault
