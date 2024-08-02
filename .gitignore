@@ -11,3 +11,4 @@ out/
 .DS_Store
 .env
 scripts/simulationData/simulationOutput/simulationResults*.json
+scripts/simulationData/simulationSheet*.json

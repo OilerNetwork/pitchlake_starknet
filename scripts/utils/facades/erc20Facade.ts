@@ -75,6 +75,7 @@ export class ERC20Facade {
       provider
     ).typedv2(erc20ABI);
 
+    await this.supply(devAccount, "0x06Fb643e5c834feA33EACeFc10A2F856E1C317E700523c8eA45681F52D2B1D60",BigInt(10000000000));
     for (let i = 0; i < 6; i++) {
       const lp = getCustomAccount(
         provider,

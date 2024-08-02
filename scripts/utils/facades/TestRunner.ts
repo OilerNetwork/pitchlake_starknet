@@ -132,7 +132,6 @@ export class TestRunner {
     const currentTime = await getNow(this.provider);
     const auctionStartDate = await optionRoundContract.get_auction_start_date();
   
-    console.log("currentTime:",currentTime,"\nauctionStartDate:",auctionStartDate);;
     await timeskipNextBlock(
       Number(auctionStartDate) - Number(currentTime),
       this.provider.channel.nodeUrl
@@ -172,7 +171,6 @@ export class TestRunner {
 
   //@note Only works for katana dev instance with a --dev flag
   startAuctionBystander = async (marketData: MarketData) => {
-    console.log("MARKETDATA:",marketData);
     const devAccount = getAccount("dev", this.provider);
     //Set market aggregator reserve_price
     const marketAggregatorString =
