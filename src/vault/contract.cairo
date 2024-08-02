@@ -258,13 +258,22 @@ mod Vault {
         fn update_round_params(ref self: ContractState) {
             let current_round_id = self.current_option_round_id();
             let current_round = self.get_round_dispatcher(current_round_id);
+
             let from = current_round.get_auction_start_date();
             let to = current_round.get_option_settlement_date();
 
+            let from_previous = current_round.get_auction_start_date();
+            let to_previous = current_round.get_option_settlement_date();
+
             let reserve_price = self.fetch_reserve_price_for_time_period(from, to);
             let cap_level = self.fetch_cap_level_for_time_period(from, to);
-            let strike_price = self.fetch_strike_price_for_time_period(from, to);
+            let mut strike_price = 0;
 
+            if (current_round_id > 1) {
+                strike_price = self.fetch_TWAP_for_time_period(from_previous, to_previous);
+            } else {
+                strike_price = self.fetch_strike_price_for_time_period(from, to);
+            }
             current_round.update_round_params(reserve_price, cap_level, strike_price);
         }
 
