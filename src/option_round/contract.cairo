@@ -4,7 +4,10 @@ mod OptionRound {
         ERC20Component, interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait, IERC20Metadata},
     };
     use pitch_lake_starknet::{
-        library::{utils::{max, min}, red_black_tree::{RBTreeComponent, RBTreeComponent::Node}},
+        library::{
+            utils::{max, min, divide_with_precision},
+            red_black_tree::{RBTreeComponent, RBTreeComponent::Node}
+        },
         option_round::interface::IOptionRound,
         vault::{interface::{IVaultDispatcher, IVaultDispatcherTrait},},
         types::{
@@ -929,9 +932,9 @@ mod OptionRound {
             // The bidder's share of the total payout
             // @dev If total options sold is 0, then the total payout is 0,
             // therefore we already exit early, avoiding a division by 0 error
-            let share_of_payout = total_payout
-                * options_to_exercise
-                / self.bids_tree.get_total_options_sold();
+            let share_of_payout = divide_with_precision(
+                total_payout * options_to_exercise, self.bids_tree.get_total_options_sold()
+            );
 
             // Transfer the payout share to the bidder
             let eth = self.get_eth_dispatcher();
@@ -1121,7 +1124,7 @@ mod OptionRound {
         fn _max_payout_per_option(
             self: @ContractState, strike_price: u256, cap_level: u256
         ) -> u256 {
-            (strike_price * cap_level) / BPS
+            divide_with_precision(strike_price * cap_level, BPS)
         }
 
         // Calcualte the total number of options available to sell in the auction
@@ -1130,7 +1133,7 @@ mod OptionRound {
         ) -> u256 {
             let capped = self._max_payout_per_option(strike_price, cap_level);
 
-            starting_liquidity / capped
+            divide_with_precision(starting_liquidity, capped)
         }
 
         // Calculate the payout per each option at settlement
