@@ -210,12 +210,6 @@ export class RoundSimulator {
       return data;
     });
 
-    console.log(
-      "bidAllArgs:",
-      bidAllArgsAdjusted,
-      "\nApproveArgs:",
-      approvalArgs
-    );
     await this.testRunner.approveAll(approvalArgs);
 
     await this.optionRoundFacade.placeBidsAll(bidAllArgsAdjusted);
@@ -275,16 +269,19 @@ export class RoundSimulator {
         await this.testRunner.vaultFacade.getLPUnlockedBalance(
           args.account.address
         );
+      console.log("UNLOCKED",unlockedBalance);
         withdrawArgsAdjusted.push({
           account:args.account,
           amount:Math.floor(Number(args.amount)*Number(unlockedBalance))
         })
     }
 
+    const lpBefore = await this.captureLockedUnlockedBalances();
     await this.testRunner.withdrawAll(withdrawArgsAdjusted);
+    const lpAfter = await this.captureLockedUnlockedBalances();
+    console.log("ARGS:",withdrawalArgs,"\nADjusted:",withdrawArgsAdjusted)
     const lockedUnlockedBalances = await this.captureLockedUnlockedBalances();
     const vaultBalances = await this.captureVaultBalances();
-    console.log("3");
     await this.optionRoundFacade.exerciseOptionsAll(exerciseOptionsArgs);
     const ethBalancesBidders = await this.captureEthBalancesOptionBidders();
 

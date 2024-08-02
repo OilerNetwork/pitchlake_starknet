@@ -14,6 +14,7 @@ import {
   WithdrawArgs,
 } from "../facades/types";
 import { TestRunner } from "../facades/TestRunner";
+import { liquidityProviders } from "../constants";
 
 export const getOptionRoundFacade = async (
   provider: Provider,
@@ -111,7 +112,7 @@ export const generateSimulationParams = (
     if (simulationSheet.withdrawalsPremium) {
       withdrawPremiumArgs = simulationSheet.withdrawalsPremium.map(
         (bidder) => ({
-          account: optionBidderAccounts[bidder - 1],
+          account: liquidityProviderAccounts[bidder - 1],
           amount: 0,
         })
       );
@@ -121,7 +122,7 @@ export const generateSimulationParams = (
     if (simulationSheet.withdrawalAmounts && simulationSheet.withdrawals) {
       withdrawalArgs = simulationSheet.withdrawals.map((bidder, index) => {
         return {
-          account: optionBidderAccounts[bidder - 1],
+          account: liquidityProviderAccounts[bidder - 1],
           amount: Number(
             simulationSheet.withdrawalAmounts
               ? simulationSheet.withdrawalAmounts[index]
