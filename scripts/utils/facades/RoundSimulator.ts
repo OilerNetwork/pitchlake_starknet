@@ -6,6 +6,7 @@ import {
   MarketData,
   PlaceBidArgs,
   RefundUnusedBidsArgs,
+  WithdrawArgs,
 } from "./types";
 import { TestRunner } from "./TestRunner";
 import { getOptionRoundContract, getOptionRoundFacade } from "../helpers/setup";
@@ -18,10 +19,11 @@ export type SimulationSheet = {
   depositAmounts: Array<number | string>;
   bidAmounts: Array<number | string>;
   bidPrices: Array<number | string>;
-  withdrawalsFromQueue?:Array<number>;
-  withdrawalsFromQueueAmounts?:Array<number|string>;
-  withdrawals?:Array<number>;
-  withdrawalAmounts?:Array<number|string>;
+  withdrawalsPremium?: Array<number>;
+  withdrawalsFromQueue?: Array<number>;
+  withdrawalsFromQueueAmounts?: Array<number | string>;
+  withdrawals?: Array<number>;
+  withdrawalAmounts?: Array<number | string>;
   marketData: MarketData;
 };
 
@@ -31,7 +33,9 @@ export type SimulationParameters = {
   refundAllArgs: Array<RefundUnusedBidsArgs>;
   lpAccounts?: Array<Account>;
   bidderAccounts?: Array<Account>;
-
+  withdrawPremiumArgs: Array<WithdrawArgs>;
+  withdrawalQueueArgs?: Array<WithdrawArgs>;
+  withdrawalArgs: Array<WithdrawArgs>;
   exerciseOptionsAllArgs: Array<ExerciseOptionArgs>;
   marketData: MarketData;
 };
@@ -41,10 +45,10 @@ export type StateData = {
     lpLockedBalances: Array<string>;
     lpUnlockedBalances: Array<string>;
   };
-  vaultBalances:{
-    vaultLocked:string;
-    vaultUnlocked:string;
-  }
+  vaultBalances: {
+    vaultLocked: string;
+    vaultUnlocked: string;
+  };
   ethBalancesBidders: Array<string>;
   timeStamp?: string | number;
 };
@@ -79,19 +83,26 @@ export class RoundSimulator {
       params.bidAllArgs,
       params.marketData
     );
-    const optionsAvailable = await this.optionRoundFacade.getTotalOptionsAvailable();
+    const optionsAvailable =
+      await this.optionRoundFacade.getTotalOptionsAvailable();
     const runningStateData: StateData = await this.simulateRunningState(
-      params.refundAllArgs
+      params.refundAllArgs,
+      params.withdrawPremiumArgs
     );
     const settledStateData: StateData = await this.simulateSettledState(
-      params.exerciseOptionsAllArgs
+      params.exerciseOptionsAllArgs,
+      params.withdrawalArgs
     );
-    const optionsSold = await this.optionRoundFacade.optionRoundContract.total_options_sold();
+    const optionsSold =
+      await this.optionRoundFacade.optionRoundContract.total_options_sold();
 
-    const ethBalanceVault = await this.testRunner.ethFacade.getBalance(this.testRunner.vaultFacade.vaultContract.address);
-    const ethBalanceRound = await this.testRunner.ethFacade.getBalance(this.optionRoundFacade.optionRoundContract.address);
+    const ethBalanceVault = await this.testRunner.ethFacade.getBalance(
+      this.testRunner.vaultFacade.vaultContract.address
+    );
+    const ethBalanceRound = await this.testRunner.ethFacade.getBalance(
+      this.optionRoundFacade.optionRoundContract.address
+    );
     if (params.marketData.startTime && params.marketData.endTime) {
-
       //Mock timestamps if present on the marketData
       const difference =
         Number(params.marketData.endTime) - Number(params.marketData.startTime);
@@ -106,10 +117,10 @@ export class RoundSimulator {
     }
 
     return {
-      ethBalanceRound:ethBalanceRound.toString(),
-      ethBalanceVault:ethBalanceVault.toString(),
-      optionsAvailable:optionsAvailable.toString(),
-      optionsSold:optionsSold.toString(),
+      ethBalanceRound: ethBalanceRound.toString(),
+      ethBalanceVault: ethBalanceVault.toString(),
+      optionsAvailable: optionsAvailable.toString(),
+      optionsSold: optionsSold.toString(),
       openStateData,
       auctioningStateData,
       runningStateData,
@@ -118,12 +129,11 @@ export class RoundSimulator {
   }
 
   async captureLockedUnlockedBalances() {
-    const lpLockedBalancesBigInt =
-      await this.testRunner.getLPLockedBalanceAll(this.lpAccounts);
+    const lpLockedBalancesBigInt = await this.testRunner.getLPLockedBalanceAll(
+      this.lpAccounts
+    );
     const lpUnlockedBalancesBigint =
-      await this.testRunner.getLPUnlockedBalanceAll(
-        this.lpAccounts
-      );
+      await this.testRunner.getLPUnlockedBalanceAll(this.lpAccounts);
     const lpLockedBalances = lpLockedBalancesBigInt.map((balance) => {
       return balance.toString();
     });
@@ -147,9 +157,9 @@ export class RoundSimulator {
     const locked = await this.testRunner.vaultFacade.getTotalLocked();
     const unlocked = await this.testRunner.vaultFacade.getTotalUnLocked();
     return {
-      vaultLocked:locked.toString(),
-      vaultUnlocked:unlocked.toString()
-    } 
+      vaultLocked: locked.toString(),
+      vaultUnlocked: unlocked.toString(),
+    };
   }
 
   async captureEthBalancesOptionBidders() {
@@ -181,15 +191,16 @@ export class RoundSimulator {
 
     const lockedUnlockedBalances = await this.captureLockedUnlockedBalances();
     const vaultBalances = await this.captureVaultBalances();
-    const optionsAvailable = await this.optionRoundFacade.getTotalOptionsAvailable();
+    const optionsAvailable =
+      await this.optionRoundFacade.getTotalOptionsAvailable();
 
-    const bidAllArgsAdjusted = bidAllArgs.map((args)=>{
+    const bidAllArgsAdjusted = bidAllArgs.map((args) => {
       return {
-        from:args.from,
-        amount:Math.floor(Number(args.amount)*Number(optionsAvailable)),
-        price:args.price,
-      } as PlaceBidArgs
-    })
+        from: args.from,
+        amount: Math.floor(Number(args.amount) * Number(optionsAvailable)),
+        price: args.price,
+      } as PlaceBidArgs;
+    });
     const approvalArgs = bidAllArgsAdjusted.map((arg) => {
       const data: ApprovalArgs = {
         owner: arg.from,
@@ -199,22 +210,47 @@ export class RoundSimulator {
       return data;
     });
 
-    console.log("bidAllArgs:",bidAllArgsAdjusted,"\nApproveArgs:",approvalArgs)
+    console.log(
+      "bidAllArgs:",
+      bidAllArgsAdjusted,
+      "\nApproveArgs:",
+      approvalArgs
+    );
     await this.testRunner.approveAll(approvalArgs);
 
-    
-    
     await this.optionRoundFacade.placeBidsAll(bidAllArgsAdjusted);
     const ethBalancesBidders = await this.captureEthBalancesOptionBidders();
     return {
       lockedUnlockedBalances,
       ethBalancesBidders,
-      vaultBalances
+      vaultBalances,
     };
   }
-  async simulateRunningState(refundAllArgs: Array<RefundUnusedBidsArgs>) {
-    const data = await this.testRunner.endAuctionBystander();
+  async simulateRunningState(
+    refundAllArgs: Array<RefundUnusedBidsArgs>,
+    withdrawPremiumArgs: Array<WithdrawArgs>
+  ) {
+    await this.testRunner.endAuctionBystander();
 
+    const totalPremiums = await this.optionRoundFacade.getTotalPremiums();
+    const startingLiquidity =
+      await this.optionRoundFacade.getStartingLiquidity();
+    const withdrawPremiumArgsAdjusted: Array<WithdrawArgs> = [];
+    for (const args of withdrawPremiumArgs) {
+      const lockedBalance =
+        await this.testRunner.vaultFacade.getLPLockedBalance(
+          args.account.address
+        );
+      const premiumsToWithdraw =
+        (BigInt(lockedBalance) * BigInt(totalPremiums)) /
+        BigInt(startingLiquidity);
+      withdrawPremiumArgs.push({
+        account: args.account,
+        amount: Math.floor(Number(premiumsToWithdraw)),
+      });
+    }
+
+    await this.testRunner.withdrawAll(withdrawPremiumArgsAdjusted);
     const lockedUnlockedBalances = await this.captureLockedUnlockedBalances();
     const vaultBalances = await this.captureVaultBalances();
     await this.optionRoundFacade.refundUnusedBidsAll(refundAllArgs);
@@ -222,13 +258,30 @@ export class RoundSimulator {
     return {
       lockedUnlockedBalances,
       ethBalancesBidders,
-      vaultBalances
+      vaultBalances,
     };
   }
-  async simulateSettledState(exerciseOptionsArgs: Array<ExerciseOptionArgs>) {
+  async simulateSettledState(
+    exerciseOptionsArgs: Array<ExerciseOptionArgs>,
+    withdrawalArgs: Array<WithdrawArgs>
+  ) {
     const data = await this.optionRoundFacade.optionRoundContract.get_state();
     await this.testRunner.settleOptionRoundBystander();
 
+    const withdrawArgsAdjusted: Array<WithdrawArgs> = [];
+
+    for (const args of withdrawalArgs) {
+      const unlockedBalance =
+        await this.testRunner.vaultFacade.getLPUnlockedBalance(
+          args.account.address
+        );
+        withdrawArgsAdjusted.push({
+          account:args.account,
+          amount:Math.floor(Number(args.amount)*Number(unlockedBalance))
+        })
+    }
+
+    await this.testRunner.withdrawAll(withdrawArgsAdjusted);
     const lockedUnlockedBalances = await this.captureLockedUnlockedBalances();
     const vaultBalances = await this.captureVaultBalances();
     console.log("3");

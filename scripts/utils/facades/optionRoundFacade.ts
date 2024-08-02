@@ -21,6 +21,11 @@ export class OptionRoundFacade {
   }
 
 
+
+  async getStartingLiquidity(){
+    const res = await this.optionRoundContract.starting_liquidity();
+    return convertToBigInt(res);
+  }
   async getRoundId() {
     const res = await this.optionRoundContract.get_round_id();
     return convertToBigInt(res);
