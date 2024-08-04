@@ -29,6 +29,9 @@ trait IOptionRound<TContractState> {
     // The total liquidity at the start of the round's auction
     fn starting_liquidity(self: @TContractState) -> u256;
 
+    // The total liquidity not sold after the auction
+    fn unsold_liquidity(self: @TContractState) -> u256;
+
     // The total premium collected from the auction
     fn total_premiums(self: @TContractState) -> u256;
 

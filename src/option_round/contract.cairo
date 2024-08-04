@@ -60,6 +60,7 @@ mod OptionRound {
         reserve_price: u256,
         strike_price: u256,
         starting_liquidity: u256,
+        unsold_liquidity: u256,
         payout_per_option: u256,
         auction_start_date: u64,
         auction_end_date: u64,
@@ -269,6 +270,11 @@ mod OptionRound {
         // Get the amount of liquidity that the round started with
         fn starting_liquidity(self: @ContractState) -> u256 {
             self.starting_liquidity.read()
+        }
+
+        // Get the amount of liquidity the round does not sell in the auction
+        fn unsold_liquidity(self: @ContractState) -> u256 {
+            self.unsold_liquidity.read()
         }
 
         // Get the total amount of premiums collected from the auction
@@ -587,6 +593,18 @@ mod OptionRound {
 
             // Calculate clearing price & total options sold
             let (clearing_price, total_options_sold) = self.update_clearing_price();
+
+            // Set total options sold
+            let total_options_available = self.get_total_options_available();
+            if total_options_sold < total_options_available {
+                let starting_liquidity = self.starting_liquidity();
+                let unsold_options = total_options_available - total_options_sold;
+                let unsold_liquidity = divide_with_precision(
+                    starting_liquidity * total_options_sold, total_options_available
+                );
+
+                self.unsold_liquidity.write(unsold_liquidity);
+            }
 
             // Send premiums earned from the auction to Vault
             let eth = self.get_eth_dispatcher();
@@ -932,8 +950,10 @@ mod OptionRound {
             // The bidder's share of the total payout
             // @dev If total options sold is 0, then the total payout is 0,
             // therefore we already exit early, avoiding a division by 0 error
+            let options_sold = self.bids_tree.get_total_options_sold();
+
             let share_of_payout = divide_with_precision(
-                total_payout * options_to_exercise, self.bids_tree.get_total_options_sold()
+                total_payout * options_to_exercise, options_sold
             );
 
             // Transfer the payout share to the bidder
@@ -1124,7 +1144,7 @@ mod OptionRound {
         fn _max_payout_per_option(
             self: @ContractState, strike_price: u256, cap_level: u256
         ) -> u256 {
-            divide_with_precision(strike_price * cap_level, BPS)
+            divide_with_precision(strike_price * cap_level,  BPS)
         }
 
         // Calcualte the total number of options available to sell in the auction
@@ -1133,7 +1153,7 @@ mod OptionRound {
         ) -> u256 {
             let capped = self._max_payout_per_option(strike_price, cap_level);
 
-            divide_with_precision(starting_liquidity, capped)
+            divide_with_precision(starting_liquidity,capped)
         }
 
         // Calculate the payout per each option at settlement
