@@ -166,6 +166,7 @@ fn test_withdrawing_always_come_from_unlocked_pool() {
     accelerate_to_auctioning(ref vault);
     let unlocked_amount_before = vault.deposit(deposit_amount, liquidity_provider);
     let unlocked_amount_after = vault.withdraw(withdraw_amount, liquidity_provider);
+
     assert(
         unlocked_amount_after == unlocked_amount_before - withdraw_amount, 'unlocked amount 1 wrong'
     );
@@ -174,6 +175,7 @@ fn test_withdrawing_always_come_from_unlocked_pool() {
     accelerate_to_running(ref vault);
     let unlocked_amount_before = vault.get_lp_unlocked_balance(liquidity_provider);
     let unlocked_amount_after = vault.withdraw(withdraw_amount, liquidity_provider);
+
     assert(
         unlocked_amount_after == unlocked_amount_before - withdraw_amount, 'unlocked amount 2 wrong'
     );

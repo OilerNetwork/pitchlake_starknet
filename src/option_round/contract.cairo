@@ -600,7 +600,7 @@ mod OptionRound {
                 let starting_liquidity = self.starting_liquidity();
                 let unsold_options = total_options_available - total_options_sold;
                 let unsold_liquidity = divide_with_precision(
-                    starting_liquidity * total_options_sold, total_options_available
+                    starting_liquidity * unsold_options, total_options_available
                 );
 
                 self.unsold_liquidity.write(unsold_liquidity);
@@ -1144,7 +1144,7 @@ mod OptionRound {
         fn _max_payout_per_option(
             self: @ContractState, strike_price: u256, cap_level: u256
         ) -> u256 {
-            divide_with_precision(strike_price * cap_level,  BPS)
+            divide_with_precision(strike_price * cap_level, BPS)
         }
 
         // Calcualte the total number of options available to sell in the auction
@@ -1153,7 +1153,7 @@ mod OptionRound {
         ) -> u256 {
             let capped = self._max_payout_per_option(strike_price, cap_level);
 
-            divide_with_precision(starting_liquidity,capped)
+            divide_with_precision(starting_liquidity, capped)
         }
 
         // Calculate the payout per each option at settlement

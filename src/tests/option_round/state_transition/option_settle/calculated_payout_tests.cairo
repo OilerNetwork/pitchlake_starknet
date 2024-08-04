@@ -55,7 +55,7 @@ fn test_option_payout_amount_index_higher_than_strike() {
 
     let K = current_round.get_strike_price();
     let x = 11111; // +1.111% strike
-    let settlement_price = divide_with_precision(x * K , BPS);
+    let settlement_price = divide_with_precision(x * K, BPS);
 
     let expected_payout = calculate_expected_payout(ref current_round, settlement_price);
     let payout = accelerate_to_settled(ref vault, settlement_price);
