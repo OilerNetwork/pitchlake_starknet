@@ -34,7 +34,7 @@ mod Errors {
 
 mod Consts {
     const BPS: u256 = 10000;
-    const PRECISION: u256 = 1;
+    const PRECISION: u256 = 100;
 }
 
 /// An enum for each type of Vault
