@@ -355,7 +355,8 @@ mod Vault {
 
         fn get_lp_total_balance(self: @ContractState, liquidity_provider: ContractAddress) -> u256 {
             self.get_lp_locked_balance(liquidity_provider)
-                + self.get_lp_unlocked_balance(liquidity_provider) + self.get_lp_stashed_balance(liquidity_provider)
+                + self.get_lp_unlocked_balance(liquidity_provider)
+                + self.get_lp_stashed_balance(liquidity_provider)
         }
 
         fn get_total_locked_balance(self: @ContractState) -> u256 {
@@ -564,7 +565,7 @@ mod Vault {
 
             // @dev If there is any remaining amount to withdraw, continue
             if amount > upcoming_round_deposit {
-            let amount_difference = amount - upcoming_round_deposit;
+                let amount_difference = amount - upcoming_round_deposit;
                 let state = current_round.get_state();
                 // @dev If the current round is Running, take from the liquidity provider's premiums and unsold liquidity
                 if state == OptionRoundState::Running {
