@@ -30,7 +30,6 @@ mod Vault {
     // @total_unlocked_balance: Total unlocked liquidity
     // @total_locked_balance: Total locked liquidity
     // @premiums_collected:The amount of premiums a liquidity provider collects from each round: (liquidity_provider, round_id) -> collected_amount
-    // @unsold_liquidity: The amount of liquidity not sold during each round's auction (if any): (round_id) -> unsold_liquidity
     // @current_option_round_id: The id of the current option round
     // @round_addresses: Mapping of round id -> round address
     // @round_transition_period: Time between settling of current round and starting of next round
