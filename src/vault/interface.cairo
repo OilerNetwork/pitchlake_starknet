@@ -55,6 +55,9 @@ trait IVault<TContractState> {
     // Get the liquidity an LP has unlocked
     fn get_lp_unlocked_balance(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
 
+    // Get the liquidity an LP has stashed in the vault from withdrawl queues
+    fn get_lp_stashed_balance(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
+
     // Get the total liquidity an LP has in the protocol
     fn get_lp_total_balance(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
 
@@ -66,8 +69,11 @@ trait IVault<TContractState> {
     // Get the total liquidity unlocked
     fn get_total_unlocked_balance(self: @TContractState) -> u256;
 
+    // Get the total liquidity stashed
+    fn get_total_stashed_balance(self: @TContractState) -> u256;
+
     // Get the total liquidity in the protocol
-    fn get_total_balance(self: @TContractState,) -> u256;
+    fn get_total_balance(self: @TContractState) -> u256;
 
     /// Premiums
 
@@ -75,9 +81,6 @@ trait IVault<TContractState> {
     fn get_premiums_collected(
         self: @TContractState, liquidity_provider: ContractAddress, round_id: u256
     ) -> u256;
-
-    // Get the amount of unsold liquidity for a round
-    fn get_unsold_liquidity(self: @TContractState, round_id: u256) -> u256;
 
     /// Writes ///
 
@@ -109,9 +112,18 @@ trait IVault<TContractState> {
         ref self: TContractState, amount: u256, liquidity_provider: ContractAddress
     ) -> u256;
 
-    // Liquidity provider withdraws from the vailt
+    // Caller withdraws from the vault
     // @return The liquidity provider's updated unlocked position
     fn withdraw_liquidity(ref self: TContractState, amount: u256) -> u256;
+
+    // Caller queues their currently locked liquidity to be stashed aside, to not roll over
+    // into the next round
+    fn queue_withdrawal(ref self: TContractState);
+
+    // Liquidity provider withdraws their stashed (queued) withdrawals
+    fn withdraw_stashed_liquidity(
+        ref self: TContractState, liquidity_provider: ContractAddress
+    ) -> u256;
 
     /// LP token related
 

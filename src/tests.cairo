@@ -9,6 +9,7 @@ mod vault {
     mod liquidity_providers {
         mod deposit_tests;
         mod withdraw_tests;
+        mod withdrawal_queue_tests;
     }
 }
 

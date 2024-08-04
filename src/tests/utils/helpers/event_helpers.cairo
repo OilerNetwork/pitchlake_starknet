@@ -272,3 +272,19 @@ fn assert_event_vault_withdrawal(
         Option::None => { panic(array!['No events found']); }
     }
 }
+
+// Test queued withdrawal event emits correctly
+fn assert_event_vault_stashed_withdrawal(
+    vault: ContractAddress, account: ContractAddress, stashed_amount: u256,
+) {
+    match pop_log::<Vault::Event>(vault) {
+        Option::Some(e) => {
+            let expected = Vault::Event::StashedWithdrawal(
+                Vault::StashedWithdrawal { account, stashed_amount }
+            );
+
+            assert_events_equal(e, expected);
+        },
+        Option::None => { panic(array!['No events found']); }
+    }
+}
