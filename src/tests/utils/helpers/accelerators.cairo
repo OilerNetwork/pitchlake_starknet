@@ -2,8 +2,9 @@ use starknet::{
     contract_address_const, get_block_timestamp, ContractAddress,
     testing::{set_block_timestamp, set_contract_address}
 };
+use core::fmt::Display;
 use pitch_lake_starknet::{
-    types::{OptionRoundState, VaultType},
+    types::{OptionRoundState, VaultType, BidDisplay},
     vault::{contract::Vault, interface::{IVaultDispatcher, IVaultDispatcherTrait}},
     option_round::{
         contract::{OptionRound}, interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,},
@@ -83,6 +84,7 @@ fn accelerate_to_running_custom(
 ) -> (u256, u256) {
     let mut current_round = self.get_current_round();
     current_round.place_bids(max_amounts, prices, bidders);
+
     // Jump to the auction end date and end the auction
     timeskip_and_end_auction(ref self)
 }

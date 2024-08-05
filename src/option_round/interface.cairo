@@ -85,9 +85,6 @@ trait IOptionRound<TContractState> {
     // The address of vault that deployed this round
     fn vault_address(self: @TContractState) -> ContractAddress;
 
-    // The constructor parmaeters of the option round
-    fn get_constructor_params(self: @TContractState) -> OptionRoundConstructorParams;
-
     // The state of the option round
     fn get_state(self: @TContractState) -> OptionRoundState;
 

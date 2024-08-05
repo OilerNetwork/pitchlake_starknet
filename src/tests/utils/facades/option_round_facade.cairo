@@ -459,10 +459,6 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     }
 
     /// Other
-    fn get_constructor_params(ref self: OptionRoundFacade) -> OptionRoundConstructorParams {
-        self.option_round_dispatcher.get_constructor_params()
-    }
-
     fn get_state(ref self: OptionRoundFacade) -> OptionRoundState {
         self.option_round_dispatcher.get_state()
     }
