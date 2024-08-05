@@ -416,7 +416,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     }
 
     fn get_auction_clearing_price(ref self: OptionRoundFacade) -> u256 {
-        self.option_round_dispatcher.get_auction_clearing_price()
+        self.option_round_dispatcher.clearing_price()
     }
 
     fn total_options_sold(ref self: OptionRoundFacade) -> u256 {
@@ -494,7 +494,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     }
 
     fn get_total_options_available(ref self: OptionRoundFacade) -> u256 {
-        self.option_round_dispatcher.get_total_options_available()
+        self.option_round_dispatcher.total_options_available()
     }
 
     /// ERC20 functions

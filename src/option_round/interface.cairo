@@ -40,7 +40,7 @@ trait IOptionRound<TContractState> {
     fn total_payout(self: @TContractState) -> u256;
 
     // Gets the clearing price of the auction
-    fn get_auction_clearing_price(self: @TContractState) -> u256;
+    fn clearing_price(self: @TContractState) -> u256;
 
     // The total number of options sold in the option round
     fn total_options_sold(self: @TContractState) -> u256;
@@ -101,7 +101,7 @@ trait IOptionRound<TContractState> {
     fn get_reserve_price(self: @TContractState) -> u256;
 
     // The total number of options available in the auction
-    fn get_total_options_available(self: @TContractState) -> u256;
+    fn total_options_available(self: @TContractState) -> u256;
 
     // Get option round id
     // @note add to facade and tests
