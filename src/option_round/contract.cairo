@@ -345,7 +345,7 @@ mod OptionRound {
             bids
         }
 
-       // #Params
+        // #Params
         // @option_buyer:ContractAddress, target address
         // #Return
         // u256:total refundable balance for the option buyer
@@ -454,7 +454,7 @@ mod OptionRound {
             return mintable_balance;
         }
 
-       fn get_total_options_balance_for(
+        fn get_total_options_balance_for(
             self: @ContractState, option_buyer: ContractAddress
         ) -> u256 {
             self.get_tokenizable_options_for(option_buyer)

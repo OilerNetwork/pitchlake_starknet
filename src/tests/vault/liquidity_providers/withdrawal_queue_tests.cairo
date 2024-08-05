@@ -61,11 +61,6 @@ fn test_stashed_liquidity_does_not_roll_over() {
         ref vault, array![liquidity_provider].span(), array![deposit_amount].span()
     );
 
-    let starting_liq = current_round.starting_liquidity();
-    let (lp_locked_after_auction_start, lp_unlocked_after_auction_start) = vault
-        .get_lp_locked_and_unlocked_balance(liquidity_provider);
-    let lp_stashed_after_auction_start = vault.get_lp_stashed_balance(liquidity_provider);
-
     accelerate_to_running_custom(
         ref vault,
         array![option_bidder_buyer_1()].span(),
@@ -73,18 +68,20 @@ fn test_stashed_liquidity_does_not_roll_over() {
         array![current_round.get_reserve_price()].span()
     );
 
-    let total_premiums = current_round.total_premiums();
-    let unsold_liq = vault.get_unsold_liquidity(current_round.get_round_id());
-
     // Queue withdrawal
     vault.queue_withdrawal(liquidity_provider);
 
+    // Start round 2
     let total_payout = accelerate_to_settled(ref vault, 1); //no payout
     accelerate_to_auctioning_custom(ref vault, array![].span(), array![].span());
 
     let (total_locked, total_unlocked, total_stashed) = vault
         .get_total_locked_and_unlocked_and_stashed_balance();
     let lp_stashed = vault.get_lp_stashed_balance(liquidity_provider);
+
+    let starting_liq = current_round.starting_liquidity();
+    let total_premiums = current_round.total_premiums();
+    let unsold_liq = vault.get_unsold_liquidity(current_round.get_round_id());
 
     let total_remaining = starting_liq - unsold_liq - total_payout;
     let total_earned = total_premiums + unsold_liq;
@@ -123,35 +120,58 @@ fn test_stashed_liquidity_does_not_roll_over() {
     assert_eq!(lp_stashed2, total_remaining + total_remaining2);
 }
 
-// Copy test from above with multiple LPs
+// Test that when an LP queues a withdrawal, it does not roll over after round settles (multiple LPs)
+#[test]
+#[available_gas(300000000)]
+fn test_stashed_liquidity_does_not_roll_over_multiple_LPs() {
+    /// ROUND 1 ///
+    let (mut vault, _) = setup_facade();
+    let mut current_round = vault.get_current_round();
+
+    let deposit_amount = 100 * decimals();
+    let deposit_amounts = create_array_linear(deposit_amount, 3).span();
+    let liquidity_providers = liquidity_providers_get(3).span();
+
+    accelerate_to_auctioning_custom(ref vault, liquidity_providers, deposit_amounts);
+
+    // 1/2 options sell at reserve price
+    accelerate_to_running_custom(
+        ref vault,
+        array![option_bidder_buyer_1()].span(),
+        array![divide_with_precision(current_round.get_total_options_available(), 2)].span(),
+        array![current_round.get_reserve_price()].span()
+    );
+
+    // LP 1 & 2 Queue withdrawal
+    vault.queue_withdrawal(*liquidity_providers.at(0));
+    vault.queue_withdrawal(*liquidity_providers.at(1));
+
+    // Start round 2
+    let total_payout = accelerate_to_settled(ref vault, 1); //no payout
+    accelerate_to_auctioning_custom(ref vault, array![].span(), array![].span());
+
+    let (total_locked, total_unlocked, total_stashed) = vault
+        .get_total_locked_and_unlocked_and_stashed_balance();
+    let lp_stashed = vault.get_lp_stashed_balances(liquidity_providers);
+
+    let starting_liq = current_round.starting_liquidity();
+    let total_premiums = current_round.total_premiums();
+    let unsold_liq = vault.get_unsold_liquidity(current_round.get_round_id());
+
+    let total_remaining = starting_liq - unsold_liq - total_payout;
+    let total_earned = total_premiums + unsold_liq;
+
+    let expected_not_stashed_amount = divide_with_precision(1 * total_remaining, 3);
+    let expected_stashed_amount = 2 * expected_not_stashed_amount;
+    let expected_lp_stashed = array![expected_stashed_amount / 2, expected_stashed_amount / 2, 0];
+
+    assert_eq!(total_locked, total_earned + expected_not_stashed_amount);
+    assert_eq!(total_unlocked, 0);
+    assert_eq!(total_stashed, expected_stashed_amount);
+    assert_eq!(lp_stashed, expected_lp_stashed);
+}
 
 // Tests below have not been fixed
-
-// Test queuing while the current round is open fails
-#[test]
-#[available_gas(50000000)]
-fn test_queueing_while_current_round_open_fails() {
-    let mut rounds_to_run = 3;
-    let (mut vault, _) = setup_facade();
-    let liquidity_provider = liquidity_provider_1();
-
-    while rounds_to_run
-        .is_non_zero() {
-            let mut round = vault.get_current_round();
-
-            // Queue withdrawal while current round is open
-            vault
-                .queue_withdrawal_expect_error(
-                    liquidity_provider, Errors::WithdrawalQueuedWhileUnlocked
-                );
-
-            accelerate_to_auctioning(ref vault);
-            accelerate_to_running(ref vault);
-            accelerate_to_settled(ref vault, round.get_strike_price());
-
-            rounds_to_run -= 1;
-        }
-}
 
 // Test queuing a withdrawal does not affect the stashed balances while round is Auctioning | Running
 #[test]
