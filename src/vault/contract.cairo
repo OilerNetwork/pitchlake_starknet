@@ -39,6 +39,8 @@ mod Vault {
         eth_address: ContractAddress,
         option_round_class_hash: ClassHash,
         positions: LegacyMap<(ContractAddress, u256), u256>,
+        // User -> last time position was realized
+        realizations: LegacyMap<ContractAddress, u256>,
         withdraw_checkpoints: LegacyMap<ContractAddress, u256>,
         queue_checkpoints: LegacyMap<ContractAddress, u256>,
         total_unlocked_balance: u256,
@@ -788,6 +790,53 @@ mod Vault {
         //                }
         //            }
         }
+
+
+        // Returns the value of the user's position at the start of the current round
+        fn realize_position(self: @ContractState, liquidity_provider: ContractAddress) -> u256 {
+            let last_realized_id = self.realizations.read(liquidity_provider);
+            let current_round_id = self.current_option_round_id();
+
+            // @dev Calculate the value of the liquidity provider's position at then end of the previous round
+            let mut realized_position = 0;
+            // @dev The first round is 1-based
+            let mut i: u256 = last_realized_id;
+            if i.is_zero() {
+                i = 1;
+            }
+            while i < current_round_id {
+                // @dev Value of position at start of this round
+                realized_position += self.positions.read((liquidity_provider, i));
+
+                // @dev Get results of this round
+                let (round_starting_liq, round_remaining_liq, round_earned_liq) = self
+                    .get_round_outcome(i);
+
+                // @dev How much of the earned liquidity did the liquidity provider let roll over
+                // @dev `earned * (lp_starting_liq / round_starting_liq)`
+                let could_earn = divide_with_precision(
+                    round_earned_liq * realized_position, round_starting_liq
+                );
+                let already_withdrawn = self.premiums_collected.read((liquidity_provider, i));
+                let lp_earned_liq = could_earn - already_withdrawn;
+
+                // @dev How much of the remaining liquidity was not queued for stashing
+                let (_, queued_liq) = self.lp_stashes.read((liquidity_provider, i));
+                let not_queued_liq = realized_position - queued_liq;
+                // @dev `remaining_liq * (queued_liq / starting_liq)`
+                let lp_remaining_liq = divide_with_precision(
+                    round_remaining_liq * not_queued_liq, round_starting_liq
+                );
+
+                realized_position = lp_remaining_liq + lp_earned_liq;
+
+                i += 1;
+            };
+
+            let current_round_deposit = self.positions.read((liquidity_provider, current_round_id));
+            realized_position + current_round_deposit
+        }
+
 
         // @new @note TODO: If round is flagged for stashing, then the roll over amount has the portion of collat.
         // subtracted out.
