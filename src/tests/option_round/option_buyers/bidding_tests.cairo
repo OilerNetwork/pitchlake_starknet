@@ -30,8 +30,8 @@ use pitch_lake_starknet::{
                     accelerate_to_settled, timeskip_past_auction_end_date,
                 },
                 event_helpers::{
-                    assert_event_transfer, assert_event_auction_bid_accepted,
-                    assert_event_auction_bid_rejected, pop_log, assert_no_events_left,
+                    assert_event_transfer, assert_event_auction_bid_accepted, pop_log,
+                    assert_no_events_left,
                 }
             },
             lib::test_accounts::{

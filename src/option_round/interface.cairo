@@ -67,7 +67,7 @@ trait IOptionRound<TContractState> {
     // @note This should sum all refundable bid amounts and return the total
     // - i.e if a bidder places 4 bids, 2 fully used, 1 partially used, and 1 fully refundable, the
     // refundable amount should be the value of the last bid + the remaining amount of the partial bid
-    fn get_refundable_bids_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
+    fn get_refundable_balance_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
     // Get the total amount of options the option buyer owns, includes the tokenizable amount and the
     // already tokenized (ERC20) amount
@@ -77,7 +77,7 @@ trait IOptionRound<TContractState> {
     fn get_payout_balance_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
     // Get the amount of options that can be tokenized for the option buyer
-    fn get_tokenizable_options_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
+    fn get_mintable_options_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
 
     /// Other
@@ -152,5 +152,5 @@ trait IOptionRound<TContractState> {
     fn exercise_options(ref self: TContractState) -> u256;
 
     // Convert options won from auction into erc20 tokens
-    fn tokenize_options(ref self: TContractState) -> u256;
+    fn mint_options(ref self: TContractState) -> u256;
 }

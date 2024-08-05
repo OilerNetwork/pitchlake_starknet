@@ -18,9 +18,9 @@ use pitch_lake_starknet::{
                     assert_event_transfer, pop_log, assert_no_events_left,
                     assert_event_option_settle, assert_event_option_round_deployed,
                     assert_event_vault_deposit, assert_event_auction_start,
-                    assert_event_auction_bid_accepted, assert_event_auction_bid_rejected,
-                    assert_event_auction_end, assert_event_vault_withdrawal,
-                    assert_event_unused_bids_refunded, assert_event_options_exercised,
+                    assert_event_auction_bid_accepted, assert_event_auction_end,
+                    assert_event_vault_withdrawal, assert_event_unused_bids_refunded,
+                    assert_event_options_exercised,
                 },
                 accelerators::{
                     accelerate_to_auctioning, accelerate_to_running, accelerate_to_settled,

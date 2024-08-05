@@ -119,7 +119,6 @@ mod OptionRound {
     enum Event {
         AuctionStarted: AuctionStarted,
         BidAccepted: BidAccepted,
-        BidRejected: BidRejected,
         BidUpdated: BidUpdated,
         AuctionEnded: AuctionEnded,
         OptionRoundSettled: OptionRoundSettled,
@@ -127,7 +126,7 @@ mod OptionRound {
         UnusedBidsRefunded: UnusedBidsRefunded,
         #[flat]
         BidTreeEvent: RBTreeComponent::Event,
-        OptionsTokenized: OptionsTokenized,
+        OptionsMinted: OptionsMinted,
         #[flat]
         ERC20Event: ERC20Component::Event,
     }
@@ -173,18 +172,6 @@ mod OptionRound {
         price: u256
     }
 
-    // Emitted when a bid is rejected
-    // @param account The account that placed the bid
-    // @param amount The amount of options the bidder is willing to buy in total
-    // @param price The price per option that was bid (max price the bidder is willing to spend per option)
-    #[derive(Drop, starknet::Event, PartialEq)]
-    struct BidRejected {
-        #[key]
-        account: ContractAddress,
-        amount: u256,
-        price: u256
-    }
-
     #[derive(Drop, starknet::Event, PartialEq)]
     struct BidUpdated {
         #[key]
@@ -197,7 +184,7 @@ mod OptionRound {
     }
 
     #[derive(Drop, starknet::Event, PartialEq)]
-    struct OptionsTokenized {
+    struct OptionsMinted {
         #[key]
         account: ContractAddress,
         amount: u256,
@@ -356,7 +343,7 @@ mod OptionRound {
         // From refundable bids, adds the full amount*price to refundable_balance.
         // @note should be named `get_refundable_balance_for(...)`
         // @note Returns sum of refundable balances held by option_buyer if the round's auction has ended
-        fn get_refundable_bids_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
+        fn get_refundable_balance_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
             // @dev Has the bidder refunded already ?
             let has_refunded = self.has_refunded.read(option_buyer);
             let mut refundable_balance = 0;
@@ -422,9 +409,7 @@ mod OptionRound {
         /// # Returns
         /// * `u256`: number of tokenizable options held by option_buyer
         // @note should be named `get_mintable_options_for`
-        fn get_tokenizable_options_for(
-            self: @ContractState, option_buyer: ContractAddress
-        ) -> u256 {
+        fn get_mintable_options_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
             // @dev Has the bidder tokenized already ?
             let has_minted = self.has_minted.read(option_buyer);
             let mut mintable_balance = 0;
@@ -457,7 +442,7 @@ mod OptionRound {
         fn get_total_options_balance_for(
             self: @ContractState, option_buyer: ContractAddress
         ) -> u256 {
-            self.get_tokenizable_options_for(option_buyer)
+            self.get_mintable_options_for(option_buyer)
                 + self.erc20.ERC20_balances.read(option_buyer)
         }
 
@@ -741,7 +726,7 @@ mod OptionRound {
             self.assert_auction_ended();
 
             // @dev Total refundable balance for the bidder
-            let refundable_balance = self.get_refundable_bids_for(option_bidder);
+            let refundable_balance = self.get_refundable_balance_for(option_bidder);
 
             // @dev Update has_refunded flag
             self.has_refunded.write(option_bidder, true);
@@ -773,28 +758,23 @@ mod OptionRound {
         // Gets tokenizable and partial tokenizable bids from internal helper,
         // Sums total number of tokenizable options from both,updates all tokenizable bids.is_tokenized to true,
         // Mints option round tokens to the bidder and emits OptionsTokenized event
-        fn tokenize_options(ref self: ContractState) -> u256 {
+        fn mint_options(ref self: ContractState) -> u256 {
             self.assert_auction_ended();
 
-            // @dev Total mintable balance for the bidder
+            // @dev Total mintable amount for the bidder
             let option_buyer = get_caller_address();
-            let mintable_balance = self.get_tokenizable_options_for(option_buyer);
+            let amount = self.get_mintable_options_for(option_buyer);
 
             // @dev Update has_minted flag
             self.has_minted.write(option_buyer, true);
 
             // @dev Mint the options to the bidder
-            self.mint(option_buyer, mintable_balance);
+            self.mint(option_buyer, amount);
 
             // @dev Emit options minted event
-            self
-                .emit(
-                    Event::OptionsTokenized(
-                        OptionsTokenized { account: option_buyer, amount: mintable_balance }
-                    )
-                );
+            self.emit(Event::OptionsMinted(OptionsMinted { account: option_buyer, amount }));
 
-            mintable_balance
+            amount
         }
 
         // fn exercise_options
@@ -816,7 +796,7 @@ mod OptionRound {
             // current option ERC-20 token balance
             let option_buyer = get_caller_address();
             let mut options_to_exercise = 0;
-            let mintable_balance = self.get_tokenizable_options_for(option_buyer);
+            let mintable_amount = self.get_mintable_options_for(option_buyer);
             let erc20_option_balance = self.erc20.ERC20_balances.read(option_buyer);
 
             // @dev Burn the ERC20 options
@@ -826,7 +806,7 @@ mod OptionRound {
             }
 
             // @dev Flag the mintable options to no longer be mintable
-            options_to_exercise += mintable_balance;
+            options_to_exercise += mintable_amount;
             self.has_minted.write(option_buyer, true);
 
             // @dev Transfer the payout share to the bidder

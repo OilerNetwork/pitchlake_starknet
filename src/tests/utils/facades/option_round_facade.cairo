@@ -301,7 +301,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     // @return: The amount refunded
     fn refund_bid(ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress) -> u256 {
         set_contract_address(option_bidder_buyer);
-        let refundable_balance = self.get_refundable_bids_for(option_bidder_buyer);
+        let refundable_balance = self.get_refundable_balance_for(option_bidder_buyer);
         let refunded_amount = self.option_round_dispatcher.refund_unused_bids(option_bidder_buyer);
         sanity_checks::refund_bid(ref self, refunded_amount, refundable_balance)
     }
@@ -365,24 +365,24 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
 
     // Tokenize options for an option buyer
     // @return: The amount of options minted
-    fn tokenize_options(ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress) -> u256 {
+    fn mint_options(ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress) -> u256 {
         set_contract_address(option_bidder_buyer);
         let option_erc20_balance_before = get_erc20_balance(
             self.contract_address(), option_bidder_buyer
         );
-        let options_minted = self.option_round_dispatcher.tokenize_options();
+        let options_minted = self.option_round_dispatcher.mint_options();
         sanity_checks::tokenize_options(
             ref self, option_bidder_buyer, option_erc20_balance_before, options_minted,
         )
     }
 
     #[feature("safe_dispatcher")]
-    fn tokenize_options_expect_error(
+    fn mint_options_expect_error(
         ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress, error: felt252,
     ) {
         set_contract_address(option_bidder_buyer);
         let safe_option_round = self.get_safe_dispatcher();
-        safe_option_round.tokenize_options().expect_err(error);
+        safe_option_round.mint_options().expect_err(error);
     }
 
     /// Reads ///
@@ -440,10 +440,10 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         self.option_round_dispatcher.get_bids_for(option_bidder_buyer)
     }
 
-    fn get_refundable_bids_for(
+    fn get_refundable_balance_for(
         ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
     ) -> u256 {
-        self.option_round_dispatcher.get_refundable_bids_for(option_bidder_buyer)
+        self.option_round_dispatcher.get_refundable_balance_for(option_bidder_buyer)
     }
 
     fn get_payout_balance_for(
@@ -452,10 +452,10 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         self.option_round_dispatcher.get_payout_balance_for(option_bidder_buyer)
     }
 
-    fn get_option_balance_for(
+    fn get_mintable_options_for(
         ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
     ) -> u256 {
-        self.option_round_dispatcher.get_tokenizable_options_for(option_bidder_buyer)
+        self.option_round_dispatcher.get_mintable_options_for(option_bidder_buyer)
     }
 
     /// Other

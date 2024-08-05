@@ -209,8 +209,8 @@ fn test_updating_bids_follows_tree_nonce_sorting() {
 
     timeskip_and_end_auction(ref vault);
 
-    let options_for1 = current_round.get_option_balance_for(bidder);
-    let options_for2 = current_round.get_option_balance_for(bidder2);
+    let options_for1 = current_round.get_mintable_options_for(bidder);
+    let options_for2 = current_round.get_mintable_options_for(bidder2);
 
     assert_eq!(options_for1, options_available / 4, "Bidder 1 options wrong");
     assert_eq!(options_for2, 3 * options_available / 4, "Bidder 1 options wrong");
