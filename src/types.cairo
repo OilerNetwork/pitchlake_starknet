@@ -86,8 +86,6 @@ struct Bid {
     owner: ContractAddress,
     amount: u256,
     price: u256,
-    is_tokenized: bool,
-    is_refunded: bool,
 }
 
 // Allows Bids to be sorted using >, >=, <, <=
@@ -135,14 +133,12 @@ impl BidPartialOrdTrait of PartialOrd<Bid> {
 impl BidDisplay of Display<Bid> {
     fn fmt(self: @Bid, ref f: Formatter) -> Result<(), Error> {
         let str: ByteArray = format!(
-            "ID:{}\nNonce:{}\nOwner:{}\nAmount:{}\n Price:{}\nTokenized:{}\nRefunded:{}",
+            "ID:{}\nNonce:{}\nOwner:{}\nAmount:{}\n Price:{}",
             *self.id,
             *self.nonce,
             Into::<ContractAddress, felt252>::into(*self.owner),
             *self.amount,
             *self.price,
-            *self.is_tokenized,
-            *self.is_refunded,
         );
         f.buffer.append(@str);
         Result::Ok(())
