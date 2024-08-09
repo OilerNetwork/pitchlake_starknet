@@ -28,7 +28,7 @@ jobs:
       - name: Test the code
         run: |
           # Run the test and capture the output
-          output=$(scarb test -f rb_tree_tests --include-ignored)
+          output=$(scarb test -f rb_tree_tests --include-ignored 2>&1) || true
 
           # Echo the entire output (optional, for debugging purposes)
           echo "$output"

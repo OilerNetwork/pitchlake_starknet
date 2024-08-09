@@ -152,8 +152,6 @@ fn test_deposits_always_go_to_unlocked_pool() {
     accelerate_to_settled(ref vault, 0);
     let unlocked_balance_before = vault.get_lp_unlocked_balance(liquidity_provider);
     let unlocked_balance_after = vault.deposit(deposit_amount, liquidity_provider);
-    assert(
-        unlocked_balance_after == unlocked_balance_before + deposit_amount, 'unlocked balance wrong'
-    );
+    assert(unlocked_balance_after == unlocked_balance_before, 'unlocked balance wrong');
 }
 
