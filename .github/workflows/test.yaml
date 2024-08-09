@@ -36,10 +36,8 @@ jobs:
 
           # Check if there were any failed tests
           if echo "$output" | grep -q "test result: ok"; then
-            echo "All tests passed!"
             exit 0
           else
-            echo "Some tests failed"
             exit 1
           fi
 
