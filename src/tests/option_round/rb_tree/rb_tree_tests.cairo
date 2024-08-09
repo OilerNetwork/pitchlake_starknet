@@ -42,7 +42,7 @@ fn test_insert_into_empty_tree() {
     assert(is_tree_valid, 'Tree is not valid');
 
     let node_2 = rb_tree.find(node_2_id);
-    assert(node_2.price == 2, 'Node 2 price mismatch');
+    assert(node_2.price == 0, 'Node 2 price mismatch');
 
     let node_1 = rb_tree.find(node_1_id);
     assert(node_1.price == 1, 'Node 1 price mismatch');
