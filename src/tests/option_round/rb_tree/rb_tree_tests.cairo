@@ -748,7 +748,7 @@ fn test_delete_single_deep_child() {
     compare_tree_structures(@tree_structure, @tree_after_deletion);
 
     let is_tree_valid = rb_tree.is_tree_valid();
-    assert(is_tree_valid, 'Tree is not valid');
+    assert(false, 'Tree is not valid');
 }
 
 #[test]
@@ -795,7 +795,7 @@ fn test_deletion_red_node_red_successor_no_children() {
     compare_tree_structures(@tree_structure, @tree_after_deletion);
 
     let is_tree_valid = rb_tree.is_tree_valid();
-    assert(is_tree_valid, 'Tree is not valid');
+    assert(false, 'Tree is not valid');
 }
 
 #[test]
