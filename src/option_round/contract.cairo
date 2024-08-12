@@ -346,44 +346,46 @@ mod OptionRound {
         fn get_refundable_balance_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
             // @dev Has the bidder refunded already ?
             let has_refunded = self.has_refunded.read(option_buyer);
-            let mut refundable_balance = 0;
-            if !has_refunded {
-                let (mut winning_bids, mut losing_bids, clearing_bid_maybe) = self
-                    .calculate_bid_outcome_for(option_buyer);
-
-                // @dev Add refundable balance from the clearing bid
-                match clearing_bid_maybe {
-                    Option::Some(bid) => {
-                        // @dev Only the clearing_bid can be partially sold, the clearing_bid_amount_sold is saved in the tree
-                        let options_sold = self.bids_tree.clearing_bid_amount_sold.read();
-                        let options_not_sold = bid.amount - options_sold;
-                        refundable_balance += options_not_sold * bid.price;
-                    },
-                    Option::None => {}
-                }
-
-                // @dev Add refundable balances from all losing bids
-                let clearing_price = self.clearing_price();
-                loop {
-                    match losing_bids.pop_front() {
-                        Option::Some(bid) => { refundable_balance += bid.amount * bid.price; },
-                        Option::None => { break (); },
-                    }
-                };
-
-                // @dev Add refundable balance for over paid bids
-                loop {
-                    match winning_bids.pop_front() {
-                        Option::Some(bid) => {
-                            if (bid.price > clearing_price) {
-                                let price_difference = bid.price - clearing_price;
-                                refundable_balance += bid.amount * price_difference;
-                            }
-                        },
-                        Option::None => { break (); },
-                    }
-                };
+            if has_refunded {
+                return 0;
             }
+
+            let (mut winning_bids, mut losing_bids, clearing_bid_maybe) = self
+                .calculate_bid_outcome_for(option_buyer);
+
+            // @dev Add refundable balance from the clearing bid
+            let mut refundable_balance = 0;
+            match clearing_bid_maybe {
+                Option::Some(bid) => {
+                    // @dev Only the clearing_bid can be partially sold, the clearing_bid_amount_sold is saved in the tree
+                    let options_sold = self.bids_tree.clearing_bid_amount_sold.read();
+                    let options_not_sold = bid.amount - options_sold;
+                    refundable_balance += options_not_sold * bid.price;
+                },
+                Option::None => {}
+            }
+
+            // @dev Add refundable balances from all losing bids
+            let clearing_price = self.clearing_price();
+            loop {
+                match losing_bids.pop_front() {
+                    Option::Some(bid) => { refundable_balance += bid.amount * bid.price; },
+                    Option::None => { break (); },
+                }
+            };
+
+            // @dev Add refundable balance for over paid bids
+            loop {
+                match winning_bids.pop_front() {
+                    Option::Some(bid) => {
+                        if (bid.price > clearing_price) {
+                            let price_difference = bid.price - clearing_price;
+                            refundable_balance += bid.amount * price_difference;
+                        }
+                    },
+                    Option::None => { break (); },
+                }
+            };
 
             refundable_balance
         }
@@ -412,31 +414,33 @@ mod OptionRound {
         fn get_mintable_options_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
             // @dev Has the bidder tokenized already ?
             let has_minted = self.has_minted.read(option_buyer);
-            let mut mintable_balance = 0;
-            if !has_minted {
-                let (mut winning_bids, _, clearing_bid_maybe) = self
-                    .calculate_bid_outcome_for(option_buyer);
-
-                // @dev Add mintable balance from the clearing bid
-                match clearing_bid_maybe {
-                    Option::Some(_) => {
-                        // @dev The clearing bid potentially sells < the total options bid for, so it is stored separately
-                        let options_sold = self.bids_tree.clearing_bid_amount_sold.read();
-                        mintable_balance += options_sold;
-                    },
-                    Option::None => {}
-                }
-
-                // @dev Add mintable balance from all winning bids
-                loop {
-                    match winning_bids.pop_front() {
-                        Option::Some(bid) => { mintable_balance += bid.amount; },
-                        Option::None => { break (); },
-                    }
-                };
+            if has_minted {
+                return 0;
             }
 
-            return mintable_balance;
+            let (mut winning_bids, _, clearing_bid_maybe) = self
+                .calculate_bid_outcome_for(option_buyer);
+
+            // @dev Add mintable balance from the clearing bid
+            let mut mintable_balance = 0;
+            match clearing_bid_maybe {
+                Option::Some(_) => {
+                    // @dev The clearing bid potentially sells < the total options bid for, so it is stored separately
+                    let options_sold = self.bids_tree.clearing_bid_amount_sold.read();
+                    mintable_balance += options_sold;
+                },
+                Option::None => {}
+            }
+
+            // @dev Add mintable balance from all winning bids
+            loop {
+                match winning_bids.pop_front() {
+                    Option::Some(bid) => { mintable_balance += bid.amount; },
+                    Option::None => { break (); },
+                }
+            };
+
+            mintable_balance
         }
 
         fn get_total_options_balance_for(
