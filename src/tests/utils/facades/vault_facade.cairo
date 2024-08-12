@@ -137,14 +137,12 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         };
     }
 
-    fn withdraw_stashed_liquidity(
-        ref self: VaultFacade, liquidity_provider: ContractAddress
-    ) -> u256 {
+    fn claim_queued_liquidity(ref self: VaultFacade, liquidity_provider: ContractAddress) -> u256 {
         let expected_stashed_amount = self.get_lp_stashed_balance(liquidity_provider);
         let actual_stashed_amount = self
             .vault_dispatcher
-            .withdraw_stashed_liquidity(liquidity_provider);
-        sanity_checks::withdraw_stashed_liquidity(
+            .claim_queued_liquidity(liquidity_provider);
+        sanity_checks::claim_queued_liquidity(
             ref self, expected_stashed_amount, actual_stashed_amount
         )
     }

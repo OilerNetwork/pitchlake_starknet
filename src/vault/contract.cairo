@@ -49,7 +49,7 @@ mod Vault {
         premiums_collected: LegacyMap<(ContractAddress, u256), u256>,
         total_stashes: LegacyMap<u256, u256>,
         // (LP, round_id) -> (is_marked_for_stash, starting_amount)
-        lp_stashes: LegacyMap<(ContractAddress, u256), (bool, u256)>,
+        lp_stashes: LegacyMap<(ContractAddress, u256), u256>,
         current_option_round_id: u256,
         vault_manager: ContractAddress,
         vault_type: VaultType,
@@ -230,6 +230,14 @@ mod Vault {
             remaining_liquidity + collectable_balance + upcoming_round_deposit
         }
 
+        // Get how much liquidity has been queued for stashing in the current round
+        fn get_lp_queued_balance(
+            self: @ContractState, liquidity_provider: ContractAddress
+        ) -> u256 {
+            let current_round_id = self.current_option_round_id();
+            self.lp_stashes.read((liquidity_provider, current_round_id))
+        }
+
 
         // Get the liquidity an LP has stashed in the vault from withdrawl queues
         // For all states, stashed amount is total from [checkpoint -> prev round]
@@ -247,11 +255,11 @@ mod Vault {
             let mut total = 0;
 
             while i < current_round_id {
-                let (is_queued, lp_starting_liq) = self.lp_stashes.read((liquidity_provider, i));
-                if (is_queued) {
+                let lp_queued_amount = self.lp_stashes.read((liquidity_provider, i));
+                if lp_queued_amount.is_non_zero() {
                     let (round_starting_liq, round_remaining_liq, _) = self.get_round_outcome(i);
                     let lp_remaining_liq = divide_with_precision(
-                        round_remaining_liq * lp_starting_liq, round_starting_liq
+                        round_remaining_liq * lp_queued_amount, round_starting_liq
                     );
                     total += lp_remaining_liq;
                 }
@@ -536,10 +544,10 @@ mod Vault {
                 return;
             }
 
-            // @dev Has the liquidity provider already queued a withdrawal for this round
+            // @dev Has the liquidity provider already queued a withdrawal for this round ?
             let liquidity_provider = get_caller_address();
-            let (is_queued, _) = self.lp_stashes.read((liquidity_provider, current_round_id));
-            if is_queued {
+            let queued_amount = self.get_lp_queued_balance(liquidity_provider);
+            if queued_amount.is_non_zero() {
                 return;
             }
 
@@ -553,8 +561,8 @@ mod Vault {
 
             // @dev Update stash details
             let total_stashes = self.total_stashes.read(current_round_id);
-            self.lp_stashes.write((liquidity_provider, current_round_id), (true, position_value));
             self.total_stashes.write(current_round_id, total_stashes + position_value);
+            self.lp_stashes.write((liquidity_provider, current_round_id), position_value);
         }
 
 
@@ -563,7 +571,7 @@ mod Vault {
         // Sums stashes from checkpoint -> prev round and sends them to caller
         // resets checkpoint to current round so that next time the count starts from the current round
         // @note update total stashed
-        fn withdraw_stashed_liquidity(
+        fn claim_queued_liquidity(
             ref self: ContractState, liquidity_provider: ContractAddress
         ) -> u256 {
             // @dev How much does the liquidity provider have stashed
@@ -821,11 +829,11 @@ mod Vault {
                 let lp_earned_liq = could_earn - already_withdrawn;
 
                 // @dev How much of the remaining liquidity was not queued for stashing
-                let (_, queued_liq) = self.lp_stashes.read((liquidity_provider, i));
-                let not_queued_liq = realized_position - queued_liq;
-                // @dev `remaining_liq * (queued_liq / starting_liq)`
+                let queued_amount = self.lp_stashes.read((liquidity_provider, i));
+                let not_queued_amount = realized_position - queued_amount;
+                // @dev `remaining_liq * (not_queued_liq / starting_liq)`
                 let lp_remaining_liq = divide_with_precision(
-                    round_remaining_liq * not_queued_liq, round_starting_liq
+                    round_remaining_liq * not_queued_amount, round_starting_liq
                 );
 
                 realized_position = lp_remaining_liq + lp_earned_liq;
@@ -836,7 +844,6 @@ mod Vault {
             let current_round_deposit = self.positions.read((liquidity_provider, current_round_id));
             realized_position + current_round_deposit
         }
-
 
         // @new @note TODO: If round is flagged for stashing, then the roll over amount has the portion of collat.
         // subtracted out.
@@ -880,10 +887,10 @@ mod Vault {
                 let lp_collected_liq = self.premiums_collected.read((liquidity_provider, i));
                 let mut lp_rollover_liq = lp_collectable_liq - lp_collected_liq;
 
-                // @dev How much the liquidity provider queued to not roll over
-                // @dev If the this round was not queued, the remaining liquidity rolls over
-                let (is_queued, _) = self.lp_stashes.read((liquidity_provider, i));
-                if !is_queued {
+                // @dev If the liquidity provider did not queue this round for withdrawal, the remaining
+                // liquidity rolls over to the next round
+                let queued_amount = self.lp_stashes.read((liquidity_provider, i));
+                if queued_amount.is_zero() {
                     let lp_remaining_liq = divide_with_precision(
                         round_remaining_liq * position_value, round_starting_liq
                     );
@@ -958,8 +965,8 @@ mod Vault {
 
                         // @dev If this round is queued, the remaining liquidity is stashed, only the earned liquidity
                         // rolls over
-                        let (is_queued, _) = self.lp_stashes.read((liquidity_provider, i));
-                        if is_queued {
+                        let queued_amount = self.lp_stashes.read((liquidity_provider, i));
+                        if queued_amount.is_non_zero() {
                             ending_amount = lp_earned_liq;
                         } else {
                             // @dev If this round is not queued, the remaining liquidity & the earned liquidity rolls over

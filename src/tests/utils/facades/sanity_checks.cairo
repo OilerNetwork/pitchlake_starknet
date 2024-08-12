@@ -108,9 +108,7 @@ fn withdraw(
     expected_unlocked_amount
 }
 
-fn withdraw_stashed_liquidity(
-    ref vault: VaultFacade, stashed_amount: u256, expected: u256
-) -> u256 {
-    assert!(stashed_amount == expected, "Withdraw stashed sanity check fail");
-    stashed_amount
+fn claim_queued_liquidity(ref vault: VaultFacade, queued_amount: u256, expected: u256) -> u256 {
+    assert!(queued_amount == expected, "Withdraw stashed sanity check fail");
+    queued_amount
 }
