@@ -28,10 +28,14 @@ jobs:
       - name: Test the code
         run: |
           # Run the test and capture the output
-          output=$(scarb test -f rb_tree_tests --include-ignored)
+          output=$(scarb test -f rb_tree_tests --include-ignored 2>&1) || true
 
           # Echo the entire output (optional, for debugging purposes)
           echo "$output"
 
-          # Filter and echo the specific part of the output you are interested in
-          echo "$output" | grep -E "Error: test result: FAILED. [0-9]+ passed; [0-9]+ failed; [0-9]+ ignored"
+          # Check if there were any failed tests
+          if echo "$output" | grep -q "test result: ok"; then
+            exit 0
+          else
+            exit 1
+          fi
