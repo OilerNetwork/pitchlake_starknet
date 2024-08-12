@@ -453,9 +453,8 @@ mod OptionRound {
         // Get the payout balance for the option buyer
         fn get_payout_balance_for(self: @ContractState, option_buyer: ContractAddress) -> u256 {
             let number_of_options = self.get_total_options_balance_for(option_buyer);
-            let total_payout = self.total_payout();
-            let total_options_sold = self.total_options_sold();
-            divide_with_precision(total_payout * number_of_options, total_options_sold)
+            let payout_per_option = self.payout_per_option.read();
+            number_of_options * payout_per_option
         }
 
 
