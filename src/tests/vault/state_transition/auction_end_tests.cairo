@@ -306,7 +306,7 @@ fn test_end_auction_updates_locked_and_unlocked_balances() {
 // Test that the vault and LP spreads update when the auction ends. Tests rollover
 // amounts with withdraw and topup
 #[test]
-#[available_gas(100000000)]
+#[available_gas(150000000)]
 fn test_end_auction_updates_vault_and_lp_spreads_complex() {
     let number_of_liquidity_providers = 4;
     let round1_deposits = create_array_gradient(
