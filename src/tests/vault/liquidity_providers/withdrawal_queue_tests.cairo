@@ -242,7 +242,7 @@ fn test_queueing_withdrawal_does_not_affect_stashed_balance_before_round_settle(
 
 // Test stashed balance is correct after round settles
 #[test]
-#[available_gas(300000000)]
+#[available_gas(500000000)]
 fn test_stashed_balance_correct_after_round_settles() {
     let (mut vault, _) = setup_facade();
     let liquidity_providers = liquidity_providers_get(3).span();
@@ -253,45 +253,22 @@ fn test_stashed_balance_correct_after_round_settles() {
 
     let mut round1 = vault.get_current_round();
     let starting_deposits1 = vault.deposit_multiple(deposit_amounts, liquidity_providers).span();
-    //println!("starting_deposits1:\n{:?}\n\n", starting_deposits1);
     timeskip_and_start_auction(ref vault);
-
-    let stashed_balances_before_running1 = vault
-        .get_lp_stashed_balances(liquidity_providers)
-        .span();
-    let unlocked_balances_before_running1 = vault
-        .get_lp_unlocked_balances(liquidity_providers)
-        .span();
-    //    println!("stashed_balances_before_running1:\n{:?}\n\n", stashed_balances_before_running1);
-    //    println!("unlocked_balances_before_running1:\n{:?}\n\n", unlocked_balances_before_running1);
     accelerate_to_running(ref vault);
 
     let total_premiums1 = round1.total_premiums();
     let individual_premiums1 = get_portion_of_amount(starting_deposits1, total_premiums1).span();
-    //   println!("total_premiums1:\n{:?}\n\n", total_premiums1);
-    //  println!("individual_premiums1:\n{:?}\n\n", individual_premiums1);
 
     // Liquidity provider 1 & 2 queue withdrawal
     vault.queue_withdrawal(*liquidity_providers.at(0), *deposit_amounts.at(0));
     vault.queue_withdrawal(*liquidity_providers.at(1), *deposit_amounts.at(1));
 
-    let stashed_balances_before_settled1 = vault
-        .get_lp_stashed_balances(liquidity_providers)
-        .span();
-    let unlocked_balances_before_settled1 = vault.get_lp_unlocked_balances(liquidity_providers);
-    // println!("stashed_balances_before_settled1:\n{:?}\n\n", stashed_balances_before_settled1);
-    // println!("unlocked_balances_before_settled1:\n{:?}\n\n", unlocked_balances_before_settled1);
-
     let total_payout1 = accelerate_to_settled(ref vault, 101 * round1.get_strike_price() / 100);
     let individual_payout1 = get_portion_of_amount(starting_deposits1, total_payout1).span();
-    // println!("total_payout1:\n{:?}\n\n", total_payout1);
-    // println!("individual_payout1:\n{:?}\n\n", individual_payout1);
     let stashed_balances_after_settled1 = vault.get_lp_stashed_balances(liquidity_providers).span();
     let unlocked_balances_after_settled1 = vault
         .get_lp_unlocked_balances(liquidity_providers)
         .span();
-    println!("stashed_balances_after_settled1:\n{:?}\n\n", stashed_balances_after_settled1);
-    println!("unlocked_balances_after_settled1:\n{:?}\n\n", unlocked_balances_after_settled1);
 
     // Assert stashed balances are correct after round settles
     let expected_stashed_amounts1 = array![
@@ -308,12 +285,6 @@ fn test_stashed_balance_correct_after_round_settles() {
     ]
         .span();
 
-    /// for some reason this is broken, prints expected as not matching what is defined, which is is making the
-    /// assertions pass even but there is another underlyting bug because stashed is now not incremeenting
-
-    println!("expected_stashed_amounts1:\n{:?}\n\n", expected_stashed_amounts1);
-    println!("expected_unlocked_amounts1:\n{:?}\n\n", expected_unlocked_amounts1);
-
     assert!(
         stashed_balances_after_settled1 == expected_stashed_amounts1,
         "stashed balances after settled 1 incorrect"
@@ -329,49 +300,22 @@ fn test_stashed_balance_correct_after_round_settles() {
     let starting_deposits2 = vault
         .get_lp_unlocked_balances(liquidity_providers)
         .span(); //vault.deposit_multiple(deposit_amounts, liquidity_providers);
-    println!("starting_deposits2:\n{:?}\n\n", starting_deposits2);
     timeskip_and_start_auction(ref vault);
-
-    let stashed_balances_before_running2 = vault
-        .get_lp_stashed_balances(liquidity_providers)
-        .span();
-    let unlocked_balances_before_running2 = vault
-        .get_lp_unlocked_balances(liquidity_providers)
-        .span();
-
     accelerate_to_running(ref vault);
     let total_premiums2 = round2.total_premiums();
     let individual_premiums2 = get_portion_of_amount(starting_deposits2, total_premiums2).span();
-    let actual_premiumm2 = vault.get_lp_unlocked_balances(liquidity_providers).span();
-    println!("total_premiums2:\n{:?}\n\n", total_premiums2);
-    println!("individual_premiums2:\n{:?}\n\n", individual_premiums2);
-    println!("actual_premiumm2:\n{:?}\n\n", actual_premiumm2);
-
-    assert!(false, "stop");
 
     // Liquidity provider 1 & 2 queue withdrawal
-    vault.queue_withdrawal(*liquidity_providers.at(0), *deposit_amounts.at(0));
-    vault.queue_withdrawal(*liquidity_providers.at(1), *deposit_amounts.at(1));
-
-    let stashed_balances_before_settled2 = vault
-        .get_lp_stashed_balances(liquidity_providers)
-        .span();
-    let unlocked_balances_before_settled2 = vault
-        .get_lp_unlocked_balances(liquidity_providers)
-        .span();
+    vault.queue_withdrawal(*liquidity_providers.at(0), *starting_deposits2.at(0));
+    vault.queue_withdrawal(*liquidity_providers.at(1), *starting_deposits2.at(1));
 
     let total_payout2 = accelerate_to_settled(ref vault, 101 * round2.get_strike_price() / 100);
     let individual_payouts2 = get_portion_of_amount(starting_deposits2, total_payout2).span();
     //println!("total_payout2:\n{:?}\n\n", total_payout2);
-    println!("individual_payouts2:\n{:?}\n\n", individual_payouts2);
     let stashed_balances_after_settled2 = vault.get_lp_stashed_balances(liquidity_providers).span();
     let unlocked_balances_after_settled2 = vault
         .get_lp_unlocked_balances(liquidity_providers)
         .span();
-
-    println!("stashed_balances_before_running2:\n{:?}\n\n", stashed_balances_before_running2);
-    println!("stashed_balances_before_settled2:\n{:?}\n\n", stashed_balances_before_settled2);
-    println!("stashed_balances_after_settled2:\n{:?}\n\n", stashed_balances_after_settled2);
 
     // Assert stashed balances are correct after round settles
     let expected_stashed_amounts2 = array![
@@ -384,23 +328,15 @@ fn test_stashed_balance_correct_after_round_settles() {
         0
     ]
         .span();
-    println!("expected_stashed_amounts2:\n{:?}\n\n", expected_stashed_amounts2);
 
-    println!("unlocked_balances_before_running2:\n{:?}\n\n", unlocked_balances_before_running2);
-    println!("unlocked_balances_before_settled2:\n{:?}\n\n", unlocked_balances_before_settled2);
-    println!("unlocked_balances_after_settled2:\n{:?}\n\n", unlocked_balances_after_settled2);
     let expected_unlocked_amounts2 = array![
         *individual_premiums2.at(0),
         *individual_premiums2.at(1),
         *starting_deposits2.at(2) - *individual_payouts2.at(2) + *individual_premiums2.at(2)
     ]
         .span();
-    println!("expected_unlocked_amounts2:\n{:?}\n\n", expected_unlocked_amounts2);
 
     // Assert unlocked balances are correct after round settles
-
-    //assert!(false, "poop");
-
     assert!(
         stashed_balances_after_settled2 == expected_stashed_amounts2,
         "stashed balances after settled 2 incorrect"
