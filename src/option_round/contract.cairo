@@ -534,8 +534,8 @@ mod OptionRound {
             self.assert_auction_can_end();
 
             // @dev Calculate how many options sell and the price per each option
-            let (clearing_price, total_options_sold) = self.update_clearing_price();
             let total_options_available = self.total_options_available();
+            let (clearing_price, total_options_sold) = self.update_clearing_price();
 
             // @dev Update unsold liquidity if some options do not sell
             if total_options_sold < total_options_available {
@@ -813,15 +813,9 @@ mod OptionRound {
             self.has_minted.write(option_buyer, true);
 
             // @dev Transfer the payout share to the bidder
-            let total_payout = self.total_payout();
-            let total_options_sold = self.bids_tree.get_total_options_sold();
-            let callers_share_of_payout = divide_with_precision(
-                total_payout * options_to_exercise, total_options_sold
-            );
-
-            // @dev Transfer the payout share to the bidder
+            let callers_payout = options_to_exercise * self.payout_per_option.read();
             let eth = self.get_eth_dispatcher();
-            eth.transfer(option_buyer, callers_share_of_payout);
+            eth.transfer(option_buyer, callers_payout);
 
             // Emit options exercised event
             self
@@ -830,12 +824,12 @@ mod OptionRound {
                         OptionsExercised {
                             account: option_buyer,
                             num_options: options_to_exercise,
-                            amount: callers_share_of_payout
+                            amount: callers_payout
                         }
                     )
                 );
 
-            callers_share_of_payout
+            callers_payout
         }
     }
 
