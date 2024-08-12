@@ -94,7 +94,8 @@ fn test_stashed_liquidity_does_not_roll_over() {
     /// ROUND 2 ///
 
     // Queue withdrawal
-    vault.queue_withdrawal(liquidity_provider, deposit_amount);
+    let deposit_amount2 = vault.get_lp_locked_balance(liquidity_provider);
+    vault.queue_withdrawal(liquidity_provider, deposit_amount2);
 
     // Skip to round 3 auction start
     let mut current_round2 = vault.get_current_round();
