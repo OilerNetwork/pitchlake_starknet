@@ -175,7 +175,7 @@ fn test_stashed_liquidity_does_not_roll_over_multiple_LPs() {
 
 // Test queuing a withdrawal does not affect the stashed balances while round is Auctioning | Running
 #[test]
-#[available_gas(50000000)]
+#[available_gas(300000000)]
 fn test_queueing_withdrawal_does_not_affect_stashed_balance_before_round_settle() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
@@ -233,6 +233,8 @@ fn test_queueing_withdrawal_does_not_affect_stashed_balance_before_round_settle(
                 stashed_balances_before_settled.at(2) == stashed_balances_after_settled.at(2),
                 "stashed before settled 3 != stashed after settled 3"
             );
+
+            rounds_to_run -= 1;
         }
 }
 
