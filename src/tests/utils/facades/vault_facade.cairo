@@ -92,18 +92,18 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         sanity_checks::withdraw(ref self, liquidity_provider, updated_unlocked_position)
     }
 
-    fn queue_withdrawal(ref self: VaultFacade, liquidity_provider: ContractAddress) {
+    fn queue_withdrawal(ref self: VaultFacade, liquidity_provider: ContractAddress, amount: u256) {
         set_contract_address(liquidity_provider);
-        self.vault_dispatcher.queue_withdrawal();
+        self.vault_dispatcher.queue_withdrawal(amount);
     }
 
     #[feature("safe_dispatcher")]
     fn queue_withdrawal_expect_error(
-        ref self: VaultFacade, liquidity_provider: ContractAddress, error: felt252,
+        ref self: VaultFacade, liquidity_provider: ContractAddress, amount: u256, error: felt252,
     ) {
         set_contract_address(liquidity_provider);
         let safe_vault = self.get_safe_dispatcher();
-        safe_vault.queue_withdrawal().expect_err(error);
+        safe_vault.queue_withdrawal(amount).expect_err(error);
     }
 
 
@@ -127,11 +127,16 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     }
 
     fn queue_multiple_withdrawals(
-        ref self: VaultFacade, mut liquidity_providers: Span<ContractAddress>
+        ref self: VaultFacade,
+        mut liquidity_providers: Span<ContractAddress>,
+        mut amounts: Span<u256>
     ) {
         loop {
             match liquidity_providers.pop_front() {
-                Option::Some(lp) => { self.queue_withdrawal(*lp); },
+                Option::Some(lp) => {
+                    let amount = amounts.pop_front().unwrap();
+                    self.queue_withdrawal(*lp, *amount);
+                },
                 Option::None => { break (); }
             };
         };

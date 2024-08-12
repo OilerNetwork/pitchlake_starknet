@@ -69,7 +69,7 @@ fn test_stashed_liquidity_does_not_roll_over() {
     );
 
     // Queue withdrawal
-    vault.queue_withdrawal(liquidity_provider);
+    vault.queue_withdrawal(liquidity_provider, deposit_amount);
 
     // Start round 2
     let total_payout = accelerate_to_settled(ref vault, 1); //no payout
@@ -94,7 +94,7 @@ fn test_stashed_liquidity_does_not_roll_over() {
     /// ROUND 2 ///
 
     // Queue withdrawal
-    vault.queue_withdrawal(liquidity_provider);
+    vault.queue_withdrawal(liquidity_provider, deposit_amount);
 
     // Skip to round 3 auction start
     let mut current_round2 = vault.get_current_round();
@@ -143,8 +143,8 @@ fn test_stashed_liquidity_does_not_roll_over_multiple_LPs() {
     );
 
     // LP 1 & 2 Queue withdrawal
-    vault.queue_withdrawal(*liquidity_providers.at(0));
-    vault.queue_withdrawal(*liquidity_providers.at(1));
+    vault.queue_withdrawal(*liquidity_providers.at(0), *deposit_amounts.at(0));
+    vault.queue_withdrawal(*liquidity_providers.at(1), *deposit_amounts.at(1));
 
     // Start round 2
     let total_payout = accelerate_to_settled(ref vault, 1); //no payout
@@ -193,9 +193,8 @@ fn test_queueing_withdrawal_does_not_affect_stashed_balance_before_round_settle(
             accelerate_to_auctioning_custom(ref vault, liquidity_providers, deposit_amounts);
 
             // Liquidity provider 1 queues withdrawal
-            vault.queue_withdrawal(*liquidity_providers.at(0));
-
-            vault.queue_withdrawal(*liquidity_providers.at(0));
+            vault.queue_withdrawal(*liquidity_providers.at(0), *deposit_amounts.at(0));
+            vault.queue_withdrawal(*liquidity_providers.at(0), *deposit_amounts.at(0));
 
             // Stashed balances while Auctioning after queueing
             let stashed_balances_before_running = vault
@@ -203,8 +202,8 @@ fn test_queueing_withdrawal_does_not_affect_stashed_balance_before_round_settle(
             accelerate_to_running(ref vault);
 
             // Liquidity provider 1 & 2 queue withdrawal
-            vault.queue_withdrawal(*liquidity_providers.at(0));
-            vault.queue_withdrawal(*liquidity_providers.at(1));
+            vault.queue_withdrawal(*liquidity_providers.at(0), *deposit_amounts.at(0));
+            vault.queue_withdrawal(*liquidity_providers.at(1), *deposit_amounts.at(1));
 
             let stashed_balances_before_settled = vault
                 .get_lp_stashed_balances(liquidity_providers);
@@ -270,8 +269,8 @@ fn test_stashed_balance_correct_after_round_settles() {
     //  println!("individual_premiums1:\n{:?}\n\n", individual_premiums1);
 
     // Liquidity provider 1 & 2 queue withdrawal
-    vault.queue_withdrawal(*liquidity_providers.at(0));
-    vault.queue_withdrawal(*liquidity_providers.at(1));
+    vault.queue_withdrawal(*liquidity_providers.at(0), *deposit_amounts.at(0));
+    vault.queue_withdrawal(*liquidity_providers.at(1), *deposit_amounts.at(1));
 
     let stashed_balances_before_settled1 = vault
         .get_lp_stashed_balances(liquidity_providers)
@@ -348,8 +347,8 @@ fn test_stashed_balance_correct_after_round_settles() {
     assert!(false, "stop");
 
     // Liquidity provider 1 & 2 queue withdrawal
-    vault.queue_withdrawal(*liquidity_providers.at(0));
-    vault.queue_withdrawal(*liquidity_providers.at(1));
+    vault.queue_withdrawal(*liquidity_providers.at(0), *deposit_amounts.at(0));
+    vault.queue_withdrawal(*liquidity_providers.at(1), *deposit_amounts.at(1));
 
     let stashed_balances_before_settled2 = vault
         .get_lp_stashed_balances(liquidity_providers)
