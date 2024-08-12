@@ -120,9 +120,9 @@ trait IVault<TContractState> {
     // @return The liquidity provider's updated unlocked position
     fn withdraw_liquidity(ref self: TContractState, amount: u256) -> u256;
 
-    // Caller queues their currently locked liquidity to be stashed aside, to not roll over
+    // Caller queues a portion of their currently locked liquidity to be stashed aside, to not roll over
     // into the next round
-    fn queue_withdrawal(ref self: TContractState);
+    fn queue_withdrawal(ref self: TContractState, amount: u256);
 
     // Liquidity provider withdraws their stashed (queued) withdrawals
     fn claim_queued_liquidity(
