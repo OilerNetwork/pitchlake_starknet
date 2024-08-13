@@ -40,10 +40,10 @@ trait IVault<TContractState> {
     /// Rounds
 
     // @return the current option round id
-    fn current_option_round_id(self: @TContractState) -> u256;
+    fn current_round_id(self: @TContractState) -> u256;
 
     // @return the contract address of the option round
-    fn get_option_round_address(self: @TContractState, option_round_id: u256) -> ContractAddress;
+    fn get_round_address(self: @TContractState, option_round_id: u256) -> ContractAddress;
 
     /// Liquidity
 
