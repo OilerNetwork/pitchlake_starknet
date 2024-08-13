@@ -220,7 +220,7 @@ fn setup_facade() -> (VaultFacade, ERC20ABIDispatcher) {
 
     //Supply and approve option_bidders
     let current_round_address = vault_dispatcher
-        .get_option_round_address(vault_dispatcher.current_option_round_id());
+        .get_round_address(vault_dispatcher.current_round_id());
     eth_supply_and_approve_all_bidders(current_round_address, eth_dispatcher.contract_address);
 
     // Supply eth to test accounts and approve option round 1 to spend ob eth
