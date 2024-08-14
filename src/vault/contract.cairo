@@ -101,7 +101,7 @@ mod Vault {
         Deposit: Deposit,
         Withdrawal: Withdrawal,
         WithdrawalQueued: WithdrawalQueued,
-        QueuedLiquidityClaimed: QueuedLiquidityClaimed,
+        QueuedLiquidityCollected: QueuedLiquidityCollected,
         OptionRoundDeployed: OptionRoundDeployed,
     }
 
@@ -133,7 +133,7 @@ mod Vault {
 
     // @dev Emitted when a liquidity provider claims stashed liquidity
     #[derive(Drop, starknet::Event, PartialEq)]
-    struct QueuedLiquidityClaimed {
+    struct QueuedLiquidityCollected {
         #[key]
         account: ContractAddress,
         stashed_amount: u256,
@@ -707,8 +707,8 @@ mod Vault {
             // Emit stashed withdrawal event
             self
                 .emit(
-                    Event::QueuedLiquidityClaimed(
-                        QueuedLiquidityClaimed { account: liquidity_provider, stashed_amount }
+                    Event::QueuedLiquidityCollected(
+                        QueuedLiquidityCollected { account: liquidity_provider, stashed_amount }
                     )
                 );
 

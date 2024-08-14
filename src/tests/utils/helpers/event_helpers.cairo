@@ -279,8 +279,8 @@ fn assert_event_queued_liquidity_collected(
 ) {
     match pop_log::<Vault::Event>(vault) {
         Option::Some(e) => {
-            let expected = Vault::Event::QueuedLiquidityClaimed(
-                Vault::QueuedLiquidityClaimed { account, stashed_amount }
+            let expected = Vault::Event::QueuedLiquidityCollected(
+                Vault::QueuedLiquidityCollected { account, stashed_amount }
             );
 
             assert_events_equal(e, expected);
