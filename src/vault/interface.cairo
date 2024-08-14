@@ -49,6 +49,10 @@ trait IVault<TContractState> {
 
     // For LPs //
 
+    // Get the liquidity an lp had at the beginning of the current round
+    fn get_lp_starting_balance(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
+
+
     // Get the liquidity an lp has locked
     fn get_lp_locked_balance(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
 
