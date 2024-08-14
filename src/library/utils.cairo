@@ -15,9 +15,16 @@ fn max<T, +PartialEq<T>, +PartialOrd<T>, +Drop<T>, +Copy<T>>(a: T, b: T) -> T {
     }
 }
 
-// Compute x / y with added precision
-fn divide_with_precision<T, +Into<u256, T>, +Mul<T>, +Div<T>, +Drop<T>, +Copy<T>>(x: T, y: T) -> T {
-    let p = PRECISION.into();
-    (x * p) / (y * p)
+// Raise x to the y power
+fn pow(base: u256, exp: u8) -> u256 {
+    if exp == 0 {
+        1
+    } else if exp == 1 {
+        base
+    } else if exp % 2 == 0 {
+        pow(base * base, exp / 2)
+    } else {
+        base * pow(base * base, exp / 2)
+    }
 }
 

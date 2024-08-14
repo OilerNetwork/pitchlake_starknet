@@ -3,7 +3,6 @@ use openzeppelin::token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatch
 use starknet::{ContractAddress, testing::{set_contract_address}};
 use pitch_lake_starknet::{
     types::{VaultType, Errors, Bid, OptionRoundState, OptionRoundConstructorParams, Consts::BPS,},
-    library::utils::divide_with_precision,
     option_round::{
         interface::{
             IOptionRoundDispatcher, IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher,
@@ -97,7 +96,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         // L = M * CL
         let strike_price = 1000000000; // 1 gwei
         let cap_level: u128 = 5000; // 50.00 % above strike
-        let capped_payout_per_option = divide_with_precision(strike_price * cap_level.into(), BPS);
+        let capped_payout_per_option = (strike_price * cap_level.into()) / BPS;
         let starting_liquidity = (options_available * capped_payout_per_option);
 
         // Update the params of the option round
@@ -405,6 +404,12 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
 
     fn starting_liquidity(ref self: OptionRoundFacade) -> u256 {
         self.option_round_dispatcher.starting_liquidity()
+    }
+
+    fn unsold_liquidity(ref self: OptionRoundFacade) -> u256 {
+        // @note Temp fix, can move this function to round facade
+
+        self.option_round_dispatcher.unsold_liquidity()
     }
 
     fn total_premiums(ref self: OptionRoundFacade) -> u256 {

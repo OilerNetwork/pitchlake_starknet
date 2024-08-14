@@ -1,5 +1,4 @@
 use openzeppelin::token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait,};
-use pitch_lake_starknet::library::utils::divide_with_precision;
 use starknet::{ContractAddress};
 
 /// Array helpers ///
@@ -171,8 +170,7 @@ fn get_portion_of_amount(mut arr: Span<u256>, amount: u256) -> Array<u256> {
     loop {
         match arr.pop_front() {
             Option::Some(value) => {
-                let portion = divide_with_precision(*value * amount, total);
-                //let portion = ((precision_factor * *el * amount) / total) / precision_factor;
+                let portion = (*value * amount) / total;
                 portions.append(portion);
             },
             Option::None => { break (); }
