@@ -181,3 +181,8 @@ fn get_portion_of_amount(mut arr: Span<u256>, amount: u256) -> Array<u256> {
     portions
 }
 
+fn assert_u256s_equal_in_range(value1: u256, value2: u256, range: u256) {
+    assert(value1 >= value2 - range, 'Value below range');
+    assert(value1 <= value2 + range, 'Value above range');
+}
+
