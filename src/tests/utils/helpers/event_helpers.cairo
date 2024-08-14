@@ -273,14 +273,36 @@ fn assert_event_vault_withdrawal(
     }
 }
 
-// Test queued withdrawal event emits correctly
-fn assert_event_vault_stashed_withdrawal(
+// Test collect queued liquidity event emits correctly
+fn assert_event_queued_liquidity_collected(
     vault: ContractAddress, account: ContractAddress, stashed_amount: u256,
 ) {
     match pop_log::<Vault::Event>(vault) {
         Option::Some(e) => {
-            let expected = Vault::Event::StashedWithdrawal(
-                Vault::StashedWithdrawal { account, stashed_amount }
+            let expected = Vault::Event::QueuedLiquidityClaimed(
+                Vault::QueuedLiquidityClaimed { account, stashed_amount }
+            );
+
+            assert_events_equal(e, expected);
+        },
+        Option::None => { panic(array!['No events found']); }
+    }
+}
+
+// Test withdrawal queued event emits correctly
+fn assert_event_withdrawal_queued(
+    vault: ContractAddress,
+    account: ContractAddress,
+    round_id: u256,
+    previous_amount_queued: u256,
+    new_amount_queued: u256
+) {
+    match pop_log::<Vault::Event>(vault) {
+        Option::Some(e) => {
+            let expected = Vault::Event::WithdrawalQueued(
+                Vault::WithdrawalQueued {
+                    account, round_id, previous_amount_queued, new_amount_queued
+                }
             );
 
             assert_events_equal(e, expected);

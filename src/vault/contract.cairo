@@ -100,7 +100,8 @@ mod Vault {
     enum Event {
         Deposit: Deposit,
         Withdrawal: Withdrawal,
-        StashedWithdrawal: StashedWithdrawal,
+        WithdrawalQueued: WithdrawalQueued,
+        QueuedLiquidityClaimed: QueuedLiquidityClaimed,
         OptionRoundDeployed: OptionRoundDeployed,
     }
 
@@ -120,8 +121,19 @@ mod Vault {
         position_balance_after: u256,
     }
 
+    // @dev Emitted when a liquidity provider queues a withdrawal
     #[derive(Drop, starknet::Event, PartialEq)]
-    struct StashedWithdrawal {
+    struct WithdrawalQueued {
+        #[key]
+        account: ContractAddress,
+        round_id: u256,
+        previous_amount_queued: u256,
+        new_amount_queued: u256,
+    }
+
+    // @dev Emitted when a liquidity provider claims stashed liquidity
+    #[derive(Drop, starknet::Event, PartialEq)]
+    struct QueuedLiquidityClaimed {
         #[key]
         account: ContractAddress,
         stashed_amount: u256,
@@ -654,7 +666,20 @@ mod Vault {
 
             // @dev Update queued amount for the liquidity provider in the current round
             self.user_queued_liquidity.write((liquidity_provider, current_round_id), amount);
-        // @note Add WithdrawalQueued event
+            // @note Add WithdrawalQueued event
+
+            // @dev Emit withdrawal queued event
+            self
+                .emit(
+                    Event::WithdrawalQueued(
+                        WithdrawalQueued {
+                            account: liquidity_provider,
+                            round_id: current_round_id,
+                            previous_amount_queued: previously_queued_amount,
+                            new_amount_queued: amount,
+                        }
+                    )
+                );
         }
 
 
@@ -682,8 +707,8 @@ mod Vault {
             // Emit stashed withdrawal event
             self
                 .emit(
-                    Event::StashedWithdrawal(
-                        StashedWithdrawal { account: liquidity_provider, stashed_amount }
+                    Event::QueuedLiquidityClaimed(
+                        QueuedLiquidityClaimed { account: liquidity_provider, stashed_amount }
                     )
                 );
 

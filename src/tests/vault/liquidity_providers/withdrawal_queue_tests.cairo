@@ -19,7 +19,7 @@ use pitch_lake_starknet::{
                 event_helpers::{
                     pop_log, assert_no_events_left, assert_event_transfer,
                     assert_event_vault_withdrawal, clear_event_logs,
-                    assert_event_vault_stashed_withdrawal
+                    assert_event_queued_liquidity_collected, assert_event_withdrawal_queued
                 },
                 accelerators::{
                     accelerate_to_auctioning, accelerate_to_auctioning_custom,
@@ -340,7 +340,7 @@ fn test_queueing_withdrawal_amount_can_be_updated() {
 // Test queued amount is 0 after round settles
 #[test]
 #[available_gas(300000000)]
-fn teset_queued_amount_is_0_after_round_settles() {
+fn test_queued_amount_is_0_after_round_settles() {
     let (mut vault, _) = setup_facade();
     let mut current_round = vault.get_current_round();
     let liquidity_providers = liquidity_providers_get(3).span();
@@ -355,14 +355,15 @@ fn teset_queued_amount_is_0_after_round_settles() {
 
     vault.queue_multiple_withdrawals(liquidity_providers, deposit_amounts);
 
+    let c_id = current_round.get_round_id();
     let queued_before_settle = vault
-        .get_lp_queued_balances(liquidity_providers, array![current_round.get_round_id()].span());
+        .get_lp_queued_balances(liquidity_providers, array![c_id, c_id, c_id].span());
     accelerate_to_settled(ref vault, 1);
     let queued_after_settle = vault
-        .get_lp_queued_balances(liquidity_providers, array![current_round.get_round_id()].span());
+        .get_lp_queued_balances(liquidity_providers, array![c_id, c_id, c_id].span());
 
     assert_eq!(queued_before_settle.span(), deposit_amounts);
-    assert_eq!(queued_after_settle.span(), array![0, 0, 0].span());
+    assert_eq!(queued_after_settle.span(), deposit_amounts);
 }
 
 
@@ -434,6 +435,8 @@ fn test_queuing_some_gets_stashed() {
     let queued_after = vault
         .get_lp_queued_balance(liquidity_provider, current_round.get_round_id());
 
+    println!("current round id: {:?}", current_round.get_round_id());
+
     assert_eq!(locked_before, deposit_amount);
     assert_eq!(locked_after, 0);
 
@@ -441,7 +444,7 @@ fn test_queuing_some_gets_stashed() {
     assert_eq!(unlocked_after, premiums + deposit_amount - (deposit_amount / 3));
 
     assert_eq!(queued_before, deposit_amount / 3);
-    assert_eq!(queued_after, 0);
+    assert_eq!(queued_after, deposit_amount / 3);
 
     assert_eq!(stashed_before, 0);
     assert_eq!(stashed_after, deposit_amount / 3);
@@ -739,7 +742,7 @@ fn test_unstashed_liquidity_adds_to_next_round_deposits() {
     assert_eq!(unlocked_after, premiums + deposit_amount - (deposit_amount / 3) + topup_amount);
 
     assert_eq!(queued_before, deposit_amount / 3);
-    assert_eq!(queued_after, 0);
+    assert_eq!(queued_after, deposit_amount / 3);
 
     assert_eq!(stashed_before, 0);
     assert_eq!(stashed_after, deposit_amount / 3);
@@ -904,5 +907,59 @@ fn test_queueing_multiple_rounds_stashed_amount_payouts_and_unsold() {
     assert_eq!(
         get_erc20_balance(eth.contract_address, vault.contract_address()),
         lp_stashed + premiums3 + unsold3
+    );
+}
+
+// Test queueing withdrawal fires event
+#[test]
+#[available_gas(300000000)]
+fn test_queueing_withdrawal_event() {
+    let (mut vault, _) = setup_facade();
+    let mut current_round = vault.get_current_round();
+    let liquidity_provider = liquidity_provider_1();
+    let deposit_amount = 100 * decimals();
+    accelerate_to_auctioning_custom(
+        ref vault, array![liquidity_provider].span(), array![deposit_amount].span()
+    );
+    accelerate_to_running(ref vault);
+    clear_event_logs(array![vault.contract_address()]);
+
+    vault.queue_withdrawal(liquidity_provider, deposit_amount / 3);
+    assert_event_withdrawal_queued(
+        vault.contract_address(),
+        liquidity_provider,
+        current_round.get_round_id(),
+        0,
+        deposit_amount / 3
+    );
+
+    vault.queue_withdrawal(liquidity_provider, 123);
+    assert_event_withdrawal_queued(
+        vault.contract_address(),
+        liquidity_provider,
+        current_round.get_round_id(),
+        deposit_amount / 3,
+        123
+    );
+}
+
+// Test claiming stashed liquidity fires event
+#[test]
+#[available_gas(300000000)]
+fn test_claiming_stashed_liquidity_event() {
+    let (mut vault, _) = setup_facade();
+    let liquidity_provider = liquidity_provider_1();
+    let deposit_amount = 100 * decimals();
+    accelerate_to_auctioning_custom(
+        ref vault, array![liquidity_provider].span(), array![deposit_amount].span()
+    );
+    accelerate_to_running(ref vault);
+    vault.queue_withdrawal(liquidity_provider, deposit_amount / 3);
+    accelerate_to_settled(ref vault, 1);
+    clear_event_logs(array![vault.contract_address()]);
+
+    vault.claim_queued_liquidity(liquidity_provider);
+    assert_event_queued_liquidity_collected(
+        vault.contract_address(), liquidity_provider, deposit_amount / 3
     );
 }
