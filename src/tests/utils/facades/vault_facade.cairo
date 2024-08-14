@@ -317,8 +317,28 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         balances
     }
 
+    fn get_lp_queued_balance(ref self: VaultFacade, liquidity_provider: ContractAddress) -> u256 {
+        self.vault_dispatcher.get_lp_queued_balance(liquidity_provider)
+    }
+
     fn get_lp_stashed_balance(ref self: VaultFacade, liquidity_provider: ContractAddress) -> u256 {
         self.vault_dispatcher.get_lp_stashed_balance(liquidity_provider)
+    }
+
+    fn get_lp_queued_balances(
+        ref self: VaultFacade, mut liquidity_providers: Span<ContractAddress>
+    ) -> Array<u256> {
+        let mut balances = array![];
+        loop {
+            match liquidity_providers.pop_front() {
+                Option::Some(liquidity_provider) => {
+                    let balance = self.get_lp_queued_balance(*liquidity_provider);
+                    balances.append(balance);
+                },
+                Option::None => { break (); }
+            };
+        };
+        balances
     }
 
     fn get_lp_stashed_balances(
