@@ -4,10 +4,7 @@ mod OptionRound {
         ERC20Component, interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait, IERC20Metadata},
     };
     use pitch_lake_starknet::{
-        library::{
-            utils::{max, min, divide_with_precision},
-            red_black_tree::{RBTreeComponent, RBTreeComponent::Node}
-        },
+        library::{utils::{max, min}, red_black_tree::{RBTreeComponent, RBTreeComponent::Node}},
         option_round::interface::IOptionRound,
         vault::{interface::{IVaultDispatcher, IVaultDispatcherTrait},},
         types::{
@@ -228,7 +225,7 @@ mod OptionRound {
 
         // @note add to constructor
         fn decimals(self: @ContractState) -> u8 {
-            6
+            0
         }
     }
 
@@ -276,7 +273,7 @@ mod OptionRound {
             self.option_settlement_date.read()
         }
 
-        /// Round outcome
+        /// Round liquidity
 
         fn starting_liquidity(self: @ContractState) -> u256 {
             self.starting_liquidity.read()
@@ -287,7 +284,7 @@ mod OptionRound {
         }
 
         fn total_payout(self: @ContractState) -> u256 {
-            self.payout_per_option.read() * self.total_options_sold()
+            self.payout_per_option.read() * self.bids_tree.total_options_sold.read()
         }
 
         /// Auction
@@ -305,7 +302,7 @@ mod OptionRound {
         }
 
         fn total_premiums(self: @ContractState) -> u256 {
-            self.clearing_price() * self.total_options_sold()
+            self.bids_tree.clearing_price.read() * self.bids_tree.total_options_sold.read()
         }
 
         /// Bids
@@ -501,12 +498,10 @@ mod OptionRound {
             self.assert_auction_can_start();
 
             // @dev Calculate total options available
-            let strike_price = self.get_strike_price();
-            let cap_level = self.get_cap_level();
+            let strike_price = self.strike_price.read();
+            let cap_level = self.cap_level.read();
             let total_options_available = self
-                .calculate_total_options_available(
-                    starting_liquidity, strike_price, cap_level.into()
-                );
+                .calculate_total_options_available(starting_liquidity, strike_price, cap_level);
 
             // @dev Write auction params to storage & update state
             self.starting_liquidity.write(starting_liquidity);
@@ -534,18 +529,15 @@ mod OptionRound {
             self.assert_auction_can_end();
 
             // @dev Calculate how many options sell and the price per each option
-            let total_options_available = self.total_options_available();
-            let (clearing_price, total_options_sold) = self.update_clearing_price();
+            let options_available = self.total_options_available();
+            let (clearing_price, options_sold) = self.update_clearing_price();
 
             // @dev Update unsold liquidity if some options do not sell
-            if total_options_sold < total_options_available {
-                let starting_liquidity = self.starting_liquidity();
-                let options_not_sold = total_options_available - total_options_sold;
-                let unsold_liquidity = divide_with_precision(
-                    starting_liquidity * options_not_sold, total_options_available
-                );
-
-                self.unsold_liquidity.write(unsold_liquidity);
+            if options_sold < options_available {
+                let starting_liq = self.starting_liquidity();
+                let sold_liq = (starting_liq * options_sold) / options_available;
+                let unsold_liq = starting_liq - sold_liq;
+                self.unsold_liquidity.write(unsold_liq);
             }
 
             // @dev Send premiums to Vault
@@ -555,9 +547,14 @@ mod OptionRound {
             self.set_state(OptionRoundState::Running);
 
             // @dev Emit auction ended event
-            self.emit(Event::AuctionEnded(AuctionEnded { clearing_price, total_options_sold }));
+            self
+                .emit(
+                    Event::AuctionEnded(
+                        AuctionEnded { clearing_price, total_options_sold: options_sold }
+                    )
+                );
 
-            (clearing_price, total_options_sold)
+            (clearing_price, options_sold)
         }
 
         // fn settle_option_round
@@ -692,7 +689,10 @@ mod OptionRound {
             self.bids_tree._insert(old_bid);
 
             // @dev Charge the difference
-            let difference = (new_amount * new_price) - (old_bid.amount * old_bid.price);
+            // Calculate the difference in ETH required for the new bid
+            let old_total = old_amount * old_price;
+            let new_total = new_amount * new_price;
+            let difference = new_total - old_total;
             let eth_dispatcher = self.get_eth_dispatcher();
             eth_dispatcher.transfer_from(caller, get_contract_address(), difference);
 
@@ -897,6 +897,7 @@ mod OptionRound {
         fn assert_round_settled(self: @ContractState) {
             assert(self.get_state() == OptionRoundState::Settled, Errors::OptionRoundNotSettled);
         }
+
         // Create the contract's ERC20 name and symbol
         fn generate_erc20_name_and_symbol(
             self: @ContractState, round_id: u256
@@ -1020,23 +1021,13 @@ mod OptionRound {
 
         // Calculate the maximum payout for a single option
         fn _max_payout_per_option(
-            self: @ContractState, strike_price: u256, cap_level: u256
+            self: @ContractState, strike_price: u256, cap_level: u128
         ) -> u256 {
-            divide_with_precision(strike_price * cap_level, BPS)
+            (strike_price * cap_level.into()) / BPS
         }
 
-        // Calcualte the total number of options available to sell in the auction
-        fn calculate_total_options_available(
-            self: @ContractState, starting_liquidity: u256, strike_price: u256, cap_level: u256
-        ) -> u256 {
-            let capped = self._max_payout_per_option(strike_price, cap_level);
-
-            divide_with_precision(starting_liquidity, capped)
-        }
-
-        // Calculate the payout per each option at settlement
         fn calculate_payout_per_option(
-            ref self: ContractState, strike_price: u256, cap_level: u256, settlement_price: u256
+            self: @ContractState, strike_price: u256, cap_level: u128, settlement_price: u256
         ) -> u256 {
             if (settlement_price <= strike_price) {
                 0
@@ -1046,6 +1037,16 @@ mod OptionRound {
 
                 min(capped, uncapped)
             }
+        }
+
+
+        // Calculate the total number of options available to sell in the auction
+        fn calculate_total_options_available(
+            self: @ContractState, starting_liquidity: u256, strike_price: u256, cap_level: u128
+        ) -> u256 {
+            let capped = self._max_payout_per_option(strike_price, cap_level);
+
+            starting_liquidity / capped
         }
 
         // Get a dispatcher for the Vault

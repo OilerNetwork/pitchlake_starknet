@@ -85,7 +85,7 @@ fn test_option_round_constructor() {
     // Test constructor args
     assert_eq!(current_round.name(), "Pitch Lake Option Round 1");
     assert_eq!(current_round.symbol(), "PLOR1");
-    assert_eq!(current_round.decimals(), 6);
+    assert_eq!(current_round.decimals(), 0);
 
     assert_eq!(current_round.vault_address(), vault.contract_address());
     assert_eq!(current_round.get_round_id(), 1);
