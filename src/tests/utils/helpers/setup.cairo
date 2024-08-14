@@ -196,10 +196,9 @@ fn setup_facade() -> (VaultFacade, ERC20ABIDispatcher) {
     let mut i = 5;
     while i
         .is_non_zero() {
-            //println!("setting from\n{}\nto\n{}", from ,to);
             mk_agg.set_reserve_price_for_time_period(from, to, 2000000000);
             mk_agg.set_cap_level_for_time_period(from, to, 5000);
-            mk_agg.set_strike_price_for_time_period(from, to, 400000000);
+            mk_agg.set_strike_price_for_time_period(from, to, 4000000000);
             mk_agg.set_TWAP_for_time_period(from, to, 8000000000);
 
             from += duration;
