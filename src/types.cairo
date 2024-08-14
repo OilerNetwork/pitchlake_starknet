@@ -6,7 +6,8 @@ use pitch_lake_starknet::option_round::contract::OptionRound;
 mod Errors {
     /// Vault Errors ///
     const InsufficientBalance: felt252 = 'Insufficient unlocked balance';
-    const WithdrawalQueuedWhileUnlocked: felt252 = 'Withdrawal only while locked';
+    const QueueingMoreThanPositionValue: felt252 = 'Insufficient balance to queue';
+    const WithdrawalQueuedWhileUnlocked: felt252 = 'Can only queue while locked';
     /// OptionRound Errors ///
     const CallerIsNotVault: felt252 = 'Caller not the Vault';
     // Starting an auction
