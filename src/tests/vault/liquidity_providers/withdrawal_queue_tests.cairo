@@ -326,11 +326,11 @@ fn test_queueing_withdrawal_amount_can_be_updated() {
     );
 
     vault.queue_withdrawal(liquidity_provider, deposit_amount);
-    let queued1 = vault.get_lp_queued_balance(liquidity_provider);
+    let queued1 = vault.get_lp_queued_balance(liquidity_provider, current_round.get_round_id());
     vault.queue_withdrawal(liquidity_provider, deposit_amount / 2);
-    let queued2 = vault.get_lp_queued_balance(liquidity_provider);
+    let queued2 = vault.get_lp_queued_balance(liquidity_provider, current_round.get_round_id());
     vault.queue_withdrawal(liquidity_provider, deposit_amount - 1);
-    let queued3 = vault.get_lp_queued_balance(liquidity_provider);
+    let queued3 = vault.get_lp_queued_balance(liquidity_provider, current_round.get_round_id());
 
     assert_eq!(queued1, deposit_amount);
     assert_eq!(queued2, deposit_amount / 2);
@@ -355,9 +355,11 @@ fn teset_queued_amount_is_0_after_round_settles() {
 
     vault.queue_multiple_withdrawals(liquidity_providers, deposit_amounts);
 
-    let queued_before_settle = vault.get_lp_queued_balances(liquidity_providers);
+    let queued_before_settle = vault
+        .get_lp_queued_balances(liquidity_providers, array![current_round.get_round_id()].span());
     accelerate_to_settled(ref vault, 1);
-    let queued_after_settle = vault.get_lp_queued_balances(liquidity_providers);
+    let queued_after_settle = vault
+        .get_lp_queued_balances(liquidity_providers, array![current_round.get_round_id()].span());
 
     assert_eq!(queued_before_settle.span(), deposit_amounts);
     assert_eq!(queued_after_settle.span(), array![0, 0, 0].span());
@@ -383,12 +385,14 @@ fn test_queuing_0_puts_nothing_in_stash() {
 
     let (locked_before, unlocked_before, stashed_before) = vault
         .get_lp_locked_and_unlocked_and_stashed_balance(liquidity_provider);
-    let queued_before = vault.get_lp_queued_balance(liquidity_provider);
+    let queued_before = vault
+        .get_lp_queued_balance(liquidity_provider, current_round.get_round_id());
     accelerate_to_settled(ref vault, 1);
 
     let (locked_after, unlocked_after, stashed_after) = vault
         .get_lp_locked_and_unlocked_and_stashed_balance(liquidity_provider);
-    let queued_after = vault.get_lp_queued_balance(liquidity_provider);
+    let queued_after = vault
+        .get_lp_queued_balance(liquidity_provider, current_round.get_round_id());
 
     assert_eq!(locked_before, deposit_amount);
     assert_eq!(locked_after, 0);
@@ -421,12 +425,14 @@ fn test_queuing_some_gets_stashed() {
 
     let (locked_before, unlocked_before, stashed_before) = vault
         .get_lp_locked_and_unlocked_and_stashed_balance(liquidity_provider);
-    let queued_before = vault.get_lp_queued_balance(liquidity_provider);
+    let queued_before = vault
+        .get_lp_queued_balance(liquidity_provider, current_round.get_round_id());
     accelerate_to_settled(ref vault, 1);
 
     let (locked_after, unlocked_after, stashed_after) = vault
         .get_lp_locked_and_unlocked_and_stashed_balance(liquidity_provider);
-    let queued_after = vault.get_lp_queued_balance(liquidity_provider);
+    let queued_after = vault
+        .get_lp_queued_balance(liquidity_provider, current_round.get_round_id());
 
     assert_eq!(locked_before, deposit_amount);
     assert_eq!(locked_after, 0);
@@ -717,12 +723,14 @@ fn test_unstashed_liquidity_adds_to_next_round_deposits() {
 
     let (locked_before, unlocked_before, stashed_before) = vault
         .get_lp_locked_and_unlocked_and_stashed_balance(liquidity_provider);
-    let queued_before = vault.get_lp_queued_balance(liquidity_provider);
+    let queued_before = vault
+        .get_lp_queued_balance(liquidity_provider, current_round.get_round_id());
     accelerate_to_settled(ref vault, 1);
 
     let (locked_after, unlocked_after, stashed_after) = vault
         .get_lp_locked_and_unlocked_and_stashed_balance(liquidity_provider);
-    let queued_after = vault.get_lp_queued_balance(liquidity_provider);
+    let queued_after = vault
+        .get_lp_queued_balance(liquidity_provider, current_round.get_round_id());
 
     assert_eq!(locked_before, deposit_amount);
     assert_eq!(locked_after, 0);

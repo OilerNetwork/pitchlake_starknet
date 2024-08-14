@@ -196,6 +196,10 @@ mod Vault {
             self.total_unlocked_balance.read()
         }
 
+        fn get_total_queued_balance(self: @ContractState, round_id: u256) -> u256 {
+            self.round_queued_liquidity.read(round_id)
+        }
+
         fn get_total_stashed_balance(self: @ContractState) -> u256 {
             self.total_stashed_balance.read()
         }
@@ -268,10 +272,9 @@ mod Vault {
 
         // Get how much liquidity has been queued for stashing in the current round
         fn get_lp_queued_balance(
-            self: @ContractState, liquidity_provider: ContractAddress
+            self: @ContractState, liquidity_provider: ContractAddress, round_id: u256
         ) -> u256 {
-            let current_round_id = self.current_round_id.read();
-            self.user_queued_liquidity.read((liquidity_provider, current_round_id))
+            self.user_queued_liquidity.read((liquidity_provider, round_id))
         }
 
 
