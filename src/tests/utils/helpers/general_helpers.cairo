@@ -165,7 +165,7 @@ fn get_erc20_balances(
 // @dev Scaling with bps for precision
 // @dev Used to determine how many premiums and payouts belong to an account
 fn get_portion_of_amount(mut arr: Span<u256>, amount: u256) -> Array<u256> {
-    let mut total = sum_u256_array(arr);
+    let total = sum_u256_array(arr);
     let mut portions = array![];
     loop {
         match arr.pop_front() {
@@ -180,7 +180,12 @@ fn get_portion_of_amount(mut arr: Span<u256>, amount: u256) -> Array<u256> {
 }
 
 fn assert_u256s_equal_in_range(value1: u256, value2: u256, range: u256) {
-    assert(value1 >= value2 - range, 'Value below range');
+    let lower_bound = if range > value2 {
+        0
+    } else {
+        value2 - range
+    };
+    assert(value1 >= lower_bound, 'Value below range');
     assert(value1 <= value2 + range, 'Value above range');
 }
 
