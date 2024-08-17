@@ -464,15 +464,8 @@ mod OptionRound {
         fn update_round_params(
             ref self: ContractState, reserve_price: u256, cap_level: u128, strike_price: u256
         ) {
-            let state = self.get_state();
-            let now = get_block_timestamp();
-            let auction_start_date = self.get_auction_start_date();
-
             self.assert_caller_is_vault();
-            assert(
-                state == OptionRoundState::Open && now < auction_start_date,
-                Errors::AuctionAlreadyStarted
-            );
+            self.assert_params_can_update();
 
             self.reserve_price.write(reserve_price);
             self.cap_level.write(cap_level);
@@ -496,7 +489,6 @@ mod OptionRound {
         fn start_auction(ref self: ContractState, starting_liquidity: u256) -> u256 {
             self.assert_caller_is_vault();
             self.assert_auction_can_start();
-
             // @dev Calculate total options available
             let strike_price = self.strike_price.read();
             let cap_level = self.cap_level.read();
@@ -510,7 +502,6 @@ mod OptionRound {
 
             // @dev Emit auction start event
             self.emit(Event::AuctionStarted(AuctionStarted { total_options_available }));
-
             total_options_available
         }
 
@@ -843,6 +834,22 @@ mod OptionRound {
             get_caller_address() == self.vault_address.read()
         }
 
+        // Assert if the round's params can be updated
+        fn assert_params_can_update(ref self: ContractState) {
+          let state = self.get_state();
+          let now = get_block_timestamp();
+          let auction_start_date = self.get_auction_start_date();
+
+          assert(
+              state == OptionRoundState::Open && now < auction_start_date,
+              Errors::AuctionAlreadyStarted
+          );
+
+          }
+
+
+
+
         // Assert an auction can start
         fn assert_auction_can_start(self: @ContractState) {
             let state = self.get_state();
@@ -1020,6 +1027,7 @@ mod OptionRound {
         }
 
         // Calculate the maximum payout for a single option
+        // @note, can return 0 if strike * cap < 10,000
         fn _max_payout_per_option(
             self: @ContractState, strike_price: u256, cap_level: u128
         ) -> u256 {
@@ -1039,14 +1047,17 @@ mod OptionRound {
             }
         }
 
-
         // Calculate the total number of options available to sell in the auction
         fn calculate_total_options_available(
             self: @ContractState, starting_liquidity: u256, strike_price: u256, cap_level: u128
         ) -> u256 {
             let capped = self._max_payout_per_option(strike_price, cap_level);
-
-            starting_liquidity / capped
+            match capped == 0 {
+                // @dev If the max payout per option is 0, then there are 0 options to sell
+                true => 0,
+                // @dev Else the number of options available is the starting liquidity divided by the capped amount
+                false => starting_liquidity / capped
+            }
         }
 
         // Get a dispatcher for the Vault
