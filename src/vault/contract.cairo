@@ -18,6 +18,9 @@ mod Vault {
         },
         types::{VaultType, OptionRoundState, Errors},
     };
+    use pitch_lake_starknet::library::utils::{calculate_strike_price};
+
+    const TWAP_DURATION: u64 = 60 * 60 * 24 * 14; // 2 weeks
 
     // *************************************************************************
     //                              STORAGE
@@ -89,7 +92,7 @@ mod Vault {
         self.auction_run_time.write(auction_run_time);
         self.option_run_time.write(option_run_time);
         // @dev Deploy the 1st option round
-        self.deploy_next_round();
+        self.deploy_first_round();
     }
 
     // *************************************************************************
@@ -145,8 +148,6 @@ mod Vault {
         // might not need
         round_id: u256,
         address: ContractAddress,
-    // option_round_params: OptionRoundParams
-    // possibly more members to this event
     }
 
     // *************************************************************************
@@ -334,15 +335,21 @@ mod Vault {
 
         // FOSSIL
         // Update the current option round's parameters if there are newer values
+        // @note Return to this during fossil integration
         fn update_round_params(ref self: ContractState) {
             let current_round_id = self.current_round_id();
             let current_round = self.get_round_dispatcher(current_round_id);
-            let from = current_round.get_auction_start_date();
-            let to = current_round.get_option_settlement_date();
 
-            let reserve_price = self.fetch_reserve_price_for_time_period(from, to);
-            let cap_level = self.fetch_cap_level_for_time_period(from, to);
-            let strike_price = self.fetch_strike_price_for_time_period(from, to);
+            let cap_level = self.fetch_cap_level_for_round(current_round_id);
+            let reserve_price = self.fetch_reserve_price_for_round(current_round_id);
+            // @note needs to be updated to most recent set range
+            let twap_end = current_round.get_auction_start_date();
+            let twap_start = twap_end - TWAP_DURATION;
+            let current_avg_basefee = self.fetch_TWAP_for_time_period(twap_start, twap_end);
+            let volatility = self.fetch_volatility_for_round(current_round_id);
+            let strike_price = calculate_strike_price(
+                self.vault_type.read(), current_avg_basefee, volatility
+            );
 
             current_round.update_round_params(reserve_price, cap_level, strike_price);
         }
@@ -354,13 +361,11 @@ mod Vault {
             let current_round = self.get_round_dispatcher(current_round_id);
             let unlocked_liquidity = self.get_total_unlocked_balance();
 
-            let options_available = current_round.start_auction(unlocked_liquidity);
-
             // @dev All unlocked liquidity becomes locked
             self.total_unlocked_balance.write(0);
             self.total_locked_balance.write(unlocked_liquidity);
 
-            options_available
+            current_round.start_auction(unlocked_liquidity)
         }
 
         // @return The clearing price of the auction and number of options that sold
@@ -393,8 +398,8 @@ mod Vault {
             let current_round_id = self.current_round_id.read();
             let current_round = self.get_round_dispatcher(current_round_id);
             // FOSSIL
-            let from = current_round.get_auction_start_date();
             let to = current_round.get_option_settlement_date();
+            let from = to - TWAP_DURATION;
             let settlement_price = self.fetch_TWAP_for_time_period(from, to);
             let (total_payout, settlement_price) = current_round
                 .settle_option_round(settlement_price);
@@ -425,7 +430,7 @@ mod Vault {
 
             // @dev Deploy next option round contract & update the current round id
             // @note Here is where we set the round's params from Fossil
-            self.deploy_next_round();
+            self.deploy_next_round(settlement_price);
 
             (total_payout, settlement_price)
         }
@@ -750,8 +755,19 @@ mod Vault {
             IOptionRoundDispatcher { contract_address: round_address }
         }
 
+        fn deploy_first_round(ref self: ContractState) {
+            let now = starknet::get_block_timestamp();
+            let TWAP_end_date = now;
+            let TWAP_start_date = now - TWAP_DURATION;
+            let current_avg_basefee = self
+                .fetch_TWAP_for_time_period(TWAP_start_date, TWAP_end_date);
+
+            self.deploy_next_round(current_avg_basefee);
+        }
+
         // Deploy the next option round contract, update the current round id & round address mapping
-        fn deploy_next_round(ref self: ContractState) {
+        // @note will need to add current_vol as well
+        fn deploy_next_round(ref self: ContractState, current_avg_basefee: u256) {
             // The constructor params for the next round
             let mut calldata: Array<felt252> = array![];
             // Vault address & round id
@@ -768,12 +784,15 @@ mod Vault {
             calldata.append_serde(auction_end_date);
             calldata.append_serde(option_settlement_date);
             // Reserve price, cap level, & strike price adjust these to take to and from
-            let reserve_price = self
-                .fetch_reserve_price_for_time_period(auction_start_date, option_settlement_date);
-            let cap_level = self
-                .fetch_cap_level_for_time_period(auction_start_date, option_settlement_date);
-            let strike_price = self
-                .fetch_strike_price_for_time_period(auction_start_date, option_settlement_date);
+            let reserve_price = self.fetch_reserve_price_for_round(next_round_id);
+            let cap_level = self.fetch_cap_level_for_round(next_round_id);
+
+            // @dev Calculate strike price based on current avg basefee and Vault's type
+            let volatility = self.fetch_volatility_for_round(next_round_id);
+            let strike_price = calculate_strike_price(
+                self.vault_type.read(), current_avg_basefee, volatility
+            );
+
             calldata.append_serde(reserve_price);
             calldata.append_serde(cap_level);
             calldata.append_serde(strike_price);
@@ -924,19 +943,19 @@ mod Vault {
             IMarketAggregatorDispatcher { contract_address: self.get_market_aggregator() }
         }
 
-        fn fetch_reserve_price_for_time_period(self: @ContractState, from: u64, to: u64) -> u256 {
+        fn fetch_reserve_price_for_round(self: @ContractState, round_id: u256) -> u256 {
             let mk_agg = self.get_market_aggregator_dispatcher();
-            let res = mk_agg.get_reserve_price_for_time_period(from, to);
+            let res = mk_agg.get_reserve_price_for_round(get_contract_address(), round_id);
             match res {
-                Option::Some(reserve_price) => { reserve_price },
+                Option::Some(reserve_price) => reserve_price,
                 //Option::None => panic!("No reserve price found")
-                Option::None => { 0 }
+                Option::None => 0
             }
         }
 
-        fn fetch_cap_level_for_time_period(self: @ContractState, from: u64, to: u64) -> u128 {
+        fn fetch_cap_level_for_round(self: @ContractState, round_id: u256) -> u128 {
             let mk_agg = self.get_market_aggregator_dispatcher();
-            let res = mk_agg.get_cap_level_for_time_period(from, to);
+            let res = mk_agg.get_cap_level_for_round(get_contract_address(), round_id);
             match res {
                 Option::Some(cap_level) => cap_level,
                 //Option::None => panic!("No cap level found")
@@ -944,12 +963,12 @@ mod Vault {
             }
         }
 
-        fn fetch_strike_price_for_time_period(self: @ContractState, from: u64, to: u64) -> u256 {
+        fn fetch_volatility_for_round(self: @ContractState, round_id: u256) -> u128 {
             let mk_agg = self.get_market_aggregator_dispatcher();
-            let res = mk_agg.get_strike_price_for_time_period(from, to);
+            let res = mk_agg.get_volatility_for_round(get_contract_address(), round_id);
             match res {
-                Option::Some(strike_price) => strike_price,
-                //Option::None => panic!("No strike price found")
+                Option::Some(volatility) => volatility,
+                //Option::None => panic!("No volatility found")
                 Option::None => 0
             }
         }
