@@ -9,7 +9,7 @@ export class MarketAggregatorFacade {
     this.marketAggregatorContract = new Contract(
       marketAggregatorABI,
       marketAggregatorAddress,
-      provider
+      provider,
     ).typedv2(marketAggregatorABI);
   }
 
@@ -17,52 +17,52 @@ export class MarketAggregatorFacade {
     account: Account,
     from: number | bigint,
     to: number | bigint,
-    capLevel: number | bigint
+    capLevel: number | bigint,
   ) {
     this.marketAggregatorContract.connect(account);
     await this.marketAggregatorContract.set_cap_level_for_time_period(
       from,
       to,
-      capLevel
+      capLevel,
     );
   }
   async setReservePrice(
     account: Account,
     from: number | bigint,
     to: number | bigint,
-    reservePrice: number | bigint
+    reservePrice: number | bigint,
   ) {
     this.marketAggregatorContract.connect(account);
     await this.marketAggregatorContract.set_reserve_price_for_time_period(
       from,
       to,
-      reservePrice
+      reservePrice,
     );
   }
   async setStrikePrice(
     account: Account,
     from: number | bigint,
     to: number | bigint,
-    strikePrice: number | bigint
+    strikePrice: number | bigint,
   ) {
     this.marketAggregatorContract.connect(account);
     await this.marketAggregatorContract.set_strike_price_for_time_period(
       from,
       to,
-      strikePrice
+      strikePrice,
     );
   }
   async setTWAP(
     account: Account,
     from: number | bigint,
     to: number | bigint,
-    reservePrice: number | bigint
+    reservePrice: number | bigint,
   ) {
     this.marketAggregatorContract.connect(account);
     await this.marketAggregatorContract.set_TWAP_for_time_period(
       from,
       to,
-      reservePrice
+      reservePrice,
     );
   }
 
@@ -70,33 +70,32 @@ export class MarketAggregatorFacade {
     devAccount: Account,
     startDate: number | bigint,
     settleDate: number | bigint,
-    marketData: MarketData
+    marketData: MarketData,
   ) {
     await this.setReservePrice(
       devAccount,
       startDate,
       settleDate,
-      marketData.reservePrice
-
+      marketData.reservePrice,
     );
     await this.setCapLevel(
       devAccount,
       startDate,
       settleDate,
-      marketData.capLevel
+      marketData.capLevel,
     );
 
     await this.setStrikePrice(
       devAccount,
       startDate,
       settleDate,
-      marketData.strikePrice
+      marketData.strikePrice,
     );
     await this.setTWAP(
       devAccount,
       startDate,
       settleDate,
-      marketData.settlementPrice
+      marketData.settlementPrice,
     );
   }
 }
