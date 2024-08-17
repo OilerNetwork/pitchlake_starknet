@@ -836,18 +836,15 @@ mod OptionRound {
 
         // Assert if the round's params can be updated
         fn assert_params_can_update(ref self: ContractState) {
-          let state = self.get_state();
-          let now = get_block_timestamp();
-          let auction_start_date = self.get_auction_start_date();
+            let state = self.get_state();
+            let now = get_block_timestamp();
+            let auction_start_date = self.get_auction_start_date();
 
-          assert(
-              state == OptionRoundState::Open && now < auction_start_date,
-              Errors::AuctionAlreadyStarted
-          );
-
-          }
-
-
+            assert(
+                state == OptionRoundState::Open && now < auction_start_date,
+                Errors::AuctionAlreadyStarted
+            );
+        }
 
 
         // Assert an auction can start
