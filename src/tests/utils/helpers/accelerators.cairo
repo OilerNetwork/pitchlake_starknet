@@ -97,8 +97,8 @@ fn accelerate_to_settled(ref self: VaultFacade, TWAP: u256) -> u256 {
     let market_aggregator = self.get_market_aggregator_facade();
 
     // Set the TWAP for the round's duration
-    let from = current_round.get_auction_start_date();
     let to = current_round.get_option_settlement_date();
+    let from = to - Vault::TWAP_DURATION;
     market_aggregator.set_TWAP_for_time_period(from, to, TWAP);
 
     // Jump to the option expiry date and settle the round
