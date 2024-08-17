@@ -156,9 +156,10 @@ fn test_bid_before_auction_starts_failure() {
 #[available_gas(5000000000)]
 fn test_bid_after_auction_ends_failure() {
     let (mut vault, _) = setup_facade();
+    let mut current_round = vault.get_current_round();
     accelerate_to_auctioning(ref vault);
     accelerate_to_running(ref vault);
-    accelerate_to_settled(ref vault, 0);
+    accelerate_to_settled(ref vault, current_round.get_strike_price());
     accelerate_to_auctioning(ref vault);
     accelerate_to_running(ref vault);
 
@@ -167,6 +168,7 @@ fn test_bid_after_auction_ends_failure() {
     let bidder = option_bidder_buyer_1();
     let bid_price = round2.get_reserve_price();
     let bid_amount = round2.get_total_options_available();
+
     clear_event_logs(array![round2.contract_address()]);
 
     // Check txn revert reason
@@ -180,7 +182,7 @@ fn test_bid_after_auction_end_failure_2() {
     let (mut vault, _) = setup_facade();
     accelerate_to_auctioning(ref vault);
     accelerate_to_running(ref vault);
-    accelerate_to_settled(ref vault, 0);
+    accelerate_to_settled(ref vault, 1);
     accelerate_to_auctioning(ref vault);
     timeskip_past_auction_end_date(ref vault);
     let mut round2 = vault.get_current_round();
