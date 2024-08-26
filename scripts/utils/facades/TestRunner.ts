@@ -214,17 +214,39 @@ export class TestRunner {
     );
 
     const roundId = await optionRound.getRoundId();
-    const startDate =
-      await optionRound.optionRoundContract.get_auction_start_date();
+
     const settleDate =
       await optionRound.optionRoundContract.get_option_settlement_date();
 
+    const startDate = await optionRound.optionRoundContract.get_auction_start_date();
+    const twapPeriod = BigInt(60 * 60 * 24 * 14);
+
+    const auctionRunTime =
+      await this.vaultFacade.vaultContract.get_auction_run_time();
+    const optionRunTime =
+      await this.vaultFacade.vaultContract.get_option_run_time();
+    const roundTransitionPeriod =
+      await this.vaultFacade.vaultContract.get_round_transition_period();
+
+    const duration =
+      BigInt(auctionRunTime) +
+      BigInt(optionRunTime) +
+      BigInt(roundTransitionPeriod);
+    const endDatePeriodA = BigInt(startDate)
+    const startDatePeriodA = endDatePeriodA-twapPeriod
+
+    const endDatePeriodB = endDatePeriodA-BigInt(roundTransitionPeriod);
+    const startDatePeriodB = endDatePeriodB-twapPeriod;
+
+    console.log("START DATE, SETTLE DATE", startDate, "\n", settleDate);
     await marketAggFacade.setMarketParameters({
       devAccount,
       vaultAddress: this.vaultFacade.vaultContract.address,
       roundId: roundId,
-      startDate,
-      settleDate,
+      startDatePeriodA,
+      startDatePeriodB,
+      endDatePeriodA,
+      endDatePeriodB,
       marketData,
     });
 

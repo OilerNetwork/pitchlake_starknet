@@ -208,7 +208,7 @@ export class OptionRoundFacade {
   async tokenizeOptions({ from }: TokenizeOptionArgs) {
     try {
       this.optionRoundContract.connect(from);
-      const data = await this.optionRoundContract.tokenize_options();
+      const data = await this.optionRoundContract.mint_options();
       // @note: here it will return the total number of tokenizable options
       // if (typeof res !== "bigint" && typeof res !== "number") {
       //   const data = new CairoUint256(res);

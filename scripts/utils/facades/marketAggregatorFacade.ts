@@ -70,15 +70,19 @@ export class MarketAggregatorFacade {
     devAccount,
     vaultAddress,
     roundId,
-    startDate,
-    settleDate,
+    startDatePeriodA,
+    startDatePeriodB,
+    endDatePeriodA,
+    endDatePeriodB,
     marketData,
   }: {
     devAccount: Account;
     vaultAddress: string;
     roundId: number | bigint;
-    startDate: number | bigint;
-    settleDate: number | bigint;
+    startDatePeriodA: number | bigint;
+    startDatePeriodB:number|bigint;
+    endDatePeriodA: number|bigint;
+    endDatePeriodB: number | bigint;
     marketData: MarketData;
   }) {
     await this.setReservePrice(
@@ -94,11 +98,23 @@ export class MarketAggregatorFacade {
       marketData.capLevel
     );
 
+    await this.setVolatility(
+      devAccount,
+      vaultAddress,
+      roundId,
+      marketData.capLevel
+    )
 
     await this.setTWAP(
       devAccount,
-      startDate,
-      settleDate,
+      startDatePeriodA,
+      endDatePeriodA,
+      marketData.settlementPrice
+    );
+    await this.setTWAP(
+      devAccount,
+      startDatePeriodB,
+      endDatePeriodB,
       marketData.settlementPrice
     );
   }

@@ -196,7 +196,7 @@ async function checkpoint2({
     "Error B"
   );
 
-  assert(bidArrays[0].length === 1, "No. of Bids for A wrong");
+  assert(bidArrays[0].length === 1, `No. of Bids for A wrong,\n Expected:${BigInt(totalOptionAvailable)}\n Received:${bidArrays[0]?.length}`);
   assert(
     bidArrays[0][0].amount === BigInt(totalOptionAvailable) / BigInt(2),
     "Bid for A amount wrong"

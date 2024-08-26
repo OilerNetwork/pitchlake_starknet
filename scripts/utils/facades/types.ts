@@ -78,6 +78,7 @@ export type Constants = {
   settlementPrice: number | bigint;
   strikePrice: number | bigint;
   capLevel: number | bigint;
+  volatility: number|bigint;
 };
 
 //Simulation Types
