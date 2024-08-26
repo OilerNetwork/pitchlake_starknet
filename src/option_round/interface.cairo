@@ -29,6 +29,9 @@ trait IOptionRound<TContractState> {
     // The total liquidity at the start of the round's auction
     fn starting_liquidity(self: @TContractState) -> u256;
 
+    // The total liquidity not sold after the auction
+    fn unsold_liquidity(self: @TContractState) -> u256;
+
     // The total premium collected from the auction
     fn total_premiums(self: @TContractState) -> u256;
 
@@ -37,7 +40,7 @@ trait IOptionRound<TContractState> {
     fn total_payout(self: @TContractState) -> u256;
 
     // Gets the clearing price of the auction
-    fn get_auction_clearing_price(self: @TContractState) -> u256;
+    fn clearing_price(self: @TContractState) -> u256;
 
     // The total number of options sold in the option round
     fn total_options_sold(self: @TContractState) -> u256;
@@ -64,7 +67,7 @@ trait IOptionRound<TContractState> {
     // @note This should sum all refundable bid amounts and return the total
     // - i.e if a bidder places 4 bids, 2 fully used, 1 partially used, and 1 fully refundable, the
     // refundable amount should be the value of the last bid + the remaining amount of the partial bid
-    fn get_refundable_bids_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
+    fn get_refundable_balance_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
     // Get the total amount of options the option buyer owns, includes the tokenizable amount and the
     // already tokenized (ERC20) amount
@@ -74,16 +77,13 @@ trait IOptionRound<TContractState> {
     fn get_payout_balance_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
     // Get the amount of options that can be tokenized for the option buyer
-    fn get_tokenizable_options_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
+    fn get_mintable_options_for(self: @TContractState, option_buyer: ContractAddress) -> u256;
 
 
     /// Other
 
     // The address of vault that deployed this round
     fn vault_address(self: @TContractState) -> ContractAddress;
-
-    // The constructor parmaeters of the option round
-    fn get_constructor_params(self: @TContractState) -> OptionRoundConstructorParams;
 
     // The state of the option round
     fn get_state(self: @TContractState) -> OptionRoundState;
@@ -98,7 +98,7 @@ trait IOptionRound<TContractState> {
     fn get_reserve_price(self: @TContractState) -> u256;
 
     // The total number of options available in the auction
-    fn get_total_options_available(self: @TContractState) -> u256;
+    fn total_options_available(self: @TContractState) -> u256;
 
     // Get option round id
     // @note add to facade and tests
@@ -152,5 +152,5 @@ trait IOptionRound<TContractState> {
     fn exercise_options(ref self: TContractState) -> u256;
 
     // Convert options won from auction into erc20 tokens
-    fn tokenize_options(ref self: TContractState) -> u256;
+    fn mint_options(ref self: TContractState) -> u256;
 }

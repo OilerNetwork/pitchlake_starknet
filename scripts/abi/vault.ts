@@ -119,7 +119,7 @@ export const ABI = [
       },
       {
         "type": "function",
-        "name": "current_option_round_id",
+        "name": "current_round_id",
         "inputs": [],
         "outputs": [
           {
@@ -130,7 +130,7 @@ export const ABI = [
       },
       {
         "type": "function",
-        "name": "get_option_round_address",
+        "name": "get_round_address",
         "inputs": [
           {
             "name": "option_round_id",
@@ -140,6 +140,22 @@ export const ABI = [
         "outputs": [
           {
             "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_lp_starting_balance",
+        "inputs": [
+          {
+            "name": "liquidity_provider",
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
           }
         ],
         "state_mutability": "view"
@@ -163,6 +179,42 @@ export const ABI = [
       {
         "type": "function",
         "name": "get_lp_unlocked_balance",
+        "inputs": [
+          {
+            "name": "liquidity_provider",
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_lp_queued_balance",
+        "inputs": [
+          {
+            "name": "liquidity_provider",
+            "type": "core::starknet::contract_address::ContractAddress"
+          },
+          {
+            "name": "round_id",
+            "type": "core::integer::u256"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_lp_stashed_balance",
         "inputs": [
           {
             "name": "liquidity_provider",
@@ -216,6 +268,33 @@ export const ABI = [
       },
       {
         "type": "function",
+        "name": "get_total_queued_balance",
+        "inputs": [
+          {
+            "name": "round_id",
+            "type": "core::integer::u256"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_total_stashed_balance",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
         "name": "get_total_balance",
         "inputs": [],
         "outputs": [
@@ -233,22 +312,6 @@ export const ABI = [
             "name": "liquidity_provider",
             "type": "core::starknet::contract_address::ContractAddress"
           },
-          {
-            "name": "round_id",
-            "type": "core::integer::u256"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "core::integer::u256"
-          }
-        ],
-        "state_mutability": "view"
-      },
-      {
-        "type": "function",
-        "name": "get_unsold_liquidity",
-        "inputs": [
           {
             "name": "round_id",
             "type": "core::integer::u256"
@@ -328,6 +391,34 @@ export const ABI = [
           {
             "name": "amount",
             "type": "core::integer::u256"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "queue_withdrawal",
+        "inputs": [
+          {
+            "name": "amount",
+            "type": "core::integer::u256"
+          }
+        ],
+        "outputs": [],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "claim_queued_liquidity",
+        "inputs": [
+          {
+            "name": "liquidity_provider",
+            "type": "core::starknet::contract_address::ContractAddress"
           }
         ],
         "outputs": [
@@ -475,6 +566,50 @@ export const ABI = [
   },
   {
     "type": "event",
+    "name": "pitch_lake_starknet::vault::contract::Vault::WithdrawalQueued",
+    "kind": "struct",
+    "members": [
+      {
+        "name": "account",
+        "type": "core::starknet::contract_address::ContractAddress",
+        "kind": "key"
+      },
+      {
+        "name": "round_id",
+        "type": "core::integer::u256",
+        "kind": "data"
+      },
+      {
+        "name": "previous_amount_queued",
+        "type": "core::integer::u256",
+        "kind": "data"
+      },
+      {
+        "name": "new_amount_queued",
+        "type": "core::integer::u256",
+        "kind": "data"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "pitch_lake_starknet::vault::contract::Vault::QueuedLiquidityCollected",
+    "kind": "struct",
+    "members": [
+      {
+        "name": "account",
+        "type": "core::starknet::contract_address::ContractAddress",
+        "kind": "key"
+      },
+      {
+        "name": "stashed_amount",
+        "type": "core::integer::u256",
+        "kind": "data"
+      }
+    ]
+  },
+  {
+    "type": "event",
     "name": "pitch_lake_starknet::vault::contract::Vault::OptionRoundDeployed",
     "kind": "struct",
     "members": [
@@ -503,6 +638,16 @@ export const ABI = [
       {
         "name": "Withdrawal",
         "type": "pitch_lake_starknet::vault::contract::Vault::Withdrawal",
+        "kind": "nested"
+      },
+      {
+        "name": "WithdrawalQueued",
+        "type": "pitch_lake_starknet::vault::contract::Vault::WithdrawalQueued",
+        "kind": "nested"
+      },
+      {
+        "name": "QueuedLiquidityCollected",
+        "type": "pitch_lake_starknet::vault::contract::Vault::QueuedLiquidityCollected",
         "kind": "nested"
       },
       {

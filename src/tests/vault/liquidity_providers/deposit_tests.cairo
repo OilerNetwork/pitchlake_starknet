@@ -18,9 +18,9 @@ use pitch_lake_starknet::{
                     assert_event_transfer, pop_log, assert_no_events_left,
                     assert_event_option_settle, assert_event_option_round_deployed,
                     assert_event_vault_deposit, assert_event_auction_start,
-                    assert_event_auction_bid_accepted, assert_event_auction_bid_rejected,
-                    assert_event_auction_end, assert_event_vault_withdrawal,
-                    assert_event_unused_bids_refunded, assert_event_options_exercised,
+                    assert_event_auction_bid_accepted, assert_event_auction_end,
+                    assert_event_vault_withdrawal, assert_event_unused_bids_refunded,
+                    assert_event_options_exercised,
                 },
                 accelerators::{
                     accelerate_to_auctioning, accelerate_to_running, accelerate_to_settled,
@@ -126,9 +126,10 @@ fn test_depositing_to_vault_eth_transfer() {
 
 // Test deposits always go to the vault's unlocked pool, regardless of the state of the current round
 #[test]
-#[available_gas(50000000)]
+#[available_gas(90000000)]
 fn test_deposits_always_go_to_unlocked_pool() {
     let (mut vault, _) = setup_facade();
+    let mut current_round = vault.get_current_round();
     let deposit_amount = 100 * decimals();
     let liquidity_provider = liquidity_provider_1();
 
@@ -149,7 +150,7 @@ fn test_deposits_always_go_to_unlocked_pool() {
     );
 
     // Deposit while current is settled
-    accelerate_to_settled(ref vault, 0);
+    accelerate_to_settled(ref vault, current_round.get_strike_price());
     let unlocked_balance_before = vault.get_lp_unlocked_balance(liquidity_provider);
     let unlocked_balance_after = vault.deposit(deposit_amount, liquidity_provider);
     assert(

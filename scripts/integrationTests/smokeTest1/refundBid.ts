@@ -28,6 +28,7 @@ export const smokeTest = async ({
   const reservePrice = await optionRoundFacade.getReservePrice();
   const optionBidderAccounts = getOptionBidderAccounts(3);
 
+  console.log("totalOptionsAvailable",totalOptionAvailable);
   const balancesBefore = await getBalancesAll(optionBidderAccounts);
 
   try {
@@ -146,7 +147,7 @@ async function checkpoint2({
   assert(
     BigInt(optionBalancesBefore[0]) / BigInt(2) ===
       BigInt(optionBalancesAfter[0]),
-    "Final option balance of C should be half of initial"
+    `Final option balance of C should be half of initial.\n ${optionBalancesBefore[0]}\n${optionBalancesAfter[0]}`
   );
 
   assert(

@@ -62,25 +62,14 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     fn update_params(
         ref self: OptionRoundFacade, reserve_price: u256, cap_level: u128, strike_price: u256
     ) {
-        /// Mock values in mk agg
-        let mut vault = self.get_vault_facade();
-        let mk_agg_facade = vault.get_market_aggregator_facade();
-
-        let from = self.get_auction_start_date();
-        let to = self.get_option_settlement_date();
-
-        mk_agg_facade.set_reserve_price_for_time_period(from, to, reserve_price);
-        mk_agg_facade.set_cap_level_for_time_period(from, to, cap_level);
-        mk_agg_facade.set_strike_price_for_time_period(from, to, strike_price);
-
-        // Force refresh the params in the vault
-        vault.update_round_params();
+        // Force update the params in the round
+        self.option_round_dispatcher.update_round_params(reserve_price, cap_level, strike_price);
     }
 
     #[feature("safe_dispatcher")]
     fn update_round_params_expect_error(ref self: OptionRoundFacade, error: felt252) {
         let safe = self.get_safe_dispatcher();
-        safe.update_round_params(1_u256, 2_128, 3_u256).expect_err(error);
+        safe.update_round_params(1, 2, 3).expect_err(error);
     }
 
 
@@ -100,6 +89,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         let starting_liquidity = (options_available * capped_payout_per_option);
 
         // Update the params of the option round
+        set_contract_address(vault.contract_address());
         self.update_params(reserve_price, cap_level, strike_price);
 
         let total_options_available = accelerate_to_auctioning_custom(
@@ -129,7 +119,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
 
         // Set ETH approvals for next round
         let vault_dispatcher = IVaultDispatcher { contract_address: self.vault_address() };
-        let next_round_address = vault_dispatcher.get_option_round_address(self.get_round_id() + 1);
+        let next_round_address = vault_dispatcher.get_round_address(self.get_round_id() + 1);
         eth_supply_and_approve_all_bidders(next_round_address, vault_dispatcher.eth_address());
 
         sanity_checks::settle_option_round(ref self, total_payout)
@@ -300,7 +290,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     // @return: The amount refunded
     fn refund_bid(ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress) -> u256 {
         set_contract_address(option_bidder_buyer);
-        let refundable_balance = self.get_refundable_bids_for(option_bidder_buyer);
+        let refundable_balance = self.get_refundable_balance_for(option_bidder_buyer);
         let refunded_amount = self.option_round_dispatcher.refund_unused_bids(option_bidder_buyer);
         sanity_checks::refund_bid(ref self, refunded_amount, refundable_balance)
     }
@@ -364,24 +354,24 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
 
     // Tokenize options for an option buyer
     // @return: The amount of options minted
-    fn tokenize_options(ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress) -> u256 {
+    fn mint_options(ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress) -> u256 {
         set_contract_address(option_bidder_buyer);
         let option_erc20_balance_before = get_erc20_balance(
             self.contract_address(), option_bidder_buyer
         );
-        let options_minted = self.option_round_dispatcher.tokenize_options();
+        let options_minted = self.option_round_dispatcher.mint_options();
         sanity_checks::tokenize_options(
             ref self, option_bidder_buyer, option_erc20_balance_before, options_minted,
         )
     }
 
     #[feature("safe_dispatcher")]
-    fn tokenize_options_expect_error(
+    fn mint_options_expect_error(
         ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress, error: felt252,
     ) {
         set_contract_address(option_bidder_buyer);
         let safe_option_round = self.get_safe_dispatcher();
-        safe_option_round.tokenize_options().expect_err(error);
+        safe_option_round.mint_options().expect_err(error);
     }
 
     /// Reads ///
@@ -406,6 +396,12 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         self.option_round_dispatcher.starting_liquidity()
     }
 
+    fn unsold_liquidity(ref self: OptionRoundFacade) -> u256 {
+        // @note Temp fix, can move this function to round facade
+
+        self.option_round_dispatcher.unsold_liquidity()
+    }
+
     fn total_premiums(ref self: OptionRoundFacade) -> u256 {
         self.option_round_dispatcher.total_premiums()
     }
@@ -415,7 +411,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     }
 
     fn get_auction_clearing_price(ref self: OptionRoundFacade) -> u256 {
-        self.option_round_dispatcher.get_auction_clearing_price()
+        self.option_round_dispatcher.clearing_price()
     }
 
     fn total_options_sold(ref self: OptionRoundFacade) -> u256 {
@@ -439,10 +435,10 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         self.option_round_dispatcher.get_bids_for(option_bidder_buyer)
     }
 
-    fn get_refundable_bids_for(
+    fn get_refundable_balance_for(
         ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
     ) -> u256 {
-        self.option_round_dispatcher.get_refundable_bids_for(option_bidder_buyer)
+        self.option_round_dispatcher.get_refundable_balance_for(option_bidder_buyer)
     }
 
     fn get_payout_balance_for(
@@ -451,17 +447,13 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         self.option_round_dispatcher.get_payout_balance_for(option_bidder_buyer)
     }
 
-    fn get_option_balance_for(
+    fn get_mintable_options_for(
         ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
     ) -> u256 {
-        self.option_round_dispatcher.get_tokenizable_options_for(option_bidder_buyer)
+        self.option_round_dispatcher.get_mintable_options_for(option_bidder_buyer)
     }
 
     /// Other
-    fn get_constructor_params(ref self: OptionRoundFacade) -> OptionRoundConstructorParams {
-        self.option_round_dispatcher.get_constructor_params()
-    }
-
     fn get_state(ref self: OptionRoundFacade) -> OptionRoundState {
         self.option_round_dispatcher.get_state()
     }
@@ -493,7 +485,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     }
 
     fn get_total_options_available(ref self: OptionRoundFacade) -> u256 {
-        self.option_round_dispatcher.get_total_options_available()
+        self.option_round_dispatcher.total_options_available()
     }
 
     /// ERC20 functions

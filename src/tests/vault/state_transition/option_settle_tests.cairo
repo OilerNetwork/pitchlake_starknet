@@ -197,7 +197,8 @@ fn test_settle_option_round_updates_round_state() {
             current_round.get_state() == OptionRoundState::Running, 'current round shd be running'
         );
 
-        accelerate_to_settled(ref vault, 0);
+        //accelerate_to_settled(ref vault, 0);
+        accelerate_to_settled(ref vault, current_round.get_strike_price());
 
         assert(
             current_round.get_state() == OptionRoundState::Settled, 'current round shd be settled'

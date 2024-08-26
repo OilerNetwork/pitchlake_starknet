@@ -150,14 +150,14 @@ fn test_bidding_same_amount_higher_price_wins() {
     // Check last bidder (winner) receives all options, others receive 0
     match option_bidders.pop_back() {
         Option::Some(ob) => {
-            let winner_option_balance = current_round.get_option_balance_for(*ob);
+            let winner_option_balance = current_round.get_mintable_options_for(*ob);
             assert(
                 winner_option_balance == total_options_available, 'winner should get all options'
             );
             loop {
                 match option_bidders.pop_front() {
                     Option::Some(ob) => {
-                        let loser_option_balance = current_round.get_option_balance_for(*ob);
+                        let loser_option_balance = current_round.get_mintable_options_for(*ob);
                         assert(loser_option_balance == 0, 'loser should get no options')
                     },
                     Option::None => { break (); }
@@ -189,12 +189,12 @@ fn test_bidding_same_price_earlier_bids_win() {
     // Check first bidder (winner) receives all options, others receive 0
     match option_bidders.pop_front() {
         Option::Some(ob) => {
-            let winner_option_balance = current_round.get_option_balance_for(*ob);
+            let winner_option_balance = current_round.get_mintable_options_for(*ob);
             assert_eq!(winner_option_balance, total_options_available);
             loop {
                 match option_bidders.pop_front() {
                     Option::Some(ob) => {
-                        let loser_option_balance = current_round.get_option_balance_for(*ob);
+                        let loser_option_balance = current_round.get_mintable_options_for(*ob);
                         assert_eq!(loser_option_balance, 0)
                     },
                     Option::None => { break (); }
@@ -228,14 +228,14 @@ fn test_bidding_higher_price_beats_higher_total_bid_amount() {
     // Check last bidder (winner) receives all options, others receive 0
     match option_bidders.pop_back() {
         Option::Some(ob) => {
-            let winner_option_balance = current_round.get_option_balance_for(*ob);
+            let winner_option_balance = current_round.get_mintable_options_for(*ob);
             assert(
                 winner_option_balance == total_options_available, 'winner should get all options'
             );
             loop {
                 match option_bidders.pop_front() {
                     Option::Some(ob) => {
-                        let loser_option_balance = current_round.get_option_balance_for(*ob);
+                        let loser_option_balance = current_round.get_mintable_options_for(*ob);
                         assert(loser_option_balance == 0, 'loser should get no options')
                     },
                     Option::None => { break (); }
@@ -270,16 +270,16 @@ fn test_remaining_bids_go_to_last_bidder() {
 
     // Check bidder 1 & 2 get their bid amounts, and bidder 3 gets the remaining
     assert(
-        current_round.get_option_balance_for(*option_bidders[0]) == *bid_amounts[0],
+        current_round.get_mintable_options_for(*option_bidders[0]) == *bid_amounts[0],
         'ob1 wrong option amount'
     );
     assert(
-        current_round.get_option_balance_for(*option_bidders[1]) == *bid_amounts[1],
+        current_round.get_mintable_options_for(*option_bidders[1]) == *bid_amounts[1],
         'ob2 wrong option amount'
     );
     let remaining_options = total_options_available - (*bid_amounts[0] + *bid_amounts[1]);
     assert(
-        current_round.get_option_balance_for(*option_bidders[2]) == remaining_options,
+        current_round.get_mintable_options_for(*option_bidders[2]) == remaining_options,
         'ob3 wrong option amount'
     )
 }
@@ -424,7 +424,7 @@ fn test_the_last_bidder_gets_no_options_if_none_left() {
     match option_bidders.pop_back() {
         Option::Some(last_bidder) => {
             assert(
-                current_round.get_option_balance_for(*last_bidder) == 0,
+                current_round.get_mintable_options_for(*last_bidder) == 0,
                 'last bidder shd get 0 options'
             );
 
@@ -432,7 +432,7 @@ fn test_the_last_bidder_gets_no_options_if_none_left() {
                 match option_bidders.pop_front() {
                     Option::Some(bidder) => {
                         assert(
-                            current_round.get_option_balance_for(*bidder) == bid_amount,
+                            current_round.get_mintable_options_for(*bidder) == bid_amount,
                             'bidder shd get bid amount'
                         );
                     },
@@ -471,7 +471,7 @@ fn test_losing_bid_gets_no_options() {
     match option_bidders.pop_front() {
         Option::Some(losing_bidder) => {
             assert(
-                current_round.get_option_balance_for(*losing_bidder) == 0,
+                current_round.get_mintable_options_for(*losing_bidder) == 0,
                 'losing bidder shd get 0 options'
             );
             loop {
@@ -480,7 +480,7 @@ fn test_losing_bid_gets_no_options() {
                         // @dev Each bidder bids for the same amount so we can use [0] for all here
                         let bid_amount = *bid_amounts[0];
                         assert(
-                            current_round.get_option_balance_for(*bidder) == bid_amount,
+                            current_round.get_mintable_options_for(*bidder) == bid_amount,
                             'bidder should get bid amount'
                         );
                     },
@@ -608,7 +608,7 @@ fn auction_real_numbers_test_helper(
     loop {
         match option_bidders.pop_front() {
             Option::Some(bidder) => {
-                let options = current_round.get_option_balance_for(*bidder);
+                let options = current_round.get_mintable_options_for(*bidder);
                 let expected_options = expected_option_distribution.pop_front().unwrap();
                 assert(options == *expected_options, 'options should match');
             },

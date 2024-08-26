@@ -68,8 +68,6 @@ export type Bid = {
   owner: string;
   amount: number | bigint;
   price: number | bigint;
-  isTokenized: boolean;
-  isRefunded: boolean;
 };
 
 //Smoke Test types
@@ -80,6 +78,7 @@ export type Constants = {
   settlementPrice: number | bigint;
   strikePrice: number | bigint;
   capLevel: number | bigint;
+  volatility: number|bigint;
 };
 
 //Simulation Types

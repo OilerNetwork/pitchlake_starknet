@@ -602,15 +602,7 @@ pub mod RBTreeComponent {
         }
 
         fn get_default_bid(ref self: ComponentState<TContractState>) -> Bid {
-            Bid {
-                id: 0,
-                nonce: 0,
-                owner: 0.try_into().unwrap(),
-                amount: 0,
-                price: 0,
-                is_tokenized: false,
-                is_refunded: false,
-            }
+            Bid { id: 0, nonce: 0, owner: 0.try_into().unwrap(), amount: 0, price: 0, }
         }
     }
 

@@ -1230,32 +1230,13 @@ fn test_delete_tree_one_by_one() {
 fn create_bid(price: u256, nonce: u64) -> Bid {
     let bidder = mock_address(MOCK_ADDRESS);
     let id = poseidon::poseidon_hash_span(array![bidder.into(), nonce.try_into().unwrap()].span());
-    Bid {
-        id: id,
-        nonce: nonce,
-        owner: bidder,
-        amount: 0,
-        price: price,
-        is_tokenized: false,
-        is_refunded: false,
-    }
+    Bid { id: id, nonce: nonce, owner: bidder, amount: 0, price: price, }
 }
 
 fn insert(rb_tree: IRBTreeMockContractDispatcher, price: u256, nonce: u64) -> felt252 {
     let bidder = mock_address(MOCK_ADDRESS);
     let id = poseidon::poseidon_hash_span(array![bidder.into(), nonce.try_into().unwrap()].span());
-    rb_tree
-        .insert(
-            Bid {
-                id: id,
-                nonce: nonce,
-                owner: bidder,
-                amount: 0,
-                price: price,
-                is_tokenized: false,
-                is_refunded: false,
-            }
-        );
+    rb_tree.insert(Bid { id: id, nonce: nonce, owner: bidder, amount: 0, price: price, });
     return id;
 }
 

@@ -52,126 +52,6 @@ export const ABI = [
     "items": [
       {
         "type": "function",
-        "name": "get_reserve_price_for_time_period",
-        "inputs": [
-          {
-            "name": "from",
-            "type": "core::integer::u64"
-          },
-          {
-            "name": "to",
-            "type": "core::integer::u64"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "core::option::Option::<core::integer::u256>"
-          }
-        ],
-        "state_mutability": "view"
-      },
-      {
-        "type": "function",
-        "name": "get_reserve_price_for_block_period",
-        "inputs": [
-          {
-            "name": "from",
-            "type": "core::integer::u64"
-          },
-          {
-            "name": "to",
-            "type": "core::integer::u64"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "core::option::Option::<core::integer::u256>"
-          }
-        ],
-        "state_mutability": "view"
-      },
-      {
-        "type": "function",
-        "name": "get_cap_level_for_time_period",
-        "inputs": [
-          {
-            "name": "from",
-            "type": "core::integer::u64"
-          },
-          {
-            "name": "to",
-            "type": "core::integer::u64"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "core::option::Option::<core::integer::u128>"
-          }
-        ],
-        "state_mutability": "view"
-      },
-      {
-        "type": "function",
-        "name": "get_cap_level_for_block_period",
-        "inputs": [
-          {
-            "name": "from",
-            "type": "core::integer::u64"
-          },
-          {
-            "name": "to",
-            "type": "core::integer::u64"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "core::option::Option::<core::integer::u128>"
-          }
-        ],
-        "state_mutability": "view"
-      },
-      {
-        "type": "function",
-        "name": "get_strike_price_for_time_period",
-        "inputs": [
-          {
-            "name": "from",
-            "type": "core::integer::u64"
-          },
-          {
-            "name": "to",
-            "type": "core::integer::u64"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "core::option::Option::<core::integer::u256>"
-          }
-        ],
-        "state_mutability": "view"
-      },
-      {
-        "type": "function",
-        "name": "get_strike_price_for_block_period",
-        "inputs": [
-          {
-            "name": "from",
-            "type": "core::integer::u64"
-          },
-          {
-            "name": "to",
-            "type": "core::integer::u64"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "core::option::Option::<core::integer::u256>"
-          }
-        ],
-        "state_mutability": "view"
-      },
-      {
-        "type": "function",
         "name": "get_TWAP_for_block_period",
         "inputs": [
           {
@@ -209,6 +89,66 @@ export const ABI = [
           }
         ],
         "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_reserve_price_for_round",
+        "inputs": [
+          {
+            "name": "vault_address",
+            "type": "core::starknet::contract_address::ContractAddress"
+          },
+          {
+            "name": "round_id",
+            "type": "core::integer::u256"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "core::option::Option::<core::integer::u256>"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_volatility_for_round",
+        "inputs": [
+          {
+            "name": "vault_address",
+            "type": "core::starknet::contract_address::ContractAddress"
+          },
+          {
+            "name": "round_id",
+            "type": "core::integer::u256"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "core::option::Option::<core::integer::u128>"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_cap_level_for_round",
+        "inputs": [
+          {
+            "name": "vault_address",
+            "type": "core::starknet::contract_address::ContractAddress"
+          },
+          {
+            "name": "round_id",
+            "type": "core::integer::u256"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "core::option::Option::<core::integer::u128>"
+          }
+        ],
+        "state_mutability": "view"
       }
     ]
   },
@@ -221,126 +161,6 @@ export const ABI = [
     "type": "interface",
     "name": "pitch_lake_starknet::market_aggregator::interface::IMarketAggregatorMock",
     "items": [
-      {
-        "type": "function",
-        "name": "set_reserve_price_for_time_period",
-        "inputs": [
-          {
-            "name": "from",
-            "type": "core::integer::u64"
-          },
-          {
-            "name": "to",
-            "type": "core::integer::u64"
-          },
-          {
-            "name": "reserve_price",
-            "type": "core::integer::u256"
-          }
-        ],
-        "outputs": [],
-        "state_mutability": "external"
-      },
-      {
-        "type": "function",
-        "name": "set_reserve_price_for_block_period",
-        "inputs": [
-          {
-            "name": "from",
-            "type": "core::integer::u64"
-          },
-          {
-            "name": "to",
-            "type": "core::integer::u64"
-          },
-          {
-            "name": "reserve_price",
-            "type": "core::integer::u256"
-          }
-        ],
-        "outputs": [],
-        "state_mutability": "external"
-      },
-      {
-        "type": "function",
-        "name": "set_cap_level_for_time_period",
-        "inputs": [
-          {
-            "name": "from",
-            "type": "core::integer::u64"
-          },
-          {
-            "name": "to",
-            "type": "core::integer::u64"
-          },
-          {
-            "name": "cap_level",
-            "type": "core::integer::u128"
-          }
-        ],
-        "outputs": [],
-        "state_mutability": "external"
-      },
-      {
-        "type": "function",
-        "name": "set_cap_level_for_block_period",
-        "inputs": [
-          {
-            "name": "from",
-            "type": "core::integer::u64"
-          },
-          {
-            "name": "to",
-            "type": "core::integer::u64"
-          },
-          {
-            "name": "cap_level",
-            "type": "core::integer::u128"
-          }
-        ],
-        "outputs": [],
-        "state_mutability": "external"
-      },
-      {
-        "type": "function",
-        "name": "set_strike_price_for_time_period",
-        "inputs": [
-          {
-            "name": "from",
-            "type": "core::integer::u64"
-          },
-          {
-            "name": "to",
-            "type": "core::integer::u64"
-          },
-          {
-            "name": "strike_price",
-            "type": "core::integer::u256"
-          }
-        ],
-        "outputs": [],
-        "state_mutability": "external"
-      },
-      {
-        "type": "function",
-        "name": "set_strike_price_for_block_period",
-        "inputs": [
-          {
-            "name": "from",
-            "type": "core::integer::u64"
-          },
-          {
-            "name": "to",
-            "type": "core::integer::u64"
-          },
-          {
-            "name": "strike_price",
-            "type": "core::integer::u256"
-          }
-        ],
-        "outputs": [],
-        "state_mutability": "external"
-      },
       {
         "type": "function",
         "name": "set_TWAP_for_block_period",
@@ -376,6 +196,66 @@ export const ABI = [
           {
             "name": "TWAP",
             "type": "core::integer::u256"
+          }
+        ],
+        "outputs": [],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "set_reserve_price_for_round",
+        "inputs": [
+          {
+            "name": "vault_address",
+            "type": "core::starknet::contract_address::ContractAddress"
+          },
+          {
+            "name": "round_id",
+            "type": "core::integer::u256"
+          },
+          {
+            "name": "reserve_price",
+            "type": "core::integer::u256"
+          }
+        ],
+        "outputs": [],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "set_volatility_for_round",
+        "inputs": [
+          {
+            "name": "vault_address",
+            "type": "core::starknet::contract_address::ContractAddress"
+          },
+          {
+            "name": "round_id",
+            "type": "core::integer::u256"
+          },
+          {
+            "name": "vol",
+            "type": "core::integer::u128"
+          }
+        ],
+        "outputs": [],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "set_cap_level_for_round",
+        "inputs": [
+          {
+            "name": "vault_address",
+            "type": "core::starknet::contract_address::ContractAddress"
+          },
+          {
+            "name": "round_id",
+            "type": "core::integer::u256"
+          },
+          {
+            "name": "cap_level",
+            "type": "core::integer::u128"
           }
         ],
         "outputs": [],

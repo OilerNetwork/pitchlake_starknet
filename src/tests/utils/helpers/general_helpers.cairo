@@ -165,18 +165,27 @@ fn get_erc20_balances(
 // @dev Scaling with bps for precision
 // @dev Used to determine how many premiums and payouts belong to an account
 fn get_portion_of_amount(mut arr: Span<u256>, amount: u256) -> Array<u256> {
-    let precision_factor = 10000;
-    let mut total = sum_u256_array(arr);
+    let total = sum_u256_array(arr);
     let mut portions = array![];
     loop {
         match arr.pop_front() {
-            Option::Some(el) => {
-                let portion = ((precision_factor * *el * amount) / total) / precision_factor;
+            Option::Some(value) => {
+                let portion = (*value * amount) / total;
                 portions.append(portion);
             },
             Option::None => { break (); }
         }
     };
     portions
+}
+
+fn assert_u256s_equal_in_range(value1: u256, value2: u256, range: u256) {
+    let lower_bound = if range > value2 {
+        0
+    } else {
+        value2 - range
+    };
+    assert(value1 >= lower_bound, 'Value below range');
+    assert(value1 <= value2 + range, 'Value above range');
 }
 

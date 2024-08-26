@@ -155,9 +155,10 @@ fn test_withdrawing_from_vault_eth_transfer() {
 
 // Test withdrawal always come from the vault's unlocked pool, regardless of the state of the current round
 #[test]
-#[available_gas(50000000)]
+#[available_gas(90000000)]
 fn test_withdrawing_always_come_from_unlocked_pool() {
     let (mut vault, _) = setup_facade();
+    let mut current_round = vault.get_current_round();
     let deposit_amount = 100 * decimals();
     let withdraw_amount = 1 * decimals();
     let liquidity_provider = liquidity_provider_1();
@@ -166,6 +167,7 @@ fn test_withdrawing_always_come_from_unlocked_pool() {
     accelerate_to_auctioning(ref vault);
     let unlocked_amount_before = vault.deposit(deposit_amount, liquidity_provider);
     let unlocked_amount_after = vault.withdraw(withdraw_amount, liquidity_provider);
+
     assert(
         unlocked_amount_after == unlocked_amount_before - withdraw_amount, 'unlocked amount 1 wrong'
     );
@@ -174,12 +176,13 @@ fn test_withdrawing_always_come_from_unlocked_pool() {
     accelerate_to_running(ref vault);
     let unlocked_amount_before = vault.get_lp_unlocked_balance(liquidity_provider);
     let unlocked_amount_after = vault.withdraw(withdraw_amount, liquidity_provider);
+
     assert(
         unlocked_amount_after == unlocked_amount_before - withdraw_amount, 'unlocked amount 2 wrong'
     );
 
     // Withdraw while the current round is settled
-    accelerate_to_settled(ref vault, 0);
+    accelerate_to_settled(ref vault, current_round.get_strike_price());
     let unlocked_amount_before = vault.get_lp_unlocked_balance(liquidity_provider);
     let unlocked_amount_after = vault.withdraw(withdraw_amount, liquidity_provider);
     assert(

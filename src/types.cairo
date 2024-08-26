@@ -6,6 +6,8 @@ use pitch_lake_starknet::option_round::contract::OptionRound;
 mod Errors {
     /// Vault Errors ///
     const InsufficientBalance: felt252 = 'Insufficient unlocked balance';
+    const QueueingMoreThanPositionValue: felt252 = 'Insufficient balance to queue';
+    const WithdrawalQueuedWhileUnlocked: felt252 = 'Can only queue while locked';
     /// OptionRound Errors ///
     const CallerIsNotVault: felt252 = 'Caller not the Vault';
     // Starting an auction
@@ -33,6 +35,7 @@ mod Errors {
 
 mod Consts {
     const BPS: u256 = 10000;
+    const PRECISION: u256 = 100;
 }
 
 /// An enum for each type of Vault
@@ -84,8 +87,6 @@ struct Bid {
     owner: ContractAddress,
     amount: u256,
     price: u256,
-    is_tokenized: bool,
-    is_refunded: bool,
 }
 
 // Allows Bids to be sorted using >, >=, <, <=
@@ -133,14 +134,12 @@ impl BidPartialOrdTrait of PartialOrd<Bid> {
 impl BidDisplay of Display<Bid> {
     fn fmt(self: @Bid, ref f: Formatter) -> Result<(), Error> {
         let str: ByteArray = format!(
-            "ID:{}\nNonce:{}\nOwner:{}\nAmount:{}\n Price:{}\nTokenized:{}\nRefunded:{}",
+            "ID:{}\nNonce:{}\nOwner:{}\nAmount:{}\n Price:{}",
             *self.id,
             *self.nonce,
             Into::<ContractAddress, felt252>::into(*self.owner),
             *self.amount,
             *self.price,
-            *self.is_tokenized,
-            *self.is_refunded,
         );
         f.buffer.append(@str);
         Result::Ok(())

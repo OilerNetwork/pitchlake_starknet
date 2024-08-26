@@ -103,19 +103,19 @@ fn assert_event_auction_bid_updated(
 }
 
 // Check AuctionRejectedBid emits correctly
-fn assert_event_auction_bid_rejected(
-    contract: ContractAddress, account: ContractAddress, amount: u256, price: u256,
-) {
-    match pop_log::<OptionRound::Event>(contract) {
-        Option::Some(e) => {
-            let expected = OptionRound::Event::BidRejected(
-                OptionRound::BidRejected { account, amount, price }
-            );
-            assert_events_equal(e, expected);
-        },
-        Option::None => { panic(array!['Could not find event']); },
-    }
-}
+//fn assert_event_auction_bid_rejected(
+//    contract: ContractAddress, account: ContractAddress, amount: u256, price: u256,
+//) {
+//    match pop_log::<OptionRound::Event>(contract) {
+//        Option::Some(e) => {
+//            let expected = OptionRound::Event::BidRejected(
+//                OptionRound::BidRejected { account, amount, price }
+//            );
+//            assert_events_equal(e, expected);
+//        },
+//        Option::None => { panic(array!['Could not find event']); },
+//    }
+//}
 
 // Check AuctionEnd emits correctly
 fn assert_event_auction_end(
@@ -176,8 +176,8 @@ fn assert_event_options_tokenized(
         Option::Some(_) => {
             match pop_log::<OptionRound::Event>(contract) {
                 Option::Some(e) => {
-                    let expected = OptionRound::Event::OptionsTokenized(
-                        OptionRound::OptionsTokenized { account, amount }
+                    let expected = OptionRound::Event::OptionsMinted(
+                        OptionRound::OptionsMinted { account, amount }
                     );
                     assert_events_equal(e, expected);
                 },
@@ -265,6 +265,44 @@ fn assert_event_vault_withdrawal(
         Option::Some(e) => {
             let expected = Vault::Event::Withdrawal(
                 Vault::Withdrawal { account, position_balance_before, position_balance_after }
+            );
+
+            assert_events_equal(e, expected);
+        },
+        Option::None => { panic(array!['No events found']); }
+    }
+}
+
+// Test collect queued liquidity event emits correctly
+fn assert_event_queued_liquidity_collected(
+    vault: ContractAddress, account: ContractAddress, stashed_amount: u256,
+) {
+    match pop_log::<Vault::Event>(vault) {
+        Option::Some(e) => {
+            let expected = Vault::Event::QueuedLiquidityCollected(
+                Vault::QueuedLiquidityCollected { account, stashed_amount }
+            );
+
+            assert_events_equal(e, expected);
+        },
+        Option::None => { panic(array!['No events found']); }
+    }
+}
+
+// Test withdrawal queued event emits correctly
+fn assert_event_withdrawal_queued(
+    vault: ContractAddress,
+    account: ContractAddress,
+    round_id: u256,
+    previous_amount_queued: u256,
+    new_amount_queued: u256
+) {
+    match pop_log::<Vault::Event>(vault) {
+        Option::Some(e) => {
+            let expected = Vault::Event::WithdrawalQueued(
+                Vault::WithdrawalQueued {
+                    account, round_id, previous_amount_queued, new_amount_queued
+                }
             );
 
             assert_events_equal(e, expected);

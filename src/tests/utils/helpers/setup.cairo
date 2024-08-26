@@ -53,7 +53,7 @@ use pitch_lake_starknet::{
                 accelerators::{
                     accelerate_to_auctioning, accelerate_to_auctioning_custom, accelerate_to_running
                 },
-                event_helpers::{clear_event_logs}
+                event_helpers::{clear_event_logs}, general_helpers::{to_wei},
             },
             facades::{
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
@@ -186,32 +186,56 @@ fn setup_rb_tree_test() -> IRBTreeMockContractDispatcher {
     IRBTreeMockContractDispatcher { contract_address: address }
 }
 
-fn setup_facade() -> (VaultFacade, ERC20ABIDispatcher) {
+fn to_gwei(amount: u256) -> u256 {
+    amount * 1_000_000_000
+}
+
+fn setup_facade_vault_type(vault_type: VaultType) -> (VaultFacade, MarketAggregatorFacade) {
     /// Mock mk agg values
     let mk_agg = deploy_market_aggregator();
-    let now = starknet::get_block_timestamp();
-    let mut from = now + 1000;
-    let mut to = now + 3000;
-    let duration = 2000 + 1000;
-    let mut i = 5;
-    while i
-        .is_non_zero() {
-            //println!("setting from\n{}\nto\n{}", from ,to);
-            mk_agg.set_reserve_price_for_time_period(from, to, 2000000000);
-            mk_agg.set_cap_level_for_time_period(from, to, 5000);
-            mk_agg.set_strike_price_for_time_period(from, to, 400000000);
-            mk_agg.set_TWAP_for_time_period(from, to, 8000000000);
+    let now = 1000000000000;
+    starknet::testing::set_block_timestamp(now);
 
-            from += duration;
-            to += duration;
-
-            i -= 1;
-        };
-
+    // Deploy eth and vault
     let eth_dispatcher: ERC20ABIDispatcher = deploy_eth();
     let vault_dispatcher: IVaultDispatcher = deploy_vault(
-        VaultType::InTheMoney, eth_dispatcher.contract_address, mk_agg.contract_address
+        vault_type, eth_dispatcher.contract_address, mk_agg.contract_address
     );
+
+    /// Mock market aggregator values for first 5 rounds
+    // Sets reserve price for each round to 2 gwei
+    // Sets cap level for each round to 5000
+    // Sets volatility for each round to 3333
+    // Each round will settle with 10 gwei TWAP
+    // Each round will use 10 gwei as the latest TWAP when round starts
+    let current_round_address = vault_dispatcher
+        .get_round_address(vault_dispatcher.current_round_id());
+    let current_round = IOptionRoundDispatcher { contract_address: current_round_address };
+    let mut TWAP_end = current_round.get_auction_start_date();
+    let mut TWAP_start = TWAP_end - Vault::TWAP_DURATION;
+    let duration = vault_dispatcher.get_round_transition_period()
+        + vault_dispatcher.get_auction_run_time()
+        + vault_dispatcher.get_option_run_time();
+    let mut i = 1;
+    while i <= 5 {
+        mk_agg.set_reserve_price_for_round(vault_dispatcher.contract_address, i, to_gwei(2));
+        mk_agg.set_cap_level_for_round(vault_dispatcher.contract_address, i, 5000);
+        mk_agg.set_volatility_for_round(vault_dispatcher.contract_address, i, 3333);
+
+        // @dev Set TWAP for time period up to auction start
+        mk_agg.set_TWAP_for_time_period(TWAP_start, TWAP_end, to_gwei(10));
+        // @dev Set TWAP for time period up to round settle
+        let prev_round_settlement_date = TWAP_start
+            - vault_dispatcher.get_round_transition_period();
+        let from = prev_round_settlement_date - Vault::TWAP_DURATION;
+        mk_agg.set_TWAP_for_time_period(from, prev_round_settlement_date, to_gwei(10));
+
+        TWAP_start += duration;
+        TWAP_end += duration;
+        i += 1;
+    };
+
+    vault_dispatcher.update_round_params();
 
     // Supply eth to test accounts and approve vault to transfer lp eth
     eth_supply_and_approve_all_providers(
@@ -220,7 +244,7 @@ fn setup_facade() -> (VaultFacade, ERC20ABIDispatcher) {
 
     //Supply and approve option_bidders
     let current_round_address = vault_dispatcher
-        .get_option_round_address(vault_dispatcher.current_option_round_id());
+        .get_round_address(vault_dispatcher.current_round_id());
     eth_supply_and_approve_all_bidders(current_round_address, eth_dispatcher.contract_address);
 
     // Supply eth to test accounts and approve option round 1 to spend ob eth
@@ -232,7 +256,17 @@ fn setup_facade() -> (VaultFacade, ERC20ABIDispatcher) {
 
     // Clear eth transfer events
     clear_event_logs(array![eth_dispatcher.contract_address]);
-    return (VaultFacade { vault_dispatcher }, eth_dispatcher);
+    return (
+        VaultFacade { vault_dispatcher },
+        MarketAggregatorFacade { contract_address: mk_agg.contract_address }
+    );
+}
+
+fn setup_facade() -> (VaultFacade, ERC20ABIDispatcher) {
+    let (mut vault_facade, _) = setup_facade_vault_type(VaultType::AtTheMoney);
+    let eth_address = vault_facade.get_eth_address();
+    let eth_dispatcher = ERC20ABIDispatcher { contract_address: eth_address };
+    (vault_facade, eth_dispatcher)
 }
 
 fn deploy_custom_option_round(

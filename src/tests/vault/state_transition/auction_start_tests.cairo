@@ -77,9 +77,10 @@ fn test_starting_auction_while_round_running_fails() {
 #[available_gas(1000000000)]
 fn test_starting_auction_while_round_settled_before_round_transition_period_over_fails() {
     let (mut vault_facade, _) = setup_facade();
+    let mut current_round = vault_facade.get_current_round();
     accelerate_to_auctioning(ref vault_facade);
     accelerate_to_running(ref vault_facade);
-    accelerate_to_settled(ref vault_facade, 0);
+    accelerate_to_settled(ref vault_facade, current_round.get_strike_price());
 
     // Try to start auction while round is Settled, before round transition period is over
     vault_facade.start_auction_expect_error(Errors::AuctionStartDateNotReached);
@@ -123,6 +124,7 @@ fn test_starting_auction_does_not_update_current_and_next_round_ids() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
     while rounds_to_run > 0_u32 {
+        let mut current_round = vault.get_current_round();
         let current_round_id = vault.get_current_round_id();
         accelerate_to_auctioning(ref vault);
         let new_current_round_id = vault.get_current_round_id();
@@ -130,7 +132,7 @@ fn test_starting_auction_does_not_update_current_and_next_round_ids() {
         assert(new_current_round_id == current_round_id, 'current round id shd not change');
 
         accelerate_to_running(ref vault);
-        accelerate_to_settled(ref vault, 0);
+        accelerate_to_settled(ref vault, current_round.get_strike_price());
 
         rounds_to_run -= 1;
     }
@@ -157,7 +159,7 @@ fn test_starting_auction_updates_current_rounds_state() {
         );
 
         accelerate_to_running(ref vault);
-        accelerate_to_settled(ref vault, 0);
+        accelerate_to_settled(ref vault, current_round.get_strike_price());
 
         rounds_to_run -= 1;
     }
