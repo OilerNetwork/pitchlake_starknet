@@ -68,8 +68,6 @@ export type Bid = {
   owner: string;
   amount: number | bigint;
   price: number | bigint;
-  isTokenized: boolean;
-  isRefunded: boolean;
 };
 
 //Smoke Test types

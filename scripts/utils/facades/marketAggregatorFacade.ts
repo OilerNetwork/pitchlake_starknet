@@ -9,93 +9,97 @@ export class MarketAggregatorFacade {
     this.marketAggregatorContract = new Contract(
       marketAggregatorABI,
       marketAggregatorAddress,
-      provider,
+      provider
     ).typedv2(marketAggregatorABI);
   }
 
-  async setCapLevel(
+  async setVolatility(
     account: Account,
-    from: number | bigint,
-    to: number | bigint,
-    capLevel: number | bigint,
+    vaultAddress: string,
+    roundId: number | bigint,
+    volatility: number | bigint
   ) {
     this.marketAggregatorContract.connect(account);
-    await this.marketAggregatorContract.set_cap_level_for_time_period(
-      from,
-      to,
-      capLevel,
+    await this.marketAggregatorContract.set_volatility_for_round(
+      vaultAddress,
+      roundId,
+      volatility
+    );
+  }
+  async setCapLevel(
+    account: Account,
+    vaultAddress: string,
+    roundId: number | bigint,
+    capLevel: number | bigint
+  ) {
+    this.marketAggregatorContract.connect(account);
+    await this.marketAggregatorContract.set_cap_level_for_round(
+      vaultAddress,
+      roundId,
+      capLevel
     );
   }
   async setReservePrice(
     account: Account,
-    from: number | bigint,
-    to: number | bigint,
-    reservePrice: number | bigint,
+    vaultAddress: string,
+    roundId: bigint | number,
+    reservePrice: number | bigint
   ) {
     this.marketAggregatorContract.connect(account);
-    await this.marketAggregatorContract.set_reserve_price_for_time_period(
-      from,
-      to,
-      reservePrice,
-    );
-  }
-  async setStrikePrice(
-    account: Account,
-    from: number | bigint,
-    to: number | bigint,
-    strikePrice: number | bigint,
-  ) {
-    this.marketAggregatorContract.connect(account);
-    await this.marketAggregatorContract.set_strike_price_for_time_period(
-      from,
-      to,
-      strikePrice,
+    await this.marketAggregatorContract.set_reserve_price_for_round(
+      vaultAddress,
+      roundId,
+      reservePrice
     );
   }
   async setTWAP(
     account: Account,
     from: number | bigint,
     to: number | bigint,
-    reservePrice: number | bigint,
+    reservePrice: number | bigint
   ) {
     this.marketAggregatorContract.connect(account);
     await this.marketAggregatorContract.set_TWAP_for_time_period(
       from,
       to,
-      reservePrice,
+      reservePrice
     );
   }
 
-  async setMarketParameters(
-    devAccount: Account,
-    startDate: number | bigint,
-    settleDate: number | bigint,
-    marketData: MarketData,
-  ) {
+  async setMarketParameters({
+    devAccount,
+    vaultAddress,
+    roundId,
+    startDate,
+    settleDate,
+    marketData,
+  }: {
+    devAccount: Account;
+    vaultAddress: string;
+    roundId: number | bigint;
+    startDate: number | bigint;
+    settleDate: number | bigint;
+    marketData: MarketData;
+  }) {
     await this.setReservePrice(
       devAccount,
-      startDate,
-      settleDate,
-      marketData.reservePrice,
+      vaultAddress,
+      roundId,
+      marketData.reservePrice
     );
     await this.setCapLevel(
       devAccount,
-      startDate,
-      settleDate,
-      marketData.capLevel,
+      vaultAddress,
+      roundId,
+      marketData.capLevel
     );
 
-    await this.setStrikePrice(
-      devAccount,
-      startDate,
-      settleDate,
-      marketData.strikePrice,
-    );
+
     await this.setTWAP(
       devAccount,
       startDate,
       settleDate,
-      marketData.settlementPrice,
+      marketData.settlementPrice
     );
   }
 }
