@@ -126,6 +126,20 @@ fn test_depositing_to_vault_eth_transfer() {
     }
 }
 
+#[test]
+#[available_gas(50000000)]
+#[should_panic(expected: ('u256_sub Overflow', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
+fn test_depositing_to_vault_no_approval() {
+    let (mut vault, eth) = setup_facade();
+    let mut liquidity_provider = liquidity_provider_1();
+    let mut deposit_amount = 50 * decimals();
+
+    set_contract_address(liquidity_provider);
+    eth.approve(vault.contract_address(), 0);
+
+    vault.deposit(deposit_amount, liquidity_provider);
+}
+
 // Test deposits always go to the vault's unlocked pool, regardless of the state of the current round
 #[test]
 #[available_gas(90000000)]
