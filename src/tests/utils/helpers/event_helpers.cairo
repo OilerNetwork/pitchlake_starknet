@@ -298,12 +298,12 @@ fn assert_event_vault_withdrawal(
 
 // Test collect queued liquidity event emits correctly
 fn assert_event_queued_liquidity_collected(
-    vault: ContractAddress, account: ContractAddress, amount_collected: u256,
+    vault: ContractAddress, account: ContractAddress, amount: u256, vault_stashed_balance_now: u256,
 ) {
     match pop_log::<Vault::Event>(vault) {
         Option::Some(e) => {
             let expected = Vault::Event::QueuedLiquidityCollected(
-                Vault::QueuedLiquidityCollected { account, amount_collected }
+                Vault::QueuedLiquidityCollected { account, amount, vault_stashed_balance_now }
             );
 
             assert_events_equal(e, expected);
@@ -314,12 +314,17 @@ fn assert_event_queued_liquidity_collected(
 
 // Test withdrawal queued event emits correctly
 fn assert_event_withdrawal_queued(
-    vault: ContractAddress, account: ContractAddress, amount_queued: u256
+    vault: ContractAddress,
+    account: ContractAddress,
+    account_queued_amount_now: u256,
+    vault_queued_amount_now: u256
 ) {
     match pop_log::<Vault::Event>(vault) {
         Option::Some(e) => {
             let expected = Vault::Event::WithdrawalQueued(
-                Vault::WithdrawalQueued { account, amount_queued }
+                Vault::WithdrawalQueued {
+                    account, account_queued_amount_now, vault_queued_amount_now
+                }
             );
 
             assert_events_equal(e, expected);

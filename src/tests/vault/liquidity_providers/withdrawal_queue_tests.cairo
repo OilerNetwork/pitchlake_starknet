@@ -932,11 +932,11 @@ fn test_queueing_withdrawal_event() {
 
     vault.queue_withdrawal(liquidity_provider, deposit_amount / 3);
     assert_event_withdrawal_queued(
-        vault.contract_address(), liquidity_provider, deposit_amount / 3
+        vault.contract_address(), liquidity_provider, deposit_amount / 3, deposit_amount / 3
     );
 
     vault.queue_withdrawal(liquidity_provider, 123);
-    assert_event_withdrawal_queued(vault.contract_address(), liquidity_provider, 123);
+    assert_event_withdrawal_queued(vault.contract_address(), liquidity_provider, 123, 123);
 }
 
 // Test claiming stashed liquidity fires event
@@ -956,6 +956,6 @@ fn test_claiming_stashed_liquidity_event() {
 
     vault.claim_queued_liquidity(liquidity_provider);
     assert_event_queued_liquidity_collected(
-        vault.contract_address(), liquidity_provider, deposit_amount / 3
+        vault.contract_address(), liquidity_provider, deposit_amount / 3, 0
     );
 }

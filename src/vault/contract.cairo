@@ -131,7 +131,8 @@ mod Vault {
     struct WithdrawalQueued {
         #[key]
         account: ContractAddress,
-        amount_queued: u256,
+        account_queued_amount_now: u256,
+        vault_queued_amount_now: u256,
     }
 
     // @dev Emitted when a liquidity provider claims stashed liquidity
@@ -139,7 +140,8 @@ mod Vault {
     struct QueuedLiquidityCollected {
         #[key]
         account: ContractAddress,
-        amount_collected: u256,
+        amount: u256,
+        vault_stashed_balance_now: u256,
     }
 
 
@@ -282,8 +284,10 @@ mod Vault {
             }
         }
 
-        // Get how much liquidity has been queued for stashing in the current round
+        // @dev Get how much liquidity is queued for stashing in the current round
         // @note remove round id and just use current
+        // @note Going to return BPS instead. When withdrawal is queued, we need to save BPS
+        // and starting deposit amount
         fn get_lp_queued_balance(
             self: @ContractState, account: ContractAddress, round_id: u256
         ) -> u256 {
@@ -293,18 +297,18 @@ mod Vault {
 
         // @dev Get the stashed liquidity an account can collect
         fn get_lp_stashed_balance(self: @ContractState, account: ContractAddress) -> u256 {
-            // @dev Sum the account's stashed amounts for each round from the last collection round to the previous round
+            // @dev Sum the account's stashed amounts for each round after the last collection round
+            // @dev Sum to the previous round because the current round will be on-going
             let mut total = 0;
             let mut i = self.queue_checkpoints.read(account) + 1;
             let current_round_id = self.current_round_id();
             while i < current_round_id {
                 // @dev Get the account's remaining liquidity that was stashed
-                let lp_queued_liq = self.user_queued_liquidity.read((account, i));
-                if lp_queued_liq.is_non_zero() {
+                let account_queued_liq = self.user_queued_liquidity.read((account, i));
+                if account_queued_liq.is_non_zero() {
                     let (round_starting_liq, round_remaining_liq, _) = self.get_round_outcome(i);
 
-                    // @dev `(lp_queued_liq / round_starting_liq) * round_remaining_liq`
-                    total += (round_remaining_liq * lp_queued_liq) / round_starting_liq;
+                    total += (round_remaining_liq * account_queued_liq) / round_starting_liq;
                 }
                 i += 1;
             };
@@ -435,7 +439,6 @@ mod Vault {
             self.refresh_position(account);
             let upcoming_round_id = self.get_upcoming_round_id();
             let upcoming_round_position = self.positions.read((account, upcoming_round_id));
-
             let account_unlocked_balance_now = upcoming_round_position + amount;
             self.positions.write((account, upcoming_round_id), account_unlocked_balance_now);
 
@@ -444,7 +447,7 @@ mod Vault {
             eth.transfer_from(get_caller_address(), get_contract_address(), amount);
 
             // @dev Update the total unlocked balance of the Vault
-            let vault_unlocked_balance_now = self.get_total_unlocked_balance() + amount;
+            let vault_unlocked_balance_now = self.total_unlocked_balance.read() + amount;
             self.total_unlocked_balance.write(vault_unlocked_balance_now);
 
             // @dev Emit deposit event
@@ -470,8 +473,9 @@ mod Vault {
             self.refresh_position(account);
             let upcoming_round_id = self.get_upcoming_round_id();
             let upcoming_round_position = self.positions.read((account, upcoming_round_id));
-            assert(amount <= upcoming_round_position, Errors::InsufficientBalance);
 
+            // @dev The account can only withdraw <= the upcoming round deposit
+            assert(amount <= upcoming_round_position, Errors::InsufficientBalance);
             let account_unlocked_balance_now = upcoming_round_position - amount;
             self.positions.write((account, upcoming_round_id), account_unlocked_balance_now);
 
@@ -481,7 +485,6 @@ mod Vault {
 
             // @dev Transfer the liquidity from the caller to this contract
             let eth = self.get_eth_dispatcher();
-
             eth.transfer(account, amount);
 
             // @dev Emit withdrawal event
@@ -526,12 +529,10 @@ mod Vault {
             let account_previously_queued_amount = self
                 .user_queued_liquidity
                 .read((account, current_round_id));
-            self
-                .round_queued_liquidity
-                .write(
-                    current_round_id,
-                    round_previously_queued_amount - account_previously_queued_amount + amount
-                );
+            let vault_queued_amount_now = round_previously_queued_amount
+                - account_previously_queued_amount
+                + amount;
+            self.round_queued_liquidity.write(current_round_id, vault_queued_amount_now);
 
             // @dev Update queued amount for the liquidity provider in the current round
             self.user_queued_liquidity.write((account, current_round_id), amount);
@@ -539,7 +540,11 @@ mod Vault {
             // @dev Emit withdrawal queued event
             self
                 .emit(
-                    Event::WithdrawalQueued(WithdrawalQueued { account, amount_queued: amount, })
+                    Event::WithdrawalQueued(
+                        WithdrawalQueued {
+                            account, account_queued_amount_now: amount, vault_queued_amount_now
+                        }
+                    )
                 );
         }
 
@@ -551,27 +556,30 @@ mod Vault {
         // @note update total stashed
         fn claim_queued_liquidity(ref self: ContractState, account: ContractAddress) -> u256 {
             // @dev How much does the liquidity provider have stashed
-            let stashed_amount = self.get_lp_stashed_balance(account);
+            let amount = self.get_lp_stashed_balance(account);
 
             // @dev Update the vault's total stashed
-            self.total_stashed_balance.write(self.get_total_stashed_balance() - stashed_amount);
+            let vault_stashed_balance_now = self.total_stashed_balance.read() - amount;
+            self.total_stashed_balance.write(vault_stashed_balance_now);
 
-            // @dev Update the liquidity provider's queue checkpoint
+            // @dev Update the liquidity provider's stash checkpoint
             self.queue_checkpoints.write(account, self.current_round_id.read() - 1);
 
             // @dev Transfer the stashed balance to the liquidity provider
             let eth = self.get_eth_dispatcher();
-            eth.transfer(account, stashed_amount);
+            eth.transfer(account, amount);
 
             // @dev Emit stashed withdrawal event
             self
                 .emit(
                     Event::QueuedLiquidityCollected(
-                        QueuedLiquidityCollected { account, amount_collected: stashed_amount }
+                        QueuedLiquidityCollected {
+                            account, amount, vault_stashed_balance_now
+                        }
                     )
                 );
 
-            stashed_amount
+            amount
         }
 
 
@@ -705,9 +713,6 @@ mod Vault {
 
                     // @dev Liquidity provider's share of the unlocked liquidity
                     (round_unlocked_liq * account_starting_liq) / round_starting_liq
-                //                    // @dev How much did the liquidity provider already collect in the round
-                //                    let account_collected_liq = self
-                //                        .get_premiums_collected(account, round.get_round_id());
                 }
             }
         }
