@@ -87,7 +87,12 @@ fn test_queueing_part_of_position_with_unsold() {
     // remaining * stashed_percentage
     let expected_stashed = remaining_liq / 3;
     // gain + (remaining * not_stashed_percentage)
-    let expected_unlocked = premiums + unsold_liq + (2 * remaining_liq / 3);
+    //let expected_unlocked = premiums + unsold_liq + (2 * remaining_liq / 3);
+    // @dev Done this way to maintain same precision as contract
+    let remaining_stashed = (remaining_liq * (deposit_amount / 3)) / deposit_amount;
+    let remaining_unstashed = remaining_liq - remaining_stashed;
+    let expected_unlocked = premiums + unsold_liq + remaining_unstashed;
+
     let expected_total = deposit_amount - payout + premiums;
 
     assert_eq!(lp_locked, expected_locked);

@@ -133,9 +133,7 @@ fn test_withdrawing_from_vault_eth_transfer() {
     let vault_balance_after = eth.balance_of(vault.contract_address());
 
     // Check vault eth balance
-    assert(
-        vault_balance_after == vault_balance_before - total_withdrawals, 'vault eth balance wrong'
-    );
+    assert_eq!(vault_balance_after, vault_balance_before - total_withdrawals);
 
     // Check liquidity provider eth balances
     loop {
