@@ -270,7 +270,7 @@ mod Vault {
             match state {
                 // @dev If Open, the current round's deposit is unlocked and there is no upcoming round
                 OptionRoundState::Open => { current_round_deposit },
-                // @dev If Auctioning, the current round's deposit is locked, but the upcoming round's
+                // @dev If Auctioning | Running, the current round's deposit is locked, but the upcoming round's
                 // deposit and any premiums and unsold liquidity from the current round are unlocked
                 _ => {
                     upcoming_round_deposit
