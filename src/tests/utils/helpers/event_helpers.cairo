@@ -223,12 +223,29 @@ fn assert_event_transfer(
 
 // Test OptionRoundCreated event emits correctly
 fn assert_event_option_round_deployed(
-    contract: ContractAddress, round_id: u256, address: ContractAddress,
+    contract: ContractAddress,
+    round_id: u256,
+    address: ContractAddress,
+    reserve_price: u256,
+    strike_price: u256,
+    cap_level: u128,
+    auction_start_date: u64,
+    auction_end_date: u64,
+    option_settlement_date: u64,
 ) {
     match pop_log::<Vault::Event>(contract) {
         Option::Some(e) => {
             let expected = Vault::Event::OptionRoundDeployed(
-                Vault::OptionRoundDeployed { round_id, address, }
+                Vault::OptionRoundDeployed {
+                    round_id,
+                    address,
+                    reserve_price,
+                    strike_price,
+                    cap_level,
+                    auction_start_date,
+                    auction_end_date,
+                    option_settlement_date
+                }
             );
             assert_events_equal(e, expected);
         },
@@ -240,13 +257,16 @@ fn assert_event_option_round_deployed(
 fn assert_event_vault_deposit(
     vault: ContractAddress,
     account: ContractAddress,
-    position_balance_before: u256,
-    position_balance_after: u256,
+    amount: u256,
+    account_unlocked_balance_now: u256,
+    vault_unlocked_balance_now: u256,
 ) {
     match pop_log::<Vault::Event>(vault) {
         Option::Some(e) => {
             let expected = Vault::Event::Deposit(
-                Vault::Deposit { account, position_balance_before, position_balance_after }
+                Vault::Deposit {
+                    account, amount, account_unlocked_balance_now, vault_unlocked_balance_now
+                }
             );
             assert_events_equal(e, expected);
         },
@@ -258,13 +278,16 @@ fn assert_event_vault_deposit(
 fn assert_event_vault_withdrawal(
     vault: ContractAddress,
     account: ContractAddress,
-    position_balance_before: u256,
-    position_balance_after: u256,
+    amount: u256,
+    account_unlocked_balance_now: u256,
+    vault_unlocked_balance_now: u256,
 ) {
     match pop_log::<Vault::Event>(vault) {
         Option::Some(e) => {
             let expected = Vault::Event::Withdrawal(
-                Vault::Withdrawal { account, position_balance_before, position_balance_after }
+                Vault::Withdrawal {
+                    account, amount, account_unlocked_balance_now, vault_unlocked_balance_now
+                }
             );
 
             assert_events_equal(e, expected);
@@ -275,12 +298,12 @@ fn assert_event_vault_withdrawal(
 
 // Test collect queued liquidity event emits correctly
 fn assert_event_queued_liquidity_collected(
-    vault: ContractAddress, account: ContractAddress, stashed_amount: u256,
+    vault: ContractAddress, account: ContractAddress, amount_collected: u256,
 ) {
     match pop_log::<Vault::Event>(vault) {
         Option::Some(e) => {
             let expected = Vault::Event::QueuedLiquidityCollected(
-                Vault::QueuedLiquidityCollected { account, stashed_amount }
+                Vault::QueuedLiquidityCollected { account, amount_collected }
             );
 
             assert_events_equal(e, expected);
@@ -291,18 +314,12 @@ fn assert_event_queued_liquidity_collected(
 
 // Test withdrawal queued event emits correctly
 fn assert_event_withdrawal_queued(
-    vault: ContractAddress,
-    account: ContractAddress,
-    round_id: u256,
-    previous_amount_queued: u256,
-    new_amount_queued: u256
+    vault: ContractAddress, account: ContractAddress, amount_queued: u256
 ) {
     match pop_log::<Vault::Event>(vault) {
         Option::Some(e) => {
             let expected = Vault::Event::WithdrawalQueued(
-                Vault::WithdrawalQueued {
-                    account, round_id, previous_amount_queued, new_amount_queued
-                }
+                Vault::WithdrawalQueued { account, amount_queued }
             );
 
             assert_events_equal(e, expected);

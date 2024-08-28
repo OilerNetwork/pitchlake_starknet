@@ -917,7 +917,6 @@ fn test_queueing_multiple_rounds_stashed_amount_payouts_and_unsold() {
 #[available_gas(300000000)]
 fn test_queueing_withdrawal_event() {
     let (mut vault, _) = setup_facade();
-    let mut current_round = vault.get_current_round();
     let liquidity_provider = liquidity_provider_1();
     let deposit_amount = 100 * decimals();
     accelerate_to_auctioning_custom(
@@ -928,21 +927,11 @@ fn test_queueing_withdrawal_event() {
 
     vault.queue_withdrawal(liquidity_provider, deposit_amount / 3);
     assert_event_withdrawal_queued(
-        vault.contract_address(),
-        liquidity_provider,
-        current_round.get_round_id(),
-        0,
-        deposit_amount / 3
+        vault.contract_address(), liquidity_provider, deposit_amount / 3
     );
 
     vault.queue_withdrawal(liquidity_provider, 123);
-    assert_event_withdrawal_queued(
-        vault.contract_address(),
-        liquidity_provider,
-        current_round.get_round_id(),
-        deposit_amount / 3,
-        123
-    );
+    assert_event_withdrawal_queued(vault.contract_address(), liquidity_provider, 123);
 }
 
 // Test claiming stashed liquidity fires event

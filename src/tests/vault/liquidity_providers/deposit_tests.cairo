@@ -54,10 +54,10 @@ use debug::PrintTrait;
 fn test_deposit_events() {
     let (mut vault, _) = setup_facade();
     let mut liquidity_providers = liquidity_providers_get(3).span();
-    let deposit_amounts = array![25 * decimals(), 50 * decimals(), 100 * decimals()].span();
+    let mut deposit_amounts = array![25 * decimals(), 50 * decimals(), 100 * decimals()].span();
 
     // Unlocked balances before deposit
-    let mut unlocked_balances_before = vault.get_lp_unlocked_balances(liquidity_providers);
+    let mut vault_unlocked_balance_before = vault.get_total_unlocked_balance();
 
     // Deposit into the vault
     let mut unlocked_balances_after = vault.deposit_multiple(deposit_amounts, liquidity_providers);
@@ -66,13 +66,15 @@ fn test_deposit_events() {
     loop {
         match liquidity_providers.pop_front() {
             Option::Some(liquidity_provider) => {
-                let unlocked_balance_before = unlocked_balances_before.pop_front().unwrap();
+                let deposit_amount = *deposit_amounts.pop_front().unwrap();
                 let unlocked_balance_after = unlocked_balances_after.pop_front().unwrap();
+                vault_unlocked_balance_before += deposit_amount;
                 assert_event_vault_deposit(
                     vault.contract_address(),
                     *liquidity_provider,
-                    unlocked_balance_before,
-                    unlocked_balance_after
+                    deposit_amount,
+                    unlocked_balance_after,
+                    vault_unlocked_balance_before
                 );
             },
             Option::None => { break (); }
