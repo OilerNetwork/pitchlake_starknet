@@ -88,13 +88,6 @@ trait IVault<TContractState> {
     // Get the total liquidity in the protocol
     fn get_total_balance(self: @TContractState) -> u256;
 
-    /// Premiums
-
-    // Get the total premiums collected by an LP in a round
-    fn get_premiums_collected(
-        self: @TContractState, account: ContractAddress, round_id: u256
-    ) -> u256;
-
     /// Writes ///
 
     /// State transition

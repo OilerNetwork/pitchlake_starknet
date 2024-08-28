@@ -291,12 +291,6 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     // For LPs
 
-    fn get_lp_premiums_collected(
-        ref self: VaultFacade, liquidity_provider: ContractAddress, round_id: u256
-    ) -> u256 {
-        self.vault_dispatcher.get_premiums_collected(liquidity_provider, round_id)
-    }
-
     fn get_lp_locked_balance(ref self: VaultFacade, liquidity_provider: ContractAddress) -> u256 {
         self.vault_dispatcher.get_lp_locked_balance(liquidity_provider)
     }
