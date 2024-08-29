@@ -909,7 +909,7 @@ mod Vault {
             match self.get_round_dispatcher(current_round_id).get_state() {
                 OptionRoundState::Open => current_round_id,
                 _ => current_round_id + 1
-            };
+            }
         }
     }
 }
