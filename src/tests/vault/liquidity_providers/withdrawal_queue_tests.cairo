@@ -69,7 +69,9 @@ fn test_queueing_part_of_position_with_unsold() {
     );
 
     // Queue 33% for stash
-    vault.queue_withdrawal(liquidity_provider, deposit_amount / 3);
+    let bps = 3333;
+    let queued_amount = (deposit_amount * bps.into()) / BPS.into();
+    vault.queue_withdrawal(liquidity_provider, bps);
 
     // End round with no payout
     let payout = accelerate_to_settled(ref vault, 1);
@@ -85,11 +87,11 @@ fn test_queueing_part_of_position_with_unsold() {
 
     let expected_locked = 0;
     // remaining * stashed_percentage
-    let expected_stashed = remaining_liq / 3;
+    let expected_stashed = (bps.into() * remaining_liq) / BPS.into();
     // gain + (remaining * not_stashed_percentage)
     //let expected_unlocked = premiums + unsold_liq + (2 * remaining_liq / 3);
     // @dev Done this way to maintain same precision as contract
-    let remaining_stashed = (remaining_liq * (deposit_amount / 3)) / deposit_amount;
+    let remaining_stashed = (remaining_liq * queued_amount) / deposit_amount;
     let remaining_unstashed = remaining_liq - remaining_stashed;
     let expected_unlocked = premiums + unsold_liq + remaining_unstashed;
 
@@ -128,10 +130,10 @@ fn test_queueing_part_of_position_with_unsold_and_max_payout() {
 
     // Queue 20% for stash
     let queue_amount = deposit_amount / 5;
-    vault.queue_withdrawal(liquidity_provider, queue_amount);
+    vault.queue_withdrawal(liquidity_provider, 2000);
 
     // End round with max payout
-    let payout = accelerate_to_settled(ref vault, 10 * current_round.get_strike_price());
+    let payout = accelerate_to_settled(ref vault, 100 * current_round.get_strike_price());
 
     let (lp_locked, lp_unlocked, lp_stashed) = vault
         .get_lp_locked_and_unlocked_and_stashed_balance(liquidity_provider);
@@ -185,7 +187,7 @@ fn test_stashed_liquidity_does_not_roll_over() {
     let unsold_liq = vault.get_unsold_liquidity(current_round.get_round_id());
 
     // Queue 100/100 for stash
-    vault.queue_withdrawal(liquidity_provider, deposit_amount);
+    vault.queue_withdrawal(liquidity_provider, 10_000);
 
     // Start round 2
     let total_payout = accelerate_to_settled(
@@ -210,8 +212,7 @@ fn test_stashed_liquidity_does_not_roll_over() {
     let starting_liq2 = current_round2.starting_liquidity();
 
     // Queue withdrawal
-    let deposit_amount2 = vault.get_lp_locked_balance(liquidity_provider);
-    vault.queue_withdrawal(liquidity_provider, deposit_amount2);
+    vault.queue_withdrawal(liquidity_provider, 10_000);
 
     accelerate_to_running(ref vault);
     let unsold_liq2 = vault.get_unsold_liquidity(current_round2.get_round_id());
@@ -255,8 +256,8 @@ fn test_stashed_liquidity_does_not_roll_over_multiple_LPs() {
     );
 
     // LP 1 & 2 Queue withdrawal
-    vault.queue_withdrawal(*liquidity_providers.at(0), *deposit_amounts.at(0));
-    vault.queue_withdrawal(*liquidity_providers.at(1), *deposit_amounts.at(1));
+    vault.queue_withdrawal(*liquidity_providers.at(0), 10_000);
+    vault.queue_withdrawal(*liquidity_providers.at(1), 10_000);
 
     // Start round 2
     let total_payout = accelerate_to_settled(ref vault, 1); //no payout
@@ -303,9 +304,9 @@ fn test_queueing_more_than_position_value_at_start_fails() {
         array![current_round.get_reserve_price()].span()
     );
 
-    vault.queue_withdrawal(liquidity_provider, deposit_amount);
+    vault.queue_withdrawal(liquidity_provider, 10_000);
     let err = Errors::QueueingMoreThanPositionValue;
-    vault.queue_withdrawal_expect_error(liquidity_provider, deposit_amount + 1, err);
+    vault.queue_withdrawal_expect_error(liquidity_provider, 10_001, err);
 }
 
 // Test that queued amount can update in either direction
@@ -328,16 +329,16 @@ fn test_queueing_withdrawal_amount_can_be_updated() {
         array![current_round.get_reserve_price()].span()
     );
 
-    vault.queue_withdrawal(liquidity_provider, deposit_amount);
-    let queued1 = vault.get_lp_queued_balance(liquidity_provider, current_round.get_round_id());
-    vault.queue_withdrawal(liquidity_provider, deposit_amount / 2);
-    let queued2 = vault.get_lp_queued_balance(liquidity_provider, current_round.get_round_id());
-    vault.queue_withdrawal(liquidity_provider, deposit_amount - 1);
-    let queued3 = vault.get_lp_queued_balance(liquidity_provider, current_round.get_round_id());
+    vault.queue_withdrawal(liquidity_provider, 10_000);
+    let queued1 = vault.get_lp_queued_balance(liquidity_provider);
+    vault.queue_withdrawal(liquidity_provider, 5000);
+    let queued2 = vault.get_lp_queued_balance(liquidity_provider);
+    vault.queue_withdrawal(liquidity_provider, 1000);
+    let queued3 = vault.get_lp_queued_balance(liquidity_provider);
 
-    assert_eq!(queued1, deposit_amount);
-    assert_eq!(queued2, deposit_amount / 2);
-    assert_eq!(queued3, deposit_amount - 1);
+    assert_eq!(queued1, 10_000);
+    assert_eq!(queued2, 5000);
+    assert_eq!(queued3, 1000);
 }
 
 // Test queued amount is 0 after round settles
@@ -356,17 +357,15 @@ fn test_queued_amount_is_0_after_round_settles() {
         array![current_round.get_reserve_price()].span()
     );
 
-    vault.queue_multiple_withdrawals(liquidity_providers, deposit_amounts);
+    let bps_multi = array![3333, 6666, 9999].span();
+    vault.queue_multiple_withdrawals(liquidity_providers, bps_multi);
 
-    let c_id = current_round.get_round_id();
-    let queued_before_settle = vault
-        .get_lp_queued_balances(liquidity_providers, array![c_id, c_id, c_id].span());
+    let queued_before_settle = vault.get_lp_queued_bps(liquidity_providers);
     accelerate_to_settled(ref vault, 1);
-    let queued_after_settle = vault
-        .get_lp_queued_balances(liquidity_providers, array![c_id, c_id, c_id].span());
+    let queued_after_settle = vault.get_lp_queued_bps(liquidity_providers);
 
-    assert_eq!(queued_before_settle.span(), deposit_amounts);
-    assert_eq!(queued_after_settle.span(), deposit_amounts);
+    assert_eq!(queued_before_settle.span(), bps_multi);
+    assert_eq!(queued_after_settle.span(), array![0, 0, 0].span());
 }
 
 
@@ -384,19 +383,17 @@ fn test_queuing_0_puts_nothing_in_stash() {
     accelerate_to_running(ref vault);
     let premiums = current_round.total_premiums();
 
-    vault.queue_withdrawal(liquidity_provider, deposit_amount);
+    vault.queue_withdrawal(liquidity_provider, 10_000);
     vault.queue_withdrawal(liquidity_provider, 0);
 
     let (locked_before, unlocked_before, stashed_before) = vault
         .get_lp_locked_and_unlocked_and_stashed_balance(liquidity_provider);
-    let queued_before = vault
-        .get_lp_queued_balance(liquidity_provider, current_round.get_round_id());
+    let queued_before = vault.get_lp_queued_balance(liquidity_provider);
     accelerate_to_settled(ref vault, 1);
 
     let (locked_after, unlocked_after, stashed_after) = vault
         .get_lp_locked_and_unlocked_and_stashed_balance(liquidity_provider);
-    let queued_after = vault
-        .get_lp_queued_balance(liquidity_provider, current_round.get_round_id());
+    let queued_after = vault.get_lp_queued_balance(liquidity_provider);
 
     assert_eq!(locked_before, deposit_amount);
     assert_eq!(locked_after, 0);
@@ -425,34 +422,34 @@ fn test_queuing_some_gets_stashed() {
     accelerate_to_running(ref vault);
     let premiums = current_round.total_premiums();
 
-    vault.queue_withdrawal(liquidity_provider, deposit_amount / 3);
+    let bps = 3333;
+    let queued_amount = (deposit_amount * bps.into()) / BPS.into();
+    vault.queue_withdrawal(liquidity_provider, bps);
 
     let (locked_before, unlocked_before, stashed_before) = vault
         .get_lp_locked_and_unlocked_and_stashed_balance(liquidity_provider);
-    let queued_before = vault
-        .get_lp_queued_balance(liquidity_provider, current_round.get_round_id());
+    let queued_before = vault.get_lp_queued_balance(liquidity_provider);
     accelerate_to_settled(ref vault, 1);
 
     let (locked_after, unlocked_after, stashed_after) = vault
         .get_lp_locked_and_unlocked_and_stashed_balance(liquidity_provider);
-    let queued_after = vault
-        .get_lp_queued_balance(liquidity_provider, current_round.get_round_id());
+    let queued_after = vault.get_lp_queued_balance(liquidity_provider);
 
     assert_eq!(locked_before, deposit_amount);
     assert_eq!(locked_after, 0);
 
     assert_eq!(unlocked_before, premiums);
-    assert_eq!(unlocked_after, premiums + deposit_amount - (deposit_amount / 3));
+    assert_eq!(unlocked_after, premiums + deposit_amount - queued_amount);
 
-    assert_eq!(queued_before, deposit_amount / 3);
-    assert_eq!(queued_after, deposit_amount / 3);
+    assert_eq!(queued_before, bps);
+    assert_eq!(queued_after, 0);
 
     assert_eq!(stashed_before, 0);
-    assert_eq!(stashed_after, deposit_amount / 3);
+    assert_eq!(stashed_after, queued_amount);
 
     assert_eq!(
         get_erc20_balance(eth.contract_address, vault.contract_address()),
-        deposit_amount + premiums - 0 // payout is 0
+        deposit_amount + premiums // payout is 0
     );
 }
 
@@ -467,14 +464,16 @@ fn test_claiming_queued_liquidity_transfers_eth() {
         ref vault, array![liquidity_provider].span(), array![deposit_amount].span()
     );
     accelerate_to_running(ref vault);
-    vault.queue_withdrawal(liquidity_provider, deposit_amount / 3);
+    let bps = 3333;
+    vault.queue_withdrawal(liquidity_provider, bps);
+    let amount_queued = (deposit_amount * bps.into()) / BPS.into();
     accelerate_to_settled(ref vault, 1);
 
     let eth_balance_before = get_erc20_balance(eth.contract_address, liquidity_provider);
     vault.claim_queued_liquidity(liquidity_provider);
     let eth_balance_after = get_erc20_balance(eth.contract_address, liquidity_provider);
 
-    assert_eq!(eth_balance_after, eth_balance_before + (deposit_amount / 3));
+    assert_eq!(eth_balance_after, eth_balance_before + amount_queued);
 }
 
 // Test claiming queued liquidity sets stashed to 0
@@ -488,14 +487,15 @@ fn test_claiming_queued_liquidity_sets_stashed_to_0() {
         ref vault, array![liquidity_provider].span(), array![deposit_amount].span()
     );
     accelerate_to_running(ref vault);
-    vault.queue_withdrawal(liquidity_provider, deposit_amount / 3);
+    let bps = 3333;
+    vault.queue_withdrawal(liquidity_provider, bps);
     accelerate_to_settled(ref vault, 1);
 
     let stashed_balance_before = vault.get_lp_stashed_balance(liquidity_provider);
     vault.claim_queued_liquidity(liquidity_provider);
     let stashed_balance_after = vault.get_lp_stashed_balance(liquidity_provider);
 
-    assert_eq!(stashed_balance_before, deposit_amount / 3);
+    assert_eq!(stashed_balance_before, (deposit_amount * bps.into()) / BPS.into());
     assert_eq!(stashed_balance_after, 0);
 }
 
@@ -510,7 +510,8 @@ fn test_claiming_queued_liquidity_twice_does_nothing() {
         ref vault, array![liquidity_provider].span(), array![deposit_amount].span()
     );
     accelerate_to_running(ref vault);
-    vault.queue_withdrawal(liquidity_provider, deposit_amount / 3);
+    let bps = 3333;
+    vault.queue_withdrawal(liquidity_provider, bps);
     accelerate_to_settled(ref vault, 1);
 
     vault.claim_queued_liquidity(liquidity_provider);
@@ -544,8 +545,8 @@ fn test_queueing_withdrawal_does_not_affect_stashed_balance_before_round_settle(
             accelerate_to_auctioning_custom(ref vault, liquidity_providers, deposit_amounts);
 
             // Liquidity provider 1 queues withdrawal
-            vault.queue_withdrawal(*liquidity_providers.at(0), *deposit_amounts.at(0));
-            vault.queue_withdrawal(*liquidity_providers.at(0), *deposit_amounts.at(0));
+            vault.queue_withdrawal(*liquidity_providers.at(0), 10_000);
+            vault.queue_withdrawal(*liquidity_providers.at(0), 10_000);
 
             // Stashed balances while Auctioning after queueing
             let stashed_balances_before_running = vault
@@ -553,8 +554,8 @@ fn test_queueing_withdrawal_does_not_affect_stashed_balance_before_round_settle(
             accelerate_to_running(ref vault);
 
             // Liquidity provider 1 & 2 queue withdrawal
-            vault.queue_withdrawal(*liquidity_providers.at(0), *deposit_amounts.at(0));
-            vault.queue_withdrawal(*liquidity_providers.at(1), *deposit_amounts.at(1));
+            vault.queue_withdrawal(*liquidity_providers.at(0), 10_000);
+            vault.queue_withdrawal(*liquidity_providers.at(1), 10_000);
 
             let stashed_balances_before_settled = vault
                 .get_lp_stashed_balances(liquidity_providers);
@@ -610,8 +611,8 @@ fn test_stashed_balance_correct_after_round_settles() {
     let individual_premiums1 = get_portion_of_amount(starting_deposits1, total_premiums1).span();
 
     // Liquidity provider 1 & 2 queue withdrawal
-    vault.queue_withdrawal(*liquidity_providers.at(0), *deposit_amounts.at(0));
-    vault.queue_withdrawal(*liquidity_providers.at(1), *deposit_amounts.at(1));
+    vault.queue_withdrawal(*liquidity_providers.at(0), 10_000);
+    vault.queue_withdrawal(*liquidity_providers.at(1), 10_000);
 
     let total_payout1 = accelerate_to_settled(ref vault, 101 * round1.get_strike_price() / 100);
     let individual_payout1 = get_portion_of_amount(starting_deposits1, total_payout1).span();
@@ -650,8 +651,8 @@ fn test_stashed_balance_correct_after_round_settles() {
     let individual_premiums2 = get_portion_of_amount(starting_deposits2, total_premiums2).span();
 
     // Liquidity provider 1 & 2 queue withdrawal
-    vault.queue_withdrawal(*liquidity_providers.at(0), *starting_deposits2.at(0));
-    vault.queue_withdrawal(*liquidity_providers.at(1), *starting_deposits2.at(1));
+    vault.queue_withdrawal(*liquidity_providers.at(0), 10_000);
+    vault.queue_withdrawal(*liquidity_providers.at(1), 10_000);
 
     let total_payout2 = accelerate_to_settled(ref vault, 101 * round2.get_strike_price() / 100);
     let individual_payouts2 = get_portion_of_amount(starting_deposits2, total_payout2).span();
@@ -720,30 +721,30 @@ fn test_unstashed_liquidity_adds_to_next_round_deposits() {
 
     let topup_amount = 2 * deposit_amount;
     vault.deposit(topup_amount, liquidity_provider);
-    vault.queue_withdrawal(liquidity_provider, deposit_amount / 3);
+    let bps = 3333;
+    let queued_amount = (deposit_amount * bps.into() / BPS.into());
+    vault.queue_withdrawal(liquidity_provider, bps);
 
     let (locked_before, unlocked_before, stashed_before) = vault
         .get_lp_locked_and_unlocked_and_stashed_balance(liquidity_provider);
-    let queued_before = vault
-        .get_lp_queued_balance(liquidity_provider, current_round.get_round_id());
+    let queued_before = vault.get_lp_queued_balance(liquidity_provider);
     accelerate_to_settled(ref vault, 1);
 
     let (locked_after, unlocked_after, stashed_after) = vault
         .get_lp_locked_and_unlocked_and_stashed_balance(liquidity_provider);
-    let queued_after = vault
-        .get_lp_queued_balance(liquidity_provider, current_round.get_round_id());
+    let queued_after = vault.get_lp_queued_balance(liquidity_provider);
 
     assert_eq!(locked_before, deposit_amount);
     assert_eq!(locked_after, 0);
 
-    assert_eq!(unlocked_before, premiums + 2 * deposit_amount);
-    assert_eq!(unlocked_after, premiums + deposit_amount - (deposit_amount / 3) + topup_amount);
+    assert_eq!(unlocked_before, premiums + topup_amount);
+    assert_eq!(unlocked_after, premiums + topup_amount + deposit_amount - queued_amount);
 
-    assert_eq!(queued_before, deposit_amount / 3);
-    assert_eq!(queued_after, deposit_amount / 3);
+    assert_eq!(queued_before, bps);
+    assert_eq!(queued_after, 0);
 
     assert_eq!(stashed_before, 0);
-    assert_eq!(stashed_after, deposit_amount / 3);
+    assert_eq!(stashed_after, queued_amount);
 
     assert_eq!(
         get_erc20_balance(eth.contract_address, vault.contract_address()),
@@ -766,21 +767,21 @@ fn test_queueing_multiple_rounds_stashed_amount_no_payouts() {
     );
     accelerate_to_running(ref vault);
     let premiums = current_round.total_premiums();
-    vault.queue_withdrawal(liquidity_provider, deposit_amount);
+    vault.queue_withdrawal(liquidity_provider, 10_000);
     accelerate_to_settled(ref vault, current_round.get_strike_price());
     /// Round 2
     let mut current_round = vault.get_current_round();
     accelerate_to_auctioning_custom(ref vault, array![].span(), array![].span());
     accelerate_to_running(ref vault);
     let premiums2 = current_round.total_premiums();
-    vault.queue_withdrawal(liquidity_provider, premiums);
+    vault.queue_withdrawal(liquidity_provider, 10_000);
     accelerate_to_settled(ref vault, current_round.get_strike_price());
     /// Round 3
     let mut current_round = vault.get_current_round();
     accelerate_to_auctioning_custom(ref vault, array![].span(), array![].span());
     accelerate_to_running(ref vault);
     let premiums3 = current_round.total_premiums();
-    vault.queue_withdrawal(liquidity_provider, premiums2);
+    vault.queue_withdrawal(liquidity_provider, 10_000);
     accelerate_to_settled(ref vault, current_round.get_strike_price());
 
     let lp_stashed = vault.get_lp_stashed_balance(liquidity_provider);
@@ -812,7 +813,7 @@ fn test_queueing_multiple_rounds_stashed_amount_payouts() {
     accelerate_to_running(ref vault);
     let premiums = current_round.total_premiums();
 
-    vault.queue_withdrawal(liquidity_provider, deposit_amount);
+    vault.queue_withdrawal(liquidity_provider, 10_000);
     let payout = accelerate_to_settled(ref vault, 110 * current_round.get_strike_price() / 100);
     /// Round 2
     let mut current_round = vault.get_current_round();
@@ -820,7 +821,8 @@ fn test_queueing_multiple_rounds_stashed_amount_payouts() {
     accelerate_to_running(ref vault);
     let premiums2 = current_round.total_premiums();
 
-    vault.queue_withdrawal(liquidity_provider, premiums);
+    // Queue just premiums from last round for stashing
+    vault.queue_withdrawal(liquidity_provider, 10_000);
     let payout2 = accelerate_to_settled(ref vault, 150 * current_round.get_strike_price() / 100);
     /// Round 3
     let mut current_round = vault.get_current_round();
@@ -828,7 +830,7 @@ fn test_queueing_multiple_rounds_stashed_amount_payouts() {
     accelerate_to_running(ref vault);
     let premiums3 = current_round.total_premiums();
 
-    vault.queue_withdrawal(liquidity_provider, premiums2);
+    vault.queue_withdrawal(liquidity_provider, 10_000);
     let payout3 = accelerate_to_settled(ref vault, 250 * current_round.get_strike_price() / 100);
 
     // after round 1, deposit - payout is stashed & premiums roll over.
@@ -865,11 +867,11 @@ fn test_queueing_multiple_rounds_stashed_amount_payouts_and_unsold() {
         array![current_round.get_total_options_available() / 2].span(),
         array![current_round.get_reserve_price()].span()
     );
-    let premiums = current_round.total_premiums();
     let unsold = current_round.unsold_liquidity();
     let sold = current_round.starting_liquidity() - unsold;
-    vault.queue_withdrawal(liquidity_provider, deposit_amount);
+    vault.queue_withdrawal(liquidity_provider, 10_000);
     let payout = accelerate_to_settled(ref vault, current_round.get_strike_price());
+    let r1_remaining = (sold - payout);
 
     /// Round 2
     let mut current_round = vault.get_current_round();
@@ -880,10 +882,9 @@ fn test_queueing_multiple_rounds_stashed_amount_payouts_and_unsold() {
         array![current_round.get_total_options_available() / 2].span(),
         array![current_round.get_reserve_price()].span()
     );
-    let premiums2 = current_round.total_premiums();
     let unsold2 = current_round.unsold_liquidity();
     let sold2 = current_round.starting_liquidity() - unsold2;
-    vault.queue_withdrawal(liquidity_provider, premiums + unsold);
+    vault.queue_withdrawal(liquidity_provider, 10_000);
     let payout2 = accelerate_to_settled(ref vault, 150 * current_round.get_strike_price() / 100);
     /// Round 3
     let mut current_round = vault.get_current_round();
@@ -897,7 +898,7 @@ fn test_queueing_multiple_rounds_stashed_amount_payouts_and_unsold() {
     let premiums3 = current_round.total_premiums();
     let unsold3 = current_round.unsold_liquidity();
     let sold3 = current_round.starting_liquidity() - unsold3;
-    vault.queue_withdrawal(liquidity_provider, premiums2 + unsold2);
+    vault.queue_withdrawal(liquidity_provider, 10_000);
     let payout3 = accelerate_to_settled(ref vault, 250 * current_round.get_strike_price() / 100);
 
     let lp_stashed = vault.get_lp_stashed_balance(liquidity_provider);
@@ -905,7 +906,6 @@ fn test_queueing_multiple_rounds_stashed_amount_payouts_and_unsold() {
     // after round 1, sold - payout is stashed & premiums + unsold roll over.
     // after round 2, sold2 - payout2 are stashed and premiums2 + unsold2 roll over.
     // after round 3, sold3 - payout3 are stashed and premiums3 + unsold 3 roll over.
-    let r1_remaining = (sold - payout);
     let r2_remaining = (sold2 - payout2);
     let r3_remaining = (sold3 - payout3);
 
@@ -930,13 +930,20 @@ fn test_queueing_withdrawal_event() {
     accelerate_to_running(ref vault);
     clear_event_logs(array![vault.contract_address()]);
 
-    vault.queue_withdrawal(liquidity_provider, deposit_amount / 3);
+    let bps = 3333;
+    vault.queue_withdrawal(liquidity_provider, bps);
+    let queued_amount = (deposit_amount * bps.into()) / BPS.into();
     assert_event_withdrawal_queued(
-        vault.contract_address(), liquidity_provider, deposit_amount / 3, deposit_amount / 3
+        vault.contract_address(), liquidity_provider, queued_amount, queued_amount,
     );
 
-    vault.queue_withdrawal(liquidity_provider, 123);
-    assert_event_withdrawal_queued(vault.contract_address(), liquidity_provider, 123, 123);
+    let bps2 = 6666;
+    vault.queue_withdrawal(liquidity_provider, bps2);
+    let queued_amount2 = (deposit_amount * bps2.into()) / BPS.into();
+
+    assert_event_withdrawal_queued(
+        vault.contract_address(), liquidity_provider, queued_amount2, queued_amount2
+    );
 }
 
 // Test claiming stashed liquidity fires event
@@ -950,12 +957,17 @@ fn test_claiming_stashed_liquidity_event() {
         ref vault, array![liquidity_provider].span(), array![deposit_amount].span()
     );
     accelerate_to_running(ref vault);
-    vault.queue_withdrawal(liquidity_provider, deposit_amount / 3);
+
+    // Queue 33.33% for stashing
+    let bps = 3333;
+    let queued_amount = (deposit_amount * bps.into()) / BPS.into();
+    vault.queue_withdrawal(liquidity_provider, bps);
+    // Settle round with no payout
     accelerate_to_settled(ref vault, 1);
     clear_event_logs(array![vault.contract_address()]);
 
     vault.claim_queued_liquidity(liquidity_provider);
     assert_event_queued_liquidity_collected(
-        vault.contract_address(), liquidity_provider, deposit_amount / 3, 0
+        vault.contract_address(), liquidity_provider, queued_amount, 0
     );
 }
