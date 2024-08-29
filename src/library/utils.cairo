@@ -1,4 +1,4 @@
-use pitch_lake_starknet::types::{VaultType, Consts::{BPS, PRECISION}};
+use pitch_lake_starknet::types::{VaultType, Consts::BPS};
 
 fn min<T, +PartialEq<T>, +PartialOrd<T>, +Drop<T>, +Copy<T>>(a: T, b: T) -> T {
     match a < b {
