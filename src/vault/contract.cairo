@@ -131,6 +131,7 @@ mod Vault {
     struct WithdrawalQueued {
         #[key]
         account: ContractAddress,
+        bps: u16,
         account_queued_amount_now: u256,
         vault_queued_amount_now: u256,
     }
@@ -230,23 +231,23 @@ mod Vault {
                 + self.get_total_stashed_balance()
         }
 
+        // @dev Get the amount of liquidity an account locked at the start of the current round
         fn get_lp_starting_balance(self: @ContractState, account: ContractAddress) -> u256 {
             self.get_realized_deposit_for_current_round(account)
         }
 
 
-        // Get the value of a liquidity provider's position that is locked
+        // @dev Get the amount of liquidity an account has locked at the current time
         fn get_lp_locked_balance(self: @ContractState, account: ContractAddress) -> u256 {
-            // @dev Get the account's calculated current round deposit, and upcoming round deposit
             let current_round_id = self.current_round_id.read();
             let current_round = self.get_round_dispatcher(current_round_id);
-
             let state = current_round.get_state();
             match state {
-                // @dev If Open, all liquidity is unlocked
+                // @dev If the current round is Open, all liquidity is unlocked
                 OptionRoundState::Open => { 0 },
-                // @dev If Auctioning | Running, the account's locked balance is proportional
-                // to the the liquidity they locked in the current round
+                // @dev If the current round is Auctioning | Running, the account's locked balance is proportional
+                // to the the liquidity they locked at the start of the round
+                // @dev
                 _ => {
                     let round_starting_liq = current_round.starting_liquidity();
                     let total_locked_liq = self.total_locked_balance.read();
@@ -258,7 +259,7 @@ mod Vault {
             }
         }
 
-        // @dev Get the value of an account's position that is currently unlocked
+        // @dev Get the amount of liquidity an account has unlocked at the current time
         fn get_lp_unlocked_balance(self: @ContractState, account: ContractAddress) -> u256 {
             // @dev Get the account's calculated current round deposit, and upcoming round deposit
             let current_round_id = self.current_round_id.read();
@@ -273,11 +274,14 @@ mod Vault {
                 // @dev If Auctioning | Running, the current round's deposit is locked, but the upcoming round's
                 // deposit and any premiums and unsold liquidity from the current round are unlocked
                 _ => {
-                    upcoming_round_deposit
-                        + self
-                            .get_liquidity_unlocked_for_account_in_round(
-                                account, current_round_deposit, current_round_id
-                            )
+                    // @dev Get the amount of premium and unsold liquidity the account has unlocked; 0
+                    // if Auctioning or the liquiidty was moved as a deposit for the upcoming round
+                    let premiums_and_unsold_liq = self
+                        .get_liquidity_unlocked_for_account_in_round(
+                            account, current_round_deposit, current_round_id
+                        );
+
+                    upcoming_round_deposit + premiums_and_unsold_liq
                 },
             }
         }
@@ -430,11 +434,11 @@ mod Vault {
         fn deposit_liquidity(
             ref self: ContractState, amount: u256, account: ContractAddress
         ) -> u256 {
-            // @dev Update the account's upcoming round deposit
+            // @dev Update the account's current and upcoming round deposit
             self.refresh_position(account);
             let upcoming_round_id = self.get_upcoming_round_id();
-            let upcoming_round_position = self.positions.read((account, upcoming_round_id));
-            let account_unlocked_balance_now = upcoming_round_position + amount;
+            let upcoming_round_deposit = self.positions.read((account, upcoming_round_id));
+            let account_unlocked_balance_now = upcoming_round_deposit + amount;
             self.positions.write((account, upcoming_round_id), account_unlocked_balance_now);
 
             // @dev Transfer the liquidity from the caller to this contract
@@ -467,11 +471,11 @@ mod Vault {
             let account = get_caller_address();
             self.refresh_position(account);
             let upcoming_round_id = self.get_upcoming_round_id();
-            let upcoming_round_position = self.positions.read((account, upcoming_round_id));
+            let upcoming_round_deposit = self.positions.read((account, upcoming_round_id));
 
             // @dev The account can only withdraw <= the upcoming round deposit
-            assert(amount <= upcoming_round_position, Errors::InsufficientBalance);
-            let account_unlocked_balance_now = upcoming_round_position - amount;
+            assert(amount <= upcoming_round_deposit, Errors::InsufficientBalance);
+            let account_unlocked_balance_now = upcoming_round_deposit - amount;
             self.positions.write((account, upcoming_round_id), account_unlocked_balance_now);
 
             // @dev Update the total unlocked balance of the Vault
@@ -508,7 +512,8 @@ mod Vault {
         fn queue_withdrawal(ref self: ContractState, bps: u16) {
             // @dev If the current round is Open, there is no locked liqudity to queue, exit early
             let current_round_id = self.current_round_id.read();
-            let state = self.get_current_round_state();
+            let current_round = self.get_round_dispatcher(current_round_id);
+            let state = current_round.get_state();
             if state == OptionRoundState::Open {
                 return;
             }
@@ -545,7 +550,7 @@ mod Vault {
                 .emit(
                     Event::WithdrawalQueued(
                         WithdrawalQueued {
-                            account, account_queued_amount_now, vault_queued_amount_now
+                            account, bps, account_queued_amount_now, vault_queued_amount_now
                         }
                     )
                 );
@@ -726,23 +731,23 @@ mod Vault {
             }
         }
 
-        // @dev Get the amount of liquidity that remained for an account after a round
+        // @dev Get the amount of liquidity that remained for an account after a round that was not stashed
         // @param account: The account in question
         // @param account_staring_liq: The amount of liquidity the account locked at the start of the round
         // @param round_id: The round to lookup
         // @note Returns 0 if the round is not Settled
-        // @return A tuple for the remaining amount stashed and not stashed
-        fn get_liquidity_that_remained_in_round(
+        // @return The remaining liquidity not stashed
+        fn get_liquidity_that_remained_in_round_unstashed(
             self: @ContractState,
             account: ContractAddress,
             account_starting_liq: u256,
             round_id: u256
-        ) -> (u256, u256) {
+        ) -> u256 {
             let round = self.get_round_dispatcher(round_id);
             let state = round.get_state();
             // @dev If the round is not Settled then remaining liquiditiy is not known yet
             if state != OptionRoundState::Settled {
-                (0, 0)
+                0
             } else {
                 // @dev How much remaining liquidity was there in the round
                 let (round_starting_liq, round_remaining_liq, _) = self.get_round_outcome(round_id);
@@ -760,7 +765,7 @@ mod Vault {
                 let account_remaining_liq_not_stashed = account_remaining_liq
                     - account_remaining_liq_stashed;
 
-                (account_remaining_liq_stashed, account_remaining_liq_not_stashed)
+                account_remaining_liq_not_stashed
             }
         }
 
@@ -783,8 +788,8 @@ mod Vault {
                     .get_liquidity_unlocked_for_account_in_round(account, realized_position, i);
 
                 // @dev How much liquidity remained for the account in this round
-                let (_, account_remaining_liq) = self
-                    .get_liquidity_that_remained_in_round(account, realized_position, i);
+                let account_remaining_liq = self
+                    .get_liquidity_that_remained_in_round_unstashed(account, realized_position, i);
 
                 realized_position = account_unlocked_liq + account_remaining_liq;
 
@@ -864,7 +869,8 @@ mod Vault {
             }
         }
 
-        // @note Add conditionals to save on unneccessary storage writes
+        // @dev Combine deposits from the last checkpoint into a single deposit for the current round,
+        // also if there are premiums/unsold liq collectable, add them as a deposit for the upcoming round
         fn refresh_position(ref self: ContractState, account: ContractAddress) {
             // @dev Calculate the account's position at start of the current round
             let current_round_id = self.current_round_id.read();
@@ -900,16 +906,10 @@ mod Vault {
 
         fn get_upcoming_round_id(self: @ContractState) -> u256 {
             let current_round_id = self.current_round_id.read();
-            let current_round = self.get_round_dispatcher(current_round_id);
-            if current_round.get_state() == OptionRoundState::Open {
-                current_round_id
-            } else {
-                current_round_id + 1
-            }
-        }
-
-        fn get_current_round_state(self: @ContractState) -> OptionRoundState {
-            self.get_round_dispatcher(self.current_round_id.read()).get_state()
+            match self.get_round_dispatcher(current_round_id).get_state() {
+                OptionRoundState::Open => current_round_id,
+                _ => current_round_id + 1
+            };
         }
     }
 }
