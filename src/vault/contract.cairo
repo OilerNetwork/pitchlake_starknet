@@ -16,7 +16,7 @@ mod Vault {
         market_aggregator::interface::{
             IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
         },
-        types::{VaultType, OptionRoundState, Errors},
+        types::{VaultType, OptionRoundState, Errors, Consts::BPS},
     };
     use pitch_lake_starknet::library::utils::{calculate_strike_price};
 
@@ -65,7 +65,7 @@ mod Vault {
         premiums_moved: LegacyMap<(ContractAddress, u256), bool>,
         ///
         round_queued_liquidity: LegacyMap<u256, u256>,
-        user_queued_liquidity: LegacyMap<(ContractAddress, u256), u256>,
+        user_queued_liquidity: LegacyMap<(ContractAddress, u256), (u16, u256)>,
     }
 
     // *************************************************************************
@@ -216,8 +216,8 @@ mod Vault {
             self.total_unlocked_balance.read()
         }
 
-        fn get_total_queued_balance(self: @ContractState, round_id: u256) -> u256 {
-            self.round_queued_liquidity.read(round_id)
+        fn get_total_queued_balance(self: @ContractState) -> u256 {
+            self.round_queued_liquidity.read(self.current_round_id.read())
         }
 
         fn get_total_stashed_balance(self: @ContractState) -> u256 {
@@ -231,9 +231,7 @@ mod Vault {
         }
 
         fn get_lp_starting_balance(self: @ContractState, account: ContractAddress) -> u256 {
-            let deposit_for_current_round = self.get_realized_deposit_for_current_round(account);
-
-            deposit_for_current_round
+            self.get_realized_deposit_for_current_round(account)
         }
 
 
@@ -285,13 +283,10 @@ mod Vault {
         }
 
         // @dev Get how much liquidity is queued for stashing in the current round
-        // @note remove round id and just use current
-        // @note Going to return BPS instead. When withdrawal is queued, we need to save BPS
-        // and starting deposit amount
-        fn get_lp_queued_balance(
-            self: @ContractState, account: ContractAddress, round_id: u256
-        ) -> u256 {
-            self.user_queued_liquidity.read((account, round_id))
+        // @return The BPS percentage being queued for
+        fn get_lp_queued_balance(self: @ContractState, account: ContractAddress) -> u16 {
+            let (bps, _) = self.user_queued_liquidity.read((account, self.current_round_id.read()));
+            bps
         }
 
 
@@ -304,7 +299,7 @@ mod Vault {
             let current_round_id = self.current_round_id();
             while i < current_round_id {
                 // @dev Get the account's remaining liquidity that was stashed
-                let account_queued_liq = self.user_queued_liquidity.read((account, i));
+                let (_, account_queued_liq) = self.user_queued_liquidity.read((account, i));
                 if account_queued_liq.is_non_zero() {
                     let (round_starting_liq, round_remaining_liq, _) = self.get_round_outcome(i);
 
@@ -508,8 +503,9 @@ mod Vault {
         // prev round remaining balance + current round deposit
         // Should be able to do x + y for any round/id state, modifty the 'calculate_value_of_position_from_checkpoint_to_round'
         // function to handle when r0 is passed/traverssed
-        // @amount is the Total amount to stash, allowing a user to set an updated amount (or 0)
-        fn queue_withdrawal(ref self: ContractState, amount: u256) {
+        // @amount is the Total amount to stash, allowing a user to set an updated
+        // @param BPS: The percentage points <= 10,000 the account queues to stash when the round settles
+        fn queue_withdrawal(ref self: ContractState, bps: u16) {
             // @dev If the current round is Open, there is no locked liqudity to queue, exit early
             let current_round_id = self.current_round_id.read();
             let state = self.get_current_round_state();
@@ -517,32 +513,39 @@ mod Vault {
                 return;
             }
 
-            // @dev The account can only queue <= the current round deposit
+            // @dev An account can only queue <= 10,000 BPS
+            assert(bps.into() <= BPS, Errors::QueueingMoreThanPositionValue);
+
+            // @dev Get the user's starting deposit for the current round
             let account = get_caller_address();
             self.refresh_position(account);
             let current_round_deposit = self.get_realized_deposit_for_current_round(account);
-            assert(amount <= current_round_deposit, Errors::QueueingMoreThanPositionValue);
+
+            // @dev Calculate the starting liquidity for the account being queued
+            let account_queued_amount_now = (current_round_deposit * bps.into()) / BPS.into();
 
             // @dev The caller could be increasing or decreasing their already queued amount
             // so we need to update the total queued balance for the round accordingly
             let round_previously_queued_amount = self.round_queued_liquidity.read(current_round_id);
-            let account_previously_queued_amount = self
+            let (_, account_queued_amount_before) = self
                 .user_queued_liquidity
                 .read((account, current_round_id));
             let vault_queued_amount_now = round_previously_queued_amount
-                - account_previously_queued_amount
-                + amount;
+                - account_queued_amount_before
+                + account_queued_amount_now;
             self.round_queued_liquidity.write(current_round_id, vault_queued_amount_now);
 
             // @dev Update queued amount for the liquidity provider in the current round
-            self.user_queued_liquidity.write((account, current_round_id), amount);
+            self
+                .user_queued_liquidity
+                .write((account, current_round_id), (bps, account_queued_amount_now));
 
             // @dev Emit withdrawal queued event
             self
                 .emit(
                     Event::WithdrawalQueued(
                         WithdrawalQueued {
-                            account, account_queued_amount_now: amount, vault_queued_amount_now
+                            account, account_queued_amount_now, vault_queued_amount_now
                         }
                     )
                 );
@@ -625,13 +628,13 @@ mod Vault {
         }
 
         fn calculate_dates(self: @ContractState) -> (u64, u64, u64) {
-          let now = starknet::get_block_timestamp();
+            let now = starknet::get_block_timestamp();
             let auction_start_date = now + self.round_transition_period.read();
             let auction_end_date = auction_start_date + self.auction_run_time.read();
             let option_settlement_date = auction_end_date + self.option_run_time.read();
 
             (auction_start_date, auction_end_date, option_settlement_date)
-          }
+        }
 
         // Deploy the next option round contract, update the current round id & round address mapping
         // @note will need to add current_vol as well
@@ -644,7 +647,8 @@ mod Vault {
             // The round id for the next round
             let round_id: u256 = self.current_round_id.read() + 1;
             // Dates
-            let (auction_start_date, auction_end_date, option_settlement_date) = self.calculate_dates();
+            let (auction_start_date, auction_end_date, option_settlement_date) = self
+                .calculate_dates();
             // Reserve price, cap level, & strike price adjust these to take to and from
             let reserve_price = self.fetch_reserve_price_for_round(round_id);
             let cap_level = self.fetch_cap_level_for_round(round_id);
@@ -744,7 +748,9 @@ mod Vault {
                 let (round_starting_liq, round_remaining_liq, _) = self.get_round_outcome(round_id);
 
                 // @dev How much did the account stash
-                let account_amount_queued = self.user_queued_liquidity.read((account, round_id));
+                let (_, account_amount_queued) = self
+                    .user_queued_liquidity
+                    .read((account, round_id));
                 let account_remaining_liq_stashed = (round_remaining_liq * account_amount_queued)
                     / round_starting_liq;
 
