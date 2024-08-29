@@ -573,9 +573,7 @@ mod Vault {
             self
                 .emit(
                     Event::QueuedLiquidityCollected(
-                        QueuedLiquidityCollected {
-                            account, amount, vault_stashed_balance_now
-                        }
+                        QueuedLiquidityCollected { account, amount, vault_stashed_balance_now }
                     )
                 );
 
@@ -626,55 +624,62 @@ mod Vault {
             self.deploy_next_round(current_avg_basefee);
         }
 
+        fn calculate_dates(self: @ContractState) -> (u64, u64, u64) {
+          let now = starknet::get_block_timestamp();
+            let auction_start_date = now + self.round_transition_period.read();
+            let auction_end_date = auction_start_date + self.auction_run_time.read();
+            let option_settlement_date = auction_end_date + self.option_run_time.read();
+
+            (auction_start_date, auction_end_date, option_settlement_date)
+          }
+
         // Deploy the next option round contract, update the current round id & round address mapping
         // @note will need to add current_vol as well
         fn deploy_next_round(ref self: ContractState, current_avg_basefee: u256) {
             // The constructor params for the next round
             let mut calldata: Array<felt252> = array![];
+            // The Vault's address
+            let vault_address = get_contract_address();
             // Vault address & round id
-            calldata.append_serde(starknet::get_contract_address()); // vault address
             // The round id for the next round
-            let next_round_id: u256 = self.current_round_id.read() + 1;
-            calldata.append_serde(next_round_id);
+            let round_id: u256 = self.current_round_id.read() + 1;
             // Dates
-            let now = starknet::get_block_timestamp();
-            let auction_start_date = now + self.round_transition_period.read();
-            let auction_end_date = auction_start_date + self.auction_run_time.read();
-            let option_settlement_date = auction_end_date + self.option_run_time.read();
-            calldata.append_serde(auction_start_date); // auction start date
-            calldata.append_serde(auction_end_date);
-            calldata.append_serde(option_settlement_date);
+            let (auction_start_date, auction_end_date, option_settlement_date) = self.calculate_dates();
             // Reserve price, cap level, & strike price adjust these to take to and from
-            let reserve_price = self.fetch_reserve_price_for_round(next_round_id);
-            let cap_level = self.fetch_cap_level_for_round(next_round_id);
-
+            let reserve_price = self.fetch_reserve_price_for_round(round_id);
+            let cap_level = self.fetch_cap_level_for_round(round_id);
             // @dev Calculate strike price based on current avg basefee and Vault's type
-            let volatility = self.fetch_volatility_for_round(next_round_id);
+            let volatility = self.fetch_volatility_for_round(round_id);
             let strike_price = calculate_strike_price(
                 self.vault_type.read(), current_avg_basefee, volatility
             );
 
+            calldata.append_serde(vault_address);
+            calldata.append_serde(round_id);
+            calldata.append_serde(auction_start_date);
+            calldata.append_serde(auction_end_date);
+            calldata.append_serde(option_settlement_date);
             calldata.append_serde(reserve_price);
             calldata.append_serde(cap_level);
             calldata.append_serde(strike_price);
 
             // Deploy the next option round contract
-            let (next_round_address, _) = deploy_syscall(
+            let (address, _) = deploy_syscall(
                 self.option_round_class_hash.read(), 'some salt', calldata.span(), false
             )
                 .expect(Errors::OptionRoundDeploymentFailed);
 
             // Update the current round id & round address mapping
-            self.current_round_id.write(next_round_id);
-            self.round_addresses.write(next_round_id, next_round_address);
+            self.current_round_id.write(round_id);
+            self.round_addresses.write(round_id, address);
 
             // Emit option round deployed event
             self
                 .emit(
                     Event::OptionRoundDeployed(
                         OptionRoundDeployed {
-                            round_id: next_round_id,
-                            address: next_round_address,
+                            round_id,
+                            address,
                             reserve_price,
                             strike_price,
                             cap_level,
