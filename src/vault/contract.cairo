@@ -284,7 +284,7 @@ mod Vault {
 
         // @dev Get how much liquidity is queued for stashing in the current round
         // @return The BPS percentage being queued for
-        fn get_lp_queued_balance(self: @ContractState, account: ContractAddress) -> u16 {
+        fn get_lp_queued_bps(self: @ContractState, account: ContractAddress) -> u16 {
             let (bps, _) = self.user_queued_liquidity.read((account, self.current_round_id.read()));
             bps
         }

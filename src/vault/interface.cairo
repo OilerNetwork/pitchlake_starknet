@@ -60,7 +60,7 @@ trait IVault<TContractState> {
     fn get_lp_unlocked_balance(self: @TContractState, account: ContractAddress) -> u256;
 
     // Get the liquidity an LP queued for stashing in a round
-    fn get_lp_queued_balance(self: @TContractState, account: ContractAddress) -> u16;
+    fn get_lp_queued_bps(self: @TContractState, account: ContractAddress) -> u16;
 
     // Get the liquidity an LP has stashed in the vault from withdrawal queues
     fn get_lp_stashed_balance(self: @TContractState, account: ContractAddress) -> u256;

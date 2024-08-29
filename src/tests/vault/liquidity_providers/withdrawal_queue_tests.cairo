@@ -330,11 +330,11 @@ fn test_queueing_withdrawal_amount_can_be_updated() {
     );
 
     vault.queue_withdrawal(liquidity_provider, 10_000);
-    let queued1 = vault.get_lp_queued_balance(liquidity_provider);
+    let queued1 = vault.get_lp_queued_bps(liquidity_provider);
     vault.queue_withdrawal(liquidity_provider, 5000);
-    let queued2 = vault.get_lp_queued_balance(liquidity_provider);
+    let queued2 = vault.get_lp_queued_bps(liquidity_provider);
     vault.queue_withdrawal(liquidity_provider, 1000);
-    let queued3 = vault.get_lp_queued_balance(liquidity_provider);
+    let queued3 = vault.get_lp_queued_bps(liquidity_provider);
 
     assert_eq!(queued1, 10_000);
     assert_eq!(queued2, 5000);
@@ -360,9 +360,9 @@ fn test_queued_amount_is_0_after_round_settles() {
     let bps_multi = array![3333, 6666, 9999].span();
     vault.queue_multiple_withdrawals(liquidity_providers, bps_multi);
 
-    let queued_before_settle = vault.get_lp_queued_bps(liquidity_providers);
+    let queued_before_settle = vault.get_lp_queued_bps_multi(liquidity_providers);
     accelerate_to_settled(ref vault, 1);
-    let queued_after_settle = vault.get_lp_queued_bps(liquidity_providers);
+    let queued_after_settle = vault.get_lp_queued_bps_multi(liquidity_providers);
 
     assert_eq!(queued_before_settle.span(), bps_multi);
     assert_eq!(queued_after_settle.span(), array![0, 0, 0].span());
@@ -388,12 +388,12 @@ fn test_queuing_0_puts_nothing_in_stash() {
 
     let (locked_before, unlocked_before, stashed_before) = vault
         .get_lp_locked_and_unlocked_and_stashed_balance(liquidity_provider);
-    let queued_before = vault.get_lp_queued_balance(liquidity_provider);
+    let queued_before = vault.get_lp_queued_bps(liquidity_provider);
     accelerate_to_settled(ref vault, 1);
 
     let (locked_after, unlocked_after, stashed_after) = vault
         .get_lp_locked_and_unlocked_and_stashed_balance(liquidity_provider);
-    let queued_after = vault.get_lp_queued_balance(liquidity_provider);
+    let queued_after = vault.get_lp_queued_bps(liquidity_provider);
 
     assert_eq!(locked_before, deposit_amount);
     assert_eq!(locked_after, 0);
@@ -428,12 +428,12 @@ fn test_queuing_some_gets_stashed() {
 
     let (locked_before, unlocked_before, stashed_before) = vault
         .get_lp_locked_and_unlocked_and_stashed_balance(liquidity_provider);
-    let queued_before = vault.get_lp_queued_balance(liquidity_provider);
+    let queued_before = vault.get_lp_queued_bps(liquidity_provider);
     accelerate_to_settled(ref vault, 1);
 
     let (locked_after, unlocked_after, stashed_after) = vault
         .get_lp_locked_and_unlocked_and_stashed_balance(liquidity_provider);
-    let queued_after = vault.get_lp_queued_balance(liquidity_provider);
+    let queued_after = vault.get_lp_queued_bps(liquidity_provider);
 
     assert_eq!(locked_before, deposit_amount);
     assert_eq!(locked_after, 0);
@@ -727,12 +727,12 @@ fn test_unstashed_liquidity_adds_to_next_round_deposits() {
 
     let (locked_before, unlocked_before, stashed_before) = vault
         .get_lp_locked_and_unlocked_and_stashed_balance(liquidity_provider);
-    let queued_before = vault.get_lp_queued_balance(liquidity_provider);
+    let queued_before = vault.get_lp_queued_bps(liquidity_provider);
     accelerate_to_settled(ref vault, 1);
 
     let (locked_after, unlocked_after, stashed_after) = vault
         .get_lp_locked_and_unlocked_and_stashed_balance(liquidity_provider);
-    let queued_after = vault.get_lp_queued_balance(liquidity_provider);
+    let queued_after = vault.get_lp_queued_bps(liquidity_provider);
 
     assert_eq!(locked_before, deposit_amount);
     assert_eq!(locked_after, 0);
