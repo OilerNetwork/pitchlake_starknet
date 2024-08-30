@@ -403,6 +403,10 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         self.vault_dispatcher.get_vault_stashed_balance()
     }
 
+    fn get_vault_queued_bps(ref self: VaultFacade) -> u16 {
+        self.vault_dispatcher.get_vault_queued_bps()
+    }
+
     // @note replace this with get_vault_locked_and_unlocked_balance
     fn get_total_balance(ref self: VaultFacade) -> u256 {
         self.vault_dispatcher.get_vault_total_balance()

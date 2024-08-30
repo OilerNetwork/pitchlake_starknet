@@ -33,9 +33,6 @@ trait IVault<TContractState> {
     // Get the amount of time till starting the next round's auction
     fn get_round_transition_period(self: @TContractState) -> u64;
 
-    // @note Add getters for auction run time & option run time
-    // - need to also add to facade, then use in tests for the (not yet created) setters (A1.1)
-
     // @return the current option round id
     fn get_current_round_id(self: @TContractState) -> u256;
 

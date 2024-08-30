@@ -368,6 +368,109 @@ fn test_queued_amount_is_0_after_round_settles() {
     assert_eq!(queued_after_settle.span(), array![0, 0, 0].span());
 }
 
+// Test vault queued bps is accurate
+#[test]
+#[available_gas(300000000)]
+fn test_vault_queued_bps_is_accurate() {
+    let (mut vault, _) = setup_facade();
+    let mut current_round = vault.get_current_round();
+    let liquidity_providers = liquidity_providers_get(3).span();
+    let deposit_amounts = array![100 * decimals(), 200 * decimals(), 300 * decimals()].span();
+    accelerate_to_auctioning_custom(ref vault, liquidity_providers, deposit_amounts);
+    accelerate_to_running_custom(
+        ref vault,
+        array![option_bidder_buyer_1()].span(),
+        array![current_round.get_total_options_available() / 2].span(),
+        array![current_round.get_reserve_price()].span()
+    );
+
+    let bps_multi = array![3333, 6666, 9999].span();
+    vault.queue_multiple_withdrawals(liquidity_providers, bps_multi);
+
+    let vault_bps = vault.get_vault_queued_bps();
+    let total_queued = {
+        let mut total = 0;
+        let mut i = 0;
+        while i < bps_multi
+            .len() {
+                let deposit_amount = *deposit_amounts.at(i);
+                let bps = *bps_multi.at(i);
+                total += (deposit_amount * bps.into()) / BPS.into();
+
+                i += 1;
+            };
+        total
+    };
+    let expected_vault_bps = (total_queued * BPS.into()) / current_round.starting_liquidity();
+
+    assert_eq!(vault_bps.into(), expected_vault_bps);
+}
+
+// Test vault queued bps changes correctly
+#[test]
+#[available_gas(300000000)]
+fn test_vault_queued_bps_changes_correctly() {
+    let (mut vault, _) = setup_facade();
+    let mut current_round = vault.get_current_round();
+    let liquidity_providers = liquidity_providers_get(3).span();
+    let deposit_amounts = array![100 * decimals(), 200 * decimals(), 300 * decimals()].span();
+    accelerate_to_auctioning_custom(ref vault, liquidity_providers, deposit_amounts);
+    accelerate_to_running_custom(
+        ref vault,
+        array![option_bidder_buyer_1()].span(),
+        array![current_round.get_total_options_available() / 2].span(),
+        array![current_round.get_reserve_price()].span()
+    );
+
+    let bps_multi1 = array![3333, 6666, 9999].span();
+    vault.queue_multiple_withdrawals(liquidity_providers, bps_multi1);
+
+    let bps_multi2 = array![123, 456, 789].span();
+    vault.queue_multiple_withdrawals(liquidity_providers, bps_multi2);
+    let vault_bps2 = vault.get_vault_queued_bps();
+
+    let total_queued = {
+        let mut total = 0;
+        let mut i = 0;
+        while i < bps_multi2
+            .len() {
+                let deposit_amount = *deposit_amounts.at(i);
+                let bps = *bps_multi2.at(i);
+                total += (deposit_amount * bps.into()) / BPS.into();
+
+                i += 1;
+            };
+        total
+    };
+    let expected_vault_bps = (total_queued * BPS.into()) / current_round.starting_liquidity();
+
+    assert_eq!(vault_bps2.into(), expected_vault_bps);
+    let bps_multi3 = array![5555, 6666, 8888].span();
+    vault.queue_multiple_withdrawals(liquidity_providers, bps_multi3);
+    let vault_bps3 = vault.get_vault_queued_bps();
+
+    let total_queued = {
+        let mut total = 0;
+        let mut i = 0;
+        while i < bps_multi3
+            .len() {
+                let deposit_amount = *deposit_amounts.at(i);
+                let bps = *bps_multi3.at(i);
+                total += (deposit_amount * bps.into()) / BPS.into();
+
+                i += 1;
+            };
+        total
+    };
+    let expected_vault_bps = (total_queued * BPS.into()) / current_round.starting_liquidity();
+
+    assert_eq!(vault_bps3.into(), expected_vault_bps);
+}
+
+
+// @note add test that vault queued bps is 0 after settle
+
+// @note add test that vault queued bps resets if user changes their bps +/-
 
 // Test queuing 0 puts nothing in stash
 #[test]
