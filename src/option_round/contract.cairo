@@ -943,47 +943,6 @@ mod OptionRound {
             self.erc20._burn(owner, amount);
         }
 
-
-        // fn inspect_options_for
-        // #Params
-        // @bidder:ContractAddress, targetAddress
-        fn inspect_options_for(
-            self: @ContractState, bidder: ContractAddress
-        ) -> (Array<Bid>, Array<Bid>, felt252) {
-            let mut refundable_bids: Array<Bid> = array![];
-            let mut tokenizable_bids: Array<Bid> = array![];
-            let mut partial_bid: felt252 = 0;
-
-            //If state is open or auctioning, return defaults
-
-            let state = self.get_state();
-            if (state == OptionRoundState::Open || state == OptionRoundState::Auctioning) {
-                return (tokenizable_bids, refundable_bids, partial_bid);
-            }
-            let nonce = self.get_bidding_nonce_for(bidder);
-            let mut i = 0;
-            while i < nonce {
-                let bid_id: felt252 = self.create_bid_id(bidder, i);
-                let clearing_bid_id: felt252 = self.bids_tree.clearing_bid.read();
-                // If bidder's bid is the clearing bid, it could be partially sold
-                if (bid_id == clearing_bid_id) {
-                    partial_bid = bid_id;
-                } else {
-                    let bid: Bid = self.bids_tree._find(bid_id);
-                    let clearing_bid: Bid = self.bids_tree._find(clearing_bid_id);
-
-                    if (bid < clearing_bid) {
-                        refundable_bids.append(bid);
-                    } else {
-                        tokenizable_bids.append(bid);
-                    }
-                }
-                i += 1;
-            };
-
-            (tokenizable_bids, refundable_bids, partial_bid)
-        }
-
         // Get bid outcomes
         fn calculate_bid_outcome_for(
             self: @ContractState, bidder: ContractAddress

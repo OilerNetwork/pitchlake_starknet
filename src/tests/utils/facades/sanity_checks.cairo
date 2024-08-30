@@ -95,18 +95,18 @@ fn tokenize_options(
 fn deposit(
     ref vault: VaultFacade, liquidity_provider: ContractAddress, unlocked_amount: u256
 ) -> u256 {
-    let expected_unlocked_amount = vault.get_lp_unlocked_balance(liquidity_provider);
+    let storage_unlocked_amount = vault.get_lp_unlocked_balance(liquidity_provider);
 
-    assert(unlocked_amount == expected_unlocked_amount, 'Deposit sanity check fail');
-    expected_unlocked_amount
+    assert_eq!(unlocked_amount, storage_unlocked_amount);
+    storage_unlocked_amount
 }
 
 fn withdraw(
     ref vault: VaultFacade, liquidity_provider: ContractAddress, unlocked_amount: u256
 ) -> u256 {
-    let expected_unlocked_amount = vault.get_lp_unlocked_balance(liquidity_provider);
-    assert(unlocked_amount == expected_unlocked_amount, 'Withdraw sanity check fail');
-    expected_unlocked_amount
+    let unlocked_amount_in_storage = vault.get_lp_unlocked_balance(liquidity_provider);
+    assert_eq!(unlocked_amount, unlocked_amount_in_storage);
+    unlocked_amount_in_storage
 }
 
 fn claim_queued_liquidity(ref vault: VaultFacade, queued_amount: u256, expected: u256) -> u256 {

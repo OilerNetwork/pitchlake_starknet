@@ -50,25 +50,23 @@ trait IVault<TContractState> {
     // For LPs //
 
     // Get the liquidity an lp had at the beginning of the current round
-    fn get_lp_starting_balance(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
+    fn get_lp_starting_balance(self: @TContractState, account: ContractAddress) -> u256;
 
 
     // Get the liquidity an lp has locked
-    fn get_lp_locked_balance(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
+    fn get_lp_locked_balance(self: @TContractState, account: ContractAddress) -> u256;
 
     // Get the liquidity an LP has unlocked
-    fn get_lp_unlocked_balance(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
+    fn get_lp_unlocked_balance(self: @TContractState, account: ContractAddress) -> u256;
 
     // Get the liquidity an LP queued for stashing in a round
-    fn get_lp_queued_balance(
-        self: @TContractState, liquidity_provider: ContractAddress, round_id: u256
-    ) -> u256;
+    fn get_lp_queued_bps(self: @TContractState, account: ContractAddress) -> u16;
 
     // Get the liquidity an LP has stashed in the vault from withdrawal queues
-    fn get_lp_stashed_balance(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
+    fn get_lp_stashed_balance(self: @TContractState, account: ContractAddress) -> u256;
 
     // Get the total liquidity an LP has in the protocol
-    fn get_lp_total_balance(self: @TContractState, liquidity_provider: ContractAddress) -> u256;
+    fn get_lp_total_balance(self: @TContractState, account: ContractAddress) -> u256;
 
     // For Vault //
 
@@ -79,7 +77,7 @@ trait IVault<TContractState> {
     fn get_total_unlocked_balance(self: @TContractState) -> u256;
 
     // Get the total liquidity queued for stashing in a round
-    fn get_total_queued_balance(self: @TContractState, round_id: u256) -> u256;
+    fn get_total_queued_balance(self: @TContractState) -> u256;
 
     // Get the total liquidity stashed
     fn get_total_stashed_balance(self: @TContractState) -> u256;
@@ -87,13 +85,6 @@ trait IVault<TContractState> {
 
     // Get the total liquidity in the protocol
     fn get_total_balance(self: @TContractState) -> u256;
-
-    /// Premiums
-
-    // Get the total premiums collected by an LP in a round
-    fn get_premiums_collected(
-        self: @TContractState, liquidity_provider: ContractAddress, round_id: u256
-    ) -> u256;
 
     /// Writes ///
 
@@ -121,9 +112,7 @@ trait IVault<TContractState> {
 
     // Caller withdraws liquidity from their unlocked balance
     // @return The liquidity provider's updated unlocked position
-    fn deposit_liquidity(
-        ref self: TContractState, amount: u256, liquidity_provider: ContractAddress
-    ) -> u256;
+    fn deposit_liquidity(ref self: TContractState, amount: u256, account: ContractAddress) -> u256;
 
     // Caller withdraws from the vault
     // @return The liquidity provider's updated unlocked position
@@ -131,12 +120,10 @@ trait IVault<TContractState> {
 
     // Caller queues a portion of their currently locked liquidity to be stashed aside, to not roll over
     // into the next round
-    fn queue_withdrawal(ref self: TContractState, amount: u256);
+    fn queue_withdrawal(ref self: TContractState, bps: u16);
 
     // Liquidity provider withdraws their stashed (queued) withdrawals
-    fn claim_queued_liquidity(
-        ref self: TContractState, liquidity_provider: ContractAddress
-    ) -> u256;
+    fn claim_queued_liquidity(ref self: TContractState, account: ContractAddress) -> u256;
 
     /// LP token related
 

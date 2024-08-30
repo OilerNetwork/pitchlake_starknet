@@ -132,22 +132,36 @@ fn test_next_round_deployed_event() {
         let mut current_round = vault.get_current_round();
         let current_round_id = vault.get_current_round_id();
         accelerate_to_auctioning(ref vault);
-
         accelerate_to_running(ref vault);
 
         clear_event_logs(array![vault.contract_address()]);
         accelerate_to_settled(ref vault, current_round.get_strike_price());
+
         let mut new_current_round = vault.get_current_round();
-        // Check the event emits correctly
+        let reserve_price = new_current_round.get_reserve_price();
+        let strike_price = new_current_round.get_strike_price();
+        let cap_level = new_current_round.get_cap_level();
+        let auction_start_date = new_current_round.get_auction_start_date();
+        let auction_end_date = new_current_round.get_auction_end_date();
+        let settlement_date = new_current_round.get_option_settlement_date();
+
+        // Check new round is deployed
         assert(
-            current_round.contract_address() != new_current_round.contract_address(),
+            current_round.get_round_id() + 1 == new_current_round.get_round_id(),
             'round contract address wrong'
         );
+        // Check the event emits correctly
         assert_event_option_round_deployed(
             vault
                 .contract_address(), // @dev round 2 should be the first round to deploy post deployment
             current_round_id + 1,
             new_current_round.contract_address(),
+            reserve_price,
+            strike_price,
+            cap_level,
+            auction_start_date,
+            auction_end_date,
+            settlement_date
         );
 
         rounds_to_run -= 1;

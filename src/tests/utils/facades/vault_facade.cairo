@@ -92,18 +92,18 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         sanity_checks::withdraw(ref self, liquidity_provider, updated_unlocked_position)
     }
 
-    fn queue_withdrawal(ref self: VaultFacade, liquidity_provider: ContractAddress, amount: u256) {
+    fn queue_withdrawal(ref self: VaultFacade, liquidity_provider: ContractAddress, bps: u16) {
         set_contract_address(liquidity_provider);
-        self.vault_dispatcher.queue_withdrawal(amount);
+        self.vault_dispatcher.queue_withdrawal(bps);
     }
 
     #[feature("safe_dispatcher")]
     fn queue_withdrawal_expect_error(
-        ref self: VaultFacade, liquidity_provider: ContractAddress, amount: u256, error: felt252,
+        ref self: VaultFacade, liquidity_provider: ContractAddress, bps: u16, error: felt252,
     ) {
         set_contract_address(liquidity_provider);
         let safe_vault = self.get_safe_dispatcher();
-        safe_vault.queue_withdrawal(amount).expect_err(error);
+        safe_vault.queue_withdrawal(bps).expect_err(error);
     }
 
 
@@ -129,13 +129,13 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     fn queue_multiple_withdrawals(
         ref self: VaultFacade,
         mut liquidity_providers: Span<ContractAddress>,
-        mut amounts: Span<u256>
+        mut bps_multi: Span<u16>
     ) {
         loop {
             match liquidity_providers.pop_front() {
                 Option::Some(lp) => {
-                    let amount = amounts.pop_front().unwrap();
-                    self.queue_withdrawal(*lp, *amount);
+                    let bps = bps_multi.pop_front().unwrap();
+                    self.queue_withdrawal(*lp, *bps);
                 },
                 Option::None => { break (); }
             };
@@ -291,12 +291,6 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     // For LPs
 
-    fn get_lp_premiums_collected(
-        ref self: VaultFacade, liquidity_provider: ContractAddress, round_id: u256
-    ) -> u256 {
-        self.vault_dispatcher.get_premiums_collected(liquidity_provider, round_id)
-    }
-
     fn get_lp_locked_balance(ref self: VaultFacade, liquidity_provider: ContractAddress) -> u256 {
         self.vault_dispatcher.get_lp_locked_balance(liquidity_provider)
     }
@@ -317,10 +311,8 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         balances
     }
 
-    fn get_lp_queued_balance(
-        ref self: VaultFacade, liquidity_provider: ContractAddress, round_id: u256
-    ) -> u256 {
-        self.vault_dispatcher.get_lp_queued_balance(liquidity_provider, round_id)
+    fn get_lp_queued_bps(ref self: VaultFacade, liquidity_provider: ContractAddress) -> u16 {
+        self.vault_dispatcher.get_lp_queued_bps(liquidity_provider)
     }
 
     fn get_lp_stashed_balance(ref self: VaultFacade, liquidity_provider: ContractAddress) -> u256 {
@@ -328,17 +320,14 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     }
 
 
-    fn get_lp_queued_balances(
-        ref self: VaultFacade,
-        mut liquidity_providers: Span<ContractAddress>,
-        mut round_ids: Span<u256>
-    ) -> Array<u256> {
+    fn get_lp_queued_bps_multi(
+        ref self: VaultFacade, mut liquidity_providers: Span<ContractAddress>,
+    ) -> Array<u16> {
         let mut balances = array![];
         loop {
             match liquidity_providers.pop_front() {
                 Option::Some(liquidity_provider) => {
-                    let round_id = round_ids.pop_front().unwrap();
-                    let balance = self.get_lp_queued_balance(*liquidity_provider, *round_id);
+                    let balance = self.get_lp_queued_bps(*liquidity_provider);
                     balances.append(balance);
                 },
                 Option::None => { break (); }
