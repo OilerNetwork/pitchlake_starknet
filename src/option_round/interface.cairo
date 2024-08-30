@@ -39,6 +39,8 @@ trait IOptionRound<TContractState> {
     // @dev OB can collect their share of this total
     fn total_payout(self: @TContractState) -> u256;
 
+    fn settlement_price(self: @TContractState) -> u256;
+
     // Gets the clearing price of the auction
     fn clearing_price(self: @TContractState) -> u256;
 

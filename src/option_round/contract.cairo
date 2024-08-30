@@ -59,6 +59,7 @@ mod OptionRound {
         starting_liquidity: u256,
         unsold_liquidity: u256,
         payout_per_option: u256,
+        settlement_price: u256,
         auction_start_date: u64,
         auction_end_date: u64,
         option_settlement_date: u64,
@@ -285,6 +286,10 @@ mod OptionRound {
 
         fn total_payout(self: @ContractState) -> u256 {
             self.payout_per_option.read() * self.bids_tree.total_options_sold.read()
+        }
+
+        fn settlement_price(self: @ContractState) -> u256 {
+            self.settlement_price.read()
         }
 
         /// Auction
@@ -567,7 +572,10 @@ mod OptionRound {
             let cap_level = self.get_cap_level().into();
             let payout_per_option = self
                 .calculate_payout_per_option(strike_price, cap_level, settlement_price);
+
+            // @dev Set payout per option and settlement price
             self.payout_per_option.write(payout_per_option);
+            self.settlement_price.write(settlement_price);
 
             // @dev Update state to Settled
             self.set_state(OptionRoundState::Settled);
@@ -929,7 +937,7 @@ mod OptionRound {
         // Get a dispatcher for the ETH contract
         fn get_eth_dispatcher(self: @ContractState) -> ERC20ABIDispatcher {
             let vault = self.get_vault_dispatcher();
-            let eth_address = vault.eth_address();
+            let eth_address = vault.get_eth_address();
             ERC20ABIDispatcher { contract_address: eth_address }
         }
 
