@@ -209,7 +209,7 @@ fn setup_facade_vault_type(vault_type: VaultType) -> (VaultFacade, MarketAggrega
     // Each round will settle with 10 gwei TWAP
     // Each round will use 10 gwei as the latest TWAP when round starts
     let current_round_address = vault_dispatcher
-        .get_round_address(vault_dispatcher.current_round_id());
+        .get_round_address(vault_dispatcher.get_current_round_id());
     let current_round = IOptionRoundDispatcher { contract_address: current_round_address };
     let mut TWAP_end = current_round.get_auction_start_date();
     let mut TWAP_start = TWAP_end - Vault::TWAP_DURATION;
@@ -244,7 +244,7 @@ fn setup_facade_vault_type(vault_type: VaultType) -> (VaultFacade, MarketAggrega
 
     //Supply and approve option_bidders
     let current_round_address = vault_dispatcher
-        .get_round_address(vault_dispatcher.current_round_id());
+        .get_round_address(vault_dispatcher.get_current_round_id());
     eth_supply_and_approve_all_bidders(current_round_address, eth_dispatcher.contract_address);
 
     // Supply eth to test accounts and approve option round 1 to spend ob eth
@@ -300,7 +300,7 @@ fn deploy_custom_option_round(
         .expect('Deploy Custom Round Failed');
 
     let vault_dispatcher = IVaultDispatcher { contract_address: vault_address };
-    eth_supply_and_approve_all_bidders(contract_address, vault_dispatcher.eth_address());
+    eth_supply_and_approve_all_bidders(contract_address, vault_dispatcher.get_eth_address());
     // Clear the event log
     clear_event_logs(array![contract_address]);
 

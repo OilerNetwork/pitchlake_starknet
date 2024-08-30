@@ -120,7 +120,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         // Set ETH approvals for next round
         let vault_dispatcher = IVaultDispatcher { contract_address: self.vault_address() };
         let next_round_address = vault_dispatcher.get_round_address(self.get_round_id() + 1);
-        eth_supply_and_approve_all_bidders(next_round_address, vault_dispatcher.eth_address());
+        eth_supply_and_approve_all_bidders(next_round_address, vault_dispatcher.get_eth_address());
 
         sanity_checks::settle_option_round(ref self, total_payout)
     }
