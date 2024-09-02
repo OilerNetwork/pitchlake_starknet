@@ -41,7 +41,6 @@ mod Vault {
     struct Storage {
         ///
         vault_type: VaultType,
-        vault_manager: ContractAddress,
         market_aggregator_address: ContractAddress,
         eth_address: ContractAddress,
         option_round_class_hash: ClassHash,
@@ -78,13 +77,11 @@ mod Vault {
         auction_run_time: u64,
         option_run_time: u64,
         eth_address: ContractAddress,
-        vault_manager: ContractAddress,
         vault_type: VaultType,
         market_aggregator_address: ContractAddress,
         option_round_class_hash: ClassHash,
     ) {
         self.eth_address.write(eth_address);
-        self.vault_manager.write(vault_manager);
         self.vault_type.write(vault_type);
         self.market_aggregator_address.write(market_aggregator_address);
         self.option_round_class_hash.write(option_round_class_hash);
@@ -104,7 +101,7 @@ mod Vault {
         Deposit: Deposit,
         Withdrawal: Withdrawal,
         WithdrawalQueued: WithdrawalQueued,
-        QueuedLiquidityCollected: QueuedLiquidityCollected,
+        StashWithdrawn: StashWithdrawn,
         OptionRoundDeployed: OptionRoundDeployed,
     }
 
@@ -126,7 +123,6 @@ mod Vault {
         vault_unlocked_balance_now: u256,
     }
 
-    // @dev Emitted when a liquidity provider queues a withdrawal
     #[derive(Drop, starknet::Event, PartialEq)]
     struct WithdrawalQueued {
         #[key]
@@ -136,15 +132,13 @@ mod Vault {
         vault_queued_liquidity_now: u256,
     }
 
-    // @dev Emitted when a liquidity provider claims stashed liquidity
     #[derive(Drop, starknet::Event, PartialEq)]
-    struct QueuedLiquidityCollected {
+    struct StashWithdrawn {
         #[key]
         account: ContractAddress,
         amount: u256,
         vault_stashed_balance_now: u256,
     }
-
 
     #[derive(Drop, starknet::Event, PartialEq)]
     struct OptionRoundDeployed {
@@ -166,10 +160,6 @@ mod Vault {
         // ***********************************
         //               READS
         // ***********************************
-
-        fn vault_manager(self: @ContractState) -> ContractAddress {
-            self.vault_manager.read()
-        }
 
         fn get_vault_type(self: @ContractState) -> VaultType {
             self.vault_type.read()
@@ -227,7 +217,7 @@ mod Vault {
             // @dev Get the liquidity locked at the start of the current round
             let total_liq = self
                 .get_round_dispatcher(self.current_round_id.read())
-                .starting_liquidity();
+                .get_starting_liquidity();
             // @dev Get the amount queued
             let queued_liq = self.round_queued_liquidity.read(self.current_round_id.read());
 
@@ -248,7 +238,7 @@ mod Vault {
             // @dev Get the liquidity locked at the start of the current round
             let total_liq = self
                 .get_round_dispatcher(self.current_round_id.read())
-                .starting_liquidity();
+                .get_starting_liquidity();
             // @dev Get the liquidity the account locked at the start of the current round
             let account_liq = self.get_realized_deposit_for_current_round(account);
             // @dev Get the liquidity currently locked
@@ -455,8 +445,8 @@ mod Vault {
             // @dev Emit stashed withdrawal event
             self
                 .emit(
-                    Event::QueuedLiquidityCollected(
-                        QueuedLiquidityCollected { account, amount, vault_stashed_balance_now }
+                    Event::StashWithdrawn(
+                        StashWithdrawn { account, amount, vault_stashed_balance_now }
                     )
                 );
 
@@ -490,7 +480,7 @@ mod Vault {
             unlocked_liquidity += earned_premiums;
 
             // @dev Get how much of the locked liquidity was not sold
-            let unsold_liquidity = current_round.unsold_liquidity();
+            let unsold_liquidity = current_round.get_unsold_liquidity();
             if unsold_liquidity.is_non_zero() {
                 // @dev Move unsold liquidity from locked to unlocked
                 unlocked_liquidity += unsold_liquidity;
@@ -514,12 +504,11 @@ mod Vault {
             let to = current_round.get_option_settlement_date();
             let from = to - TWAP_DURATION;
             let settlement_price = self.fetch_TWAP_for_time_period(from, to);
-            let (total_payout, settlement_price) = current_round
-                .settle_option_round(settlement_price);
+            let total_payout = current_round.settle_round(settlement_price);
 
             // @dev Calculate the remaining liquidity after the round settles
-            let starting_liq = current_round.starting_liquidity();
-            let unsold_liq = current_round.unsold_liquidity();
+            let starting_liq = current_round.get_starting_liquidity();
+            let unsold_liq = current_round.get_unsold_liquidity();
             let remaining_liq = starting_liq - unsold_liq - total_payout;
 
             // @dev Calculate the amount of liquidity that was not stashed by liquidity providers,
@@ -608,10 +597,10 @@ mod Vault {
             );
 
             // @dev Get the round's details
-            let round_starting_liq = round.starting_liquidity();
-            let round_unsold_liq = round.unsold_liquidity();
-            let round_premiums = round.total_premiums();
-            let round_payout = round.total_payout();
+            let round_starting_liq = round.get_starting_liquidity();
+            let round_unsold_liq = round.get_unsold_liquidity();
+            let round_premiums = round.get_total_premium();
+            let round_payout = round.get_total_payout();
 
             // @dev Calculate the round's remaining and earned liquidity
             let remaining_liq = round_starting_liq - round_payout - round_unsold_liq;
@@ -873,8 +862,8 @@ mod Vault {
                 0
             } else {
                 // @dev How much unlockable liquidity is there in the round
-                let round_starting_liq = round.starting_liquidity();
-                let round_unlocked_liq = round.total_premiums() + round.unsold_liquidity();
+                let round_starting_liq = round.get_starting_liquidity();
+                let round_unlocked_liq = round.get_total_premium() + round.get_unsold_liquidity();
 
                 // @dev Liquidity provider's share of the unlocked liquidity, avoiding division by 0
                 match round_starting_liq.is_zero() {

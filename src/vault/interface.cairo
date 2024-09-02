@@ -10,11 +10,6 @@ use pitch_lake_starknet::{
 trait IVault<TContractState> {
     /// Reads ///
 
-    // @note remove this
-    // @Get the vault's  manaager address
-    // @dev Better access control ? (oz permits ?)
-    fn vault_manager(self: @TContractState) -> ContractAddress;
-
     // @dev Get the type of vault (ITM | ATM | OTM)
     fn get_vault_type(self: @TContractState) -> VaultType;
 

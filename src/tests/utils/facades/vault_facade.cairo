@@ -239,7 +239,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         let contract_address = self.get_option_round_address(round_id);
         let round = IOptionRoundDispatcher { contract_address };
 
-        round.unsold_liquidity()
+        round.get_unsold_liquidity()
     }
 
     /// Liquidity
@@ -438,12 +438,6 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     fn get_market_aggregator(ref self: VaultFacade) -> ContractAddress {
         self.vault_dispatcher.get_market_aggregator_address()
-    }
-
-    // Manager of the vault
-    // @note implementation not discussed yet
-    fn get_vault_manager(ref self: VaultFacade) -> ContractAddress {
-        self.vault_dispatcher.vault_manager()
     }
 
     // Eth contract address

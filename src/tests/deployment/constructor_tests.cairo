@@ -38,7 +38,7 @@ use pitch_lake_starknet::{
                 variables::{decimals},
                 test_accounts::{
                     liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
-                    option_bidder_buyer_2, vault_manager
+                    option_bidder_buyer_2
                 },
             }
         },
@@ -69,7 +69,6 @@ fn test_vault_constructor() {
     // Check current round is open and next round is settled
     assert(current_round.get_state() == OptionRoundState::Open, 'next round should be Open');
     // Test vault constructor values
-    assert(vault.get_vault_manager() == vault_manager(), 'vault manager incorrect');
     assert(vault.get_eth_address() == eth.contract_address, 'eth address incorrect');
 }
 
