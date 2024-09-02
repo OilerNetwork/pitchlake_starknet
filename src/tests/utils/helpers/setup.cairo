@@ -43,10 +43,7 @@ use pitch_lake_starknet::{
         utils::{
             lib::{
                 structs::{OptionRoundParams},
-                test_accounts::{
-                    weth_owner, vault_manager, liquidity_providers_get, option_bidders_get,
-                    bystander
-                },
+                test_accounts::{weth_owner, liquidity_providers_get, option_bidders_get, bystander},
                 variables::{week_duration, decimals},
             },
             helpers::{
@@ -118,7 +115,6 @@ fn deploy_vault(
     calldata.append_serde(1000);
     calldata.append_serde(1000);
     calldata.append_serde(eth_address);
-    calldata.append_serde(vault_manager());
     calldata.append_serde(vault_type);
     calldata.append_serde(mk_agg_address); // needed ?
     calldata.append_serde(OptionRound::TEST_CLASS_HASH);

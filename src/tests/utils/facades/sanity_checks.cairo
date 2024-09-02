@@ -63,12 +63,12 @@ fn exercise_options(
 fn place_bid(ref self: OptionRoundFacade, bid: Bid) -> Bid {
     let nonce: felt252 = (self.get_bidding_nonce_for(bid.owner) - 1).into();
     let expected_id = poseidon::poseidon_hash_span(array![bid.owner.into(), nonce].span());
-    assert(bid.id == expected_id, 'Invalid hash generated');
+    assert(bid.bid_id == expected_id, 'Invalid hash generated');
     bid
 }
 
 fn update_bid(ref option_round: OptionRoundFacade, old_bid: Bid, new_bid: Bid) -> Bid {
-    let storage_bid = option_round.get_bid_details(old_bid.id);
+    let storage_bid = option_round.get_bid_details(old_bid.bid_id);
     assert(new_bid == storage_bid, 'Bid Mismatch');
     new_bid
 }
