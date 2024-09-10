@@ -69,7 +69,7 @@ pub mod RBTreeComponent {
             if bid_id.is_non_zero() {
                 let mut node: Node = self.tree.read(bid_id);
                 node.value = bid;
-               // let new_node = Node { value: bid, ..node };
+                // let new_node = Node { value: bid, ..node };
                 self.tree.write(bid_id, node);
             }
         }
