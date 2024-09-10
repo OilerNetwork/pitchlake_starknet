@@ -66,6 +66,13 @@ trait IOptionRound<TContractState> {
 
     /// Bids
 
+    // @dev The number of bids an account has placed
+    // @param account: The account to get the number of bids for
+    fn get_account_bid_nonce(self: @TContractState, account: ContractAddress) -> u64;
+
+    // @dev The nonce of the entire bid tree
+    fn get_bid_tree_nonce(self: @TContractState) -> u64;
+
     // @dev The details of a bid
     // @param bid_id: The id of the bid
     fn get_bid_details(self: @TContractState, bid_id: felt252) -> Bid;
@@ -73,13 +80,6 @@ trait IOptionRound<TContractState> {
     // @dev The bid ids for an account
     // @param account: The account to get bid ids for
     fn get_account_bids(self: @TContractState, account: ContractAddress) -> Array<Bid>;
-
-    // @dev The number of bids an account has placed
-    // @param account: The account to get the number of bids for
-    fn get_account_bid_nonce(self: @TContractState, account: ContractAddress) -> u64;
-
-    // @dev The nonce of the entire bid tree
-    fn get_bid_tree_nonce(self: @TContractState) -> u64;
 
     /// Accounts
 
