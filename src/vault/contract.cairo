@@ -63,8 +63,6 @@ mod Vault {
         stash_checkpoints: LegacyMap<ContractAddress, u256>,
         is_premium_moved: LegacyMap<(ContractAddress, u256), bool>,
         ///
-        //round_queued_liquidity: LegacyMap<u256, u256>,
-        //account_queued_liquidity: LegacyMap<(ContractAddress, u256), u256>,
         queued_liquidity: LegacyMap<(ContractAddress, u256), u256>,
     }
 
