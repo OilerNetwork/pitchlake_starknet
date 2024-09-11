@@ -67,7 +67,7 @@ mod OptionRound {
         auction_end_date: u64,
         option_settlement_date: u64,
         ///
-        account_nonce: LegacyMap<ContractAddress, u64>,
+        account_bid_nonce: LegacyMap<ContractAddress, u64>,
         has_minted: LegacyMap<ContractAddress, bool>,
         has_refunded: LegacyMap<ContractAddress, bool>,
         ///
@@ -318,7 +318,7 @@ mod OptionRound {
         /// Bids
 
         fn get_account_bid_nonce(self: @ContractState, account: ContractAddress) -> u64 {
-            self.account_nonce.read(account)
+            self.account_bid_nonce.read(account)
         }
 
         fn get_bid_tree_nonce(self: @ContractState) -> u64 {
@@ -332,7 +332,7 @@ mod OptionRound {
 
         fn get_account_bids(self: @ContractState, account: ContractAddress) -> Array<Bid> {
             // @dev Get the number of bids the account has placed
-            let nonce: u64 = self.account_nonce.read(account);
+            let nonce: u64 = self.account_bid_nonce.read(account);
             let mut bids: Array<Bid> = array![];
             let mut i: u64 = 0;
             // @dev Re-create the account's bid ids and get the bid from the tree
@@ -559,14 +559,14 @@ mod OptionRound {
 
             // @dev Insert bid into bids tree
             let account = get_caller_address();
-            let account_bid_nonce = self.account_nonce.read(account);
+            let account_bid_nonce = self.account_bid_nonce.read(account);
             let bid_id = self.create_bid_id(account, account_bid_nonce);
             let tree_nonce = self.bids_tree.tree_nonce.read();
             let bid = Bid { bid_id, owner: account, amount, price, tree_nonce };
             self.bids_tree._insert(bid);
 
             // @dev Update bidder's nonce
-            self.account_nonce.write(account, account_bid_nonce + 1);
+            self.account_bid_nonce.write(account, account_bid_nonce + 1);
 
             // @dev Transfer bid total from caller to this contract
             let transfer_amount = amount * price;
@@ -821,7 +821,7 @@ mod OptionRound {
                 return (winning_bids, losing_bids, Option::None(()));
             } // @dev Look at each bid of the account's bids compared to the clearing bid
             else {
-                let nonce = self.account_nonce.read(account);
+                let nonce = self.account_bid_nonce.read(account);
                 let clearing_bid_id: felt252 = self.bids_tree.clearing_bid.read();
                 let clearing_bid: Bid = self.bids_tree._find(clearing_bid_id);
                 let mut clearing_bid_option: Option<Bid> = Option::None(());
