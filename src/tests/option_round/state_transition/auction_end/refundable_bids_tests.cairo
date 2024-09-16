@@ -72,7 +72,7 @@ fn test_refundable_bids_before_auction_end() {
     loop {
         match option_bidders.pop_front() {
             Option::Some(bidder) => {
-                let refundable_amount = current_round.get_refundable_bids_for(*bidder);
+                let refundable_amount = current_round.get_refundable_balance_for(*bidder);
                 assert(refundable_amount == 0, 'refunded bid shd be 0');
             },
             Option::None => { break; }
@@ -104,7 +104,7 @@ fn test_refundable_bids_after_auction_end() {
             loop {
                 match option_bidders.pop_front() {
                     Option::Some(bidder) => {
-                        let refunded_amount = current_round.get_refundable_bids_for(*bidder);
+                        let refunded_amount = current_round.get_refundable_balance_for(*bidder);
                         let bid_amount = bid_amounts.pop_front().unwrap();
                         let bid_price = bid_prices.pop_front().unwrap();
                         assert(
@@ -146,7 +146,7 @@ fn test_refundable_bids_includes_partial_and_fully_refunded_bids() {
     let total_refundable_amount = bid_3_refundable_amount + bid_4_refundable_amount;
 
     assert(
-        current_round.get_refundable_bids_for(bidder) == total_refundable_amount,
+        current_round.get_refundable_balance_for(bidder) == total_refundable_amount,
         'refunable amount wrong'
     );
 }
@@ -168,9 +168,9 @@ fn test_over_bids_are_refundable() {
     accelerate_to_running_custom(ref vault, bidders, bid_amounts, bid_prices);
 
     // Check that the first bidder gets no refund, and the second bidder gets a partial refund
-    assert(current_round.get_refundable_bids_for(*bidders[0]) == 0, 'ob1 shd get no refunds');
+    assert(current_round.get_refundable_balance_for(*bidders[0]) == 0, 'ob1 shd get no refunds');
     assert(
-        current_round.get_refundable_bids_for(*bidders[1]) == reserve_price
+        current_round.get_refundable_balance_for(*bidders[1]) == reserve_price
             * total_options_available
             / 2,
         'ob2 shd have a partial refund'

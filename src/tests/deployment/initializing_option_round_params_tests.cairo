@@ -8,6 +8,9 @@ use openzeppelin::token::erc20::interface::{ERC20ABIDispatcherTrait,};
 
 use pitch_lake_starknet::{
     library::eth::Eth,
+    market_aggregator::interface::{
+        IMarketAggregatorMockDispatcher, IMarketAggregatorMockDispatcherTrait
+    },
     vault::{contract::Vault, interface::{IVaultDispatcher, IVaultDispatcherTrait},},
     option_round::interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
     contracts::{
@@ -19,8 +22,13 @@ use pitch_lake_starknet::{
     tests::{
         utils::{
             helpers::{
-                setup::{decimals, deploy_vault, deploy_pitch_lake},
+                setup::{
+                    decimals, setup_facade, setup_facade_vault_type, deploy_vault, deploy_pitch_lake
+                },
                 event_helpers::{pop_log, assert_no_events_left},
+                accelerators::{
+                    accelerate_to_auctioning, accelerate_to_running, accelerate_to_settled
+                }
             },
             lib::test_accounts::{
                 liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
@@ -28,15 +36,100 @@ use pitch_lake_starknet::{
             },
             facades::{
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeImpl},
-                vault_facade::{VaultFacade, VaultFacadeTrait}
+                vault_facade::{VaultFacade, VaultFacadeTrait},
+                market_aggregator_facade::{MarketAggregatorFacade, MarketAggregatorFacadeTrait}
             },
         },
     },
-    types::VaultType
+    types::VaultType, library::utils::{calculate_strike_price}
 };
 use debug::PrintTrait;
 
-// @note Come back to this test when we know if strike price is calculated on chain or off chain
+
+fn to_gwei(amount: u256) -> u256 {
+    1000 * 1000 * 1000 * amount
+}
+
+
+#[test]
+#[available_gas(50000000)]
+fn test_calculated_strike_price() {
+    let avg_basefee = to_gwei(100);
+    let volatility = 333; // 3.33%
+
+    let strike_itm = calculate_strike_price(VaultType::InTheMoney, avg_basefee, volatility);
+    let strike_atm = calculate_strike_price(VaultType::AtTheMoney, avg_basefee, volatility);
+    let strike_otm = calculate_strike_price(VaultType::OutOfMoney, avg_basefee, volatility);
+
+    let adjusted_avg_basefee: u256 = (volatility.into() * avg_basefee.into()) / 10000;
+
+    assert_eq!(strike_atm, avg_basefee);
+    assert_eq!(strike_itm, avg_basefee - adjusted_avg_basefee);
+    assert_eq!(strike_otm, avg_basefee + adjusted_avg_basefee);
+}
+
+
+#[test]
+#[available_gas(50000000)]
+fn test_calculated_strike_price_2() {
+    let avg_basefee = to_gwei(100);
+    let volatility = 10000; // 100.33%
+
+    let strike_itm = calculate_strike_price(VaultType::InTheMoney, avg_basefee, volatility);
+    let strike_atm = calculate_strike_price(VaultType::AtTheMoney, avg_basefee, volatility);
+    let strike_otm = calculate_strike_price(VaultType::OutOfMoney, avg_basefee, volatility);
+
+    assert_eq!(strike_atm, avg_basefee);
+    assert_eq!(strike_otm, 2 * avg_basefee);
+    // @note Return to this test when 0 strike is discussed
+    assert_eq!(strike_itm, avg_basefee);
+}
+
+// @note Return to this test when 0 strike is discussed
+#[test]
+#[available_gas(50000000)]
+fn test_calculated_strike_ITM_high_vol() {
+    let avg_basefee = to_gwei(100);
+    let volatility = 20000; // 200.00%
+    let strike_itm = calculate_strike_price(VaultType::InTheMoney, avg_basefee, volatility);
+
+    assert_eq!(strike_itm, avg_basefee);
+}
+
+
+#[test]
+#[available_gas(200000000)]
+fn test_strike_prices_across_rounds_ATM() {
+    let (mut vault, _) = setup_facade_vault_type(VaultType::AtTheMoney);
+    let mut round1 = vault.get_current_round();
+
+    let k1 = round1.get_strike_price();
+    accelerate_to_auctioning(ref vault);
+    accelerate_to_running(ref vault);
+    let s1 = to_gwei(20);
+    accelerate_to_settled(ref vault, s1);
+// let mut round2 = vault.get_current_round();
+// let k2 = round2.get_strike_price();
+// accelerate_to_auctioning(ref vault);
+// accelerate_to_running(ref vault);
+// let s2 = to_gwei(40);
+// accelerate_to_settled(ref vault, s2);
+
+// let mut round3 = vault.get_current_round();
+// let k3 = round3.get_strike_price();
+// println!("k1: {}, k2: {}, k3: {}", k1, k2, k3);
+
+// assert_eq!(k2, s1);
+// assert_eq!(k3, s2);
+}
+
+#[test]
+#[available_gas(200000000)]
+fn test_strike_prices_across_rounds_ITM() {
+    let (vault, mk_agg) = setup_facade_vault_type(VaultType::InTheMoney);
+}
+
+
 // Test that the strike price is set correctly based on the vault type
 #[test]
 #[available_gas(50000000)]

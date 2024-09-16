@@ -103,9 +103,9 @@ fn testing_random_insertion_and_deletion() {
 
             rb_tree.insert(new_bid);
 
-            inserted_node_ids.append(new_bid.id);
+            inserted_node_ids.append(new_bid.bid_id);
 
-            let bid = rb_tree.find(new_bid.id);
+            let bid = rb_tree.find(new_bid.bid_id);
             println!("Inserting price {}", bid.price);
 
             assert(bid.price == price.try_into().unwrap(), 'Insertion error');
@@ -127,7 +127,7 @@ fn testing_random_insertion_and_deletion() {
 
             let found_bid = rb_tree.find(*bid_id);
 
-            assert(found_bid.id == 0, 'Bid delete error');
+            assert(found_bid.bid_id == 0, 'Bid delete error');
 
             let is_tree_valid = rb_tree.is_tree_valid();
             assert(is_tree_valid, 'Tree is not valid');

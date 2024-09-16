@@ -62,25 +62,14 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     fn update_params(
         ref self: OptionRoundFacade, reserve_price: u256, cap_level: u128, strike_price: u256
     ) {
-        /// Mock values in mk agg
-        let mut vault = self.get_vault_facade();
-        let mk_agg_facade = vault.get_market_aggregator_facade();
-
-        let from = self.get_auction_start_date();
-        let to = self.get_option_settlement_date();
-
-        mk_agg_facade.set_reserve_price_for_time_period(from, to, reserve_price);
-        mk_agg_facade.set_cap_level_for_time_period(from, to, cap_level);
-        mk_agg_facade.set_strike_price_for_time_period(from, to, strike_price);
-
-        // Force refresh the params in the vault
-        vault.update_round_params();
+        // Force update the params in the round
+        self.option_round_dispatcher.update_round_params(reserve_price, cap_level, strike_price);
     }
 
     #[feature("safe_dispatcher")]
     fn update_round_params_expect_error(ref self: OptionRoundFacade, error: felt252) {
         let safe = self.get_safe_dispatcher();
-        safe.update_round_params(1_u256, 2_128, 3_u256).expect_err(error);
+        safe.update_round_params(1, 2, 3).expect_err(error);
     }
 
 
@@ -100,6 +89,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         let starting_liquidity = (options_available * capped_payout_per_option);
 
         // Update the params of the option round
+        set_contract_address(vault.contract_address());
         self.update_params(reserve_price, cap_level, strike_price);
 
         let total_options_available = accelerate_to_auctioning_custom(
@@ -125,12 +115,12 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
 
     // Settle the current option round
     fn settle_option_round(ref self: OptionRoundFacade, settlement_price: u256) -> u256 {
-        let (total_payout, _) = self.option_round_dispatcher.settle_option_round(settlement_price);
+        let total_payout = self.option_round_dispatcher.settle_round(settlement_price);
 
         // Set ETH approvals for next round
         let vault_dispatcher = IVaultDispatcher { contract_address: self.vault_address() };
-        let next_round_address = vault_dispatcher.get_option_round_address(self.get_round_id() + 1);
-        eth_supply_and_approve_all_bidders(next_round_address, vault_dispatcher.eth_address());
+        let next_round_address = vault_dispatcher.get_round_address(self.get_round_id() + 1);
+        eth_supply_and_approve_all_bidders(next_round_address, vault_dispatcher.get_eth_address());
 
         sanity_checks::settle_option_round(ref self, total_payout)
     }
@@ -155,7 +145,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         ref self: OptionRoundFacade, settlement_price: u256, error: felt252,
     ) {
         let safe_option_round = self.get_safe_dispatcher();
-        safe_option_round.settle_option_round(settlement_price).expect_err(error);
+        safe_option_round.settle_round(settlement_price).expect_err(error);
     }
 
 
@@ -274,11 +264,11 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
 
     // Update a bid for an option bidder
     // @return: The updated bid
-    fn update_bid(ref self: OptionRoundFacade, id: felt252, amount: u256, price: u256) -> Bid {
+    fn update_bid(ref self: OptionRoundFacade, id: felt252, price_increase: u256) -> Bid {
         let old_bid = self.get_bid_details(id);
         let bidder = old_bid.owner;
         set_contract_address(bidder);
-        let new_bid = self.option_round_dispatcher.update_bid(id, amount, price);
+        let new_bid = self.option_round_dispatcher.update_bid(id, price_increase);
         sanity_checks::update_bid(ref self, old_bid, new_bid)
     }
 
@@ -287,20 +277,20 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     fn update_bid_expect_error(
         ref self: OptionRoundFacade,
         id: felt252,
-        amount: u256,
-        price: u256,
+        price_increase: u256,
         bidder: ContractAddress,
         error: felt252,
     ) {
         let safe_option_round = self.get_safe_dispatcher();
-        safe_option_round.update_bid(id, amount, price).expect_err(error);
+        set_contract_address(bidder);
+        safe_option_round.update_bid(id, price_increase).expect_err(error);
     }
 
     // Refunds all unused bids of an option bidder
     // @return: The amount refunded
     fn refund_bid(ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress) -> u256 {
         set_contract_address(option_bidder_buyer);
-        let refundable_balance = self.get_refundable_bids_for(option_bidder_buyer);
+        let refundable_balance = self.get_refundable_balance_for(option_bidder_buyer);
         let refunded_amount = self.option_round_dispatcher.refund_unused_bids(option_bidder_buyer);
         sanity_checks::refund_bid(ref self, refunded_amount, refundable_balance)
     }
@@ -364,24 +354,24 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
 
     // Tokenize options for an option buyer
     // @return: The amount of options minted
-    fn tokenize_options(ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress) -> u256 {
+    fn mint_options(ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress) -> u256 {
         set_contract_address(option_bidder_buyer);
         let option_erc20_balance_before = get_erc20_balance(
             self.contract_address(), option_bidder_buyer
         );
-        let options_minted = self.option_round_dispatcher.tokenize_options();
+        let options_minted = self.option_round_dispatcher.mint_options();
         sanity_checks::tokenize_options(
             ref self, option_bidder_buyer, option_erc20_balance_before, options_minted,
         )
     }
 
     #[feature("safe_dispatcher")]
-    fn tokenize_options_expect_error(
+    fn mint_options_expect_error(
         ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress, error: felt252,
     ) {
         set_contract_address(option_bidder_buyer);
         let safe_option_round = self.get_safe_dispatcher();
-        safe_option_round.tokenize_options().expect_err(error);
+        safe_option_round.mint_options().expect_err(error);
     }
 
     /// Reads ///
@@ -403,23 +393,29 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     /// $
 
     fn starting_liquidity(ref self: OptionRoundFacade) -> u256 {
-        self.option_round_dispatcher.starting_liquidity()
+        self.option_round_dispatcher.get_starting_liquidity()
+    }
+
+    fn unsold_liquidity(ref self: OptionRoundFacade) -> u256 {
+        // @note Temp fix, can move this function to round facade
+
+        self.option_round_dispatcher.get_unsold_liquidity()
     }
 
     fn total_premiums(ref self: OptionRoundFacade) -> u256 {
-        self.option_round_dispatcher.total_premiums()
+        self.option_round_dispatcher.get_total_premium()
     }
 
     fn total_payout(ref self: OptionRoundFacade) -> u256 {
-        self.option_round_dispatcher.total_payout()
+        self.option_round_dispatcher.get_total_payout()
     }
 
     fn get_auction_clearing_price(ref self: OptionRoundFacade) -> u256 {
-        self.option_round_dispatcher.get_auction_clearing_price()
+        self.option_round_dispatcher.get_clearing_price()
     }
 
     fn total_options_sold(ref self: OptionRoundFacade) -> u256 {
-        self.option_round_dispatcher.total_options_sold()
+        self.option_round_dispatcher.get_options_sold()
     }
 
     fn get_bid_details(ref self: OptionRoundFacade, bid_id: felt252) -> Bid {
@@ -428,46 +424,46 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
 
     fn get_bidding_nonce_for(
         ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
-    ) -> u32 {
-        self.option_round_dispatcher.get_bidding_nonce_for(option_bidder_buyer)
+    ) -> u64 {
+        self.option_round_dispatcher.get_account_bid_nonce(option_bidder_buyer)
+    }
+
+    fn get_bid_tree_nonce(ref self: OptionRoundFacade) -> u64 {
+        self.option_round_dispatcher.get_bid_tree_nonce()
     }
 
 
     fn get_bids_for(
         ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
     ) -> Array<Bid> {
-        self.option_round_dispatcher.get_bids_for(option_bidder_buyer)
+        self.option_round_dispatcher.get_account_bids(option_bidder_buyer)
     }
 
-    fn get_refundable_bids_for(
+    fn get_refundable_balance_for(
         ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
     ) -> u256 {
-        self.option_round_dispatcher.get_refundable_bids_for(option_bidder_buyer)
+        self.option_round_dispatcher.get_account_refundable_balance(option_bidder_buyer)
     }
 
     fn get_payout_balance_for(
         ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
     ) -> u256 {
-        self.option_round_dispatcher.get_payout_balance_for(option_bidder_buyer)
+        self.option_round_dispatcher.get_account_payout_balance(option_bidder_buyer)
     }
 
-    fn get_option_balance_for(
+    fn get_mintable_options_for(
         ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
     ) -> u256 {
-        self.option_round_dispatcher.get_tokenizable_options_for(option_bidder_buyer)
+        self.option_round_dispatcher.get_account_mintable_options(option_bidder_buyer)
     }
 
     /// Other
-    fn get_constructor_params(ref self: OptionRoundFacade) -> OptionRoundConstructorParams {
-        self.option_round_dispatcher.get_constructor_params()
-    }
-
     fn get_state(ref self: OptionRoundFacade) -> OptionRoundState {
         self.option_round_dispatcher.get_state()
     }
 
     fn vault_address(ref self: OptionRoundFacade) -> ContractAddress {
-        self.option_round_dispatcher.vault_address()
+        self.option_round_dispatcher.get_vault_address()
     }
 
     fn contract_address(ref self: OptionRoundFacade) -> ContractAddress {
@@ -493,7 +489,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     }
 
     fn get_total_options_available(ref self: OptionRoundFacade) -> u256 {
-        self.option_round_dispatcher.get_total_options_available()
+        self.option_round_dispatcher.get_options_available()
     }
 
     /// ERC20 functions

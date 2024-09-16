@@ -67,7 +67,8 @@ export const generateSheet = () => {
       reservePrice: Math.floor(data.reserve_price),
       settlementPrice: Math.floor(data.settlement_price),
       strikePrice: Math.floor(data.strike_price),
-      capLevel: 1500,
+      capLevel: data.cap_level,
+      volatility:data.volatility,
       startTime: data.starting_timestamp,
       endTime: data.ending_timestamp,
     };

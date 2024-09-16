@@ -12,7 +12,7 @@ export const smokeTest = async ({
   getLPUnlockedBalanceAll,
   settleOptionRoundBystander,
   getLiquidityProviderAccounts,
-  getOptionBidderAccounts
+  getOptionBidderAccounts,
 }: TestRunner) => {
   const optionRoundFacade = await getOptionRoundFacade(
     provider,
@@ -44,7 +44,6 @@ export const smokeTest = async ({
     liquidityProviderAccounts[0].address
   );
 
-
   await vaultFacade.withdraw({
     account: liquidityProviderAccounts[0],
     amount: BigInt(totalPremiums) / BigInt(4),
@@ -69,7 +68,6 @@ export const smokeTest = async ({
 
   await settleOptionRoundBystander();
 
-
   const stateAfter: any =
     await optionRoundFacade.optionRoundContract.get_state();
 
@@ -78,6 +76,8 @@ export const smokeTest = async ({
   );
   const totalPayout = await optionRoundFacade.getTotalPayout();
   const totalLocked = await vaultFacade.getTotalLocked();
+  const totalUnlockedAfter = await vaultFacade.getTotalUnLocked();
+  
   assert(
     stateAfter.activeVariant() === "Settled",
     `Expected:Running\nReceived:${stateAfter.activeVariant()}`
@@ -88,7 +88,7 @@ export const smokeTest = async ({
     totalPremiums,
     totalPayout,
     totalLocked,
-    totalUnlocked,
+    totalUnlocked:totalUnlockedAfter,
     depositAmount,
   });
 };
@@ -106,7 +106,16 @@ async function checkpoint1({
   totalUnlocked: number | bigint;
   totalPremiums: number | bigint;
 }) {
-  console.log("ethBalanceAfter:",ethBalanceAfter,"\nethBalanceBefore:",ethBalanceBefore,"\ntotalPremiums",totalPremiums,"lpUnlockedBalanceAfter:",lpUnlockedBalanceAfter);
+  console.log(
+    "ethBalanceAfter:",
+    ethBalanceAfter,
+    "\nethBalanceBefore:",
+    ethBalanceBefore,
+    "\ntotalPremiums",
+    totalPremiums,
+    "lpUnlockedBalanceAfter:",
+    lpUnlockedBalanceAfter
+  );
   assert(
     BigInt(ethBalanceAfter) - BigInt(ethBalanceBefore) ===
       BigInt(totalPremiums) / BigInt(4),
@@ -140,7 +149,7 @@ async function checkpoint2({
   // - A’s unlocked balance should be 1/2 deposit amount + 1/4 total premiums - 1/2 total payout
 
   assert(
-    lpUnlockedBalances[0] ===
+    BigInt(lpUnlockedBalances[0]) ===
       BigInt(depositAmount) / BigInt(2) +
         BigInt(totalPremiums) / BigInt(4) -
         BigInt(totalPayout) / BigInt(2),
@@ -165,10 +174,10 @@ async function checkpoint2({
   // - The total unlocked should == deposit amount + 3/4 total premiums - total payout
 
   assert(
-    totalUnlocked ===
+    BigInt(totalUnlocked) ==
       BigInt(depositAmount) +
         (BigInt(3) * BigInt(totalPremiums)) / BigInt(4) -
         BigInt(totalPayout),
-    "totalUnlocked mismatch"
+    `totalUnlocked mismatch \n${totalUnlocked}\n${lpUnlockedBalances}`
   );
 }

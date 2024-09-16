@@ -48,7 +48,7 @@ export const getOptionRoundContract = async (
   vault: TypedContractV2<typeof vaultABI>,
   prev?: boolean
 ) => {
-  let optionRoundId = await vault.current_option_round_id();
+  let optionRoundId = await vault.current_round_id();
   let id;
   if (typeof optionRoundId !== "number" && typeof optionRoundId !== "bigint") {
     const temp = new CairoUint256(optionRoundId);
@@ -57,7 +57,7 @@ export const getOptionRoundContract = async (
   if (prev) {
     id = id - BigInt(1);
   }
-  const optionRoundAddressDecimalString = await vault.get_option_round_address(
+  const optionRoundAddressDecimalString = await vault.get_round_address(
     id
   );
   const optionRoundAddress =

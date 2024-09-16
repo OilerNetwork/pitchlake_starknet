@@ -3,7 +3,7 @@ use starknet::{
     testing::{set_contract_address, set_block_timestamp}
 };
 use pitch_lake_starknet::{
-    types::{Errors},
+    vault::contract::Vault, types::{Errors},
     tests::{
         utils::{
             helpers::{
@@ -121,31 +121,45 @@ fn test_update_round_params_on_vault() {
     let reserve_price0 = round.get_reserve_price();
     let cap_level0 = round.get_cap_level();
     let strike_price0 = round.get_strike_price();
+    let mk_agg = vault.get_market_aggregator_facade();
+    let volatility0 = mk_agg
+        .get_volatility_for_round(vault.contract_address(), round.get_round_id())
+        .unwrap();
 
     // Mock values on mk agg
-    let mk_agg = vault.get_market_aggregator_facade();
-    let from = round.get_auction_start_date();
-    let to = round.get_option_settlement_date();
-
     let new_reserve_price = 1;
     let new_cap_level = 2;
     let new_strike_price = 3;
+    let new_volatility = 4;
 
-    mk_agg.set_reserve_price_for_time_period(from, to, new_reserve_price);
-    mk_agg.set_cap_level_for_time_period(from, to, new_cap_level);
-    mk_agg.set_strike_price_for_time_period(from, to, new_strike_price);
+    mk_agg
+        .set_reserve_price_for_round(
+            vault.contract_address(), round.get_round_id(), new_reserve_price
+        );
+    mk_agg.set_cap_level_for_round(vault.contract_address(), round.get_round_id(), new_cap_level);
+    mk_agg.set_volatility_for_round(vault.contract_address(), round.get_round_id(), new_volatility);
+
+    let to = round.get_auction_start_date();
+    let from = to - Vault::TWAP_DURATION;
+    // @note Only works because vautl is default ATM
+    mk_agg.set_TWAP_for_time_period(from, to, new_strike_price);
 
     vault.update_round_params();
 
     let reserve_price = round.get_reserve_price();
     let cap_level = round.get_cap_level();
     let strike_price = round.get_strike_price();
+    let volatility = mk_agg
+        .get_volatility_for_round(vault.contract_address(), round.get_round_id())
+        .unwrap();
 
     assert_eq!(reserve_price, new_reserve_price);
     assert_eq!(cap_level, new_cap_level);
     assert_eq!(strike_price, new_strike_price);
+    assert_eq!(volatility, new_volatility);
     assert(reserve_price != reserve_price0, 'reserve price did not change');
     assert(cap_level != cap_level0, 'cap level did not change');
     assert(strike_price != strike_price0, 'strike price did not change');
+    assert(volatility != volatility0, 'volatility did not change');
 }
 

@@ -63,12 +63,12 @@ fn exercise_options(
 fn place_bid(ref self: OptionRoundFacade, bid: Bid) -> Bid {
     let nonce: felt252 = (self.get_bidding_nonce_for(bid.owner) - 1).into();
     let expected_id = poseidon::poseidon_hash_span(array![bid.owner.into(), nonce].span());
-    assert(bid.id == expected_id, 'Invalid hash generated');
+    assert(bid.bid_id == expected_id, 'Invalid hash generated');
     bid
 }
 
 fn update_bid(ref option_round: OptionRoundFacade, old_bid: Bid, new_bid: Bid) -> Bid {
-    let storage_bid = option_round.get_bid_details(old_bid.id);
+    let storage_bid = option_round.get_bid_details(old_bid.bid_id);
     assert(new_bid == storage_bid, 'Bid Mismatch');
     new_bid
 }
@@ -95,15 +95,21 @@ fn tokenize_options(
 fn deposit(
     ref vault: VaultFacade, liquidity_provider: ContractAddress, unlocked_amount: u256
 ) -> u256 {
-    let expected_unlocked_amount = vault.get_lp_unlocked_balance(liquidity_provider);
-    assert(unlocked_amount == expected_unlocked_amount, 'Deposit sanity check fail');
-    expected_unlocked_amount
+    let storage_unlocked_amount = vault.get_lp_unlocked_balance(liquidity_provider);
+
+    assert_eq!(unlocked_amount, storage_unlocked_amount);
+    storage_unlocked_amount
 }
 
 fn withdraw(
     ref vault: VaultFacade, liquidity_provider: ContractAddress, unlocked_amount: u256
 ) -> u256 {
-    let expected_unlocked_amount = vault.get_lp_unlocked_balance(liquidity_provider);
-    assert(unlocked_amount == expected_unlocked_amount, 'Withdraw sanity check fail');
-    expected_unlocked_amount
+    let unlocked_amount_in_storage = vault.get_lp_unlocked_balance(liquidity_provider);
+    assert_eq!(unlocked_amount, unlocked_amount_in_storage);
+    unlocked_amount_in_storage
+}
+
+fn claim_queued_liquidity(ref vault: VaultFacade, queued_amount: u256, expected: u256) -> u256 {
+    assert!(queued_amount == expected, "Withdraw stashed sanity check fail");
+    queued_amount
 }

@@ -92,7 +92,7 @@ fn test_vault_type() {
     let itm_vault: IVaultDispatcher = pitch_lake_dispatcher.in_the_money_vault();
     let otm_vault: IVaultDispatcher = pitch_lake_dispatcher.out_the_money_vault();
     let atm_vault: IVaultDispatcher = pitch_lake_dispatcher.at_the_money_vault();
-    assert(itm_vault.vault_type() == VaultType::InTheMoney, 'ITM vault wrong');
-    assert(otm_vault.vault_type() == VaultType::OutOfMoney, 'OTM vault wrong');
-    assert(atm_vault.vault_type() == VaultType::AtTheMoney, 'ATM vault wrong');
+    assert(itm_vault.get_vault_type() == VaultType::InTheMoney, 'ITM vault wrong');
+    assert(otm_vault.get_vault_type() == VaultType::OutOfMoney, 'OTM vault wrong');
+    assert(atm_vault.get_vault_type() == VaultType::AtTheMoney, 'ATM vault wrong');
 }

@@ -13,7 +13,7 @@ pub mod RBTreeComponent {
     struct Storage {
         root: felt252,
         tree: LegacyMap::<felt252, Node>,
-        nonce: u64,
+        tree_nonce: u64,
         clearing_bid_amount_sold: u256,
         clearing_price: u256,
         clearing_bid: felt252,
@@ -46,19 +46,18 @@ pub mod RBTreeComponent {
         TContractState, +HasComponent<TContractState>
     > of RBTreeTrait<TContractState> {
         fn _insert(ref self: ComponentState<TContractState>, value: Bid) {
-            let new_node_id = value.id;
+            let new_node_id = value.bid_id;
 
-            if self.root.read() == 0 {
+            if self.root.read().is_zero() {
                 let root_node = self.create_root_node(@value);
                 self.tree.write(new_node_id, root_node);
                 self.root.write(new_node_id);
-                self.nonce.write(self.nonce.read() + 1);
-                return;
+            } else {
+                self.insert_node_recursively(self.root.read(), new_node_id, value);
+                self.balance_after_insertion(new_node_id);
             }
 
-            self.insert_node_recursively(self.root.read(), new_node_id, value);
-            self.balance_after_insertion(new_node_id);
-            self.nonce.write(self.nonce.read() + 1);
+            self.tree_nonce.write(self.tree_nonce.read() + 1);
         }
 
         fn _find(self: @ComponentState<TContractState>, bid_id: felt252) -> Bid {
@@ -67,20 +66,18 @@ pub mod RBTreeComponent {
         }
 
         fn _update(ref self: ComponentState<TContractState>, bid_id: felt252, bid: Bid) {
-            let node: Node = self.tree.read(bid_id);
-            if node.value.id == 0 {
-                return;
+            if bid_id.is_non_zero() {
+                let mut node: Node = self.tree.read(bid_id);
+                node.value = bid;
+                // let new_node = Node { value: bid, ..node };
+                self.tree.write(bid_id, node);
             }
-            let new_node = Node { value: bid, ..node };
-            self.tree.write(bid_id, new_node);
         }
 
         fn _delete(ref self: ComponentState<TContractState>, bid_id: felt252) {
-            let node: Node = self.tree.read(bid_id);
-            if node.value.id == 0 {
-                return;
+            if bid_id.is_non_zero() {
+                self.delete_node(bid_id);
             }
-            self.delete_node(bid_id);
         }
     }
 
@@ -239,15 +236,16 @@ pub mod RBTreeComponent {
             ref self: ComponentState<TContractState>, bid: Bid, color: bool, parent: felt252
         ) -> felt252 {
             let new_node = Node { value: bid, left: 0, right: 0, parent: parent, color: color, };
+            let bid_id = bid.bid_id;
             let parent_node = self.tree.read(parent);
             if bid <= parent_node.value {
-                self.update_left(parent, bid.id);
+                self.update_left(parent, bid_id);
             } else {
-                self.update_right(parent, bid.id);
+                self.update_right(parent, bid_id);
             }
-            self.update_parent(bid.id, parent);
-            self.tree.write(bid.id, new_node);
-            return bid.id;
+            self.update_parent(bid_id, parent);
+            self.tree.write(bid_id, new_node);
+            return bid_id;
         }
     }
 
@@ -602,15 +600,7 @@ pub mod RBTreeComponent {
         }
 
         fn get_default_bid(ref self: ComponentState<TContractState>) -> Bid {
-            Bid {
-                id: 0,
-                nonce: 0,
-                owner: 0.try_into().unwrap(),
-                amount: 0,
-                price: 0,
-                is_tokenized: false,
-                is_refunded: false,
-            }
+            Bid { bid_id: 0, owner: 0.try_into().unwrap(), amount: 0, price: 0, tree_nonce: 0 }
         }
     }
 

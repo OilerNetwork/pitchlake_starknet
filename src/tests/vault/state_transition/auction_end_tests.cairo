@@ -89,9 +89,10 @@ fn test_ending_auction_while_round_running_fails() {
 #[available_gas(100000000)]
 fn test_ending_auction_while_round_settled_fails() {
     let (mut vault_facade, _) = setup_facade();
+    let mut current_round = vault_facade.get_current_round();
     accelerate_to_auctioning(ref vault_facade);
     accelerate_to_running(ref vault_facade);
-    accelerate_to_settled(ref vault_facade, 0);
+    accelerate_to_settled(ref vault_facade, current_round.get_strike_price());
 
     // Try to end auction before round transition period is over
     vault_facade.end_auction_expect_error(Errors::AuctionAlreadyEnded);
@@ -125,10 +126,10 @@ fn test_auction_ended_option_round_event() {
         // Check the event emits correctly
         assert(clearing_price > 0, 'clearing price shd be > 0');
         assert_event_auction_end(
-            current_round.contract_address(), clearing_price, total_options_sold
+            current_round.contract_address(), total_options_sold, clearing_price, 0
         );
 
-        accelerate_to_settled(ref vault, 0);
+        accelerate_to_settled(ref vault, current_round.get_strike_price() * 2);
         rounds_to_run -= 1;
     }
 }
@@ -147,13 +148,14 @@ fn test_end_auction_does_not_update_current_and_next_round_ids() {
 
     while rounds_to_run > 0_u32 {
         accelerate_to_auctioning(ref vault);
+        let mut current_round = vault.get_current_round();
         let current_round_id = vault.get_current_round_id();
         accelerate_to_running(ref vault);
         let new_current_round_id = vault.get_current_round_id();
 
         assert(new_current_round_id == current_round_id, 'current round id changed');
 
-        accelerate_to_settled(ref vault, 0);
+        accelerate_to_settled(ref vault, current_round.get_strike_price());
         rounds_to_run -= 1;
     }
 }
@@ -175,7 +177,7 @@ fn test_end_auction_updates_current_round_state() {
             current_round.get_state() == OptionRoundState::Running, 'current round shd be running'
         );
 
-        accelerate_to_settled(ref vault, 0);
+        accelerate_to_settled(ref vault, current_round.get_strike_price());
 
         rounds_to_run -= 1;
     }
@@ -306,7 +308,7 @@ fn test_end_auction_updates_locked_and_unlocked_balances() {
 // Test that the vault and LP spreads update when the auction ends. Tests rollover
 // amounts with withdraw and topup
 #[test]
-#[available_gas(100000000)]
+#[available_gas(150000000)]
 fn test_end_auction_updates_vault_and_lp_spreads_complex() {
     let number_of_liquidity_providers = 4;
     let round1_deposits = create_array_gradient(

@@ -6,6 +6,8 @@ use pitch_lake_starknet::option_round::contract::OptionRound;
 mod Errors {
     /// Vault Errors ///
     const InsufficientBalance: felt252 = 'Insufficient unlocked balance';
+    const QueueingMoreThanPositionValue: felt252 = 'Insufficient balance to queue';
+    const WithdrawalQueuedWhileUnlocked: felt252 = 'Can only queue while locked';
     /// OptionRound Errors ///
     const CallerIsNotVault: felt252 = 'Caller not the Vault';
     // Starting an auction
@@ -22,7 +24,7 @@ mod Errors {
     const BidAmountZero: felt252 = 'Bid amount cannot be 0';
     const BidBelowReservePrice: felt252 = 'Bid price below reserve price';
     const CallerNotBidOwner: felt252 = 'Caller is not bid owner';
-    const BidCannotBeDecreased: felt252 = 'A bid cannot decrease';
+    const BidMustBeIncreased: felt252 = 'Bid updates must increase price';
     // Refunding bids & tokenizing options
     const AuctionNotEnded: felt252 = 'Auction has not ended yet';
     const OptionRoundNotSettled: felt252 = 'Option round not settled yet';
@@ -32,7 +34,7 @@ mod Errors {
 }
 
 mod Consts {
-    const BPS: u256 = 10000;
+    const BPS: u256 = 10_000;
 }
 
 /// An enum for each type of Vault
@@ -79,13 +81,11 @@ struct OptionRoundConstructorParams {
 // The struct for a bid placed in a round's auction
 #[derive(Copy, Drop, Serde, starknet::Store, PartialEq, Display)]
 struct Bid {
-    id: felt252,
-    nonce: u64,
+    bid_id: felt252,
     owner: ContractAddress,
     amount: u256,
     price: u256,
-    is_tokenized: bool,
-    is_refunded: bool,
+    tree_nonce: u64,
 }
 
 // Allows Bids to be sorted using >, >=, <, <=
@@ -99,8 +99,8 @@ impl BidPartialOrdTrait of PartialOrd<Bid> {
         } else if lhs.price > rhs.price {
             false
         } else {
-            assert(lhs.nonce != rhs.nonce, Errors::BidsShouldNotHaveSameTreeNonce);
-            lhs.nonce > rhs.nonce
+            assert(lhs.tree_nonce != rhs.tree_nonce, Errors::BidsShouldNotHaveSameTreeNonce);
+            lhs.tree_nonce > rhs.tree_nonce
         }
     }
 
@@ -111,8 +111,8 @@ impl BidPartialOrdTrait of PartialOrd<Bid> {
         } else if lhs.price < rhs.price {
             false
         } else {
-            assert(lhs.nonce != rhs.nonce, Errors::BidsShouldNotHaveSameTreeNonce);
-            lhs.nonce < rhs.nonce
+            assert(lhs.tree_nonce != rhs.tree_nonce, Errors::BidsShouldNotHaveSameTreeNonce);
+            lhs.tree_nonce < rhs.tree_nonce
         }
     }
 
@@ -133,14 +133,12 @@ impl BidPartialOrdTrait of PartialOrd<Bid> {
 impl BidDisplay of Display<Bid> {
     fn fmt(self: @Bid, ref f: Formatter) -> Result<(), Error> {
         let str: ByteArray = format!(
-            "ID:{}\nNonce:{}\nOwner:{}\nAmount:{}\n Price:{}\nTokenized:{}\nRefunded:{}",
-            *self.id,
-            *self.nonce,
+            "Bid ID:{}\nOwner:{}\nAmount:{}\nPrice:{}\nTree Nonce:{}",
+            *self.bid_id,
             Into::<ContractAddress, felt252>::into(*self.owner),
             *self.amount,
             *self.price,
-            *self.is_tokenized,
-            *self.is_refunded,
+            *self.tree_nonce,
         );
         f.buffer.append(@str);
         Result::Ok(())

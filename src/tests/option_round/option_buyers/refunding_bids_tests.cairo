@@ -157,7 +157,7 @@ fn test_refund_bids_sets_refunded_balance_to_0() {
         Option::Some(bidder) => {
             current_round.refund_bid(*bidder);
             // Check refunded bid balance is 0 for bidder
-            assert(0 == current_round.get_refundable_bids_for(*bidder), 'refunded bid shd be 0');
+            assert(0 == current_round.get_refundable_balance_for(*bidder), 'refunded bid shd be 0');
         },
         Option::None => { panic!("this should not panic") }
     }

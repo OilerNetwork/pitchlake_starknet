@@ -4,7 +4,8 @@ use pitch_lake_starknet::{
             helpers::{
                 accelerators::{
                     accelerate_to_auctioning, accelerate_to_running, accelerate_to_running_custom,
-                    timeskip_and_end_auction, accelerate_to_auctioning_custom, accelerate_to_settled,
+                    timeskip_and_end_auction, accelerate_to_auctioning_custom,
+                    accelerate_to_settled,
                 },
                 setup::{setup_facade, setup_test_auctioning_bidders},
                 general_helpers::{
@@ -120,7 +121,7 @@ fn test_unsold_liquidity_moves_from_locked_to_unlocked() {
 
 // Test unsold liquidity adds to liquidity provider's unlocked balance
 #[test]
-#[available_gas(50000000)]
+#[available_gas(80000000)]
 fn test_unsold_liquidity_is_unlocked_for_liquidity_providers() {
     let (mut vault, _) = setup_facade();
     let mut current_round = vault.get_current_round();
@@ -218,7 +219,8 @@ fn test_unsold_liquidity_is_unlocked_for_liquidity_providers_end_of_round() {
 
     assert(locked_balance_after == 0, 'locked after wrong');
     assert(
-        unlocked_balance_after == deposit_amount/2 + total_premium + unsold_liq,        'unlocked after wrong'
+        unlocked_balance_after == deposit_amount / 2 + total_premium + unsold_liq,
+        'unlocked after wrong'
     );
 }
 
