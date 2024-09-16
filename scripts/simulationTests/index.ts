@@ -35,7 +35,6 @@ async function simulationTesting(testRunner: TestRunner) {
     const roundData = await simulator.simulateRound(roundParams);
     data.results.push(roundData);
   }
-  console.log("DATA", data);
   const stringified = JSON.stringify(data);
   fs.writeFile(
     `./simulationData/simulationOutput/simulationResults-${Math.floor(
@@ -53,13 +52,13 @@ const initial = {
   liquidityProviders: [1, 2],
   depositAmounts: ["50000000000000", "50000000000000"],
   optionBidders: [1, 3],
-  bidAmounts: [5000, 7000],
+ 
 };
 const repeating = {
   liquidityProviders: [],
   depositAmounts: [],
   optionBidders: [1, 3],
-  bidAmounts: [5000, 7000],
+  
 };
 
 export const generateSheet = () => {
@@ -82,10 +81,16 @@ export const generateSheet = () => {
           return marketData.reservePrice;
         }),
         marketData,
+        bidAmounts:[Math.random(),Math.random()],
+        withdrawals:[1,2],
+        withdrawalAmounts:[Math.random()/2,Math.random()/2],
       } as SimulationSheet;
     } else
       return {
         ...repeating,
+        bidAmounts:[Math.random(),Math.random()],
+        withdrawals:[1,2],
+        withdrawalAmounts:[Math.random()/2,Math.random()/2],
         bidPrices: initial.optionBidders.map((bidder) => {
           return marketData.reservePrice;
         }),

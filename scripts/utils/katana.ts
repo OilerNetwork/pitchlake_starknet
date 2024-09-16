@@ -14,7 +14,7 @@ export const setNextBlock = async (increase: number, url: string) => {
 
   await fetch(url, options)
     .then((response) => response.json())
-    .then((response) => console.log(response))
+    .then((response) => {})
     .catch((err) => console.error(err));
 };
 export const mineNextBlock = async (url: string) => {
@@ -31,7 +31,7 @@ export const mineNextBlock = async (url: string) => {
 
   await fetch(url, options)
     .then((response) => response.json())
-    .then((response) => console.log(response))
+    .then((response) =>{})
     .catch((err) => console.error(err));
 };
 

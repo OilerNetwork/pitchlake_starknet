@@ -21,6 +21,11 @@ export class OptionRoundFacade {
   }
 
 
+
+  async getStartingLiquidity(){
+    const res = await this.optionRoundContract.starting_liquidity();
+    return convertToBigInt(res);
+  }
   async getRoundId() {
     const res = await this.optionRoundContract.get_round_id();
     return convertToBigInt(res);
@@ -95,10 +100,9 @@ export class OptionRoundFacade {
     this.optionRoundContract.connect(from);
     try {
       const data = await this.optionRoundContract.place_bid(amount, price);
-      console.log("SUCCESS", data);
     } catch (err) {
       const error = err as LibraryError;
-      console.log(error.name);
+      console.log(error.name,from,amount,price,error.message,error.cause);
     }
   }
 
