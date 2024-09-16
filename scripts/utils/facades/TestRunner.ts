@@ -202,7 +202,7 @@ export class TestRunner {
     const devAccount = getAccount("dev", this.provider);
     //Set market aggregator reserve_price
     const marketAggregatorString =
-      await this.vaultFacade.vaultContract.get_market_aggregator();
+      await this.vaultFacade.vaultContract.get_market_aggregator_address();
     const marketAggregatorAddress = "0x" + stringToHex(marketAggregatorString);
     const marketAggFacade = new MarketAggregatorFacade(
       marketAggregatorAddress,

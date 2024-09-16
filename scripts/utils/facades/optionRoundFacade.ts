@@ -23,7 +23,7 @@ export class OptionRoundFacade {
 
 
   async getStartingLiquidity(){
-    const res = await this.optionRoundContract.starting_liquidity();
+    const res = await this.optionRoundContract.get_starting_liquidity();
     return convertToBigInt(res);
   }
   async getRoundId() {
@@ -31,15 +31,15 @@ export class OptionRoundFacade {
     return convertToBigInt(res);
   }
   async getTotalPayout() {
-    const res = await this.optionRoundContract.total_payout();
+    const res = await this.optionRoundContract.get_total_payout();
     return convertToBigInt(res);
   }
   async getTotalPremiums() {
-    const res = await this.optionRoundContract.total_premiums();
+    const res = await this.optionRoundContract.get_total_premium();
     return convertToBigInt(res);
   }
   async getTotalOptionsAvailable() {
-    const res = await this.optionRoundContract.total_options_available();
+    const res = await this.optionRoundContract.get_options_available();
     return convertToBigInt(res);
   }
   async getReservePrice() {
@@ -47,7 +47,7 @@ export class OptionRoundFacade {
     return convertToBigInt(res);
   }
   async getBidsFor(address: string) {
-    const res = await this.optionRoundContract.get_bids_for(address);
+    const res = await this.optionRoundContract.get_account_bids(address);
     const bids: Array<Bid> = [];
 
     for (let data of res) {
@@ -67,9 +67,9 @@ export class OptionRoundFacade {
         price = data.price;
       }
       const bid: Bid = {
-        id: data.id,
+        id: data.bid_id,
         amount: amount,
-        nonce: data.nonce,
+        nonce: data.tree_nonce,
         owner: data.owner,
         price: price,
       };
@@ -139,7 +139,7 @@ export class OptionRoundFacade {
 
   async getTotalOptionsBalanceFor(optionBuyer: string) {
     try {
-      const res = await this.optionRoundContract.get_total_options_balance_for(
+      const res = await this.optionRoundContract.get_account_total_options(
         optionBuyer
       );
       return convertToBigInt(res);

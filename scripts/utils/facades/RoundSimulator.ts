@@ -94,7 +94,7 @@ export class RoundSimulator {
       params.withdrawalArgs
     );
     const optionsSold =
-      await this.optionRoundFacade.optionRoundContract.total_options_sold();
+      await this.optionRoundFacade.optionRoundContract.get_options_sold();
 
     const ethBalanceVault = await this.testRunner.ethFacade.getBalance(
       this.testRunner.vaultFacade.vaultContract.address

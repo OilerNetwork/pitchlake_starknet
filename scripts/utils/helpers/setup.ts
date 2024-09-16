@@ -48,7 +48,7 @@ export const getOptionRoundContract = async (
   vault: TypedContractV2<typeof vaultABI>,
   prev?: boolean
 ) => {
-  let optionRoundId = await vault.current_round_id();
+  let optionRoundId = await vault.get_current_round_id();
   let id;
   if (typeof optionRoundId !== "number" && typeof optionRoundId !== "bigint") {
     const temp = new CairoUint256(optionRoundId);

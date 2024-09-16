@@ -17,6 +17,7 @@ async function main(environment: string, port?: string) {
     volatility:10,
     capLevel:5000,
   }
+  console.log("HASHES",hashes)
   let { ethAddress, vaultAddress } = await deployContracts(
     environment,
     devAccount,
