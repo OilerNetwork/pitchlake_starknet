@@ -30,7 +30,7 @@ use pitch_lake_starknet::{
                     accelerate_to_settled, timeskip_past_auction_end_date,
                 },
                 event_helpers::{
-                    assert_event_transfer, assert_event_auction_bid_accepted, pop_log,
+                    assert_event_transfer, assert_event_auction_bid_placed, pop_log,
                     assert_no_events_left,
                 }
             },
@@ -215,20 +215,24 @@ fn test_bid_accepted_events() {
     let mut bid_amounts = create_array_linear(options_available, 3).span();
     let mut bid_prices = create_array_gradient(reserve_price, reserve_price, 3).span();
     clear_event_logs(array![current_round.contract_address()]);
-    current_round.place_bids(bid_amounts, bid_prices, option_bidders);
+    let mut bids = current_round.place_bids(bid_amounts, bid_prices, option_bidders).span();
 
     // Check bid accepted events
     loop {
         match option_bidders.pop_front() {
             Option::Some(ob) => {
+                let bid = bids.pop_front().unwrap();
+                let bid_id = bid.bid_id;
+                let tree_nonce = bid.tree_nonce;
                 let bid_amount = bid_amounts.pop_front().unwrap();
                 let bid_price = bid_prices.pop_front().unwrap();
-                assert_event_auction_bid_accepted(
+                assert_event_auction_bid_placed(
                     current_round.contract_address(),
                     *ob,
+                    *bid_id,
                     *bid_amount,
                     *bid_price,
-                    0 //The 0 is nonce, nonce for each of the bidders should be 0 as it's there first bid
+                    *tree_nonce + 1
                 );
             },
             Option::None => { break; }
@@ -446,7 +450,7 @@ fn test_place_bid_id() {
             array![bidder.into(), bid_nonce.into()].span()
         );
         let bid = current_round.place_bid(bid_amount, bid_price, bidder);
-        assert(bid.id == expected_hash, 'Bid Id Incorrect');
+        assert(bid.bid_id == expected_hash, 'Bid Id Incorrect');
         i -= 1;
     };
 }

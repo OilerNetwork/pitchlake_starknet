@@ -2,9 +2,19 @@ import { CairoUint256, Contract, Provider, TypedContractV2 } from "starknet";
 import { stringToHex } from "./common";
 import { erc20ABI, optionRoundABI, vaultABI } from "../../abi";
 import { OptionRoundFacade } from "../facades/optionRoundFacade";
-import { SimulationParameters, SimulationSheet } from "../facades/RoundSimulator";
-import { DepositArgs, ExerciseOptionArgs, PlaceBidArgs, RefundUnusedBidsArgs } from "../facades/types";
+import {
+  SimulationParameters,
+  SimulationSheet,
+} from "../facades/RoundSimulator";
+import {
+  DepositArgs,
+  ExerciseOptionArgs,
+  PlaceBidArgs,
+  RefundUnusedBidsArgs,
+  WithdrawArgs,
+} from "../facades/types";
 import { TestRunner } from "../facades/TestRunner";
+import { liquidityProviders } from "../constants";
 
 export const getOptionRoundFacade = async (
   provider: Provider,
@@ -38,7 +48,7 @@ export const getOptionRoundContract = async (
   vault: TypedContractV2<typeof vaultABI>,
   prev?: boolean
 ) => {
-  let optionRoundId = await vault.current_round_id();
+  let optionRoundId = await vault.get_current_round_id();
   let id;
   if (typeof optionRoundId !== "number" && typeof optionRoundId !== "bigint") {
     const temp = new CairoUint256(optionRoundId);
@@ -80,7 +90,7 @@ export const generateSimulationParams = (
       (bidder, index) => {
         const data: PlaceBidArgs = {
           from: optionBidderAccounts[bidder - 1],
-          amount: BigInt(simulationSheet.bidAmounts[index]),
+          amount: Number(simulationSheet.bidAmounts[index]),
           price: BigInt(simulationSheet.bidPrices[index]),
         };
         return data;
@@ -91,9 +101,36 @@ export const generateSimulationParams = (
     bidAllArgs.map((bids) => {
       if (!ref[bids.from.address]) {
         ref[bids.from.address] = true;
-        refundAllArgs.push({ from: bids.from, optionBidder: bids.from.address });
+        refundAllArgs.push({
+          from: bids.from,
+          optionBidder: bids.from.address,
+        });
       }
     });
+
+    let withdrawPremiumArgs: Array<WithdrawArgs> = [];
+    if (simulationSheet.withdrawalsPremium) {
+      withdrawPremiumArgs = simulationSheet.withdrawalsPremium.map(
+        (bidder) => ({
+          account: liquidityProviderAccounts[bidder - 1],
+          amount: 0,
+        })
+      );
+    }
+
+    let withdrawalArgs: Array<WithdrawArgs> = [];
+    if (simulationSheet.withdrawalAmounts && simulationSheet.withdrawals) {
+      withdrawalArgs = simulationSheet.withdrawals.map((bidder, index) => {
+        return {
+          account: liquidityProviderAccounts[bidder - 1],
+          amount: Number(
+            simulationSheet.withdrawalAmounts
+              ? simulationSheet.withdrawalAmounts[index]
+              : 0
+          ),
+        };
+      });
+    }
 
     const exerciseOptionsAllArgs: Array<ExerciseOptionArgs> =
       simulationSheet.optionBidders.map((bidder) => ({
@@ -103,8 +140,10 @@ export const generateSimulationParams = (
       depositAllArgs,
       bidAllArgs,
       marketData: simulationSheet.marketData,
+      withdrawPremiumArgs,
+      withdrawalArgs,
       exerciseOptionsAllArgs,
-      refundAllArgs
+      refundAllArgs,
     };
     return data;
   });

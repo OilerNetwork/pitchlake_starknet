@@ -92,7 +92,7 @@ fn test_premium_amount_for_liquidity_providers_3() {
 
 // Test the portion of premiums an LP can collect in a round is correct (more LPs)
 #[test]
-#[available_gas(50000000)]
+#[available_gas(80000000)]
 fn test_premium_amount_for_liquidity_providers_4() {
     let (mut vault_facade, _) = setup_facade();
     // LPs

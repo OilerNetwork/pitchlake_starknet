@@ -115,12 +115,12 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
 
     // Settle the current option round
     fn settle_option_round(ref self: OptionRoundFacade, settlement_price: u256) -> u256 {
-        let (total_payout, _) = self.option_round_dispatcher.settle_option_round(settlement_price);
+        let total_payout = self.option_round_dispatcher.settle_round(settlement_price);
 
         // Set ETH approvals for next round
         let vault_dispatcher = IVaultDispatcher { contract_address: self.vault_address() };
         let next_round_address = vault_dispatcher.get_round_address(self.get_round_id() + 1);
-        eth_supply_and_approve_all_bidders(next_round_address, vault_dispatcher.eth_address());
+        eth_supply_and_approve_all_bidders(next_round_address, vault_dispatcher.get_eth_address());
 
         sanity_checks::settle_option_round(ref self, total_payout)
     }
@@ -145,7 +145,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         ref self: OptionRoundFacade, settlement_price: u256, error: felt252,
     ) {
         let safe_option_round = self.get_safe_dispatcher();
-        safe_option_round.settle_option_round(settlement_price).expect_err(error);
+        safe_option_round.settle_round(settlement_price).expect_err(error);
     }
 
 
@@ -264,11 +264,11 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
 
     // Update a bid for an option bidder
     // @return: The updated bid
-    fn update_bid(ref self: OptionRoundFacade, id: felt252, amount: u256, price: u256) -> Bid {
+    fn update_bid(ref self: OptionRoundFacade, id: felt252, price_increase: u256) -> Bid {
         let old_bid = self.get_bid_details(id);
         let bidder = old_bid.owner;
         set_contract_address(bidder);
-        let new_bid = self.option_round_dispatcher.update_bid(id, amount, price);
+        let new_bid = self.option_round_dispatcher.update_bid(id, price_increase);
         sanity_checks::update_bid(ref self, old_bid, new_bid)
     }
 
@@ -277,13 +277,13 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     fn update_bid_expect_error(
         ref self: OptionRoundFacade,
         id: felt252,
-        amount: u256,
-        price: u256,
+        price_increase: u256,
         bidder: ContractAddress,
         error: felt252,
     ) {
         let safe_option_round = self.get_safe_dispatcher();
-        safe_option_round.update_bid(id, amount, price).expect_err(error);
+        set_contract_address(bidder);
+        safe_option_round.update_bid(id, price_increase).expect_err(error);
     }
 
     // Refunds all unused bids of an option bidder
@@ -393,29 +393,29 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     /// $
 
     fn starting_liquidity(ref self: OptionRoundFacade) -> u256 {
-        self.option_round_dispatcher.starting_liquidity()
+        self.option_round_dispatcher.get_starting_liquidity()
     }
 
     fn unsold_liquidity(ref self: OptionRoundFacade) -> u256 {
         // @note Temp fix, can move this function to round facade
 
-        self.option_round_dispatcher.unsold_liquidity()
+        self.option_round_dispatcher.get_unsold_liquidity()
     }
 
     fn total_premiums(ref self: OptionRoundFacade) -> u256 {
-        self.option_round_dispatcher.total_premiums()
+        self.option_round_dispatcher.get_total_premium()
     }
 
     fn total_payout(ref self: OptionRoundFacade) -> u256 {
-        self.option_round_dispatcher.total_payout()
+        self.option_round_dispatcher.get_total_payout()
     }
 
     fn get_auction_clearing_price(ref self: OptionRoundFacade) -> u256 {
-        self.option_round_dispatcher.clearing_price()
+        self.option_round_dispatcher.get_clearing_price()
     }
 
     fn total_options_sold(ref self: OptionRoundFacade) -> u256 {
-        self.option_round_dispatcher.total_options_sold()
+        self.option_round_dispatcher.get_options_sold()
     }
 
     fn get_bid_details(ref self: OptionRoundFacade, bid_id: felt252) -> Bid {
@@ -424,33 +424,37 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
 
     fn get_bidding_nonce_for(
         ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
-    ) -> u32 {
-        self.option_round_dispatcher.get_bidding_nonce_for(option_bidder_buyer)
+    ) -> u64 {
+        self.option_round_dispatcher.get_account_bid_nonce(option_bidder_buyer)
+    }
+
+    fn get_bid_tree_nonce(ref self: OptionRoundFacade) -> u64 {
+        self.option_round_dispatcher.get_bid_tree_nonce()
     }
 
 
     fn get_bids_for(
         ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
     ) -> Array<Bid> {
-        self.option_round_dispatcher.get_bids_for(option_bidder_buyer)
+        self.option_round_dispatcher.get_account_bids(option_bidder_buyer)
     }
 
     fn get_refundable_balance_for(
         ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
     ) -> u256 {
-        self.option_round_dispatcher.get_refundable_balance_for(option_bidder_buyer)
+        self.option_round_dispatcher.get_account_refundable_balance(option_bidder_buyer)
     }
 
     fn get_payout_balance_for(
         ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
     ) -> u256 {
-        self.option_round_dispatcher.get_payout_balance_for(option_bidder_buyer)
+        self.option_round_dispatcher.get_account_payout_balance(option_bidder_buyer)
     }
 
     fn get_mintable_options_for(
         ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
     ) -> u256 {
-        self.option_round_dispatcher.get_mintable_options_for(option_bidder_buyer)
+        self.option_round_dispatcher.get_account_mintable_options(option_bidder_buyer)
     }
 
     /// Other
@@ -459,7 +463,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     }
 
     fn vault_address(ref self: OptionRoundFacade) -> ContractAddress {
-        self.option_round_dispatcher.vault_address()
+        self.option_round_dispatcher.get_vault_address()
     }
 
     fn contract_address(ref self: OptionRoundFacade) -> ContractAddress {
@@ -485,7 +489,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     }
 
     fn get_total_options_available(ref self: OptionRoundFacade) -> u256 {
-        self.option_round_dispatcher.total_options_available()
+        self.option_round_dispatcher.get_options_available()
     }
 
     /// ERC20 functions

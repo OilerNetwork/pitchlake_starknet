@@ -101,9 +101,12 @@ fn test_auction_started_option_round_event() {
     while rounds_to_run > 0_u32 {
         let mut current_round = vault.get_current_round();
         let total_options_available = accelerate_to_auctioning(ref vault);
+        let starting_liquidity = current_round.starting_liquidity();
 
         // Check the event emits correctly
-        assert_event_auction_start(current_round.contract_address(), total_options_available);
+        assert_event_auction_start(
+            current_round.contract_address(), starting_liquidity, total_options_available
+        );
 
         accelerate_to_running(ref vault);
         accelerate_to_settled(ref vault, 2 * current_round.get_strike_price());

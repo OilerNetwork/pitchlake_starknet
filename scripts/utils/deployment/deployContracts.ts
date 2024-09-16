@@ -29,7 +29,6 @@ async function deployVaultContract(
   contractAddresses: {
     ethContract: string;
     marketAggregatorContract: string;
-    vaultManager: string;
   },
   hashes: { vault: string; optionRound: string }
 ) {
@@ -41,9 +40,8 @@ async function deployVaultContract(
     auction_run_time: constants.auctionRunTime,
     option_run_time: constants.optionRunTime,
     eth_address: contractAddresses.ethContract,
-    vault_manager: contractAddresses.vaultManager,
     vault_type: new CairoCustomEnum({ InTheMoney: {} }),
-    market_aggregator: contractAddresses.marketAggregatorContract,
+    market_aggregator_address: contractAddresses.marketAggregatorContract,
     option_round_class_hash: hashes.optionRound,
   });
 
@@ -106,7 +104,6 @@ async function deployContracts(
     {
       marketAggregatorContract: marketAggregatorAddress,
       ethContract: ethAddress,
-      vaultManager: account.address,
     },
     { optionRound: hashes.optionRoundHash, vault: hashes.vaultHash }
   );

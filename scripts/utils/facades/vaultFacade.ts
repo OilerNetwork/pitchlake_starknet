@@ -31,34 +31,34 @@ export class VaultFacade {
   }
 
   async getTotalLocked() {
-    const res = await this.vaultContract.get_total_locked_balance();
+    const res = await this.vaultContract.get_vault_locked_balance();
     return convertToBigInt(res);
   }
 
   async getTotalUnLocked() {
-    const res = await this.vaultContract.get_total_unlocked_balance();
+    const res = await this.vaultContract.get_vault_unlocked_balance();
     return convertToBigInt(res);
   }
 
   async getLPLockedBalance(address: string) {
-    const res = await this.vaultContract.get_lp_locked_balance(address);
+    const res = await this.vaultContract.get_account_locked_balance(address);
     return convertToBigInt(res);
   }
 
   async getLPUnlockedBalance(address: string) {
-    const res = await this.vaultContract.get_lp_unlocked_balance(address);
+    const res = await this.vaultContract.get_account_unlocked_balance(address);
     return convertToBigInt(res);
   }
 
   async withdraw({ account, amount }: WithdrawArgs) {
     this.vaultContract.connect(account);
-    await this.vaultContract.withdraw_liquidity(amount);
+    await this.vaultContract.withdraw(amount);
   }
 
   async deposit({ from, beneficiary, amount }: DepositArgs) {
     this.vaultContract.connect(from);
     try {
-      const data = await this.vaultContract.deposit_liquidity(
+      const data = await this.vaultContract.deposit(
         amount,
         beneficiary
       );
@@ -81,6 +81,6 @@ export class VaultFacade {
 
   async settleOptionRound(account: Account) {
     this.vaultContract.connect(account);
-    await this.vaultContract.settle_option_round();
+    await this.vaultContract.settle_round();
   }
 }

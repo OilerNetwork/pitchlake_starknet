@@ -81,32 +81,6 @@ export const ABI = [
     ]
   },
   {
-    "type": "struct",
-    "name": "pitch_lake_starknet::types::Bid",
-    "members": [
-      {
-        "name": "id",
-        "type": "core::felt252"
-      },
-      {
-        "name": "nonce",
-        "type": "core::integer::u64"
-      },
-      {
-        "name": "owner",
-        "type": "core::starknet::contract_address::ContractAddress"
-      },
-      {
-        "name": "amount",
-        "type": "core::integer::u256"
-      },
-      {
-        "name": "price",
-        "type": "core::integer::u256"
-      }
-    ]
-  },
-  {
     "type": "enum",
     "name": "pitch_lake_starknet::types::OptionRoundState",
     "variants": [
@@ -129,9 +103,68 @@ export const ABI = [
     ]
   },
   {
+    "type": "struct",
+    "name": "pitch_lake_starknet::types::Bid",
+    "members": [
+      {
+        "name": "bid_id",
+        "type": "core::felt252"
+      },
+      {
+        "name": "owner",
+        "type": "core::starknet::contract_address::ContractAddress"
+      },
+      {
+        "name": "amount",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "price",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "tree_nonce",
+        "type": "core::integer::u64"
+      }
+    ]
+  },
+  {
     "type": "interface",
     "name": "pitch_lake_starknet::option_round::interface::IOptionRound",
     "items": [
+      {
+        "type": "function",
+        "name": "get_vault_address",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_round_id",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_state",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "pitch_lake_starknet::types::OptionRoundState"
+          }
+        ],
+        "state_mutability": "view"
+      },
       {
         "type": "function",
         "name": "get_auction_start_date",
@@ -167,7 +200,7 @@ export const ABI = [
       },
       {
         "type": "function",
-        "name": "starting_liquidity",
+        "name": "get_starting_liquidity",
         "inputs": [],
         "outputs": [
           {
@@ -178,7 +211,7 @@ export const ABI = [
       },
       {
         "type": "function",
-        "name": "unsold_liquidity",
+        "name": "get_unsold_liquidity",
         "inputs": [],
         "outputs": [
           {
@@ -189,178 +222,11 @@ export const ABI = [
       },
       {
         "type": "function",
-        "name": "total_premiums",
+        "name": "get_reserve_price",
         "inputs": [],
         "outputs": [
           {
             "type": "core::integer::u256"
-          }
-        ],
-        "state_mutability": "view"
-      },
-      {
-        "type": "function",
-        "name": "total_payout",
-        "inputs": [],
-        "outputs": [
-          {
-            "type": "core::integer::u256"
-          }
-        ],
-        "state_mutability": "view"
-      },
-      {
-        "type": "function",
-        "name": "clearing_price",
-        "inputs": [],
-        "outputs": [
-          {
-            "type": "core::integer::u256"
-          }
-        ],
-        "state_mutability": "view"
-      },
-      {
-        "type": "function",
-        "name": "total_options_sold",
-        "inputs": [],
-        "outputs": [
-          {
-            "type": "core::integer::u256"
-          }
-        ],
-        "state_mutability": "view"
-      },
-      {
-        "type": "function",
-        "name": "get_bid_details",
-        "inputs": [
-          {
-            "name": "bid_id",
-            "type": "core::felt252"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "pitch_lake_starknet::types::Bid"
-          }
-        ],
-        "state_mutability": "view"
-      },
-      {
-        "type": "function",
-        "name": "get_bidding_nonce_for",
-        "inputs": [
-          {
-            "name": "option_buyer",
-            "type": "core::starknet::contract_address::ContractAddress"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "core::integer::u32"
-          }
-        ],
-        "state_mutability": "view"
-      },
-      {
-        "type": "function",
-        "name": "get_bids_for",
-        "inputs": [
-          {
-            "name": "option_buyer",
-            "type": "core::starknet::contract_address::ContractAddress"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "core::array::Array::<pitch_lake_starknet::types::Bid>"
-          }
-        ],
-        "state_mutability": "view"
-      },
-      {
-        "type": "function",
-        "name": "get_refundable_balance_for",
-        "inputs": [
-          {
-            "name": "option_buyer",
-            "type": "core::starknet::contract_address::ContractAddress"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "core::integer::u256"
-          }
-        ],
-        "state_mutability": "view"
-      },
-      {
-        "type": "function",
-        "name": "get_total_options_balance_for",
-        "inputs": [
-          {
-            "name": "option_buyer",
-            "type": "core::starknet::contract_address::ContractAddress"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "core::integer::u256"
-          }
-        ],
-        "state_mutability": "view"
-      },
-      {
-        "type": "function",
-        "name": "get_payout_balance_for",
-        "inputs": [
-          {
-            "name": "option_buyer",
-            "type": "core::starknet::contract_address::ContractAddress"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "core::integer::u256"
-          }
-        ],
-        "state_mutability": "view"
-      },
-      {
-        "type": "function",
-        "name": "get_mintable_options_for",
-        "inputs": [
-          {
-            "name": "option_buyer",
-            "type": "core::starknet::contract_address::ContractAddress"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "core::integer::u256"
-          }
-        ],
-        "state_mutability": "view"
-      },
-      {
-        "type": "function",
-        "name": "vault_address",
-        "inputs": [],
-        "outputs": [
-          {
-            "type": "core::starknet::contract_address::ContractAddress"
-          }
-        ],
-        "state_mutability": "view"
-      },
-      {
-        "type": "function",
-        "name": "get_state",
-        "inputs": [],
-        "outputs": [
-          {
-            "type": "pitch_lake_starknet::types::OptionRoundState"
           }
         ],
         "state_mutability": "view"
@@ -389,7 +255,7 @@ export const ABI = [
       },
       {
         "type": "function",
-        "name": "get_reserve_price",
+        "name": "get_options_available",
         "inputs": [],
         "outputs": [
           {
@@ -400,7 +266,7 @@ export const ABI = [
       },
       {
         "type": "function",
-        "name": "total_options_available",
+        "name": "get_options_sold",
         "inputs": [],
         "outputs": [
           {
@@ -411,7 +277,7 @@ export const ABI = [
       },
       {
         "type": "function",
-        "name": "get_round_id",
+        "name": "get_clearing_price",
         "inputs": [],
         "outputs": [
           {
@@ -422,23 +288,159 @@ export const ABI = [
       },
       {
         "type": "function",
-        "name": "update_round_params",
+        "name": "get_total_premium",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_settlement_price",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_total_payout",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_account_bid_nonce",
         "inputs": [
           {
-            "name": "reserve_price",
-            "type": "core::integer::u256"
-          },
+            "name": "account",
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "outputs": [
           {
-            "name": "cap_level",
-            "type": "core::integer::u128"
-          },
+            "type": "core::integer::u64"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_bid_tree_nonce",
+        "inputs": [],
+        "outputs": [
           {
-            "name": "strike_price",
+            "type": "core::integer::u64"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_bid_details",
+        "inputs": [
+          {
+            "name": "bid_id",
+            "type": "core::felt252"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "pitch_lake_starknet::types::Bid"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_account_bids",
+        "inputs": [
+          {
+            "name": "account",
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "core::array::Array::<pitch_lake_starknet::types::Bid>"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_account_refundable_balance",
+        "inputs": [
+          {
+            "name": "account",
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "outputs": [
+          {
             "type": "core::integer::u256"
           }
         ],
-        "outputs": [],
-        "state_mutability": "external"
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_account_mintable_options",
+        "inputs": [
+          {
+            "name": "account",
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_account_total_options",
+        "inputs": [
+          {
+            "name": "account",
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_account_payout_balance",
+        "inputs": [
+          {
+            "name": "account",
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "view"
       },
       {
         "type": "function",
@@ -469,7 +471,7 @@ export const ABI = [
       },
       {
         "type": "function",
-        "name": "settle_option_round",
+        "name": "settle_round",
         "inputs": [
           {
             "name": "settlement_price",
@@ -478,9 +480,29 @@ export const ABI = [
         ],
         "outputs": [
           {
-            "type": "(core::integer::u256, core::integer::u256)"
+            "type": "core::integer::u256"
           }
         ],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "update_round_params",
+        "inputs": [
+          {
+            "name": "reserve_price",
+            "type": "core::integer::u256"
+          },
+          {
+            "name": "cap_level",
+            "type": "core::integer::u128"
+          },
+          {
+            "name": "strike_price",
+            "type": "core::integer::u256"
+          }
+        ],
+        "outputs": [],
         "state_mutability": "external"
       },
       {
@@ -512,11 +534,7 @@ export const ABI = [
             "type": "core::felt252"
           },
           {
-            "name": "new_amount",
-            "type": "core::integer::u256"
-          },
-          {
-            "name": "new_price",
+            "name": "price_increase",
             "type": "core::integer::u256"
           }
         ],
@@ -532,7 +550,7 @@ export const ABI = [
         "name": "refund_unused_bids",
         "inputs": [
           {
-            "name": "option_bidder",
+            "name": "account",
             "type": "core::starknet::contract_address::ContractAddress"
           }
         ],
@@ -809,7 +827,12 @@ export const ABI = [
     "kind": "struct",
     "members": [
       {
-        "name": "total_options_available",
+        "name": "starting_liquidity",
+        "type": "core::integer::u256",
+        "kind": "data"
+      },
+      {
+        "name": "options_available",
         "type": "core::integer::u256",
         "kind": "data"
       }
@@ -817,7 +840,7 @@ export const ABI = [
   },
   {
     "type": "event",
-    "name": "pitch_lake_starknet::option_round::contract::OptionRound::BidAccepted",
+    "name": "pitch_lake_starknet::option_round::contract::OptionRound::BidPlaced",
     "kind": "struct",
     "members": [
       {
@@ -826,8 +849,8 @@ export const ABI = [
         "kind": "key"
       },
       {
-        "name": "nonce",
-        "type": "core::integer::u32",
+        "name": "bid_id",
+        "type": "core::felt252",
         "kind": "data"
       },
       {
@@ -838,6 +861,11 @@ export const ABI = [
       {
         "name": "price",
         "type": "core::integer::u256",
+        "kind": "data"
+      },
+      {
+        "name": "bid_tree_nonce_now",
+        "type": "core::integer::u64",
         "kind": "data"
       }
     ]
@@ -853,28 +881,18 @@ export const ABI = [
         "kind": "key"
       },
       {
-        "name": "id",
+        "name": "bid_id",
         "type": "core::felt252",
         "kind": "data"
       },
       {
-        "name": "old_amount",
+        "name": "price_increase",
         "type": "core::integer::u256",
         "kind": "data"
       },
       {
-        "name": "old_price",
-        "type": "core::integer::u256",
-        "kind": "data"
-      },
-      {
-        "name": "new_amount",
-        "type": "core::integer::u256",
-        "kind": "data"
-      },
-      {
-        "name": "new_price",
-        "type": "core::integer::u256",
+        "name": "bid_tree_nonce_now",
+        "type": "core::integer::u64",
         "kind": "data"
       }
     ]
@@ -885,12 +903,17 @@ export const ABI = [
     "kind": "struct",
     "members": [
       {
+        "name": "options_sold",
+        "type": "core::integer::u256",
+        "kind": "data"
+      },
+      {
         "name": "clearing_price",
         "type": "core::integer::u256",
         "kind": "data"
       },
       {
-        "name": "total_options_sold",
+        "name": "unsold_liquidity",
         "type": "core::integer::u256",
         "kind": "data"
       }
@@ -902,17 +925,12 @@ export const ABI = [
     "kind": "struct",
     "members": [
       {
-        "name": "total_payout",
+        "name": "settlement_price",
         "type": "core::integer::u256",
         "kind": "data"
       },
       {
         "name": "payout_per_option",
-        "type": "core::integer::u256",
-        "kind": "data"
-      },
-      {
-        "name": "settlement_price",
         "type": "core::integer::u256",
         "kind": "data"
       }
@@ -929,12 +947,12 @@ export const ABI = [
         "kind": "key"
       },
       {
-        "name": "num_options",
+        "name": "number_of_options",
         "type": "core::integer::u256",
         "kind": "data"
       },
       {
-        "name": "amount",
+        "name": "exercised_amount",
         "type": "core::integer::u256",
         "kind": "data"
       }
@@ -951,7 +969,7 @@ export const ABI = [
         "kind": "key"
       },
       {
-        "name": "amount",
+        "name": "refunded_amount",
         "type": "core::integer::u256",
         "kind": "data"
       }
@@ -1018,7 +1036,7 @@ export const ABI = [
         "kind": "key"
       },
       {
-        "name": "amount",
+        "name": "minted_amount",
         "type": "core::integer::u256",
         "kind": "data"
       }
@@ -1096,8 +1114,8 @@ export const ABI = [
         "kind": "nested"
       },
       {
-        "name": "BidAccepted",
-        "type": "pitch_lake_starknet::option_round::contract::OptionRound::BidAccepted",
+        "name": "BidPlaced",
+        "type": "pitch_lake_starknet::option_round::contract::OptionRound::BidPlaced",
         "kind": "nested"
       },
       {

@@ -42,18 +42,7 @@ export const ABI = [
     "items": [
       {
         "type": "function",
-        "name": "vault_manager",
-        "inputs": [],
-        "outputs": [
-          {
-            "type": "core::starknet::contract_address::ContractAddress"
-          }
-        ],
-        "state_mutability": "view"
-      },
-      {
-        "type": "function",
-        "name": "vault_type",
+        "name": "get_vault_type",
         "inputs": [],
         "outputs": [
           {
@@ -64,7 +53,7 @@ export const ABI = [
       },
       {
         "type": "function",
-        "name": "get_market_aggregator",
+        "name": "get_market_aggregator_address",
         "inputs": [],
         "outputs": [
           {
@@ -75,7 +64,7 @@ export const ABI = [
       },
       {
         "type": "function",
-        "name": "eth_address",
+        "name": "get_eth_address",
         "inputs": [],
         "outputs": [
           {
@@ -119,7 +108,7 @@ export const ABI = [
       },
       {
         "type": "function",
-        "name": "current_round_id",
+        "name": "get_current_round_id",
         "inputs": [],
         "outputs": [
           {
@@ -146,10 +135,65 @@ export const ABI = [
       },
       {
         "type": "function",
-        "name": "get_lp_starting_balance",
+        "name": "get_vault_total_balance",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_vault_locked_balance",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_vault_unlocked_balance",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_vault_stashed_balance",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_vault_queued_bps",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::u16"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_account_total_balance",
         "inputs": [
           {
-            "name": "liquidity_provider",
+            "name": "account",
             "type": "core::starknet::contract_address::ContractAddress"
           }
         ],
@@ -162,10 +206,10 @@ export const ABI = [
       },
       {
         "type": "function",
-        "name": "get_lp_locked_balance",
+        "name": "get_account_locked_balance",
         "inputs": [
           {
-            "name": "liquidity_provider",
+            "name": "account",
             "type": "core::starknet::contract_address::ContractAddress"
           }
         ],
@@ -178,10 +222,10 @@ export const ABI = [
       },
       {
         "type": "function",
-        "name": "get_lp_unlocked_balance",
+        "name": "get_account_unlocked_balance",
         "inputs": [
           {
-            "name": "liquidity_provider",
+            "name": "account",
             "type": "core::starknet::contract_address::ContractAddress"
           }
         ],
@@ -194,30 +238,46 @@ export const ABI = [
       },
       {
         "type": "function",
-        "name": "get_lp_queued_balance",
+        "name": "get_account_stashed_balance",
         "inputs": [
           {
-            "name": "liquidity_provider",
+            "name": "account",
             "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_account_queued_bps",
+        "inputs": [
+          {
+            "name": "account",
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "core::integer::u16"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "deposit",
+        "inputs": [
+          {
+            "name": "amount",
+            "type": "core::integer::u256"
           },
           {
-            "name": "round_id",
-            "type": "core::integer::u256"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "core::integer::u256"
-          }
-        ],
-        "state_mutability": "view"
-      },
-      {
-        "type": "function",
-        "name": "get_lp_stashed_balance",
-        "inputs": [
-          {
-            "name": "liquidity_provider",
+            "name": "account",
             "type": "core::starknet::contract_address::ContractAddress"
           }
         ],
@@ -226,14 +286,42 @@ export const ABI = [
             "type": "core::integer::u256"
           }
         ],
-        "state_mutability": "view"
+        "state_mutability": "external"
       },
       {
         "type": "function",
-        "name": "get_lp_total_balance",
+        "name": "withdraw",
         "inputs": [
           {
-            "name": "liquidity_provider",
+            "name": "amount",
+            "type": "core::integer::u256"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "queue_withdrawal",
+        "inputs": [
+          {
+            "name": "bps",
+            "type": "core::integer::u16"
+          }
+        ],
+        "outputs": [],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
+        "name": "withdraw_stash",
+        "inputs": [
+          {
+            "name": "account",
             "type": "core::starknet::contract_address::ContractAddress"
           }
         ],
@@ -242,87 +330,7 @@ export const ABI = [
             "type": "core::integer::u256"
           }
         ],
-        "state_mutability": "view"
-      },
-      {
-        "type": "function",
-        "name": "get_total_locked_balance",
-        "inputs": [],
-        "outputs": [
-          {
-            "type": "core::integer::u256"
-          }
-        ],
-        "state_mutability": "view"
-      },
-      {
-        "type": "function",
-        "name": "get_total_unlocked_balance",
-        "inputs": [],
-        "outputs": [
-          {
-            "type": "core::integer::u256"
-          }
-        ],
-        "state_mutability": "view"
-      },
-      {
-        "type": "function",
-        "name": "get_total_queued_balance",
-        "inputs": [
-          {
-            "name": "round_id",
-            "type": "core::integer::u256"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "core::integer::u256"
-          }
-        ],
-        "state_mutability": "view"
-      },
-      {
-        "type": "function",
-        "name": "get_total_stashed_balance",
-        "inputs": [],
-        "outputs": [
-          {
-            "type": "core::integer::u256"
-          }
-        ],
-        "state_mutability": "view"
-      },
-      {
-        "type": "function",
-        "name": "get_total_balance",
-        "inputs": [],
-        "outputs": [
-          {
-            "type": "core::integer::u256"
-          }
-        ],
-        "state_mutability": "view"
-      },
-      {
-        "type": "function",
-        "name": "get_premiums_collected",
-        "inputs": [
-          {
-            "name": "liquidity_provider",
-            "type": "core::starknet::contract_address::ContractAddress"
-          },
-          {
-            "name": "round_id",
-            "type": "core::integer::u256"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "core::integer::u256"
-          }
-        ],
-        "state_mutability": "view"
+        "state_mutability": "external"
       },
       {
         "type": "function",
@@ -355,124 +363,8 @@ export const ABI = [
       },
       {
         "type": "function",
-        "name": "settle_option_round",
+        "name": "settle_round",
         "inputs": [],
-        "outputs": [
-          {
-            "type": "(core::integer::u256, core::integer::u256)"
-          }
-        ],
-        "state_mutability": "external"
-      },
-      {
-        "type": "function",
-        "name": "deposit_liquidity",
-        "inputs": [
-          {
-            "name": "amount",
-            "type": "core::integer::u256"
-          },
-          {
-            "name": "liquidity_provider",
-            "type": "core::starknet::contract_address::ContractAddress"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "core::integer::u256"
-          }
-        ],
-        "state_mutability": "external"
-      },
-      {
-        "type": "function",
-        "name": "withdraw_liquidity",
-        "inputs": [
-          {
-            "name": "amount",
-            "type": "core::integer::u256"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "core::integer::u256"
-          }
-        ],
-        "state_mutability": "external"
-      },
-      {
-        "type": "function",
-        "name": "queue_withdrawal",
-        "inputs": [
-          {
-            "name": "amount",
-            "type": "core::integer::u256"
-          }
-        ],
-        "outputs": [],
-        "state_mutability": "external"
-      },
-      {
-        "type": "function",
-        "name": "claim_queued_liquidity",
-        "inputs": [
-          {
-            "name": "liquidity_provider",
-            "type": "core::starknet::contract_address::ContractAddress"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "core::integer::u256"
-          }
-        ],
-        "state_mutability": "external"
-      },
-      {
-        "type": "function",
-        "name": "convert_position_to_lp_tokens",
-        "inputs": [
-          {
-            "name": "amount",
-            "type": "core::integer::u256"
-          }
-        ],
-        "outputs": [],
-        "state_mutability": "external"
-      },
-      {
-        "type": "function",
-        "name": "convert_lp_tokens_to_position",
-        "inputs": [
-          {
-            "name": "source_round",
-            "type": "core::integer::u256"
-          },
-          {
-            "name": "amount",
-            "type": "core::integer::u256"
-          }
-        ],
-        "outputs": [],
-        "state_mutability": "external"
-      },
-      {
-        "type": "function",
-        "name": "convert_lp_tokens_to_newer_lp_tokens",
-        "inputs": [
-          {
-            "name": "source_round",
-            "type": "core::integer::u256"
-          },
-          {
-            "name": "target_round",
-            "type": "core::integer::u256"
-          },
-          {
-            "name": "amount",
-            "type": "core::integer::u256"
-          }
-        ],
         "outputs": [
           {
             "type": "core::integer::u256"
@@ -503,15 +395,11 @@ export const ABI = [
         "type": "core::starknet::contract_address::ContractAddress"
       },
       {
-        "name": "vault_manager",
-        "type": "core::starknet::contract_address::ContractAddress"
-      },
-      {
         "name": "vault_type",
         "type": "pitch_lake_starknet::types::VaultType"
       },
       {
-        "name": "market_aggregator",
+        "name": "market_aggregator_address",
         "type": "core::starknet::contract_address::ContractAddress"
       },
       {
@@ -531,12 +419,17 @@ export const ABI = [
         "kind": "key"
       },
       {
-        "name": "position_balance_before",
+        "name": "amount",
         "type": "core::integer::u256",
         "kind": "data"
       },
       {
-        "name": "position_balance_after",
+        "name": "account_unlocked_balance_now",
+        "type": "core::integer::u256",
+        "kind": "data"
+      },
+      {
+        "name": "vault_unlocked_balance_now",
         "type": "core::integer::u256",
         "kind": "data"
       }
@@ -553,12 +446,17 @@ export const ABI = [
         "kind": "key"
       },
       {
-        "name": "position_balance_before",
+        "name": "amount",
         "type": "core::integer::u256",
         "kind": "data"
       },
       {
-        "name": "position_balance_after",
+        "name": "account_unlocked_balance_now",
+        "type": "core::integer::u256",
+        "kind": "data"
+      },
+      {
+        "name": "vault_unlocked_balance_now",
         "type": "core::integer::u256",
         "kind": "data"
       }
@@ -575,17 +473,17 @@ export const ABI = [
         "kind": "key"
       },
       {
-        "name": "round_id",
+        "name": "bps",
+        "type": "core::integer::u16",
+        "kind": "data"
+      },
+      {
+        "name": "account_queued_liquidity_now",
         "type": "core::integer::u256",
         "kind": "data"
       },
       {
-        "name": "previous_amount_queued",
-        "type": "core::integer::u256",
-        "kind": "data"
-      },
-      {
-        "name": "new_amount_queued",
+        "name": "vault_queued_liquidity_now",
         "type": "core::integer::u256",
         "kind": "data"
       }
@@ -593,7 +491,7 @@ export const ABI = [
   },
   {
     "type": "event",
-    "name": "pitch_lake_starknet::vault::contract::Vault::QueuedLiquidityCollected",
+    "name": "pitch_lake_starknet::vault::contract::Vault::StashWithdrawn",
     "kind": "struct",
     "members": [
       {
@@ -602,7 +500,12 @@ export const ABI = [
         "kind": "key"
       },
       {
-        "name": "stashed_amount",
+        "name": "amount",
+        "type": "core::integer::u256",
+        "kind": "data"
+      },
+      {
+        "name": "vault_stashed_balance_now",
         "type": "core::integer::u256",
         "kind": "data"
       }
@@ -621,6 +524,36 @@ export const ABI = [
       {
         "name": "address",
         "type": "core::starknet::contract_address::ContractAddress",
+        "kind": "data"
+      },
+      {
+        "name": "reserve_price",
+        "type": "core::integer::u256",
+        "kind": "data"
+      },
+      {
+        "name": "strike_price",
+        "type": "core::integer::u256",
+        "kind": "data"
+      },
+      {
+        "name": "cap_level",
+        "type": "core::integer::u128",
+        "kind": "data"
+      },
+      {
+        "name": "auction_start_date",
+        "type": "core::integer::u64",
+        "kind": "data"
+      },
+      {
+        "name": "auction_end_date",
+        "type": "core::integer::u64",
+        "kind": "data"
+      },
+      {
+        "name": "option_settlement_date",
+        "type": "core::integer::u64",
         "kind": "data"
       }
     ]
@@ -646,8 +579,8 @@ export const ABI = [
         "kind": "nested"
       },
       {
-        "name": "QueuedLiquidityCollected",
-        "type": "pitch_lake_starknet::vault::contract::Vault::QueuedLiquidityCollected",
+        "name": "StashWithdrawn",
+        "type": "pitch_lake_starknet::vault::contract::Vault::StashWithdrawn",
         "kind": "nested"
       },
       {
