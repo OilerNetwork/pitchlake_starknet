@@ -17,19 +17,10 @@ mod option_round {
     mod contract;
 }
 
-mod market_aggregator {
-    mod interface;
+mod fact_registry {
     mod contract;
-    mod types;
-}
-
-
-// @note Refactor these into their own modules
-mod contracts {
-    mod pitch_lake;
-    mod lp_token;
+    mod interface;
 }
 
 #[cfg(test)]
 mod tests;
-
