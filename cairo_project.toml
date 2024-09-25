@@ -1,3 +1,0 @@
-[crate_roots]
-pitch_lake_starknet = "src"
-tests = "tests"
