@@ -1,50 +1,54 @@
 #[starknet::contract]
 mod Vault {
+    use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess,};
+    use starknet::storage::{Map, StoragePathEntry};
     use starknet::{
         ContractAddress, ClassHash, deploy_syscall, get_caller_address, contract_address_const,
         get_contract_address, get_block_timestamp
     };
-    use openzeppelin::{
-        token::erc20::{ERC20Component, interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait,}},
-        utils::serde::SerializedAppend
+    use openzeppelin_token::erc20::{
+        ERC20Component, interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait}
     };
-    use pitch_lake_starknet::{
-        vault::interface::IVault,
-        option_round::{
-            contract::OptionRound, interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
-        },
-        market_aggregator::interface::{
-            IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait
-        },
-        types::{VaultType, OptionRoundState, Errors, Consts::BPS},
+    use openzeppelin_utils::serde::SerializedAppend;
+    use pitch_lake::vault::interface::{
+        ConstructorArgs, IVault, VaultType, PricingDataPoints, FossilDataPoints
     };
-    use pitch_lake_starknet::library::utils::{calculate_strike_price};
+    use pitch_lake::option_round::contract::OptionRound;
+    use pitch_lake::option_round::interface::{
+        OptionRoundState, IOptionRoundDispatcher, IOptionRoundDispatcherTrait
+    };
+    use pitch_lake::types::{Consts::{BPS, JOB_TIMESTAMP_TOLERANCE}};
+    use pitch_lake::library::utils::{
+        assert_equal_in_range, calculate_strike_price, generate_job_id, calculate_cap_level
+    };
+    use pitch_lake::fact_registry::interface::{
+        IFactRegistry, IFactRegistryDispatcher, IFactRegistryDispatcherTrait, JobRequest,
+        JobRequestParams, JobRange,
+    };
 
-    const TWAP_DURATION: u64 = 60 * 60 * 24 * 14; // 2 weeks
+    // *************************************************************************
+    //                              Contsants
+    // *************************************************************************
+
+    const DAY: u64 = 3600 * 24;
+    const EXPECTED_JOB_RANGE: JobRange =
+        JobRange {
+            twap_range: 30 * DAY, volatility_range: 90 * DAY, reserve_price_range: 90 * DAY
+        };
 
     // *************************************************************************
     //                              STORAGE
     // *************************************************************************
-    // Note: Write description of any storage variable here->
-    // @eth_address: Address for eth contract
-    // @option_round_class_hash: Hash for the latest implementation of OptionRound class
-    // @position: The amount liquidity providers deposit into each round: (liquidity_provider, round_id) -> deposit_amount
-    // @withdraw_checkpoints: Withdraw checkpoints: (liquidity_provider) -> round_id
-    // @total_unlocked_balance: Total unlocked liquidity
-    // @total_locked_balance: Total locked liquidity
-    // @total_stashed_balance: Total stashed liquidity
-    // @premiums_collected:The amount of premiums a liquidity provider collects from each round: (liquidity_provider, round_id) -> collected_amount
-    // @current_option_round_id: The id of the current option round
-    // @round_addresses: Mapping of round id -> round address
-    // @round_transition_period: Time between settling of current round and starting of next round
-    // @auction_run_time: running time for the auction
+
     #[storage]
     struct Storage {
         ///
-        market_aggregator_address: ContractAddress,
+        alpha: u128,
+        ///
+        fact_registry_address: ContractAddress,
         eth_address: ContractAddress,
         option_round_class_hash: ClassHash,
-        round_addresses: LegacyMap<u256, ContractAddress>,
+        round_addresses: Map<u256, ContractAddress>,
         ///
         vault_type: VaultType,
         round_transition_period: u64,
@@ -53,49 +57,62 @@ mod Vault {
         ///
         current_round_id: u256,
         ///
-        positions: LegacyMap<(ContractAddress, u256), u256>,
+        // @note could but usize ?
+        positions: Map<ContractAddress, Map<u256, u256>>,
         ///
         vault_locked_balance: u256,
         vault_unlocked_balance: u256,
         vault_stashed_balance: u256,
         ///
-        position_checkpoints: LegacyMap<ContractAddress, u256>,
-        stash_checkpoints: LegacyMap<ContractAddress, u256>,
-        is_premium_moved: LegacyMap<(ContractAddress, u256), bool>,
+        position_checkpoints: Map<ContractAddress, u256>,
+        stash_checkpoints: Map<ContractAddress, u256>,
+        is_premium_moved: Map<ContractAddress, Map<u256, bool>>,
         ///
-        queued_liquidity: LegacyMap<(ContractAddress, u256), u256>,
+        queued_liquidity: Map<ContractAddress, Map<u256, u256>>,
     }
 
     // *************************************************************************
     //                              Constructor
     // *************************************************************************
+
     #[constructor]
-    fn constructor(
-        ref self: ContractState,
-        round_transition_period: u64,
-        auction_run_time: u64,
-        option_run_time: u64,
-        eth_address: ContractAddress,
-        vault_type: VaultType,
-        market_aggregator_address: ContractAddress,
-        option_round_class_hash: ClassHash,
-    ) {
+    fn constructor(ref self: ContractState, args: ConstructorArgs) {
+        // @dev Get the constructor arguments
+        let ConstructorArgs { round_transition_period,
+        auction_run_time,
+        option_run_time,
+        eth_address,
+        vault_type,
+        fact_registry_address,
+        option_round_class_hash } =
+            args;
+
+        // @dev Set the Vault's parameters
         self.eth_address.write(eth_address);
         self.vault_type.write(vault_type);
-        self.market_aggregator_address.write(market_aggregator_address);
+        self.fact_registry_address.write(fact_registry_address);
         self.option_round_class_hash.write(option_round_class_hash);
         self.round_transition_period.write(round_transition_period);
         self.auction_run_time.write(auction_run_time);
         self.option_run_time.write(option_run_time);
-        // @dev Deploy the 1st option round
-        self.deploy_first_round();
+    }
+
+    // *************************************************************************
+    //                              Errors
+    // *************************************************************************
+
+    mod Errors {
+        const InsufficientBalance: felt252 = 'Insufficient unlocked balance';
+        const QueueingMoreThanPositionValue: felt252 = 'Insufficient balance to queue';
+        const WithdrawalQueuedWhileUnlocked: felt252 = 'Can only queue while locked';
+        const OptionRoundDeploymentFailed: felt252 = 'Option round deployment failed';
     }
 
     // *************************************************************************
     //                              EVENTS
     // *************************************************************************
     #[event]
-    #[derive(PartialEq, Drop, starknet::Event)]
+    #[derive(Serde, PartialEq, Drop, starknet::Event)]
     enum Event {
         Deposit: Deposit,
         Withdrawal: Withdrawal,
@@ -109,7 +126,7 @@ mod Vault {
     // @member amount: The amount deposited
     // @member: account_unlocked_balance_now: The account's unlocked balance after the deposit
     // @member: vault_unlocked_balance_now: The vault's unlocked balance after the deposit
-    #[derive(Drop, starknet::Event, PartialEq)]
+    #[derive(Serde, Drop, starknet::Event, PartialEq)]
     struct Deposit {
         #[key]
         account: ContractAddress,
@@ -123,7 +140,7 @@ mod Vault {
     // @member amount: The amount withdrawn
     // @member account_unlocked_balance_now: The account's unlocked balance after the withdrawal
     // @member vault_unlocked_balance_now: The vault's unlocked balance after the withdrawal
-    #[derive(Drop, starknet::Event, PartialEq)]
+    #[derive(Serde, Drop, starknet::Event, PartialEq)]
     struct Withdrawal {
         #[key]
         account: ContractAddress,
@@ -135,9 +152,10 @@ mod Vault {
     // @dev Emitted when an account queues a withdrawal
     // @member account: The account that queued the withdrawal
     // @member bps: The BPS % of the account's remaining liquidity to stash
-    // @member account_queued_liquidity_now: The account's starting liquidity queued after the withdrawal
-    // @member vault_queued_liquidity_now: The vault's starting liquidity queued after the withdrawal
-    #[derive(Drop, starknet::Event, PartialEq)]
+    // @member account_queued_liquidity_now: The account's starting liquidity queued after the
+    // withdrawal @member vault_queued_liquidity_now: The vault's starting liquidity queued after
+    // the withdrawal
+    #[derive(Serde, Drop, starknet::Event, PartialEq)]
     struct WithdrawalQueued {
         #[key]
         account: ContractAddress,
@@ -150,7 +168,7 @@ mod Vault {
     // @member account: The account that withdrew the stashed liquidity
     // @member amount: The amount withdrawn
     // @member vault_stashed_balance_now: The vault's stashed balance after the withdrawal
-    #[derive(Drop, starknet::Event, PartialEq)]
+    #[derive(Serde, Drop, starknet::Event, PartialEq)]
     struct StashWithdrawn {
         #[key]
         account: ContractAddress,
@@ -167,7 +185,7 @@ mod Vault {
     // @member auction_start_date: The auction start date for the deployed round
     // @member auction_end_date: The auction end date for the deployed round
     // @member option_settlement_date: The option settlement date for the deployed round
-    #[derive(Drop, starknet::Event, PartialEq)]
+    #[derive(Serde, Drop, starknet::Event, PartialEq)]
     struct OptionRoundDeployed {
         round_id: u256,
         address: ContractAddress,
@@ -194,8 +212,8 @@ mod Vault {
             self.vault_type.read()
         }
 
-        fn get_market_aggregator_address(self: @ContractState) -> ContractAddress {
-            self.market_aggregator_address.read()
+        fn get_fact_registry_address(self: @ContractState) -> ContractAddress {
+            self.fact_registry_address.read()
         }
 
         fn get_eth_address(self: @ContractState) -> ContractAddress {
@@ -247,10 +265,12 @@ mod Vault {
             let total_liq = self
                 .get_round_dispatcher(self.current_round_id.read())
                 .get_starting_liquidity();
-            // @dev Get the amount queued
+            // @dev Get the vault's queued for the current round
             let queued_liq = self
                 .queued_liquidity
-                .read((get_contract_address(), self.current_round_id.read()));
+                .entry(get_contract_address())
+                .entry(self.current_round_id.read())
+                .read();
 
             // @dev Calculate the queued BPS %, avoiding division by 0
             match total_liq.is_zero() {
@@ -297,12 +317,12 @@ mod Vault {
             let mut total = 0;
             while i < current_round_id {
                 // @dev Get the liquidity the account queued
-                let queued_liq = self.queued_liquidity.read((account, i));
+                let queued_liq = self.queued_liquidity.entry(account).entry(i).read();
                 if queued_liq.is_non_zero() {
                     // @dev Get the round's starting and remaining liquidity
                     let (starting_liq, remaining_liq, _) = self.get_round_outcome(i);
-                    // @dev Calculate the amount of remaining liquidity that was stashed for the account,
-                    // avoiding division by 0
+                    // @dev Calculate the amount of remaining liquidity that was stashed for the
+                    // account, avoiding division by 0
                     if starting_liq.is_non_zero() {
                         let stashed_liq = (remaining_liq * queued_liq) / starting_liq;
                         total += stashed_liq;
@@ -320,9 +340,10 @@ mod Vault {
             let current_round_id = self.current_round_id.read();
             let total_liq = self.get_realized_deposit_for_current_round(account);
             // @dev Get the amount the account queued
-            let queued_liq = self.queued_liquidity.read((account, current_round_id));
+            let queued_liq = self.queued_liquidity.entry(account).entry(current_round_id).read();
 
-            // @dev Calculate the BPS % of the starting liquidity that is queued, avoiding division by 0
+            // @dev Calculate the BPS % of the starting liquidity that is queued, avoiding division
+            // by 0
             match total_liq.is_zero() {
                 true => 0,
                 false => self.divide_into_bps(queued_liq, total_liq)
@@ -341,9 +362,17 @@ mod Vault {
             // @dev Update the account's current and upcoming round deposits
             self.refresh_position(account);
             let upcoming_round_id = self.get_upcoming_round_id();
-            let upcoming_round_deposit = self.positions.read((account, upcoming_round_id));
+            let upcoming_round_deposit = self
+                .positions
+                .entry(account)
+                .entry(upcoming_round_id)
+                .read();
             let account_unlocked_balance_now = upcoming_round_deposit + amount;
-            self.positions.write((account, upcoming_round_id), account_unlocked_balance_now);
+            self
+                .positions
+                .entry(account)
+                .entry(upcoming_round_id)
+                .write(account_unlocked_balance_now);
 
             // @dev Transfer the deposit amount from the caller to this contract
             let eth = self.get_eth_dispatcher();
@@ -376,14 +405,22 @@ mod Vault {
             let account = get_caller_address();
             self.refresh_position(account);
             let upcoming_round_id = self.get_upcoming_round_id();
-            let upcoming_round_deposit = self.positions.read((account, upcoming_round_id));
+            let upcoming_round_deposit = self
+                .positions
+                .entry(account)
+                .entry(upcoming_round_id)
+                .read();
 
             // @dev Check the caller is not withdrawing more than their upcoming round deposit
             assert(amount <= upcoming_round_deposit, Errors::InsufficientBalance);
 
             // @dev Update the account's upcoming round deposit
             let account_unlocked_balance_now = upcoming_round_deposit - amount;
-            self.positions.write((account, upcoming_round_id), account_unlocked_balance_now);
+            self
+                .positions
+                .entry(account)
+                .entry(upcoming_round_id)
+                .write(account_unlocked_balance_now);
 
             // @dev Update the vault's unlocked balance
             let vault_unlocked_balance_now = self.vault_unlocked_balance.read() - amount;
@@ -433,18 +470,30 @@ mod Vault {
             // @dev Calculate the's starting liquidity for the vault being queued
             let vault_previously_queued_liquidity = self
                 .queued_liquidity
-                .read((get_contract_address(), current_round_id));
+                .entry(get_contract_address())
+                .entry(current_round_id)
+                .read();
             let account_previously_queued_liquidity = self
                 .queued_liquidity
-                .read((account, current_round_id));
+                .entry(account)
+                .entry(current_round_id)
+                .read();
             let vault_queued_liquidity_now = vault_previously_queued_liquidity
                 - account_previously_queued_liquidity
                 + account_queued_liquidity_now;
 
             // @dev Update the vault and account's queued liquidity
             let vault = get_contract_address();
-            self.queued_liquidity.write((vault, current_round_id), vault_queued_liquidity_now);
-            self.queued_liquidity.write((account, current_round_id), account_queued_liquidity_now);
+            self
+                .queued_liquidity
+                .entry(vault)
+                .entry(current_round_id)
+                .write(vault_queued_liquidity_now);
+            self
+                .queued_liquidity
+                .entry(account)
+                .entry(current_round_id)
+                .write(account_queued_liquidity_now);
 
             // @dev Emit withdrawal queued event
             self
@@ -523,70 +572,79 @@ mod Vault {
             (clearing_price, options_sold)
         }
 
-        fn settle_round(ref self: ContractState) -> u256 {
-            // @dev Settle the current round
+        fn settle_round(ref self: ContractState, job_request: JobRequest) -> u256 {
+            // @dev Fetch pricing data
+            let pricing_data = self.fetch_pricing_data(@job_request);
+
+            // @dev If there is a current round, settle it
+            let mut total_payout = 0;
             let current_round_id = self.current_round_id.read();
-            let current_round = self.get_round_dispatcher(current_round_id);
-            // FOSSIL
-            let to = current_round.get_option_settlement_date();
-            let from = to - TWAP_DURATION;
-            let settlement_price = self.fetch_TWAP_for_time_period(from, to);
-            let total_payout = current_round.settle_round(settlement_price);
+            if current_round_id.is_non_zero() {
+                // @dev Settle the current round and return the total payout
+                let current_round = self.get_round_dispatcher(current_round_id);
+                total_payout = current_round.settle_round(pricing_data.twap);
 
-            // @dev Calculate the remaining liquidity after the round settles
-            let starting_liq = current_round.get_starting_liquidity();
-            let unsold_liq = current_round.get_unsold_liquidity();
-            let remaining_liq = starting_liq - unsold_liq - total_payout;
+                // @dev Calculate the remaining liquidity after the round settles
+                let starting_liq = current_round.get_starting_liquidity();
+                let unsold_liq = current_round.get_unsold_liquidity();
+                let remaining_liq = starting_liq - unsold_liq - total_payout;
 
-            // @dev Calculate the amount of liquidity that was not stashed by liquidity providers,
-            // avoiding division by 0
-            let vault = get_contract_address();
-            let starting_liq_queued = self.queued_liquidity.read((vault, current_round_id));
-            let remaining_liq_stashed = match starting_liq.is_zero() {
-                true => 0,
-                false => (remaining_liq * starting_liq_queued) / starting_liq
-            };
-            let remaining_liq_not_stashed = remaining_liq - remaining_liq_stashed;
+                // @dev Calculate the amount of liquidity that was not stashed by liquidity
+                // providers, avoiding division by 0
+                let vault = get_contract_address();
+                let starting_liq_queued = self
+                    .queued_liquidity
+                    .entry(vault)
+                    .entry(current_round_id)
+                    .read();
+                let remaining_liq_stashed = match starting_liq.is_zero() {
+                    true => 0,
+                    false => (remaining_liq * starting_liq_queued) / starting_liq
+                };
+                let remaining_liq_not_stashed = remaining_liq - remaining_liq_stashed;
 
-            // @dev All of the remaining liquidity becomes unlocked and any stashed liquidity is set
-            // aside and no longer participates in the protocol
-            self.vault_locked_balance.write(0);
-            self
-                .vault_stashed_balance
-                .write(self.vault_stashed_balance.read() + remaining_liq_stashed);
-            self
-                .vault_unlocked_balance
-                .write(self.vault_unlocked_balance.read() + remaining_liq_not_stashed);
+                // @dev All of the remaining liquidity becomes unlocked and any stashed liquidity is
+                // set aside and no longer participates in the protocol
+                self.vault_locked_balance.write(0);
+                self
+                    .vault_stashed_balance
+                    .write(self.vault_stashed_balance.read() + remaining_liq_stashed);
+                self
+                    .vault_unlocked_balance
+                    .write(self.vault_unlocked_balance.read() + remaining_liq_not_stashed);
 
-            // @dev Transfer payout from the vault to the just settled round,
-            if (total_payout > 0) {
-                self.get_eth_dispatcher().transfer(current_round.contract_address, total_payout);
+                // @dev Transfer payout from the vault to the just settled round,
+                if (total_payout > 0) {
+                    self
+                        .get_eth_dispatcher()
+                        .transfer(current_round.contract_address, total_payout);
+                }
             }
 
-            // @dev Deploy next option round contract & update the current round id
-            self.deploy_next_round(settlement_price);
+            // @dev Deploy next (or first) option round contract & update the current round id
+            self.deploy_next_round(pricing_data);
 
-            // Return the total payout for the option round
+            // Return the total payout for the option round, 0 the first round is being deployed
             total_payout
         }
-
         // @note will probably remove this
-        fn update_round_params(ref self: ContractState) {
-            let current_round_id = self.current_round_id.read();
-            let current_round = self.get_round_dispatcher(current_round_id);
-
-            let cap_level = self.fetch_cap_level_for_round(current_round_id);
-            let reserve_price = self.fetch_reserve_price_for_round(current_round_id);
-            let twap_end = current_round.get_auction_start_date();
-            let twap_start = twap_end - TWAP_DURATION;
-            let current_avg_basefee = self.fetch_TWAP_for_time_period(twap_start, twap_end);
-            let volatility = self.fetch_volatility_for_round(current_round_id);
-            let strike_price = calculate_strike_price(
-                self.vault_type.read(), current_avg_basefee, volatility
-            );
-
-            current_round.update_round_params(reserve_price, cap_level, strike_price);
-        }
+    //        fn update_round_params(ref self: ContractState) {
+    //            let current_round_id = self.current_round_id.read();
+    //            let current_round = self.get_round_dispatcher(current_round_id);
+    //
+    //            let cap_level = self.fetch_cap_level_for_round(current_round_id);
+    //            let reserve_price = self.fetch_reserve_price_for_round(current_round_id);
+    //            let twap_end = current_round.get_auction_start_date();
+    //            let twap_start = twap_end - TWAP_DURATION;
+    //            let current_avg_basefee = self.fetch_TWAP_for_time_period(twap_start,
+    //            twap_end);
+    //            let volatility = self.fetch_volatility_for_round(current_round_id);
+    //            let strike_price = calculate_strike_price(
+    //                self.vault_type.read(), current_avg_basefee, volatility
+    //            );
+    //
+    //            current_round.update_round_params(reserve_price, cap_level, strike_price);
+    //        }
     }
 
     // *************************************************************************
@@ -600,8 +658,8 @@ mod Vault {
             ERC20ABIDispatcher { contract_address: self.eth_address.read() }
         }
 
-        fn get_market_aggregator_dispatcher(self: @ContractState) -> IMarketAggregatorDispatcher {
-            IMarketAggregatorDispatcher { contract_address: self.market_aggregator_address.read() }
+        fn get_fact_registry_dispatcher(self: @ContractState) -> IFactRegistryDispatcher {
+            IFactRegistryDispatcher { contract_address: self.fact_registry_address.read() }
         }
 
         fn get_round_dispatcher(self: @ContractState, round_id: u256) -> IOptionRoundDispatcher {
@@ -660,34 +718,23 @@ mod Vault {
             (auction_start_date, auction_end_date, option_settlement_date)
         }
 
-        fn deploy_first_round(ref self: ContractState) {
-            let now = starknet::get_block_timestamp();
-            let TWAP_end_date = now;
-            let TWAP_start_date = now - TWAP_DURATION;
-            let current_avg_basefee = self
-                .fetch_TWAP_for_time_period(TWAP_start_date, TWAP_end_date);
-
-            self.deploy_next_round(current_avg_basefee);
-        }
-
-        fn deploy_next_round(ref self: ContractState, current_avg_basefee: u256) {
+        fn deploy_next_round(ref self: ContractState, pricing_data: PricingDataPoints) {
             // @dev Create this round's constructor args
             let mut calldata: Array<felt252> = array![];
-            // @dev Get this vault's address
             let vault_address: ContractAddress = get_contract_address();
-            // @dev Cauclulate this round's id
             let round_id: u256 = self.current_round_id.read() + 1;
+
             // @dev Calcualte this round's dates
             let (auction_start_date, auction_end_date, option_settlement_date) = self
                 .calculate_dates();
+
             // @dev Fetch this round's reserve price and cap level
-            let reserve_price = self.fetch_reserve_price_for_round(round_id);
-            let cap_level = self.fetch_cap_level_for_round(round_id);
-            // @dev Calculate this round's strike price
-            let volatility = self.fetch_volatility_for_round(round_id);
-            let strike_price = calculate_strike_price(
-                self.vault_type.read(), current_avg_basefee, volatility
-            );
+            let PricingDataPoints { twap: _,
+            volatility: _,
+            reserve_price,
+            cap_level,
+            strike_price } =
+                pricing_data;
 
             calldata.append_serde(vault_address);
             calldata.append_serde(round_id);
@@ -706,7 +753,8 @@ mod Vault {
 
             // @dev Update the current round id
             self.current_round_id.write(round_id);
-            // @dev Set this round address
+
+            // @dev Store this round address
             self.round_addresses.write(round_id, address);
 
             // @dev Emit option round deployed event
@@ -729,43 +777,63 @@ mod Vault {
 
         /// Fossil
 
-        fn fetch_reserve_price_for_round(self: @ContractState, round_id: u256) -> u256 {
-            let mk_agg = self.get_market_aggregator_dispatcher();
-            let res = mk_agg.get_reserve_price_for_round(get_contract_address(), round_id);
-            match res {
-                Option::Some(reserve_price) => reserve_price,
-                //Option::None => panic!("No reserve price found")
-                Option::None => 0
+        fn validate_job_request(self: @ContractState, job_request: @JobRequest) -> felt252 {
+            // @dev Get the job's params
+            let (lower_bound, upper_bound) = *job_request.params.twap;
+            let (lower_bound2, upper_bound2) = *job_request.params.volatility;
+            let (lower_bound3, upper_bound3) = *job_request.params.reserve_price;
+
+            // @dev Ensure the upper bounds are the same
+            assert(
+                upper_bound == upper_bound2 && upper_bound == upper_bound3, 'Upper bounds mismatch'
+            );
+
+            // @dev Validate the job's range
+            assert(
+                EXPECTED_JOB_RANGE == JobRange {
+                    twap_range: (upper_bound - lower_bound),
+                    volatility_range: (upper_bound2 - lower_bound2),
+                    reserve_price_range: (upper_bound3 - lower_bound3)
+                },
+                'Job out of range'
+            );
+
+            // @dev If the job request is for any round after the first round, the job's upper bound
+            // must be ~the current round's option settlement date
+            let current_round_id = self.current_round_id.read();
+            if current_round_id.is_non_zero() {
+                let current_round = self.get_round_dispatcher(current_round_id);
+                let option_settlement_date = current_round.get_option_settlement_date();
+                assert_equal_in_range(upper_bound, option_settlement_date, JOB_TIMESTAMP_TOLERANCE);
             }
+
+            // @dev Return the job's ID
+            generate_job_id(job_request)
         }
 
-        fn fetch_cap_level_for_round(self: @ContractState, round_id: u256) -> u128 {
-            let mk_agg = self.get_market_aggregator_dispatcher();
-            let res = mk_agg.get_cap_level_for_round(get_contract_address(), round_id);
-            match res {
-                Option::Some(cap_level) => cap_level,
-                //Option::None => panic!("No cap level found")
-                Option::None => 0
-            }
-        }
+        fn fetch_pricing_data(self: @ContractState, job_request: @JobRequest) -> PricingDataPoints {
+            // @dev Validate the job request
+            let job_id = self.validate_job_request(job_request);
 
-        fn fetch_volatility_for_round(self: @ContractState, round_id: u256) -> u128 {
-            let mk_agg = self.get_market_aggregator_dispatcher();
-            let res = mk_agg.get_volatility_for_round(get_contract_address(), round_id);
-            match res {
-                Option::Some(volatility) => volatility,
-                //Option::None => panic!("No volatility found")
-                Option::None => 0
-            }
-        }
+            // @dev Fetch the fact data from the registry
+            let mut data = self.get_fact_registry_dispatcher().get_fact(job_id);
+            let deserialized = Serde::<FossilDataPoints>::deserialize(ref data);
 
-        fn fetch_TWAP_for_time_period(self: @ContractState, from: u64, to: u64) -> u256 {
-            let mk_agg = self.get_market_aggregator_dispatcher();
-            let res = mk_agg.get_TWAP_for_time_period(from, to);
-            match res {
-                Option::Some(TWAP) => TWAP,
-                //Option::None => panic!("No TWAP found")
-                Option::None => 0
+            // @dev Resolve the data into pricing data points
+            match deserialized {
+                Option::Some(fossil_data_points) => {
+                    // @dev Get the data points that were from Fossil
+                    let FossilDataPoints { twap, volatility, reserve_price } = fossil_data_points;
+
+                    // @dev Calculate the cap level and strike price
+                    let cap_level = calculate_cap_level(self.alpha.read(), volatility);
+                    let strike_price = calculate_strike_price(
+                        self.vault_type.read(), twap, volatility
+                    );
+
+                    PricingDataPoints { twap, volatility, reserve_price, cap_level, strike_price }
+                },
+                Option::None => panic!("Invalid fact")
             }
         }
 
@@ -782,7 +850,7 @@ mod Vault {
             let mut realized_deposit = 0;
             while i < current_round_id {
                 // @dev Increment the realized deposit by the account's deposit in this round
-                realized_deposit += self.positions.read((account, i));
+                realized_deposit += self.positions.entry(account).entry(i).read();
 
                 // @dev Get the liquidity that became unlocked for the account in this round
                 let account_unlocked_liq = self
@@ -800,7 +868,7 @@ mod Vault {
             };
 
             // @dev Add in the liquidity provider's current round deposit
-            realized_deposit + self.positions.read((account, current_round_id))
+            realized_deposit + self.positions.entry(account).entry(current_round_id).read()
         }
 
 
@@ -819,11 +887,13 @@ mod Vault {
                     // @dev Get the account's upcoming round deposit
                     let mut upcoming_round_deposit = self
                         .positions
-                        .read((account, current_round_id + 1));
+                        .entry(account)
+                        .entry(current_round_id + 1)
+                        .read();
                     // @dev There are only premium/unsold liquidity after the auction ends
                     if state == OptionRoundState::Running {
-                        // @dev Adds 0 if the premium/unsold liquidity was already moved as a deposit
-                        // into the upcoming round
+                        // @dev Adds 0 if the premium/unsold liquidity was already moved as a
+                        // deposit into the upcoming round
                         upcoming_round_deposit += self
                             .get_liquidity_unlocked_for_account_in_round(
                                 account, current_round_deposit, current_round_id
@@ -835,9 +905,9 @@ mod Vault {
             }
         }
 
-        // @dev Combine deposits from the last checkpoint into a single deposit for the current round,
-        // and if there are premiums/unsold liquidity collectable, add them as a deposit for the
-        // upcoming round
+        // @dev Combine deposits from the last checkpoint into a single deposit for the current
+        // round, and if there are premiums/unsold liquidity collectable, add them as a deposit for
+        // the upcoming round
         fn refresh_position(ref self: ContractState, account: ContractAddress) {
             // @dev Get the refreshed current and upcoming round deposits
             let current_round_id = self.current_round_id.read();
@@ -845,8 +915,12 @@ mod Vault {
                 .get_refreshed_position(account);
 
             // @dev Update the account's current round deposit and checkpoint
-            if current_round_deposit != self.positions.read((account, current_round_id)) {
-                self.positions.write((account, current_round_id), current_round_deposit);
+            if current_round_deposit != self
+                .positions
+                .entry(account)
+                .entry(current_round_id)
+                .read() {
+                self.positions.entry(account).entry(current_round_id).write(current_round_deposit);
             }
             if current_round_id - 1 != self.position_checkpoints.read(account) {
                 self.position_checkpoints.write(account, current_round_id - 1);
@@ -857,14 +931,21 @@ mod Vault {
             if self
                 .get_round_dispatcher(current_round_id)
                 .get_state() == OptionRoundState::Running {
-                if !self.is_premium_moved.read((account, current_round_id)) {
-                    self.is_premium_moved.write((account, current_round_id), true);
+                // @dev If the premiums/unsold liquidity were not moved as a deposit into the
+                // next round, move them
+                if !self.is_premium_moved.entry(account).entry(current_round_id).read() {
+                    self.is_premium_moved.entry(account).entry(current_round_id).write(true);
+                    // @dev Update the account's upcoming round deposit if it has changed
                     if upcoming_round_deposit != self
                         .positions
-                        .read((account, current_round_id + 1)) {
+                        .entry(account)
+                        .entry(current_round_id + 1)
+                        .read() {
                         self
                             .positions
-                            .write((account, current_round_id + 1), upcoming_round_deposit);
+                            .entry(account)
+                            .entry(current_round_id + 1)
+                            .write(upcoming_round_deposit);
                     }
                 }
             }
@@ -875,20 +956,22 @@ mod Vault {
         // @param account_staring_liq: The liquidity the account locked at the start of the round
         // @param round_id: The round to lookup
         // @note Returns 0 if the round is Open | Running
-        // @note Returns 0 if the unlocked liq was moved as a deposit into the next round (refreshed)
+        // @note Returns 0 if the unlocked liq was moved as a deposit into the next round
+        // (refreshed)
         fn get_liquidity_unlocked_for_account_in_round(
             self: @ContractState,
             account: ContractAddress,
             account_starting_liq: u256,
             round_id: u256
         ) -> u256 {
-            // @dev If the round is Open | Auctioning, there are no premiums/unsold liquidity yet, return 0
-            // @dev If the unlocked liquidity was moved as a deposit into the next round, return  0
+            // @dev If the round is Open | Auctioning, there are no premiums/unsold liquidity yet,
+            // return 0 @dev If the unlocked liquidity was moved as a deposit into the next round,
+            // return  0
             let round = self.get_round_dispatcher(round_id);
             let state = round.get_state();
             if state == OptionRoundState::Open
                 || state == OptionRoundState::Auctioning
-                || self.is_premium_moved.read((account, round_id)) {
+                || self.is_premium_moved.entry(account).entry(round_id).read() {
                 0
             } else {
                 // @dev How much unlockable liquidity is there in the round
@@ -903,8 +986,8 @@ mod Vault {
             }
         }
 
-        // @dev Get the liquidity that remained for an account after a round settled that was not stashed
-        // @param account: The account in question
+        // @dev Get the liquidity that remained for an account after a round settled that was not
+        // stashed @param account: The account in question
         // @param account_staring_liq: The liquidity the account locked at the start of the round
         // @param round_id: The round to lookup
         // @note Returns 0 if the round is not Settled
@@ -922,7 +1005,11 @@ mod Vault {
                 let (round_starting_liq, round_remaining_liq, _) = self.get_round_outcome(round_id);
 
                 // @dev Calculate the amount of liquidity the account stashed
-                let account_liq_queued = self.queued_liquidity.read((account, round_id));
+                let account_liq_queued = self
+                    .queued_liquidity
+                    .entry(account)
+                    .entry(round_id)
+                    .read();
                 let account_remaining_liq_stashed = (round_remaining_liq * account_liq_queued)
                     / round_starting_liq;
 

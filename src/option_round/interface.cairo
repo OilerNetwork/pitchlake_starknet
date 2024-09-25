@@ -1,10 +1,28 @@
 use starknet::{ContractAddress, StorePacking};
-use openzeppelin::token::erc20::interface::ERC20ABIDispatcher;
-use pitch_lake_starknet::{
-    option_round::{contract::OptionRound,},
-    market_aggregator::interface::{IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait},
-    types::{OptionRoundState, OptionRoundConstructorParams, Bid,}
-};
+use pitch_lake::types::{Bid};
+
+// An enum for each state an option round can be in
+#[derive(Copy, Drop, Serde, PartialEq, starknet::Store)]
+enum OptionRoundState {
+    Open, // Accepting deposits, waiting for auction to start
+    Auctioning, // Auction is on going, accepting bids
+    Running, // Auction has ended, waiting for option round expiry date to settle
+    Settled, // Option round has settled, remaining liquidity has rolled over to the next round
+}
+
+
+#[derive(Drop, Serde)]
+struct ConstructorArgs {
+    vault_address: ContractAddress,
+    round_id: u256,
+    auction_start_date: u64,
+    auction_end_date: u64,
+    option_settlement_date: u64,
+    reserve_price: u256,
+    cap_level: u128,
+    strike_price: u256
+}
+
 
 // The option round contract interface
 #[starknet::interface]

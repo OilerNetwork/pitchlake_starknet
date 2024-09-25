@@ -1,9 +1,41 @@
-use starknet::{ContractAddress};
-use pitch_lake_starknet::{
-    vault::{contract::Vault},
-    market_aggregator::interface::{IMarketAggregator, IMarketAggregatorDispatcher},
-    types::{VaultType, OptionRoundState}
-};
+use starknet::{ContractAddress, ClassHash};
+use pitch_lake::option_round::interface::OptionRoundState;
+use pitch_lake::fact_registry::interface::JobRequest;
+
+// @dev An enum for each type of Vault
+#[derive(starknet::Store, Copy, Drop, Serde, PartialEq)]
+enum VaultType {
+    InTheMoney,
+    AtTheMoney,
+    OutOfMoney,
+}
+
+#[derive(Copy, Drop, Serde)]
+struct PricingDataPoints {
+    twap: u256,
+    volatility: u128,
+    reserve_price: u256,
+    cap_level: u128,
+    strike_price: u256,
+}
+
+#[derive(Drop, Serde)]
+struct FossilDataPoints {
+    twap: u256,
+    volatility: u128,
+    reserve_price: u256,
+}
+
+#[derive(Drop, Serde)]
+struct ConstructorArgs {
+    round_transition_period: u64,
+    auction_run_time: u64,
+    option_run_time: u64,
+    eth_address: ContractAddress,
+    vault_type: VaultType,
+    fact_registry_address: ContractAddress,
+    option_round_class_hash: ClassHash,
+}
 
 // The interface for the vault contract
 #[starknet::interface]
@@ -14,7 +46,7 @@ trait IVault<TContractState> {
     fn get_vault_type(self: @TContractState) -> VaultType;
 
     // @dev Get the market aggregator's address
-    fn get_market_aggregator_address(self: @TContractState) -> ContractAddress;
+    fn get_fact_registry_address(self: @TContractState) -> ContractAddress;
 
     // @dev Get the ETH address
     fn get_eth_address(self: @TContractState) -> ContractAddress;
@@ -80,8 +112,9 @@ trait IVault<TContractState> {
     // @return The caller's updated unlocked position
     fn withdraw(ref self: TContractState, amount: u256) -> u256;
 
-    // @dev The caller queues a % of their locked balance to be stashed once the current round settles
-    // @param bps: The percentage points <= 10,000 the account queues to stash when the round settles
+    // @dev The caller queues a % of their locked balance to be stashed once the current round
+    // settles @param bps: The percentage points <= 10,000 the account queues to stash when the
+    // round settles
     fn queue_withdrawal(ref self: TContractState, bps: u16);
 
     // @dev The caller withdraws all of an account's stashed liquidity for the account
@@ -93,7 +126,7 @@ trait IVault<TContractState> {
 
     // Update the params of the current round if there are newer data from Fossil
     // @note Will probably remove this
-    fn update_round_params(ref self: TContractState);
+    // fn update_round_params(ref self: TContractState);
 
     // @dev Start the current round's auction
     // @return The total options available in the auction
@@ -105,5 +138,5 @@ trait IVault<TContractState> {
 
     // @dev Settle the current round
     // @return The total payout for the round
-    fn settle_round(ref self: TContractState) -> u256;
+    fn settle_round(ref self: TContractState, job_request: JobRequest) -> u256;
 }

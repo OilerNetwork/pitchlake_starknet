@@ -3,22 +3,18 @@ use starknet::{
     Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
     testing::{set_block_timestamp, set_contract_address}, contract_address::ContractAddressZeroable,
 };
-use openzeppelin::{
-    utils::serde::SerializedAppend, token::erc20::interface::{ERC20ABIDispatcherTrait}
-};
-use pitch_lake_starknet::{
-    types::Errors, library::eth::Eth,
+use openzeppelin_utils::serde::SerializedAppend;
+use openzeppelin_token::erc20::interface::ERC20ABIDispatcherTrait;
+use pitch_lake::{
+    library::eth::Eth,
     vault::{
         contract::Vault,
         interface::{
             IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcherTrait
         }
     },
-    option_round::{interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,}},
-    market_aggregator::interface::{
-        IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait,
-        IMarketAggregatorSafeDispatcher, IMarketAggregatorSafeDispatcherTrait
-    },
+    option_round::contract::OptionRound::Errors,
+    fact_registry::interface::{JobRequest, JobRequestParams},
     tests::{
         utils::{
             helpers::{
@@ -46,9 +42,7 @@ use pitch_lake_starknet::{
             },
             facades::{
                 vault_facade::{VaultFacade, VaultFacadeTrait},
-                option_round_facade::{
-                    OptionRoundParams, OptionRoundState, OptionRoundFacade, OptionRoundFacadeTrait
-                },
+                option_round_facade::{OptionRoundState, OptionRoundFacade, OptionRoundFacadeTrait},
             },
         },
     }
@@ -58,15 +52,33 @@ use debug::PrintTrait;
 
 /// Failures ///
 
+fn create_job_request(ref round: OptionRoundFacade) -> JobRequest {
+    let settlemnent_date = round.get_option_settlement_date();
+
+    JobRequest {
+        identifiers: array!['asdf'].span(),
+        params: JobRequestParams {
+            twap: (1, settlemnent_date),
+            volatility: (1, settlemnent_date),
+            reserve_price: (1, settlemnent_date),
+        }
+    }
+}
+
 // Test settling an option round while round auctioning fails
 #[test]
 #[available_gas(50000000)]
 fn test_settling_option_round_while_round_auctioning_fails() {
     let (mut vault_facade, _) = setup_facade();
+    let mut current_round = vault_facade.get_current_round();
+
     accelerate_to_auctioning(ref vault_facade);
 
     // Settle option round before auction ends
-    vault_facade.settle_option_round_expect_error(Errors::OptionSettlementDateNotReached);
+    vault_facade
+        .settle_option_round_expect_error(
+            create_job_request(ref current_round), Errors::OptionSettlementDateNotReached
+        );
 }
 
 // Test settling an option round before the option expiry date fails
@@ -74,9 +86,13 @@ fn test_settling_option_round_while_round_auctioning_fails() {
 #[available_gas(50000000)]
 fn test_settling_option_round_before_settlement_date_fails() {
     let (mut vault_facade, _) = setup_test_running();
+    let mut current_round = vault_facade.get_current_round();
 
     // Settle option round before expiry
-    vault_facade.settle_option_round_expect_error(Errors::OptionSettlementDateNotReached);
+    vault_facade
+        .settle_option_round_expect_error(
+            create_job_request(ref current_round), Errors::OptionSettlementDateNotReached
+        );
 }
 
 // Test settling an option round while round settled fails
@@ -84,12 +100,16 @@ fn test_settling_option_round_before_settlement_date_fails() {
 #[available_gas(50000000)]
 fn test_settling_option_round_while_settled_fails() {
     let (mut vault_facade, _) = setup_facade();
+    let mut current_round = vault_facade.get_current_round();
     accelerate_to_auctioning(ref vault_facade);
     accelerate_to_running(ref vault_facade);
     accelerate_to_settled(ref vault_facade, 0x123);
 
     // Settle option round after it has already settled
-    vault_facade.settle_option_round_expect_error(Errors::OptionRoundAlreadySettled);
+    vault_facade
+        .settle_option_round_expect_error(
+            create_job_request(ref current_round), Errors::OptionRoundAlreadySettled
+        );
 }
 
 /// Event Tests ///
@@ -347,7 +367,8 @@ fn test_settling_option_round_updates_locked_and_unlocked_balances() {
 //    // Accelerate through round 1 with premiums and a payout
 //    let (mut vault, _) = setup_facade();
 //    let mut liquidity_providers = liquidity_providers_get(4).span();
-//    let round1_deposits = create_array_gradient(100 * decimals(), 100 * decimals(), liquidity_providers.len())
+//    let round1_deposits = create_array_gradient(100 * decimals(), 100 * decimals(),
+//    liquidity_providers.len())
 //        .span(); // (100, 200, 300, 400)
 //    let starting_liquidity1 = sum_u256_array(round1_deposits);
 //    accelerate_to_auctioning_custom(ref vault, liquidity_providers, round1_deposits);
@@ -413,12 +434,14 @@ fn test_settling_option_round_updates_locked_and_unlocked_balances() {
 //                let lp_spread_after = lp_spreads_after.pop_front().unwrap();
 //                let lp_starting_liquidity2 = round2_deposits.pop_front().unwrap();
 //                let lp_premiums2 = individual_premiums2.pop_front().unwrap();
-//                let lp_remaining_liquidity2 = individual_remaining_liquidity2.pop_front().unwrap();
+//                let lp_remaining_liquidity2 =
+//                individual_remaining_liquidity2.pop_front().unwrap();
 //                assert(
 //                    *lp_spread_before == (*lp_starting_liquidity2, *lp_premiums2),
 //                    'LP spread before wrong'
 //                );
-//                assert(*lp_spread_after == (0, *lp_remaining_liquidity2), 'LP spread after wrong');
+//                assert(*lp_spread_after == (0, *lp_remaining_liquidity2), 'LP spread after
+//                wrong');
 //            },
 //            Option::None => { break (); }
 //        }
