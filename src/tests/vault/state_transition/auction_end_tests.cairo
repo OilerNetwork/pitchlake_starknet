@@ -4,16 +4,19 @@ use starknet::{
     Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
     testing::{set_block_timestamp, set_contract_address}
 };
-use openzeppelin::token::erc20::interface::{ERC20ABIDispatcherTrait,};
-use pitch_lake_starknet::{
-    library::eth::Eth, types::{OptionRoundState, Errors},
+use openzeppelin_token::erc20::interface::{ERC20ABIDispatcherTrait,};
+use pitch_lake::{
+    library::eth::Eth,
     vault::{
         contract::Vault,
         interface::{
             IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcherTrait
         },
     },
-    option_round::{interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,},},
+    option_round::{
+        interface::{OptionRoundState, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,},
+    },
+    option_round::contract::OptionRound::Errors,
     tests::{
         utils::{
             helpers::{

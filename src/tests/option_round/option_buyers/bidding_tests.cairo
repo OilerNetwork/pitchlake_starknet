@@ -4,9 +4,9 @@ use starknet::{
     Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
     testing::{set_block_timestamp, set_contract_address}
 };
-use openzeppelin::{token::erc20::interface::{ERC20ABIDispatcherTrait,},};
-use pitch_lake_starknet::{
-    library::eth::Eth, types::{OptionRoundState, Errors, BidDisplay},
+use openzeppelin_token::erc20::interface::ERC20ABIDispatcherTrait;
+use pitch_lake::{
+    library::eth::Eth,
     vault::{
         contract::Vault,
         interface::{
@@ -14,7 +14,8 @@ use pitch_lake_starknet::{
         }
     },
     option_round::{
-        contract::OptionRound, interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
+        contract::OptionRound::Errors,
+        interface::{OptionRoundState, IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
     },
     tests::{
         utils::{
@@ -49,7 +50,8 @@ use pitch_lake_starknet::{
 use debug::PrintTrait;
 
 // Test PartialOrd & PartialEq for MockBid by printing varying scenarios
-// @note Test is ignored by default, to run the test run `scarb test -f test_bid_sort --include-ignored`
+// @note Test is ignored by default, to run the test run `scarb test -f test_bid_sort
+// --include-ignored`
 //#[test]
 //#[available_gas(50000000)]
 //#[ignore]
@@ -75,9 +77,11 @@ use debug::PrintTrait;
 //                let r = rhs.pop_front().unwrap();
 //                ("({}, {}) == ({}, {}): {}", l.amount, l.price, r.amount, r.price, l == r);
 //                println!("({}, {}) < ({}, {}): {}", l.amount, l.price, r.amount, r.price, l < r);
-//                println!("({}, {}) <= ({}, {}): {}", l.amount, l.price, r.amount, r.price, l <= r);
+//                println!("({}, {}) <= ({}, {}): {}", l.amount, l.price, r.amount, r.price, l <=
+//                r);
 //                println!("({}, {}) > ({}, {}): {}", l.amount, l.price, r.amount, r.price, l > r);
-//                println!("({}, {}) >= ({}, {}): {}", l.amount, l.price, r.amount, r.price, l >= r);
+//                println!("({}, {}) >= ({}, {}): {}", l.amount, l.price, r.amount, r.price, l >=
+//                r);
 //            },
 //            Option::None => { break (); }
 //        }

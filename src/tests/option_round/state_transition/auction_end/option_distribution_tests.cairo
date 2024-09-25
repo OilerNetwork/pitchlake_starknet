@@ -1,17 +1,17 @@
 use starknet::{
     contract_address_const, ContractAddress, testing::{set_block_timestamp, set_contract_address}
 };
-use openzeppelin::token::erc20::interface::{ERC20ABIDispatcherTrait,};
-use pitch_lake_starknet::types::Consts::BPS;
-use pitch_lake_starknet::tests::{
+use openzeppelin_token::erc20::interface::{ERC20ABIDispatcherTrait,};
+use pitch_lake::types::Consts::BPS;
+use pitch_lake::tests::{
     utils::{
         helpers::{
             accelerators::{
                 accelerate_to_auctioning, accelerate_to_auctioning_custom, accelerate_to_running,
                 accelerate_to_running_custom, timeskip_and_settle_round, timeskip_and_end_auction,
-            //accelerate_to_running_custom_option_round,
+                //accelerate_to_running_custom_option_round,
             },
-            setup::{setup_facade, setup_test_auctioning_bidders, deploy_custom_option_round},
+            setup::{setup_facade, setup_test_auctioning_bidders},
             general_helpers::{
                 pow, to_wei, to_wei_multi, sum_u256_array, create_array_linear,
                 create_array_gradient, create_array_gradient_reverse,
@@ -28,7 +28,7 @@ use pitch_lake_starknet::tests::{
         },
         facades::{
             vault_facade::{VaultFacade, VaultFacadeTrait},
-            option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundParams}
+            option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait}
         },
     },
 };
@@ -216,7 +216,8 @@ fn test_bidding_higher_price_beats_higher_total_bid_amount() {
     let mut current_round = vault.get_current_round();
 
     // Each bidder out bids the other's price, but with a lower amount
-    // @dev i.e The last bidder bids the highest price, but the other bidders bid a higher total eth (amount * price)
+    // @dev i.e The last bidder bids the highest price, but the other bidders bid a higher total eth
+    // (amount * price)
 
     let bid_amounts = create_array_gradient_reverse(
         total_options_available + 10, 1, number_of_option_bidders
@@ -364,7 +365,8 @@ fn test_remaining_bids_go_to_last_bidder() {
 //    let bid_price = current_round.get_reserve_price();
 //
 //    accelerate_to_running_custom(
-//        ref vault_facade, option_bidders.span(), array![bid_amount].span(), array![bid_price].span()
+//        ref vault_facade, option_bidders.span(), array![bid_amount].span(),
+//        array![bid_price].span()
 //    );
 //
 //    assert(bid_amount == current_round.total_options_sold(), 'options sold wrong');
@@ -390,7 +392,8 @@ fn test_remaining_bids_go_to_last_bidder() {
 //    let bid_price = reserve_price;
 //
 //    accelerate_to_running_custom(
-//        ref vault_facade, option_bidders.span(), array![bid_amount].span(), array![bid_price].span()
+//        ref vault_facade, option_bidders.span(), array![bid_amount].span(),
+//        array![bid_price].span()
 //    );
 //
 //    // Check all options sell
@@ -455,7 +458,8 @@ fn test_losing_bid_gets_no_options() {
     // Deposit liquidity and start the auction
     let mut current_round = vault.get_current_round();
 
-    // Make bids, 5 bidders bid for 1/3 total options each, each bidder outbidding the previous one's price
+    // Make bids, 5 bidders bid for 1/3 total options each, each bidder outbidding the previous
+    // one's price
     let mut bid_amounts = create_array_linear(
         total_options_available / (number_of_option_bidders - 1).into(), option_bidders.len()
     )

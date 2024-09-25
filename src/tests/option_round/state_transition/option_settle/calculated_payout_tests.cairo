@@ -1,4 +1,4 @@
-use pitch_lake_starknet::{
+use pitch_lake::{
     types::Consts::BPS, library::utils::{min, max},
     tests::{
         utils::{
@@ -34,7 +34,8 @@ fn calculate_expected_payout(ref round: OptionRoundFacade, settlement_price: u25
     }
 }
 
-// @note These tests should move to ./src/tests/option_round/state_transition/option_settled_tests.cairo
+// @note These tests should move to
+// ./src/tests/option_round/state_transition/option_settled_tests.cairo
 /// Total Payout Tests ///
 
 #[test]
@@ -54,7 +55,7 @@ fn test_option_payout_amount_index_higher_than_strike() {
     let (mut vault, mut current_round) = setup_test_running();
 
     let K = current_round.get_strike_price();
-    let x = 11111; // +1.111% strike
+    let x = 11111; // K * 1.1111
     let settlement_price = (x * K) / BPS;
 
     let expected_payout = calculate_expected_payout(ref current_round, settlement_price);
@@ -62,6 +63,7 @@ fn test_option_payout_amount_index_higher_than_strike() {
 
     // Check payout balance is expected
     assert(payout == expected_payout, 'payout doesnt match expected');
+
     let diff = settlement_price - K;
     assert(payout == current_round.total_options_sold() * diff, 'asdf');
 }

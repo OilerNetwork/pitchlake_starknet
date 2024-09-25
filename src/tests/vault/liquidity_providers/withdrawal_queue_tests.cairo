@@ -1,13 +1,13 @@
 use core::option::OptionTrait;
 use core::array::SpanTrait;
-use openzeppelin::token::erc20::interface::{ERC20ABIDispatcherTrait,};
+use openzeppelin_token::erc20::interface::{ERC20ABIDispatcherTrait,};
 use starknet::{
     ClassHash, ContractAddress, contract_address_const, deploy_syscall,
     Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
     testing::{set_block_timestamp, set_contract_address}
 };
-use pitch_lake_starknet::{
-    types::{Errors, Consts::BPS}, library::eth::Eth, vault::{contract::Vault},
+use pitch_lake::{
+    types::{Consts::BPS}, library::eth::Eth, vault::{contract::Vault::Errors},
     tests::{
         utils::{
             helpers::{
@@ -233,7 +233,8 @@ fn test_stashed_liquidity_does_not_roll_over() {
     assert_eq!(lp_stashed2, total_remaining + total_remaining2);
 }
 
-// Test that when an LP queues a withdrawal, it does not roll over after round settles (multiple LPs)
+// Test that when an LP queues a withdrawal, it does not roll over after round settles (multiple
+// LPs)
 #[test]
 #[available_gas(300000000)]
 fn test_stashed_liquidity_does_not_roll_over_multiple_LPs() {
@@ -391,14 +392,13 @@ fn test_vault_queued_bps_is_accurate() {
     let total_queued = {
         let mut total = 0;
         let mut i = 0;
-        while i < bps_multi
-            .len() {
-                let deposit_amount = *deposit_amounts.at(i);
-                let bps = *bps_multi.at(i);
-                total += (deposit_amount * bps.into()) / BPS.into();
+        while i < bps_multi.len() {
+            let deposit_amount = *deposit_amounts.at(i);
+            let bps = *bps_multi.at(i);
+            total += (deposit_amount * bps.into()) / BPS.into();
 
-                i += 1;
-            };
+            i += 1;
+        };
         total
     };
     let expected_vault_bps = (total_queued * BPS.into()) / current_round.starting_liquidity();
@@ -432,14 +432,13 @@ fn test_vault_queued_bps_changes_correctly() {
     let total_queued = {
         let mut total = 0;
         let mut i = 0;
-        while i < bps_multi2
-            .len() {
-                let deposit_amount = *deposit_amounts.at(i);
-                let bps = *bps_multi2.at(i);
-                total += (deposit_amount * bps.into()) / BPS.into();
+        while i < bps_multi2.len() {
+            let deposit_amount = *deposit_amounts.at(i);
+            let bps = *bps_multi2.at(i);
+            total += (deposit_amount * bps.into()) / BPS.into();
 
-                i += 1;
-            };
+            i += 1;
+        };
         total
     };
     let expected_vault_bps = (total_queued * BPS.into()) / current_round.starting_liquidity();
@@ -452,14 +451,13 @@ fn test_vault_queued_bps_changes_correctly() {
     let total_queued = {
         let mut total = 0;
         let mut i = 0;
-        while i < bps_multi3
-            .len() {
-                let deposit_amount = *deposit_amounts.at(i);
-                let bps = *bps_multi3.at(i);
-                total += (deposit_amount * bps.into()) / BPS.into();
+        while i < bps_multi3.len() {
+            let deposit_amount = *deposit_amounts.at(i);
+            let bps = *bps_multi3.at(i);
+            total += (deposit_amount * bps.into()) / BPS.into();
 
-                i += 1;
-            };
+            i += 1;
+        };
         total
     };
     let expected_vault_bps = (total_queued * BPS.into()) / current_round.starting_liquidity();
@@ -628,7 +626,8 @@ fn test_claiming_queued_liquidity_twice_does_nothing() {
     assert_eq!(stashed_balance_after, stashed_balance_before);
 }
 
-// Test queuing a withdrawal does not affect the stashed balances while round is Auctioning | Running
+// Test queuing a withdrawal does not affect the stashed balances while round is Auctioning |
+// Running
 #[test]
 #[available_gas(300000000)]
 fn test_queueing_withdrawal_does_not_affect_stashed_balance_before_round_settle() {
@@ -638,59 +637,55 @@ fn test_queueing_withdrawal_does_not_affect_stashed_balance_before_round_settle(
     let deposit_amount = 100 * decimals();
     let deposit_amounts = create_array_linear(deposit_amount, 3).span();
 
-    while rounds_to_run
-        .is_non_zero() {
-            let mut round = vault.get_current_round();
+    while rounds_to_run.is_non_zero() {
+        let mut round = vault.get_current_round();
 
-            // Stashed balances while Auctioning before queueing
-            let stashed_balances_before_auctioning = vault
-                .get_lp_stashed_balances(liquidity_providers);
-            accelerate_to_auctioning_custom(ref vault, liquidity_providers, deposit_amounts);
+        // Stashed balances while Auctioning before queueing
+        let stashed_balances_before_auctioning = vault.get_lp_stashed_balances(liquidity_providers);
+        accelerate_to_auctioning_custom(ref vault, liquidity_providers, deposit_amounts);
 
-            // Liquidity provider 1 queues withdrawal
-            vault.queue_withdrawal(*liquidity_providers.at(0), 10_000);
-            vault.queue_withdrawal(*liquidity_providers.at(0), 10_000);
+        // Liquidity provider 1 queues withdrawal
+        vault.queue_withdrawal(*liquidity_providers.at(0), 10_000);
+        vault.queue_withdrawal(*liquidity_providers.at(0), 10_000);
 
-            // Stashed balances while Auctioning after queueing
-            let stashed_balances_before_running = vault
-                .get_lp_stashed_balances(liquidity_providers);
-            accelerate_to_running(ref vault);
+        // Stashed balances while Auctioning after queueing
+        let stashed_balances_before_running = vault.get_lp_stashed_balances(liquidity_providers);
+        accelerate_to_running(ref vault);
 
-            // Liquidity provider 1 & 2 queue withdrawal
-            vault.queue_withdrawal(*liquidity_providers.at(0), 10_000);
-            vault.queue_withdrawal(*liquidity_providers.at(1), 10_000);
+        // Liquidity provider 1 & 2 queue withdrawal
+        vault.queue_withdrawal(*liquidity_providers.at(0), 10_000);
+        vault.queue_withdrawal(*liquidity_providers.at(1), 10_000);
 
-            let stashed_balances_before_settled = vault
-                .get_lp_stashed_balances(liquidity_providers);
-            accelerate_to_settled(ref vault, round.get_strike_price());
+        let stashed_balances_before_settled = vault.get_lp_stashed_balances(liquidity_providers);
+        accelerate_to_settled(ref vault, round.get_strike_price());
 
-            let stashed_balances_after_settled = vault.get_lp_stashed_balances(liquidity_providers);
+        let stashed_balances_after_settled = vault.get_lp_stashed_balances(liquidity_providers);
 
-            // Assert stashed balances are unchanged until auction settled
-            assert!(
-                stashed_balances_before_auctioning == stashed_balances_before_running,
-                "stashed before auctioning != stashed before running"
-            );
-            assert!(
-                stashed_balances_before_running == stashed_balances_before_settled,
-                "stashed before running != stashed before settled"
-            );
+        // Assert stashed balances are unchanged until auction settled
+        assert!(
+            stashed_balances_before_auctioning == stashed_balances_before_running,
+            "stashed before auctioning != stashed before running"
+        );
+        assert!(
+            stashed_balances_before_running == stashed_balances_before_settled,
+            "stashed before running != stashed before settled"
+        );
 
-            assert!(
-                stashed_balances_before_settled.at(0) != stashed_balances_after_settled.at(0),
-                "stashed before settled 1 == stashed after settled 1"
-            );
-            assert!(
-                stashed_balances_before_settled.at(1) != stashed_balances_after_settled.at(1),
-                "stashed before settled 2 == stashed after settled 2"
-            );
-            assert!(
-                stashed_balances_before_settled.at(2) == stashed_balances_after_settled.at(2),
-                "stashed before settled 3 != stashed after settled 3"
-            );
+        assert!(
+            stashed_balances_before_settled.at(0) != stashed_balances_after_settled.at(0),
+            "stashed before settled 1 == stashed after settled 1"
+        );
+        assert!(
+            stashed_balances_before_settled.at(1) != stashed_balances_after_settled.at(1),
+            "stashed before settled 2 == stashed after settled 2"
+        );
+        assert!(
+            stashed_balances_before_settled.at(2) == stashed_balances_after_settled.at(2),
+            "stashed before settled 3 != stashed after settled 3"
+        );
 
-            rounds_to_run -= 1;
-        }
+        rounds_to_run -= 1;
+    }
 }
 
 
@@ -803,7 +798,7 @@ fn test_stashed_balance_correct_after_round_settles() {
         );
         i += 1;
     };
-//    assert_eq!(stashed_balances_after_settled2, expected_stashed_amounts2,);
+    //    assert_eq!(stashed_balances_after_settled2, expected_stashed_amounts2,);
 //    assert_eq!(unlocked_balances_after_settled2, expected_unlocked_amounts2,);
 }
 

@@ -1,5 +1,5 @@
 #[starknet::contract]
-pub mod FactRegistry {
+mod FactRegistry {
     use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess,};
     use starknet::storage::{Map, StoragePathEntry};
     use pitch_lake::fact_registry::interface::{IFactRegistry, JobRequest, JobRequestParams};

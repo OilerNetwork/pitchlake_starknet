@@ -1,6 +1,6 @@
 use core::traits::Into;
-use pitch_lake_starknet::{
-    types::{Errors, BidDisplay},
+use pitch_lake::{
+    option_round::contract::OptionRound::Errors,
     tests::{
         utils::{
             helpers::{
@@ -187,7 +187,8 @@ fn test_updating_bids_lower_tree_index_loses() {
     let bidder2 = option_bidder_buyer_2();
     let amount = (3 * options_available) / 4;
 
-    // Bid 1 amount > Bid 2 amount, Bid 1 price < Bid 2 price, Bid 2 is ranked higher because of price
+    // Bid 1 amount > Bid 2 amount, Bid 1 price < Bid 2 price, Bid 2 is ranked higher because of
+    // price
     let bid1 = current_round.place_bid(amount, reserve_price, bidder);
     let _bid2 = current_round.place_bid(amount / 2, reserve_price + 1, bidder2);
 

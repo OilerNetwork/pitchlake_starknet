@@ -1,7 +1,7 @@
 use core::traits::TryInto;
 use starknet::{ContractAddress, testing::{set_block_timestamp, set_contract_address}};
-use openzeppelin::token::erc20::interface::{ERC20ABIDispatcherTrait,};
-use pitch_lake_starknet::tests::{
+use openzeppelin_token::erc20::interface::ERC20ABIDispatcherTrait;
+use pitch_lake::tests::{
     utils::{
         helpers::{
             event_helpers::{assert_event_unused_bids_refunded, clear_event_logs},
@@ -129,7 +129,8 @@ fn test_refundable_bids_includes_partial_and_fully_refunded_bids() {
     let total_options_available = accelerate_to_auctioning(ref vault);
     let mut current_round = vault.get_current_round();
 
-    // Same bidder places 4 bids, first 2 are fully used, 3rd is partially used, and 4th is fully unused
+    // Same bidder places 4 bids, first 2 are fully used, 3rd is partially used, and 4th is fully
+    // unused
     let bidder = option_bidder_buyer_1();
     let bidders = create_array_linear(bidder, 4).span();
     let bid_amount = 2 * total_options_available / 5;

@@ -5,10 +5,12 @@ use starknet::{
     Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
     testing::{set_block_timestamp, set_contract_address}
 };
-use openzeppelin::token::erc20::interface::{ERC20ABIDispatcherTrait,};
-use pitch_lake_starknet::{
-    types::{OptionRoundState}, vault::contract::Vault,
-    option_round::{interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,}},
+use openzeppelin_token::erc20::interface::{ERC20ABIDispatcherTrait,};
+use pitch_lake::{
+    vault::contract::Vault,
+    option_round::{
+        interface::{OptionRoundState, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,}
+    },
     library::eth::Eth,
     tests::{
         utils::{
@@ -128,10 +130,12 @@ fn test_depositing_to_vault_eth_transfer() {
 
 #[test]
 #[available_gas(50000000)]
-#[should_panic(expected: ('u256_sub Overflow', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED'))]
+#[should_panic(
+    expected: ('ERC20: insufficient allowance', 'ENTRYPOINT_FAILED', 'ENTRYPOINT_FAILED')
+)]
 fn test_depositing_to_vault_no_approval() {
     let (mut vault, eth) = setup_facade();
-    let mut liquidity_provider = liquidity_provider_1();
+    let mut liquidity_provider = contract_address_const::<'fresh user'>();
     let mut deposit_amount = 50 * decimals();
 
     set_contract_address(liquidity_provider);
@@ -140,7 +144,8 @@ fn test_depositing_to_vault_no_approval() {
     vault.deposit(deposit_amount, liquidity_provider);
 }
 
-// Test deposits always go to the vault's unlocked pool, regardless of the state of the current round
+// Test deposits always go to the vault's unlocked pool, regardless of the state of the current
+// round
 #[test]
 #[available_gas(90000000)]
 fn test_deposits_always_go_to_unlocked_pool() {

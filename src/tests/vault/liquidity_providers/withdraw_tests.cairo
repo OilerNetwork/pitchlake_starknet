@@ -1,13 +1,13 @@
 use core::option::OptionTrait;
 use core::array::SpanTrait;
-use openzeppelin::token::erc20::interface::{ERC20ABIDispatcherTrait,};
+use openzeppelin_token::erc20::interface::{ERC20ABIDispatcherTrait,};
 use starknet::{
     ClassHash, ContractAddress, contract_address_const, deploy_syscall,
     Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
     testing::{set_block_timestamp, set_contract_address}
 };
-use pitch_lake_starknet::{
-    types::Errors, library::eth::Eth, vault::{contract::Vault},
+use pitch_lake::{
+    library::eth::Eth, vault::{contract::Vault}, vault::contract::Vault::Errors,
     tests::{
         utils::{
             helpers::{
@@ -47,8 +47,8 @@ use debug::PrintTrait;
 // @note can use the same array of withdraw amounts/lps for each test (0, ...)
 
 // Test withdraw 0 does not fail, but balances are unchanged.
-//@note confirm if gas changes will also affect the balance, should we only check for vault balance or
-//calculate gas amount to correct the balance.
+//@note confirm if gas changes will also affect the balance, should we only check for vault balance
+//or calculate gas amount to correct the balance.
 // Test withdrawing > unlocked balance fails
 #[test]
 #[available_gas(50000000)]
@@ -153,7 +153,8 @@ fn test_withdrawing_from_vault_eth_transfer() {
     }
 }
 
-// Test withdrawal always come from the vault's unlocked pool, regardless of the state of the current round
+// Test withdrawal always come from the vault's unlocked pool, regardless of the state of the
+// current round
 #[test]
 #[available_gas(90000000)]
 fn test_withdrawing_always_come_from_unlocked_pool() {

@@ -1,4 +1,4 @@
-use pitch_lake_starknet::types::Bid;
+use pitch_lake::types::Bid;
 
 #[starknet::interface]
 trait IRBTreeMockContract<TContractState> {
@@ -12,8 +12,8 @@ trait IRBTreeMockContract<TContractState> {
 
 #[starknet::contract]
 mod RBTreeMockContract {
-    use pitch_lake_starknet::library::red_black_tree::RBTreeComponent;
-    use pitch_lake_starknet::types::Bid;
+    use pitch_lake::library::red_black_tree::RBTreeComponent;
+    use pitch_lake::types::Bid;
 
     component!(path: RBTreeComponent, storage: rb_tree, event: RBTreeEvent);
 
