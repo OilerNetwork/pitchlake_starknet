@@ -12,7 +12,7 @@ use pitch_lake::{
     vault::{
         interface::{
             VaultType, IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait,
-            IVaultSafeDispatcherTrait,
+            IVaultSafeDispatcherTrait, PricingDataPoints
         },
         contract::Vault,
     },
@@ -20,7 +20,7 @@ use pitch_lake::{
         utils::{
             helpers::{
                 setup::eth_supply_and_approve_all_bidders,
-                general_helpers::{assert_two_arrays_equal_length, get_erc20_balance},
+                general_helpers::{to_gwei, assert_two_arrays_equal_length, get_erc20_balance},
                 accelerators::{accelerate_to_auctioning_custom},
             },
             lib::{
@@ -61,16 +61,18 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     // @note this sets strike price as well, meaning this function is only to be used where the
     // the strike is irrelevant to the test (i.e only in option distribution tests)
     fn update_params(
-        ref self: OptionRoundFacade, reserve_price: u256, cap_level: u128, strike_price: u256
+        ref self: OptionRoundFacade, pricing_data_points: PricingDataPoints, job_request: felt252,
     ) {
         // Force update the params in the round
-        self.option_round_dispatcher.update_round_params(reserve_price, cap_level, strike_price);
+        self.option_round_dispatcher.refresh_pricing_data_points(pricing_data_points, job_request);
     }
 
     #[feature("safe_dispatcher")]
-    fn update_round_params_expect_error(ref self: OptionRoundFacade, error: felt252) {
+    fn update_round_params_expect_error(
+        ref self: OptionRoundFacade, pricing_data_points: PricingDataPoints, error: felt252
+    ) {
         let safe = self.get_safe_dispatcher();
-        safe.update_round_params(1, 2, 3).expect_err(error);
+        safe.refresh_pricing_data_points(pricing_data_points, 0xdeadbeef).expect_err(error);
     }
 
 
@@ -81,17 +83,27 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         options_available: u256,
         reserve_price: u256,
     ) {
-        // Calculate what starting liquidity == options_available
-        // M = L/ CL
-        // L = M * CL
-        let strike_price = 1000000000; // 1 gwei
-        let cap_level: u128 = 5000; // 50.00 % above strike
+        // The number of options (M) that can be sold is the total liquidity (L) divided by the max
+        // payout per option (Capped)
+        // L / Capped = M
+        // L = M * Capped
+        let strike_price = to_gwei(10); // 10 gwei
+        let cap_level: u128 = 5000; // Max payout is 50.00 % above strike
         let capped_payout_per_option = (strike_price * cap_level.into()) / BPS;
         let starting_liquidity = (options_available * capped_payout_per_option);
 
         // Update the params of the option round
+        let pricing_data_points = PricingDataPoints {
+            twap: 1234, // doesnt matter
+            volatility: 1234, // doesnt matter
+            reserve_price,
+            strike_price,
+            cap_level,
+        };
+
+        // Update the pricing data points as the Vault
         set_contract_address(vault.contract_address());
-        self.update_params(reserve_price, cap_level, strike_price);
+        self.update_params(pricing_data_points, 'some job id');
 
         let total_options_available = accelerate_to_auctioning_custom(
             ref vault, array![liquidity_provider_1()].span(), array![starting_liquidity].span()
