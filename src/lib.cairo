@@ -4,6 +4,7 @@ mod library {
     mod eth;
     mod red_black_tree;
     mod utils;
+    mod pricing_utils;
 }
 
 

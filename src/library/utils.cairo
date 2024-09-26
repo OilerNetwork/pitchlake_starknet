@@ -1,5 +1,15 @@
-use pitch_lake_starknet::types::{VaultType, Consts::BPS};
+use core::poseidon::poseidon_hash_span;
+use pitch_lake::fact_registry::interface::{JobRequest, JobRequestParams};
 
+pub const VALUES_NOT_IN_RANGE: felt252 = 'Values not in range';
+
+fn assert_equal_in_range<T, +PartialOrd<T>, +Add<T>, +Sub<T>, +Drop<T>, +Copy<T>>(
+    a: T, b: T, range: T
+) {
+    assert(a >= b - range && a <= b + range, VALUES_NOT_IN_RANGE);
+}
+
+// @dev Returns the minimum of a and b
 fn min<T, +PartialEq<T>, +PartialOrd<T>, +Drop<T>, +Copy<T>>(a: T, b: T) -> T {
     match a < b {
         true => a,
@@ -7,7 +17,7 @@ fn min<T, +PartialEq<T>, +PartialOrd<T>, +Drop<T>, +Copy<T>>(a: T, b: T) -> T {
     }
 }
 
-// Get the maximum of two values
+// @dev Returns the maximum of a and b
 fn max<T, +PartialEq<T>, +PartialOrd<T>, +Drop<T>, +Copy<T>>(a: T, b: T) -> T {
     match a < b {
         true => b,
@@ -15,7 +25,7 @@ fn max<T, +PartialEq<T>, +PartialOrd<T>, +Drop<T>, +Copy<T>>(a: T, b: T) -> T {
     }
 }
 
-// Raise x to the y power
+// @dev Returns base^exp
 fn pow(base: u256, exp: u8) -> u256 {
     if exp == 0 {
         1
@@ -28,25 +38,10 @@ fn pow(base: u256, exp: u8) -> u256 {
     }
 }
 
-// Calculate a round's strike price
-// @param vault_type: The type of the vault
-// @param avg_basefee: The TWAP of the basefee for the last 2 weeks
-// @param volatility: The volatility of the basefee for the last 2 weeks
-// @return The strike price of the upcoming round
-fn calculate_strike_price(vault_type: VaultType, avg_basefee: u256, volatility: u128) -> u256 {
-    let adjustment = (avg_basefee * volatility.into()) / BPS;
-    match vault_type {
-        VaultType::AtTheMoney(_) => avg_basefee,
-        VaultType::OutOfMoney(_) => avg_basefee + adjustment,
-        VaultType::InTheMoney(_) => {
-            // @note 0 ensures payout for round, need to decide if we should use ATM price,
-            // or scale the adjustment to keep ITM nature but not a 0 strike
-            if adjustment >= avg_basefee {
-                avg_basefee
-            } else {
-                avg_basefee - adjustment
-            }
-        },
-    }
+// @dev Serialize the job request and hash it to create the its ID
+fn generate_job_id(job_request: @JobRequest) -> felt252 {
+    let mut serialized: Array<felt252> = Default::default();
+    job_request.serialize(ref serialized);
+    poseidon_hash_span(serialized.span())
 }
 
