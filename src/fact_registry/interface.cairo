@@ -6,6 +6,8 @@ trait IFactRegistry<TContractState> {
     ) -> felt252;
 }
 
+/// Interpreting facts from Fossil ///
+
 // Mimics Pitchlake -> Fossil API request
 #[derive(Copy, Destruct, Serde)]
 struct JobRequest {
@@ -21,11 +23,20 @@ struct JobRequestParams {
     reserve_price: (u64, u64),
 }
 
-// asdf
 #[derive(Copy, Drop, PartialEq)]
 struct JobRange {
     twap_range: u64,
     volatility_range: u64,
     reserve_price_range: u64
+}
+
+// Better ?
+#[derive(Copy, Drop, PartialEq)]
+struct JobRequestSimple {
+    identifiers: Span<felt252>,
+    timestamp: u64,
+    twap_range: u64,
+    volatility_range: u64,
+    reserve_price_range: u64,
 }
 
