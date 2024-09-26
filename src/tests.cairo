@@ -56,12 +56,6 @@ mod deployment {
 #[cfg(test)]
 mod misc {
     //mod eth_test;
-    mod pitch_lake_test;
-    mod lp_token {
-        mod lp_token_tests;
-        mod deployment_tests;
-    }
-    mod unallocated_liquidity_tests;
 }
 
 #[cfg(test)]
@@ -69,9 +63,8 @@ mod utils {
     mod facades {
         mod vault_facade;
         mod option_round_facade;
-        mod lp_token_facade;
+        mod fact_registry_facade;
         mod sanity_checks;
-        mod market_aggregator_facade;
     }
 
     mod helpers {
@@ -82,7 +75,6 @@ mod utils {
     }
 
     mod lib {
-        mod structs;
         mod test_accounts;
         mod variables;
     }
