@@ -522,12 +522,14 @@ mod OptionRound {
             self.starting_liquidity.write(starting_liquidity);
             self.bids_tree.total_options_available.write(options_available);
 
-            //// @dev Shift auction end date and option settlement date
-            //let shift = self.auction_end_date.read() - get_block_timestamp();
-            //if shift.is_non_zero() {
-            //    self.auction_end_date.write(self.auction_end_date.read() + shift);
-            //    self.option_settlement_date.write(self.option_settlement_date.read() + shift);
-            //}
+            // @dev If starting round 1's auction, shift auction end date and option settlement date
+            if self.round_id.read() == 1 {
+                let shift = self.auction_end_date.read() - get_block_timestamp();
+                if shift.is_non_zero() {
+                    self.auction_end_date.write(self.auction_end_date.read() + shift);
+                    self.option_settlement_date.write(self.option_settlement_date.read() + shift);
+                }
+            }
 
             // @dev Transition state and emit event
             self.transition_state_to(OptionRoundState::Auctioning);
