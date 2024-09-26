@@ -4,14 +4,17 @@ use starknet::{
 };
 use pitch_lake::{
     vault::contract::Vault, option_round::contract::OptionRound::Errors,
-    vault::interface::PricingDataPoints,
+    vault::interface::{FossilDataPoints, PricingDataPoints, VaultType},
+    fact_registry::interface::{JobRequest, JobRequestParams, JobRange}, library::pricing_utils,
     tests::{
         utils::{
             helpers::{
                 accelerators::{
-                    accelerate_to_auctioning, accelerate_to_running, accelerate_to_running_custom
+                    accelerate_to_auctioning, accelerate_to_running, accelerate_to_running_custom,
+                    accelerate_to_settled
                 },
-                setup::{setup_facade}, general_helpers::{to_gwei},
+                setup::{setup_facade, deploy_vault, deploy_eth, deploy_fact_registry},
+                general_helpers::{to_gwei},
             },
             lib::{
                 test_accounts::{
@@ -23,6 +26,7 @@ use pitch_lake::{
             facades::{
                 vault_facade::{VaultFacade, VaultFacadeTrait},
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
+                fact_registry_facade::{FactRegistryFacade, FactRegistryFacadeTrait},
             },
         },
     }
@@ -124,6 +128,130 @@ fn test_update_round_params_on_round() {
     assert_eq!(cap_level, random_pricing_data.cap_level);
     assert_eq!(strike_price, random_pricing_data.strike_price);
 }
-// @note add test for event when updating round params
 
+#[test]
+#[available_gas(50000000)]
+fn test_first_round_cannot_start_until_fact_set() {
+    let eth = deploy_eth();
+    let fact_registry = deploy_fact_registry();
+    let vault_dispatcher = deploy_vault(
+        VaultType::AtTheMoney, eth.contract_address, fact_registry.contract_address
+    );
+    let mut vault: VaultFacade = VaultFacade { vault_dispatcher };
+
+    vault.start_auction_expect_error(Errors::PricingDataPointsNotSet);
+}
+
+#[test]
+#[available_gas(50000000)]
+fn test_setting_first_round_params() {
+    set_block_timestamp(123456789);
+    let eth = deploy_eth();
+    let fact_registry = deploy_fact_registry();
+    let vault_dispatcher = deploy_vault(
+        VaultType::AtTheMoney, eth.contract_address, fact_registry.contract_address
+    );
+    let mut vault: VaultFacade = VaultFacade { vault_dispatcher };
+    let mut current_round = vault.get_current_round();
+
+    let auction_start_date = current_round.get_auction_start_date();
+    let to = auction_start_date - 1;
+    let JobRange { twap_range, volatility_range, reserve_price_range } = Vault::EXPECTED_JOB_RANGE;
+
+    let job_request: JobRequest = JobRequest {
+        identifiers: array![selector!("PITCH_LAKE_V1")].span(),
+        params: JobRequestParams {
+            twap: (to - twap_range, to),
+            volatility: (to - volatility_range, to),
+            reserve_price: (to - reserve_price_range, to),
+        }
+    };
+    // Mock verify the fact in the registry
+    let data = FossilDataPoints {
+        twap: to_gwei(10), volatility: 5000, reserve_price: to_gwei(123),
+    };
+
+    fact_registry.set_fact(job_request, data);
+    vault.refresh_round_pricing_data(job_request);
+
+    let exp_strike_price = pricing_utils::calculate_strike_price(
+        VaultType::AtTheMoney, to_gwei(10), 5000
+    );
+    let exp_cap_level = pricing_utils::calculate_cap_level(123, 5000);
+    let exp_reserve_price = to_gwei(123);
+
+    let reserve_price = current_round.get_reserve_price();
+    let strike_price = current_round.get_strike_price();
+    let cap_level = current_round.get_cap_level();
+
+    assert_eq!(reserve_price, exp_reserve_price);
+    assert_eq!(strike_price, exp_strike_price);
+    assert_eq!(cap_level, exp_cap_level);
+
+    vault.start_auction_expect_error(Errors::PricingDataPointsNotSet);
+}
+
+#[test]
+#[available_gas(1_000_000_000)]
+fn test_refreshing_consequtive_round_refreshing() {
+    let (mut vault, _) = setup_facade();
+
+    for _ in 0
+        ..3_usize {
+            let mut current_round = vault.get_current_round();
+
+            accelerate_to_auctioning(ref vault);
+            accelerate_to_running(ref vault);
+
+            let (c_cap_level, c_strike_price, c_reserve_price) = {
+                (
+                    current_round.get_cap_level(),
+                    current_round.get_strike_price(),
+                    current_round.get_reserve_price()
+                )
+            };
+
+            accelerate_to_settled(ref vault, to_gwei(10));
+            let mut next_round = vault.get_current_round();
+            let (n_cap_level, n_strike_price, n_reserve_price) = {
+                (
+                    next_round.get_cap_level(),
+                    next_round.get_strike_price(),
+                    next_round.get_reserve_price()
+                )
+            };
+
+            let auction_start_date = next_round.get_auction_start_date();
+            let to = auction_start_date - 1;
+            let JobRange { twap_range, volatility_range, reserve_price_range } =
+                Vault::EXPECTED_JOB_RANGE;
+
+            let job_request: JobRequest = JobRequest {
+                identifiers: array![selector!("PITCH_LAKE_V1")].span(),
+                params: JobRequestParams {
+                    twap: (to - twap_range, to),
+                    volatility: (to - volatility_range, to),
+                    reserve_price: (to - reserve_price_range, to),
+                }
+            };
+            // Mock verify the fact in the registry
+            let data = FossilDataPoints {
+                twap: to_gwei(666), volatility: 1234, reserve_price: to_gwei(123),
+            };
+
+            vault.get_fact_registry_facade().set_fact(job_request, data);
+            vault.refresh_round_pricing_data(job_request);
+            let (nr_cap_level, nr_strike_price, nr_reserve_price) = {
+                (
+                    next_round.get_cap_level(),
+                    next_round.get_strike_price(),
+                    next_round.get_reserve_price()
+                )
+            };
+
+            println!("{} {} {}", c_cap_level, c_strike_price, c_reserve_price);
+            println!("{} {} {}", n_cap_level, n_strike_price, n_reserve_price);
+            println!("{} {} {}", nr_cap_level, nr_strike_price, nr_reserve_price);
+        }
+}
 
