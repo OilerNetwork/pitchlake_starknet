@@ -81,7 +81,6 @@ export class RoundSimulator {
     );
     const auctioningStateData: StateData = await this.simulateAuctioningState(
       params.bidAllArgs,
-      params.marketData,
     );
     const optionsAvailable =
       await this.optionRoundFacade.getTotalOptionsAvailable();
@@ -92,6 +91,7 @@ export class RoundSimulator {
     const settledStateData: StateData = await this.simulateSettledState(
       params.exerciseOptionsAllArgs,
       params.withdrawalArgs,
+      params.marketData,
     );
     const optionsSold =
       await this.optionRoundFacade.optionRoundContract.get_options_sold();
@@ -183,11 +183,8 @@ export class RoundSimulator {
     };
     //Add market data setter abstraction after Jithin's merge
   }
-  async simulateAuctioningState(
-    bidAllArgs: Array<PlaceBidArgs>,
-    marketData: MarketData,
-  ) {
-    await this.testRunner.startAuctionBystander(marketData);
+  async simulateAuctioningState(bidAllArgs: Array<PlaceBidArgs>) {
+    await this.testRunner.startAuctionBystander();
 
     const lockedUnlockedBalances = await this.captureLockedUnlockedBalances();
     const vaultBalances = await this.captureVaultBalances();
@@ -258,9 +255,10 @@ export class RoundSimulator {
   async simulateSettledState(
     exerciseOptionsArgs: Array<ExerciseOptionArgs>,
     withdrawalArgs: Array<WithdrawArgs>,
+    marketData: MarketData,
   ) {
     const data = await this.optionRoundFacade.optionRoundContract.get_state();
-    await this.testRunner.settleOptionRoundBystander();
+    await this.testRunner.settleOptionRoundBystander(marketData);
 
     const withdrawArgsAdjusted: Array<WithdrawArgs> = [];
 

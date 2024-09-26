@@ -2,7 +2,7 @@ import { getAccount } from "../../utils/helpers/common";
 import { getOptionRoundFacade } from "../../utils/helpers/setup";
 import assert from "assert";
 import { mineNextBlock } from "../../utils/katana";
-export const smokeTest = async ({ provider, vaultFacade, constants, getLPUnlockedBalanceAll, getLPLockedBalanceAll, getBalancesAll, approveAll, startAuctionBystander, getLiquidityProviderAccounts, getOptionBidderAccounts }) => {
+export const smokeTest = async ({ provider, vaultFacade, constants, getLPUnlockedBalanceAll, getLPLockedBalanceAll, getBalancesAll, approveAll, startAuctionBystander, getLiquidityProviderAccounts, getOptionBidderAccounts, }) => {
     const optionRoundFacade = await getOptionRoundFacade(provider, vaultFacade.vaultContract);
     const devAccount = getAccount("dev", provider);
     try {
@@ -18,7 +18,7 @@ export const smokeTest = async ({ provider, vaultFacade, constants, getLPUnlocke
     const liquidityProviderAccounts = getLiquidityProviderAccounts(2);
     const optionBidderAccounts = getOptionBidderAccounts(2);
     assert(stateAfter.activeVariant() === "Open", `Expected:Open\nReceived:${stateAfter.activeVariant()}`);
-    await startAuctionBystander(constants);
+    await startAuctionBystander();
     const unlockedBalances = await getLPUnlockedBalanceAll(liquidityProviderAccounts);
     const lockedBalances = await getLPLockedBalanceAll(liquidityProviderAccounts);
     const totalLockedAmount = await vaultFacade.getTotalLocked();

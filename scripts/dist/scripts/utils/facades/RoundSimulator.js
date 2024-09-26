@@ -16,10 +16,10 @@ export class RoundSimulator {
         this.optionRoundFacade = new OptionRoundFacade(optionRoundContract);
         //Add market agg setter here or somewhere in openState
         const openStateData = await this.simulateOpenState(params.depositAllArgs);
-        const auctioningStateData = await this.simulateAuctioningState(params.bidAllArgs, params.marketData);
+        const auctioningStateData = await this.simulateAuctioningState(params.bidAllArgs);
         const optionsAvailable = await this.optionRoundFacade.getTotalOptionsAvailable();
         const runningStateData = await this.simulateRunningState(params.refundAllArgs, params.withdrawPremiumArgs);
-        const settledStateData = await this.simulateSettledState(params.exerciseOptionsAllArgs, params.withdrawalArgs);
+        const settledStateData = await this.simulateSettledState(params.exerciseOptionsAllArgs, params.withdrawalArgs, params.marketData);
         const optionsSold = await this.optionRoundFacade.optionRoundContract.get_options_sold();
         const ethBalanceVault = await this.testRunner.ethFacade.getBalance(this.testRunner.vaultFacade.vaultContract.address);
         const ethBalanceRound = await this.testRunner.ethFacade.getBalance(this.optionRoundFacade.optionRoundContract.address);
@@ -91,8 +91,8 @@ export class RoundSimulator {
         };
         //Add market data setter abstraction after Jithin's merge
     }
-    async simulateAuctioningState(bidAllArgs, marketData) {
-        await this.testRunner.startAuctionBystander(marketData);
+    async simulateAuctioningState(bidAllArgs) {
+        await this.testRunner.startAuctionBystander();
         const lockedUnlockedBalances = await this.captureLockedUnlockedBalances();
         const vaultBalances = await this.captureVaultBalances();
         const optionsAvailable = await this.optionRoundFacade.getTotalOptionsAvailable();
@@ -145,9 +145,9 @@ export class RoundSimulator {
             vaultBalances,
         };
     }
-    async simulateSettledState(exerciseOptionsArgs, withdrawalArgs) {
+    async simulateSettledState(exerciseOptionsArgs, withdrawalArgs, marketData) {
         const data = await this.optionRoundFacade.optionRoundContract.get_state();
-        await this.testRunner.settleOptionRoundBystander();
+        await this.testRunner.settleOptionRoundBystander(marketData);
         const withdrawArgsAdjusted = [];
         for (const args of withdrawalArgs) {
             const unlockedBalance = await this.testRunner.vaultFacade.getLPUnlockedBalance(args.account.address);

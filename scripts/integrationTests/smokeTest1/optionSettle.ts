@@ -7,7 +7,7 @@ import { eth, LibraryError } from "starknet";
 export const smokeTest = async ({
   provider,
   vaultFacade,
-  constants: { depositAmount },
+  constants: { depositAmount, settlementPrice, volatility, reservePrice },
   ethFacade,
   getLPUnlockedBalanceAll,
   settleOptionRoundBystander,
@@ -24,7 +24,8 @@ export const smokeTest = async ({
   const devAccount = getAccount("dev", provider);
 
   try {
-    await vaultFacade.settleOptionRound(devAccount, marketData);
+    let jobRequest = await optionRoundFacade.createJobRequest();
+    await vaultFacade.settleOptionRound(devAccount, jobRequest);
     throw Error("Should have reverted");
   } catch (err) {
     const error = err as LibraryError;
@@ -66,7 +67,13 @@ export const smokeTest = async ({
     totalPremiums,
   });
 
-  await settleOptionRoundBystander();
+  const marketData = {
+    settlementPrice,
+    volatility,
+    reservePrice,
+  };
+
+  await settleOptionRoundBystander(marketData);
 
   const stateAfter: any =
     await optionRoundFacade.optionRoundContract.get_state();

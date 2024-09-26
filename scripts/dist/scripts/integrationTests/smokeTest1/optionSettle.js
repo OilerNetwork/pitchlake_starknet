@@ -1,12 +1,13 @@
 import { getAccount } from "../../utils/helpers/common";
 import { getOptionRoundFacade } from "../../utils/helpers/setup";
 import assert from "assert";
-export const smokeTest = async ({ provider, vaultFacade, constants: { depositAmount }, ethFacade, getLPUnlockedBalanceAll, settleOptionRoundBystander, getLiquidityProviderAccounts, getOptionBidderAccounts, }) => {
+export const smokeTest = async ({ provider, vaultFacade, constants: { depositAmount, settlementPrice, volatility, reservePrice }, ethFacade, getLPUnlockedBalanceAll, settleOptionRoundBystander, getLiquidityProviderAccounts, getOptionBidderAccounts, }) => {
     const optionRoundFacade = await getOptionRoundFacade(provider, vaultFacade.vaultContract);
     const liquidityProviderAccounts = getLiquidityProviderAccounts(2);
     const devAccount = getAccount("dev", provider);
     try {
-        await vaultFacade.settleOptionRound(devAccount);
+        let jobRequest = await optionRoundFacade.createJobRequest();
+        await vaultFacade.settleOptionRound(devAccount, jobRequest);
         throw Error("Should have reverted");
     }
     catch (err) {
@@ -32,7 +33,12 @@ export const smokeTest = async ({ provider, vaultFacade, constants: { depositAmo
         totalUnlocked,
         totalPremiums,
     });
-    await settleOptionRoundBystander();
+    const marketData = {
+        settlementPrice,
+        volatility,
+        reservePrice,
+    };
+    await settleOptionRoundBystander(marketData);
     const stateAfter = await optionRoundFacade.optionRoundContract.get_state();
     const lpUnlockedBalances = await getLPUnlockedBalanceAll(liquidityProviderAccounts);
     const totalPayout = await optionRoundFacade.getTotalPayout();

@@ -5,6 +5,23 @@ export class OptionRoundFacade {
     constructor(optionRoundContract) {
         this.optionRoundContract = optionRoundContract;
     }
+    async createJobRequest() {
+        const state = await this.optionRoundContract.get_state();
+        const upperBound = state && Object.keys(state)[0] === "Open"
+            ? Number(await this.optionRoundContract.get_auction_start_date())
+            : Number(await this.optionRoundContract.get_option_settlement_date());
+        const DAY = 24 * 3600;
+        const job_request = {
+            identifiers: ["PITCH_LAKE_V1"],
+            params: {
+                twap: [upperBound - 30 * DAY, upperBound],
+                volatility: [upperBound - 90 * DAY, upperBound],
+                reserve_price: [upperBound - 90 * DAY, upperBound],
+            },
+        };
+        return job_request;
+        //
+    }
     async getStartingLiquidity() {
         const res = await this.optionRoundContract.get_starting_liquidity();
         return convertToBigInt(res);

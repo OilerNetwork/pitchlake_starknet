@@ -65,9 +65,9 @@ export class FactRegistryFacade {
     //      reservePrice,
     //    );
     //  }
-    async setMarketParameters({ devAccount, job_request, market_data, }) {
+    async setMarketParameters({ devAccount, jobRequest, marketData, }) {
         // job_request and data
-        await this.setFact(devAccount, job_request, market_data);
+        await this.setFact(devAccount, jobRequest, marketData);
         //    await this.setReservePrice(
         //      devAccount,
         //      vaultAddress,
