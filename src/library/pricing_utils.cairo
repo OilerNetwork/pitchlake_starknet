@@ -2,17 +2,12 @@ use pitch_lake::vault::interface::VaultType;
 use pitch_lake::library::utils::min;
 use pitch_lake::types::Consts::BPS;
 
-// @note TODO
-fn calculate_cap_level(alpha: u128, volatility: u128) -> u128 {
-    volatility
-}
-
-// @dev Calculate the maximum payout for a single option
+// Calculate the maximum payout for a single option
 fn max_payout_per_option(strike_price: u256, cap_level: u128) -> u256 {
     (strike_price * cap_level.into()) / BPS
 }
 
-// @dev Calculate the actual payout for a single option
+// Calculate the actual payout for a single option
 fn calculate_payout_per_option(
     strike_price: u256, cap_level: u128, settlement_price: u256
 ) -> u256 {
@@ -25,19 +20,34 @@ fn calculate_payout_per_option(
         min(capped, uncapped)
     }
 }
+
+// Calculate the total number of options available to sell in an auction
+fn calculate_total_options_available(
+    starting_liquidity: u256, strike_price: u256, cap_level: u128
+) -> u256 {
+    let capped = max_payout_per_option(strike_price, cap_level);
+    match capped == 0 {
+        // @dev If the max payout per option is 0, then there are 0 options to sell
+        true => 0,
+        // @dev Else the number of options available is the starting liquidity divided by
+        // the capped amount
+        false => starting_liquidity / capped
+    }
+}
+
+// @note TODO
+fn calculate_cap_level(alpha: u128, volatility: u128) -> u128 {
+    volatility
+}
+
 // Calculate a round's strike price
-// @param vault_type: The type of the vault
-// @param twap: The TWAP of the basefee for the last 2 weeks
-// @param volatility: The volatility of the basefee for the last 2 weeks
-// @return The strike price of the upcoming round
+// @note TODO
 fn calculate_strike_price(vault_type: VaultType, twap: u256, volatility: u128) -> u256 {
     let adjustment = (twap * volatility.into()) / BPS;
     match vault_type {
         VaultType::AtTheMoney(_) => twap,
         VaultType::OutOfMoney(_) => twap + adjustment,
         VaultType::InTheMoney(_) => {
-            // @note 0 ensures payout for round, need to decide if we should use ATM price,
-            // or scale the adjustment to keep ITM nature but not a 0 strike
             if adjustment >= twap {
                 twap / 2
             } else {
@@ -46,4 +56,3 @@ fn calculate_strike_price(vault_type: VaultType, twap: u256, volatility: u128) -
         },
     }
 }
-

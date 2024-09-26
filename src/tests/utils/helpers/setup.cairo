@@ -122,7 +122,7 @@ fn deploy_vault(
     };
     args.serialize(ref calldata);
 
-   // @dev Making salt timestamp dependent so we can easily deploy new instances for testing
+    // @dev Making salt timestamp dependent so we can easily deploy new instances for testing
     let now = get_block_timestamp();
     let salt = 'some salt' + now.into();
 

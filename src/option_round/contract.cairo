@@ -11,7 +11,9 @@ mod OptionRound {
     use pitch_lake::option_round::interface::{ConstructorArgs, IOptionRound, OptionRoundState};
     use pitch_lake::types::{Bid, Consts::BPS,};
     use pitch_lake::library::utils::{max, min};
-    use pitch_lake::library::pricing_utils::{calculate_payout_per_option, max_payout_per_option};
+    use pitch_lake::library::pricing_utils::{
+        calculate_total_options_available, calculate_payout_per_option,
+    };
     use pitch_lake::library::red_black_tree::{RBTreeComponent, RBTreeComponent::Node};
 
     // *************************************************************************
@@ -507,11 +509,11 @@ mod OptionRound {
             // @dev Assert the caller is the vault
             self.assert_caller_is_vault();
 
-            // @dev Assert the pricing data points are not 0
-            assert(pricing_data_points_now != Default::default(), Errors::PricingDataPointsNotSet);
-
             // @dev Assert the auction has not started yet
             assert(self.state.read() == OptionRoundState::Open, Errors::AuctionAlreadyStarted);
+
+            // @dev Assert the pricing data points are not 0
+            assert(pricing_data_points_now != Default::default(), Errors::PricingDataPointsNotSet);
 
             // @dev Set the pricing data points
             self.pricing_data_points.write(pricing_data_points_now);
@@ -529,19 +531,20 @@ mod OptionRound {
             // @dev Calculate total options available
             let strike_price = self.pricing_data_points.strike_price.read();
             let cap_level = self.pricing_data_points.cap_level.read();
-            let options_available = self
-                .calculate_total_options_available(starting_liquidity, strike_price, cap_level);
+            let options_available = calculate_total_options_available(
+                starting_liquidity, strike_price, cap_level
+            );
 
             // @dev Write auction params to storage
             self.starting_liquidity.write(starting_liquidity);
             self.bids_tree.total_options_available.write(options_available);
 
-            // @dev Shift auction end date and option settlement date
-            let shift = self.auction_end_date.read() - get_block_timestamp();
-            if shift.is_non_zero() {
-                self.auction_end_date.write(self.auction_end_date.read() + shift);
-                self.option_settlement_date.write(self.option_settlement_date.read() + shift);
-            }
+            //// @dev Shift auction end date and option settlement date
+            //let shift = self.auction_end_date.read() - get_block_timestamp();
+            //if shift.is_non_zero() {
+            //    self.auction_end_date.write(self.auction_end_date.read() + shift);
+            //    self.option_settlement_date.write(self.option_settlement_date.read() + shift);
+            //}
 
             // @dev Transition state and emit event
             self.transition_state_to(OptionRoundState::Auctioning);
@@ -555,14 +558,14 @@ mod OptionRound {
         }
 
         fn end_auction(ref self: ContractState) -> (u256, u256) {
-            // @dev Calculate how many options sell and the price per each option
+            // @dev Calculate how many options were sold and the price per one
             let options_available = self.bids_tree._get_total_options_available();
             let (clearing_price, options_sold) = self.bids_tree.find_clearing_price();
 
             // @dev Set unsold liquidity if some options do not sell
             let starting_liq = self.starting_liquidity.read();
-            let sold_liquidity = (starting_liq * options_sold) / options_available;
-            let unsold_liquidity = starting_liq - sold_liquidity;
+            let options_unsold = options_available - options_sold;
+            let unsold_liquidity = (starting_liq * options_unsold) / options_available;
 
             if unsold_liquidity.is_non_zero() {
                 self.unsold_liquidity.write(unsold_liquidity);
@@ -775,7 +778,6 @@ mod OptionRound {
     #[generate_trait]
     impl InternalImpl of OptionRoundInternalTrait {
         // @dev Transitions the round's state to `to_state` if the proper conditions are met
-        // @dev Also used to verify the pricing data points can be set
         fn transition_state_to(ref self: ContractState, to_state: OptionRoundState) {
             // @dev Assert the caller is the vault
             self.assert_caller_is_vault();
@@ -785,7 +787,6 @@ mod OptionRound {
             let now = get_block_timestamp();
             let current_state = self.get_state();
             match to_state {
-                // @dev Updating pricing data points
                 // @dev Transitioning from Open to Auctioning
                 OptionRoundState::Auctioning => {
                     let target = self.get_auction_start_date();
@@ -922,21 +923,6 @@ mod OptionRound {
 
                 // @dev Return the winning bids, losing bids, and the clearing bid if owned
                 (winning_bids, losing_bids, clearing_bid_option)
-            }
-        }
-
-        // @note move to utils, make new pricing utils file
-        // @dev Calculate the total number of options available to sell in the auction
-        fn calculate_total_options_available(
-            self: @ContractState, starting_liquidity: u256, strike_price: u256, cap_level: u128
-        ) -> u256 {
-            let capped = max_payout_per_option(strike_price, cap_level);
-            match capped == 0 {
-                // @dev If the max payout per option is 0, then there are 0 options to sell
-                true => 0,
-                // @dev Else the number of options available is the starting liquidity divided by
-                // the capped amount
-                false => starting_liquidity / capped
             }
         }
 

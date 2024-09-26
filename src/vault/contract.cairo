@@ -22,7 +22,7 @@ mod Vault {
     use pitch_lake::library::pricing_utils::{calculate_strike_price, calculate_cap_level};
     use pitch_lake::fact_registry::interface::{
         IFactRegistry, IFactRegistryDispatcher, IFactRegistryDispatcherTrait, JobRequest,
-        JobRequestParams, JobRange,
+        JobRequestParams, JobRange, JobRequestSimple
     };
 
     // *************************************************************************
@@ -804,7 +804,7 @@ mod Vault {
             if state == OptionRoundState::Open {
                 let deployment_date = current_round.get_deployment_date();
                 let auction_start_date = current_round.get_auction_start_date();
-                if upper_bound < deployment_date || upper_bound > auction_start_date{
+                if upper_bound < deployment_date || upper_bound > auction_start_date {
                     return Result::Err(Errors::JobRequestOutOfBounds);
                 }
             } // @dev If the current round is Running, the job request is being used to settle it;
@@ -820,7 +820,7 @@ mod Vault {
             }
 
             return Result::Ok(generate_job_id(job_request));
-       }
+        }
 
         // @dev Fetch the pricing data points from the fact registry for the given job request if it
         // is valid
@@ -862,16 +862,16 @@ mod Vault {
                 }
             }
         }
-            //               if upper_bound < option_settlement_date - JOB_TIMESTAMP_TOLERANCE {
+        //               if upper_bound < option_settlement_date - JOB_TIMESTAMP_TOLERANCE {
         //                   return Result::Err(Errors::JobRequestOutOfBounds);
         //               }
 
-            //            assert(
+        //            assert(
         //                upper_bound == upper_bound2 && upper_bound == upper_bound3,
         //                Errors::JobRequestUpperBoundsMismatch
         //            );
 
-            // @dev
+        // @dev
         //            if state == OptionRoundState::Open {
         //
         //                if upper_bound < self.deployment_date.read() {
@@ -886,7 +886,7 @@ mod Vault {
         //                }
         //            }
 
-            // @dev Is the
+        // @dev Is the
         // @dev Ensure the upper bounds are the same
         //            assert(
         //                EXPECTED_JOB_RANGE == JobRange {
@@ -897,7 +897,7 @@ mod Vault {
         //                Errors::JobRequestOutOfBounds
         //            );
 
-            //            // @dev We only need to validate a job if the current round is Open or
+        //            // @dev We only need to validate a job if the current round is Open or
         //            Running assert(
         //                state == OptionRoundState::Open || state == OptionRoundState::Running,
         //                Errors::JobRequestForIrrelevantTime,
