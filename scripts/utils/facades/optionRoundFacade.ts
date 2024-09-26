@@ -9,9 +9,12 @@ import {
   TokenizableOptionsArgs,
   TokenizeOptionArgs,
   UpdateBidArgs,
+  JobRequest,
+  MarketData,
 } from "./types";
 import { optionRoundABI } from "../../abi";
 import { convertToBigInt } from "../helpers/common";
+import { CairoCustomEnum } from "starknet";
 
 export class OptionRoundFacade {
   optionRoundContract: TypedContractV2<typeof optionRoundABI>;
@@ -20,9 +23,30 @@ export class OptionRoundFacade {
     this.optionRoundContract = optionRoundContract;
   }
 
+  async createJobRequest() {
+    const state = await this.optionRoundContract.get_state();
 
+    const upperBound: number =
+      state && Object.keys(state)[0] === "Open"
+        ? Number(await this.optionRoundContract.get_auction_start_date())
+        : Number(await this.optionRoundContract.get_option_settlement_date());
 
-  async getStartingLiquidity(){
+    const DAY = 24 * 3600;
+    const job_request: JobRequest = {
+      identifiers: ["PITCH_LAKE_V1"],
+      params: {
+        twap: [upperBound - 30 * DAY, upperBound],
+        volatility: [upperBound - 90 * DAY, upperBound],
+        reserve_price: [upperBound - 90 * DAY, upperBound],
+      },
+    };
+
+    return job_request;
+
+    //
+  }
+
+  async getStartingLiquidity() {
     const res = await this.optionRoundContract.get_starting_liquidity();
     return convertToBigInt(res);
   }
@@ -83,7 +107,7 @@ export class OptionRoundFacade {
       accounts.map(async (account: Account) => {
         const bidData = await this.getBidsFor(account.address);
         return bidData;
-      })
+      }),
     );
     return bids;
   }
@@ -102,7 +126,7 @@ export class OptionRoundFacade {
       const data = await this.optionRoundContract.place_bid(amount, price);
     } catch (err) {
       const error = err as LibraryError;
-      console.log(error.name,from,amount,price,error.message,error.cause);
+      console.log(error.name, from, amount, price, error.message, error.cause);
     }
   }
 
@@ -114,9 +138,8 @@ export class OptionRoundFacade {
 
   async getRefundableBidsFor({ optionBuyer }: RefundableBidsArgs) {
     try {
-      const res = await this.optionRoundContract.get_refundable_bids_for(
-        optionBuyer
-      );
+      const res =
+        await this.optionRoundContract.get_refundable_bids_for(optionBuyer);
       return convertToBigInt(res);
     } catch (err) {
       console.log(err);
@@ -129,7 +152,7 @@ export class OptionRoundFacade {
         optionBuyers.map(async (account: Account) => {
           const balance = await this.getTotalOptionsBalanceFor(account.address);
           return balance;
-        })
+        }),
       );
       return optionsBalances;
     } catch (err) {
@@ -139,9 +162,8 @@ export class OptionRoundFacade {
 
   async getTotalOptionsBalanceFor(optionBuyer: string) {
     try {
-      const res = await this.optionRoundContract.get_account_total_options(
-        optionBuyer
-      );
+      const res =
+        await this.optionRoundContract.get_account_total_options(optionBuyer);
       return convertToBigInt(res);
     } catch (err) {
       console.log(err);
@@ -150,9 +172,8 @@ export class OptionRoundFacade {
 
   async getPayoutBalanceFor({ optionBuyer }: PayoutBalanceArgs) {
     try {
-      const res = await this.optionRoundContract.get_payout_balance_for(
-        optionBuyer
-      );
+      const res =
+        await this.optionRoundContract.get_payout_balance_for(optionBuyer);
       return convertToBigInt(res);
     } catch (err) {
       console.log(err);
@@ -161,9 +182,8 @@ export class OptionRoundFacade {
 
   async getTokenizableOptionsFor({ optionBuyer }: TokenizableOptionsArgs) {
     try {
-      const res = await this.optionRoundContract.get_tokenizable_options_for(
-        optionBuyer
-      );
+      const res =
+        await this.optionRoundContract.get_tokenizable_options_for(optionBuyer);
       return convertToBigInt(res);
     } catch (err) {
       console.log(err);
@@ -172,9 +192,8 @@ export class OptionRoundFacade {
 
   async refundUnusedBids({ from, optionBidder }: RefundUnusedBidsArgs) {
     this.optionRoundContract.connect(from);
-    const data = await this.optionRoundContract.refund_unused_bids(
-      optionBidder
-    );
+    const data =
+      await this.optionRoundContract.refund_unused_bids(optionBidder);
 
     console.log("refund unused bids inside -> ", data);
     // @note: here it will return the total refundable_balance
@@ -185,7 +204,7 @@ export class OptionRoundFacade {
   }
 
   async refundUnusedBidsAll(
-    refundUnusedBidsAllArgs: Array<RefundUnusedBidsArgs>
+    refundUnusedBidsAllArgs: Array<RefundUnusedBidsArgs>,
   ) {
     for (const refundArgs of refundUnusedBidsAllArgs) {
       await this.refundUnusedBids(refundArgs);
@@ -206,7 +225,6 @@ export class OptionRoundFacade {
     for (const exerciseOptionsArgs of exerciseOptionData) {
       await this.exerciseOptions(exerciseOptionsArgs);
     }
-
   }
 
   async tokenizeOptions({ from }: TokenizeOptionArgs) {

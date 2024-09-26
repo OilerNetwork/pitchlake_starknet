@@ -2,11 +2,11 @@ export const ABI = [
   {
     "type": "impl",
     "name": "VaultImpl",
-    "interface_name": "pitch_lake_starknet::vault::interface::IVault"
+    "interface_name": "pitch_lake::vault::interface::IVault"
   },
   {
     "type": "enum",
-    "name": "pitch_lake_starknet::types::VaultType",
+    "name": "pitch_lake::vault::interface::VaultType",
     "variants": [
       {
         "name": "InTheMoney",
@@ -37,8 +37,50 @@ export const ABI = [
     ]
   },
   {
+    "type": "struct",
+    "name": "core::array::Span::<core::felt252>",
+    "members": [
+      {
+        "name": "snapshot",
+        "type": "@core::array::Array::<core::felt252>"
+      }
+    ]
+  },
+  {
+    "type": "struct",
+    "name": "pitch_lake::fact_registry::interface::JobRequestParams",
+    "members": [
+      {
+        "name": "twap",
+        "type": "(core::integer::u64, core::integer::u64)"
+      },
+      {
+        "name": "volatility",
+        "type": "(core::integer::u64, core::integer::u64)"
+      },
+      {
+        "name": "reserve_price",
+        "type": "(core::integer::u64, core::integer::u64)"
+      }
+    ]
+  },
+  {
+    "type": "struct",
+    "name": "pitch_lake::fact_registry::interface::JobRequest",
+    "members": [
+      {
+        "name": "identifiers",
+        "type": "core::array::Span::<core::felt252>"
+      },
+      {
+        "name": "params",
+        "type": "pitch_lake::fact_registry::interface::JobRequestParams"
+      }
+    ]
+  },
+  {
     "type": "interface",
-    "name": "pitch_lake_starknet::vault::interface::IVault",
+    "name": "pitch_lake::vault::interface::IVault",
     "items": [
       {
         "type": "function",
@@ -46,14 +88,14 @@ export const ABI = [
         "inputs": [],
         "outputs": [
           {
-            "type": "pitch_lake_starknet::types::VaultType"
+            "type": "pitch_lake::vault::interface::VaultType"
           }
         ],
         "state_mutability": "view"
       },
       {
         "type": "function",
-        "name": "get_market_aggregator_address",
+        "name": "get_fact_registry_address",
         "inputs": [],
         "outputs": [
           {
@@ -334,8 +376,13 @@ export const ABI = [
       },
       {
         "type": "function",
-        "name": "update_round_params",
-        "inputs": [],
+        "name": "refresh_round_pricing_data",
+        "inputs": [
+          {
+            "name": "job_request",
+            "type": "pitch_lake::fact_registry::interface::JobRequest"
+          }
+        ],
         "outputs": [],
         "state_mutability": "external"
       },
@@ -364,7 +411,12 @@ export const ABI = [
       {
         "type": "function",
         "name": "settle_round",
-        "inputs": [],
+        "inputs": [
+          {
+            "name": "job_request",
+            "type": "pitch_lake::fact_registry::interface::JobRequest"
+          }
+        ],
         "outputs": [
           {
             "type": "core::integer::u256"
@@ -375,9 +427,9 @@ export const ABI = [
     ]
   },
   {
-    "type": "constructor",
-    "name": "constructor",
-    "inputs": [
+    "type": "struct",
+    "name": "pitch_lake::vault::interface::ConstructorArgs",
+    "members": [
       {
         "name": "round_transition_period",
         "type": "core::integer::u64"
@@ -396,10 +448,10 @@ export const ABI = [
       },
       {
         "name": "vault_type",
-        "type": "pitch_lake_starknet::types::VaultType"
+        "type": "pitch_lake::vault::interface::VaultType"
       },
       {
-        "name": "market_aggregator_address",
+        "name": "fact_registry_address",
         "type": "core::starknet::contract_address::ContractAddress"
       },
       {
@@ -409,8 +461,18 @@ export const ABI = [
     ]
   },
   {
+    "type": "constructor",
+    "name": "constructor",
+    "inputs": [
+      {
+        "name": "args",
+        "type": "pitch_lake::vault::interface::ConstructorArgs"
+      }
+    ]
+  },
+  {
     "type": "event",
-    "name": "pitch_lake_starknet::vault::contract::Vault::Deposit",
+    "name": "pitch_lake::vault::contract::Vault::Deposit",
     "kind": "struct",
     "members": [
       {
@@ -437,7 +499,7 @@ export const ABI = [
   },
   {
     "type": "event",
-    "name": "pitch_lake_starknet::vault::contract::Vault::Withdrawal",
+    "name": "pitch_lake::vault::contract::Vault::Withdrawal",
     "kind": "struct",
     "members": [
       {
@@ -464,7 +526,7 @@ export const ABI = [
   },
   {
     "type": "event",
-    "name": "pitch_lake_starknet::vault::contract::Vault::WithdrawalQueued",
+    "name": "pitch_lake::vault::contract::Vault::WithdrawalQueued",
     "kind": "struct",
     "members": [
       {
@@ -491,7 +553,7 @@ export const ABI = [
   },
   {
     "type": "event",
-    "name": "pitch_lake_starknet::vault::contract::Vault::StashWithdrawn",
+    "name": "pitch_lake::vault::contract::Vault::StashWithdrawn",
     "kind": "struct",
     "members": [
       {
@@ -513,7 +575,7 @@ export const ABI = [
   },
   {
     "type": "event",
-    "name": "pitch_lake_starknet::vault::contract::Vault::OptionRoundDeployed",
+    "name": "pitch_lake::vault::contract::Vault::OptionRoundDeployed",
     "kind": "struct",
     "members": [
       {
@@ -560,32 +622,32 @@ export const ABI = [
   },
   {
     "type": "event",
-    "name": "pitch_lake_starknet::vault::contract::Vault::Event",
+    "name": "pitch_lake::vault::contract::Vault::Event",
     "kind": "enum",
     "variants": [
       {
         "name": "Deposit",
-        "type": "pitch_lake_starknet::vault::contract::Vault::Deposit",
+        "type": "pitch_lake::vault::contract::Vault::Deposit",
         "kind": "nested"
       },
       {
         "name": "Withdrawal",
-        "type": "pitch_lake_starknet::vault::contract::Vault::Withdrawal",
+        "type": "pitch_lake::vault::contract::Vault::Withdrawal",
         "kind": "nested"
       },
       {
         "name": "WithdrawalQueued",
-        "type": "pitch_lake_starknet::vault::contract::Vault::WithdrawalQueued",
+        "type": "pitch_lake::vault::contract::Vault::WithdrawalQueued",
         "kind": "nested"
       },
       {
         "name": "StashWithdrawn",
-        "type": "pitch_lake_starknet::vault::contract::Vault::StashWithdrawn",
+        "type": "pitch_lake::vault::contract::Vault::StashWithdrawn",
         "kind": "nested"
       },
       {
         "name": "OptionRoundDeployed",
-        "type": "pitch_lake_starknet::vault::contract::Vault::OptionRoundDeployed",
+        "type": "pitch_lake::vault::contract::Vault::OptionRoundDeployed",
         "kind": "nested"
       }
     ]

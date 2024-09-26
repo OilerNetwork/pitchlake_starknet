@@ -17,14 +17,14 @@ type VaultConstructorArgs = {
   roundTransitionPeriod: number;
   auctionRunTime: number;
   optionRunTime: number;
-  kFactor:number;
+  kFactor: number;
 };
 
 type ConstructorArgs = {
   eth: EthConstructorArgs;
   vault: VaultConstructorArgs;
   optionRound: string;
-  marketAggregator: string;
+  factRegistry: string;
 };
 const nodeUrlMapping: { [key: string]: string } = {
   production: "",
@@ -43,11 +43,10 @@ const constructorArgs: { [key: string]: ConstructorArgs } = {
       roundTransitionPeriod: 32000,
       auctionRunTime: 23000,
       optionRunTime: 23000,
-      kFactor:10000,
+      kFactor: 10000,
     },
     optionRound: "",
-    marketAggregator: "",
-   
+    factRegistry: "",
   },
 };
 const accountDetailsMapping: { [key: string]: AccountDetailsType } = {

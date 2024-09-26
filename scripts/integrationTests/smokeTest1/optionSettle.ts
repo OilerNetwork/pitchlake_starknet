@@ -16,7 +16,7 @@ export const smokeTest = async ({
 }: TestRunner) => {
   const optionRoundFacade = await getOptionRoundFacade(
     provider,
-    vaultFacade.vaultContract
+    vaultFacade.vaultContract,
   );
 
   const liquidityProviderAccounts = getLiquidityProviderAccounts(2);
@@ -24,7 +24,7 @@ export const smokeTest = async ({
   const devAccount = getAccount("dev", provider);
 
   try {
-    await vaultFacade.settleOptionRound(devAccount);
+    await vaultFacade.settleOptionRound(devAccount, marketData);
     throw Error("Should have reverted");
   } catch (err) {
     const error = err as LibraryError;
@@ -36,12 +36,12 @@ export const smokeTest = async ({
 
   assert(
     state.activeVariant() === "Running",
-    `Expected:Running\nReceived:${state.activeVariant()}`
+    `Expected:Running\nReceived:${state.activeVariant()}`,
   );
   const totalPremiums = await optionRoundFacade.getTotalPremiums();
 
   const ethBalanceBefore = await ethFacade.getBalance(
-    liquidityProviderAccounts[0].address
+    liquidityProviderAccounts[0].address,
   );
 
   await vaultFacade.withdraw({
@@ -50,10 +50,10 @@ export const smokeTest = async ({
   });
 
   const ethBalanceAfter = await ethFacade.getBalance(
-    liquidityProviderAccounts[0].address
+    liquidityProviderAccounts[0].address,
   );
   const lpUnlockedBalanceAfter = await vaultFacade.getLPLockedBalance(
-    liquidityProviderAccounts[0].address
+    liquidityProviderAccounts[0].address,
   );
 
   const totalUnlocked = await vaultFacade.getTotalUnLocked();
@@ -72,15 +72,15 @@ export const smokeTest = async ({
     await optionRoundFacade.optionRoundContract.get_state();
 
   const lpUnlockedBalances = await getLPUnlockedBalanceAll(
-    liquidityProviderAccounts
+    liquidityProviderAccounts,
   );
   const totalPayout = await optionRoundFacade.getTotalPayout();
   const totalLocked = await vaultFacade.getTotalLocked();
   const totalUnlockedAfter = await vaultFacade.getTotalUnLocked();
-  
+
   assert(
     stateAfter.activeVariant() === "Settled",
-    `Expected:Running\nReceived:${stateAfter.activeVariant()}`
+    `Expected:Running\nReceived:${stateAfter.activeVariant()}`,
   );
 
   checkpoint2({
@@ -88,7 +88,7 @@ export const smokeTest = async ({
     totalPremiums,
     totalPayout,
     totalLocked,
-    totalUnlocked:totalUnlockedAfter,
+    totalUnlocked: totalUnlockedAfter,
     depositAmount,
   });
 };
@@ -114,20 +114,20 @@ async function checkpoint1({
     "\ntotalPremiums",
     totalPremiums,
     "lpUnlockedBalanceAfter:",
-    lpUnlockedBalanceAfter
+    lpUnlockedBalanceAfter,
   );
   assert(
     BigInt(ethBalanceAfter) - BigInt(ethBalanceBefore) ===
       BigInt(totalPremiums) / BigInt(4),
-    "LP Unlocked for A mismatch"
+    "LP Unlocked for A mismatch",
   );
   assert(
     BigInt(lpUnlockedBalanceAfter) === BigInt(totalPremiums) / BigInt(4),
-    "LP Unlocked for B mismatch"
+    "LP Unlocked for B mismatch",
   );
   assert(
     BigInt(totalUnlocked) === (BigInt(3) * BigInt(totalPremiums)) / BigInt(4),
-    "LP Locked for A mismatch"
+    "LP Locked for A mismatch",
   );
 }
 
@@ -153,7 +153,7 @@ async function checkpoint2({
       BigInt(depositAmount) / BigInt(2) +
         BigInt(totalPremiums) / BigInt(4) -
         BigInt(totalPayout) / BigInt(2),
-    "lpUnlocked for A Mismatch"
+    "lpUnlocked for A Mismatch",
   );
 
   // - B’s unlocked balance should be 1/2 deposit amount + 1/2 total premiums - 1/2 total payout
@@ -163,13 +163,13 @@ async function checkpoint2({
       BigInt(depositAmount) / BigInt(2) +
         BigInt(totalPremiums) / BigInt(2) -
         BigInt(totalPayout) / BigInt(2),
-    "lpUnlocked for B Mismatch"
+    "lpUnlocked for B Mismatch",
   );
   // - The total locked should == 0
 
   assert(
     Number(totalLocked) === 0,
-    `total Locked should be zero, found: ${totalLocked}`
+    `total Locked should be zero, found: ${totalLocked}`,
   );
   // - The total unlocked should == deposit amount + 3/4 total premiums - total payout
 
@@ -178,6 +178,6 @@ async function checkpoint2({
       BigInt(depositAmount) +
         (BigInt(3) * BigInt(totalPremiums)) / BigInt(4) -
         BigInt(totalPayout),
-    `totalUnlocked mismatch \n${totalUnlocked}\n${lpUnlockedBalances}`
+    `totalUnlocked mismatch \n${totalUnlocked}\n${lpUnlockedBalances}`,
   );
 }

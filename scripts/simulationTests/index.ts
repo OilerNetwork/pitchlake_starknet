@@ -19,7 +19,7 @@ export type Result = any;
 async function simulationTesting(testRunner: TestRunner) {
   const optionRoundContract = await getOptionRoundContract(
     testRunner.provider,
-    testRunner.vaultFacade.vaultContract
+    testRunner.vaultFacade.vaultContract,
   );
 
   const simulator = new RoundSimulator(testRunner, optionRoundContract);
@@ -27,7 +27,7 @@ async function simulationTesting(testRunner: TestRunner) {
   const simulationSheets = generateSheet();
   const simulationParams = generateSimulationParams(
     testRunner,
-    simulationSheets
+    simulationSheets,
   );
 
   const data: Results = { results: [] };
@@ -38,11 +38,11 @@ async function simulationTesting(testRunner: TestRunner) {
   const stringified = JSON.stringify(data);
   fs.writeFile(
     `./simulationData/simulationOutput/simulationResults-${Math.floor(
-      Date.now() / 1000
+      Date.now() / 1000,
     )}.json`,
     stringified,
     "utf8",
-    () => {}
+    () => {},
   );
 }
 
@@ -52,23 +52,20 @@ const initial = {
   liquidityProviders: [1, 2],
   depositAmounts: ["50000000000000", "50000000000000"],
   optionBidders: [1, 3],
- 
 };
 const repeating = {
   liquidityProviders: [],
   depositAmounts: [],
   optionBidders: [1, 3],
-  
 };
 
 export const generateSheet = () => {
   const simulationMarketData: Array<MarketData> = marketData.map((data) => {
     return {
-      reservePrice: Math.floor(data.reserve_price),
       settlementPrice: Math.floor(data.settlement_price),
+      volatility: data.volatility,
+      reservePrice: Math.floor(data.reserve_price),
       strikePrice: Math.floor(data.strike_price),
-      capLevel: data.cap_level,
-      volatility:data.volatility,
       startTime: data.starting_timestamp,
       endTime: data.ending_timestamp,
     };
@@ -81,16 +78,16 @@ export const generateSheet = () => {
           return marketData.reservePrice;
         }),
         marketData,
-        bidAmounts:[Math.random(),Math.random()],
-        withdrawals:[1,2],
-        withdrawalAmounts:[Math.random()/2,Math.random()/2],
+        bidAmounts: [Math.random(), Math.random()],
+        withdrawals: [1, 2],
+        withdrawalAmounts: [Math.random() / 2, Math.random() / 2],
       } as SimulationSheet;
     } else
       return {
         ...repeating,
-        bidAmounts:[Math.random(),Math.random()],
-        withdrawals:[1,2],
-        withdrawalAmounts:[Math.random()/2,Math.random()/2],
+        bidAmounts: [Math.random(), Math.random()],
+        withdrawals: [1, 2],
+        withdrawalAmounts: [Math.random() / 2, Math.random() / 2],
         bidPrices: initial.optionBidders.map((bidder) => {
           return marketData.reservePrice;
         }),

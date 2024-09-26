@@ -1,13 +1,7 @@
-import {
-  Account,
-  Contract,
-  Provider,
-  TypedContractV2,
-} from "starknet";
+import { Account, Contract, Provider, TypedContractV2 } from "starknet";
 import { optionRoundABI, vaultABI } from "../../abi";
-import { DepositArgs, MarketData, WithdrawArgs } from "./types";
+import { JobRequest, DepositArgs, MarketData, WithdrawArgs } from "./types";
 import { convertToBigInt, getAccount, stringToHex } from "../helpers/common";
-import { MarketAggregatorFacade } from "./marketAggregatorFacade";
 import { getOptionRoundContract } from "../helpers/setup";
 
 export class VaultFacade {
@@ -17,16 +11,16 @@ export class VaultFacade {
   constructor(
     vaultAddress: string,
     provider: Provider,
-    optionRoundAddress?: string
+    optionRoundAddress?: string,
   ) {
     this.vaultContract = new Contract(vaultABI, vaultAddress, provider).typedv2(
-      vaultABI
+      vaultABI,
     );
     if (optionRoundAddress)
       this.currentOptionRound = new Contract(
         optionRoundABI,
         optionRoundAddress,
-        provider
+        provider,
       ).typedv2(optionRoundABI);
   }
 
@@ -58,10 +52,7 @@ export class VaultFacade {
   async deposit({ from, beneficiary, amount }: DepositArgs) {
     this.vaultContract.connect(from);
     try {
-      const data = await this.vaultContract.deposit(
-        amount,
-        beneficiary
-      );
+      const data = await this.vaultContract.deposit(amount, beneficiary);
       data;
     } catch (err) {
       console.log(err);
@@ -76,11 +67,11 @@ export class VaultFacade {
 
   async endAuction(account: Account) {
     this.vaultContract.connect(account);
-    const res = await this.vaultContract.end_auction();
+    await this.vaultContract.end_auction();
   }
 
-  async settleOptionRound(account: Account) {
+  async settleOptionRound(account: Account, job_request: JobRequest) {
     this.vaultContract.connect(account);
-    await this.vaultContract.settle_round();
+    await this.vaultContract.settle_round(job_request);
   }
 }

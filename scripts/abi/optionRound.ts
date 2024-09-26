@@ -2,7 +2,7 @@ export const ABI = [
   {
     "type": "impl",
     "name": "ERC20MetadataImpl",
-    "interface_name": "openzeppelin::token::erc20::interface::IERC20Metadata"
+    "interface_name": "openzeppelin_token::erc20::interface::IERC20Metadata"
   },
   {
     "type": "struct",
@@ -24,7 +24,7 @@ export const ABI = [
   },
   {
     "type": "interface",
-    "name": "openzeppelin::token::erc20::interface::IERC20Metadata",
+    "name": "openzeppelin_token::erc20::interface::IERC20Metadata",
     "items": [
       {
         "type": "function",
@@ -64,7 +64,7 @@ export const ABI = [
   {
     "type": "impl",
     "name": "OptionRoundImpl",
-    "interface_name": "pitch_lake_starknet::option_round::interface::IOptionRound"
+    "interface_name": "pitch_lake::option_round::interface::IOptionRound"
   },
   {
     "type": "struct",
@@ -82,7 +82,7 @@ export const ABI = [
   },
   {
     "type": "enum",
-    "name": "pitch_lake_starknet::types::OptionRoundState",
+    "name": "pitch_lake::option_round::interface::OptionRoundState",
     "variants": [
       {
         "name": "Open",
@@ -104,7 +104,7 @@ export const ABI = [
   },
   {
     "type": "struct",
-    "name": "pitch_lake_starknet::types::Bid",
+    "name": "pitch_lake::types::Bid",
     "members": [
       {
         "name": "bid_id",
@@ -129,8 +129,34 @@ export const ABI = [
     ]
   },
   {
+    "type": "struct",
+    "name": "pitch_lake::vault::interface::PricingDataPoints",
+    "members": [
+      {
+        "name": "twap",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "volatility",
+        "type": "core::integer::u128"
+      },
+      {
+        "name": "reserve_price",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "cap_level",
+        "type": "core::integer::u128"
+      },
+      {
+        "name": "strike_price",
+        "type": "core::integer::u256"
+      }
+    ]
+  },
+  {
     "type": "interface",
-    "name": "pitch_lake_starknet::option_round::interface::IOptionRound",
+    "name": "pitch_lake::option_round::interface::IOptionRound",
     "items": [
       {
         "type": "function",
@@ -160,7 +186,18 @@ export const ABI = [
         "inputs": [],
         "outputs": [
           {
-            "type": "pitch_lake_starknet::types::OptionRoundState"
+            "type": "pitch_lake::option_round::interface::OptionRoundState"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_deployment_date",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::u64"
           }
         ],
         "state_mutability": "view"
@@ -357,7 +394,7 @@ export const ABI = [
         ],
         "outputs": [
           {
-            "type": "pitch_lake_starknet::types::Bid"
+            "type": "pitch_lake::types::Bid"
           }
         ],
         "state_mutability": "view"
@@ -373,7 +410,7 @@ export const ABI = [
         ],
         "outputs": [
           {
-            "type": "core::array::Array::<pitch_lake_starknet::types::Bid>"
+            "type": "core::array::Array::<pitch_lake::types::Bid>"
           }
         ],
         "state_mutability": "view"
@@ -444,6 +481,22 @@ export const ABI = [
       },
       {
         "type": "function",
+        "name": "refresh_pricing_data_points",
+        "inputs": [
+          {
+            "name": "pricing_data_points_now",
+            "type": "pitch_lake::vault::interface::PricingDataPoints"
+          },
+          {
+            "name": "job_id",
+            "type": "core::felt252"
+          }
+        ],
+        "outputs": [],
+        "state_mutability": "external"
+      },
+      {
+        "type": "function",
         "name": "start_auction",
         "inputs": [
           {
@@ -487,26 +540,6 @@ export const ABI = [
       },
       {
         "type": "function",
-        "name": "update_round_params",
-        "inputs": [
-          {
-            "name": "reserve_price",
-            "type": "core::integer::u256"
-          },
-          {
-            "name": "cap_level",
-            "type": "core::integer::u128"
-          },
-          {
-            "name": "strike_price",
-            "type": "core::integer::u256"
-          }
-        ],
-        "outputs": [],
-        "state_mutability": "external"
-      },
-      {
-        "type": "function",
         "name": "place_bid",
         "inputs": [
           {
@@ -520,7 +553,7 @@ export const ABI = [
         ],
         "outputs": [
           {
-            "type": "pitch_lake_starknet::types::Bid"
+            "type": "pitch_lake::types::Bid"
           }
         ],
         "state_mutability": "external"
@@ -540,7 +573,7 @@ export const ABI = [
         ],
         "outputs": [
           {
-            "type": "pitch_lake_starknet::types::Bid"
+            "type": "pitch_lake::types::Bid"
           }
         ],
         "state_mutability": "external"
@@ -588,7 +621,7 @@ export const ABI = [
   {
     "type": "impl",
     "name": "ERC20Impl",
-    "interface_name": "openzeppelin::token::erc20::interface::IERC20"
+    "interface_name": "openzeppelin_token::erc20::interface::IERC20"
   },
   {
     "type": "enum",
@@ -606,7 +639,7 @@ export const ABI = [
   },
   {
     "type": "interface",
-    "name": "openzeppelin::token::erc20::interface::IERC20",
+    "name": "openzeppelin_token::erc20::interface::IERC20",
     "items": [
       {
         "type": "function",
@@ -724,11 +757,11 @@ export const ABI = [
   {
     "type": "impl",
     "name": "ERC20CamelOnlyImpl",
-    "interface_name": "openzeppelin::token::erc20::interface::IERC20CamelOnly"
+    "interface_name": "openzeppelin_token::erc20::interface::IERC20CamelOnly"
   },
   {
     "type": "interface",
-    "name": "openzeppelin::token::erc20::interface::IERC20CamelOnly",
+    "name": "openzeppelin_token::erc20::interface::IERC20CamelOnly",
     "items": [
       {
         "type": "function",
@@ -784,9 +817,9 @@ export const ABI = [
     ]
   },
   {
-    "type": "constructor",
-    "name": "constructor",
-    "inputs": [
+    "type": "struct",
+    "name": "pitch_lake::option_round::interface::ConstructorArgs",
+    "members": [
       {
         "name": "vault_address",
         "type": "core::starknet::contract_address::ContractAddress"
@@ -808,22 +841,41 @@ export const ABI = [
         "type": "core::integer::u64"
       },
       {
-        "name": "reserve_price",
-        "type": "core::integer::u256"
-      },
+        "name": "pricing_data_points",
+        "type": "pitch_lake::vault::interface::PricingDataPoints"
+      }
+    ]
+  },
+  {
+    "type": "constructor",
+    "name": "constructor",
+    "inputs": [
       {
-        "name": "cap_level",
-        "type": "core::integer::u128"
-      },
-      {
-        "name": "strike_price",
-        "type": "core::integer::u256"
+        "name": "args",
+        "type": "pitch_lake::option_round::interface::ConstructorArgs"
       }
     ]
   },
   {
     "type": "event",
-    "name": "pitch_lake_starknet::option_round::contract::OptionRound::AuctionStarted",
+    "name": "pitch_lake::option_round::contract::OptionRound::PricingDataUpdated",
+    "kind": "struct",
+    "members": [
+      {
+        "name": "pricing_data_points_now",
+        "type": "pitch_lake::vault::interface::PricingDataPoints",
+        "kind": "data"
+      },
+      {
+        "name": "job_id",
+        "type": "core::felt252",
+        "kind": "data"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "pitch_lake::option_round::contract::OptionRound::AuctionStarted",
     "kind": "struct",
     "members": [
       {
@@ -840,7 +892,7 @@ export const ABI = [
   },
   {
     "type": "event",
-    "name": "pitch_lake_starknet::option_round::contract::OptionRound::BidPlaced",
+    "name": "pitch_lake::option_round::contract::OptionRound::BidPlaced",
     "kind": "struct",
     "members": [
       {
@@ -872,7 +924,7 @@ export const ABI = [
   },
   {
     "type": "event",
-    "name": "pitch_lake_starknet::option_round::contract::OptionRound::BidUpdated",
+    "name": "pitch_lake::option_round::contract::OptionRound::BidUpdated",
     "kind": "struct",
     "members": [
       {
@@ -899,7 +951,7 @@ export const ABI = [
   },
   {
     "type": "event",
-    "name": "pitch_lake_starknet::option_round::contract::OptionRound::AuctionEnded",
+    "name": "pitch_lake::option_round::contract::OptionRound::AuctionEnded",
     "kind": "struct",
     "members": [
       {
@@ -921,7 +973,7 @@ export const ABI = [
   },
   {
     "type": "event",
-    "name": "pitch_lake_starknet::option_round::contract::OptionRound::OptionRoundSettled",
+    "name": "pitch_lake::option_round::contract::OptionRound::OptionRoundSettled",
     "kind": "struct",
     "members": [
       {
@@ -938,7 +990,7 @@ export const ABI = [
   },
   {
     "type": "event",
-    "name": "pitch_lake_starknet::option_round::contract::OptionRound::OptionsExercised",
+    "name": "pitch_lake::option_round::contract::OptionRound::OptionsExercised",
     "kind": "struct",
     "members": [
       {
@@ -960,7 +1012,7 @@ export const ABI = [
   },
   {
     "type": "event",
-    "name": "pitch_lake_starknet::option_round::contract::OptionRound::UnusedBidsRefunded",
+    "name": "pitch_lake::option_round::contract::OptionRound::UnusedBidsRefunded",
     "kind": "struct",
     "members": [
       {
@@ -977,11 +1029,11 @@ export const ABI = [
   },
   {
     "type": "struct",
-    "name": "pitch_lake_starknet::library::red_black_tree::RBTreeComponent::Node",
+    "name": "pitch_lake::library::red_black_tree::RBTreeComponent::Node",
     "members": [
       {
         "name": "value",
-        "type": "pitch_lake_starknet::types::Bid"
+        "type": "pitch_lake::types::Bid"
       },
       {
         "name": "left",
@@ -1003,31 +1055,31 @@ export const ABI = [
   },
   {
     "type": "event",
-    "name": "pitch_lake_starknet::library::red_black_tree::RBTreeComponent::InsertEvent",
+    "name": "pitch_lake::library::red_black_tree::RBTreeComponent::InsertEvent",
     "kind": "struct",
     "members": [
       {
         "name": "node",
-        "type": "pitch_lake_starknet::library::red_black_tree::RBTreeComponent::Node",
+        "type": "pitch_lake::library::red_black_tree::RBTreeComponent::Node",
         "kind": "data"
       }
     ]
   },
   {
     "type": "event",
-    "name": "pitch_lake_starknet::library::red_black_tree::RBTreeComponent::Event",
+    "name": "pitch_lake::library::red_black_tree::RBTreeComponent::Event",
     "kind": "enum",
     "variants": [
       {
         "name": "InsertEvent",
-        "type": "pitch_lake_starknet::library::red_black_tree::RBTreeComponent::InsertEvent",
+        "type": "pitch_lake::library::red_black_tree::RBTreeComponent::InsertEvent",
         "kind": "nested"
       }
     ]
   },
   {
     "type": "event",
-    "name": "pitch_lake_starknet::option_round::contract::OptionRound::OptionsMinted",
+    "name": "pitch_lake::option_round::contract::OptionRound::OptionsMinted",
     "kind": "struct",
     "members": [
       {
@@ -1044,7 +1096,7 @@ export const ABI = [
   },
   {
     "type": "event",
-    "name": "openzeppelin::token::erc20::erc20::ERC20Component::Transfer",
+    "name": "openzeppelin_token::erc20::erc20::ERC20Component::Transfer",
     "kind": "struct",
     "members": [
       {
@@ -1066,7 +1118,7 @@ export const ABI = [
   },
   {
     "type": "event",
-    "name": "openzeppelin::token::erc20::erc20::ERC20Component::Approval",
+    "name": "openzeppelin_token::erc20::erc20::ERC20Component::Approval",
     "kind": "struct",
     "members": [
       {
@@ -1088,74 +1140,79 @@ export const ABI = [
   },
   {
     "type": "event",
-    "name": "openzeppelin::token::erc20::erc20::ERC20Component::Event",
+    "name": "openzeppelin_token::erc20::erc20::ERC20Component::Event",
     "kind": "enum",
     "variants": [
       {
         "name": "Transfer",
-        "type": "openzeppelin::token::erc20::erc20::ERC20Component::Transfer",
+        "type": "openzeppelin_token::erc20::erc20::ERC20Component::Transfer",
         "kind": "nested"
       },
       {
         "name": "Approval",
-        "type": "openzeppelin::token::erc20::erc20::ERC20Component::Approval",
+        "type": "openzeppelin_token::erc20::erc20::ERC20Component::Approval",
         "kind": "nested"
       }
     ]
   },
   {
     "type": "event",
-    "name": "pitch_lake_starknet::option_round::contract::OptionRound::Event",
+    "name": "pitch_lake::option_round::contract::OptionRound::Event",
     "kind": "enum",
     "variants": [
       {
+        "name": "PricingDataUpdated",
+        "type": "pitch_lake::option_round::contract::OptionRound::PricingDataUpdated",
+        "kind": "nested"
+      },
+      {
         "name": "AuctionStarted",
-        "type": "pitch_lake_starknet::option_round::contract::OptionRound::AuctionStarted",
+        "type": "pitch_lake::option_round::contract::OptionRound::AuctionStarted",
         "kind": "nested"
       },
       {
         "name": "BidPlaced",
-        "type": "pitch_lake_starknet::option_round::contract::OptionRound::BidPlaced",
+        "type": "pitch_lake::option_round::contract::OptionRound::BidPlaced",
         "kind": "nested"
       },
       {
         "name": "BidUpdated",
-        "type": "pitch_lake_starknet::option_round::contract::OptionRound::BidUpdated",
+        "type": "pitch_lake::option_round::contract::OptionRound::BidUpdated",
         "kind": "nested"
       },
       {
         "name": "AuctionEnded",
-        "type": "pitch_lake_starknet::option_round::contract::OptionRound::AuctionEnded",
+        "type": "pitch_lake::option_round::contract::OptionRound::AuctionEnded",
         "kind": "nested"
       },
       {
         "name": "OptionRoundSettled",
-        "type": "pitch_lake_starknet::option_round::contract::OptionRound::OptionRoundSettled",
+        "type": "pitch_lake::option_round::contract::OptionRound::OptionRoundSettled",
         "kind": "nested"
       },
       {
         "name": "OptionsExercised",
-        "type": "pitch_lake_starknet::option_round::contract::OptionRound::OptionsExercised",
+        "type": "pitch_lake::option_round::contract::OptionRound::OptionsExercised",
         "kind": "nested"
       },
       {
         "name": "UnusedBidsRefunded",
-        "type": "pitch_lake_starknet::option_round::contract::OptionRound::UnusedBidsRefunded",
+        "type": "pitch_lake::option_round::contract::OptionRound::UnusedBidsRefunded",
         "kind": "nested"
       },
       {
         "name": "BidTreeEvent",
-        "type": "pitch_lake_starknet::library::red_black_tree::RBTreeComponent::Event",
+        "type": "pitch_lake::library::red_black_tree::RBTreeComponent::Event",
         "kind": "flat"
       },
       {
         "name": "OptionsMinted",
-        "type": "pitch_lake_starknet::option_round::contract::OptionRound::OptionsMinted",
+        "type": "pitch_lake::option_round::contract::OptionRound::OptionsMinted",
         "kind": "nested"
       },
       {
         "name": "ERC20Event",
-        "type": "openzeppelin::token::erc20::erc20::ERC20Component::Event",
+        "type": "openzeppelin_token::erc20::erc20::ERC20Component::Event",
         "kind": "flat"
       }
     ]

@@ -1,0 +1,170 @@
+[
+    {
+        "starting_timestamp": 1671082204,
+        "ending_timestamp": 1673760608,
+        "reserve_price": 1133806091.8973722,
+        "strike_price": 17635296321.331875,
+        "settlement_price": 17635296321.87111,
+        "volatility": 3000
+    },
+    {
+        "starting_timestamp": 1673760608,
+        "ending_timestamp": 1676439005,
+        "reserve_price": 2289497207.1168942,
+        "strike_price": 21386087366.87111,
+        "settlement_price": 21386087366.817963,
+        "volatility": 3000
+    },
+    {
+        "starting_timestamp": 1676439005,
+        "ending_timestamp": 1678858200,
+        "reserve_price": 1279595660.5008752,
+        "strike_price": 29034664790.817963,
+        "settlement_price": 29034664790.02064,
+        "volatility": 3000
+    },
+    {
+        "starting_timestamp": 1678858200,
+        "ending_timestamp": 1681536603,
+        "reserve_price": 875665408.7313896,
+        "strike_price": 38493145481.02064,
+        "settlement_price": 38493145481.663445,
+        "volatility": 3000
+    },
+    {
+        "starting_timestamp": 1681536603,
+        "ending_timestamp": 1684128611,
+        "reserve_price": 2633366765.449701,
+        "strike_price": 25439135433.663445,
+        "settlement_price": 25439135433.31648,
+        "volatility": 3000
+    },
+    {
+        "starting_timestamp": 1684128611,
+        "ending_timestamp": 1686807007,
+        "reserve_price": 1356220491.835023,
+        "strike_price": 74555216167.31648,
+        "settlement_price": 74555216167.505894,
+        "volatility": 3000
+    },
+    {
+        "starting_timestamp": 1686807007,
+        "ending_timestamp": 1689399000,
+        "reserve_price": 1952777064.7434845,
+        "strike_price": 20136894952.505894,
+        "settlement_price": 20136894952.938293,
+        "volatility": 3000
+    },
+    {
+        "starting_timestamp": 1689399000,
+        "ending_timestamp": 1692077411,
+        "reserve_price": 2146702361.445386,
+        "strike_price": 22828235819.938293,
+        "settlement_price": 22828235819.848763,
+        "volatility": 3000
+    },
+    {
+        "starting_timestamp": 1692077411,
+        "ending_timestamp": 1694755801,
+        "reserve_price": 1644783441.6741364,
+        "strike_price": 19320316991.848763,
+        "settlement_price": 19320316991.733692,
+        "volatility": 3000
+    },
+    {
+        "starting_timestamp": 1694755801,
+        "ending_timestamp": 1697347808,
+        "reserve_price": 1467840115.5542483,
+        "strike_price": 15696616976.733692,
+        "settlement_price": 15696616976.569965,
+        "volatility": 3000
+    },
+    {
+        "starting_timestamp": 1697347808,
+        "ending_timestamp": 1700026208,
+        "reserve_price": 554611569.0124147,
+        "strike_price": 7419675169.569965,
+        "settlement_price": 7419675169.247475,
+        "volatility": 3000
+    },
+    {
+        "starting_timestamp": 1700026208,
+        "ending_timestamp": 1702618206,
+        "reserve_price": 3834880492.891962,
+        "strike_price": 37644135519.247475,
+        "settlement_price": 37644135519.43376,
+        "volatility": 3000
+    },
+    {
+        "starting_timestamp": 1702618206,
+        "ending_timestamp": 1705296605,
+        "reserve_price": 5010998700.134231,
+        "strike_price": 39788123292.43376,
+        "settlement_price": 39788123292.067184,
+        "volatility": 3000
+    },
+    {
+        "starting_timestamp": 1705296605,
+        "ending_timestamp": 1707975009,
+        "reserve_price": 2102480779.8673804,
+        "strike_price": 26352409279.067184,
+        "settlement_price": 26352409279.14552,
+        "volatility": 3000
+    },
+    {
+        "starting_timestamp": 1707975009,
+        "ending_timestamp": 1710480615,
+        "reserve_price": 1358716570.77586,
+        "strike_price": 40189317122.14552,
+        "settlement_price": 40189317122.033165,
+        "volatility": 3000
+    },
+    {
+        "starting_timestamp": 1710480615,
+        "ending_timestamp": 1713159006,
+        "reserve_price": 7431323768.285521,
+        "strike_price": 58500408944.033165,
+        "settlement_price": 58500408944.007843,
+        "volatility": 3000
+    },
+    {
+        "starting_timestamp": 1713159006,
+        "ending_timestamp": 1715751017,
+        "reserve_price": 1105329970.4182699,
+        "strike_price": 24358911017.007843,
+        "settlement_price": 24358911017.434905,
+        "volatility": 3000
+    },
+    {
+        "starting_timestamp": 1715751017,
+        "ending_timestamp": 1718429397,
+        "reserve_price": 517729381.0134145,
+        "strike_price": 5681275902.434905,
+        "settlement_price": 5681275902.398533,
+        "volatility": 3000
+    },
+    {
+        "starting_timestamp": 1718429397,
+        "ending_timestamp": 1721021409,
+        "reserve_price": 1008885496.8860922,
+        "strike_price": 10706888590.398533,
+        "settlement_price": 10706888590.4517756,
+        "volatility": 3000
+    },
+    {
+        "starting_timestamp": 1721021409,
+        "ending_timestamp": 1721160731,
+        "reserve_price": 347501891.0070594,
+        "strike_price": 3907948839.4517756,
+        "settlement_price": 3907948839.922286,
+        "volatility": 3000
+    },
+    {
+        "starting_timestamp": 1721160731,
+        "ending_timestamp": 1721160731,
+        "reserve_price": 361402055.1651912,
+        "strike_price": 5191304671.922286,
+        "settlement_price": 5191304671.922286,
+        "volatility": 3000
+    }
+]

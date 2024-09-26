@@ -2,10 +2,7 @@ import { LibraryError, Uint256 } from "starknet";
 import { getAccount } from "../../utils/helpers/common";
 import { getOptionRoundFacade } from "../../utils/helpers/setup";
 import assert from "assert";
-import {
-  ApprovalArgs,
-  PlaceBidArgs,
-} from "../../utils/facades/types";
+import { ApprovalArgs, PlaceBidArgs } from "../../utils/facades/types";
 import { mineNextBlock } from "../../utils/katana";
 import { TestRunner } from "../../utils/facades/TestRunner";
 
@@ -19,11 +16,11 @@ export const smokeTest = async ({
   approveAll,
   startAuctionBystander,
   getLiquidityProviderAccounts,
-  getOptionBidderAccounts
+  getOptionBidderAccounts,
 }: TestRunner) => {
   const optionRoundFacade = await getOptionRoundFacade(
     provider,
-    vaultFacade.vaultContract
+    vaultFacade.vaultContract,
   );
   const devAccount = getAccount("dev", provider);
   try {
@@ -43,17 +40,15 @@ export const smokeTest = async ({
 
   assert(
     stateAfter.activeVariant() === "Open",
-    `Expected:Open\nReceived:${stateAfter.activeVariant()}`
+    `Expected:Open\nReceived:${stateAfter.activeVariant()}`,
   );
 
-  await startAuctionBystander(constants);
+  await startAuctionBystander();
 
   const unlockedBalances = await getLPUnlockedBalanceAll(
-    liquidityProviderAccounts
+    liquidityProviderAccounts,
   );
-  const lockedBalances = await getLPLockedBalanceAll(
-    liquidityProviderAccounts
-  );
+  const lockedBalances = await getLPLockedBalanceAll(liquidityProviderAccounts);
   const totalLockedAmount = await vaultFacade.getTotalLocked();
   const totalUnlockedAmount = await vaultFacade.getTotalUnLocked();
 
@@ -88,9 +83,7 @@ export const smokeTest = async ({
   const totalOptionAvailable =
     await optionRoundFacade.getTotalOptionsAvailable();
 
-  const ethBalancesBefore = await getBalancesAll(
-    optionBidderAccounts
-  );
+  const ethBalancesBefore = await getBalancesAll(optionBidderAccounts);
 
   const placeBidsData: Array<PlaceBidArgs> = [
     {
@@ -139,33 +132,33 @@ async function checkpoint1({
 }) {
   assert(
     Number(unlockedBalances[0]) === 0,
-    `UnlockedBalanceA 0 expected, found ${unlockedBalances[0]}`
+    `UnlockedBalanceA 0 expected, found ${unlockedBalances[0]}`,
   );
   assert(
     Number(unlockedBalances[1]) === 0,
-    `UnlockedBalanceB 0 expected, found ${unlockedBalances[1]}`
+    `UnlockedBalanceB 0 expected, found ${unlockedBalances[1]}`,
   );
   assert(
     BigInt(lockedBalances[0]) === BigInt(depositAmount) / BigInt(2),
     `LockedBalanceA ${BigInt(depositAmount) / BigInt(2)} expected, found ${
       lockedBalances[0]
-    }`
+    }`,
   );
   assert(
     BigInt(lockedBalances[1]) === BigInt(depositAmount) / BigInt(2),
     `LockedBalanceB ${BigInt(depositAmount) / BigInt(2)} expected, found ${
       lockedBalances[1]
-    }`
+    }`,
   );
   assert(
     BigInt(totalUnlockedAmount) === BigInt(0),
-    `Total unlocked 0 expected, found ${totalUnlockedAmount}`
+    `Total unlocked 0 expected, found ${totalUnlockedAmount}`,
   );
   assert(
     BigInt(totalLockedAmount) === BigInt(depositAmount),
     `Total Locked amount ${BigInt(
-      depositAmount
-    )} expected, found ${totalLockedAmount}`
+      depositAmount,
+    )} expected, found ${totalLockedAmount}`,
   );
 }
 
@@ -187,39 +180,42 @@ async function checkpoint2({
     BigInt(ethBalancesBefore[0]) - BigInt(ethBalancesAfter[0]) ===
       (BigInt(3) * BigInt(reservePrice) * BigInt(totalOptionAvailable)) /
         BigInt(2),
-    "Error A"
+    "Error A",
   );
   assert(
     BigInt(ethBalancesBefore[1]) - BigInt(ethBalancesAfter[1]) ===
       (BigInt(3) * BigInt(reservePrice) * BigInt(totalOptionAvailable)) /
         BigInt(2),
-    "Error B"
+    "Error B",
   );
 
-  assert(bidArrays[0].length === 1, `No. of Bids for A wrong,\n Expected:${BigInt(totalOptionAvailable)}\n Received:${bidArrays[0]?.length}`);
+  assert(
+    bidArrays[0].length === 1,
+    `No. of Bids for A wrong,\n Expected:${BigInt(totalOptionAvailable)}\n Received:${bidArrays[0]?.length}`,
+  );
   assert(
     bidArrays[0][0].amount === BigInt(totalOptionAvailable) / BigInt(2),
-    "Bid for A amount wrong"
+    "Bid for A amount wrong",
   );
   assert(
     bidArrays[0][0].price === BigInt(3) * BigInt(reservePrice),
-    "Bid for A price wrong"
+    "Bid for A price wrong",
   );
   assert(bidArrays[1].length === 2, "No. of Bids for B wrong");
   assert(
     bidArrays[1][0].amount === BigInt(totalOptionAvailable) / BigInt(2),
-    "First bid for B amount wrong"
+    "First bid for B amount wrong",
   );
   assert(
     bidArrays[1][0].price === BigInt(2) * BigInt(reservePrice),
-    "First bid for B price wrong"
+    "First bid for B price wrong",
   );
   assert(
     bidArrays[1][1].amount === BigInt(totalOptionAvailable) / BigInt(2),
-    "Second bid for B amount wrong "
+    "Second bid for B amount wrong ",
   );
   assert(
     BigInt(bidArrays[1][1].price) === BigInt(reservePrice),
-    `Second bid for B price wrong.\n Expected:${reservePrice}, Actual:${bidArrays[1][0].price}`
+    `Second bid for B price wrong.\n Expected:${reservePrice}, Actual:${bidArrays[1][0].price}`,
   );
 }
