@@ -10,7 +10,7 @@ enum VaultType {
     OutOfMoney,
 }
 
-#[derive(Copy, Drop, Serde)]
+#[derive(PartialEq, Default, Copy, Drop, Serde, starknet::Store)]
 struct PricingDataPoints {
     twap: u256,
     volatility: u128,
@@ -124,9 +124,8 @@ trait IVault<TContractState> {
 
     /// State transitions
 
-    // Update the params of the current round if there are newer data from Fossil
-    // @note Will probably remove this
-    // fn update_round_params(ref self: TContractState);
+    // @dev Update the pricing data points for the current round
+    fn refresh_round_pricing_data(ref self: TContractState, job_request: JobRequest);
 
     // @dev Start the current round's auction
     // @return The total options available in the auction
