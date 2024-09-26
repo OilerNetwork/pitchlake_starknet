@@ -35,6 +35,19 @@ use pitch_lake::{
 const salt: u64 = 0x123;
 const err: felt252 = Errors::CallerIsNotVault;
 
+fn create_job_request(to: u64) -> JobRequest {
+    let JobRange { twap_range, volatility_range, reserve_price_range } = Vault::EXPECTED_JOB_RANGE;
+
+    JobRequest {
+        identifiers: array![selector!("PITCH_LAKE_V1")].span(),
+        params: JobRequestParams {
+            twap: (to - twap_range, to),
+            volatility: (to - volatility_range, to),
+            reserve_price: (to - reserve_price_range, to),
+        }
+    }
+}
+
 fn not_vault() -> ContractAddress {
     contract_address_const::<'not vault'>()
 }
@@ -197,51 +210,30 @@ fn test_refreshing_consequtive_round_refreshing() {
     let (mut vault, _) = setup_facade();
 
     for _ in 0
-        ..3_usize {
-            let mut current_round = vault.get_current_round();
-
+        ..2_usize {
             accelerate_to_auctioning(ref vault);
             accelerate_to_running(ref vault);
-
-            let (c_cap_level, c_strike_price, c_reserve_price) = {
-                (
-                    current_round.get_cap_level(),
-                    current_round.get_strike_price(),
-                    current_round.get_reserve_price()
-                )
-            };
-
             accelerate_to_settled(ref vault, to_gwei(10));
-            let mut next_round = vault.get_current_round();
-            let (n_cap_level, n_strike_price, n_reserve_price) = {
-                (
-                    next_round.get_cap_level(),
-                    next_round.get_strike_price(),
-                    next_round.get_reserve_price()
-                )
-            };
 
+            let mut next_round = vault.get_current_round();
             let auction_start_date = next_round.get_auction_start_date();
             let to = auction_start_date - 1;
-            let JobRange { twap_range, volatility_range, reserve_price_range } =
-                Vault::EXPECTED_JOB_RANGE;
 
-            let job_request: JobRequest = JobRequest {
-                identifiers: array![selector!("PITCH_LAKE_V1")].span(),
-                params: JobRequestParams {
-                    twap: (to - twap_range, to),
-                    volatility: (to - volatility_range, to),
-                    reserve_price: (to - reserve_price_range, to),
-                }
-            };
             // Mock verify the fact in the registry
+            let job_request = create_job_request(to);
+
+            // Refresh with new data
+            let exp_twap = to_gwei(666);
+            let exp_volatility = 1234;
+            let exp_reserve_price = to_gwei(123);
             let data = FossilDataPoints {
-                twap: to_gwei(666), volatility: 1234, reserve_price: to_gwei(123),
+                twap: exp_twap, volatility: exp_volatility, reserve_price: exp_reserve_price,
             };
 
             vault.get_fact_registry_facade().set_fact(job_request, data);
             vault.refresh_round_pricing_data(job_request);
-            let (nr_cap_level, nr_strike_price, nr_reserve_price) = {
+
+            let (cap_level, strike_price, reserve_price) = {
                 (
                     next_round.get_cap_level(),
                     next_round.get_strike_price(),
@@ -249,9 +241,42 @@ fn test_refreshing_consequtive_round_refreshing() {
                 )
             };
 
-            println!("{} {} {}", c_cap_level, c_strike_price, c_reserve_price);
-            println!("{} {} {}", n_cap_level, n_strike_price, n_reserve_price);
-            println!("{} {} {}", nr_cap_level, nr_strike_price, nr_reserve_price);
+            assert_eq!(cap_level, pricing_utils::calculate_cap_level(123, exp_volatility));
+            assert_eq!(reserve_price, exp_reserve_price);
+            assert_eq!(
+                strike_price,
+                pricing_utils::calculate_strike_price(
+                    VaultType::AtTheMoney, exp_twap, exp_volatility
+                )
+            );
+
+            // Refresh with new data
+            let exp_twap2 = to_gwei(777);
+            let exp_volatility2 = 6789;
+            let exp_reserve_price2 = to_gwei(333);
+            let data2 = FossilDataPoints {
+                twap: exp_twap2, volatility: exp_volatility2, reserve_price: exp_reserve_price2,
+            };
+
+            vault.get_fact_registry_facade().set_fact(job_request, data2);
+            vault.refresh_round_pricing_data(job_request);
+
+            let (cap_level2, strike_price2, reserve_price2) = {
+                (
+                    next_round.get_cap_level(),
+                    next_round.get_strike_price(),
+                    next_round.get_reserve_price()
+                )
+            };
+
+            assert_eq!(cap_level2, pricing_utils::calculate_cap_level(123, exp_volatility2));
+            assert_eq!(reserve_price2, exp_reserve_price2);
+            assert_eq!(
+                strike_price2,
+                pricing_utils::calculate_strike_price(
+                    VaultType::AtTheMoney, exp_twap2, exp_volatility2
+                )
+            );
         }
 }
 
