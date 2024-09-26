@@ -5,7 +5,6 @@ mod FactRegistry {
     use pitch_lake::fact_registry::interface::{IFactRegistry, JobRequest, JobRequestParams};
     use pitch_lake::library::utils::generate_job_id;
 
-    // Consider putting this in JobRequest ?
     const FACT_SIZE: usize = 5; // (u256, u128, u256)
 
     #[storage]

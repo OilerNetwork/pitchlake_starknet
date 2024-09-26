@@ -36,24 +36,7 @@ mod OptionRound {
     // *************************************************************************
     //                              STORAGE
     // *************************************************************************
-    // Note: Write description of any storage variable here->
-    // @market_aggregator: The address of the contract to fetch fossil values from
-    // @state: The state of the option round
-    // @round_id: The round's id
-    // @cap_level: The cap level of the potential payout
-    // @reserve_price: The minimum bid price per option
-    // @strike_price: The strike price of the options
-    // @starting_liquidity: The amount of liquidity this round starts with (locked upon auction
-    // starting)
-    // @payout_per_option: The amount the option round pays out per option upon settlement
-    // @auction_start_date: The auction start date
-    // @auction_end_date: The auction end date
-    // @option_settlement_date: The option settlement date
-    // @constructor:params: Params to pass at option round creation, to be set by fossil
-    // @bidder_nonces: A mapping of address to u256, tells the current nonce for an address, allows
-    // tracking of bids for each user and used to create unique bid id's for each bid @bids_tree:
-    // Storage for the bids tree, see rb-tree-component @erc20: Storage for erc20 component of the
-    // round.
+
     #[storage]
     struct Storage {
         ///
@@ -775,6 +758,7 @@ mod OptionRound {
     // *************************************************************************
     //                          INTERNAL FUNCTIONS
     // *************************************************************************
+
     #[generate_trait]
     impl InternalImpl of OptionRoundInternalTrait {
         // @dev Transitions the round's state to `to_state` if the proper conditions are met

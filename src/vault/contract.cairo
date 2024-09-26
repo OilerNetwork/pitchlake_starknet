@@ -646,6 +646,7 @@ mod Vault {
     // *************************************************************************
     //                          INTERNAL FUNCTIONS
     // *************************************************************************
+
     #[generate_trait]
     impl InternalImpl of VaultInternalTrait {
         /// Get contract dispatchers
@@ -862,68 +863,6 @@ mod Vault {
                 }
             }
         }
-        //               if upper_bound < option_settlement_date - JOB_TIMESTAMP_TOLERANCE {
-        //                   return Result::Err(Errors::JobRequestOutOfBounds);
-        //               }
-
-        //            assert(
-        //                upper_bound == upper_bound2 && upper_bound == upper_bound3,
-        //                Errors::JobRequestUpperBoundsMismatch
-        //            );
-
-        // @dev
-        //            if state == OptionRoundState::Open {
-        //
-        //                if upper_bound < self.deployment_date.read() {
-        //                    return Result::Err(Errors::JobRequestOutOfBounds);
-        //                }
-        //            } else {
-        //                if upper_bound > option_settlement_date {
-        //                    return Result::Err(Errors::JobRequestOutOfBounds);
-        //                }
-        //                if upper_bound < option_settlement_date - JOB_TIMESTAMP_TOLERANCE {
-        //                    return Result::Err(Errors::JobRequestOutOfBounds);
-        //                }
-        //            }
-
-        // @dev Is the
-        // @dev Ensure the upper bounds are the same
-        //            assert(
-        //                EXPECTED_JOB_RANGE == JobRange {
-        //                    twap_range: (upper_bound - lower_bound),
-        //                    volatility_range: (upper_bound2 - lower_bound2),
-        //                    reserve_price_range: (upper_bound3 - lower_bound3)
-        //                },
-        //                Errors::JobRequestOutOfBounds
-        //            );
-
-        //            // @dev We only need to validate a job if the current round is Open or
-        //            Running assert(
-        //                state == OptionRoundState::Open || state == OptionRoundState::Running,
-        //                Errors::JobRequestForIrrelevantTime,
-        //            );
-        //
-        //            // @dev If the current round is Open, the job request is being used to
-        //            refresh the // pricing data points for the current round
-        //            if state == OptionRoundState::Open {
-        //                // @dev Any data points after the round's deployment date are valid
-        //                assert(upper_bound >= self.deployment_date.read(),
-        //                Errors::JobRequestOutOfBounds);
-        //            } // @dev If the current round is Running, the job request is being used
-        //            to settle the // current round
-        //            else {
-        //                // @dev Any data points from after or before the round's settlement
-        //                date (with some // tolerance) are invalid
-        //                let option_settlement_date =
-        //                current_round.get_option_settlement_date();
-        //                assert(upper_bound <= option_settlement_date,
-        //                Errors::JobRequestOutOfBounds);
-        //                assert(
-        //                    upper_bound >= option_settlement_date - JOB_TIMESTAMP_TOLERANCE,
-        //                    Errors::JobRequestOutOfBounds
-        //                );
-        //            }
-        //            // @dev Return the job's ID
 
         /// Position management
 
