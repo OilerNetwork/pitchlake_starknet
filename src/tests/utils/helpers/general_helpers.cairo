@@ -1,9 +1,14 @@
-use openzeppelin::token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait,};
+use openzeppelin_token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait,};
 use starknet::{ContractAddress};
 
 /// Array helpers ///
 
-// Create array of length `len`, each element is `amount` (For bids use the function twice for price and amount)
+fn to_gwei(value: u256) -> u256 {
+    value * 1_000_000_000
+}
+
+// Create array of length `len`, each element is `amount` (For bids use the function twice for price
+// and amount)
 fn create_array_linear<T, +Drop<T>, +Copy<T>>(amount: T, len: u32) -> Array<T> {
     let mut arr = array![];
     let mut index = 0;
@@ -14,7 +19,8 @@ fn create_array_linear<T, +Drop<T>, +Copy<T>>(amount: T, len: u32) -> Array<T> {
     arr
 }
 
-// Create array of length `len`, each element is `amount + index * step` (For bids use the function twice for price and amount)
+// Create array of length `len`, each element is `amount + index * step` (For bids use the function
+// twice for price and amount)
 fn create_array_gradient(amount: u256, step: u256, len: u32) -> Array<u256> {
     let mut arr: Array<u256> = array![];
     let mut index: u32 = 0;
@@ -25,7 +31,8 @@ fn create_array_gradient(amount: u256, step: u256, len: u32) -> Array<u256> {
     arr
 }
 
-// Create array of length `len`, each element is `amount - index * step` (For bids use the function twice for price and amount)
+// Create array of length `len`, each element is `amount - index * step` (For bids use the function
+// twice for price and amount)
 fn create_array_gradient_reverse(amount: u256, step: u256, len: u32) -> Array<u256> {
     let mut arr: Array<u256> = array![];
     let mut index: u32 = 0;

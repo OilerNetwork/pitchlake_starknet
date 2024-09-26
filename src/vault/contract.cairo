@@ -18,9 +18,8 @@ mod Vault {
         OptionRoundState, IOptionRoundDispatcher, IOptionRoundDispatcherTrait
     };
     use pitch_lake::types::{Consts::{BPS, JOB_TIMESTAMP_TOLERANCE}};
-    use pitch_lake::library::utils::{
-        assert_equal_in_range, calculate_strike_price, generate_job_id, calculate_cap_level
-    };
+    use pitch_lake::library::utils::{assert_equal_in_range, generate_job_id,};
+    use pitch_lake::library::pricing_utils::{calculate_strike_price, calculate_cap_level};
     use pitch_lake::fact_registry::interface::{
         IFactRegistry, IFactRegistryDispatcher, IFactRegistryDispatcherTrait, JobRequest,
         JobRequestParams, JobRange,
@@ -95,6 +94,9 @@ mod Vault {
         self.round_transition_period.write(round_transition_period);
         self.auction_run_time.write(auction_run_time);
         self.option_run_time.write(option_run_time);
+
+        // @dev Deploy the first round
+        self.deploy_next_round(Default::default());
     }
 
     // *************************************************************************
@@ -102,6 +104,10 @@ mod Vault {
     // *************************************************************************
 
     mod Errors {
+        const JobRequestOutOfBounds: felt252 = 'Job request out of bounds';
+        const JobRequestUpperBoundsMismatch: felt252 = 'Job request bounds mismatch';
+        const JobRequestForIrrelevantTime: felt252 = 'Job request for irrelevant time';
+        const FailedToDeserializeFact: felt252 = 'Failed to deserialize fact';
         const InsufficientBalance: felt252 = 'Insufficient unlocked balance';
         const QueueingMoreThanPositionValue: felt252 = 'Insufficient balance to queue';
         const WithdrawalQueuedWhileUnlocked: felt252 = 'Can only queue while locked';
@@ -111,6 +117,7 @@ mod Vault {
     // *************************************************************************
     //                              EVENTS
     // *************************************************************************
+
     #[event]
     #[derive(Serde, PartialEq, Drop, starknet::Event)]
     enum Event {
@@ -200,6 +207,7 @@ mod Vault {
     // *************************************************************************
     //                            IMPLEMENTATION
     // *************************************************************************
+
     #[abi(embed_v0)]
     impl VaultImpl of IVault<ContractState> {
         // ***********************************
@@ -534,6 +542,16 @@ mod Vault {
 
         /// State transitions
 
+        fn refresh_round_pricing_data(ref self: ContractState, job_request: JobRequest) {
+            // @dev Fetch pricing data and job id if the request is valid
+            let (pricing_data, job_id) = self.fetch_pricing_data(@job_request);
+
+            // @dev Refresh the current round's pricing data
+            self
+                .get_round_dispatcher(self.current_round_id.read())
+                .refresh_pricing_data_points(pricing_data, job_id);
+        }
+
         fn start_auction(ref self: ContractState) -> u256 {
             // @dev Update all unlocked liquidity to locked
             let unlocked_liquidity_before_auction = self.vault_unlocked_balance.read();
@@ -573,78 +591,56 @@ mod Vault {
         }
 
         fn settle_round(ref self: ContractState, job_request: JobRequest) -> u256 {
-            // @dev Fetch pricing data
-            let pricing_data = self.fetch_pricing_data(@job_request);
+            // @dev Fetch pricing data if the request is valid
+            let (pricing_data, _) = self.fetch_pricing_data(@job_request);
 
             // @dev If there is a current round, settle it
             let mut total_payout = 0;
             let current_round_id = self.current_round_id.read();
-            if current_round_id.is_non_zero() {
-                // @dev Settle the current round and return the total payout
-                let current_round = self.get_round_dispatcher(current_round_id);
-                total_payout = current_round.settle_round(pricing_data.twap);
+            // @dev Settle the current round and return the total payout
+            let current_round = self.get_round_dispatcher(current_round_id);
+            total_payout = current_round.settle_round(pricing_data.twap);
 
-                // @dev Calculate the remaining liquidity after the round settles
-                let starting_liq = current_round.get_starting_liquidity();
-                let unsold_liq = current_round.get_unsold_liquidity();
-                let remaining_liq = starting_liq - unsold_liq - total_payout;
+            // @dev Calculate the remaining liquidity after the round settles
+            let starting_liq = current_round.get_starting_liquidity();
+            let unsold_liq = current_round.get_unsold_liquidity();
+            let remaining_liq = starting_liq - unsold_liq - total_payout;
 
-                // @dev Calculate the amount of liquidity that was not stashed by liquidity
-                // providers, avoiding division by 0
-                let vault = get_contract_address();
-                let starting_liq_queued = self
-                    .queued_liquidity
-                    .entry(vault)
-                    .entry(current_round_id)
-                    .read();
-                let remaining_liq_stashed = match starting_liq.is_zero() {
-                    true => 0,
-                    false => (remaining_liq * starting_liq_queued) / starting_liq
-                };
-                let remaining_liq_not_stashed = remaining_liq - remaining_liq_stashed;
+            // @dev Calculate the amount of liquidity that was stashed/not stashed by liquidity
+            // providers, avoiding division by 0
+            let vault = get_contract_address();
+            let starting_liq_queued = self
+                .queued_liquidity
+                .entry(vault)
+                .entry(current_round_id)
+                .read();
+            let remaining_liq_stashed = match starting_liq.is_zero() {
+                true => 0,
+                false => (remaining_liq * starting_liq_queued) / starting_liq
+            };
+            let remaining_liq_not_stashed = remaining_liq - remaining_liq_stashed;
 
-                // @dev All of the remaining liquidity becomes unlocked and any stashed liquidity is
-                // set aside and no longer participates in the protocol
-                self.vault_locked_balance.write(0);
-                self
-                    .vault_stashed_balance
-                    .write(self.vault_stashed_balance.read() + remaining_liq_stashed);
-                self
-                    .vault_unlocked_balance
-                    .write(self.vault_unlocked_balance.read() + remaining_liq_not_stashed);
+            // @dev All of the remaining liquidity becomes unlocked, any stashed liquidity is
+            // set aside and no longer participates in the protocol
+            self.vault_locked_balance.write(0);
+            self
+                .vault_stashed_balance
+                .write(self.vault_stashed_balance.read() + remaining_liq_stashed);
+            self
+                .vault_unlocked_balance
+                .write(self.vault_unlocked_balance.read() + remaining_liq_not_stashed);
 
-                // @dev Transfer payout from the vault to the just settled round,
-                if (total_payout > 0) {
-                    self
-                        .get_eth_dispatcher()
-                        .transfer(current_round.contract_address, total_payout);
-                }
+            // @dev Transfer payout from the vault to the just settled round,
+            if (total_payout > 0) {
+                self.get_eth_dispatcher().transfer(current_round.contract_address, total_payout);
             }
 
             // @dev Deploy next (or first) option round contract & update the current round id
             self.deploy_next_round(pricing_data);
 
-            // Return the total payout for the option round, 0 the first round is being deployed
+            // Return the total payout for the option round or 0 if deploying first round
             total_payout
         }
-        // @note will probably remove this
-    //        fn update_round_params(ref self: ContractState) {
-    //            let current_round_id = self.current_round_id.read();
-    //            let current_round = self.get_round_dispatcher(current_round_id);
-    //
-    //            let cap_level = self.fetch_cap_level_for_round(current_round_id);
-    //            let reserve_price = self.fetch_reserve_price_for_round(current_round_id);
-    //            let twap_end = current_round.get_auction_start_date();
-    //            let twap_start = twap_end - TWAP_DURATION;
-    //            let current_avg_basefee = self.fetch_TWAP_for_time_period(twap_start,
-    //            twap_end);
-    //            let volatility = self.fetch_volatility_for_round(current_round_id);
-    //            let strike_price = calculate_strike_price(
-    //                self.vault_type.read(), current_avg_basefee, volatility
-    //            );
-    //
-    //            current_round.update_round_params(reserve_price, cap_level, strike_price);
-    //        }
     }
 
     // *************************************************************************
@@ -719,8 +715,6 @@ mod Vault {
         }
 
         fn deploy_next_round(ref self: ContractState, pricing_data: PricingDataPoints) {
-            // @dev Create this round's constructor args
-            let mut calldata: Array<felt252> = array![];
             let vault_address: ContractAddress = get_contract_address();
             let round_id: u256 = self.current_round_id.read() + 1;
 
@@ -728,22 +722,14 @@ mod Vault {
             let (auction_start_date, auction_end_date, option_settlement_date) = self
                 .calculate_dates();
 
-            // @dev Fetch this round's reserve price and cap level
-            let PricingDataPoints { twap: _,
-            volatility: _,
-            reserve_price,
-            cap_level,
-            strike_price } =
-                pricing_data;
-
+            // @dev Create this round's constructor args
+            let mut calldata: Array<felt252> = array![];
             calldata.append_serde(vault_address);
             calldata.append_serde(round_id);
             calldata.append_serde(auction_start_date);
             calldata.append_serde(auction_end_date);
             calldata.append_serde(option_settlement_date);
-            calldata.append_serde(reserve_price);
-            calldata.append_serde(cap_level);
-            calldata.append_serde(strike_price);
+            calldata.append_serde(pricing_data);
 
             // @dev Deploy the round
             let (address, _) = deploy_syscall(
@@ -764,9 +750,9 @@ mod Vault {
                         OptionRoundDeployed {
                             round_id,
                             address,
-                            reserve_price,
-                            strike_price,
-                            cap_level,
+                            reserve_price: pricing_data.reserve_price,
+                            strike_price: pricing_data.strike_price,
+                            cap_level: pricing_data.cap_level,
                             auction_start_date,
                             auction_end_date,
                             option_settlement_date
@@ -777,65 +763,167 @@ mod Vault {
 
         /// Fossil
 
-        fn validate_job_request(self: @ContractState, job_request: @JobRequest) -> felt252 {
+        // @dev Return the job id if it is valid
+        fn is_valid_job_request(
+            self: @ContractState, job_request: @JobRequest
+        ) -> Result<felt252, felt252> {
             // @dev Get the job's params
             let (lower_bound, upper_bound) = *job_request.params.twap;
             let (lower_bound2, upper_bound2) = *job_request.params.volatility;
             let (lower_bound3, upper_bound3) = *job_request.params.reserve_price;
 
-            // @dev Ensure the upper bounds are the same
-            assert(
-                upper_bound == upper_bound2 && upper_bound == upper_bound3, 'Upper bounds mismatch'
-            );
+            // @dev The request is invalid if the upper bounds are not the same
+            if upper_bound != upper_bound2 || upper_bound != upper_bound3 {
+                return Result::Err(Errors::JobRequestUpperBoundsMismatch);
+            }
 
-            // @dev Validate the job's range
-            assert(
-                EXPECTED_JOB_RANGE == JobRange {
-                    twap_range: (upper_bound - lower_bound),
-                    volatility_range: (upper_bound2 - lower_bound2),
-                    reserve_price_range: (upper_bound3 - lower_bound3)
-                },
-                'Job out of range'
-            );
+            // @dev The request is invalid if its range does not match the expected range
+            let job_range = JobRange {
+                twap_range: (upper_bound - lower_bound),
+                volatility_range: (upper_bound2 - lower_bound2),
+                reserve_price_range: (upper_bound3 - lower_bound3)
+            };
 
-            // @dev If the job request is for any round after the first round, the job's upper bound
-            // must be ~the current round's option settlement date
+            if job_range != EXPECTED_JOB_RANGE {
+                return Result::Err(Errors::JobRequestOutOfBounds);
+            }
+
+            // @dev The request is invalid if the current round is Auctioning or Settled because
+            // there is no need for it
             let current_round_id = self.current_round_id.read();
-            if current_round_id.is_non_zero() {
-                let current_round = self.get_round_dispatcher(current_round_id);
+            let current_round = self.get_round_dispatcher(current_round_id);
+            let state = current_round.get_state();
+
+            if state == OptionRoundState::Auctioning || state == OptionRoundState::Settled {
+                return Result::Err(Errors::JobRequestForIrrelevantTime);
+            }
+
+            // @dev If the current round is Open, the job request is being used to refresh its
+            // pricing data points; therefore the job is invalid if the upper bound is before the
+            // round's deployment date or after the round's auction start date
+            if state == OptionRoundState::Open {
+                let deployment_date = current_round.get_deployment_date();
+                let auction_start_date = current_round.get_auction_start_date();
+                if upper_bound < deployment_date || upper_bound > auction_start_date{
+                    return Result::Err(Errors::JobRequestOutOfBounds);
+                }
+            } // @dev If the current round is Running, the job request is being used to settle it;
+            // therefore the job is invalid if the upper bound is after the round's settlement date
+            // or before the round's settlement date with some tolerance
+            else {
                 let option_settlement_date = current_round.get_option_settlement_date();
-                assert_equal_in_range(upper_bound, option_settlement_date, JOB_TIMESTAMP_TOLERANCE);
+
+                if upper_bound < option_settlement_date
+                    - JOB_TIMESTAMP_TOLERANCE || upper_bound > option_settlement_date {
+                    return Result::Err(Errors::JobRequestOutOfBounds);
+                }
             }
 
-            // @dev Return the job's ID
-            generate_job_id(job_request)
-        }
+            return Result::Ok(generate_job_id(job_request));
+       }
 
-        fn fetch_pricing_data(self: @ContractState, job_request: @JobRequest) -> PricingDataPoints {
+        // @dev Fetch the pricing data points from the fact registry for the given job request if it
+        // is valid
+        fn fetch_pricing_data(
+            self: @ContractState, job_request: @JobRequest
+        ) -> (PricingDataPoints, felt252) {
             // @dev Validate the job request
-            let job_id = self.validate_job_request(job_request);
+            let is_valid = self.is_valid_job_request(job_request);
+            match is_valid {
+                // @dev Panic if the job request is invalid
+                Result::Err(e) => panic_with_felt252(e),
+                Result::Ok(job_id) => {
+                    // @dev Fetch the fact data from the registry
+                    let mut data = self.get_fact_registry_dispatcher().get_fact(job_id);
 
-            // @dev Fetch the fact data from the registry
-            let mut data = self.get_fact_registry_dispatcher().get_fact(job_id);
-            let deserialized = Serde::<FossilDataPoints>::deserialize(ref data);
+                    // @dev Resolve the data into pricing data points
+                    match Serde::<FossilDataPoints>::deserialize(ref data) {
+                        // @dev Panic if the data could not be deserialized
+                        Option::None => panic_with_felt252(Errors::FailedToDeserializeFact),
+                        Option::Some(fossil_data_points) => {
+                            // @dev Get the data points that were from Fossil
+                            let FossilDataPoints { twap, volatility, reserve_price } =
+                                fossil_data_points;
 
-            // @dev Resolve the data into pricing data points
-            match deserialized {
-                Option::Some(fossil_data_points) => {
-                    // @dev Get the data points that were from Fossil
-                    let FossilDataPoints { twap, volatility, reserve_price } = fossil_data_points;
+                            // @dev Calculate the cap level and strike price
+                            let cap_level = calculate_cap_level(self.alpha.read(), volatility);
+                            let strike_price = calculate_strike_price(
+                                self.vault_type.read(), twap, volatility
+                            );
 
-                    // @dev Calculate the cap level and strike price
-                    let cap_level = calculate_cap_level(self.alpha.read(), volatility);
-                    let strike_price = calculate_strike_price(
-                        self.vault_type.read(), twap, volatility
-                    );
-
-                    PricingDataPoints { twap, volatility, reserve_price, cap_level, strike_price }
-                },
-                Option::None => panic!("Invalid fact")
+                            (
+                                PricingDataPoints {
+                                    twap, volatility, reserve_price, cap_level, strike_price
+                                },
+                                job_id
+                            )
+                        }
+                    }
+                }
             }
         }
+            //               if upper_bound < option_settlement_date - JOB_TIMESTAMP_TOLERANCE {
+        //                   return Result::Err(Errors::JobRequestOutOfBounds);
+        //               }
+
+            //            assert(
+        //                upper_bound == upper_bound2 && upper_bound == upper_bound3,
+        //                Errors::JobRequestUpperBoundsMismatch
+        //            );
+
+            // @dev
+        //            if state == OptionRoundState::Open {
+        //
+        //                if upper_bound < self.deployment_date.read() {
+        //                    return Result::Err(Errors::JobRequestOutOfBounds);
+        //                }
+        //            } else {
+        //                if upper_bound > option_settlement_date {
+        //                    return Result::Err(Errors::JobRequestOutOfBounds);
+        //                }
+        //                if upper_bound < option_settlement_date - JOB_TIMESTAMP_TOLERANCE {
+        //                    return Result::Err(Errors::JobRequestOutOfBounds);
+        //                }
+        //            }
+
+            // @dev Is the
+        // @dev Ensure the upper bounds are the same
+        //            assert(
+        //                EXPECTED_JOB_RANGE == JobRange {
+        //                    twap_range: (upper_bound - lower_bound),
+        //                    volatility_range: (upper_bound2 - lower_bound2),
+        //                    reserve_price_range: (upper_bound3 - lower_bound3)
+        //                },
+        //                Errors::JobRequestOutOfBounds
+        //            );
+
+            //            // @dev We only need to validate a job if the current round is Open or
+        //            Running assert(
+        //                state == OptionRoundState::Open || state == OptionRoundState::Running,
+        //                Errors::JobRequestForIrrelevantTime,
+        //            );
+        //
+        //            // @dev If the current round is Open, the job request is being used to
+        //            refresh the // pricing data points for the current round
+        //            if state == OptionRoundState::Open {
+        //                // @dev Any data points after the round's deployment date are valid
+        //                assert(upper_bound >= self.deployment_date.read(),
+        //                Errors::JobRequestOutOfBounds);
+        //            } // @dev If the current round is Running, the job request is being used
+        //            to settle the // current round
+        //            else {
+        //                // @dev Any data points from after or before the round's settlement
+        //                date (with some // tolerance) are invalid
+        //                let option_settlement_date =
+        //                current_round.get_option_settlement_date();
+        //                assert(upper_bound <= option_settlement_date,
+        //                Errors::JobRequestOutOfBounds);
+        //                assert(
+        //                    upper_bound >= option_settlement_date - JOB_TIMESTAMP_TOLERANCE,
+        //                    Errors::JobRequestOutOfBounds
+        //                );
+        //            }
+        //            // @dev Return the job's ID
 
         /// Position management
 
@@ -870,7 +958,6 @@ mod Vault {
             // @dev Add in the liquidity provider's current round deposit
             realized_deposit + self.positions.entry(account).entry(current_round_id).read()
         }
-
 
         // @dev Calculate the account's starting deposit for the current round and their deposit
         // for the upcoming round

@@ -1,9 +1,11 @@
 use starknet::{ContractAddress, StorePacking};
 use pitch_lake::types::{Bid};
+use pitch_lake::vault::interface::PricingDataPoints;
 
 // An enum for each state an option round can be in
-#[derive(Copy, Drop, Serde, PartialEq, starknet::Store)]
+#[derive(Default, Copy, Drop, Serde, PartialEq, starknet::Store)]
 enum OptionRoundState {
+    #[default]
     Open, // Accepting deposits, waiting for auction to start
     Auctioning, // Auction is on going, accepting bids
     Running, // Auction has ended, waiting for option round expiry date to settle
@@ -18,9 +20,10 @@ struct ConstructorArgs {
     auction_start_date: u64,
     auction_end_date: u64,
     option_settlement_date: u64,
-    reserve_price: u256,
-    cap_level: u128,
-    strike_price: u256
+    pricing_data_points: PricingDataPoints
+    //    reserve_price: u256,
+//    cap_level: u128,
+//    strike_price: u256
 }
 
 
@@ -39,6 +42,9 @@ trait IOptionRound<TContractState> {
 
     // @dev The state of this round
     fn get_state(self: @TContractState) -> OptionRoundState;
+
+    // @dev Get the round's deployment date
+    fn get_deployment_date(self: @TContractState) -> u64;
 
     // @dev Get the date the auction can start
     fn get_auction_start_date(self: @TContractState) -> u64;
@@ -123,6 +129,11 @@ trait IOptionRound<TContractState> {
 
     /// State transitions
 
+    // @note Probably removing this
+    fn refresh_pricing_data_points(
+        ref self: TContractState, pricing_data_points_now: PricingDataPoints, job_id: felt252
+    );
+
     // @dev Start the round's auction, return the options available in the auction
     // @param starting_liquidity: The total amount of ETH being locked in the auction
     fn start_auction(ref self: TContractState, starting_liquidity: u256) -> u256;
@@ -133,12 +144,6 @@ trait IOptionRound<TContractState> {
 
     // @dev Settle the round, return the total payout for all of the (sold) options
     fn settle_round(ref self: TContractState, settlement_price: u256) -> u256;
-
-    // @note Probably removing this
-    fn update_round_params(
-        ref self: TContractState, reserve_price: u256, cap_level: u128, strike_price: u256
-    );
-
     /// Account functions
 
     // @dev The caller places a bid in the auction
