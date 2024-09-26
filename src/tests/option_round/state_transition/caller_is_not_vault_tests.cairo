@@ -4,13 +4,14 @@ use starknet::{
 };
 use pitch_lake::{
     vault::contract::Vault, option_round::contract::OptionRound::Errors,
+    vault::interface::PricingDataPoints,
     tests::{
         utils::{
             helpers::{
                 accelerators::{
                     accelerate_to_auctioning, accelerate_to_running, accelerate_to_running_custom
                 },
-                setup::{setup_facade},
+                setup::{setup_facade}, general_helpers::{to_gwei},
             },
             lib::{
                 test_accounts::{
@@ -75,15 +76,25 @@ fn test_only_vault_can_settle_option_round() {
     current_round.settle_option_round_expect_error(0x123, err);
 }
 
+fn get_random_pricing_data_points() -> PricingDataPoints {
+    PricingDataPoints {
+        twap: to_gwei(123),
+        strike_price: to_gwei(5829),
+        reserve_price: to_gwei(482745),
+        cap_level: 20084,
+        volatility: 12345,
+    }
+}
 
 #[test]
 #[available_gas(50000000)]
 fn test_only_vault_can_update_round_params() {
     let (mut vault, _) = setup_facade();
     let mut round = vault.get_current_round();
+    let data = get_random_pricing_data_points();
 
     set_contract_address(not_vault());
-    round.update_round_params_expect_error(err);
+    round.update_round_params_expect_error(data, err);
 }
 
 #[test]
@@ -96,70 +107,23 @@ fn test_update_round_params_on_round() {
     let cap_level0 = round.get_cap_level();
     let strike_price0 = round.get_strike_price();
 
+    let random_pricing_data = get_random_pricing_data_points();
     set_contract_address(vault.contract_address());
-    round.update_params(1, 2, 3);
+    round.update_params(random_pricing_data, '0xDoesntMatter');
 
     let reserve_price = round.get_reserve_price();
     let cap_level = round.get_cap_level();
     let strike_price = round.get_strike_price();
 
-    assert_eq!(reserve_price, 1);
-    assert_eq!(cap_level, 2);
-    assert_eq!(strike_price, 3);
+    // Check params change
     assert(reserve_price != reserve_price0, 'reserve price did not change');
     assert(cap_level != cap_level0, 'cap level did not change');
     assert(strike_price != strike_price0, 'strike price did not change');
+    // Check params are changed correctly
+    assert_eq!(reserve_price, random_pricing_data.reserve_price);
+    assert_eq!(cap_level, random_pricing_data.cap_level);
+    assert_eq!(strike_price, random_pricing_data.strike_price);
 }
-//#[test]
-//#[available_gas(50000000)]
-//fn test_update_round_params_on_vault() {
-//    let (mut vault, _) = setup_facade();
-//    let mut round = vault.get_current_round();
-//
-//    let reserve_price0 = round.get_reserve_price();
-//    let cap_level0 = round.get_cap_level();
-//    let strike_price0 = round.get_strike_price();
-//    let mk_agg = vault.get_market_aggregator_facade();
-//    let volatility0 = mk_agg
-//        .get_volatility_for_round(vault.contract_address(), round.get_round_id())
-//        .unwrap();
-//
-//    // Mock values on mk agg
-//    let new_reserve_price = 1;
-//    let new_cap_level = 2;
-//    let new_strike_price = 3;
-//    let new_volatility = 4;
-//
-//    mk_agg
-//        .set_reserve_price_for_round(
-//            vault.contract_address(), round.get_round_id(), new_reserve_price
-//        );
-//    mk_agg.set_cap_level_for_round(vault.contract_address(), round.get_round_id(), new_cap_level);
-//    mk_agg.set_volatility_for_round(vault.contract_address(), round.get_round_id(),
-//    new_volatility);
-//
-//    let to = round.get_auction_start_date();
-//    let from = to - Vault::TWAP_DURATION;
-//    // @note Only works because vautl is default ATM
-//    mk_agg.set_TWAP_for_time_period(from, to, new_strike_price);
-//
-//    vault.update_round_params();
-//
-//    let reserve_price = round.get_reserve_price();
-//    let cap_level = round.get_cap_level();
-//    let strike_price = round.get_strike_price();
-//    let volatility = mk_agg
-//        .get_volatility_for_round(vault.contract_address(), round.get_round_id())
-//        .unwrap();
-//
-//    assert_eq!(reserve_price, new_reserve_price);
-//    assert_eq!(cap_level, new_cap_level);
-//    assert_eq!(strike_price, new_strike_price);
-//    assert_eq!(volatility, new_volatility);
-//    assert(reserve_price != reserve_price0, 'reserve price did not change');
-//    assert(cap_level != cap_level0, 'cap level did not change');
-//    assert(strike_price != strike_price0, 'strike price did not change');
-//    assert(volatility != volatility0, 'volatility did not change');
-//}
+// @note add test for event when updating round params
 
 
