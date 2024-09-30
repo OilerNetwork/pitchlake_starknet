@@ -489,7 +489,7 @@ mod OptionRound {
         fn refresh_pricing_data_points(
             ref self: ContractState, pricing_data_points_now: PricingDataPoints, job_id: felt252,
         ) {
-           // @dev Assert the caller is the vault
+            // @dev Assert the caller is the vault
             self.assert_caller_is_vault();
 
             // @dev Assert the auction has not started yet

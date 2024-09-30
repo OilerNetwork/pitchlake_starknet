@@ -49,6 +49,7 @@ mod option_round {
 
 #[cfg(test)]
 mod deployment {
+    mod playground;
     mod constructor_tests;
     mod initializing_option_round_params_tests;
 }
