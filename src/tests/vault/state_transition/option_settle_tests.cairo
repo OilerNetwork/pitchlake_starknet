@@ -56,7 +56,7 @@ fn create_job_request(ref round: OptionRoundFacade) -> JobRequest {
     let settlemnent_date = round.get_option_settlement_date();
 
     JobRequest {
-        identifiers: array!['asdf'].span(),
+        identifiers: array![0x3, 0x4, 0x5].span(),
         params: JobRequestParams {
             twap: (1, settlemnent_date),
             volatility: (1, settlemnent_date),
