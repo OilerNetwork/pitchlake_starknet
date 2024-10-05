@@ -11,7 +11,8 @@ mod Vault {
     };
     use openzeppelin_utils::serde::SerializedAppend;
     use pitch_lake::vault::interface::{
-        ConstructorArgs, IVault, VaultType, PricingDataPoints, FossilDataPoints
+        ConstructorArgs, IVault, VaultType, PricingDataRequest, Callback, PricingDataPoints,
+        FossilDataPoints
     };
     use pitch_lake::option_round::contract::OptionRound;
     use pitch_lake::option_round::interface::{
@@ -26,14 +27,20 @@ mod Vault {
     };
 
     // *************************************************************************
-    //                              Contsants
+    //                              Constants
     // *************************************************************************
 
-    const DAY: u64 = 3600 * 24;
+    const MINUTE: u64 = 60;
+    const HOUR: u64 = 60 * MINUTE;
+    const DAY: u64 = 24 * HOUR;
+    const PITCH_LAKE_V1: felt252 = 'PITCH_LAKE_V1';
+    const TIMESTAMP_TOLERANCE: u64 = 1 * HOUR;
+
     const EXPECTED_JOB_RANGE: JobRange =
         JobRange {
             twap_range: 30 * DAY, volatility_range: 90 * DAY, reserve_price_range: 90 * DAY
         };
+
 
     // *************************************************************************
     //                              STORAGE
@@ -355,6 +362,27 @@ mod Vault {
             match total_liq.is_zero() {
                 true => 0,
                 false => self.divide_into_bps(queued_liq, total_liq)
+            }
+        }
+
+        /// Fossil
+        // is pricing data set ()
+
+        fn get_pricing_data_request(self: @ContractState) -> PricingDataRequest {
+            // @dev Get the current round's settlement date
+            let settlement_date = self
+                .get_round_dispatcher(self.current_round_id.read())
+                .get_option_settlement_date();
+
+            // @dev Return the earliest request that, once set, will allow `settle_round()` to pass
+            // - A request is valid as long as its timestamp is >= settlement date - tolerance and
+            // <= settlement date
+            PricingDataRequest {
+                identifiers: array![PITCH_LAKE_V1],
+                timestamp: settlement_date - TIMESTAMP_TOLERANCE,
+                callback: Callback {
+                    address: get_contract_address(), selector: selector!("set_pricing_data")
+                }
             }
         }
 

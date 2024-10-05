@@ -2,6 +2,7 @@ use starknet::{ContractAddress, ClassHash};
 use pitch_lake::option_round::interface::OptionRoundState;
 use pitch_lake::fact_registry::interface::JobRequest;
 
+
 // @dev An enum for each type of Vault
 #[derive(starknet::Store, Copy, Drop, Serde, PartialEq)]
 enum VaultType {
@@ -24,6 +25,19 @@ struct FossilDataPoints {
     twap: u256,
     volatility: u128,
     reserve_price: u256,
+}
+
+#[derive(Drop, Serde)]
+struct Callback {
+    address: ContractAddress,
+    selector: felt252,
+}
+
+#[derive(Drop, Serde)]
+struct PricingDataRequest {
+    identifiers: Array<felt252>,
+    timestamp: u64,
+    callback: Callback,
 }
 
 #[derive(Drop, Serde)]
@@ -97,6 +111,12 @@ trait IVault<TContractState> {
 
     // @dev The account's % (bps) queued for withdrawal once the current round settles
     fn get_account_queued_bps(self: @TContractState, account: ContractAddress) -> u16;
+
+    /// Fossil
+
+    // @dev Get the (minimum) Fossil request needed to settle the current round
+    fn get_pricing_data_request(self: @TContractState) -> PricingDataRequest;
+
 
     /// Writes ///
 
