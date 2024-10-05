@@ -18,10 +18,5 @@ mod option_round {
     mod contract;
 }
 
-mod fact_registry {
-    mod contract;
-    mod interface;
-}
-
 #[cfg(test)]
 mod tests;

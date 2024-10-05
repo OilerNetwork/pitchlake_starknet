@@ -7,7 +7,6 @@ use openzeppelin_token::erc20::interface::ERC20ABIDispatcherTrait;
 
 use pitch_lake::{
     library::eth::Eth, types::Consts::BPS,
-    fact_registry::interface::{IFactRegistryDispatcher, IFactRegistryDispatcherTrait},
     vault::{contract::Vault, interface::{VaultType, IVaultDispatcher, IVaultDispatcherTrait},},
     option_round::interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
     tests::{
@@ -28,7 +27,6 @@ use pitch_lake::{
                     OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundFacadeImpl
                 },
                 vault_facade::{VaultFacade, VaultFacadeTrait},
-                fact_registry_facade::{FactRegistryFacade, FactRegistryFacadeTrait}
             },
         },
     },
@@ -91,7 +89,7 @@ fn test_calculated_strike_ITM_high_vol() {
 #[test]
 #[available_gas(200000000)]
 fn test_strike_prices_across_rounds_ATM() {
-    let (mut vault, _) = setup_facade_vault_type(VaultType::AtTheMoney);
+    let mut vault = setup_facade_vault_type(VaultType::AtTheMoney);
     for i in 0_u256
         ..3 {
             accelerate_to_auctioning(ref vault);
@@ -113,9 +111,9 @@ fn test_strike_prices_across_rounds_ATM() {
 #[ignore]
 fn test_strike_price_based_on_vault_types() {
     // Deploy different vault types
-    let (mut vault_atm, _) = setup_facade_vault_type(VaultType::AtTheMoney);
-    let (mut _vault_itm, _) = setup_facade_vault_type(VaultType::InTheMoney);
-    let (mut _vault_otm, _) = setup_facade_vault_type(VaultType::OutOfMoney);
+    let mut vault_atm = setup_facade_vault_type(VaultType::AtTheMoney);
+    let mut _vault_itm = setup_facade_vault_type(VaultType::InTheMoney);
+    let mut _vault_otm = setup_facade_vault_type(VaultType::OutOfMoney);
 
     // LP deposits into each round 1 because a round cannot start auctioning without liquidity
     let deposit = to_gwei(1000);

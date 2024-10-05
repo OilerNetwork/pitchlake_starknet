@@ -12,9 +12,6 @@ use pitch_lake::{
         //contract::{OptionRound,},
         interface::{OptionRoundState, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,},
     },
-    fact_registry::{
-        interface::{IFactRegistry, IFactRegistryDispatcher, IFactRegistryDispatcherTrait,},
-    },
     tests::{
         utils::{
             helpers::{
@@ -26,7 +23,6 @@ use pitch_lake::{
             facades::{
                 vault_facade::VaultFacadeTrait,
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
-                fact_registry_facade::{FactRegistryFacadeTrait}
             },
             lib::{variables::{decimals}, //            test_accounts::{
             //                liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
