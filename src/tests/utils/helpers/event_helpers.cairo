@@ -3,6 +3,7 @@ use starknet::{testing, ContractAddress,};
 use openzeppelin_utils::serde::SerializedAppend;
 use openzeppelin_token::erc20::{ERC20Component, ERC20Component::Transfer};
 use pitch_lake::{vault::contract::Vault, option_round::contract::OptionRound};
+use pitch_lake::vault::interface::{PricingData};
 use debug::PrintTrait;
 
 /// Helpers ///
@@ -106,6 +107,20 @@ fn assert_event_auction_bid_updated(
     }
 }
 
+// Check PricingDataSet emits correctly
+fn assert_event_pricing_data_set(
+    option_round_address: ContractAddress, strike_price: u256, cap_level: u128, reserve_price: u256,
+) {
+    match pop_log::<OptionRound::Event>(option_round_address) {
+        Option::Some(e) => {
+            let expected = OptionRound::Event::PricingDataSet(
+                OptionRound::PricingDataSet { strike_price, cap_level, reserve_price }
+            );
+            assert_events_equal(e, expected);
+        },
+        Option::None => { panic(array!['No events found']); }
+    };
+}
 // Check AuctionEnd emits correctly
 fn assert_event_auction_end(
     option_round_address: ContractAddress,
@@ -217,12 +232,10 @@ fn assert_event_option_round_deployed(
     contract: ContractAddress,
     round_id: u256,
     address: ContractAddress,
-    reserve_price: u256,
-    strike_price: u256,
-    cap_level: u128,
     auction_start_date: u64,
     auction_end_date: u64,
     option_settlement_date: u64,
+    pricing_data: PricingData,
 ) {
     match pop_log::<Vault::Event>(contract) {
         Option::Some(e) => {
@@ -230,12 +243,10 @@ fn assert_event_option_round_deployed(
                 Vault::OptionRoundDeployed {
                     round_id,
                     address,
-                    reserve_price,
-                    strike_price,
-                    cap_level,
                     auction_start_date,
                     auction_end_date,
-                    option_settlement_date
+                    option_settlement_date,
+                    pricing_data
                 }
             );
             assert_events_equal(e, expected);

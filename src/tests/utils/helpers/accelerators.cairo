@@ -6,18 +6,14 @@ use core::fmt::Display;
 use pitch_lake::{
     vault::{
         contract::Vault,
-        interface::{FossilDataPoints, VaultType, IVaultDispatcher, IVaultDispatcherTrait}
+        interface::{
+            L1Result, L1Data, L1DataRequest, PricingData, VaultType, IVaultDispatcher,
+            IVaultDispatcherTrait
+        }
     },
     option_round::{
         contract::{OptionRound},
         interface::{OptionRoundState, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,},
-    },
-    fact_registry::{
-        contract::FactRegistry,
-        interface::{
-            JobRange, JobRequest, JobRequestParams, IFactRegistry, IFactRegistryDispatcher,
-            IFactRegistryDispatcherTrait,
-        }
     },
     tests::{
         utils::{
@@ -36,7 +32,6 @@ use pitch_lake::{
             facades::{
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
                 vault_facade::{VaultFacade, VaultFacadeTrait},
-                fact_registry_facade::{FactRegistryFacade, FactRegistryFacadeTrait},
             },
         },
     },
@@ -94,27 +89,20 @@ fn accelerate_to_running_custom(
 /// Settling option round
 
 // Settle the option round with a custom settlement price (compared to strike to determine payout)
-fn accelerate_to_settled(ref self: VaultFacade, TWAP: u256) -> u256 {
-    let mut current_round = self.get_current_round();
-    let to = current_round.get_option_settlement_date();
+fn accelerate_to_settled(ref self: VaultFacade, twap: u256) -> u256 {
+    // Get the data request to fulfill
+    let request = self.get_request_to_settle_round();
 
-    // Create a fake job request for the round to settle
-    let JobRange { twap_range, volatility_range, reserve_price_range } = Vault::EXPECTED_JOB_RANGE;
-    let job_request: JobRequest = JobRequest {
-        identifiers: array![selector!("PITCH_LAKE_V1")].span(),
-        params: JobRequestParams {
-            twap: (to - twap_range, to),
-            volatility: (to - volatility_range, to),
-            reserve_price: (to - reserve_price_range, to),
-        }
+    // Create a mock result (proofs do not matter)
+    let result = L1Result {
+        data: L1Data { twap, volatility: 5000, reserve_price: to_gwei(2) }, proof: array![]
     };
 
-    // Mock verify the fact in the registry
-    let data = FossilDataPoints { twap: TWAP, volatility: 5000, reserve_price: to_gwei(2), };
-    self.get_fact_registry_facade().set_fact(job_request, data);
+    // Set repsonse
+    self.fulfill_request(request, result);
 
     // Jump to the option expiry date and settle the round
-    timeskip_and_settle_round(ref self, job_request)
+    timeskip_and_settle_round(ref self)
 }
 
 
@@ -137,7 +125,7 @@ fn timeskip_past_option_expiry_date(ref self: VaultFacade) {
 // Jump past the round transition period
 fn timeskip_past_round_transition_period(ref self: VaultFacade) {
     let now = get_block_timestamp();
-    let round_transition_period = self.vault_dispatcher.get_round_transition_period();
+    let round_transition_period = self.get_round_transition_period();
     set_block_timestamp(now + round_transition_period);
 }
 
@@ -159,13 +147,10 @@ fn timeskip_and_end_auction(ref self: VaultFacade) -> (u256, u256) {
 }
 
 // Jump to the option expriry date and settle the round
-fn timeskip_and_settle_round(ref self: VaultFacade, job_request: JobRequest) -> u256 {
-    let current_round_id = self.get_current_round_id();
-    if current_round_id.is_non_zero() {
-        let mut current_round = self.get_current_round();
-        set_block_timestamp(current_round.get_option_settlement_date());
-    }
+fn timeskip_and_settle_round(ref self: VaultFacade) -> u256 {
+    let mut current_round = self.get_current_round();
+    set_block_timestamp(current_round.get_option_settlement_date());
     set_contract_address(bystander());
-    self.settle_option_round(job_request)
+    self.settle_option_round()
 }
 

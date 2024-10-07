@@ -3,16 +3,14 @@ use openzeppelin_token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatche
 use pitch_lake::{
     vault::{
         interface::{
-            IVaultDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcher, IVaultSafeDispatcherTrait
+            L1DataRequest, L1Result, IVaultDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcher,
+            IVaultSafeDispatcherTrait
         }
     },
     option_round::{
         contract::OptionRound, interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,}
     },
-    fact_registry::{
-        contract::{FactRegistry},
-        interface::{JobRequest, IFactRegistryDispatcher, IFactRegistryDispatcherTrait,}
-    },
+    library::constants::{ROUND_TRANSITION_PERIOD, AUCTION_RUN_TIME, OPTION_RUN_TIME},
     tests::{
         utils::{
             lib::{
@@ -20,11 +18,10 @@ use pitch_lake::{
                 variables::{decimals},
             },
             facades::{
-                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
-                fact_registry_facade::{FactRegistryFacade, FactRegistryFacadeTrait}, sanity_checks,
+                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait}, sanity_checks,
             },
             helpers::{
-                setup::eth_supply_and_approve_all_bidders,
+                setup::{eth_supply_and_approve_all_bidders, get_fossil_address},
                 general_helpers::{assert_two_arrays_equal_length}
             },
         },
@@ -147,10 +144,9 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     /// State transition
 
-    fn refresh_round_pricing_data(ref self: VaultFacade, job_request: JobRequest) {
-        // @dev Using bystander as caller so that gas fees do not throw off balance calculations
-        set_contract_address(bystander());
-        self.vault_dispatcher.refresh_round_pricing_data(job_request);
+    fn fulfill_request(ref self: VaultFacade, request: L1DataRequest, result: L1Result) -> bool {
+        set_contract_address(get_fossil_address());
+        self.vault_dispatcher.fulfill_request(request, result)
     }
 
     fn start_auction(ref self: VaultFacade) -> u256 {
@@ -184,19 +180,14 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         safe_vault.end_auction().expect_err(error);
     }
 
-    fn settle_option_round(ref self: VaultFacade, job_request: JobRequest) -> u256 {
+    fn settle_option_round(ref self: VaultFacade) -> u256 {
         // @dev Using bystander as caller so that gas fees do not throw off balance calculations
         set_contract_address(bystander());
 
-        let total_payout = if self.get_current_round_id().is_non_zero() {
-            let mut current_round = self.get_current_round();
-            let total_payout = self.vault_dispatcher.settle_round(job_request);
-            sanity_checks::settle_option_round(ref current_round, total_payout)
-        } else {
-            self.vault_dispatcher.settle_round(job_request)
-        };
-
         // Settle the current round
+        let mut current_round = self.get_current_round();
+        let total_payout = self.vault_dispatcher.settle_round();
+        let total_payout = sanity_checks::settle_option_round(ref current_round, total_payout);
 
         let current_round_address = self.get_option_round_address(self.get_current_round_id());
         eth_supply_and_approve_all_bidders(current_round_address, self.get_eth_address());
@@ -204,18 +195,20 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     }
 
     #[feature("safe_dispatcher")]
-    fn settle_option_round_expect_error(
-        ref self: VaultFacade, job_request: JobRequest, error: felt252
-    ) {
+    fn settle_option_round_expect_error(ref self: VaultFacade, error: felt252) {
         set_contract_address(bystander());
         let safe_vault = self.get_safe_dispatcher();
-        safe_vault.settle_round(job_request).expect_err(error);
+        safe_vault.settle_round().expect_err(error);
     }
 
     /// Fossil
 
-    fn get_fact_registry_facade(ref self: VaultFacade) -> FactRegistryFacade {
-        FactRegistryFacade { contract_address: self.get_fact_registry_address() }
+    fn get_request_to_settle_round(ref self: VaultFacade) -> L1DataRequest {
+        self.vault_dispatcher.get_request_to_settle_round()
+    }
+
+    fn get_request_to_start_auction(ref self: VaultFacade,) -> L1DataRequest {
+        self.vault_dispatcher.get_request_to_start_auction()
     }
 
 
@@ -439,27 +432,26 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         self.vault_dispatcher.contract_address
     }
 
-    fn get_fact_registry_address(ref self: VaultFacade) -> ContractAddress {
-        self.vault_dispatcher.get_fact_registry_address()
-    }
-
     // Eth contract address
     fn get_eth_address(ref self: VaultFacade) -> ContractAddress {
         self.vault_dispatcher.get_eth_address()
     }
 
     fn get_auction_run_time(ref self: VaultFacade) -> u64 {
-        self.vault_dispatcher.get_auction_run_time()
+        AUCTION_RUN_TIME
+        //self.vault_dispatcher.get_auction_run_time()
     }
 
     fn get_option_run_time(ref self: VaultFacade) -> u64 {
-        self.vault_dispatcher.get_option_run_time()
+        //self.vault_dispatcher.get_option_run_time()
+        OPTION_RUN_TIME
     }
 
     // Gets the round transition period in seconds, 3 hours is a random number for testing
     // @note TODO impl this in contract later
     fn get_round_transition_period(ref self: VaultFacade) -> u64 {
-        self.vault_dispatcher.get_round_transition_period()
+        //self.vault_dispatcher.get_round_transition_period()
+        ROUND_TRANSITION_PERIOD
     }
 }
 

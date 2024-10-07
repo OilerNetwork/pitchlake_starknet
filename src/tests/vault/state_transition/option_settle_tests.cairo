@@ -6,15 +6,15 @@ use starknet::{
 use openzeppelin_utils::serde::SerializedAppend;
 use openzeppelin_token::erc20::interface::ERC20ABIDispatcherTrait;
 use pitch_lake::{
-    library::eth::Eth,
+    library::{eth::Eth, constants::{ROUND_TRANSITION_PERIOD, AUCTION_RUN_TIME, OPTION_RUN_TIME}},
     vault::{
         contract::Vault,
         interface::{
-            IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcherTrait
+            IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait,
+            IVaultSafeDispatcherTrait, VaultType, PricingData
         }
     },
     option_round::contract::OptionRound::Errors,
-    fact_registry::interface::{JobRequest, JobRequestParams},
     tests::{
         utils::{
             helpers::{
@@ -30,7 +30,10 @@ use pitch_lake::{
                     accelerate_to_auctioning, accelerate_to_running, accelerate_to_settled,
                     accelerate_to_auctioning_custom
                 },
-                setup::{setup_facade, setup_test_auctioning_providers, setup_test_running},
+                setup::{
+                    deploy_vault_with_events, setup_facade, setup_test_auctioning_providers,
+                    setup_test_running
+                },
             },
             lib::{
                 test_accounts::{
@@ -52,33 +55,16 @@ use debug::PrintTrait;
 
 /// Failures ///
 
-fn create_job_request(ref round: OptionRoundFacade) -> JobRequest {
-    let settlemnent_date = round.get_option_settlement_date();
-
-    JobRequest {
-        identifiers: array![0x3, 0x4, 0x5].span(),
-        params: JobRequestParams {
-            twap: (1, settlemnent_date),
-            volatility: (1, settlemnent_date),
-            reserve_price: (1, settlemnent_date),
-        }
-    }
-}
-
 // Test settling an option round while round auctioning fails
 #[test]
 #[available_gas(50000000)]
 fn test_settling_option_round_while_round_auctioning_fails() {
     let (mut vault_facade, _) = setup_facade();
-    let mut current_round = vault_facade.get_current_round();
 
     accelerate_to_auctioning(ref vault_facade);
 
     // Settle option round before auction ends
-    vault_facade
-        .settle_option_round_expect_error(
-            create_job_request(ref current_round), Errors::OptionSettlementDateNotReached
-        );
+    vault_facade.settle_option_round_expect_error(Errors::OptionSettlementDateNotReached);
 }
 
 // Test settling an option round before the option expiry date fails
@@ -86,13 +72,9 @@ fn test_settling_option_round_while_round_auctioning_fails() {
 #[available_gas(50000000)]
 fn test_settling_option_round_before_settlement_date_fails() {
     let (mut vault_facade, _) = setup_test_running();
-    let mut current_round = vault_facade.get_current_round();
 
     // Settle option round before expiry
-    vault_facade
-        .settle_option_round_expect_error(
-            create_job_request(ref current_round), Errors::OptionSettlementDateNotReached
-        );
+    vault_facade.settle_option_round_expect_error(Errors::OptionSettlementDateNotReached);
 }
 
 // Test settling an option round while round settled fails
@@ -100,16 +82,12 @@ fn test_settling_option_round_before_settlement_date_fails() {
 #[available_gas(50000000)]
 fn test_settling_option_round_while_settled_fails() {
     let (mut vault_facade, _) = setup_facade();
-    let mut current_round = vault_facade.get_current_round();
     accelerate_to_auctioning(ref vault_facade);
     accelerate_to_running(ref vault_facade);
     accelerate_to_settled(ref vault_facade, 0x123);
 
     // Settle option round after it has already settled
-    vault_facade
-        .settle_option_round_expect_error(
-            create_job_request(ref current_round), Errors::OptionRoundAlreadySettled
-        );
+    vault_facade.settle_option_round_expect_error(Errors::OptionRoundAlreadySettled);
 }
 
 /// Event Tests ///
@@ -138,11 +116,50 @@ fn test_option_round_settled_event() {
     }
 }
 
+fn get_expected_dates(ref vaul: VaultFacade, deployment_date: u64) -> (u64, u64, u64) {
+    let auction_start_date = deployment_date + ROUND_TRANSITION_PERIOD;
+    let auction_end_date = auction_start_date + AUCTION_RUN_TIME;
+    let option_settlement_date = auction_end_date + OPTION_RUN_TIME;
+
+    (auction_start_date, auction_end_date, option_settlement_date)
+}
+
+#[test]
+#[available_gas(500000000)]
+fn test_first_round_deployed_event() {
+    let vault_dispatcher = deploy_vault_with_events(
+        VaultType::AtTheMoney, contract_address_const::<'eth'>()
+    );
+    let mut vault = VaultFacade { vault_dispatcher };
+    let mut current_round = vault.get_current_round();
+
+    let (auction_start_date, auction_end_date, option_settlement_date) = get_expected_dates(
+        ref vault, current_round.get_deployment_date()
+    );
+
+    assert_eq!(current_round.get_deployment_date(), get_block_timestamp());
+    assert(
+        auction_start_date.is_non_zero()
+            && auction_end_date.is_non_zero()
+            && option_settlement_date.is_non_zero(),
+        'Dates should not be 0'
+    );
+    assert_event_option_round_deployed(
+        vault.contract_address(),
+        1,
+        current_round.contract_address(),
+        auction_start_date,
+        auction_end_date,
+        option_settlement_date,
+        pricing_data: PricingData { strike_price: 0, cap_level: 0, reserve_price: 0 }
+    );
+}
+
 // Test every time a new round is deployed, the next round deployed event emits correctly
 // @dev The first round to be deployed after deployment is round 2
 #[test]
 #[available_gas(500000000)]
-fn test_next_round_deployed_event() {
+fn test_next_round_deployed_events() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
 
@@ -156,9 +173,6 @@ fn test_next_round_deployed_event() {
         accelerate_to_settled(ref vault, current_round.get_strike_price());
 
         let mut new_current_round = vault.get_current_round();
-        let reserve_price = new_current_round.get_reserve_price();
-        let strike_price = new_current_round.get_strike_price();
-        let cap_level = new_current_round.get_cap_level();
         let auction_start_date = new_current_round.get_auction_start_date();
         let auction_end_date = new_current_round.get_auction_end_date();
         let settlement_date = new_current_round.get_option_settlement_date();
@@ -168,18 +182,24 @@ fn test_next_round_deployed_event() {
             current_round.get_round_id() + 1 == new_current_round.get_round_id(),
             'round contract address wrong'
         );
+
         // Check the event emits correctly
+        let pricing_data = PricingData {
+            strike_price: new_current_round.get_strike_price(),
+            cap_level: new_current_round.get_cap_level(),
+            reserve_price: new_current_round.get_reserve_price()
+        };
+
+        assert_neq!(pricing_data, Default::default());
         assert_event_option_round_deployed(
             vault
-                .contract_address(), // @dev round 2 should be the first round to deploy post deployment
+                .contract_address(),
             current_round_id + 1,
             new_current_round.contract_address(),
-            reserve_price,
-            strike_price,
-            cap_level,
             auction_start_date,
             auction_end_date,
-            settlement_date
+            settlement_date,
+            pricing_data
         );
 
         rounds_to_run -= 1;

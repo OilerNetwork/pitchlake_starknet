@@ -13,9 +13,10 @@ use openzeppelin_token::erc20::{
 use pitch_lake::{
     library::eth::Eth, vault::contract::Vault,
     vault::interface::{
-        ConstructorArgs, FossilDataPoints, VaultType, IVaultDispatcher, IVaultDispatcherTrait
+        ConstructorArgs, L1Data, L1DataRequest, L1Result, PricingData, VaultType, IVaultDispatcher,
+        IVaultDispatcherTrait
     },
-    vault::contract::{Vault::{DAY, EXPECTED_JOB_RANGE}},
+    vault::contract::{Vault::{DAY}},
     option_round::{
         contract::OptionRound,
         interface::{
@@ -23,11 +24,6 @@ use pitch_lake::{
             IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher,
             IOptionRoundSafeDispatcherTrait, OptionRoundState
         },
-    },
-    fact_registry::contract::FactRegistry,
-    fact_registry::interface::{
-        JobRequest, JobRequestParams, JobRange, IFactRegistry, IFactRegistryDispatcher,
-        IFactRegistryDispatcherTrait
     },
     tests::{
         option_round::rb_tree::{
@@ -52,7 +48,6 @@ use pitch_lake::{
             facades::{
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
                 vault_facade::{VaultFacade, VaultFacadeImpl, VaultFacadeTrait},
-                fact_registry_facade::{FactRegistryFacade, FactRegistryFacadeTrait},
             },
         },
     },
@@ -61,19 +56,6 @@ use debug::PrintTrait;
 
 const DECIMALS: u8 = 18_u8;
 const SUPPLY: u256 = 99999999999999999999999999999999;
-
-fn VAULT_CONSTRUCTOR_ARGS() -> ConstructorArgs {
-    ConstructorArgs {
-        round_transition_period: 1000,
-        auction_run_time: 1000,
-        option_run_time: 1000,
-        eth_address: contract_address_const::<'REPLACE WIHTH DEPLOYED'>(),
-        vault_type: VaultType::AtTheMoney,
-        fact_registry_address: contract_address_const::<'REPLACE WIHTH DEPLOYED'>(),
-        option_round_class_hash: OptionRound::TEST_CLASS_HASH.try_into().unwrap(),
-    }
-}
-
 
 // Deploy eth contract for testing
 fn deploy_eth() -> ERC20ABIDispatcher {
@@ -92,33 +74,21 @@ fn deploy_eth() -> ERC20ABIDispatcher {
     return ERC20ABIDispatcher { contract_address };
 }
 
-// Deploy FactRegistry for testing
-fn deploy_fact_registry() -> FactRegistryFacade {
-    let salt: felt252 = starknet::get_block_timestamp().into();
-    let (contract_address, _): (ContractAddress, Span<felt252>) = deploy_syscall(
-        FactRegistry::TEST_CLASS_HASH.try_into().unwrap(), salt, array![].span(), true
-    )
-        .unwrap();
-    // Clear the event log
-    clear_event_logs(array![contract_address]);
-
-    return FactRegistryFacade { contract_address };
+fn get_fossil_address() -> ContractAddress {
+    contract_address_const::<'REQUEST FULFILLER'>()
 }
 
-// Deploy the vault and market aggregator
-fn deploy_vault(
-    vault_type: VaultType, eth_address: ContractAddress, fact_registry_address: ContractAddress
+
+fn deploy_vault_with_events(
+    vault_type: VaultType, eth_address: ContractAddress
 ) -> IVaultDispatcher {
     /// Deploy market aggregator
     let mut calldata = array![];
     let args = ConstructorArgs {
-        round_transition_period: 1000,
-        auction_run_time: 1000,
-        option_run_time: 1000,
+        request_fulfiller: get_fossil_address(),
         eth_address,
-        vault_type,
-        fact_registry_address,
         option_round_class_hash: OptionRound::TEST_CLASS_HASH.try_into().unwrap(),
+        vault_type,
     };
     args.serialize(ref calldata);
 
@@ -131,10 +101,17 @@ fn deploy_vault(
     )
         .expect('DEPLOY_VAULT_FAILED');
 
-    // Clear the event log
-    clear_event_logs(array![contract_address]);
-
     return IVaultDispatcher { contract_address };
+}
+
+// Deploy the vault and market aggregator
+fn deploy_vault(vault_type: VaultType, eth_address: ContractAddress) -> IVaultDispatcher {
+    let vault = deploy_vault_with_events(vault_type, eth_address);
+
+    // Clear the event log
+    clear_event_logs(array![vault.contract_address]);
+
+    vault
 }
 
 fn setup_rb_tree_test() -> IRBTreeMockContractDispatcher {
@@ -149,41 +126,26 @@ fn to_gwei(amount: u256) -> u256 {
     amount * 1_000_000_000
 }
 
-fn setup_facade_vault_type(vault_type: VaultType) -> (VaultFacade, FactRegistryFacade) {
-    /// Mock mk agg values
+fn setup_facade_vault_type(vault_type: VaultType) -> VaultFacade {
     set_block_timestamp(1234567890);
 
     // Deploy eth
     let eth_dispatcher: ERC20ABIDispatcher = deploy_eth();
 
-    // Deploy vault and fact registry facades
-    let fact_registry_facade = deploy_fact_registry();
+    // Deploy vault facade
     let vault_dispatcher: IVaultDispatcher = deploy_vault(
-        vault_type, eth_dispatcher.contract_address, fact_registry_facade.contract_address
+        vault_type, eth_dispatcher.contract_address
     );
     let mut vault_facade = VaultFacade { vault_dispatcher };
 
-    // Jump forward and deploy first round
-    //accelerate_to_settled(ref vault_facade, to_gwei(10));
-
-    // Create a fake job request for the 1st round
-    let to = get_block_timestamp() + 1;
-    let JobRange { twap_range, volatility_range, reserve_price_range } = Vault::EXPECTED_JOB_RANGE;
-
-    let job_request: JobRequest = JobRequest {
-        identifiers: array![selector!("PITCH_LAKE_V1")].span(),
-        params: JobRequestParams {
-            twap: (to - twap_range, to),
-            volatility: (to - volatility_range, to),
-            reserve_price: (to - reserve_price_range, to),
-        }
+    // Set the
+    // Fulfill request to start auction
+    let request = vault_facade.get_request_to_start_auction();
+    let result = L1Result {
+        data: L1Data { twap: to_gwei(10), volatility: 5000, reserve_price: to_gwei(2), },
+        proof: array![]
     };
-
-    // Mock verify the fact in the registry
-    let data = FossilDataPoints { twap: to_gwei(10), volatility: 5000, reserve_price: to_gwei(2), };
-
-    fact_registry_facade.set_fact(job_request, data);
-    vault_facade.refresh_round_pricing_data(job_request);
+    vault_facade.fulfill_request(request, result);
 
     // @dev Supply eth to liquidity providers and approve vault for transferring eth
     eth_supply_and_approve_all_providers(
@@ -202,11 +164,11 @@ fn setup_facade_vault_type(vault_type: VaultType) -> (VaultFacade, FactRegistryF
         ]
     );
 
-    return (vault_facade, fact_registry_facade);
+    return vault_facade;
 }
 
 fn setup_facade() -> (VaultFacade, ERC20ABIDispatcher) {
-    let (mut vault_facade, _) = setup_facade_vault_type(VaultType::AtTheMoney);
+    let mut vault_facade = setup_facade_vault_type(VaultType::AtTheMoney);
     let eth_dispatcher = ERC20ABIDispatcher { contract_address: vault_facade.get_eth_address() };
 
     (vault_facade, eth_dispatcher)

@@ -44,11 +44,6 @@ fn test_vault_constructor() {
     let mut current_round = vault.get_current_round();
     let current_round_id = vault.get_current_round_id();
 
-    // Constructor args
-    assert_eq!(vault.get_round_transition_period(), 1000);
-    assert_eq!(vault.get_auction_run_time(), 1000);
-    assert_eq!(vault.get_option_run_time(), 1000);
-
     // Check current round is 1
     assert(current_round_id == 1, 'current round should be 1');
     // Check current round is open and next round is settled

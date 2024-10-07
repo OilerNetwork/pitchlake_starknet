@@ -7,7 +7,7 @@ mod OptionRound {
     use openzeppelin_token::erc20::interface::{
         ERC20ABIDispatcher, ERC20ABIDispatcherTrait, IERC20Metadata
     };
-    use pitch_lake::vault::interface::{PricingDataPoints, IVaultDispatcher, IVaultDispatcherTrait};
+    use pitch_lake::vault::interface::{PricingData, IVaultDispatcher, IVaultDispatcherTrait};
     use pitch_lake::option_round::interface::{ConstructorArgs, IOptionRound, OptionRoundState};
     use pitch_lake::types::{Bid, Consts::BPS,};
     use pitch_lake::library::utils::{max, min};
@@ -15,6 +15,9 @@ mod OptionRound {
         calculate_total_options_available, calculate_payout_per_option,
     };
     use pitch_lake::library::red_black_tree::{RBTreeComponent, RBTreeComponent::Node};
+    use pitch_lake::library::constants::{
+        ROUND_TRANSITION_PERIOD, AUCTION_RUN_TIME, OPTION_RUN_TIME
+    };
 
     // *************************************************************************
     //                                COMPONENTS
@@ -53,7 +56,10 @@ mod OptionRound {
         settlement_price: u256,
         payout_per_option: u256,
         ///
-        pricing_data_points: PricingDataPoints,
+        strike_price: u256,
+        cap_level: u128,
+        reserve_price: u256,
+        pricing_data: PricingData,
         ///
         account_bid_nonce: Map<ContractAddress, u64>,
         has_minted: Map<ContractAddress, bool>,
@@ -72,7 +78,6 @@ mod OptionRound {
     mod Errors {
         const CallerIsNotVault: felt252 = 'Caller not the Vault';
         // Starting an auction
-        const PricingDataPointsNotSet: felt252 = 'Pricing data points not set';
         const PricingDataNotSet: felt252 = 'Pricing data not set';
         const AuctionStartDateNotReached: felt252 = 'Auction start date not reached';
         const AuctionAlreadyStarted: felt252 = 'Auction already started';
@@ -102,28 +107,25 @@ mod OptionRound {
     #[constructor]
     fn constructor(ref self: ContractState, args: ConstructorArgs) {
         // @dev Get the constructor arguments
-        let ConstructorArgs { vault_address,
-        round_id,
-        auction_start_date,
-        auction_end_date,
-        option_settlement_date,
-        pricing_data_points } =
-            args;
+        let ConstructorArgs { vault_address, round_id, pricing_data, } = args;
 
         // @dev Set the name and symbol for the minted option (ERC-20) tokens
         let (name, symbol) = self.generate_erc20_name_and_symbol(round_id);
         self.erc20.initializer(name, symbol);
 
-        // @dev Set rest of round params
+        // @dev Set round's dates
+        let deployment_date = get_block_timestamp();
+        let (auction_start_date, auction_end_date, settlement_date) = self
+            .calculate_dates(deployment_date);
         self.deployment_date.write(get_block_timestamp());
         self.auction_start_date.write(auction_start_date);
         self.auction_end_date.write(auction_end_date);
-        self.option_settlement_date.write(option_settlement_date);
+        self.option_settlement_date.write(settlement_date);
+
+        // @dev Set rest of round params
         self.vault_address.write(vault_address);
         self.round_id.write(round_id);
-        if pricing_data_points != Default::default() {
-            self.pricing_data_points.write(pricing_data_points);
-        }
+        self.pricing_data.write(pricing_data);
     }
 
     // *************************************************************************
@@ -133,7 +135,7 @@ mod OptionRound {
     #[event]
     #[derive(Drop, starknet::Event, PartialEq)]
     enum Event {
-        PricingDataUpdated: PricingDataUpdated,
+        PricingDataSet: PricingDataSet,
         AuctionStarted: AuctionStarted,
         BidPlaced: BidPlaced,
         BidUpdated: BidUpdated,
@@ -148,13 +150,11 @@ mod OptionRound {
         ERC20Event: ERC20Component::Event,
     }
 
-    // @dev Emitted when the pricing data points are updated
-    // @member pricing_data_points_now: The updated pricing data points
-    // @member job_id: The ID for the job used to update the data
     #[derive(Drop, starknet::Event, PartialEq)]
-    struct PricingDataUpdated {
-        pricing_data_points_now: PricingDataPoints,
-        job_id: felt252,
+    struct PricingDataSet {
+        strike_price: u256,
+        cap_level: u128,
+        reserve_price: u256,
     }
 
     // @dev Emitted when the auction starts
@@ -314,15 +314,15 @@ mod OptionRound {
         }
 
         fn get_reserve_price(self: @ContractState) -> u256 {
-            self.pricing_data_points.reserve_price.read()
+            self.pricing_data.reserve_price.read()
         }
 
         fn get_strike_price(self: @ContractState) -> u256 {
-            self.pricing_data_points.strike_price.read()
+            self.pricing_data.strike_price.read()
         }
 
         fn get_cap_level(self: @ContractState) -> u128 {
-            self.pricing_data_points.cap_level.read()
+            self.pricing_data.cap_level.read()
         }
 
         fn get_options_available(self: @ContractState) -> u256 {
@@ -486,34 +486,31 @@ mod OptionRound {
 
         /// State transition
 
-        fn refresh_pricing_data_points(
-            ref self: ContractState, pricing_data_points_now: PricingDataPoints, job_id: felt252,
-        ) {
+        fn set_pricing_data(ref self: ContractState, pricing_data: PricingData) {
             // @dev Assert the caller is the vault
             self.assert_caller_is_vault();
 
             // @dev Assert the auction has not started yet
             assert(self.state.read() == OptionRoundState::Open, Errors::AuctionAlreadyStarted);
 
-            // @dev Assert the pricing data points are not 0
-            assert(pricing_data_points_now != Default::default(), Errors::PricingDataPointsNotSet);
+            // @dev Assert pricing data is not 0
+            assert(pricing_data != Default::<PricingData>::default(), 'REPLACE ME');
 
             // @dev Set the pricing data points
-            self.pricing_data_points.write(pricing_data_points_now);
+            self.pricing_data.write(pricing_data);
 
             // @dev Emit event
+            let PricingData { strike_price, cap_level, reserve_price } = pricing_data;
             self
                 .emit(
-                    Event::PricingDataUpdated(
-                        PricingDataUpdated { pricing_data_points_now, job_id }
-                    )
+                    Event::PricingDataSet(PricingDataSet { strike_price, cap_level, reserve_price })
                 );
         }
 
         fn start_auction(ref self: ContractState, starting_liquidity: u256) -> u256 {
             // @dev Calculate total options available
-            let strike_price = self.pricing_data_points.strike_price.read();
-            let cap_level = self.pricing_data_points.cap_level.read();
+            let strike_price = self.pricing_data.strike_price.read();
+            let cap_level = self.pricing_data.cap_level.read();
             let options_available = calculate_total_options_available(
                 starting_liquidity, strike_price, cap_level
             );
@@ -521,15 +518,6 @@ mod OptionRound {
             // @dev Write auction params to storage
             self.starting_liquidity.write(starting_liquidity);
             self.bids_tree.total_options_available.write(options_available);
-
-            // @dev If starting round 1's auction, shift auction end date and option settlement date
-            if self.round_id.read() == 1 {
-                let shift = self.auction_end_date.read() - get_block_timestamp();
-                if shift.is_non_zero() {
-                    self.auction_end_date.write(self.auction_end_date.read() + shift);
-                    self.option_settlement_date.write(self.option_settlement_date.read() + shift);
-                }
-            }
 
             // @dev Transition state and emit event
             self.transition_state_to(OptionRoundState::Auctioning);
@@ -574,8 +562,8 @@ mod OptionRound {
 
         fn settle_round(ref self: ContractState, settlement_price: u256) -> u256 {
             // @dev Calculate payout per option
-            let strike_price = self.pricing_data_points.strike_price.read();
-            let cap_level = self.pricing_data_points.cap_level.read();
+            let strike_price = self.pricing_data.strike_price.read();
+            let cap_level = self.pricing_data.cap_level.read();
             let payout_per_option = calculate_payout_per_option(
                 strike_price, cap_level, settlement_price
             );
@@ -763,6 +751,14 @@ mod OptionRound {
 
     #[generate_trait]
     impl InternalImpl of OptionRoundInternalTrait {
+        fn calculate_dates(self: @ContractState, deployment_date: u64) -> (u64, u64, u64) {
+            let auction_start_date = deployment_date + ROUND_TRANSITION_PERIOD;
+            let auction_end_date = auction_start_date + AUCTION_RUN_TIME;
+            let option_settlement_date = auction_end_date + OPTION_RUN_TIME;
+
+            (auction_start_date, auction_end_date, option_settlement_date)
+        }
+
         // @dev Transitions the round's state to `to_state` if the proper conditions are met
         fn transition_state_to(ref self: ContractState, to_state: OptionRoundState) {
             // @dev Assert the caller is the vault
@@ -808,13 +804,6 @@ mod OptionRound {
         // @dev Assert that the caller is the Vault
         fn assert_caller_is_vault(self: @ContractState) {
             assert(get_caller_address() == self.vault_address.read(), Errors::CallerIsNotVault);
-        }
-
-        // @dev Assert the pricing data points are not the default values
-        fn assert_pricing_data_points_are_set(self: @ContractState) {
-            assert(
-                self.pricing_data_points.read() == Default::default(), Errors::PricingDataNotSet
-            );
         }
 
         // @dev Assert the auction has ended

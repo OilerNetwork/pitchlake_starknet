@@ -1,6 +1,6 @@
 use starknet::{ContractAddress, StorePacking};
 use pitch_lake::types::{Bid};
-use pitch_lake::vault::interface::PricingDataPoints;
+use pitch_lake::vault::interface::PricingData;
 
 // An enum for each state an option round can be in
 #[derive(Default, Copy, Drop, Serde, PartialEq, starknet::Store)]
@@ -16,10 +16,7 @@ enum OptionRoundState {
 struct ConstructorArgs {
     vault_address: ContractAddress,
     round_id: u256,
-    auction_start_date: u64,
-    auction_end_date: u64,
-    option_settlement_date: u64,
-    pricing_data_points: PricingDataPoints
+    pricing_data: PricingData
 }
 
 
@@ -129,15 +126,8 @@ trait IOptionRound<TContractState> {
     // @dev Set pricing data for round to start
     // @note Pricing data is normally set in the constructor, except for the first round. The first
     // round will need to either have its pricing data set manually or the vault will need to deploy
-    // with the data + proofs.
-    //    fn set_pricing_data(
-    //        ref self: TContractState, strike_price: u256, cap_level: u128, reserve_price: u256
-    //    );
-
-    // @note Probably removing this
-    fn refresh_pricing_data_points(
-        ref self: TContractState, pricing_data_points_now: PricingDataPoints, job_id: felt252
-    );
+    // with the data + proofs already computed.
+    fn set_pricing_data(ref self: TContractState, pricing_data: PricingData);
 
     // @dev Start the round's auction, return the options available in the auction
     // @param starting_liquidity: The total amount of ETH being locked in the auction
