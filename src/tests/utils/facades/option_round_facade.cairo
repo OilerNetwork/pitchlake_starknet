@@ -12,7 +12,7 @@ use pitch_lake::{
     vault::{
         interface::{
             VaultType, IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait,
-            IVaultSafeDispatcherTrait, PricingDataPoints
+            IVaultSafeDispatcherTrait, PricingData
         },
         contract::Vault,
     },
@@ -28,10 +28,7 @@ use pitch_lake::{
                     vault_manager, bystander, liquidity_provider_1
                 }, //structs::{OptionRoundParams}
             },
-            facades::{
-                sanity_checks, fact_registry_facade::{FactRegistryFacadeTrait},
-                vault_facade::{VaultFacade, VaultFacadeTrait},
-            },
+            facades::{sanity_checks, vault_facade::{VaultFacade, VaultFacadeTrait},},
         }
     },
 };
@@ -60,19 +57,17 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     // Update the params of the option round
     // @note this sets strike price as well, meaning this function is only to be used where the
     // the strike is irrelevant to the test (i.e only in option distribution tests)
-    fn update_params(
-        ref self: OptionRoundFacade, pricing_data_points: PricingDataPoints, job_request: felt252,
-    ) {
+    fn set_pricing_data(ref self: OptionRoundFacade, pricing_data: PricingData) {
         // Force update the params in the round
-        self.option_round_dispatcher.refresh_pricing_data_points(pricing_data_points, job_request);
+        self.option_round_dispatcher.set_pricing_data(pricing_data);
     }
 
     #[feature("safe_dispatcher")]
-    fn update_round_params_expect_error(
-        ref self: OptionRoundFacade, pricing_data_points: PricingDataPoints, error: felt252
+    fn set_pricing_data_expect_err(
+        ref self: OptionRoundFacade, pricing_data: PricingData, error: felt252
     ) {
         let safe = self.get_safe_dispatcher();
-        safe.refresh_pricing_data_points(pricing_data_points, 0xdeadbeef).expect_err(error);
+        safe.set_pricing_data(pricing_data).expect_err(error);
     }
 
 
@@ -93,17 +88,11 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         let starting_liquidity = (options_available * capped_payout_per_option);
 
         // Update the params of the option round
-        let pricing_data_points = PricingDataPoints {
-            twap: 1234, // doesnt matter
-            volatility: 1234, // doesnt matter
-            reserve_price,
-            strike_price,
-            cap_level,
-        };
+        let pricing_data = PricingData { strike_price, cap_level, reserve_price, };
 
         // Update the pricing data points as the Vault
         set_contract_address(vault.contract_address());
-        self.update_params(pricing_data_points, 'some job id');
+        self.set_pricing_data(pricing_data);
 
         let total_options_available = accelerate_to_auctioning_custom(
             ref vault, array![liquidity_provider_1()].span(), array![starting_liquidity].span()
@@ -391,6 +380,10 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
 
     /// Dates
 
+    fn get_deployment_date(ref self: OptionRoundFacade) -> u64 {
+        self.option_round_dispatcher.get_deployment_date()
+    }
+
     fn get_auction_start_date(ref self: OptionRoundFacade) -> u64 {
         self.option_round_dispatcher.get_auction_start_date()
     }
@@ -402,6 +395,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     fn get_option_settlement_date(ref self: OptionRoundFacade) -> u64 {
         self.option_round_dispatcher.get_option_settlement_date()
     }
+
 
     /// $
 
