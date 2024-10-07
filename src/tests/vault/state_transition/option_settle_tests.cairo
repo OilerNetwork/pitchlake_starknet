@@ -24,7 +24,8 @@ use pitch_lake::{
                 },
                 event_helpers::{
                     clear_event_logs, assert_event_option_settle, assert_event_transfer,
-                    assert_no_events_left, pop_log, assert_event_option_round_deployed,
+                    assert_no_events_left, pop_log, assert_event_option_round_deployed_single,
+                    assert_event_option_round_deployed,
                 },
                 accelerators::{
                     accelerate_to_auctioning, accelerate_to_running, accelerate_to_settled,
@@ -144,7 +145,9 @@ fn test_first_round_deployed_event() {
             && option_settlement_date.is_non_zero(),
         'Dates should not be 0'
     );
-    assert_event_option_round_deployed(
+    // @note doing this to add an extra vault event (so that the double pop log works as expected)
+    //vault.withdraw(0, liquidity_provider_1());
+    assert_event_option_round_deployed_single(
         vault.contract_address(),
         1,
         current_round.contract_address(),

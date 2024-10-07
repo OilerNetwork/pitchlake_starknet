@@ -90,31 +90,22 @@ use debug::PrintTrait;
 
 /// Failues ///
 
-// @note Test is redundant, testing below reserve price covers this case as well
-//// Test bidding 0 amount is rejected
-//#[test]
-//#[available_gas(10000000)]
-//fn test_bid_amount_0_gets_rejected() {
-//    let (mut vault, _) = setup_facade();
-//    let _options_available = accelerate_to_auctioning(ref vault);
-//
-//    // Bid 0 amount
-//    let mut current_round = vault.get_current_round();
-//    let reserve_price = current_round.get_reserve_price();
-//    let bidder = option_bidder_buyer_1();
-//    let bid_price = 2 * reserve_price;
-//    let bid_amount = 0;
-//    clear_event_logs(array![current_round.contract_address()]);
-//    match current_round.place_bid_raw(bid_amount, bid_price, bidder) {
-//        Result::Ok(_) => { panic!("Bid should have failed"); },
-//        Result::Err(_) => {
-//            // Check bid rejected event
-//            assert_event_auction_bid_rejected(
-//                current_round.contract_address(), bidder, bid_amount, bid_price
-//            );
-//        }
-//    }
-//}
+// Test bidding 0 amount is rejected
+#[test]
+#[available_gas(10000000)]
+fn test_bid_amount_0_gets_rejected() {
+    let (mut vault, _) = setup_facade();
+    let _options_available = accelerate_to_auctioning(ref vault);
+
+    // Bid 0 amount
+    let mut current_round = vault.get_current_round();
+    let reserve_price = current_round.get_reserve_price();
+    let bidder = option_bidder_buyer_1();
+    let bid_price = 2 * reserve_price;
+    let bid_amount = 0;
+
+    current_round.place_bid_expect_error(bid_amount, bid_price, bidder, Errors::BidAmountZero);
+}
 
 // Test bidding price < reserve fails (covers 0 amount as well since 0 is always < reserve price)
 #[test]

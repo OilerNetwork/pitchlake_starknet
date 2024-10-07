@@ -13,7 +13,7 @@ use debug::PrintTrait;
 // Indexed event members are currently not supported, so they are ignored.
 fn pop_log<T, +Drop<T>, impl TEvent: starknet::Event<T>>(address: ContractAddress) -> Option<T> {
     let (mut keys, mut data) = testing::pop_log_raw(address)?;
-    println!("keys: {:?}\ndata: {:?}", keys.clone(), data.clone());
+    //println!("keys: {:?}\ndata: {:?}", keys.clone(), data.clone());
     let ret = starknet::Event::deserialize(ref keys, ref data);
     assert(data.is_empty(), 'Event has extra data');
     ret
@@ -228,7 +228,6 @@ fn assert_event_transfer(
 
 /// Vault Events ///
 
-// Test OptionRoundCreated event emits correctly
 fn assert_event_option_round_deployed(
     contract: ContractAddress,
     round_id: u256,
@@ -240,25 +239,46 @@ fn assert_event_option_round_deployed(
 ) {
     match pop_log::<Vault::Event>(contract) {
         Option::Some(_) => {
-            match pop_log::<Vault::Event>(contract) {
-                Option::Some(e) => {
-                    let expected = Vault::Event::OptionRoundDeployed(
-                        Vault::OptionRoundDeployed {
-                            round_id,
-                            address,
-                            auction_start_date,
-                            auction_end_date,
-                            option_settlement_date,
-                            pricing_data
-                        }
-                    );
-                    assert_events_equal(e, expected);
-                },
-                Option::None => { panic(array!['No events found']); }
-            };
+            assert_event_option_round_deployed_single(
+                contract,
+                round_id,
+                address,
+                auction_start_date,
+                auction_end_date,
+                option_settlement_date,
+                pricing_data
+            );
         },
-        Option::None => { panic(array!['No events found']); }
+       Option::None => { panic(array!['No events found1']); }
     }
+}
+
+// Test OptionRoundCreated event emits correctly
+fn assert_event_option_round_deployed_single(
+    contract: ContractAddress,
+    round_id: u256,
+    address: ContractAddress,
+    auction_start_date: u64,
+    auction_end_date: u64,
+    option_settlement_date: u64,
+    pricing_data: PricingData,
+) {
+    match pop_log::<Vault::Event>(contract) {
+        Option::Some(e) => {
+            let expected = Vault::Event::OptionRoundDeployed(
+                Vault::OptionRoundDeployed {
+                    round_id,
+                    address,
+                    auction_start_date,
+                    auction_end_date,
+                    option_settlement_date,
+                    pricing_data
+                }
+            );
+            assert_events_equal(e, expected);
+        },
+        Option::None => { panic(array!['No events found2']); }
+    };
 }
 
 // Test deposit event emits correctly

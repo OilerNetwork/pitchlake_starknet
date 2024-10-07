@@ -51,15 +51,6 @@ trait IVault<TContractState> {
     // @dev Get the ETH address
     fn get_eth_address(self: @TContractState) -> ContractAddress;
 
-    //    // @dev Get the amount of time an auction runs for
-    //    fn get_auction_run_time(self: @TContractState) -> u64;
-    //
-    //    // @dev Get the amount of time an option round runs for
-    //    fn get_option_run_time(self: @TContractState) -> u64;
-    //
-    //    // Get the amount of time till starting the next round's auction
-    //    fn get_round_transition_period(self: @TContractState) -> u64;
-
     // @return the current option round id
     fn get_current_round_id(self: @TContractState) -> u256;
 
@@ -135,28 +126,6 @@ trait IVault<TContractState> {
 
     // @dev Fulfill a pricing data request
     fn fulfill_request(ref self: TContractState, request: L1DataRequest, result: L1Result);
-
-    //    // @dev Sets pricing data for the current round to settle with. The pricing data must have
-    //    a // timestamp that is equal to the currnet round's settlement date with
-    //    TIMESTAMP_TOLERANCE fn fulfill_request_to_settle_round(
-    //        ref self: TContractState, request: L1DataRequest, result: L1Result
-    //    ) -> bool;
-    //
-    //    // @dev Sets pricing data for the current round to start with
-    //    // @note When pricing data is set to settle a round, it is also used to deploy the next
-    //    round.
-    //    // This is fine for all rounds > 1, but in order for the first round to start, this
-    //    function // must be used to set the pricing data, after this only
-    //    `set_pricing_data_to_settle_round()`
-    //    // needs to be used.
-    //    // @note This function can also be used to refresh the pricing data for the current round
-    //    if it // has not started yet. This is because all rounds > 1 will deploy with pricing data
-    //    already // set, but they will not start until their auction start dates. This means a user
-    //    could use // this function to update the pricing data as long as the timestamp is between
-    //    the deployment // date and the auction start date
-    //    fn fulfill_request_to_start_auction(
-    //        ref self: TContractState, request: L1DataRequest, result: L1Result
-    //    ) -> bool;
 
     // @dev Start the current round's auction
     // @return The total options available in the auction

@@ -58,28 +58,28 @@ fn test_only_fossil_can_fulfill_request() {
 
 #[test]
 #[available_gas(1_000_000_000)]
-fn test_request_must_fulfill_to_start_auction(){
-  let (mut vault, _) = setup_facade();
+fn test_request_must_fulfill_to_start_auction() {
+    let (mut vault, _) = setup_facade();
 
-  accelerate_to_auctioning(ref vault);
-  accelerate_to_running(ref vault);
-  accelerate_to_settled(ref vault, to_gwei(10));
+    accelerate_to_auctioning(ref vault);
+    accelerate_to_running(ref vault);
+    accelerate_to_settled(ref vault, to_gwei(10));
 
-  vault.start_auction_expect_error(Errors::PricingDataNotSet);
-  }
- // timeskip_past_option_expiry_data
+    vault.start_auction_expect_error(Errors::PricingDataNotSet);
+}
+// timeskip_past_option_expiry_data
 
 #[test]
 #[available_gas(1_000_000_000)]
-fn test_request_must_fulfill_to_settle_round(){
-  let (mut vault, _) = setup_facade();
+fn test_request_must_fulfill_to_settle_round() {
+    let (mut vault, _) = setup_facade();
 
-  accelerate_to_auctioning(ref vault);
-  accelerate_to_running(ref vault);
-  timeskip_past_option_expiry_date(ref vault);
+    accelerate_to_auctioning(ref vault);
+    accelerate_to_running(ref vault);
+    timeskip_past_option_expiry_date(ref vault);
 
-  vault.settle_option_round_expect_error(Errors::PricingDataNotSet);
-  }
+    vault.settle_option_round_expect_error(Errors::PricingDataNotSet);
+}
 
 #[test]
 #[available_gas(1_000_000_000)]

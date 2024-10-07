@@ -58,9 +58,6 @@ mod OptionRound {
         settlement_price: u256,
         payout_per_option: u256,
         ///
-        strike_price: u256,
-        cap_level: u128,
-        reserve_price: u256,
         pricing_data: PricingData,
         ///
         account_bid_nonce: Map<ContractAddress, u64>,

@@ -101,13 +101,11 @@ mod Vault {
         // Fossil
         const CallerNotWhitelisted: felt252 = 'Caller not whitelisted';
         const L1DataOutOfRange: felt252 = 'L1 data out of range';
-
         // Withdraw/queuing withdrawals
         const InsufficientBalance: felt252 = 'Insufficient unlocked balance';
         const QueueingMoreThanPositionValue: felt252 = 'Insufficient balance to queue';
         const WithdrawalQueuedWhileUnlocked: felt252 = 'Can only queue while locked';
-
-        // Option round deployment
+        // Deploying option rounds
         const OptionRoundDeploymentFailed: felt252 = 'Option round deployment failed';
     }
 
