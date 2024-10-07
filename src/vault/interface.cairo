@@ -1,9 +1,44 @@
-use starknet::{ContractAddress};
-use pitch_lake_starknet::{
-    vault::{contract::Vault},
-    market_aggregator::interface::{IMarketAggregator, IMarketAggregatorDispatcher},
-    types::{VaultType, OptionRoundState}
-};
+use starknet::{ContractAddress, ClassHash};
+use pitch_lake::option_round::interface::OptionRoundState;
+
+// @dev An enum for each type of Vault
+#[derive(starknet::Store, Copy, Drop, Serde, PartialEq)]
+enum VaultType {
+    InTheMoney,
+    AtTheMoney,
+    OutOfMoney,
+}
+
+// @dev Request to settle/start a round
+#[derive(Copy, Drop, Serde)]
+struct L1DataRequest {
+    identifiers: Span<felt252>,
+    timestamp: u64,
+}
+
+// @dev Data returned from request
+#[derive(Default, PartialEq, Copy, Drop, Serde, starknet::Store)]
+struct L1Data {
+    twap: u256,
+    volatility: u128,
+    reserve_price: u256,
+}
+
+// @dev Struct to send result and proving data to `fulfill_request()`
+#[derive(Copy, Drop, Serde)]
+struct L1Result {
+    data: L1Data,
+    proof: Span<felt252>,
+}
+
+// @dev Constructor arguments
+#[derive(Drop, Serde)]
+struct ConstructorArgs {
+    request_fulfiller: ContractAddress,
+    eth_address: ContractAddress,
+    option_round_class_hash: ClassHash,
+    vault_type: VaultType, // replace with strike level and alpha
+}
 
 // The interface for the vault contract
 #[starknet::interface]
@@ -13,20 +48,8 @@ trait IVault<TContractState> {
     // @dev Get the type of vault (ITM | ATM | OTM)
     fn get_vault_type(self: @TContractState) -> VaultType;
 
-    // @dev Get the market aggregator's address
-    fn get_market_aggregator_address(self: @TContractState) -> ContractAddress;
-
     // @dev Get the ETH address
     fn get_eth_address(self: @TContractState) -> ContractAddress;
-
-    // @dev Get the amount of time an auction runs for
-    fn get_auction_run_time(self: @TContractState) -> u64;
-
-    // @dev Get the amount of time an option round runs for
-    fn get_option_run_time(self: @TContractState) -> u64;
-
-    // Get the amount of time till starting the next round's auction
-    fn get_round_transition_period(self: @TContractState) -> u64;
 
     // @return the current option round id
     fn get_current_round_id(self: @TContractState) -> u256;
@@ -66,6 +89,15 @@ trait IVault<TContractState> {
     // @dev The account's % (bps) queued for withdrawal once the current round settles
     fn get_account_queued_bps(self: @TContractState, account: ContractAddress) -> u16;
 
+    /// Fossil
+
+    // @dev Get the earliest Fossil request required to settle the current round
+    fn get_request_to_settle_round(self: @TContractState) -> L1DataRequest;
+
+    // @dev Get the earliest Fossil request required to start the current round's auction if not
+    // already set or refreshing the data
+    fn get_request_to_start_auction(self: @TContractState) -> L1DataRequest;
+
     /// Writes ///
 
     /// Account functions
@@ -80,8 +112,9 @@ trait IVault<TContractState> {
     // @return The caller's updated unlocked position
     fn withdraw(ref self: TContractState, amount: u256) -> u256;
 
-    // @dev The caller queues a % of their locked balance to be stashed once the current round settles
-    // @param bps: The percentage points <= 10,000 the account queues to stash when the round settles
+    // @dev The caller queues a % of their locked balance to be stashed once the current round
+    // settles @param bps: The percentage points <= 10,000 the account queues to stash when the
+    // round settles
     fn queue_withdrawal(ref self: TContractState, bps: u16);
 
     // @dev The caller withdraws all of an account's stashed liquidity for the account
@@ -91,9 +124,8 @@ trait IVault<TContractState> {
 
     /// State transitions
 
-    // Update the params of the current round if there are newer data from Fossil
-    // @note Will probably remove this
-    fn update_round_params(ref self: TContractState);
+    // @dev Fulfill a pricing data request
+    fn fulfill_request(ref self: TContractState, request: L1DataRequest, result: L1Result);
 
     // @dev Start the current round's auction
     // @return The total options available in the auction

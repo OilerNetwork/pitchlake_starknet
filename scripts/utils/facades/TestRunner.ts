@@ -7,11 +7,12 @@ import {
   DepositArgs,
   MarketData,
   WithdrawArgs,
+  JobRequest,
 } from "./types";
 import { getOptionRoundContract, getOptionRoundFacade } from "../helpers/setup";
 import { getNow, timeskipNextBlock } from "../katana";
 import { getAccount, getCustomAccount, stringToHex } from "../helpers/common";
-import { MarketAggregatorFacade } from "./marketAggregatorFacade";
+import { FactRegistryFacade } from "./factRegistryFacade";
 import { liquidityProviders, optionBidders } from "../constants";
 
 export type ResultSheet = {
@@ -40,7 +41,7 @@ export class TestRunner {
     provider: Provider,
     vaultAddress: string,
     ethAddress: string,
-    constants: Constants
+    constants: Constants,
   ) {
     this.vaultFacade = new VaultFacade(vaultAddress, provider);
     this.ethFacade = new ERC20Facade(ethAddress, provider);
@@ -51,7 +52,7 @@ export class TestRunner {
   testResults = async (
     accounts: Array<Account>,
     params: Array<StoragePoints>,
-    method: Methods
+    method: Methods,
   ) => {
     const before: Map<
       StoragePoints,
@@ -99,10 +100,10 @@ export class TestRunner {
     const balances = await Promise.all(
       accounts.map(async (account: Account) => {
         const res = await this.vaultFacade.getLPUnlockedBalance(
-          account.address
+          account.address,
         );
         return res;
-      })
+      }),
     );
     return balances;
   };
@@ -112,7 +113,7 @@ export class TestRunner {
       accounts.map(async (account: Account) => {
         const res = await this.vaultFacade.getLPLockedBalance(account.address);
         return res;
-      })
+      }),
     );
     return balances;
   };
@@ -134,7 +135,7 @@ export class TestRunner {
       accounts.map(async (account: Account) => {
         const balance = await this.ethFacade.getBalance(account.address);
         return balance;
-      })
+      }),
     );
     return balances;
   };
@@ -148,7 +149,7 @@ export class TestRunner {
   accelerateToAuctioning = async () => {
     const optionRoundContract = await getOptionRoundContract(
       this.provider,
-      this.vaultFacade.vaultContract
+      this.vaultFacade.vaultContract,
     );
     const currentTime = await getNow(this.provider);
     const auctionStartDate = await optionRoundContract.get_auction_start_date();
@@ -157,18 +158,18 @@ export class TestRunner {
       "currentTime:",
       currentTime,
       "\nauctionStartDate:",
-      auctionStartDate
+      auctionStartDate,
     );
     await timeskipNextBlock(
       Number(auctionStartDate) - Number(currentTime),
-      this.provider.channel.nodeUrl
+      this.provider.channel.nodeUrl,
     );
   };
 
   accelerateToRunning = async () => {
     const optionRoundContract = await getOptionRoundContract(
       this.provider,
-      this.vaultFacade.vaultContract
+      this.vaultFacade.vaultContract,
     );
 
     const currentTime = await getNow(this.provider);
@@ -176,14 +177,14 @@ export class TestRunner {
 
     await timeskipNextBlock(
       Number(auctionEndDate) - Number(currentTime) + 1,
-      this.provider.channel.nodeUrl
+      this.provider.channel.nodeUrl,
     );
   };
 
   accelerateToSettled = async () => {
     const optionRoundContract = await getOptionRoundContract(
       this.provider,
-      this.vaultFacade.vaultContract
+      this.vaultFacade.vaultContract,
     );
 
     const currentTime = await getNow(this.provider);
@@ -192,70 +193,79 @@ export class TestRunner {
 
     await timeskipNextBlock(
       Number(optionSettleDate) - Number(currentTime),
-      this.provider.channel.nodeUrl
+      this.provider.channel.nodeUrl,
     );
   };
 
   //@note Only works for katana dev instance with a --dev flag
-  startAuctionBystander = async (marketData: MarketData) => {
-    console.log("MARKETDATA:", marketData);
-    const devAccount = getAccount("dev", this.provider);
-    //Set market aggregator reserve_price
-    const marketAggregatorString =
-      await this.vaultFacade.vaultContract.get_market_aggregator_address();
-    const marketAggregatorAddress = "0x" + stringToHex(marketAggregatorString);
-    const marketAggFacade = new MarketAggregatorFacade(
-      marketAggregatorAddress,
-      this.provider
-    );
-    const optionRound = await getOptionRoundFacade(
-      this.provider,
-      this.vaultFacade.vaultContract
-    );
-
-    const roundId = await optionRound.getRoundId();
-
-    const settleDate =
-      await optionRound.optionRoundContract.get_option_settlement_date();
-
-    const startDate = await optionRound.optionRoundContract.get_auction_start_date();
-    const twapPeriod = BigInt(60 * 60 * 24 * 14);
-
-    const auctionRunTime =
-      await this.vaultFacade.vaultContract.get_auction_run_time();
-    const optionRunTime =
-      await this.vaultFacade.vaultContract.get_option_run_time();
-    const roundTransitionPeriod =
-      await this.vaultFacade.vaultContract.get_round_transition_period();
-
-    const duration =
-      BigInt(auctionRunTime) +
-      BigInt(optionRunTime) +
-      BigInt(roundTransitionPeriod);
-    const endDatePeriodA = BigInt(startDate)
-    const startDatePeriodA = endDatePeriodA-twapPeriod
-
-    const endDatePeriodB = endDatePeriodA-BigInt(roundTransitionPeriod);
-    const startDatePeriodB = endDatePeriodB-twapPeriod;
-
-    console.log("START DATE, SETTLE DATE", startDate, "\n", settleDate);
-    await marketAggFacade.setMarketParameters({
-      devAccount,
-      vaultAddress: this.vaultFacade.vaultContract.address,
-      roundId: roundId,
-      startDatePeriodA,
-      startDatePeriodB,
-      endDatePeriodA,
-      endDatePeriodB,
-      marketData,
-    });
-
-    await this.vaultFacade.vaultContract.update_round_params();
-
+  startAuctionBystander = async () => {
     await this.accelerateToAuctioning();
 
+    const devAccount = getAccount("dev", this.provider);
     this.vaultFacade.vaultContract.connect(devAccount);
     await this.vaultFacade.vaultContract.start_auction();
+
+    //    const settleDate =
+    //      await optionRound.optionRoundContract.get_option_settlement_date();
+    //
+    //    const startDate =
+    //      await optionRound.optionRoundContract.get_auction_start_date();
+    //    const twapPeriod = BigInt(60 * 60 * 24 * 14);
+    //
+    //    const auctionRunTime =
+    //      await this.vaultFacade.vaultContract.get_auction_run_time();
+    //    const optionRunTime =
+    //      await this.vaultFacade.vaultContract.get_option_run_time();
+    //    const roundTransitionPeriod =
+    //      await this.vaultFacade.vaultContract.get_round_transition_period();
+    //
+    //    const duration =
+    //      BigInt(auctionRunTime) +
+    //      BigInt(optionRunTime) +
+    //      BigInt(roundTransitionPeriod);
+    //    const endDatePeriodA = BigInt(startDate);
+    //    const startDatePeriodA = endDatePeriodA - twapPeriod;
+    //
+    //    const endDatePeriodB = endDatePeriodA - BigInt(roundTransitionPeriod);
+    //    const startDatePeriodB = endDatePeriodB - twapPeriod;
+    //
+    //    console.log("START DATE, SETTLE DATE", startDate, "\n", settleDate);
+
+    //    const optionSettlementDate = parseInt(
+    //      (
+    //        await optionRound.optionRoundContract.get_option_settlement_date()
+    //      ).toString(),
+    //    );
+    //
+    //    const twapRange = 3600 * 24 * 30;
+    //    const volatilityRange = 3600 * 24 * 90;
+    //    const reservePriceRange = 3600 * 24 * 90;
+    //
+    //    const job_request: JobRequest = {
+    //      identifiers: ["PITCH_LAKE_V1"],
+    //      params: {
+    //        twap: [
+    //          parseInt(optionSettlementDate.toString()) - twapRange,
+    //          optionSettlementDate,
+    //        ],
+    //        volatility: [
+    //          optionSettlementDate - volatilityRange,
+    //          optionSettlementDate,
+    //        ],
+    //        reserve_price: [
+    //          optionSettlementDate - reservePriceRange,
+    //          optionSettlementDate,
+    //        ],
+    //      },
+    //    };
+    //
+    //    await factRegFacade.setMarketParameters({
+    //      devAccount,
+    //      job_request,
+    //      market_data: marketData,
+    //    });
+    //
+    //    await this.vaultFacade.vaultContract.update_round_params();
   };
 
   endAuctionBystander = async () => {
@@ -264,10 +274,62 @@ export class TestRunner {
     await this.vaultFacade.endAuction(devAccount);
   };
 
-  settleOptionRoundBystander = async () => {
-    await this.accelerateToSettled();
+  //@note Only works for katana dev instance with a --dev flag
+  settleOptionRoundBystander = async (marketData: MarketData) => {
+    console.log("MARKETDATA:", marketData);
+
+    const factRegistryString =
+      await this.vaultFacade.vaultContract.get_market_aggregator_address();
+    const factRegistryAddress = "0x" + stringToHex(factRegistryString);
+    const factRegFacade = new FactRegistryFacade(
+      factRegistryAddress,
+      this.provider,
+    );
+    const optionRound = await getOptionRoundFacade(
+      this.provider,
+      this.vaultFacade.vaultContract,
+    );
+
+    // Mock JobRequest
+
+    const jobRequest: JobRequest = await optionRound.createJobRequest();
     const devAccount = getAccount("dev", this.provider);
-    await this.vaultFacade.settleOptionRound(devAccount);
+    await factRegFacade.setMarketParameters({
+      devAccount,
+      jobRequest,
+      marketData,
+    });
+
+    await this.accelerateToSettled();
+    await this.vaultFacade.settleOptionRound(devAccount, jobRequest);
+
+    // const optionSettlementDate = parseInt(
+    //   (
+    //     await optionRound.optionRoundContract.get_option_settlement_date()
+    //   ).toString(),
+    // );
+
+    // const twapRange = 3600 * 24 * 30;
+    // const volatilityRange = 3600 * 24 * 90;
+    // const reservePriceRange = 3600 * 24 * 90;
+
+    // const job_request: JobRequest = {
+    //   identifiers: ["PITCH_LAKE_V1"],
+    //   params: {
+    //     twap: [
+    //       parseInt(optionSettlementDate.toString()) - twapRange,
+    //       optionSettlementDate,
+    //     ],
+    //     volatility: [
+    //       optionSettlementDate - volatilityRange,
+    //       optionSettlementDate,
+    //     ],
+    //     reserve_price: [
+    //       optionSettlementDate - reservePriceRange,
+    //       optionSettlementDate,
+    //     ],
+    //   },
+    // };
   };
 
   getLiquidityProviderAccounts = (length: number) => {
@@ -277,8 +339,8 @@ export class TestRunner {
         getCustomAccount(
           this.provider,
           liquidityProviders[i].account,
-          liquidityProviders[i].privateKey
-        )
+          liquidityProviders[i].privateKey,
+        ),
       );
     }
     return liquidityProviderAccounts;
@@ -291,8 +353,8 @@ export class TestRunner {
         getCustomAccount(
           this.provider,
           optionBidders[i].account,
-          optionBidders[i].privateKey
-        )
+          optionBidders[i].privateKey,
+        ),
       );
     }
     return optionBidderAccounts;

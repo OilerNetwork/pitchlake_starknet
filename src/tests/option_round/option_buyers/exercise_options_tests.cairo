@@ -1,8 +1,8 @@
 use core::traits::Into;
 use starknet::testing::{set_block_timestamp, set_contract_address};
-use openzeppelin::token::erc20::interface::{ERC20ABIDispatcherTrait,};
-use pitch_lake_starknet::{
-    types::{Errors},
+use openzeppelin_token::erc20::interface::{ERC20ABIDispatcherTrait,};
+use pitch_lake::{
+    option_round::contract::OptionRound::Errors,
     tests::{
         utils::{
             helpers::{
@@ -148,7 +148,8 @@ fn test_exercise_options_eth_transfer() {
 }
 // @note Add tests for get_payout_balance_for becoming 0 after exercise
 // @note Add test that options are burned when exercised
-// @note Add test that OB can send options to another account then exercise (original owner shd not have access to payout afterwards)
+// @note Add test that OB can send options to another account then exercise (original owner shd not
+// have access to payout afterwards)
 // @note Add test that OB1 can exercise options, then receive more from OB2, the exerice again
 
 

@@ -3,23 +3,22 @@ use starknet::{
     testing::{set_block_timestamp, set_contract_address}
 };
 use core::fmt::Display;
-use pitch_lake_starknet::{
-    types::{OptionRoundState, VaultType, BidDisplay},
-    vault::{contract::Vault, interface::{IVaultDispatcher, IVaultDispatcherTrait}},
-    option_round::{
-        contract::{OptionRound}, interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,},
-    },
-    market_aggregator::{
-        contract::MarketAggregator,
+use pitch_lake::{
+    vault::{
+        contract::Vault,
         interface::{
-            IMarketAggregatorMock, IMarketAggregatorMockDispatcher,
-            IMarketAggregatorMockDispatcherTrait,
+            L1Result, L1Data, L1DataRequest, VaultType, IVaultDispatcher, IVaultDispatcherTrait
         }
+    },
+    option_round::{
+        contract::{OptionRound},
+        interface::{
+            PricingData, OptionRoundState, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,
+        },
     },
     tests::{
         utils::{
             lib::{
-                structs::{OptionRoundParams},
                 test_accounts::{
                     vault_manager, liquidity_provider_1, option_bidder_buyer_1, bystander,
                     option_bidders_get, liquidity_providers_get,
@@ -28,13 +27,12 @@ use pitch_lake_starknet::{
             },
             helpers::{ // accelerators::{accelerate_to_auction_custom_auction_params},
                 event_helpers::{clear_event_logs,},
-                general_helpers::{assert_two_arrays_equal_length, get_erc20_balances},
-                setup::{deploy_custom_option_round},
+                general_helpers::{to_gwei, assert_two_arrays_equal_length, get_erc20_balances},
+                //setup::{deploy_custom_option_round},
             },
             facades::{
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
                 vault_facade::{VaultFacade, VaultFacadeTrait},
-                market_aggregator_facade::{MarketAggregatorFacade, MarketAggregatorFacadeTrait},
             },
         },
     },
@@ -92,14 +90,17 @@ fn accelerate_to_running_custom(
 /// Settling option round
 
 // Settle the option round with a custom settlement price (compared to strike to determine payout)
-fn accelerate_to_settled(ref self: VaultFacade, TWAP: u256) -> u256 {
-    let mut current_round = self.get_current_round();
-    let market_aggregator = self.get_market_aggregator_facade();
+fn accelerate_to_settled(ref self: VaultFacade, twap: u256) -> u256 {
+    // Get the data request to fulfill
+    let request = self.get_request_to_settle_round();
 
-    // Set the TWAP for the round's duration
-    let to = current_round.get_option_settlement_date();
-    let from = to - Vault::TWAP_DURATION;
-    market_aggregator.set_TWAP_for_time_period(from, to, TWAP);
+    // Create a mock result (proofs do not matter)
+    let result = L1Result {
+        data: L1Data { twap, volatility: 5000, reserve_price: to_gwei(2) }, proof: array![].span()
+    };
+
+    // Set repsonse
+    self.fulfill_request(request, result);
 
     // Jump to the option expiry date and settle the round
     timeskip_and_settle_round(ref self)
@@ -125,7 +126,7 @@ fn timeskip_past_option_expiry_date(ref self: VaultFacade) {
 // Jump past the round transition period
 fn timeskip_past_round_transition_period(ref self: VaultFacade) {
     let now = get_block_timestamp();
-    let round_transition_period = self.vault_dispatcher.get_round_transition_period();
+    let round_transition_period = self.get_round_transition_period();
     set_block_timestamp(now + round_transition_period);
 }
 

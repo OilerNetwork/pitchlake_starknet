@@ -1,12 +1,32 @@
 use starknet::{ContractAddress, StorePacking};
-use openzeppelin::token::erc20::interface::ERC20ABIDispatcher;
-use pitch_lake_starknet::{
-    option_round::{contract::OptionRound,},
-    market_aggregator::interface::{IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait},
-    types::{OptionRoundState, OptionRoundConstructorParams, Bid,}
-};
+use pitch_lake::types::{Bid};
 
-// The option round contract interface
+// An enum for each state an option round can be in
+#[derive(Default, Copy, Drop, Serde, PartialEq, starknet::Store)]
+enum OptionRoundState {
+    #[default]
+    Open, // Accepting deposits, waiting for auction to start
+    Auctioning, // Auction is on going, accepting bids
+    Running, // Auction has ended, waiting for option round expiry date to settle
+    Settled, // Option round has settled, remaining liquidity has rolled over to the next round
+}
+
+// @dev Data needed for a round's auction to start
+#[derive(Default, PartialEq, Copy, Drop, Serde, starknet::Store)]
+struct PricingData {
+    strike_price: u256,
+    cap_level: u128,
+    reserve_price: u256,
+}
+
+#[derive(Drop, Serde)]
+struct ConstructorArgs {
+    vault_address: ContractAddress,
+    round_id: u256,
+    pricing_data: PricingData
+}
+
+// The interface for an option round contract
 #[starknet::interface]
 trait IOptionRound<TContractState> {
     /// Reads ///
@@ -22,6 +42,9 @@ trait IOptionRound<TContractState> {
     // @dev The state of this round
     fn get_state(self: @TContractState) -> OptionRoundState;
 
+    // @dev Get the round's deployment date
+    fn get_deployment_date(self: @TContractState) -> u64;
+
     // @dev Get the date the auction can start
     fn get_auction_start_date(self: @TContractState) -> u64;
 
@@ -31,26 +54,27 @@ trait IOptionRound<TContractState> {
     // @dev Get the date the round can settle
     fn get_option_settlement_date(self: @TContractState) -> u64;
 
-    // @dev The total ETH locked at the start of the auction
-    fn get_starting_liquidity(self: @TContractState) -> u256;
-
-    // @dev The total ETH not sold in the auction
-    fn get_unsold_liquidity(self: @TContractState) -> u256;
-
     // @dev The minimum price per option
     fn get_reserve_price(self: @TContractState) -> u256;
 
     // @dev The strike price for this round in wei
     fn get_strike_price(self: @TContractState) -> u256;
 
-    // @dev The % points (BPS) above the TWAP to cap the payout per option
+    // @dev The percentage points (BPS) above the TWAP to cap the payout per option
+    // @note E.g. 3333 tranlates to a capped payout of 33.33% above the settlement price
     fn get_cap_level(self: @TContractState) -> u128;
+
+    // @dev The total ETH locked at the start of the auction
+    fn get_starting_liquidity(self: @TContractState) -> u256;
 
     // @dev The total number of options available in the auction
     fn get_options_available(self: @TContractState) -> u256;
 
     // @dev The total options sold after in the auction
     fn get_options_sold(self: @TContractState) -> u256;
+
+    // @dev The total ETH not sold in the auction
+    fn get_unsold_liquidity(self: @TContractState) -> u256;
 
     // @dev The price paid for each option after the auction ends
     fn get_clearing_price(self: @TContractState) -> u256;
@@ -66,10 +90,6 @@ trait IOptionRound<TContractState> {
 
     /// Bids
 
-    // @dev The number of bids an account has placed
-    // @param account: The account to get the number of bids for
-    fn get_account_bid_nonce(self: @TContractState, account: ContractAddress) -> u64;
-
     // @dev The nonce of the entire bid tree
     fn get_bid_tree_nonce(self: @TContractState) -> u64;
 
@@ -77,11 +97,15 @@ trait IOptionRound<TContractState> {
     // @param bid_id: The id of the bid
     fn get_bid_details(self: @TContractState, bid_id: felt252) -> Bid;
 
+    /// Accounts
+
     // @dev The bid ids for an account
     // @param account: The account to get bid ids for
     fn get_account_bids(self: @TContractState, account: ContractAddress) -> Array<Bid>;
 
-    /// Accounts
+    // @dev The number of bids an account has placed
+    // @param account: The account to get the number of bids for
+    fn get_account_bid_nonce(self: @TContractState, account: ContractAddress) -> u64;
 
     // @dev The amount of ETH an account can refund after the auction ends
     // @param account: The account to get the refundable balance for
@@ -105,6 +129,12 @@ trait IOptionRound<TContractState> {
 
     /// State transitions
 
+    // @dev Set pricing data for round to start
+    // @note Pricing data is normally set in the constructor, except for the first round. The first
+    // round will need to either have its pricing data set manually or the vault will need to deploy
+    // with the data + proofs already computed.
+    fn set_pricing_data(ref self: TContractState, pricing_data: PricingData);
+
     // @dev Start the round's auction, return the options available in the auction
     // @param starting_liquidity: The total amount of ETH being locked in the auction
     fn start_auction(ref self: TContractState, starting_liquidity: u256) -> u256;
@@ -115,12 +145,6 @@ trait IOptionRound<TContractState> {
 
     // @dev Settle the round, return the total payout for all of the (sold) options
     fn settle_round(ref self: TContractState, settlement_price: u256) -> u256;
-
-    // @note Probably removing this
-    fn update_round_params(
-        ref self: TContractState, reserve_price: u256, cap_level: u128, strike_price: u256
-    );
-
     /// Account functions
 
     // @dev The caller places a bid in the auction

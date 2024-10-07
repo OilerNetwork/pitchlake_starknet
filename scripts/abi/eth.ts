@@ -2,7 +2,7 @@ export const ABI = [
   {
     "type": "impl",
     "name": "ERC20MixinImpl",
-    "interface_name": "openzeppelin::token::erc20::interface::ERC20ABI"
+    "interface_name": "openzeppelin_token::erc20::interface::ERC20ABI"
   },
   {
     "type": "struct",
@@ -52,7 +52,7 @@ export const ABI = [
   },
   {
     "type": "interface",
-    "name": "openzeppelin::token::erc20::interface::ERC20ABI",
+    "name": "openzeppelin_token::erc20::interface::ERC20ABI",
     "items": [
       {
         "type": "function",
@@ -267,7 +267,7 @@ export const ABI = [
   },
   {
     "type": "event",
-    "name": "openzeppelin::token::erc20::erc20::ERC20Component::Transfer",
+    "name": "openzeppelin_token::erc20::erc20::ERC20Component::Transfer",
     "kind": "struct",
     "members": [
       {
@@ -289,7 +289,7 @@ export const ABI = [
   },
   {
     "type": "event",
-    "name": "openzeppelin::token::erc20::erc20::ERC20Component::Approval",
+    "name": "openzeppelin_token::erc20::erc20::ERC20Component::Approval",
     "kind": "struct",
     "members": [
       {
@@ -311,29 +311,29 @@ export const ABI = [
   },
   {
     "type": "event",
-    "name": "openzeppelin::token::erc20::erc20::ERC20Component::Event",
+    "name": "openzeppelin_token::erc20::erc20::ERC20Component::Event",
     "kind": "enum",
     "variants": [
       {
         "name": "Transfer",
-        "type": "openzeppelin::token::erc20::erc20::ERC20Component::Transfer",
+        "type": "openzeppelin_token::erc20::erc20::ERC20Component::Transfer",
         "kind": "nested"
       },
       {
         "name": "Approval",
-        "type": "openzeppelin::token::erc20::erc20::ERC20Component::Approval",
+        "type": "openzeppelin_token::erc20::erc20::ERC20Component::Approval",
         "kind": "nested"
       }
     ]
   },
   {
     "type": "event",
-    "name": "pitch_lake_starknet::library::eth::Eth::Event",
+    "name": "pitch_lake::library::eth::Eth::Event",
     "kind": "enum",
     "variants": [
       {
         "name": "ERC20Event",
-        "type": "openzeppelin::token::erc20::erc20::ERC20Component::Event",
+        "type": "openzeppelin_token::erc20::erc20::ERC20Component::Event",
         "kind": "flat"
       }
     ]

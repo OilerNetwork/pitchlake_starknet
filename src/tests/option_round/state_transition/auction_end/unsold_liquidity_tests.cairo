@@ -1,4 +1,4 @@
-use pitch_lake_starknet::{
+use pitch_lake::{
     tests::{
         utils::{
             helpers::{
@@ -23,7 +23,7 @@ use pitch_lake_starknet::{
             },
             facades::{
                 vault_facade::{VaultFacade, VaultFacadeTrait},
-                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundParams},
+                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
             },
         },
     }

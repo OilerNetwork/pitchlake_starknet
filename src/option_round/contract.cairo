@@ -1,75 +1,68 @@
 #[starknet::contract]
 mod OptionRound {
-    use openzeppelin::token::erc20::{
-        ERC20Component, interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait, IERC20Metadata},
-    };
-    use pitch_lake_starknet::{
-        library::{utils::{max, min}, red_black_tree::{RBTreeComponent, RBTreeComponent::Node}},
-        option_round::interface::IOptionRound,
-        vault::{interface::{IVaultDispatcher, IVaultDispatcherTrait},},
-        types::{
-            Bid, Errors, OptionRoundConstructorParams, OptionRoundState, VaultType, Consts::BPS,
-        },
-    };
     use starknet::{get_block_timestamp, get_caller_address, get_contract_address, ContractAddress,};
+    use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess,};
+    use starknet::storage::{Map};
+    use openzeppelin_token::erc20::{ERC20Component, ERC20HooksEmptyImpl};
+    use openzeppelin_token::erc20::interface::{
+        ERC20ABIDispatcher, ERC20ABIDispatcherTrait, IERC20Metadata
+    };
+    use pitch_lake::vault::interface::{IVaultDispatcher, IVaultDispatcherTrait};
+    use pitch_lake::option_round::interface::{
+        PricingData, ConstructorArgs, IOptionRound, OptionRoundState
+    };
+    use pitch_lake::types::{Bid, Consts::BPS,};
+    use pitch_lake::library::utils::{max, min};
+    use pitch_lake::library::pricing_utils::{
+        calculate_total_options_available, calculate_payout_per_option,
+    };
+    use pitch_lake::library::red_black_tree::{RBTreeComponent, RBTreeComponent::Node};
+    use pitch_lake::library::constants::{
+        ROUND_TRANSITION_PERIOD, AUCTION_RUN_TIME, OPTION_RUN_TIME
+    };
 
-    // ERC20 Component
+    // *************************************************************************
+    //                                COMPONENTS
+    // *************************************************************************
+
     component!(path: ERC20Component, storage: erc20, event: ERC20Event);
-    // Exposes snake_case & CamelCase entry points
-    #[abi(embed_v0)]
-    impl ERC20Impl = ERC20Component::ERC20Impl<ContractState>;
-    #[abi(embed_v0)]
-    impl ERC20CamelOnlyImpl = ERC20Component::ERC20CamelOnlyImpl<ContractState>;
-    // Allows the contract access to internal functions
-    impl ERC20InternalImpl = ERC20Component::InternalImpl<ContractState>;
-    // RedBlackTree component
     component!(path: RBTreeComponent, storage: bids_tree, event: BidTreeEvent);
 
-    impl RBTreeImpl = RBTreeComponent::RBTreeImpl<ContractState>;
+    #[abi(embed_v0)]
+    impl ERC20Impl = ERC20Component::ERC20Impl<ContractState>;
+
+    #[abi(embed_v0)]
+    impl ERC20CamelOnlyImpl = ERC20Component::ERC20CamelOnlyImpl<ContractState>;
+
+    impl ERC20InternalImpl = ERC20Component::InternalImpl<ContractState>;
     impl RBTreeOptionRoundImpl = RBTreeComponent::RBTreeOptionRoundImpl<ContractState>;
+    impl RBTreeImpl = RBTreeComponent::RBTreeImpl<ContractState>;
 
     // *************************************************************************
     //                              STORAGE
     // *************************************************************************
-    // Note: Write description of any storage variable here->
-    // @market_aggregator: The address of the contract to fetch fossil values from
-    // @state: The state of the option round
-    // @round_id: The round's id
-    // @cap_level: The cap level of the potential payout
-    // @reserve_price: The minimum bid price per option
-    // @strike_price: The strike price of the options
-    // @starting_liquidity: The amount of liquidity this round starts with (locked upon auction starting)
-    // @payout_per_option: The amount the option round pays out per option upon settlement
-    // @auction_start_date: The auction start date
-    // @auction_end_date: The auction end date
-    // @option_settlement_date: The option settlement date
-    // @constructor:params: Params to pass at option round creation, to be set by fossil
-    // @bidder_nonces: A mapping of address to u256, tells the current nonce for an address, allows tracking of bids for each user and used to create unique bid id's for each bid
-    // @bids_tree: Storage for the bids tree, see rb-tree-component
-    // @erc20: Storage for erc20 component of the round.
+
     #[storage]
     struct Storage {
         ///
         vault_address: ContractAddress,
         state: OptionRoundState,
         round_id: u256,
-        ///
-        cap_level: u128,
-        reserve_price: u256,
-        strike_price: u256,
+        deployment_date: u64,
+        auction_start_date: u64,
+        auction_end_date: u64,
+        option_settlement_date: u64,
         ///
         starting_liquidity: u256,
         unsold_liquidity: u256,
         settlement_price: u256,
         payout_per_option: u256,
         ///
-        auction_start_date: u64,
-        auction_end_date: u64,
-        option_settlement_date: u64,
+        pricing_data: PricingData,
         ///
-        account_bid_nonce: LegacyMap<ContractAddress, u64>,
-        has_minted: LegacyMap<ContractAddress, bool>,
-        has_refunded: LegacyMap<ContractAddress, bool>,
+        account_bid_nonce: Map<ContractAddress, u64>,
+        has_minted: Map<ContractAddress, bool>,
+        has_refunded: Map<ContractAddress, bool>,
         ///
         #[substorage(v0)]
         bids_tree: RBTreeComponent::Storage,
@@ -78,42 +71,70 @@ mod OptionRound {
     }
 
     // *************************************************************************
+    //                                Errors
+    // *************************************************************************
+
+    mod Errors {
+        const CallerIsNotVault: felt252 = 'Caller not the Vault';
+        // Starting an auction
+        const PricingDataNotSet: felt252 = 'Pricing data not set';
+        const AuctionStartDateNotReached: felt252 = 'Auction start date not reached';
+        const AuctionAlreadyStarted: felt252 = 'Auction already started';
+        // Ending an auction
+        const AuctionEndDateNotReached: felt252 = 'Auction end date not reached';
+        const AuctionAlreadyEnded: felt252 = 'Auction has already ended';
+        // Settling an option round
+        const OptionSettlementDateNotReached: felt252 = 'Settlement date not reached';
+        const OptionRoundAlreadySettled: felt252 = 'Option round already settled';
+        // Bidding & upating bids
+        const BiddingWhileNotAuctioning: felt252 = 'Can only bid while auctioning';
+        const BidAmountZero: felt252 = 'Bid amount cannot be 0';
+        const BidBelowReservePrice: felt252 = 'Bid price below reserve price';
+        const CallerNotBidOwner: felt252 = 'Caller is not bid owner';
+        const BidMustBeIncreased: felt252 = 'Bid updates must increase price';
+        // Refunding bids & tokenizing options
+        const AuctionNotEnded: felt252 = 'Auction has not ended yet';
+        const OptionRoundNotSettled: felt252 = 'Option round not settled yet';
+        /// Internal Errors ///
+        const BidsShouldNotHaveSameTreeNonce: felt252 = 'Tree nonces should be unique';
+    }
+
+    // *************************************************************************
     //                              Constructor
     // *************************************************************************
+
     #[constructor]
-    fn constructor(
-        ref self: ContractState,
-        vault_address: ContractAddress,
-        round_id: u256,
-        auction_start_date: u64,
-        auction_end_date: u64,
-        option_settlement_date: u64,
-        reserve_price: u256,
-        cap_level: u128,
-        strike_price: u256
-    ) {
-        self.state.write(OptionRoundState::Open);
-        self.vault_address.write(vault_address);
-        self.round_id.write(round_id);
-        // @dev Set round params
-        self.reserve_price.write(reserve_price);
-        self.cap_level.write(cap_level);
-        self.strike_price.write(strike_price);
-        self.auction_start_date.write(auction_start_date);
-        self.auction_end_date.write(auction_end_date);
-        self.option_settlement_date.write(option_settlement_date);
+    fn constructor(ref self: ContractState, args: ConstructorArgs) {
+        // @dev Get the constructor arguments
+        let ConstructorArgs { vault_address, round_id, pricing_data, } = args;
+
         // @dev Set the name and symbol for the minted option (ERC-20) tokens
         let (name, symbol) = self.generate_erc20_name_and_symbol(round_id);
         self.erc20.initializer(name, symbol);
-    }
 
+        // @dev Set round's dates
+        let deployment_date = get_block_timestamp();
+        let (auction_start_date, auction_end_date, settlement_date) = self
+            .calculate_dates(deployment_date);
+        self.deployment_date.write(get_block_timestamp());
+        self.auction_start_date.write(auction_start_date);
+        self.auction_end_date.write(auction_end_date);
+        self.option_settlement_date.write(settlement_date);
+
+        // @dev Set rest of round params
+        self.vault_address.write(vault_address);
+        self.round_id.write(round_id);
+        self.pricing_data.write(pricing_data);
+    }
 
     // *************************************************************************
     //                              EVENTS
     // *************************************************************************
+
     #[event]
     #[derive(Drop, starknet::Event, PartialEq)]
     enum Event {
+        PricingDataSet: PricingDataSet,
         AuctionStarted: AuctionStarted,
         BidPlaced: BidPlaced,
         BidUpdated: BidUpdated,
@@ -126,6 +147,13 @@ mod OptionRound {
         OptionsMinted: OptionsMinted,
         #[flat]
         ERC20Event: ERC20Component::Event,
+    }
+
+    #[derive(Drop, starknet::Event, PartialEq)]
+    struct PricingDataSet {
+        strike_price: u256,
+        cap_level: u128,
+        reserve_price: u256,
     }
 
     // @dev Emitted when the auction starts
@@ -221,8 +249,9 @@ mod OptionRound {
     }
 
     // *************************************************************************
-    //                            IMPLEMENTATION
+    //                            IMPLEMENTATIONS
     // *************************************************************************
+
     #[abi(embed_v0)]
     impl ERC20MetadataImpl of IERC20Metadata<ContractState> {
         fn name(self: @ContractState) -> ByteArray {
@@ -259,6 +288,10 @@ mod OptionRound {
             self.state.read()
         }
 
+        fn get_deployment_date(self: @ContractState) -> u64 {
+            self.deployment_date.read()
+        }
+
         fn get_auction_start_date(self: @ContractState) -> u64 {
             self.auction_start_date.read()
         }
@@ -280,15 +313,15 @@ mod OptionRound {
         }
 
         fn get_reserve_price(self: @ContractState) -> u256 {
-            self.reserve_price.read()
+            self.pricing_data.reserve_price.read()
         }
 
         fn get_strike_price(self: @ContractState) -> u256 {
-            self.strike_price.read()
+            self.pricing_data.strike_price.read()
         }
 
         fn get_cap_level(self: @ContractState) -> u128 {
-            self.cap_level.read()
+            self.pricing_data.cap_level.read()
         }
 
         fn get_options_available(self: @ContractState) -> u256 {
@@ -354,7 +387,8 @@ mod OptionRound {
                 return 0;
             }
 
-            // @dev Get the account's winning bids, losing bids, and clearing bid if the account owns it
+            // @dev Get the account's winning bids, losing bids, and clearing bid if the account
+            // owns it
             let (mut winning_bids, mut losing_bids, clearing_bid_maybe) = self
                 .calculate_bid_outcome_for(account);
 
@@ -363,7 +397,8 @@ mod OptionRound {
             match clearing_bid_maybe {
                 Option::None => {},
                 Option::Some(bid) => {
-                    // @dev Only the clearing_bid can be partially sold, the clearing_bid_amount_sold is saved in the tree
+                    // @dev Only the clearing_bid can be partially sold, the
+                    // clearing_bid_amount_sold is saved in the tree
                     let options_sold = self.bids_tree.clearing_bid_amount_sold.read();
                     let options_not_sold = bid.amount - options_sold;
                     refundable_balance += options_not_sold * bid.price;
@@ -402,14 +437,16 @@ mod OptionRound {
                 return 0;
             }
 
-            // @dev Get the account's winning bids, losing bids, and clearing bid if the account owns it
+            // @dev Get the account's winning bids, losing bids, and clearing bid if the account
+            // owns it
             let (mut winning_bids, _, clearing_bid_maybe) = self.calculate_bid_outcome_for(account);
 
             // @dev Add mintable balance from the clearing bid
             let mut mintable_balance = 0;
             match clearing_bid_maybe {
                 Option::Some(_) => {
-                    // @dev The clearing bid potentially sells < the total options bid for, so it is stored separately
+                    // @dev The clearing bid potentially sells < the total options bid for, so it is
+                    // stored separately
                     let options_sold = self.bids_tree.clearing_bid_amount_sold.read();
                     mintable_balance += options_sold;
                 },
@@ -428,13 +465,14 @@ mod OptionRound {
         }
 
         fn get_account_total_options(self: @ContractState, account: ContractAddress) -> u256 {
-            // @dev An account's total options is their mintable balance plus any option ERC20 tokens
-            // the already own
-            self.get_account_mintable_options(account) + self.erc20.ERC20_balances.read(account)
+            // @dev An account's total options is their mintable balance plus any option ERC20
+            // tokens the already own
+            self.get_account_mintable_options(account) + self.erc20.balance_of(account)
         }
 
         fn get_account_payout_balance(self: @ContractState, account: ContractAddress) -> u256 {
-            // @dev An account's payout balance is their total options multiplied by the payout per option
+            // @dev An account's payout balance is their total options multiplied by the payout per
+            // option
             let number_of_options = self.get_account_total_options(account);
             let payout_per_option = self.payout_per_option.read();
             number_of_options * payout_per_option
@@ -447,33 +485,44 @@ mod OptionRound {
 
         /// State transition
 
-        fn update_round_params(
-            ref self: ContractState, reserve_price: u256, cap_level: u128, strike_price: u256
-        ) {
+        fn set_pricing_data(ref self: ContractState, pricing_data: PricingData) {
+            // @dev Assert the caller is the vault
             self.assert_caller_is_vault();
-            self.assert_params_can_update();
 
-            self.reserve_price.write(reserve_price);
-            self.cap_level.write(cap_level);
-            self.strike_price.write(strike_price);
+            // @dev Assert the auction has not started yet
+            assert(self.state.read() == OptionRoundState::Open, Errors::AuctionAlreadyStarted);
+
+            // @dev Assert pricing data is not 0
+            assert(pricing_data != Default::<PricingData>::default(), 'REPLACE ME');
+
+            // @dev Set the pricing data points
+            self.pricing_data.write(pricing_data);
+
+            // @dev Emit event
+            let PricingData { strike_price, cap_level, reserve_price } = pricing_data;
+            self
+                .emit(
+                    Event::PricingDataSet(PricingDataSet { strike_price, cap_level, reserve_price })
+                );
         }
 
         fn start_auction(ref self: ContractState, starting_liquidity: u256) -> u256 {
-            self.assert_caller_is_vault();
-            self.assert_auction_can_start();
-
+            // @dev Ensure pricing data is set
+            let pricing_data = self.pricing_data.read();
+            assert(pricing_data != Default::default(), Errors::PricingDataNotSet);
             // @dev Calculate total options available
-            let strike_price = self.strike_price.read();
-            let cap_level = self.cap_level.read();
-            let options_available = self
-                .calculate_total_options_available(starting_liquidity, strike_price, cap_level);
+            let strike_price = pricing_data.strike_price;
+            let cap_level = pricing_data.cap_level;
+            let options_available = calculate_total_options_available(
+                starting_liquidity, strike_price, cap_level
+            );
 
-            // @dev Write auction params to storage & update state
+            // @dev Write auction params to storage
             self.starting_liquidity.write(starting_liquidity);
             self.bids_tree.total_options_available.write(options_available);
-            self.set_state(OptionRoundState::Auctioning);
 
-            // @dev Emit auction started event
+            // @dev Transition state and emit event
+            self.transition_state_to(OptionRoundState::Auctioning);
             self
                 .emit(
                     Event::AuctionStarted(AuctionStarted { starting_liquidity, options_available })
@@ -484,28 +533,24 @@ mod OptionRound {
         }
 
         fn end_auction(ref self: ContractState) -> (u256, u256) {
-            self.assert_caller_is_vault();
-            self.assert_auction_can_end();
-
-            // @dev Calculate how many options sell and the price per each option
+            // @dev Calculate how many options were sold and the price per one
             let options_available = self.bids_tree._get_total_options_available();
-            let (clearing_price, options_sold) = self.update_clearing_price();
+            let (clearing_price, options_sold) = self.bids_tree.find_clearing_price();
 
-            // @dev Update unsold liquidity if some options do not sell
+            // @dev Set unsold liquidity if some options do not sell
             let starting_liq = self.starting_liquidity.read();
-            let sold_liq = (starting_liq * options_sold) / options_available;
-            let unsold_liquidity = starting_liq - sold_liq;
+            let options_unsold = options_available - options_sold;
+            let unsold_liquidity = (starting_liq * options_unsold) / options_available;
+
             if unsold_liquidity.is_non_zero() {
                 self.unsold_liquidity.write(unsold_liquidity);
             }
 
-            // @dev Send premiums to the vault
+            // @dev Send premiums to Vault
             self.get_eth_dispatcher().transfer(self.vault_address.read(), self.get_total_premium());
 
-            // @dev Update state to Running
-            self.set_state(OptionRoundState::Running);
-
-            // @dev Emit auction ended event
+            // @dev Transition state and emit event
+            self.transition_state_to(OptionRoundState::Running);
             self
                 .emit(
                     Event::AuctionEnded(
@@ -518,23 +563,19 @@ mod OptionRound {
         }
 
         fn settle_round(ref self: ContractState, settlement_price: u256) -> u256 {
-            self.assert_caller_is_vault();
-            self.assert_round_can_settle();
-
             // @dev Calculate payout per option
-            let strike_price = self.get_strike_price();
-            let cap_level = self.get_cap_level().into();
-            let payout_per_option = self
-                .calculate_payout_per_option(strike_price, cap_level, settlement_price);
+            let strike_price = self.pricing_data.strike_price.read();
+            let cap_level = self.pricing_data.cap_level.read();
+            let payout_per_option = calculate_payout_per_option(
+                strike_price, cap_level, settlement_price
+            );
 
             // @dev Set payout per option and settlement price
             self.payout_per_option.write(payout_per_option);
             self.settlement_price.write(settlement_price);
 
-            // @dev Update state to Settled
-            self.set_state(OptionRoundState::Settled);
-
-            // @dev Emit option settled event
+            // @dev Transition state and emit event
+            self.transition_state_to(OptionRoundState::Settled);
             self
                 .emit(
                     Event::OptionRoundSettled(
@@ -549,32 +590,34 @@ mod OptionRound {
         /// Account functions
 
         fn place_bid(ref self: ContractState, amount: u256, price: u256) -> Bid {
-            self.assert_bidding_during_an_auction();
+            // @dev Assert auction still on-going
+            self.assert_bid_can_be_placed();
 
-            // @dev Assert bid is for more than 0 options
+            // @dev Assert bid amount is for more than 0 options and the bid price is
+            // at or above the reserve price
             assert(amount.is_non_zero(), Errors::BidAmountZero);
-
-            // @dev Assert bid price is at or above reserve price
             assert(price >= self.get_reserve_price(), Errors::BidBelowReservePrice);
 
-            // @dev Insert bid into bids tree
+            // @dev Create Bid struct
             let account = get_caller_address();
             let account_bid_nonce = self.account_bid_nonce.read(account);
             let bid_id = self.create_bid_id(account, account_bid_nonce);
             let tree_nonce = self.bids_tree.tree_nonce.read();
             let bid = Bid { bid_id, owner: account, amount, price, tree_nonce };
+
+            // @dev Insert bid into bids tree
             self.bids_tree._insert(bid);
 
             // @dev Update bidder's nonce
             self.account_bid_nonce.write(account, account_bid_nonce + 1);
 
-            // @dev Transfer bid total from caller to this contract
+            // @dev Transfer bid total from account to this contract
             let transfer_amount = amount * price;
             self
                 .get_eth_dispatcher()
                 .transfer_from(account, get_contract_address(), transfer_amount);
 
-            // @dev Emit bid accepted event
+            // @dev Emit bid placed event
             self
                 .emit(
                     Event::BidPlaced(
@@ -584,12 +627,13 @@ mod OptionRound {
                     )
                 );
 
-            // @return The created bid
+            // @dev Return the created Bid struct
             bid
         }
 
         fn update_bid(ref self: ContractState, bid_id: felt252, price_increase: u256) -> Bid {
-            self.assert_bidding_during_an_auction();
+            // @dev Assert auction still on-going
+            self.assert_bid_can_be_placed();
 
             // @dev Assert caller owns the bid
             let account = get_caller_address();
@@ -608,8 +652,7 @@ mod OptionRound {
             self.bids_tree._insert(edited_bid);
 
             // @dev Charge the difference
-            let bid_amount = edited_bid.amount;
-            let difference = bid_amount * price_increase;
+            let difference = edited_bid.amount * price_increase;
             self.get_eth_dispatcher().transfer_from(account, get_contract_address(), difference);
 
             // @dev Emit bid updated event
@@ -627,7 +670,8 @@ mod OptionRound {
         }
 
         fn refund_unused_bids(ref self: ContractState, account: ContractAddress) -> u256 {
-            self.assert_auction_ended();
+            // @dev Assert the auction has ended
+            self.assert_auction_over();
 
             // @dev Get the total refundable balance for the account
             let refunded_amount = self.get_account_refundable_balance(account);
@@ -646,7 +690,8 @@ mod OptionRound {
         }
 
         fn mint_options(ref self: ContractState) -> u256 {
-            self.assert_auction_ended();
+            // @dev Assert the auction has ended
+            self.assert_auction_over();
 
             // @dev Get the total mintable balance for the account
             let account = get_caller_address();
@@ -656,7 +701,7 @@ mod OptionRound {
             self.has_minted.write(account, true);
 
             // @dev Mint option ERC-20 tokens to the account
-            self.erc20._mint(account, minted_amount);
+            self.erc20.mint(account, minted_amount);
 
             // @dev Emit options minted event
             self.emit(Event::OptionsMinted(OptionsMinted { account, minted_amount }));
@@ -666,21 +711,22 @@ mod OptionRound {
         }
 
         fn exercise_options(ref self: ContractState) -> u256 {
+            // @dev Assert the round has settled
             self.assert_round_settled();
 
             // @dev Get the account's total option balance
             let account = get_caller_address();
             let mut number_of_options = 0;
-            let mintable_amount = self.get_account_mintable_options(account);
-            let erc20_option_balance = self.erc20.ERC20_balances.read(account);
 
             // @dev Burn the ERC-20 options
+            let erc20_option_balance = self.erc20.ERC20_balances.read(account);
             if erc20_option_balance > 0 {
                 number_of_options += erc20_option_balance;
-                self.erc20._burn(account, erc20_option_balance);
+                self.erc20.burn(account, erc20_option_balance);
             }
 
             // @dev Update the account's has minted status
+            let mintable_amount = self.get_account_mintable_options(account);
             number_of_options += mintable_amount;
             self.has_minted.write(account, true);
 
@@ -704,49 +750,66 @@ mod OptionRound {
     // *************************************************************************
     //                          INTERNAL FUNCTIONS
     // *************************************************************************
+
     #[generate_trait]
     impl InternalImpl of OptionRoundInternalTrait {
-        /// Assertions
+        fn calculate_dates(self: @ContractState, deployment_date: u64) -> (u64, u64, u64) {
+            let auction_start_date = deployment_date + ROUND_TRANSITION_PERIOD;
+            let auction_end_date = auction_start_date + AUCTION_RUN_TIME;
+            let option_settlement_date = auction_end_date + OPTION_RUN_TIME;
+
+            (auction_start_date, auction_end_date, option_settlement_date)
+        }
+
+        // @dev Transitions the round's state to `to_state` if the proper conditions are met
+        fn transition_state_to(ref self: ContractState, to_state: OptionRoundState) {
+            // @dev Assert the caller is the vault
+            self.assert_caller_is_vault();
+
+            // @dev Ensure target date has been reached and the current state aligns with
+            // the state being transitioned to
+            let now = get_block_timestamp();
+            let current_state = self.get_state();
+            match to_state {
+                // @dev Transitioning from Open to Auctioning
+                OptionRoundState::Auctioning => {
+                    let target = self.get_auction_start_date();
+                    assert(now >= target, Errors::AuctionStartDateNotReached);
+                    assert(current_state == OptionRoundState::Open, Errors::AuctionAlreadyStarted);
+                    self.state.write(to_state);
+                },
+                // @dev Transitioning from Auctioning to Running
+                OptionRoundState::Running => {
+                    let target = self.get_auction_end_date();
+                    assert(now >= target, Errors::AuctionEndDateNotReached);
+                    assert(
+                        current_state == OptionRoundState::Auctioning, Errors::AuctionAlreadyEnded
+                    );
+                    self.state.write(to_state);
+                },
+                // @dev Transitioning from Running to Settled
+                OptionRoundState::Settled => {
+                    let target = self.get_option_settlement_date();
+                    assert(now >= target, Errors::OptionSettlementDateNotReached);
+                    assert(
+                        current_state == OptionRoundState::Running,
+                        Errors::OptionRoundAlreadySettled
+                    );
+                    self.state.write(to_state);
+                },
+                _ => {},
+            };
+        }
+
+        /// Assertions ///
 
         // @dev Assert that the caller is the Vault
         fn assert_caller_is_vault(self: @ContractState) {
             assert(get_caller_address() == self.vault_address.read(), Errors::CallerIsNotVault);
         }
 
-        // @dev Assert if the round's params can be updated
-        fn assert_params_can_update(ref self: ContractState) {
-            let state = self.get_state();
-            let now = get_block_timestamp();
-            let auction_start_date = self.get_auction_start_date();
-
-            assert(
-                state == OptionRoundState::Open && now < auction_start_date,
-                Errors::AuctionAlreadyStarted
-            );
-        }
-
-        // @dev An auction can only start if the current time is greater than the auction start date,
-        // and if the round is in the Open state
-        fn assert_auction_can_start(self: @ContractState) {
-            let state = self.get_state();
-            let now = get_block_timestamp();
-            let auction_start_date = self.get_auction_start_date();
-            assert(now >= auction_start_date, Errors::AuctionStartDateNotReached);
-            assert(state == OptionRoundState::Open, Errors::AuctionAlreadyStarted);
-        }
-
-        // @dev An auction can only end if the current time is greater than the auction end date,
-        // and if the round is in the Auctioning state
-        fn assert_auction_can_end(self: @ContractState) {
-            let state = self.get_state();
-            let now = get_block_timestamp();
-            let auction_end_date = self.get_auction_end_date();
-            assert(now >= auction_end_date, Errors::AuctionEndDateNotReached);
-            assert(state == OptionRoundState::Auctioning, Errors::AuctionAlreadyEnded);
-        }
-
         // @dev Assert the auction has ended
-        fn assert_auction_ended(self: @ContractState) {
+        fn assert_auction_over(self: @ContractState) {
             let state = self.get_state();
             assert(
                 state == OptionRoundState::Running || state == OptionRoundState::Settled,
@@ -754,28 +817,20 @@ mod OptionRound {
             );
         }
 
-        // @dev A round can only settle if the current time is greater than the option settlement date,
-        // and if the round is in the Running state
-        fn assert_round_can_settle(self: @ContractState) {
-            let state = self.get_state();
-            let now = get_block_timestamp();
-            let settlement_date = self.get_option_settlement_date();
-            assert(now >= settlement_date, Errors::OptionSettlementDateNotReached);
-            assert(state == OptionRoundState::Running, Errors::OptionRoundNotSettled);
-        }
-
         // @dev Assert the round has settled
         fn assert_round_settled(self: @ContractState) {
             assert(self.get_state() == OptionRoundState::Settled, Errors::OptionRoundNotSettled);
         }
 
-        // @dev A bid can only be placed during the auction
-        fn assert_bidding_during_an_auction(self: @ContractState) {
-            let now = get_block_timestamp();
-            let auction_end_date = self.get_auction_end_date();
+        // @dev Assert a bid is being placed during an auction
+        fn assert_bid_can_be_placed(self: @ContractState) {
             let state = self.get_state();
-            assert(now < auction_end_date, Errors::BiddingWhileNotAuctioning);
-            assert(state == OptionRoundState::Auctioning, Errors::BiddingWhileNotAuctioning);
+            let now = get_block_timestamp();
+            let target = self.get_auction_end_date();
+            assert(
+                now < target && state == OptionRoundState::Auctioning,
+                Errors::BiddingWhileNotAuctioning
+            );
         }
 
         /// ERC-20
@@ -786,6 +841,7 @@ mod OptionRound {
         ) -> (ByteArray, ByteArray) {
             let name: ByteArray = format!("Pitch Lake Option Round {round_id}");
             let symbol: ByteArray = format!("PLOR{round_id}");
+
             (name, symbol)
         }
 
@@ -793,22 +849,14 @@ mod OptionRound {
         fn get_eth_dispatcher(self: @ContractState) -> ERC20ABIDispatcher {
             let vault = self.get_vault_dispatcher();
             let eth_address = vault.get_eth_address();
+
             ERC20ABIDispatcher { contract_address: eth_address }
         }
 
         /// Round helpers
 
-        // @dev Update the state of the round
-        fn set_state(ref self: ContractState, state: OptionRoundState) {
-            self.state.write(state);
-        }
-
-        // @dev Calculate the clearing price and total options sold from the auction
-        fn update_clearing_price(ref self: ContractState) -> (u256, u256) {
-            self.bids_tree.find_clearing_price()
-        }
-
-        // @dev Get an account's winning bids, losing bids, and the clearing bid if the account owns it
+        // @dev Get an account's winning bids, losing bids, and the clearing bid if the account owns
+        // it
         fn calculate_bid_outcome_for(
             self: @ContractState, account: ContractAddress
         ) -> (Array<Bid>, Array<Bid>, Option<Bid>) {
@@ -821,64 +869,37 @@ mod OptionRound {
                 return (winning_bids, losing_bids, Option::None(()));
             } // @dev Look at each bid of the account's bids compared to the clearing bid
             else {
-                let nonce = self.account_bid_nonce.read(account);
+                // @dev Get the account's bid amount
+                let bidder_nonce = self.account_bid_nonce.read(account);
+
+                // @dev Get the clearing bid
                 let clearing_bid_id: felt252 = self.bids_tree.clearing_bid.read();
                 let clearing_bid: Bid = self.bids_tree._find(clearing_bid_id);
                 let mut clearing_bid_option: Option<Bid> = Option::None(());
-                let mut i = 0;
-                while i < nonce {
-                    // @dev Check if this bid is the clearing bid
-                    let bid_id: felt252 = self.create_bid_id(account, i);
-                    let bid: Bid = self.bids_tree._find(bid_id);
-                    if bid_id == clearing_bid_id {
-                        clearing_bid_option = Option::Some(bid);
-                    } // @dev Check if this bid is above or below the clearing bid
-                    else {
-                        if bid > clearing_bid {
-                            winning_bids.append(bid);
-                        } else {
-                            losing_bids.append(bid);
+
+                // @dev Iterate over the account's bids and compare them to the clearing bid
+                for i in 0
+                    ..bidder_nonce {
+                        // @dev Get the account's i-th bid
+                        let bid_id = self.create_bid_id(account, i);
+                        let bid = self.bids_tree._find(bid_id);
+
+                        // @dev If this bid is the clearing bid it is special because it could be
+                        // mintable & refundable
+                        if bid_id == clearing_bid_id {
+                            clearing_bid_option = Option::Some(bid);
+                        } // @dev If this bid is now the clearing bid, check if this bid is above or below the clearing bid
+                        else {
+                            if bid > clearing_bid {
+                                winning_bids.append(bid);
+                            } else {
+                                losing_bids.append(bid);
+                            }
                         }
-                    }
-                    i += 1;
-                };
+                    };
 
-                // @dev Return the winning bids, losing bids, and the clearing bid if the account owns it
+                // @dev Return the winning bids, losing bids, and the clearing bid if owned
                 (winning_bids, losing_bids, clearing_bid_option)
-            }
-        }
-
-        // @dev Calculate the maximum payout for a single option
-        fn _max_payout_per_option(
-            self: @ContractState, strike_price: u256, cap_level: u128
-        ) -> u256 {
-            (strike_price * cap_level.into()) / BPS
-        }
-
-        // @dev Calculate the actual payout for a single option
-        fn calculate_payout_per_option(
-            self: @ContractState, strike_price: u256, cap_level: u128, settlement_price: u256
-        ) -> u256 {
-            if (settlement_price <= strike_price) {
-                0
-            } else {
-                let uncapped = settlement_price - strike_price;
-                let capped = self._max_payout_per_option(strike_price, cap_level);
-
-                min(capped, uncapped)
-            }
-        }
-
-        // @dev Calculate the total number of options available to sell in the auction
-        fn calculate_total_options_available(
-            self: @ContractState, starting_liquidity: u256, strike_price: u256, cap_level: u128
-        ) -> u256 {
-            let capped = self._max_payout_per_option(strike_price, cap_level);
-            match capped == 0 {
-                // @dev If the max payout per option is 0, then there are 0 options to sell
-                true => 0,
-                // @dev Else the number of options available is the starting liquidity divided by the capped amount
-                false => starting_liquidity / capped
             }
         }
 
@@ -893,3 +914,4 @@ mod OptionRound {
         }
     }
 }
+

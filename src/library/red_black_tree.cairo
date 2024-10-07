@@ -1,10 +1,12 @@
-use pitch_lake_starknet::{library::red_black_tree, types::{Bid}};
+use pitch_lake::{library::red_black_tree, types::{Bid}};
 use starknet::ContractAddress;
 
 #[starknet::component]
 pub mod RBTreeComponent {
     use super::{Bid, ContractAddress};
-    use core::{array::ArrayTrait, option::OptionTrait, traits::{IndexView, TryInto}};
+    use core::{array::ArrayTrait, option::OptionTrait, traits::{TryInto}};
+    use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess,};
+    use starknet::storage::{Map, StoragePathEntry};
 
     const BLACK: bool = false;
     const RED: bool = true;
@@ -12,7 +14,7 @@ pub mod RBTreeComponent {
     #[storage]
     struct Storage {
         root: felt252,
-        tree: LegacyMap::<felt252, Node>,
+        tree: Map::<felt252, Node>,
         tree_nonce: u64,
         clearing_bid_amount_sold: u256,
         clearing_price: u256,
@@ -50,7 +52,7 @@ pub mod RBTreeComponent {
 
             if self.root.read().is_zero() {
                 let root_node = self.create_root_node(@value);
-                self.tree.write(new_node_id, root_node);
+                self.tree.entry(new_node_id).write(root_node);
                 self.root.write(new_node_id);
             } else {
                 self.insert_node_recursively(self.root.read(), new_node_id, value);
@@ -61,7 +63,7 @@ pub mod RBTreeComponent {
         }
 
         fn _find(self: @ComponentState<TContractState>, bid_id: felt252) -> Bid {
-            let node: Node = self.tree.read(bid_id);
+            let node: Node = self.tree.entry(bid_id).read();
             return node.value;
         }
 
@@ -70,7 +72,7 @@ pub mod RBTreeComponent {
                 let mut node: Node = self.tree.read(bid_id);
                 node.value = bid;
                 // let new_node = Node { value: bid, ..node };
-                self.tree.write(bid_id, node);
+                self.tree.entry(bid_id).write(node);
             }
         }
 
@@ -88,13 +90,13 @@ pub mod RBTreeComponent {
         fn find_clearing_price(ref self: ComponentState<TContractState>) -> (u256, u256) {
             let total_options_available = self._get_total_options_available();
             let root: felt252 = self.root.read();
-            let root_node: Node = self.tree.read(root);
+            let root_node: Node = self.tree.entry(root).read();
             let root_bid: Bid = root_node.value;
             let (clearing_felt, remaining_options) = self
                 .traverse_postorder_clearing_price_from_node(
                     root, total_options_available, root_bid.price, root
                 );
-            let clearing_node: Node = self.tree.read(clearing_felt);
+            let clearing_node: Node = self.tree.entry(clearing_felt).read();
             let total_options_sold = total_options_available - remaining_options;
             self.total_options_sold.write(total_options_sold);
             if (remaining_options == 0) {
@@ -122,7 +124,7 @@ pub mod RBTreeComponent {
             if (current_id == 0) {
                 return (clearing_felt, total_options_available);
             }
-            let current_node: Node = self.tree.read(current_id);
+            let current_node: Node = self.tree.entry(current_id).read();
 
             //Recursive on Right Node
             let (clearing_felt, mut remaining_options) = self
@@ -165,7 +167,7 @@ pub mod RBTreeComponent {
         }
 
         fn is_left_child(ref self: ComponentState<TContractState>, node_id: felt252) -> bool {
-            let node: Node = self.tree.read(node_id);
+            let node: Node = self.tree.entry(node_id).read();
             let parent_id = node.parent;
             let parent: Node = self.tree.read(parent_id);
             return parent.left == node_id;
@@ -174,38 +176,38 @@ pub mod RBTreeComponent {
         fn update_left(
             ref self: ComponentState<TContractState>, node_id: felt252, left_id: felt252
         ) {
-            let mut node: Node = self.tree.read(node_id);
+            let mut node: Node = self.tree.entry(node_id).read();
             node.left = left_id;
-            self.tree.write(node_id, node);
+            self.tree.entry(node_id).write(node);
         }
 
         fn update_right(
             ref self: ComponentState<TContractState>, node_id: felt252, right_id: felt252
         ) {
-            let mut node: Node = self.tree.read(node_id);
+            let mut node: Node = self.tree.entry(node_id).read();
             node.right = right_id;
-            self.tree.write(node_id, node);
+            self.tree.entry(node_id).write(node);
         }
 
         fn update_parent(
             ref self: ComponentState<TContractState>, node_id: felt252, parent_id: felt252
         ) {
-            let mut node: Node = self.tree.read(node_id);
+            let mut node: Node = self.tree.entry(node_id).read();
             node.parent = parent_id;
-            self.tree.write(node_id, node);
+            self.tree.entry(node_id).write(node);
         }
 
         fn get_parent(ref self: ComponentState<TContractState>, node_id: felt252) -> felt252 {
             if node_id == 0 {
                 0
             } else {
-                let node: Node = self.tree.read(node_id);
+                let node: Node = self.tree.entry(node_id).read();
                 node.parent
             }
         }
 
         fn is_black(self: @ComponentState<TContractState>, node_id: felt252) -> bool {
-            let node: Node = self.tree.read(node_id);
+            let node: Node = self.tree.entry(node_id).read();
             node_id == 0 || node.color == BLACK
         }
 
@@ -213,7 +215,7 @@ pub mod RBTreeComponent {
             if node_id == 0 {
                 return false;
             }
-            let node: Node = self.tree.read(node_id);
+            let node: Node = self.tree.entry(node_id).read();
             node.color == RED
         }
 
@@ -226,7 +228,7 @@ pub mod RBTreeComponent {
             if node_id == 0 {
                 return; // Can't set color of null node
             }
-            let mut node: Node = self.tree.read(node_id);
+            let mut node: Node = self.tree.entry(node_id).read();
             node.color = color;
             self.tree.write(node_id, node);
         }
@@ -237,14 +239,14 @@ pub mod RBTreeComponent {
         ) -> felt252 {
             let new_node = Node { value: bid, left: 0, right: 0, parent: parent, color: color, };
             let bid_id = bid.bid_id;
-            let parent_node = self.tree.read(parent);
+            let parent_node = self.tree.entry(parent).read();
             if bid <= parent_node.value {
                 self.update_left(parent, bid_id);
             } else {
                 self.update_right(parent, bid_id);
             }
             self.update_parent(bid_id, parent);
-            self.tree.write(bid_id, new_node);
+            self.tree.entry(bid_id).write(new_node);
             return bid_id;
         }
     }
@@ -280,29 +282,28 @@ pub mod RBTreeComponent {
                 );
             queue.append((root_id, 0));
 
-            while !queue
-                .is_empty() {
-                    let (node_id, level) = queue.pop_front().unwrap();
-                    let node = self.tree.read(node_id);
+            while !queue.is_empty() {
+                let (node_id, level) = queue.pop_front().unwrap();
+                let node = self.tree.entry(node_id).read();
 
-                    if level > current_level {
-                        current_level = level;
-                        filled_position_in_levels.append(filled_position_in_level);
-                        filled_position_in_level = ArrayTrait::new();
-                    }
+                if level > current_level {
+                    current_level = level;
+                    filled_position_in_levels.append(filled_position_in_level);
+                    filled_position_in_level = ArrayTrait::new();
+                }
 
-                    let position = node_positions.get(node_id);
+                let position = node_positions.get(node_id);
 
-                    filled_position_in_level.append((node_id, position));
+                filled_position_in_level.append((node_id, position));
 
-                    if node.left != 0 {
-                        queue.append((node.left, current_level + 1));
-                    }
+                if node.left != 0 {
+                    queue.append((node.left, current_level + 1));
+                }
 
-                    if node.right != 0 {
-                        queue.append((node.right, current_level + 1));
-                    }
-                };
+                if node.right != 0 {
+                    queue.append((node.right, current_level + 1));
+                }
+            };
             filled_position_in_levels.append(filled_position_in_level);
             return filled_position_in_levels;
         }
@@ -317,22 +318,19 @@ pub mod RBTreeComponent {
             let mut filled_position_in_levels: Array<Array<(u256, bool, u128)>> = ArrayTrait::new();
             let mut filled_position_in_level: Array<(u256, bool, u128)> = ArrayTrait::new();
             let mut i = 0;
-            while i < filled_position_in_levels_original
-                .len() {
-                    let level = filled_position_in_levels_original.at(i.try_into().unwrap());
-                    let mut j = 0;
-                    while j < level
-                        .len() {
-                            let (node_id, position) = level.at(j.try_into().unwrap());
-                            let node = self.tree.read(*node_id);
-                            filled_position_in_level
-                                .append((node.value.price, node.color, *position));
-                            j += 1;
-                        };
-                    filled_position_in_levels.append(filled_position_in_level);
-                    filled_position_in_level = ArrayTrait::new();
-                    i += 1;
+            while i < filled_position_in_levels_original.len() {
+                let level = filled_position_in_levels_original.at(i.try_into().unwrap());
+                let mut j = 0;
+                while j < level.len() {
+                    let (node_id, position) = level.at(j.try_into().unwrap());
+                    let node = self.tree.entry(*node_id).read();
+                    filled_position_in_level.append((node.value.price, node.color, *position));
+                    j += 1;
                 };
+                filled_position_in_levels.append(filled_position_in_level);
+                filled_position_in_level = ArrayTrait::new();
+                i += 1;
+            };
             return filled_position_in_levels;
         }
 
@@ -347,7 +345,7 @@ pub mod RBTreeComponent {
                 return;
             }
 
-            let node = self.tree.read(node_id);
+            let node = self.tree.entry(node_id).read();
 
             node_positions.insert(node_id, position);
 
@@ -382,7 +380,7 @@ pub mod RBTreeComponent {
                 return (true, 1); // Null nodes are considered black
             }
 
-            let node_data = self.tree.read(node);
+            let node_data = self.tree.entry(node).read();
 
             let (left_valid, left_black_height) = self.validate_node(node_data.left);
             let (right_valid, right_black_height) = self.validate_node(node_data.right);
@@ -417,7 +415,7 @@ pub mod RBTreeComponent {
     > of RBTreeDeleteBalanceTrait<TContractState> {
         fn delete_node(ref self: ComponentState<TContractState>, delete_id: felt252) {
             let mut y = delete_id;
-            let mut node_delete: Node = self.tree.read(delete_id);
+            let mut node_delete: Node = self.tree.entry(delete_id).read();
             let mut y_original_color = node_delete.color;
             let mut x: felt252 = 0;
             let mut x_parent: felt252 = 0;
@@ -432,7 +430,7 @@ pub mod RBTreeComponent {
                 self.transplant(delete_id, x);
             } else {
                 y = self.minimum(node_delete.right);
-                let y_node: Node = self.tree.read(y);
+                let y_node: Node = self.tree.entry(y).read();
                 y_original_color = y_node.color;
                 x = y_node.right;
 
@@ -441,25 +439,25 @@ pub mod RBTreeComponent {
                 } else {
                     x_parent = y_node.parent;
                     self.transplant(y, x);
-                    let mut y_node: Node = self.tree.read(y);
-                    node_delete = self.tree.read(delete_id);
+                    let mut y_node: Node = self.tree.entry(y).read();
+                    node_delete = self.tree.entry(delete_id).read();
                     y_node.right = node_delete.right;
-                    self.tree.write(y, y_node);
+                    self.tree.entry(y).write(y_node);
                     self.update_parent(node_delete.right, y);
                 }
 
                 self.transplant(delete_id, y);
-                let mut y_node: Node = self.tree.read(y);
-                node_delete = self.tree.read(delete_id);
+                let mut y_node: Node = self.tree.entry(y).read();
+                node_delete = self.tree.entry(delete_id).read();
                 y_node.left = node_delete.left;
                 y_node.color = node_delete.color;
-                self.tree.write(y, y_node);
-                node_delete = self.tree.read(delete_id);
+                self.tree.entry(y).write(y_node);
+                node_delete = self.tree.entry(delete_id).read();
 
                 self.update_parent(node_delete.left, y);
             }
 
-            self.tree.write(delete_id, self.get_default_node());
+            self.tree.entry(delete_id).write(self.get_default_node());
 
             if y_original_color == BLACK {
                 self.delete_fixup(x, x_parent);
@@ -471,98 +469,99 @@ pub mod RBTreeComponent {
         fn delete_fixup(
             ref self: ComponentState<TContractState>, mut x: felt252, mut x_parent: felt252
         ) {
-            while x != self.root.read()
-                && (x == 0 || self.is_black(x)) {
-                    let mut x_parent_node: Node = self.tree.read(x_parent);
-                    if x == x_parent_node.left {
-                        let mut w = x_parent_node.right;
+            while x != self.root.read() && (x == 0 || self.is_black(x)) {
+                let mut x_parent_node: Node = self.tree.entry(x_parent).read();
+                if x == x_parent_node.left {
+                    let mut w = x_parent_node.right;
 
-                        // Case 1: x's sibling w is red
-                        if self.is_red(w) {
-                            self.set_color(w, BLACK);
-                            self.set_color(x_parent, RED);
-                            self.rotate_left(x_parent);
-                            x_parent_node = self.tree.read(x_parent);
-                            w = x_parent_node.right;
-                        }
+                    // Case 1: x's sibling w is red
+                    if self.is_red(w) {
+                        self.set_color(w, BLACK);
+                        self.set_color(x_parent, RED);
+                        self.rotate_left(x_parent);
+                        x_parent_node = self.tree.entry(x_parent).read();
+                        w = x_parent_node.right;
+                    }
 
-                        // Case 2: x's sibling w is black, and both of w's children are black
-                        let mut w_node: Node = self.tree.read(w);
-                        if (w_node.left == 0 || self.is_black(w_node.left))
-                            && (w_node.right == 0 || self.is_black(w_node.right)) {
-                            self.set_color(w, RED);
-                            x = x_parent;
-                            x_parent = self.get_parent(x);
-                        } else {
-                            // Case 3: x's sibling w is black, w's left child is red, and w's right child is black
-                            if w_node.right == 0 || self.is_black(w_node.right) {
-                                if w_node.left != 0 {
-                                    self.set_color(w_node.left, BLACK);
-                                }
-                                self.set_color(w, RED);
-                                self.rotate_right(w);
-                                x_parent_node = self.tree.read(x_parent);
-                                w = x_parent_node.right;
-                            }
-
-                            // Case 4: x's sibling w is black, and w's right child is red
-                            x_parent_node = self.tree.read(x_parent);
-                            self.set_color(w, x_parent_node.color);
-                            self.set_color(x_parent, BLACK);
-                            w_node = self.tree.read(w);
-                            if w_node.right != 0 {
-                                self.set_color(w_node.right, BLACK);
-                            }
-                            self.rotate_left(x_parent);
-                            x = self.root.read();
-                            break;
-                        }
+                    // Case 2: x's sibling w is black, and both of w's children are black
+                    let mut w_node: Node = self.tree.entry(w).read();
+                    if (w_node.left == 0 || self.is_black(w_node.left))
+                        && (w_node.right == 0 || self.is_black(w_node.right)) {
+                        self.set_color(w, RED);
+                        x = x_parent;
+                        x_parent = self.get_parent(x);
                     } else {
-                        // Mirror cases for when x is a right child
-                        let mut w = x_parent_node.left;
-
-                        // Case 1 (mirror): x's sibling w is red
-                        if self.is_red(w) {
-                            self.set_color(w, BLACK);
-                            self.set_color(x_parent, RED);
-                            self.rotate_right(x_parent);
-                            x_parent_node = self.tree.read(x_parent);
-                            w = x_parent_node.left;
-                        }
-
-                        // Case 2 (mirror): x's sibling w is black, and both of w's children are black
-                        let mut w_node: Node = self.tree.read(w);
-                        if (w_node.right == 0 || self.is_black(w_node.right))
-                            && (w_node.left == 0 || self.is_black(w_node.left)) {
-                            self.set_color(w, RED);
-                            x = x_parent;
-                            x_parent = self.get_parent(x);
-                        } else {
-                            // Case 3 (mirror): x's sibling w is black, w's right child is red, and w's left child is black
-                            if w_node.left == 0 || self.is_black(w_node.left) {
-                                if w_node.right != 0 {
-                                    self.set_color(w_node.right, BLACK);
-                                }
-                                self.set_color(w, RED);
-                                self.rotate_left(w);
-                                x_parent_node = self.tree.read(x_parent);
-                                w = x_parent_node.left;
-                            }
-
-                            // Case 4 (mirror): x's sibling w is black, and w's left child is red
-                            x_parent_node = self.tree.read(x_parent);
-                            self.set_color(w, x_parent_node.color);
-                            self.set_color(x_parent, BLACK);
-                            w_node = self.tree.read(w);
+                        // Case 3: x's sibling w is black, w's left child is red, and w's right
+                        // child is black
+                        if w_node.right == 0 || self.is_black(w_node.right) {
                             if w_node.left != 0 {
                                 self.set_color(w_node.left, BLACK);
                             }
-                            self.rotate_right(x_parent);
-                            x = self.root.read();
-                            break;
+                            self.set_color(w, RED);
+                            self.rotate_right(w);
+                            x_parent_node = self.tree.entry(x_parent).read();
+                            w = x_parent_node.right;
                         }
+
+                        // Case 4: x's sibling w is black, and w's right child is red
+                        x_parent_node = self.tree.entry(x_parent).read();
+                        self.set_color(w, x_parent_node.color);
+                        self.set_color(x_parent, BLACK);
+                        w_node = self.tree.entry(w).read();
+                        if w_node.right != 0 {
+                            self.set_color(w_node.right, BLACK);
+                        }
+                        self.rotate_left(x_parent);
+                        x = self.root.read();
+                        break;
                     }
-                };
+                } else {
+                    // Mirror cases for when x is a right child
+                    let mut w = x_parent_node.left;
+
+                    // Case 1 (mirror): x's sibling w is red
+                    if self.is_red(w) {
+                        self.set_color(w, BLACK);
+                        self.set_color(x_parent, RED);
+                        self.rotate_right(x_parent);
+                        x_parent_node = self.tree.entry(x_parent).read();
+                        w = x_parent_node.left;
+                    }
+
+                    // Case 2 (mirror): x's sibling w is black, and both of w's children are black
+                    let mut w_node: Node = self.tree.entry(w).read();
+                    if (w_node.right == 0 || self.is_black(w_node.right))
+                        && (w_node.left == 0 || self.is_black(w_node.left)) {
+                        self.set_color(w, RED);
+                        x = x_parent;
+                        x_parent = self.get_parent(x);
+                    } else {
+                        // Case 3 (mirror): x's sibling w is black, w's right child is red, and w's
+                        // left child is black
+                        if w_node.left == 0 || self.is_black(w_node.left) {
+                            if w_node.right != 0 {
+                                self.set_color(w_node.right, BLACK);
+                            }
+                            self.set_color(w, RED);
+                            self.rotate_left(w);
+                            x_parent_node = self.tree.entry(x_parent).read();
+                            w = x_parent_node.left;
+                        }
+
+                        // Case 4 (mirror): x's sibling w is black, and w's left child is red
+                        x_parent_node = self.tree.read(x_parent);
+                        self.set_color(w, x_parent_node.color);
+                        self.set_color(x_parent, BLACK);
+                        w_node = self.tree.entry(w).read();
+                        if w_node.left != 0 {
+                            self.set_color(w_node.left, BLACK);
+                        }
+                        self.rotate_right(x_parent);
+                        x = self.root.read();
+                        break;
+                    }
+                }
+            };
 
             // Final color adjustment
             if x != 0 {
@@ -571,7 +570,7 @@ pub mod RBTreeComponent {
         }
 
         fn transplant(ref self: ComponentState<TContractState>, u: felt252, v: felt252) {
-            let u_node = self.tree.read(u);
+            let u_node = self.tree.entry(u).read();
             if u_node.parent == 0 {
                 self.root.write(v);
             } else if self.is_left_child(u) {
@@ -586,10 +585,10 @@ pub mod RBTreeComponent {
 
         fn minimum(ref self: ComponentState<TContractState>, node_id: felt252) -> felt252 {
             let mut current = node_id;
-            let mut node: Node = self.tree.read(current);
+            let mut node: Node = self.tree.entry(current).read();
             while node.left != 0 {
                 current = node.left;
-                node = self.tree.read(current);
+                node = self.tree.entry(current).read();
             };
             current
         }
@@ -614,14 +613,14 @@ pub mod RBTreeComponent {
             new_node_id: felt252,
             value: Bid
         ) {
-            let mut current_node: Node = self.tree.read(current_id);
+            let mut current_node: Node = self.tree.entry(current_id).read();
             if value <= current_node.value {
                 if current_node.left == 0 {
                     current_node.left = new_node_id;
 
                     let new_node = self.create_leaf_node(@value, current_id);
-                    self.tree.write(new_node_id, new_node);
-                    self.tree.write(current_id, current_node);
+                    self.tree.entry(new_node_id).write(new_node);
+                    self.tree.entry(current_id).write(current_node);
 
                     return;
                 }
@@ -632,8 +631,8 @@ pub mod RBTreeComponent {
                     current_node.right = new_node_id;
 
                     let new_node = self.create_leaf_node(@value, current_id);
-                    self.tree.write(new_node_id, new_node);
-                    self.tree.write(current_id, current_node);
+                    self.tree.entry(new_node_id).write(new_node);
+                    self.tree.entry(current_id).write(current_node);
                     return;
                 }
 
@@ -643,21 +642,19 @@ pub mod RBTreeComponent {
 
         fn balance_after_insertion(ref self: ComponentState<TContractState>, node_id: felt252) {
             let mut current = node_id;
-            let mut current_node: Node = self.tree.read(current);
-            while current != self.root.read()
-                && self
-                    .is_red(current_node.parent) {
-                        let parent = current_node.parent;
-                        let parent_node: Node = self.tree.read(parent);
-                        let grandparent = parent_node.parent;
+            let mut current_node: Node = self.tree.entry(current).read();
+            while current != self.root.read() && self.is_red(current_node.parent) {
+                let parent = current_node.parent;
+                let parent_node: Node = self.tree.entry(parent).read();
+                let grandparent = parent_node.parent;
 
-                        if self.is_left_child(parent) {
-                            current = self.balance_left_case(current, parent, grandparent);
-                        } else {
-                            current = self.balance_right_case(current, parent, grandparent);
-                        }
-                        current_node = self.tree.read(current);
-                    };
+                if self.is_left_child(parent) {
+                    current = self.balance_left_case(current, parent, grandparent);
+                } else {
+                    current = self.balance_right_case(current, parent, grandparent);
+                }
+                current_node = self.tree.entry(current).read();
+            };
             self.ensure_root_is_black();
         }
 
@@ -667,7 +664,7 @@ pub mod RBTreeComponent {
             parent: felt252,
             grandparent: felt252
         ) -> felt252 {
-            let grandparent_node: Node = self.tree.read(grandparent);
+            let grandparent_node: Node = self.tree.entry(grandparent).read();
             let uncle = grandparent_node.right;
 
             if self.is_red(uncle) {
@@ -683,7 +680,7 @@ pub mod RBTreeComponent {
             parent: felt252,
             grandparent: felt252
         ) -> felt252 {
-            let grandparent_node: Node = self.tree.read(grandparent);
+            let grandparent_node: Node = self.tree.entry(grandparent).read();
             let uncle = grandparent_node.left;
 
             if self.is_red(uncle) {
@@ -717,7 +714,7 @@ pub mod RBTreeComponent {
                 new_current = parent;
                 self.rotate_left(new_current);
             }
-            let mut new_current_node: Node = self.tree.read(new_current);
+            let mut new_current_node: Node = self.tree.entry(new_current).read();
             let new_parent = new_current_node.parent;
             self.set_color(new_parent, BLACK); // Black
             self.set_color(grandparent, RED); // Red
@@ -736,7 +733,7 @@ pub mod RBTreeComponent {
                 new_current = parent;
                 self.rotate_right(new_current);
             }
-            let new_current_node: Node = self.tree.read(new_current);
+            let new_current_node: Node = self.tree.entry(new_current).read();
             let new_parent = new_current_node.parent;
             self.set_color(new_parent, BLACK); // Black
             self.set_color(grandparent, RED); // Red
@@ -750,9 +747,9 @@ pub mod RBTreeComponent {
         TContractState, +HasComponent<TContractState>
     > of RBTreeRotationsTrait<TContractState> {
         fn rotate_right(ref self: ComponentState<TContractState>, y: felt252) -> felt252 {
-            let mut y_node: Node = self.tree.read(y);
+            let mut y_node: Node = self.tree.entry(y).read();
             let x = y_node.left;
-            let x_node: Node = self.tree.read(x);
+            let x_node: Node = self.tree.entry(x).read();
             let B = x_node.right;
 
             // Perform rotation
@@ -761,7 +758,7 @@ pub mod RBTreeComponent {
 
             // Update parent pointers
             // Is read again required?
-            y_node = self.tree.read(y);
+            y_node = self.tree.entry(y).read();
             let y_parent = y_node.parent;
             self.update_parent(x, y_parent);
             self.update_parent(y, x);
@@ -773,14 +770,14 @@ pub mod RBTreeComponent {
             if y_parent == 0 {
                 self.root.write(x);
             } else {
-                let mut parent: Node = self.tree.read(y_parent);
+                let mut parent: Node = self.tree.entry(y_parent).read();
 
                 if parent.left == y {
                     parent.left = x;
                 } else {
                     parent.right = x;
                 }
-                self.tree.write(y_parent, parent);
+                self.tree.entry(y_parent).write(parent);
             }
 
             // Return the new root of the subtree
@@ -798,7 +795,7 @@ pub mod RBTreeComponent {
             self.update_right(x, B);
 
             // Update parent pointers
-            x_node = self.tree.read(x);
+            x_node = self.tree.entry(x).read();
             let x_parent = x_node.parent;
             self.update_parent(y, x_parent);
             self.update_parent(x, y);
@@ -810,13 +807,13 @@ pub mod RBTreeComponent {
             if x_parent == 0 {
                 self.root.write(y);
             } else {
-                let mut parent: Node = self.tree.read(x_parent);
+                let mut parent: Node = self.tree.entry(x_parent).read();
                 if parent.left == x {
                     parent.left = y;
                 } else {
                     parent.right = y;
                 }
-                self.tree.write(x_parent, parent);
+                self.tree.entry(x_parent).write(parent);
             }
 
             // Return the new root of the subtree

@@ -3,22 +3,18 @@ use starknet::{
     Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
     testing::{set_block_timestamp, set_contract_address}, contract_address::ContractAddressZeroable,
 };
-use openzeppelin::{
-    utils::serde::SerializedAppend, token::erc20::interface::{ERC20ABIDispatcherTrait}
-};
-use pitch_lake_starknet::{
-    types::Errors, library::eth::Eth,
+use openzeppelin_utils::serde::SerializedAppend;
+use openzeppelin_token::erc20::interface::ERC20ABIDispatcherTrait;
+use pitch_lake::{
+    library::{eth::Eth, constants::{ROUND_TRANSITION_PERIOD, AUCTION_RUN_TIME, OPTION_RUN_TIME}},
     vault::{
         contract::Vault,
         interface::{
-            IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcherTrait
+            IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait,
+            IVaultSafeDispatcherTrait, VaultType,
         }
     },
-    option_round::{interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,}},
-    market_aggregator::interface::{
-        IMarketAggregator, IMarketAggregatorDispatcher, IMarketAggregatorDispatcherTrait,
-        IMarketAggregatorSafeDispatcher, IMarketAggregatorSafeDispatcherTrait
-    },
+    option_round::contract::OptionRound::Errors, option_round::interface::PricingData,
     tests::{
         utils::{
             helpers::{
@@ -28,13 +24,17 @@ use pitch_lake_starknet::{
                 },
                 event_helpers::{
                     clear_event_logs, assert_event_option_settle, assert_event_transfer,
-                    assert_no_events_left, pop_log, assert_event_option_round_deployed,
+                    assert_no_events_left, pop_log, assert_event_option_round_deployed_single,
+                    assert_event_option_round_deployed,
                 },
                 accelerators::{
                     accelerate_to_auctioning, accelerate_to_running, accelerate_to_settled,
                     accelerate_to_auctioning_custom
                 },
-                setup::{setup_facade, setup_test_auctioning_providers, setup_test_running},
+                setup::{
+                    deploy_vault_with_events, setup_facade, setup_test_auctioning_providers,
+                    setup_test_running
+                },
             },
             lib::{
                 test_accounts::{
@@ -46,9 +46,7 @@ use pitch_lake_starknet::{
             },
             facades::{
                 vault_facade::{VaultFacade, VaultFacadeTrait},
-                option_round_facade::{
-                    OptionRoundParams, OptionRoundState, OptionRoundFacade, OptionRoundFacadeTrait
-                },
+                option_round_facade::{OptionRoundState, OptionRoundFacade, OptionRoundFacadeTrait},
             },
         },
     }
@@ -63,6 +61,7 @@ use debug::PrintTrait;
 #[available_gas(50000000)]
 fn test_settling_option_round_while_round_auctioning_fails() {
     let (mut vault_facade, _) = setup_facade();
+
     accelerate_to_auctioning(ref vault_facade);
 
     // Settle option round before auction ends
@@ -118,52 +117,89 @@ fn test_option_round_settled_event() {
     }
 }
 
+fn get_expected_dates(ref vaul: VaultFacade, deployment_date: u64) -> (u64, u64, u64) {
+    let auction_start_date = deployment_date + ROUND_TRANSITION_PERIOD;
+    let auction_end_date = auction_start_date + AUCTION_RUN_TIME;
+    let option_settlement_date = auction_end_date + OPTION_RUN_TIME;
+
+    (auction_start_date, auction_end_date, option_settlement_date)
+}
+
+#[test]
+#[available_gas(500000000)]
+fn test_first_round_deployed_event() {
+    let vault_dispatcher = deploy_vault_with_events(
+        VaultType::AtTheMoney, contract_address_const::<'eth'>()
+    );
+    let mut vault = VaultFacade { vault_dispatcher };
+    let mut current_round = vault.get_current_round();
+
+    let (auction_start_date, auction_end_date, option_settlement_date) = get_expected_dates(
+        ref vault, current_round.get_deployment_date()
+    );
+
+    assert_eq!(current_round.get_deployment_date(), get_block_timestamp());
+    assert(
+        auction_start_date.is_non_zero()
+            && auction_end_date.is_non_zero()
+            && option_settlement_date.is_non_zero(),
+        'Dates should not be 0'
+    );
+    // @note doing this to add an extra vault event (so that the double pop log works as expected)
+    //vault.withdraw(0, liquidity_provider_1());
+    assert_event_option_round_deployed_single(
+        vault.contract_address(),
+        1,
+        current_round.contract_address(),
+        auction_start_date,
+        auction_end_date,
+        option_settlement_date,
+        pricing_data: PricingData { strike_price: 0, cap_level: 0, reserve_price: 0 }
+    );
+}
+
 // Test every time a new round is deployed, the next round deployed event emits correctly
 // @dev The first round to be deployed after deployment is round 2
 #[test]
 #[available_gas(500000000)]
-fn test_next_round_deployed_event() {
-    let mut rounds_to_run = 3;
+fn test_next_round_deployed_events() {
     let (mut vault, _) = setup_facade();
 
-    while rounds_to_run > 0_u32 {
-        let mut current_round = vault.get_current_round();
-        let current_round_id = vault.get_current_round_id();
-        accelerate_to_auctioning(ref vault);
-        accelerate_to_running(ref vault);
+    for i in 1_u256
+        ..4 {
+            let mut round_i = vault.get_current_round();
+            accelerate_to_auctioning(ref vault);
+            accelerate_to_running(ref vault);
 
-        clear_event_logs(array![vault.contract_address()]);
-        accelerate_to_settled(ref vault, current_round.get_strike_price());
+            clear_event_logs(array![vault.contract_address()]);
+            accelerate_to_settled(ref vault, round_i.get_strike_price());
 
-        let mut new_current_round = vault.get_current_round();
-        let reserve_price = new_current_round.get_reserve_price();
-        let strike_price = new_current_round.get_strike_price();
-        let cap_level = new_current_round.get_cap_level();
-        let auction_start_date = new_current_round.get_auction_start_date();
-        let auction_end_date = new_current_round.get_auction_end_date();
-        let settlement_date = new_current_round.get_option_settlement_date();
+            let mut round_i_plus_1 = vault.get_current_round();
+            let auction_start_date = round_i_plus_1.get_auction_start_date();
+            let auction_end_date = round_i_plus_1.get_auction_end_date();
+            let settlement_date = round_i_plus_1.get_option_settlement_date();
 
-        // Check new round is deployed
-        assert(
-            current_round.get_round_id() + 1 == new_current_round.get_round_id(),
-            'round contract address wrong'
-        );
-        // Check the event emits correctly
-        assert_event_option_round_deployed(
-            vault
-                .contract_address(), // @dev round 2 should be the first round to deploy post deployment
-            current_round_id + 1,
-            new_current_round.contract_address(),
-            reserve_price,
-            strike_price,
-            cap_level,
-            auction_start_date,
-            auction_end_date,
-            settlement_date
-        );
+            // Check new round is deployed
+            assert(i + 1 == round_i_plus_1.get_round_id(), 'round contract address wrong');
 
-        rounds_to_run -= 1;
-    }
+            // Check the event emits correctly
+            let pricing_data = PricingData {
+                strike_price: round_i_plus_1.get_strike_price(),
+                cap_level: round_i_plus_1.get_cap_level(),
+                reserve_price: round_i_plus_1.get_reserve_price()
+            };
+
+            assert(pricing_data != Default::default(), 'Pricing data not set correctly');
+            assert_event_option_round_deployed(
+                vault.contract_address(),
+                i + 1,
+                round_i_plus_1.contract_address(),
+                auction_start_date,
+                auction_end_date,
+                settlement_date,
+                pricing_data
+            );
+        }
 }
 
 
@@ -347,7 +383,8 @@ fn test_settling_option_round_updates_locked_and_unlocked_balances() {
 //    // Accelerate through round 1 with premiums and a payout
 //    let (mut vault, _) = setup_facade();
 //    let mut liquidity_providers = liquidity_providers_get(4).span();
-//    let round1_deposits = create_array_gradient(100 * decimals(), 100 * decimals(), liquidity_providers.len())
+//    let round1_deposits = create_array_gradient(100 * decimals(), 100 * decimals(),
+//    liquidity_providers.len())
 //        .span(); // (100, 200, 300, 400)
 //    let starting_liquidity1 = sum_u256_array(round1_deposits);
 //    accelerate_to_auctioning_custom(ref vault, liquidity_providers, round1_deposits);
@@ -413,12 +450,14 @@ fn test_settling_option_round_updates_locked_and_unlocked_balances() {
 //                let lp_spread_after = lp_spreads_after.pop_front().unwrap();
 //                let lp_starting_liquidity2 = round2_deposits.pop_front().unwrap();
 //                let lp_premiums2 = individual_premiums2.pop_front().unwrap();
-//                let lp_remaining_liquidity2 = individual_remaining_liquidity2.pop_front().unwrap();
+//                let lp_remaining_liquidity2 =
+//                individual_remaining_liquidity2.pop_front().unwrap();
 //                assert(
 //                    *lp_spread_before == (*lp_starting_liquidity2, *lp_premiums2),
 //                    'LP spread before wrong'
 //                );
-//                assert(*lp_spread_after == (0, *lp_remaining_liquidity2), 'LP spread after wrong');
+//                assert(*lp_spread_after == (0, *lp_remaining_liquidity2), 'LP spread after
+//                wrong');
 //            },
 //            Option::None => { break (); }
 //        }

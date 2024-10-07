@@ -1,17 +1,19 @@
 use core::array::SpanTrait;
 use starknet::{testing, ContractAddress,};
-use openzeppelin::{
-    utils::serde::SerializedAppend, token::erc20::{ERC20Component, ERC20Component::Transfer}
-};
-use pitch_lake_starknet::{vault::contract::Vault, option_round::contract::OptionRound,};
+use openzeppelin_utils::serde::SerializedAppend;
+use openzeppelin_token::erc20::{ERC20Component, ERC20Component::Transfer};
+use pitch_lake::{vault::contract::Vault, option_round::contract::OptionRound};
+use pitch_lake::option_round::interface::{PricingData};
 use debug::PrintTrait;
-// Helpers
+
+/// Helpers ///
 
 // Pop the earliest unpopped logged event for the contract as the requested type
 // and checks there's no more data left on the event, preventing unaccounted params.
 // Indexed event members are currently not supported, so they are ignored.
 fn pop_log<T, +Drop<T>, impl TEvent: starknet::Event<T>>(address: ContractAddress) -> Option<T> {
     let (mut keys, mut data) = testing::pop_log_raw(address)?;
+    //println!("keys: {:?}\ndata: {:?}", keys.clone(), data.clone());
     let ret = starknet::Event::deserialize(ref keys, ref data);
     assert(data.is_empty(), 'Event has extra data');
     ret
@@ -46,13 +48,14 @@ fn assert_events_equal<T, +PartialEq<T>, +Drop<T>>(actual: T, expected: T) {
     assert(actual == expected, 'Event does not match expected');
 }
 
-// OptionRound Events
+/// OptionRound Events ///
 
 // Check AuctionStart emits correctly
 fn assert_event_auction_start(
     option_round_address: ContractAddress, starting_liquidity: u256, options_available: u256
 ) {
-    // @note Confirm this works (fix from discord), then work into other event assertions (should handle manual ones as well)
+    // @note Confirm this works (fix from discord), then work into other event assertions (should
+    // handle manual ones as well)
     // @note Reminder to clear event logs at the end of the accelerators
     match pop_log::<OptionRound::Event>(option_round_address) {
         Option::Some(e) => {
@@ -79,7 +82,8 @@ fn assert_event_auction_bid_placed(
             let expected = OptionRound::Event::BidPlaced(
                 OptionRound::BidPlaced { account, bid_id, amount, price, bid_tree_nonce_now }
             );
-            //println!("expected:\n{}\n{}\n{}\n{}\n{}", Into::<ContractAddress, felt252>::into(account), bid_id, amount, price, bid_tree_nonce_now);
+            //println!("expected:\n{}\n{}\n{}\n{}\n{}", Into::<ContractAddress,
+            //felt252>::into(account), bid_id, amount, price, bid_tree_nonce_now);
             assert_events_equal(e, expected);
         },
         Option::None => { panic(array!['Could not find event']); },
@@ -104,21 +108,20 @@ fn assert_event_auction_bid_updated(
     }
 }
 
-// Check AuctionRejectedBid emits correctly
-//fn assert_event_auction_bid_rejected(
-//    contract: ContractAddress, account: ContractAddress, amount: u256, price: u256,
-//) {
-//    match pop_log::<OptionRound::Event>(contract) {
-//        Option::Some(e) => {
-//            let expected = OptionRound::Event::BidRejected(
-//                OptionRound::BidRejected { account, amount, price }
-//            );
-//            assert_events_equal(e, expected);
-//        },
-//        Option::None => { panic(array!['Could not find event']); },
-//    }
-//}
-
+// Check PricingDataSet emits correctly
+fn assert_event_pricing_data_set(
+    option_round_address: ContractAddress, strike_price: u256, cap_level: u128, reserve_price: u256,
+) {
+    match pop_log::<OptionRound::Event>(option_round_address) {
+        Option::Some(e) => {
+            let expected = OptionRound::Event::PricingDataSet(
+                OptionRound::PricingDataSet { strike_price, cap_level, reserve_price }
+            );
+            assert_events_equal(e, expected);
+        },
+        Option::None => { panic(array!['No events found']); }
+    };
+}
 // Check AuctionEnd emits correctly
 fn assert_event_auction_end(
     option_round_address: ContractAddress,
@@ -138,7 +141,6 @@ fn assert_event_auction_end(
 }
 
 // Check OptionSettle emits correctly
-// @dev Settlment price is the price determining the payout for the round
 fn assert_event_option_settle(
     option_round_address: ContractAddress, settlement_price: u256, payout_per_option: u256,
 ) {
@@ -171,7 +173,8 @@ fn assert_event_unused_bids_refunded(
 fn assert_event_options_tokenized(
     contract: ContractAddress, account: ContractAddress, minted_amount: u256
 ) {
-    // We pop here twice since the method fires a ERC20 transfer event before the OptionsTokenized event
+    // We pop here twice since the method fires a ERC20 transfer event before the OptionsTokenized
+    // event
     match pop_log::<ERC20Component::Transfer>(contract) {
         Option::Some(_) => {
             match pop_log::<OptionRound::Event>(contract) {
@@ -205,11 +208,12 @@ fn assert_event_options_exercised(
     };
 }
 
-// ERC20 Events
+/// ERC20 Events ///
 
 // Test transfer event (ERC20 structure) emits correctly
-// @note Can remove all instances of this test that are testing eth transfers, just testing the balance changes is enough
-// @note Add tests using this helper for erc20 transfer tests for options, lp tokens later
+// @note Can remove all instances of this test that are testing eth transfers, just testing the
+// balance changes is enough @note Add tests using this helper for erc20 transfer tests for options,
+// lp tokens later
 fn assert_event_transfer(
     contract: ContractAddress, from: ContractAddress, to: ContractAddress, value: u256
 ) {
@@ -222,19 +226,42 @@ fn assert_event_transfer(
     }
 }
 
-// Vault Events
+/// Vault Events ///
 
-// Test OptionRoundCreated event emits correctly
 fn assert_event_option_round_deployed(
     contract: ContractAddress,
     round_id: u256,
     address: ContractAddress,
-    reserve_price: u256,
-    strike_price: u256,
-    cap_level: u128,
     auction_start_date: u64,
     auction_end_date: u64,
     option_settlement_date: u64,
+    pricing_data: PricingData,
+) {
+    match pop_log::<Vault::Event>(contract) {
+        Option::Some(_) => {
+            assert_event_option_round_deployed_single(
+                contract,
+                round_id,
+                address,
+                auction_start_date,
+                auction_end_date,
+                option_settlement_date,
+                pricing_data
+            );
+        },
+       Option::None => { panic(array!['No events found1']); }
+    }
+}
+
+// Test OptionRoundCreated event emits correctly
+fn assert_event_option_round_deployed_single(
+    contract: ContractAddress,
+    round_id: u256,
+    address: ContractAddress,
+    auction_start_date: u64,
+    auction_end_date: u64,
+    option_settlement_date: u64,
+    pricing_data: PricingData,
 ) {
     match pop_log::<Vault::Event>(contract) {
         Option::Some(e) => {
@@ -242,17 +269,15 @@ fn assert_event_option_round_deployed(
                 Vault::OptionRoundDeployed {
                     round_id,
                     address,
-                    reserve_price,
-                    strike_price,
-                    cap_level,
                     auction_start_date,
                     auction_end_date,
-                    option_settlement_date
+                    option_settlement_date,
+                    pricing_data
                 }
             );
             assert_events_equal(e, expected);
         },
-        Option::None => { panic(array!['No events found']); }
+        Option::None => { panic(array!['No events found2']); }
     };
 }
 
@@ -271,6 +296,7 @@ fn assert_event_vault_deposit(
                     account, amount, account_unlocked_balance_now, vault_unlocked_balance_now
                 }
             );
+
             assert_events_equal(e, expected);
         },
         Option::None => { panic(array!['No events found']); }

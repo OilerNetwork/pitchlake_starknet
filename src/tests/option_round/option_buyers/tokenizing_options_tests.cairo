@@ -1,5 +1,5 @@
-use pitch_lake_starknet::{
-    types::Errors,
+use pitch_lake::{
+    option_round::contract::OptionRound::Errors,
     tests::{
         utils::{
             helpers::{
@@ -7,7 +7,8 @@ use pitch_lake_starknet::{
                     accelerate_to_running_custom, accelerate_to_auctioning,
                     timeskip_and_end_auction,
                 },
-                setup::{setup_facade, deploy_custom_option_round},
+                setup::{setup_facade, //deploy_custom_option_round
+                },
                 general_helpers::{
                     to_wei, to_wei_multi, get_erc20_balance, assert_two_arrays_equal_length
                 },
@@ -16,7 +17,7 @@ use pitch_lake_starknet::{
             lib::{test_accounts::{option_bidders_get, option_bidder_buyer_1},},
             facades::{
                 vault_facade::{VaultFacade, VaultFacadeTrait},
-                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundParams}
+                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait}
             },
         },
     }
@@ -68,7 +69,8 @@ fn test_tokenizing_options_mints_option_tokens() {
                     current_round.contract_address(), *bidder
                 );
 
-                // Check that the user's erc20 option balance increases by the number of options minted
+                // Check that the user's erc20 option balance increases by the number of options
+                // minted
                 assert(
                     option_erc20_balance_after == option_erc20_balance_before + options_minted,
                     'wrong option erc20 balance'
@@ -96,7 +98,7 @@ fn test_tokenizing_options_events() {
                 assert_event_options_tokenized(
                     current_round.contract_address(), *bidder, options_minted
                 );
-            // User's option erc20 balance after tokenizing
+                // User's option erc20 balance after tokenizing
             },
             Option::None => { break (); },
         }
@@ -146,7 +148,8 @@ fn test_tokenizing_options_twice_does_nothing() {
                     current_round.contract_address(), *bidder
                 );
 
-                // Check that the user's erc20 option balance increases by the number of options minted
+                // Check that the user's erc20 option balance increases by the number of options
+                // minted
                 assert(
                     option_erc20_balance_after == option_erc20_balance_before,
                     'wrong option erc20 balance'
@@ -158,7 +161,8 @@ fn test_tokenizing_options_twice_does_nothing() {
 }
 
 // Test tokenizing options sets option_balance to 0
-// @note Discuss if this is the expected behavior, or if option_balance shd include storage + erc20 balances ?
+// @note Discuss if this is the expected behavior, or if option_balance shd include storage + erc20
+// balances ?
 #[test]
 #[available_gas(500000000)]
 fn test_tokenizing_options_sets_option_storage_balance_to_0() {

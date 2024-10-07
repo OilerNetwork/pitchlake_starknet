@@ -1,5 +1,16 @@
 import { Account } from "starknet";
 
+// Fossil
+
+export type JobRequest = {
+  identifiers: string[];
+  params: {
+    twap: [number, number];
+    volatility: [number, number];
+    reserve_price: [number, number];
+  };
+};
+
 //EthTypes
 export type ApprovalArgs = {
   owner: Account;
@@ -78,15 +89,16 @@ export type Constants = {
   settlementPrice: number | bigint;
   strikePrice: number | bigint;
   capLevel: number | bigint;
-  volatility: number|bigint;
+  volatility: number | bigint;
 };
 
 //Simulation Types
 export type MarketData = {
-  reservePrice: number | bigint;
   settlementPrice: number | bigint;
-  strikePrice: number | bigint;
-  capLevel: number | bigint;
-  startTime?:number|bigint;
-  endTime?:number|bigint;
+  volatility: number | bigint;
+  reservePrice: number | bigint;
+  strikePrice?: number | bigint;
+  capLevel?: number | bigint;
+  startTime?: number | bigint;
+  endTime?: number | bigint;
 };

@@ -2,13 +2,13 @@ import { Account } from "starknet";
 
 // deployContracts.js
 import { CallData, CairoCustomEnum } from "starknet";
-import vaultSierra from "../../../target/dev/pitch_lake_starknet_Vault.contract_class.json" assert { type: "json" };
+import vaultSierra from "../../../target/dev/pitch_lake_Vault.contract_class.json" assert { type: "json" };
 import { constructorArgs } from "../constants";
 
 async function deployEthContract(
   enviornment: string,
   account: Account,
-  classHash: string
+  classHash: string,
 ) {
   let constructorArgsEth = [...Object.values(constructorArgs[enviornment].eth)];
   const deployResult = await account.deploy({
@@ -21,16 +21,14 @@ async function deployEthContract(
   return deployResult.contract_address[0];
 }
 
-
-
 async function deployVaultContract(
   enviornment: string,
   account: Account,
   contractAddresses: {
     ethContract: string;
-    marketAggregatorContract: string;
+    factRegistryContract: string;
   },
-  hashes: { vault: string; optionRound: string }
+  hashes: { vault: string; optionRound: string },
 ) {
   const contractCallData = new CallData(vaultSierra.abi);
 
@@ -40,8 +38,8 @@ async function deployVaultContract(
     auction_run_time: constants.auctionRunTime,
     option_run_time: constants.optionRunTime,
     eth_address: contractAddresses.ethContract,
-    vault_type: new CairoCustomEnum({ InTheMoney: {} }),
-    market_aggregator_address: contractAddresses.marketAggregatorContract,
+    vault_type: new CairoCustomEnum({ AtTheMoney: {} }),
+    fact_registry_address: contractAddresses.factRegistryContract,
     option_round_class_hash: hashes.optionRound,
   });
 
@@ -54,18 +52,18 @@ async function deployVaultContract(
   return deployResult.contract_address[0];
 }
 
-async function deployMarketAggregator(
+async function deployFactRegistry(
   enviornment: string,
   account: Account,
-  marketAggregatorClassHash: string
+  factRegistryClassHash: string,
 ) {
   const deployResult = await account.deploy({
-    classHash: marketAggregatorClassHash,
+    classHash: factRegistryClassHash,
   });
 
   console.log(
     "Market Aggregator contract is deployed successfully at - ",
-    deployResult
+    deployResult,
   );
   return deployResult.contract_address[0];
 }
@@ -77,49 +75,49 @@ async function deployContracts(
     ethHash: string;
     vaultHash: string;
     optionRoundHash: string;
-    marketAggregatorHash: string;
+    factRegistryHash: string;
   },
 ) {
   let ethAddress = await deployEthContract(
     enviornment,
     account,
-    hashes.ethHash
+    hashes.ethHash,
   );
   if (!ethAddress) {
     throw Error("Eth deploy failed");
   }
 
-  let marketAggregatorAddress = await deployMarketAggregator(
+  let factRegistryAddress = await deployFactRegistry(
     enviornment,
     account,
-    hashes.marketAggregatorHash
+    hashes.factRegistryHash,
   );
-  if (!marketAggregatorAddress) {
-    throw Error("MktAgg deploy failed");
+  if (!factRegistryAddress) {
+    throw Error("FactRegistry deploy failed");
   }
 
   let vaultAddress = await deployVaultContract(
     enviornment,
     account,
     {
-      marketAggregatorContract: marketAggregatorAddress,
+      factRegistryContract: factRegistryAddress,
       ethContract: ethAddress,
     },
-    { optionRound: hashes.optionRoundHash, vault: hashes.vaultHash }
+    { optionRound: hashes.optionRoundHash, vault: hashes.vaultHash },
   );
   if (!vaultAddress) {
     throw Error("Eth deploy failed");
   }
   return {
     ethAddress,
-    marketAggregatorAddress,
+    factRegistryAddress,
     vaultAddress,
   };
 }
 
 export {
   deployEthContract,
-  deployMarketAggregator,
+  deployFactRegistry,
   deployVaultContract,
   deployContracts,
 };
