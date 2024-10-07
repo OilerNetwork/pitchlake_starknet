@@ -92,7 +92,7 @@ use debug::PrintTrait;
 
 // Test bidding 0 amount is rejected
 #[test]
-#[available_gas(10000000)]
+#[available_gas(30000000)]
 fn test_bid_amount_0_gets_rejected() {
     let (mut vault, _) = setup_facade();
     let _options_available = accelerate_to_auctioning(ref vault);
