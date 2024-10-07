@@ -11,12 +11,12 @@ mod Vault {
     };
     use openzeppelin_utils::serde::SerializedAppend;
     use pitch_lake::vault::interface::{
-        ConstructorArgs, IVault, VaultType, L1DataRequest, L1Result, L1Data, PricingData,
+        ConstructorArgs, IVault, VaultType, L1DataRequest, L1Result, L1Data,
     };
     use pitch_lake::option_round::contract::OptionRound;
     use pitch_lake::option_round::interface::{
         ConstructorArgs as OptionRoundConstructorArgs, OptionRoundState, IOptionRoundDispatcher,
-        IOptionRoundDispatcherTrait
+        IOptionRoundDispatcherTrait, PricingData,
     };
     use pitch_lake::types::{Consts::{BPS, JOB_TIMESTAMP_TOLERANCE}};
     use pitch_lake::library::utils::{assert_equal_in_range, generate_request_id,};

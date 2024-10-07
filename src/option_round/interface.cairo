@@ -1,6 +1,5 @@
 use starknet::{ContractAddress, StorePacking};
 use pitch_lake::types::{Bid};
-use pitch_lake::vault::interface::PricingData;
 
 // An enum for each state an option round can be in
 #[derive(Default, Copy, Drop, Serde, PartialEq, starknet::Store)]
@@ -12,13 +11,20 @@ enum OptionRoundState {
     Settled, // Option round has settled, remaining liquidity has rolled over to the next round
 }
 
+// @dev Data needed for a round's auction to start
+#[derive(Default, PartialEq, Copy, Drop, Serde, starknet::Store)]
+struct PricingData {
+    strike_price: u256,
+    cap_level: u128,
+    reserve_price: u256,
+}
+
 #[derive(Drop, Serde)]
 struct ConstructorArgs {
     vault_address: ContractAddress,
     round_id: u256,
     pricing_data: PricingData
 }
-
 
 // The interface for an option round contract
 #[starknet::interface]

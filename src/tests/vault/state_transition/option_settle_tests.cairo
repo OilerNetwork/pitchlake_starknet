@@ -11,10 +11,10 @@ use pitch_lake::{
         contract::Vault,
         interface::{
             IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait,
-            IVaultSafeDispatcherTrait, VaultType, PricingData
+            IVaultSafeDispatcherTrait, VaultType,
         }
     },
-    option_round::contract::OptionRound::Errors,
+    option_round::contract::OptionRound::Errors, option_round::interface::PricingData,
     tests::{
         utils::{
             helpers::{
@@ -190,10 +190,9 @@ fn test_next_round_deployed_events() {
             reserve_price: new_current_round.get_reserve_price()
         };
 
-        assert_neq!(pricing_data, Default::default());
+        assert(pricing_data != Default::default(), 'Pricing data not set correctly');
         assert_event_option_round_deployed(
-            vault
-                .contract_address(),
+            vault.contract_address(),
             current_round_id + 1,
             new_current_round.contract_address(),
             auction_start_date,

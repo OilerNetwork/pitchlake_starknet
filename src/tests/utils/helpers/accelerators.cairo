@@ -7,13 +7,14 @@ use pitch_lake::{
     vault::{
         contract::Vault,
         interface::{
-            L1Result, L1Data, L1DataRequest, PricingData, VaultType, IVaultDispatcher,
-            IVaultDispatcherTrait
+            L1Result, L1Data, L1DataRequest, VaultType, IVaultDispatcher, IVaultDispatcherTrait
         }
     },
     option_round::{
         contract::{OptionRound},
-        interface::{OptionRoundState, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,},
+        interface::{
+            PricingData, OptionRoundState, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,
+        },
     },
     tests::{
         utils::{

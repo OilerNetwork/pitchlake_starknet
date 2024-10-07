@@ -9,14 +9,6 @@ enum VaultType {
     OutOfMoney,
 }
 
-// @dev Data needed for a round's auction to start
-#[derive(Default, PartialEq, Copy, Drop, Serde, starknet::Store)]
-struct PricingData {
-    strike_price: u256,
-    cap_level: u128,
-    reserve_price: u256,
-}
-
 // @dev Request to settle/start a round
 #[derive(Copy, Drop, Serde)]
 struct L1DataRequest {

@@ -4,8 +4,8 @@ use starknet::{
 };
 use pitch_lake::{
     vault::contract::Vault, option_round::contract::OptionRound::Errors,
-    vault::interface::{L1Data, L1DataRequest, L1Result, PricingData, VaultType},
-    library::pricing_utils,
+    vault::interface::{L1Data, L1DataRequest, L1Result, VaultType},
+    option_round::interface::PricingData, library::pricing_utils,
     tests::{
         utils::{
             helpers::{

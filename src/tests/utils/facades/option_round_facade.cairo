@@ -6,13 +6,13 @@ use pitch_lake::{
     option_round::{
         interface::{
             OptionRoundState, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,
-            IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait,
+            IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait, PricingData
         }
     },
     vault::{
         interface::{
             VaultType, IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait,
-            IVaultSafeDispatcherTrait, PricingData
+            IVaultSafeDispatcherTrait,
         },
         contract::Vault,
     },

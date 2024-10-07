@@ -3,7 +3,7 @@ use starknet::{testing, ContractAddress,};
 use openzeppelin_utils::serde::SerializedAppend;
 use openzeppelin_token::erc20::{ERC20Component, ERC20Component::Transfer};
 use pitch_lake::{vault::contract::Vault, option_round::contract::OptionRound};
-use pitch_lake::vault::interface::{PricingData};
+use pitch_lake::option_round::interface::{PricingData};
 use debug::PrintTrait;
 
 /// Helpers ///

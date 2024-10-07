@@ -13,14 +13,14 @@ use openzeppelin_token::erc20::{
 use pitch_lake::{
     library::eth::Eth, vault::contract::Vault,
     vault::interface::{
-        ConstructorArgs, L1Data, L1DataRequest, L1Result, PricingData, VaultType, IVaultDispatcher,
+        ConstructorArgs, L1Data, L1DataRequest, L1Result, VaultType, IVaultDispatcher,
         IVaultDispatcherTrait
     },
     vault::contract::{Vault::{DAY}},
     option_round::{
         contract::OptionRound,
         interface::{
-            ConstructorArgs as ConstructorArgsOptionRound, IOptionRoundDispatcher,
+            PricingData, ConstructorArgs as ConstructorArgsOptionRound, IOptionRoundDispatcher,
             IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher,
             IOptionRoundSafeDispatcherTrait, OptionRoundState
         },
