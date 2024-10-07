@@ -160,49 +160,43 @@ fn test_first_round_deployed_event() {
 #[test]
 #[available_gas(500000000)]
 fn test_next_round_deployed_events() {
-    let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
 
-    while rounds_to_run > 0_u32 {
-        let mut current_round = vault.get_current_round();
-        let current_round_id = vault.get_current_round_id();
-        accelerate_to_auctioning(ref vault);
-        accelerate_to_running(ref vault);
+    for i in 1_u256
+        ..4 {
+            let mut round_i = vault.get_current_round();
+            accelerate_to_auctioning(ref vault);
+            accelerate_to_running(ref vault);
 
-        clear_event_logs(array![vault.contract_address()]);
-        accelerate_to_settled(ref vault, current_round.get_strike_price());
+            clear_event_logs(array![vault.contract_address()]);
+            accelerate_to_settled(ref vault, round_i.get_strike_price());
 
-        let mut new_current_round = vault.get_current_round();
-        let auction_start_date = new_current_round.get_auction_start_date();
-        let auction_end_date = new_current_round.get_auction_end_date();
-        let settlement_date = new_current_round.get_option_settlement_date();
+            let mut round_i_plus_1 = vault.get_current_round();
+            let auction_start_date = round_i_plus_1.get_auction_start_date();
+            let auction_end_date = round_i_plus_1.get_auction_end_date();
+            let settlement_date = round_i_plus_1.get_option_settlement_date();
 
-        // Check new round is deployed
-        assert(
-            current_round.get_round_id() + 1 == new_current_round.get_round_id(),
-            'round contract address wrong'
-        );
+            // Check new round is deployed
+            assert(i + 1 == round_i_plus_1.get_round_id(), 'round contract address wrong');
 
-        // Check the event emits correctly
-        let pricing_data = PricingData {
-            strike_price: new_current_round.get_strike_price(),
-            cap_level: new_current_round.get_cap_level(),
-            reserve_price: new_current_round.get_reserve_price()
-        };
+            // Check the event emits correctly
+            let pricing_data = PricingData {
+                strike_price: round_i_plus_1.get_strike_price(),
+                cap_level: round_i_plus_1.get_cap_level(),
+                reserve_price: round_i_plus_1.get_reserve_price()
+            };
 
-        assert(pricing_data != Default::default(), 'Pricing data not set correctly');
-        assert_event_option_round_deployed(
-            vault.contract_address(),
-            current_round_id + 1,
-            new_current_round.contract_address(),
-            auction_start_date,
-            auction_end_date,
-            settlement_date,
-            pricing_data
-        );
-
-        rounds_to_run -= 1;
-    }
+            assert(pricing_data != Default::default(), 'Pricing data not set correctly');
+            assert_event_option_round_deployed(
+                vault.contract_address(),
+                i + 1,
+                round_i_plus_1.contract_address(),
+                auction_start_date,
+                auction_end_date,
+                settlement_date,
+                pricing_data
+            );
+        }
 }
 
 

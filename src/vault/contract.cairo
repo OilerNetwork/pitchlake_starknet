@@ -777,9 +777,11 @@ mod Vault {
         }
 
         fn settle_round(ref self: ContractState) -> u256 {
-            // @dev Get settlement pricing data if set for the current round's settlemenuuuuuut
+            // @dev Get settlement pricing data if set for the current round's settlement
             let current_round_id = self.current_round_id.read();
             let l1_data = self.l1_data.entry(current_round_id).read();
+
+            assert(l1_data != Default::default(), 'Replace w/Data not set');
 
             // @dev Settle the current round and return the total payout
             let current_round = self.get_round_dispatcher(current_round_id);

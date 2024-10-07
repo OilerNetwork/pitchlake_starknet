@@ -276,4 +276,6 @@ fn test_refreshing_consequtive_round_refreshing() {
 //@note todo add test that fulfill request can only be called by fossil addreses
 // - replace with valid/invalid proof tests later
 
+// @note todo add test for starting auction/setlling round with no data set
+
 

@@ -13,6 +13,7 @@ use debug::PrintTrait;
 // Indexed event members are currently not supported, so they are ignored.
 fn pop_log<T, +Drop<T>, impl TEvent: starknet::Event<T>>(address: ContractAddress) -> Option<T> {
     let (mut keys, mut data) = testing::pop_log_raw(address)?;
+    println!("keys: {:?}\ndata: {:?}", keys.clone(), data.clone());
     let ret = starknet::Event::deserialize(ref keys, ref data);
     assert(data.is_empty(), 'Event has extra data');
     ret
@@ -237,7 +238,8 @@ fn assert_event_option_round_deployed(
     option_settlement_date: u64,
     pricing_data: PricingData,
 ) {
-    match pop_log::<Vault::Event>(contract) {
+  match pop_log::<Vault::Event>(contract) {
+    Option::Some(_)=>{match pop_log::<Vault::Event>(contract) {
         Option::Some(e) => {
             let expected = Vault::Event::OptionRoundDeployed(
                 Vault::OptionRoundDeployed {
@@ -252,7 +254,7 @@ fn assert_event_option_round_deployed(
             assert_events_equal(e, expected);
         },
         Option::None => { panic(array!['No events found']); }
-    };
+    };}, Option::None => {panic(array!['No events found']);}}
 }
 
 // Test deposit event emits correctly
