@@ -238,23 +238,27 @@ fn assert_event_option_round_deployed(
     option_settlement_date: u64,
     pricing_data: PricingData,
 ) {
-  match pop_log::<Vault::Event>(contract) {
-    Option::Some(_)=>{match pop_log::<Vault::Event>(contract) {
-        Option::Some(e) => {
-            let expected = Vault::Event::OptionRoundDeployed(
-                Vault::OptionRoundDeployed {
-                    round_id,
-                    address,
-                    auction_start_date,
-                    auction_end_date,
-                    option_settlement_date,
-                    pricing_data
-                }
-            );
-            assert_events_equal(e, expected);
+    match pop_log::<Vault::Event>(contract) {
+        Option::Some(_) => {
+            match pop_log::<Vault::Event>(contract) {
+                Option::Some(e) => {
+                    let expected = Vault::Event::OptionRoundDeployed(
+                        Vault::OptionRoundDeployed {
+                            round_id,
+                            address,
+                            auction_start_date,
+                            auction_end_date,
+                            option_settlement_date,
+                            pricing_data
+                        }
+                    );
+                    assert_events_equal(e, expected);
+                },
+                Option::None => { panic(array!['No events found']); }
+            };
         },
         Option::None => { panic(array!['No events found']); }
-    };}, Option::None => {panic(array!['No events found']);}}
+    }
 }
 
 // Test deposit event emits correctly

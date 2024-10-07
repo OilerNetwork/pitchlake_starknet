@@ -143,7 +143,7 @@ fn setup_facade_vault_type(vault_type: VaultType) -> VaultFacade {
     let request = vault_facade.get_request_to_start_auction();
     let result = L1Result {
         data: L1Data { twap: to_gwei(10), volatility: 5000, reserve_price: to_gwei(2), },
-        proof: array![]
+        proof: array![].span()
     };
     vault_facade.fulfill_request(request, result);
 

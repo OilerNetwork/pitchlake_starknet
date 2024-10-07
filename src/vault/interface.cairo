@@ -17,7 +17,7 @@ struct L1DataRequest {
 }
 
 // @dev Data returned from request
-#[derive(Default, PartialEq, Drop, Serde, starknet::Store)]
+#[derive(Default, PartialEq, Copy, Drop, Serde, starknet::Store)]
 struct L1Data {
     twap: u256,
     volatility: u128,
@@ -25,10 +25,10 @@ struct L1Data {
 }
 
 // @dev Struct to send result and proving data to `fulfill_request()`
-#[derive(Drop, Serde)]
+#[derive(Copy, Drop, Serde)]
 struct L1Result {
     data: L1Data,
-    proof: Array<felt252>,
+    proof: Span<felt252>,
 }
 
 // @dev Constructor arguments
@@ -134,7 +134,7 @@ trait IVault<TContractState> {
     /// State transitions
 
     // @dev Fulfill a pricing data request
-    fn fulfill_request(ref self: TContractState, request: L1DataRequest, result: L1Result) -> bool;
+    fn fulfill_request(ref self: TContractState, request: L1DataRequest, result: L1Result);
 
     //    // @dev Sets pricing data for the current round to settle with. The pricing data must have
     //    a // timestamp that is equal to the currnet round's settlement date with

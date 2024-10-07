@@ -13,7 +13,7 @@ mod Vault {
     use pitch_lake::vault::interface::{
         ConstructorArgs, IVault, VaultType, L1DataRequest, L1Result, L1Data,
     };
-    use pitch_lake::option_round::contract::OptionRound;
+    use pitch_lake::option_round::contract::{OptionRound, OptionRound::Errors as RoundErrors};
     use pitch_lake::option_round::interface::{
         ConstructorArgs as OptionRoundConstructorArgs, OptionRoundState, IOptionRoundDispatcher,
         IOptionRoundDispatcherTrait, PricingData,
@@ -98,13 +98,16 @@ mod Vault {
     // *************************************************************************
 
     mod Errors {
-        const JobRequestOutOfBounds: felt252 = 'Job request out of bounds';
-        const JobRequestUpperBoundsMismatch: felt252 = 'Job request bounds mismatch';
-        const JobRequestForIrrelevantTime: felt252 = 'Job request for irrelevant time';
+        // Fossil
+        const CallerNotWhitelisted: felt252 = 'Caller not whitelisted';
         const L1DataOutOfRange: felt252 = 'L1 data out of range';
+
+        // Withdraw/queuing withdrawals
         const InsufficientBalance: felt252 = 'Insufficient unlocked balance';
         const QueueingMoreThanPositionValue: felt252 = 'Insufficient balance to queue';
         const WithdrawalQueuedWhileUnlocked: felt252 = 'Can only queue while locked';
+
+        // Option round deployment
         const OptionRoundDeploymentFailed: felt252 = 'Option round deployment failed';
     }
 
@@ -121,7 +124,6 @@ mod Vault {
         StashWithdrawn: StashWithdrawn,
         OptionRoundDeployed: OptionRoundDeployed,
         L1RequestFulfilled: L1RequestFulfilled,
-        L1RequestNotFulfilled: L1RequestNotFulfilled,
     }
 
     // @dev Emitted when a deposit is made for an account
@@ -206,15 +208,6 @@ mod Vault {
         caller: ContractAddress,
     }
 
-    #[derive(Serde, Drop, starknet::Event, PartialEq)]
-    struct L1RequestNotFulfilled {
-        #[key]
-        id: felt252,
-        #[key]
-        caller: ContractAddress,
-        reason: felt252,
-    }
-
     // *************************************************************************
     //                            IMPLEMENTATION
     // *************************************************************************
@@ -234,18 +227,6 @@ mod Vault {
         fn get_eth_address(self: @ContractState) -> ContractAddress {
             self.eth_address.read()
         }
-
-        //        fn get_auction_run_time(self: @ContractState) -> u64 {
-        //            AUCTION_RUN_TIME
-        //        }
-        //
-        //        fn get_option_run_time(self: @ContractState) -> u64 {
-        //            OPTION_RUN_TIME
-        //        }
-        //
-        //        fn get_round_transition_period(self: @ContractState) -> u64 {
-        //            ROUND_TRANSITION_PERIOD
-        //        }
 
         fn get_current_round_id(self: @ContractState) -> u256 {
             self.current_round_id.read()
@@ -579,16 +560,14 @@ mod Vault {
 
         /// State transitions
 
-        fn fulfill_request(
-            ref self: ContractState, request: L1DataRequest, result: L1Result
-        ) -> bool {
+        fn fulfill_request(ref self: ContractState, request: L1DataRequest, result: L1Result) {
             // @dev Requests can only be fulfilled if the current round is Open || Running
             let current_round = self.get_round_dispatcher(self.current_round_id.read());
             let state = current_round.get_state();
-            if (state == OptionRoundState::Auctioning || state == OptionRoundState::Settled) {
-                // emit event ?
-                return false;
-            }
+            assert(
+                state == OptionRoundState::Open || state == OptionRoundState::Running,
+                Errors::L1DataOutOfRange
+            );
 
             // @dev If the current round is Open, the result is being used to refresh the current
             // round's pricing data; therefore, its timestamp must be between the round's deployment
@@ -608,18 +587,16 @@ mod Vault {
 
             // @dev Ensure result is in bounds
             let timestamp = request.timestamp;
-            if (timestamp < lower_bound || timestamp > upper_bound) {
-                // emit event ?
-                return false;
-            }
+            assert(timestamp >= lower_bound || timestamp <= upper_bound, Errors::L1DataOutOfRange);
 
             // @dev Since we are skipping the proof verification, Pitch Lake will use a whitelisted
             // address to fulfill requests, eventually update to proof verification instead
             let caller = get_caller_address();
-            if self.fulfillment_whitelist.entry(caller).read() == false {
-                // emit event ?
-                return false;
-            }
+            assert(self.fulfillment_whitelist.entry(caller).read(), Errors::CallerNotWhitelisted);
+            //            if self.fulfillment_whitelist.entry(caller).read() == false {
+            //                // emit event ?
+            //                return false;
+            //            }
 
             // @dev If the current round is Open, set its pricing data directly
             if state == OptionRoundState::Open {
@@ -637,8 +614,6 @@ mod Vault {
                         L1RequestFulfilled { id: generate_request_id(request), caller }
                     )
                 );
-
-            true
         }
 
         //        fn fulfill_request_to_settle_round(
@@ -777,11 +752,10 @@ mod Vault {
         }
 
         fn settle_round(ref self: ContractState) -> u256 {
-            // @dev Get settlement pricing data if set for the current round's settlement
+            // @dev Get pricing data set for the current round's settlement
             let current_round_id = self.current_round_id.read();
             let l1_data = self.l1_data.entry(current_round_id).read();
-
-            assert(l1_data != Default::default(), 'Replace w/Data not set');
+            assert(l1_data != Default::default(), RoundErrors::PricingDataNotSet);
 
             // @dev Settle the current round and return the total payout
             let current_round = self.get_round_dispatcher(current_round_id);

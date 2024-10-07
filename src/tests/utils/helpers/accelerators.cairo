@@ -96,7 +96,7 @@ fn accelerate_to_settled(ref self: VaultFacade, twap: u256) -> u256 {
 
     // Create a mock result (proofs do not matter)
     let result = L1Result {
-        data: L1Data { twap, volatility: 5000, reserve_price: to_gwei(2) }, proof: array![]
+        data: L1Data { twap, volatility: 5000, reserve_price: to_gwei(2) }, proof: array![].span()
     };
 
     // Set repsonse

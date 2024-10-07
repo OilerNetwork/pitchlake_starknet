@@ -3,7 +3,8 @@ use starknet::{
     testing::{set_contract_address, set_block_timestamp}
 };
 use pitch_lake::{
-    vault::contract::Vault, option_round::contract::OptionRound::Errors,
+    vault::contract::Vault, vault::contract::Vault::Errors as vErrors,
+    option_round::contract::OptionRound::Errors,
     vault::interface::{L1Data, L1DataRequest, L1Result, VaultType},
     option_round::interface::PricingData, library::pricing_utils,
     tests::{
@@ -32,7 +33,9 @@ use pitch_lake::{
 };
 
 const salt: u64 = 0x123;
+
 const err: felt252 = Errors::CallerIsNotVault;
+const err2: felt252 = vErrors::CallerNotWhitelisted;
 
 fn not_vault() -> ContractAddress {
     contract_address_const::<'not vault'>()
@@ -96,7 +99,7 @@ fn test_only_vault_can_update_round_params() {
 
 #[test]
 #[available_gas(50000000)]
-fn test_update_round_params_on_round() {
+fn test_set_pricing_data_on_round() {
     let (mut vault, _) = setup_facade();
     let mut round = vault.get_current_round();
 
@@ -124,16 +127,6 @@ fn test_update_round_params_on_round() {
 
 #[test]
 #[available_gas(50000000)]
-fn test_first_round_cannot_start_until_fact_set() {
-    let eth = deploy_eth();
-    let vault_dispatcher = deploy_vault(VaultType::AtTheMoney, eth.contract_address);
-    let mut vault: VaultFacade = VaultFacade { vault_dispatcher };
-
-    vault.start_auction_expect_error(Errors::PricingDataNotSet);
-}
-
-#[test]
-#[available_gas(50000000)]
 fn test_setting_first_round_params_updates_from_default() {
     set_block_timestamp(123456789);
     let eth = deploy_eth();
@@ -147,7 +140,7 @@ fn test_setting_first_round_params_updates_from_default() {
 
     let request = vault.get_request_to_start_auction();
     let result = L1Result {
-        proof: array![],
+        proof: array![].span(),
         data: L1Data { twap: to_gwei(10), volatility: 5000, reserve_price: to_gwei(123), }
     };
 
@@ -171,111 +164,3 @@ fn test_setting_first_round_params_updates_from_default() {
     assert_eq!(cap_level, ex_cap_level);
     assert_eq!(strike_price, ex_strike_price);
 }
-
-
-// test pricing data set events
-#[test]
-#[available_gas(1_000_000_000)]
-fn test_pricing_data_set_events() {
-    let (mut vault, _) = setup_facade();
-
-    for _ in 0
-        ..3_usize {
-            accelerate_to_auctioning(ref vault);
-            accelerate_to_running(ref vault);
-            accelerate_to_settled(ref vault, to_gwei(10));
-
-            let mut current_round = vault.get_current_round();
-            clear_event_logs(array![current_round.contract_address()]);
-            let request = vault.get_request_to_start_auction();
-            let twap = to_gwei(10);
-            let volatility = 3333;
-            let reserve_price = to_gwei(3);
-            let response = L1Result {
-                proof: array![], data: L1Data { twap, volatility, reserve_price }
-            };
-            set_contract_address(get_fossil_address());
-            vault.fulfill_request(request, response);
-
-            assert_event_pricing_data_set(
-                current_round.contract_address(), twap, volatility, reserve_price
-            );
-        }
-}
-
-
-#[test]
-#[available_gas(1_000_000_000)]
-fn test_refreshing_consequtive_round_refreshing() {
-    let (mut vault, _) = setup_facade();
-
-    for _ in 0
-        ..3_usize {
-            accelerate_to_auctioning(ref vault);
-            accelerate_to_running(ref vault);
-            accelerate_to_settled(ref vault, to_gwei(10));
-
-            // Refresh data
-            let exp_twap0 = to_gwei(666);
-            let exp_volatility0 = 1234;
-            let exp_reserve_price0 = to_gwei(123);
-            let exp_cap_level0 = pricing_utils::calculate_cap_level(0, exp_volatility0);
-            let exp_strike_price0 = pricing_utils::calculate_strike_price(
-                VaultType::AtTheMoney, exp_twap0, exp_cap_level0
-            );
-
-            let request = vault.get_request_to_start_auction();
-            let response = L1Result {
-                proof: array![],
-                data: L1Data {
-                    twap: exp_twap0, volatility: exp_volatility0, reserve_price: exp_reserve_price0
-                }
-            };
-            set_contract_address(get_fossil_address());
-            vault.fulfill_request(request, response);
-
-            let mut current_round = vault.get_current_round();
-            let strike_price0 = current_round.get_strike_price();
-            let cap_level0 = current_round.get_cap_level();
-            let reserve_price0 = current_round.get_reserve_price();
-
-            // Check pricing data updates as expected
-            assert_eq!(cap_level0, exp_cap_level0);
-            assert_eq!(reserve_price0, exp_reserve_price0);
-            assert_eq!(strike_price0, exp_strike_price0);
-
-            // Refresh data again
-            let exp_twap1 = to_gwei(777);
-            let exp_volatility1 = 6789;
-            let exp_reserve_price1 = to_gwei(333);
-            let exp_cap_level1 = pricing_utils::calculate_cap_level(123, exp_volatility1);
-            let exp_strike_price1 = pricing_utils::calculate_strike_price(
-                VaultType::AtTheMoney, exp_twap1, exp_cap_level1
-            );
-
-            let request = vault.get_request_to_start_auction();
-            let response = L1Result {
-                proof: array![],
-                data: L1Data {
-                    twap: exp_twap1, volatility: exp_volatility1, reserve_price: exp_reserve_price1
-                }
-            };
-            set_contract_address(get_fossil_address());
-            vault.fulfill_request(request, response);
-
-            let strike_price1 = current_round.get_strike_price();
-            let cap_level1 = current_round.get_cap_level();
-            let reserve_price1 = current_round.get_reserve_price();
-
-            // Check pricing data updates as expected
-            assert_eq!(cap_level1, exp_cap_level1);
-            assert_eq!(reserve_price1, exp_reserve_price1);
-            assert_eq!(strike_price1, exp_strike_price1);
-        }
-}
-//@note todo add test that fulfill request can only be called by fossil addreses
-// - replace with valid/invalid proof tests later
-
-// @note todo add test for starting auction/setlling round with no data set
-
-

@@ -510,9 +510,12 @@ mod OptionRound {
         }
 
         fn start_auction(ref self: ContractState, starting_liquidity: u256) -> u256 {
+            // @dev Ensure pricing data is set
+            let pricing_data = self.pricing_data.read();
+            assert(pricing_data != Default::default(), Errors::PricingDataNotSet);
             // @dev Calculate total options available
-            let strike_price = self.pricing_data.strike_price.read();
-            let cap_level = self.pricing_data.cap_level.read();
+            let strike_price = pricing_data.strike_price;
+            let cap_level = pricing_data.cap_level;
             let options_available = calculate_total_options_available(
                 starting_liquidity, strike_price, cap_level
             );

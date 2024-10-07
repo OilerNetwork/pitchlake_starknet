@@ -44,6 +44,7 @@ mod option_round {
             mod option_settle_tests;
         }
         mod caller_is_not_vault_tests;
+        mod fulfill_request_tests;
     }
 }
 

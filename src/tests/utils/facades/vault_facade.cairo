@@ -144,9 +144,17 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     /// State transition
 
-    fn fulfill_request(ref self: VaultFacade, request: L1DataRequest, result: L1Result) -> bool {
+    fn fulfill_request(ref self: VaultFacade, request: L1DataRequest, result: L1Result) {
         set_contract_address(get_fossil_address());
-        self.vault_dispatcher.fulfill_request(request, result)
+        self.vault_dispatcher.fulfill_request(request, result);
+    }
+
+    #[feature("safe_dispatcher")]
+    fn fulfill_request_expect_error(
+        ref self: VaultFacade, request: L1DataRequest, result: L1Result, error: felt252
+    ) {
+        let safe_vault = self.get_safe_dispatcher();
+        safe_vault.fulfill_request(request, result).expect_err(error);
     }
 
     fn start_auction(ref self: VaultFacade) -> u256 {
