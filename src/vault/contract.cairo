@@ -591,10 +591,6 @@ mod Vault {
             // address to fulfill requests, eventually update to proof verification instead
             let caller = get_caller_address();
             assert(self.fulfillment_whitelist.entry(caller).read(), Errors::CallerNotWhitelisted);
-            //            if self.fulfillment_whitelist.entry(caller).read() == false {
-            //                // emit event ?
-            //                return false;
-            //            }
 
             // @dev If the current round is Open, set its pricing data directly
             if state == OptionRoundState::Open {

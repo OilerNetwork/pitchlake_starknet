@@ -180,3 +180,5 @@ fn test_fulfilling_multiple_request() {
         }
 }
 
+// @note todo add test for request timestamp out of bounds (high and low for both fulfillment types (auction start/round settle))
+// @note todo add test for setting default values then starting auction/settling round
