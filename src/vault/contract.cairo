@@ -585,8 +585,7 @@ mod Vault {
 
             // @dev Ensure result is in bounds
             let timestamp = request.timestamp;
-            // @NOTE bug, needs to be &&
-            assert(timestamp >= lower_bound || timestamp <= upper_bound, Errors::L1DataOutOfRange);
+            assert(timestamp >= lower_bound && timestamp <= upper_bound, Errors::L1DataOutOfRange);
 
             // @dev Since we are skipping the proof verification, Pitch Lake will use a whitelisted
             // address to fulfill requests, eventually update to proof verification instead
