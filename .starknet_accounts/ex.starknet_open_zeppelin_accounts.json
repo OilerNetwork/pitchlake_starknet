@@ -1,0 +1,14 @@
+{
+  "alpha-sepolia": {
+    "user1": {
+      "address": "0x...",
+      "class_hash": "0x...",
+      "deployed": true,
+      "legacy": false,
+      "private_key": "0x...",
+      "public_key": "0x...",
+      "salt": "0x...",
+      "type": "open_zeppelin"
+    }
+  }
+}
