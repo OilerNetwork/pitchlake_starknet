@@ -585,12 +585,13 @@ mod Vault {
 
             // @dev Ensure result is in bounds
             let timestamp = request.timestamp;
-            assert(timestamp >= lower_bound || timestamp <= upper_bound, Errors::L1DataOutOfRange);
+            assert(timestamp >= lower_bound && timestamp <= upper_bound, Errors::L1DataOutOfRange);
 
             // @dev Since we are skipping the proof verification, Pitch Lake will use a whitelisted
             // address to fulfill requests, eventually update to proof verification instead
             let caller = get_caller_address();
-            assert(self.fulfillment_whitelist.entry(caller).read(), Errors::CallerNotWhitelisted);
+            //assert(self.fulfillment_whitelist.entry(caller).read(), Errors::CallerNotWhitelisted);
+            // assert identifiers match
 
             // @dev If the current round is Open, set its pricing data directly
             if state == OptionRoundState::Open {

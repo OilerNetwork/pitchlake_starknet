@@ -179,6 +179,8 @@ fn test_fulfilling_multiple_request() {
             assert_eq!(strike_price1, exp_strike_price1);
         }
 }
-
-// @note todo add test for request timestamp out of bounds (high and low for both fulfillment types (auction start/round settle))
+// @note todo add test for request timestamp out of bounds (high and low for both fulfillment types
+// (auction start/round settle))
 // @note todo add test for setting default values then starting auction/settling round
+
+

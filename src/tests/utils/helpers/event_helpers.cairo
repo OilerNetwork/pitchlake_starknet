@@ -249,7 +249,7 @@ fn assert_event_option_round_deployed(
                 pricing_data
             );
         },
-       Option::None => { panic(array!['No events found1']); }
+        Option::None => { panic(array!['No events found1']); }
     }
 }
 

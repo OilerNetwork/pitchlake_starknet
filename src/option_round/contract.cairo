@@ -540,14 +540,19 @@ mod OptionRound {
             // @dev Set unsold liquidity if some options do not sell
             let starting_liq = self.starting_liquidity.read();
             let options_unsold = options_available - options_sold;
-            let unsold_liquidity = (starting_liq * options_unsold) / options_available;
+            let unsold_liquidity = match options_available.is_zero() {
+                true => 0,
+                false => (starting_liq * options_unsold) / options_available
+            };
 
             if unsold_liquidity.is_non_zero() {
                 self.unsold_liquidity.write(unsold_liquidity);
             }
 
             // @dev Send premiums to Vault
-            self.get_eth_dispatcher().transfer(self.vault_address.read(), self.get_total_premium());
+            self
+                .get_eth_dispatcher()
+                .transfer(self.vault_address.read(), options_sold * clearing_price);
 
             // @dev Transition state and emit event
             self.transition_state_to(OptionRoundState::Running);
@@ -597,6 +602,7 @@ mod OptionRound {
             // at or above the reserve price
             assert(amount.is_non_zero(), Errors::BidAmountZero);
             assert(price >= self.get_reserve_price(), Errors::BidBelowReservePrice);
+            // @note todo Do we need to restrict bid amount <= total available ?
 
             // @dev Create Bid struct
             let account = get_caller_address();
@@ -827,10 +833,12 @@ mod OptionRound {
             let state = self.get_state();
             let now = get_block_timestamp();
             let target = self.get_auction_end_date();
+            let options_available = self.bids_tree._get_total_options_available();
             assert(
                 now < target && state == OptionRoundState::Auctioning,
                 Errors::BiddingWhileNotAuctioning
             );
+            assert(options_available.is_non_zero(), 'TODO: No options to bid for')
         }
 
         /// ERC-20
