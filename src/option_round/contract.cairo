@@ -550,7 +550,9 @@ mod OptionRound {
             }
 
             // @dev Send premiums to Vault
-            self.get_eth_dispatcher().transfer(self.vault_address.read(), options_sold * clearing_price);
+            self
+                .get_eth_dispatcher()
+                .transfer(self.vault_address.read(), options_sold * clearing_price);
 
             // @dev Transition state and emit event
             self.transition_state_to(OptionRoundState::Running);
