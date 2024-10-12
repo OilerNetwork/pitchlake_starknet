@@ -499,6 +499,11 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         self.option_round_dispatcher.get_options_available()
     }
 
+    fn get_settlement_price(ref self: OptionRoundFacade) -> u256 {
+        self.option_round_dispatcher.get_settlement_price()
+    }
+
+
     /// ERC20 functions
     fn to_erc20(ref self: OptionRoundFacade) -> ERC20ABIDispatcher {
         ERC20ABIDispatcher { contract_address: self.contract_address() }

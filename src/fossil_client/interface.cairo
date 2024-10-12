@@ -4,28 +4,29 @@ use starknet::{ContractAddress, StorePacking};
 //                            FOSSIL CLIENT
 // *************************************************************************
 
+#[starknet::interface]
+trait IFossilClient<TContractState> {
+    fn fossil_callback(ref self: TContractState, request: Span<felt252>, result: Span<felt252>);
+}
+
+// *************************************************************************
+//                            PITCH LAKE CLIENT
+// *************************************************************************
+
 #[derive(Copy, Drop, Serde)]
-struct FossilRequest {
-    program_hash: felt252, // Axiom uses querySchema by reading the circuit
-    program_inputs: Span<felt252>, // Pitch Lake will pass timestamp
-    context: Span<
-        felt252
-    >, // Used by client to understand the request further (Axiom used extraData)
+struct JobRequest {
+    // Identifiers
+    program_id: felt252, // 'PITCH_LAKE_V1'
+    vault_address: ContractAddress, // Which vault is this request for
+    // Timestamp
+    timestamp: u64, // Timestamp of the request computed
 }
 
 #[derive(Copy, Drop, Serde)]
 struct FossilResult {
-    program_outputs: Span<felt252>,
-    proof: Span<felt252>,
+    l1_data: L1Data, // Results of the computation
+    proof: Span<felt252>, // Place holder for proof data
 }
-
-#[starknet::interface]
-trait IFossilClient<TContractState> {
-    fn fulfill_request(ref self: TContractState, request: FossilRequest, result: FossilResult);
-}
-// *************************************************************************
-//                            PITCH LAKE CLIENT
-// *************************************************************************
 
 #[derive(Default, Copy, Drop, Serde, PartialEq, starknet::Store)]
 struct L1Data {
@@ -34,8 +35,3 @@ struct L1Data {
     reserve_price: u256,
 }
 
-#[starknet::interface]
-trait IPitchLakeClient<TContractState> {//    fn get_data_for_vault_round(
-//        self: @TContractState, vault_address: ContractAddress, round_id: u256
-//    ) -> Option<L1Data>;
-}

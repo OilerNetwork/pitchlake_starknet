@@ -2,8 +2,12 @@ use core::array::SpanTrait;
 use starknet::{testing, ContractAddress,};
 use openzeppelin_utils::serde::SerializedAppend;
 use openzeppelin_token::erc20::{ERC20Component, ERC20Component::Transfer};
-use pitch_lake::{vault::contract::Vault, option_round::contract::OptionRound};
+use pitch_lake::{
+    vault::contract::Vault, option_round::contract::OptionRound,
+    fossil_client::contract::FossilClient
+};
 use pitch_lake::option_round::interface::{PricingData};
+use pitch_lake::fossil_client::interface::{L1Data};
 use debug::PrintTrait;
 
 /// Helpers ///
@@ -48,15 +52,30 @@ fn assert_events_equal<T, +PartialEq<T>, +Drop<T>>(actual: T, expected: T) {
     assert(actual == expected, 'Event does not match expected');
 }
 
+/// Fossil Client Events ///
+fn assert_fossil_callback_success_event(
+    fossil_client_address: ContractAddress,
+    vault_address: ContractAddress,
+    l1_data: L1Data,
+    timestamp: u64,
+) {
+    match pop_log::<FossilClient::Event>(fossil_client_address) {
+        Option::Some(e) => {
+            let expected = FossilClient::Event::FossilCallbackSuccess(
+                FossilClient::FossilCallbackSuccess { vault_address, l1_data, timestamp }
+            );
+            assert_events_equal(e, expected);
+        },
+        Option::None => { panic(array!['No events found']); }
+    };
+}
+
 /// OptionRound Events ///
 
 // Check AuctionStart emits correctly
 fn assert_event_auction_start(
     option_round_address: ContractAddress, starting_liquidity: u256, options_available: u256
 ) {
-    // @note Confirm this works (fix from discord), then work into other event assertions (should
-    // handle manual ones as well)
-    // @note Reminder to clear event logs at the end of the accelerators
     match pop_log::<OptionRound::Event>(option_round_address) {
         Option::Some(e) => {
             let expected = OptionRound::Event::AuctionStarted(

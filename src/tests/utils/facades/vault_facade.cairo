@@ -1,9 +1,10 @@
 use starknet::{ContractAddress, testing::{set_contract_address, set_block_timestamp}};
 use openzeppelin_token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
 use pitch_lake::{
+    fossil_client::interface::{JobRequest, L1Data, FossilResult},
     vault::{
         interface::{
-            L1DataRequest, L1Result, IVaultDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcher,
+            VaultType, IVaultDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcher,
             IVaultSafeDispatcherTrait
         }
     },
@@ -19,9 +20,10 @@ use pitch_lake::{
             },
             facades::{
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait}, sanity_checks,
+                fossil_client_facade::{FossilClientFacade, FossilClientFacadeTrait},
             },
             helpers::{
-                setup::{eth_supply_and_approve_all_bidders, get_fossil_address},
+                setup::{eth_supply_and_approve_all_bidders, FOSSIL_PROCESSOR},
                 general_helpers::{assert_two_arrays_equal_length}
             },
         },
@@ -37,6 +39,13 @@ struct VaultFacade {
 impl VaultFacadeImpl of VaultFacadeTrait {
     fn get_safe_dispatcher(ref self: VaultFacade) -> IVaultSafeDispatcher {
         IVaultSafeDispatcher { contract_address: self.contract_address() }
+    }
+
+
+    /// Fossil
+
+    fn get_fossil_client_facade(ref self: VaultFacade) -> FossilClientFacade {
+        FossilClientFacade { contract_address: self.vault_dispatcher.get_fossil_client_address() }
     }
 
     /// Writes ///
@@ -144,17 +153,17 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     /// State transition
 
-    fn fulfill_request(ref self: VaultFacade, request: L1DataRequest, result: L1Result) {
-        set_contract_address(get_fossil_address());
-        self.vault_dispatcher.fulfill_request(request, result);
+    fn fossil_client_callback(ref self: VaultFacade, l1_data: L1Data, timestamp: u64) {
+        set_contract_address(self.get_fossil_client_address());
+        self.vault_dispatcher.fossil_client_callback(l1_data, timestamp);
     }
 
     #[feature("safe_dispatcher")]
-    fn fulfill_request_expect_error(
-        ref self: VaultFacade, request: L1DataRequest, result: L1Result, error: felt252
+    fn fossil_client_callback_expect_error(
+        ref self: VaultFacade, l1_data: L1Data, timestamp: u64, error: felt252
     ) {
         let safe_vault = self.get_safe_dispatcher();
-        safe_vault.fulfill_request(request, result).expect_err(error);
+        safe_vault.fossil_client_callback(l1_data, timestamp).expect_err(error);
     }
 
     fn start_auction(ref self: VaultFacade) -> u256 {
@@ -211,11 +220,11 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     /// Fossil
 
-    fn get_request_to_settle_round(ref self: VaultFacade) -> L1DataRequest {
+    fn get_request_to_settle_round(ref self: VaultFacade) -> JobRequest {
         self.vault_dispatcher.get_request_to_settle_round()
     }
 
-    fn get_request_to_start_auction(ref self: VaultFacade,) -> L1DataRequest {
+    fn get_request_to_start_auction(ref self: VaultFacade,) -> JobRequest {
         self.vault_dispatcher.get_request_to_start_auction()
     }
 
@@ -244,6 +253,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
         round.get_unsold_liquidity()
     }
+
 
     /// Liquidity
 
@@ -440,10 +450,24 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         self.vault_dispatcher.contract_address
     }
 
+    fn get_vault_type(ref self: VaultFacade) -> VaultType {
+        self.vault_dispatcher.get_vault_type()
+    }
+
+    fn get_alpha(ref self: VaultFacade) -> u128 {
+        self.vault_dispatcher.get_alpha()
+    }
+
     // Eth contract address
     fn get_eth_address(ref self: VaultFacade) -> ContractAddress {
         self.vault_dispatcher.get_eth_address()
     }
+
+    // Get the address of the Fossil Client contract
+    fn get_fossil_client_address(ref self: VaultFacade) -> ContractAddress {
+        self.vault_dispatcher.get_fossil_client_address()
+    }
+
 
     fn get_auction_run_time(ref self: VaultFacade) -> u64 {
         AUCTION_RUN_TIME

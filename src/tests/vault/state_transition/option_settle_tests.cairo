@@ -190,7 +190,7 @@ fn test_next_round_deployed_events() {
             };
 
             assert(pricing_data != Default::default(), 'Pricing data not set correctly');
-            assert_event_option_round_deployed(
+            assert_event_option_round_deployed_single(
                 vault.contract_address(),
                 i + 1,
                 round_i_plus_1.contract_address(),

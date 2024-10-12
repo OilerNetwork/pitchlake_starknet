@@ -1,14 +1,13 @@
 #[starknet::contract]
-mod PitchLakeClient {
-    use starknet::{ContractAddress, StorePacking};
+mod FossilClient {
+    use starknet::{ContractAddress, get_caller_address};
     use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess,};
     use starknet::storage::{Map, StoragePathEntry};
 
-    use pitch_lake::fossil_client::interface::{
-        FossilRequest, FossilResult, IFossilClient, L1Data, IPitchLakeClient,
-    };
     use pitch_lake::vault::interface::{IVaultDispatcher, IVaultDispatcherTrait};
     use pitch_lake::option_round::interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait};
+    use pitch_lake::fossil_client::interface::{JobRequest, FossilResult, L1Data, IFossilClient,};
+
     // *************************************************************************
     //                              Constants
     // *************************************************************************
@@ -19,7 +18,7 @@ mod PitchLakeClient {
 
     #[storage]
     struct Storage {
-        fulfilled_requests: Map<ContractAddress, Map<u256, Option<L1Data>>>,
+        fossil_processor: ContractAddress,
     }
 
     // *************************************************************************
@@ -27,7 +26,37 @@ mod PitchLakeClient {
     // *************************************************************************
 
     #[constructor]
-    fn constructor(ref self: ContractState) {}
+    fn constructor(ref self: ContractState, fossil_processor: ContractAddress) {
+        self.fossil_processor.write(fossil_processor);
+        // save program id/hash ?
+
+    }
+    // *************************************************************************
+    //                              ERRORS
+    // *************************************************************************
+
+    mod Errors {
+        const CallerNotFossilProcessor: felt252 = 'Caller not the fossil processor';
+        const FailedToDeserializeRequest: felt252 = 'Failed to deserialize request';
+        const FailedToDeserializeResult: felt252 = 'Failed to deserialize result';
+    }
+
+    // *************************************************************************
+    //                              EVENTS
+    // *************************************************************************
+
+    #[event]
+    #[derive(Serde, PartialEq, Drop, starknet::Event)]
+    enum Event {
+        FossilCallbackSuccess: FossilCallbackSuccess,
+    }
+
+    #[derive(Serde, Drop, starknet::Event, PartialEq)]
+    struct FossilCallbackSuccess {
+        vault_address: ContractAddress,
+        l1_data: L1Data,
+        timestamp: u64,
+    }
 
     // *************************************************************************
     //                            IMPLEMENTATIONS
@@ -35,59 +64,39 @@ mod PitchLakeClient {
 
     #[abi(embed_v0)]
     impl FossilClientImpl of IFossilClient<ContractState> {
-        fn fulfill_request(ref self: ContractState, request: FossilRequest, result: FossilResult) {
-            //let timestamp: u64 = (*request.program_inputs.at(0)).try_into().expect('no
-            //timestamp');
+        fn fossil_callback(ref self: ContractState, request: Span<felt252>, result: Span<felt252>) {
+            // Verify caller is the fossil processor
+            assert(
+                get_caller_address() == self.fossil_processor.read(),
+                Errors::CallerNotFossilProcessor
+            );
 
-            let context = request.context;
-            let vault_address: ContractAddress = (*context.at(0))
-                .try_into()
-                .expect('no vault address');
-            // get current round, if open, check timestamp between deployment date and auction start
-            // date, if running check timestamp is option settlemendate minus tolerance
-            let vault = IVaultDispatcher { contract_address: vault_address };
-            let current_round_id = vault.get_current_round_id();
-            let current_round = IOptionRoundDispatcher {
-                contract_address: vault.get_round_address(current_round_id)
-            };
-            let state = current_round.get_state();
+            // Deserialize request & result
+            let mut raw_request = request;
+            let mut raw_result = result;
 
-            // validate program hash
-            // validate program input (timestamp is within bounds)
-            // prove data
-            // store data
-            let mut l1_data_raw = result.program_outputs;
-            let l1_data: L1Data = Serde::<L1Data>::deserialize(ref l1_data_raw)
-                .expect('Failed to deserialize L1 data');
+            let JobRequest { vault_address, timestamp, program_id: _ } = Serde::deserialize(
+                ref raw_request
+            )
+                .expect(Errors::FailedToDeserializeRequest);
+            let FossilResult { l1_data, proof: _ } = Serde::deserialize(ref raw_result)
+                .expect(Errors::FailedToDeserializeResult);
 
-            assert(l1_data != Default::default(), 'L1 data is empty');
+            // Once proving is implemented, remove caller assertion and verify inputs (timestamp &
+            // program id)/outputs (l1 data)/proof
 
+            // Relay the L1 data to the correct vault
+            IVaultDispatcher { contract_address: vault_address }
+                .fossil_client_callback(l1_data, timestamp);
+
+            // Emit event
             self
-                .fulfilled_requests
-                .entry(vault_address)
-                .entry(current_round_id)
-                .write(Option::Some(l1_data));
+                .emit(
+                    Event::FossilCallbackSuccess(
+                        FossilCallbackSuccess { vault_address, l1_data, timestamp }
+                    )
+                );
         }
-    }
-
-    #[abi(embed_v0)]
-    impl PitchLakeClientImpl of IPitchLakeClient<ContractState> {//  fn get_data_for_vault_round(
-    //      self: @ContractState, vault_address: ContractAddress, round_id: u256
-    //  ) -> Option<FossilData> { //
-    //      //get data from storage
-    //      // return data
-
-    //      self.fulfilled_requests.entry(vault_address).entry(round_id).read()
-    //  }
-    }
-
-    // *************************************************************************
-    //                          INTERNAL FUNCTIONS
-    // *************************************************************************
-
-    #[generate_trait]
-    impl InternalImpl of PitchLakeClientInternalTrait {
-        fn l1_data_to_pricing_data(self: @ContractState, l1_data: L1Data) -> () {}
     }
 }
 

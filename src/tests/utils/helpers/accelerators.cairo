@@ -4,12 +4,8 @@ use starknet::{
 };
 use core::fmt::Display;
 use pitch_lake::{
-    vault::{
-        contract::Vault,
-        interface::{
-            L1Result, L1Data, L1DataRequest, VaultType, IVaultDispatcher, IVaultDispatcherTrait
-        }
-    },
+    vault::{contract::Vault, interface::{VaultType, IVaultDispatcher, IVaultDispatcherTrait}},
+    fossil_client::interface::{L1Data, JobRequest, FossilResult},
     option_round::{
         contract::{OptionRound},
         interface::{
@@ -33,6 +29,7 @@ use pitch_lake::{
             facades::{
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
                 vault_facade::{VaultFacade, VaultFacadeTrait},
+                fossil_client_facade::{FossilClientFacade, FossilClientFacadeTrait},
             },
         },
     },
@@ -92,15 +89,21 @@ fn accelerate_to_running_custom(
 // Settle the option round with a custom settlement price (compared to strike to determine payout)
 fn accelerate_to_settled(ref self: VaultFacade, twap: u256) -> u256 {
     // Get the data request to fulfill
-    let request = self.get_request_to_settle_round();
+    let mut request_serialized = array![];
+    self.get_request_to_settle_round().serialize(ref request_serialized);
 
     // Create a mock result (proofs do not matter)
-    let result = L1Result {
-        data: L1Data { twap, volatility: 5000, reserve_price: to_gwei(2) }, proof: array![].span()
-    };
+    let mut result_serialized = array![];
+    FossilResult {
+        l1_data: L1Data { twap, volatility: 5000, reserve_price: to_gwei(2) },
+        proof: array![].span()
+    }
+        .serialize(ref result_serialized);
 
-    // Set repsonse
-    self.fulfill_request(request, result);
+    // Make callback to fulfill the request
+    self
+        .get_fossil_client_facade()
+        .fossil_callback(request_serialized.span(), result_serialized.span());
 
     // Jump to the option expiry date and settle the round
     timeskip_and_settle_round(ref self)

@@ -1,5 +1,5 @@
 use core::poseidon::poseidon_hash_span;
-use pitch_lake::vault::interface::L1DataRequest;
+use pitch_lake::fossil_client::interface::JobRequest;
 
 pub const VALUES_NOT_IN_RANGE: felt252 = 'Values not in range';
 
@@ -39,7 +39,7 @@ fn pow(base: u256, exp: u8) -> u256 {
 }
 
 // @dev Serialize the job request and hash it to create the its ID
-fn generate_request_id(request: L1DataRequest) -> felt252 {
+fn generate_request_id(request: JobRequest) -> felt252 {
     let mut serialized: Array<felt252> = Default::default();
     request.serialize(ref serialized);
     poseidon_hash_span(serialized.span())

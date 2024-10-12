@@ -64,6 +64,7 @@ mod utils {
     mod facades {
         mod vault_facade;
         mod option_round_facade;
+        mod fossil_client_facade;
         mod sanity_checks;
     }
 

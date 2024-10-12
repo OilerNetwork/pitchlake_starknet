@@ -1,6 +1,8 @@
 use starknet::{ContractAddress, ClassHash};
 use pitch_lake::option_round::interface::OptionRoundState;
 
+use pitch_lake::fossil_client::interface::{JobRequest, L1Data};
+
 // @dev An enum for each type of Vault
 #[derive(starknet::Store, Copy, Drop, Serde, PartialEq)]
 enum VaultType {
@@ -9,32 +11,10 @@ enum VaultType {
     OutOfMoney,
 }
 
-// @dev Request to settle/start a round
-#[derive(Copy, Drop, Serde)]
-struct L1DataRequest {
-    identifiers: Span<felt252>,
-    timestamp: u64,
-}
-
-// @dev Data returned from request
-#[derive(Default, PartialEq, Copy, Drop, Serde, starknet::Store)]
-struct L1Data {
-    twap: u256,
-    volatility: u128,
-    reserve_price: u256,
-}
-
-// @dev Struct to send result and proving data to `fulfill_request()`
-#[derive(Copy, Drop, Serde)]
-struct L1Result {
-    data: L1Data,
-    proof: Span<felt252>,
-}
-
 // @dev Constructor arguments
 #[derive(Drop, Serde)]
 struct ConstructorArgs {
-    request_fulfiller: ContractAddress,
+    fossil_client_address: ContractAddress,
     eth_address: ContractAddress,
     option_round_class_hash: ClassHash,
     vault_type: VaultType, // replace with strike level and alpha
@@ -48,8 +28,14 @@ trait IVault<TContractState> {
     // @dev Get the type of vault (ITM | ATM | OTM)
     fn get_vault_type(self: @TContractState) -> VaultType;
 
+    // @dev Get the alpha parameter of the vault
+    fn get_alpha(self: @TContractState) -> u128;
+
     // @dev Get the ETH address
     fn get_eth_address(self: @TContractState) -> ContractAddress;
+
+    // @dev The the Fossil Client's address
+    fn get_fossil_client_address(self: @TContractState) -> ContractAddress;
 
     // @return the current option round id
     fn get_current_round_id(self: @TContractState) -> u256;
@@ -92,11 +78,11 @@ trait IVault<TContractState> {
     /// Fossil
 
     // @dev Get the earliest Fossil request required to settle the current round
-    fn get_request_to_settle_round(self: @TContractState) -> L1DataRequest;
+    fn get_request_to_settle_round(self: @TContractState) -> JobRequest;
 
     // @dev Get the earliest Fossil request required to start the current round's auction if not
     // already set or refreshing the data
-    fn get_request_to_start_auction(self: @TContractState) -> L1DataRequest;
+    fn get_request_to_start_auction(self: @TContractState) -> JobRequest;
 
     /// Writes ///
 
@@ -124,8 +110,7 @@ trait IVault<TContractState> {
 
     /// State transitions
 
-    // @dev Fulfill a pricing data request
-    fn fulfill_request(ref self: TContractState, request: L1DataRequest, result: L1Result);
+    fn fossil_client_callback(ref self: TContractState, l1_data: L1Data, timestamp: u64);
 
     // @dev Start the current round's auction
     // @return The total options available in the auction

@@ -9,13 +9,11 @@ use openzeppelin_utils::serde::SerializedAppend;
 use openzeppelin_token::erc20::{
     ERC20Component, interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait}
 };
-
+use pitch_lake::fossil_client::interface::{JobRequest, FossilResult, L1Data};
+use pitch_lake::fossil_client::contract::FossilClient;
 use pitch_lake::{
     library::eth::Eth, vault::contract::Vault,
-    vault::interface::{
-        ConstructorArgs, L1Data, L1DataRequest, L1Result, VaultType, IVaultDispatcher,
-        IVaultDispatcherTrait
-    },
+    vault::interface::{ConstructorArgs, VaultType, IVaultDispatcher, IVaultDispatcherTrait},
     vault::contract::{Vault::{DAY}},
     option_round::{
         contract::OptionRound,
@@ -48,6 +46,7 @@ use pitch_lake::{
             facades::{
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
                 vault_facade::{VaultFacade, VaultFacadeImpl, VaultFacadeTrait},
+                fossil_client_facade::{FossilClientFacade, FossilClientFacadeTrait},
             },
         },
     },
@@ -56,6 +55,10 @@ use debug::PrintTrait;
 
 const DECIMALS: u8 = 18_u8;
 const SUPPLY: u256 = 99999999999999999999999999999999;
+
+fn FOSSIL_PROCESSOR() -> ContractAddress {
+    contract_address_const::<'FOSSIL PROCESSOR'>()
+}
 
 // Deploy eth contract for testing
 fn deploy_eth() -> ERC20ABIDispatcher {
@@ -74,18 +77,29 @@ fn deploy_eth() -> ERC20ABIDispatcher {
     return ERC20ABIDispatcher { contract_address };
 }
 
-fn get_fossil_address() -> ContractAddress {
-    contract_address_const::<'REQUEST FULFILLER'>()
+fn deploy_fossil_client() -> FossilClientFacade {
+    let mut calldata = array![];
+    calldata.append_serde(FOSSIL_PROCESSOR());
+    let (contract_address, _): (ContractAddress, Span<felt252>) = deploy_syscall(
+        FossilClient::TEST_CLASS_HASH.try_into().unwrap(), 'some salt', calldata.span(), false
+    )
+        .expect('DEPLOY_FOSSIL_CLIENT_FAILED');
+
+    // Clear the event log (not needed)
+    clear_event_logs(array![contract_address]);
+
+    return FossilClientFacade { contract_address };
 }
 
 
+// Deploy the vault and fossil client
 fn deploy_vault_with_events(
     vault_type: VaultType, eth_address: ContractAddress
 ) -> IVaultDispatcher {
-    /// Deploy market aggregator
+    /// Deploy Vault
     let mut calldata = array![];
     let args = ConstructorArgs {
-        request_fulfiller: get_fossil_address(),
+        fossil_client_address: deploy_fossil_client().contract_address,
         eth_address,
         option_round_class_hash: OptionRound::TEST_CLASS_HASH.try_into().unwrap(),
         vault_type,
@@ -104,7 +118,7 @@ fn deploy_vault_with_events(
     return IVaultDispatcher { contract_address };
 }
 
-// Deploy the vault and market aggregator
+// Deploy the vault and fossil client with events cleared
 fn deploy_vault(vault_type: VaultType, eth_address: ContractAddress) -> IVaultDispatcher {
     let vault = deploy_vault_with_events(vault_type, eth_address);
 
@@ -138,14 +152,19 @@ fn setup_facade_vault_type(vault_type: VaultType) -> VaultFacade {
     );
     let mut vault_facade = VaultFacade { vault_dispatcher };
 
-    // Set the
     // Fulfill request to start auction
-    let request = vault_facade.get_request_to_start_auction();
-    let result = L1Result {
-        data: L1Data { twap: to_gwei(10), volatility: 5000, reserve_price: to_gwei(2), },
-        proof: array![].span()
-    };
-    vault_facade.fulfill_request(request, result);
+    let mut serialized_request = array![];
+    let mut serialized_result = array![];
+    vault_facade.get_request_to_start_auction().serialize(ref serialized_request);
+    FossilResult {
+        l1_data: L1Data { twap: to_gwei(10), volatility: 5000, reserve_price: to_gwei(2), },
+        proof: array!['doesnt', 'matter'].span()
+    }
+        .serialize(ref serialized_result);
+
+    vault_facade
+        .get_fossil_client_facade()
+        .fossil_callback(serialized_request.span(), serialized_result.span());
 
     // @dev Supply eth to liquidity providers and approve vault for transferring eth
     eth_supply_and_approve_all_providers(
