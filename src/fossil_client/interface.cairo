@@ -15,17 +15,20 @@ trait IFossilClient<TContractState> {
 
 #[derive(Copy, Drop, Serde)]
 struct JobRequest {
-    // Identifiers
+    // 'PITCH_LAKE_V1' (or program hash when proving ?)
     program_id: felt252, // 'PITCH_LAKE_V1'
+    // The vault the request is for
     vault_address: ContractAddress, // Which vault is this request for
-    // Timestamp
-    timestamp: u64, // Timestamp of the request computed
+    // The timestamp the results are for
+    timestamp: u64,
 }
 
 #[derive(Copy, Drop, Serde)]
 struct FossilResult {
-    l1_data: L1Data, // Results of the computation
-    proof: Span<felt252>, // Place holder for proof data
+    // TWAP, volatility, reserve price
+    l1_data: L1Data,
+    // Place holder for proof data
+    proof: Span<felt252>,
 }
 
 #[derive(Default, Copy, Drop, Serde, PartialEq, starknet::Store)]

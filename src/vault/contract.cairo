@@ -20,16 +20,7 @@ mod Vault {
     use pitch_lake::types::{Consts::{BPS, JOB_TIMESTAMP_TOLERANCE}};
     use pitch_lake::library::utils::{assert_equal_in_range, generate_request_id,};
     use pitch_lake::library::pricing_utils::{calculate_strike_price, calculate_cap_level};
-    use pitch_lake::library::constants::{
-        MINUTE, HOUR, DAY, //ROUND_TRANSITION_PERIOD, AUCTION_RUN_TIME, OPTION_RUN_TIME
-    };
-
-    // *************************************************************************
-    //                              Constants
-    // *************************************************************************
-
-    const PITCH_LAKE_V1: felt252 = 'PITCH_LAKE_V1';
-    const TIMESTAMP_TOLERANCE: u64 = 1 * HOUR;
+    use pitch_lake::library::constants::{REQUEST_TOLERANCE, PROGRAM_ID};
 
     // *************************************************************************
     //                              STORAGE
@@ -46,7 +37,6 @@ mod Vault {
         eth_address: ContractAddress,
         fossil_client_address: ContractAddress,
         round_addresses: Map<u256, ContractAddress>,
-        ///
         ///
         // @note could use usize ?
         current_round_id: u256,
@@ -361,14 +351,7 @@ mod Vault {
                 .get_round_dispatcher(self.current_round_id.read())
                 .get_option_settlement_date();
 
-            // @dev Return the earliest request that will allow `settle_round()` to pass once
-            // finished - A request is valid as long as its timestamp is >= settlement date -
-            // tolerance and <= settlement date
-            JobRequest {
-                program_id: PITCH_LAKE_V1,
-                vault_address: get_contract_address(),
-                timestamp: settlement_date - TIMESTAMP_TOLERANCE,
-            }
+            self.generate_job_request(settlement_date - REQUEST_TOLERANCE)
         }
 
         fn get_request_to_start_auction(self: @ContractState) -> JobRequest {
@@ -377,15 +360,7 @@ mod Vault {
                 .get_round_dispatcher(self.current_round_id.read())
                 .get_deployment_date();
 
-            // @dev Return the earliest request that will allow `start_auction()` to pass once
-            // finished (if refreshing or not set yet)
-            // - A request is valid as long as its timestamp is >= deployment date and
-            // <= auction start date
-            JobRequest {
-                program_id: PITCH_LAKE_V1,
-                vault_address: get_contract_address(),
-                timestamp: deployment_date
-            }
+            self.generate_job_request(deployment_date)
         }
 
 
@@ -602,7 +577,7 @@ mod Vault {
             // be on or before the current round's settlement date (with some tolerance)
             else {
                 upper_bound = current_round.get_option_settlement_date();
-                lower_bound = upper_bound - TIMESTAMP_TOLERANCE;
+                lower_bound = upper_bound - REQUEST_TOLERANCE;
             }
 
             // @dev Ensure result is in bounds
@@ -1009,6 +984,11 @@ mod Vault {
                 // @dev Return the remaining liquidity not stashed
                 account_remaining_liq_not_stashed
             }
+        }
+
+        // @dev Generate a JobRequest for a specific timestamp
+        fn generate_job_request(self: @ContractState, timestamp: u64) -> JobRequest {
+            JobRequest { program_id: PROGRAM_ID, vault_address: get_contract_address(), timestamp }
         }
     }
 }

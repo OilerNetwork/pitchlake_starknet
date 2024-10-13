@@ -14,7 +14,6 @@ use pitch_lake::fossil_client::contract::FossilClient;
 use pitch_lake::{
     library::eth::Eth, vault::contract::Vault,
     vault::interface::{ConstructorArgs, VaultType, IVaultDispatcher, IVaultDispatcherTrait},
-    vault::contract::{Vault::{DAY}},
     option_round::{
         contract::OptionRound,
         interface::{
