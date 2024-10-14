@@ -78,11 +78,13 @@ trait IVault<TContractState> {
     /// Fossil
 
     // @dev Get the earliest Fossil request required to settle the current round
-    fn get_request_to_settle_round(self: @TContractState) -> JobRequest;
+    fn get_request_to_settle_round(self: @TContractState) -> Span<felt252>;
 
-    // @dev Get the earliest Fossil request required to start the current round's auction if not
-    // already set or refreshing the data
-    fn get_request_to_start_auction(self: @TContractState) -> JobRequest;
+    // @dev Get the earliest Fossil request required to start the current round's auction
+    // @note A round's pricing data is set when the previous round settles, this function
+    // is used to either set the pricing data for a vault's 1st round, or refresh a rounds data (if
+    // its auction has not started)
+    fn get_request_to_start_auction(self: @TContractState) -> Span<felt252>;
 
     /// Writes ///
 

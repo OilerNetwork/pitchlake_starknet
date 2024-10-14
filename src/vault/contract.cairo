@@ -345,7 +345,7 @@ mod Vault {
 
         /// Fossil
 
-        fn get_request_to_settle_round(self: @ContractState) -> JobRequest {
+        fn get_request_to_settle_round(self: @ContractState) -> Span<felt252> {
             // @dev Get the current round's settlement date
             let settlement_date = self
                 .get_round_dispatcher(self.current_round_id.read())
@@ -354,7 +354,7 @@ mod Vault {
             self.generate_job_request(settlement_date - REQUEST_TOLERANCE)
         }
 
-        fn get_request_to_start_auction(self: @ContractState) -> JobRequest {
+        fn get_request_to_start_auction(self: @ContractState) -> Span<felt252> {
             // @dev Get the current round's deployment date
             let deployment_date = self
                 .get_round_dispatcher(self.current_round_id.read())
@@ -987,8 +987,10 @@ mod Vault {
         }
 
         // @dev Generate a JobRequest for a specific timestamp
-        fn generate_job_request(self: @ContractState, timestamp: u64) -> JobRequest {
-            JobRequest { program_id: PROGRAM_ID, vault_address: get_contract_address(), timestamp }
+        fn generate_job_request(self: @ContractState, timestamp: u64) -> Span<felt252> {
+          let mut serialized_request = array![];
+            JobRequest { program_id: PROGRAM_ID, vault_address: get_contract_address(), timestamp }.serialize(ref serialized_request);
+            serialized_request.span()
         }
     }
 }

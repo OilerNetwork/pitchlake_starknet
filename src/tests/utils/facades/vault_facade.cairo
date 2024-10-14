@@ -221,11 +221,13 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     /// Fossil
 
     fn get_request_to_settle_round(ref self: VaultFacade) -> JobRequest {
-        self.vault_dispatcher.get_request_to_settle_round()
+        let mut request =  self.vault_dispatcher.get_request_to_settle_round();
+        Serde::deserialize(ref request).expect('failed to fetch request')
     }
 
     fn get_request_to_start_auction(ref self: VaultFacade,) -> JobRequest {
-        self.vault_dispatcher.get_request_to_start_auction()
+        let mut request =  self.vault_dispatcher.get_request_to_start_auction();
+        Serde::deserialize(ref request).expect('failed to fetch request')
     }
 
 
