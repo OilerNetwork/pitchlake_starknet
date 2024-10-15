@@ -27,7 +27,6 @@ impl FossilClientFacadeImpl of FossilClientFacadeTrait {
 
     /// Entrypoints
     fn fossil_callback(self: FossilClientFacade, request: Span<felt252>, result: Span<felt252>) {
-        starknet::testing::set_contract_address(FOSSIL_PROCESSOR());
         self.dispatcher().fossil_callback(request, result);
     }
 
