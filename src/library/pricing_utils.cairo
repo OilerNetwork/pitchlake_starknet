@@ -41,7 +41,6 @@ fn calculate_cap_level(alpha: u128, volatility: u128) -> u128 {
 }
 
 // Calculate a round's strike price
-fn calculate_strike_price(vault_type: VaultType, twap: u256, volatility: u128) -> u256 {
 // @note strike_level is out of bps
 // e.g.strike_level of -12.34% is 10_000 - 1234 = 8766 (bps)
 // e.g.strike_level of +56.78% is 10_000 + 5678 = 15,678 (bps)

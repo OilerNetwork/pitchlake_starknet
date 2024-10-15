@@ -17,7 +17,8 @@ struct ConstructorArgs {
     fossil_client_address: ContractAddress,
     eth_address: ContractAddress,
     option_round_class_hash: ClassHash,
-    vault_type: VaultType, // replace with strike level and alpha
+    alpha: u128,
+    strike_level: u128,
 }
 
 // The interface for the vault contract
@@ -28,8 +29,11 @@ trait IVault<TContractState> {
     // @dev Get the type of vault (ITM | ATM | OTM)
     fn get_vault_type(self: @TContractState) -> VaultType;
 
-    // @dev Get the alpha parameter of the vault
+    // @dev Get the alpha risk factor of the vault
     fn get_alpha(self: @TContractState) -> u128;
+
+    // @dev Get the strike level of the vault
+    fn get_strike_level(self: @TContractState) -> u128;
 
     // @dev Get the ETH address
     fn get_eth_address(self: @TContractState) -> ContractAddress;
@@ -77,14 +81,12 @@ trait IVault<TContractState> {
 
     /// Fossil
 
-    // @dev Get the earliest Fossil request required to settle the current round
+    // @dev Get the request for Fossil to fulfill in order to settle the current round
     fn get_request_to_settle_round(self: @TContractState) -> Span<felt252>;
 
-    // @dev Get the earliest Fossil request required to start the current round's auction
-    // @note A round's pricing data is set when the previous round settles, this function
-    // is used to either set the pricing data for a vault's 1st round, or refresh a rounds data (if
-    // its auction has not started)
-    fn get_request_to_start_auction(self: @TContractState) -> Span<felt252>;
+    // @dev When a round settles, the l1 data used to settle round i also deploys round i+1,
+    // therefore this request is only needs to initialize the first round
+    fn get_request_to_start_first_round(self: @TContractState) -> Span<felt252>;
 
     /// Writes ///
 

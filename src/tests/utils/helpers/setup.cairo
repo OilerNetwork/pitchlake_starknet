@@ -53,7 +53,7 @@ use pitch_lake::{
 use debug::PrintTrait;
 
 const DECIMALS: u8 = 18_u8;
-const SUPPLY: u256 = 99999999999999999999999999999999;
+const SUPPLY: u256 = 999999999999999999999999999999;
 
 fn FOSSIL_PROCESSOR() -> ContractAddress {
     contract_address_const::<'FOSSIL PROCESSOR'>()
@@ -67,9 +67,12 @@ fn deploy_eth() -> ERC20ABIDispatcher {
     calldata.append_serde(weth_owner());
 
     let (contract_address, _): (ContractAddress, Span<felt252>) = deploy_syscall(
-        Eth::TEST_CLASS_HASH.try_into().unwrap(), 'some salt', calldata.span(), false
+        Eth::TEST_CLASS_HASH.try_into().unwrap(),
+        'some saltt' + get_block_timestamp().into(),
+        calldata.span(),
+        false
     )
-        .unwrap();
+        .expect('deploy eth failed');
 
     // Clear the event log
     clear_event_logs(array![contract_address]);
@@ -93,7 +96,7 @@ fn deploy_fossil_client() -> FossilClientFacade {
 
 // Deploy the vault and fossil client
 fn deploy_vault_with_events(
-    vault_type: VaultType, eth_address: ContractAddress
+    alpha: u128, strike_level: u128, eth_address: ContractAddress
 ) -> IVaultDispatcher {
     /// Deploy Vault
     let mut calldata = array![];
@@ -101,7 +104,8 @@ fn deploy_vault_with_events(
         fossil_client_address: deploy_fossil_client().contract_address,
         eth_address,
         option_round_class_hash: OptionRound::TEST_CLASS_HASH.try_into().unwrap(),
-        vault_type,
+        alpha, // risk factor for vault
+        strike_level, // strike price for r1 is settlement price of r0
     };
     args.serialize(ref calldata);
 
@@ -118,8 +122,8 @@ fn deploy_vault_with_events(
 }
 
 // Deploy the vault and fossil client with events cleared
-fn deploy_vault(vault_type: VaultType, eth_address: ContractAddress) -> IVaultDispatcher {
-    let vault = deploy_vault_with_events(vault_type, eth_address);
+fn deploy_vault(alpha: u128, strike_level: u128, eth_address: ContractAddress) -> IVaultDispatcher {
+    let vault = deploy_vault_with_events(alpha, strike_level, eth_address);
 
     // Clear the event log
     clear_event_logs(array![vault.contract_address]);
@@ -139,7 +143,7 @@ fn to_gwei(amount: u256) -> u256 {
     amount * 1_000_000_000
 }
 
-fn setup_facade_vault_type(vault_type: VaultType) -> VaultFacade {
+fn setup_facade_custom(alpha: u128, strike_level: u128) -> VaultFacade {
     set_block_timestamp(1234567890);
 
     // Deploy eth
@@ -147,14 +151,14 @@ fn setup_facade_vault_type(vault_type: VaultType) -> VaultFacade {
 
     // Deploy vault facade
     let vault_dispatcher: IVaultDispatcher = deploy_vault(
-        vault_type, eth_dispatcher.contract_address
+        alpha, strike_level, eth_dispatcher.contract_address
     );
     let mut vault_facade = VaultFacade { vault_dispatcher };
 
     // Fulfill request to start auction
     let mut serialized_request = array![];
     let mut serialized_result = array![];
-    vault_facade.get_request_to_start_auction().serialize(ref serialized_request);
+    vault_facade.get_request_to_start_first_round().serialize(ref serialized_request);
     FossilResult {
         l1_data: L1Data { twap: to_gwei(10), volatility: 5000, reserve_price: to_gwei(2), },
         proof: array!['doesnt', 'matter'].span()
@@ -186,7 +190,8 @@ fn setup_facade_vault_type(vault_type: VaultType) -> VaultFacade {
 }
 
 fn setup_facade() -> (VaultFacade, ERC20ABIDispatcher) {
-    let mut vault_facade = setup_facade_vault_type(VaultType::AtTheMoney);
+    // Deploy vault with 33.33% risk factor and strikes equal to basefee at start
+    let mut vault_facade = setup_facade_custom(3333, 10_000);
     let eth_dispatcher = ERC20ABIDispatcher { contract_address: vault_facade.get_eth_address() };
 
     (vault_facade, eth_dispatcher)

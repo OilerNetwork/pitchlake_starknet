@@ -154,7 +154,6 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     /// State transition
 
     fn fossil_client_callback(ref self: VaultFacade, l1_data: L1Data, timestamp: u64) {
-        set_contract_address(self.get_fossil_client_address());
         self.vault_dispatcher.fossil_client_callback(l1_data, timestamp);
     }
 
@@ -221,12 +220,12 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     /// Fossil
 
     fn get_request_to_settle_round(ref self: VaultFacade) -> JobRequest {
-        let mut request =  self.vault_dispatcher.get_request_to_settle_round();
+        let mut request = self.vault_dispatcher.get_request_to_settle_round();
         Serde::deserialize(ref request).expect('failed to fetch request')
     }
 
-    fn get_request_to_start_auction(ref self: VaultFacade,) -> JobRequest {
-        let mut request =  self.vault_dispatcher.get_request_to_start_auction();
+    fn get_request_to_start_first_round(ref self: VaultFacade,) -> JobRequest {
+        let mut request = self.vault_dispatcher.get_request_to_start_first_round();
         Serde::deserialize(ref request).expect('failed to fetch request')
     }
 
@@ -346,8 +345,6 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         self.vault_dispatcher.get_account_total_balance(liquidity_provider)
     }
 
-
-    // @note replace this with get_lp_locked_and_unlocked_balance
     fn get_lp_locked_and_unlocked_balance(
         ref self: VaultFacade, liquidity_provider: ContractAddress
     ) -> (u256, u256) {
@@ -399,9 +396,6 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         };
         spreads
     }
-
-
-    // @note add get_premiums_for_multiple()
 
     // For Vault
 
@@ -458,6 +452,10 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     fn get_alpha(ref self: VaultFacade) -> u128 {
         self.vault_dispatcher.get_alpha()
+    }
+
+    fn get_strike_level(ref self: VaultFacade) -> u128 {
+        self.vault_dispatcher.get_strike_level()
     }
 
     // Eth contract address

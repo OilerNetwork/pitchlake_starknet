@@ -31,6 +31,7 @@ mod Vault {
         ///
         vault_type: VaultType,
         alpha: u128,
+        strike_level: u128,
         ///
         l1_data: Map<u256, L1Data>,
         option_round_class_hash: ClassHash,
@@ -68,15 +69,17 @@ mod Vault {
         // @dev Get the constructor arguments
         let ConstructorArgs { fossil_client_address,
         eth_address,
-        vault_type,
-        option_round_class_hash } =
+        option_round_class_hash,
+        strike_level,
+        alpha } =
             args;
 
         // @dev Set the Vault's parameters
         self.fossil_client_address.write(fossil_client_address);
         self.eth_address.write(eth_address);
-        self.vault_type.write(vault_type);
         self.option_round_class_hash.write(option_round_class_hash);
+        self.strike_level.write(strike_level);
+        self.alpha.write(alpha);
 
         // @dev Deploy the first round
         self.deploy_next_round(Default::default());
@@ -213,10 +216,6 @@ mod Vault {
             self.vault_type.read()
         }
 
-        fn get_alpha(self: @ContractState) -> u128 {
-            self.alpha.read()
-        }
-
         fn get_eth_address(self: @ContractState) -> ContractAddress {
             self.eth_address.read()
         }
@@ -225,12 +224,19 @@ mod Vault {
             self.fossil_client_address.read()
         }
 
-        fn get_current_round_id(self: @ContractState) -> u256 {
-            self.current_round_id.read()
+        fn get_alpha(self: @ContractState) -> u128 {
+            self.alpha.read()
         }
 
+        fn get_strike_level(self: @ContractState) -> u128 {
+            self.strike_level.read()
+        }
         fn get_round_address(self: @ContractState, option_round_id: u256) -> ContractAddress {
             self.round_addresses.read(option_round_id)
+        }
+
+        fn get_current_round_id(self: @ContractState) -> u256 {
+            self.current_round_id.read()
         }
 
         /// Liquidity
@@ -351,14 +357,12 @@ mod Vault {
                 .get_round_dispatcher(self.current_round_id.read())
                 .get_option_settlement_date();
 
-            self.generate_job_request(settlement_date - REQUEST_TOLERANCE)
+            self.generate_job_request(settlement_date)
         }
 
-        fn get_request_to_start_auction(self: @ContractState) -> Span<felt252> {
+        fn get_request_to_start_first_round(self: @ContractState) -> Span<felt252> {
             // @dev Get the current round's deployment date
-            let deployment_date = self
-                .get_round_dispatcher(self.current_round_id.read())
-                .get_deployment_date();
+            let deployment_date = self.get_round_dispatcher(1).get_deployment_date();
 
             self.generate_job_request(deployment_date)
         }
@@ -554,42 +558,50 @@ mod Vault {
             );
 
             // @dev Assert the L1 data is valid
-            assert(l1_data != Default::default(), Errors::InvalidL1Data);
-
-            // @dev Requests can only be fulfilled if the current round is Open || Running
-            let current_round = self.get_round_dispatcher(self.current_round_id.read());
-            let state = current_round.get_state();
+            let L1Data { twap, volatility, reserve_price } = l1_data;
             assert(
-                state == OptionRoundState::Open || state == OptionRoundState::Running,
+                twap.is_non_zero() && volatility.is_non_zero() && reserve_price.is_non_zero(),
+                Errors::InvalidL1Data
+            );
+
+            // @dev Requests can only be fulfilled if the current round is Running, or if the
+            // first round is Open
+            let current_round_id = self.current_round_id.read();
+            let current_round = self.get_round_dispatcher(current_round_id);
+            let state = current_round.get_state();
+
+            assert(
+                state == OptionRoundState::Running
+                    || (current_round_id == 1 && state == OptionRoundState::Open),
                 Errors::L1DataNotAcceptedNow
             );
 
-            // @dev If the current round is Open, the result is being used to refresh the current
-            // round's pricing data; therefore, its timestamp must be between the round's deployment
-            // date and auction start date
-            let mut upper_bound = 0;
-            let mut lower_bound = 0;
-            if state == OptionRoundState::Open {
-                upper_bound = current_round.get_auction_start_date();
-                lower_bound = current_round.get_deployment_date();
-            } // @dev If the current_round is Running, the result is being used to set the pricing
-            // data to settle the current round and deploy the next; therefore, its timestamp must
-            // be on or before the current round's settlement date (with some tolerance)
+            // @dev If the current round is Running, the l1 data is being used to settle it
+            if state == OptionRoundState::Running {
+                // @dev Ensure now is >= the settlement date
+                let now = get_block_timestamp();
+                let settlement_date = current_round.get_option_settlement_date();
+                assert(now >= settlement_date, Errors::L1DataNotAcceptedNow);
+
+                // @dev Ensure the job request's timestamp is for the settlement date
+                assert(timestamp == settlement_date, Errors::L1DataOutOfRange);
+
+                // @dev Store l1 data for this round's settlement
+                // @note Could settle round right now instead of storing the results ?
+                self.l1_data.entry(current_round_id).write(l1_data);
+            } // @dev If the first round is Open, the result is being used to set the pricing data for its auction to start
             else {
-                upper_bound = current_round.get_option_settlement_date();
-                lower_bound = upper_bound - REQUEST_TOLERANCE;
-            }
+                // @dev Ensure now < auction start date
+                let now = get_block_timestamp();
+                let auction_start_date = current_round.get_auction_start_date();
+                assert(now < auction_start_date, Errors::L1DataNotAcceptedNow);
 
-            // @dev Ensure result is in bounds
-            assert(timestamp >= lower_bound && timestamp <= upper_bound, Errors::L1DataOutOfRange);
+                // @dev Ensure the job request's timestamp is for the round's deployment date
+                let deployment_date = current_round.get_deployment_date();
+                assert(timestamp == deployment_date, Errors::L1DataOutOfRange);
 
-            // @dev If the current round is Open, set its pricing data directly
-            if state == OptionRoundState::Open {
+                // @dev Set the round's pricing data directly
                 current_round.set_pricing_data(self.convert_l1_data_to_round_data(l1_data));
-            } // @dev If the current round is Running, set pricing data to use upon settlement
-            else {
-                // @dev Set l1 pricing data for upcoming round settlement
-                self.l1_data.entry(current_round.get_round_id()).write(l1_data);
             }
         }
 
@@ -634,12 +646,19 @@ mod Vault {
         fn settle_round(ref self: ContractState) -> u256 {
             // @dev Get pricing data set for the current round's settlement
             let current_round_id = self.current_round_id.read();
-            let l1_data = self.l1_data.entry(current_round_id).read();
-            assert(l1_data != Default::default(), RoundErrors::PricingDataNotSet);
+            let L1Data { twap, volatility, reserve_price } = self
+                .l1_data
+                .entry(current_round_id)
+                .read();
+
+            assert(
+                twap.is_non_zero() && volatility.is_non_zero() && reserve_price.is_non_zero(),
+                RoundErrors::PricingDataNotSet
+            );
 
             // @dev Settle the current round and return the total payout
             let current_round = self.get_round_dispatcher(current_round_id);
-            let total_payout = current_round.settle_round(l1_data.twap);
+            let total_payout = current_round.settle_round(twap);
 
             // @dev Calculate the remaining liquidity after the round settles
             let starting_liq = current_round.get_starting_liquidity();
@@ -676,7 +695,7 @@ mod Vault {
             }
 
             // @dev Deploy the next option round contract & update the current round id
-            self.deploy_next_round(l1_data);
+            self.deploy_next_round(L1Data { twap, volatility, reserve_price });
 
             // @dev Return the total payout of the settled round
             total_payout
@@ -754,7 +773,6 @@ mod Vault {
             let constructor_args = OptionRoundConstructorArgs {
                 vault_address, round_id, pricing_data
             };
-
             calldata.append_serde(constructor_args);
 
             // @dev Deploy the round
@@ -792,10 +810,9 @@ mod Vault {
         fn convert_l1_data_to_round_data(self: @ContractState, l1_data: L1Data) -> PricingData {
             let L1Data { twap, volatility, reserve_price } = l1_data;
             let alpha = self.alpha.read();
-            let vault_type = self.vault_type.read();
 
             let cap_level = calculate_cap_level(alpha, volatility);
-            let strike_price = calculate_strike_price(vault_type, twap, volatility);
+            let strike_price = calculate_strike_price(self.strike_level.read(), twap);
 
             PricingData { strike_price, cap_level, reserve_price }
         }
@@ -988,8 +1005,9 @@ mod Vault {
 
         // @dev Generate a JobRequest for a specific timestamp
         fn generate_job_request(self: @ContractState, timestamp: u64) -> Span<felt252> {
-          let mut serialized_request = array![];
-            JobRequest { program_id: PROGRAM_ID, vault_address: get_contract_address(), timestamp }.serialize(ref serialized_request);
+            let mut serialized_request = array![];
+            JobRequest { program_id: PROGRAM_ID, vault_address: get_contract_address(), timestamp }
+                .serialize(ref serialized_request);
             serialized_request.span()
         }
     }
