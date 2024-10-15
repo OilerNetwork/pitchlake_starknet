@@ -76,6 +76,8 @@ mod OptionRound {
 
     mod Errors {
         const CallerIsNotVault: felt252 = 'Caller not the Vault';
+        const InvalidPricingData: felt252 = 'Invalid pricing data';
+        const NotFirstRound: felt252 = 'Not first round';
         // Starting an auction
         const PricingDataNotSet: felt252 = 'Pricing data not set';
         const AuctionStartDateNotReached: felt252 = 'Auction start date not reached';
@@ -151,9 +153,7 @@ mod OptionRound {
 
     #[derive(Drop, starknet::Event, PartialEq)]
     struct PricingDataSet {
-        strike_price: u256,
-        cap_level: u128,
-        reserve_price: u256,
+        pricing_data: PricingData,
     }
 
     // @dev Emitted when the auction starts
@@ -485,25 +485,21 @@ mod OptionRound {
 
         /// State transition
 
+        // @note todo: only if round 1
         fn set_pricing_data(ref self: ContractState, pricing_data: PricingData) {
             // @dev Assert the caller is the vault
             self.assert_caller_is_vault();
 
-            // @dev Assert the auction has not started yet
+            // @dev This function can only be called on a vault's first round if the auction has not
+            // started yet
+            assert(self.round_id.read() == 1, Errors::NotFirstRound);
             assert(self.state.read() == OptionRoundState::Open, Errors::AuctionAlreadyStarted);
-
-            // @dev Assert pricing data is not 0
-            assert(pricing_data != Default::<PricingData>::default(), 'REPLACE ME');
 
             // @dev Set the pricing data points
             self.pricing_data.write(pricing_data);
 
             // @dev Emit event
-            let PricingData { strike_price, cap_level, reserve_price } = pricing_data;
-            self
-                .emit(
-                    Event::PricingDataSet(PricingDataSet { strike_price, cap_level, reserve_price })
-                );
+            self.emit(Event::PricingDataSet(PricingDataSet { pricing_data }));
         }
 
         fn start_auction(ref self: ContractState, starting_liquidity: u256) -> u256 {

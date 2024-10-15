@@ -134,7 +134,9 @@ fn assert_event_pricing_data_set(
     match pop_log::<OptionRound::Event>(option_round_address) {
         Option::Some(e) => {
             let expected = OptionRound::Event::PricingDataSet(
-                OptionRound::PricingDataSet { strike_price, cap_level, reserve_price }
+                OptionRound::PricingDataSet {
+                    pricing_data: PricingData { strike_price, cap_level, reserve_price }
+                }
             );
             assert_events_equal(e, expected);
         },
