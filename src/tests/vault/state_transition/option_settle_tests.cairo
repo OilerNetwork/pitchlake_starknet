@@ -117,45 +117,32 @@ fn test_option_round_settled_event() {
     }
 }
 
-fn get_expected_dates(ref vaul: VaultFacade, deployment_date: u64) -> (u64, u64, u64) {
-    let auction_start_date = deployment_date + ROUND_TRANSITION_PERIOD;
-    let auction_end_date = auction_start_date + AUCTION_RUN_TIME;
-    let option_settlement_date = auction_end_date + OPTION_RUN_TIME;
-
-    (auction_start_date, auction_end_date, option_settlement_date)
-}
-
 #[test]
 #[available_gas(500000000)]
 fn test_first_round_deployed_event() {
-    let vault_dispatcher = deploy_vault_with_events(
-        VaultType::AtTheMoney, contract_address_const::<'eth'>()
-    );
+    let vault_dispatcher = deploy_vault_with_events(2222, 9999, contract_address_const::<'eth'>());
     let mut vault = VaultFacade { vault_dispatcher };
     let mut current_round = vault.get_current_round();
 
-    let (auction_start_date, auction_end_date, option_settlement_date) = get_expected_dates(
-        ref vault, current_round.get_deployment_date()
-    );
+    let exp_deployment_date = get_block_timestamp();
+    let exp_auction_start_date = exp_deployment_date + ROUND_TRANSITION_PERIOD;
+    let exp_auction_end_date = exp_auction_start_date + AUCTION_RUN_TIME;
+    let exp_option_settlement_date = exp_auction_end_date + OPTION_RUN_TIME;
 
-    assert_eq!(current_round.get_deployment_date(), get_block_timestamp());
-    assert(
-        auction_start_date.is_non_zero()
-            && auction_end_date.is_non_zero()
-            && option_settlement_date.is_non_zero(),
-        'Dates should not be 0'
-    );
-    // @note doing this to add an extra vault event (so that the double pop log works as expected)
-    //vault.withdraw(0, liquidity_provider_1());
     assert_event_option_round_deployed_single(
         vault.contract_address(),
         1,
         current_round.contract_address(),
-        auction_start_date,
-        auction_end_date,
-        option_settlement_date,
+        exp_auction_start_date,
+        exp_auction_end_date,
+        exp_option_settlement_date,
         pricing_data: PricingData { strike_price: 0, cap_level: 0, reserve_price: 0 }
     );
+
+    assert_eq!(current_round.get_deployment_date(), exp_deployment_date);
+    assert_eq!(current_round.get_auction_start_date(), exp_auction_start_date);
+    assert_eq!(current_round.get_auction_end_date(), exp_auction_end_date);
+    assert_eq!(current_round.get_option_settlement_date(), exp_option_settlement_date);
 }
 
 // Test every time a new round is deployed, the next round deployed event emits correctly
@@ -170,7 +157,6 @@ fn test_next_round_deployed_events() {
             let mut round_i = vault.get_current_round();
             accelerate_to_auctioning(ref vault);
             accelerate_to_running(ref vault);
-
             clear_event_logs(array![vault.contract_address()]);
             accelerate_to_settled(ref vault, round_i.get_strike_price());
 
