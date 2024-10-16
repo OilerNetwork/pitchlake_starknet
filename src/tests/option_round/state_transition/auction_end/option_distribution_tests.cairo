@@ -460,10 +460,7 @@ fn test_last_bid_is_partial() {
     // Make bids, 5 bidders bid for 1/3 total options each, each bidder outbidding the previous
     // one's price
     let bid_amount = total_options_available / 4;
-    let mut bid_amounts = create_array_linear(
-        bid_amount, option_bidders.len()
-    )
-        .span();
+    let mut bid_amounts = create_array_linear(bid_amount, option_bidders.len()).span();
     let bid_prices = create_array_gradient(
         current_round.get_reserve_price(), 1, option_bidders.len()
     )
@@ -474,23 +471,17 @@ fn test_last_bid_is_partial() {
     // Check that the first bidder gets no options, and the rest get their bid amounts
     match option_bidders.pop_front() {
         Option::Some(losing_bidder) => {
-          let mintable_options = current_round.get_mintable_options_for(*losing_bidder);
+            let mintable_options = current_round.get_mintable_options_for(*losing_bidder);
 
-          let expected_partial_amount = total_options_available - (4 * bid_amount);
+            let expected_partial_amount = total_options_available - (4 * bid_amount);
 
-            assert(
-mintable_options == expected_partial_amount,
-                'losing bidder shd get 0 options'
-            );
+            assert(mintable_options == expected_partial_amount, 'losing bidder shd get 0 options');
             loop {
                 match option_bidders.pop_front() {
                     Option::Some(bidder) => {
                         // @dev Each bidder bids for the same amount
                         let mintable_options = current_round.get_mintable_options_for(*bidder);
-                        assert(
-                            mintable_options == bid_amount,
-                            'bidder should get bid amount'
-                        );
+                        assert(mintable_options == bid_amount, 'bidder should get bid amount');
                     },
                     Option::None => { break (); }
                 }

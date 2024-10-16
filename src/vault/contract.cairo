@@ -566,11 +566,8 @@ mod Vault {
             );
 
             // @dev Assert the L1 data is valid
-            let L1Data { twap, volatility:_, reserve_price } = l1_data;
-            assert(
-                twap.is_non_zero() && reserve_price.is_non_zero(),
-                Errors::InvalidL1Data
-            );
+            let L1Data { twap, volatility: _, reserve_price } = l1_data;
+            assert(twap.is_non_zero() && reserve_price.is_non_zero(), Errors::InvalidL1Data);
 
             // @dev Requests can only be fulfilled if the current round is Running, or if the
             // first round is Open
@@ -660,8 +657,7 @@ mod Vault {
                 .read();
 
             assert(
-                twap.is_non_zero() && reserve_price.is_non_zero(),
-                RoundErrors::PricingDataNotSet
+                twap.is_non_zero() && reserve_price.is_non_zero(), RoundErrors::PricingDataNotSet
             );
 
             // @dev Settle the current round and return the total payout
