@@ -449,7 +449,7 @@ fn test_the_last_bidder_gets_no_options_if_none_left() {
 // Test losing bidder gets no options
 #[test]
 #[available_gas(500000000)]
-fn test_losing_bid_gets_no_options() {
+fn test_last_bid_is_partial() {
     let number_of_option_bidders = 5;
     let (mut vault, _, mut option_bidders, total_options_available) = setup_test_auctioning_bidders(
         number_of_option_bidders
@@ -459,8 +459,9 @@ fn test_losing_bid_gets_no_options() {
 
     // Make bids, 5 bidders bid for 1/3 total options each, each bidder outbidding the previous
     // one's price
+    let bid_amount = total_options_available / 4;
     let mut bid_amounts = create_array_linear(
-        total_options_available / (number_of_option_bidders - 1).into(), option_bidders.len()
+        bid_amount, option_bidders.len()
     )
         .span();
     let bid_prices = create_array_gradient(
@@ -473,17 +474,21 @@ fn test_losing_bid_gets_no_options() {
     // Check that the first bidder gets no options, and the rest get their bid amounts
     match option_bidders.pop_front() {
         Option::Some(losing_bidder) => {
+          let mintable_options = current_round.get_mintable_options_for(*losing_bidder);
+
+          let expected_partial_amount = total_options_available - (4 * bid_amount);
+
             assert(
-                current_round.get_mintable_options_for(*losing_bidder) == 0,
+mintable_options == expected_partial_amount,
                 'losing bidder shd get 0 options'
             );
             loop {
                 match option_bidders.pop_front() {
                     Option::Some(bidder) => {
-                        // @dev Each bidder bids for the same amount so we can use [0] for all here
-                        let bid_amount = *bid_amounts[0];
+                        // @dev Each bidder bids for the same amount
+                        let mintable_options = current_round.get_mintable_options_for(*bidder);
                         assert(
-                            current_round.get_mintable_options_for(*bidder) == bid_amount,
+                            mintable_options == bid_amount,
                             'bidder should get bid amount'
                         );
                     },

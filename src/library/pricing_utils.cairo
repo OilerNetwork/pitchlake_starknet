@@ -37,32 +37,46 @@ fn calculate_total_options_available(
 }
 
 // @note TODO
+// cl = λ − k / (α × (k + 1))
 fn calculate_cap_level(a: u128, k: i128, vol: u128) -> u128 {
-    let lambda: i128 = 233 * vol.try_into().unwrap() / 100; // 2.33 * vol
+    // @dev λ = 2.3300 * vol
+    let lambda: i128 = 23300 * vol.try_into().expect('Vol u128 -> i128 failed') / BPS_i128;
+
+    // @dev Cap level must be positive
     if k >= lambda {
         1
     } else {
-        let a: u128 = a.try_into().unwrap();
-        let k: u128 = k.try_into().unwrap();
-        let lambda: u128 = lambda.try_into().unwrap();
+        // @dev `λ - k` >= 0 here, cast from i128 to u128 through felt252
+        let lambda_minus_k: u128 = Into::<i128, felt252>::into(lambda - k).try_into().unwrap();
 
-        // cl = λ − k / (α × (1.0000 + k))
-        let numerator: u128 = (lambda - k);
-        let denominator: u128 = (a * (k + BPS_u128)) / BPS_u128;
+        // @dev Ensure k+1 is positive then cast from i128 to u128 through felt252
+        let k_plus_1 = k + BPS_i128;
+        assert(k_plus_1 > 0, 'Strike price must be > 0');
 
-        (BPS_u128 * numerator / denominator)
+        let k_plus_1 = Into::<i128, felt252>::into(k_plus_1)
+            .try_into()
+            .expect('k_plus_1 felt252 -> u128 failed');
+
+        // @dev cl = λ − k / (α × (k + 1))
+        let numerator: u128 = lambda_minus_k;
+        let denominator: u128 = a * k_plus_1;
+
+        // @dev (λ - k) is BPS - BPS, (a * (k + 1)) is BPS * BPS, so multip
+        (BPS_u128 * BPS_u128 * numerator / denominator)
     }
 }
 
-// Calculate a round's strike price
-// @note strike_level is in BPS > -10,000
-// e.g. a strike_level of -12.34% is -1234 BPS; therefore, k + 1 is -1234 + 10_000 = 8766
+// Calculate a round's strike price `K = (1 + k)BF`
+// @param twap: the current TWAP of the basefee
+// @param k: the strike level
+// @note The minimum strike_level of -9999 translates to a strike price -99.99% the current twap
+// (-10_000 would mean a strike price == 0)
 fn calculate_strike_price(k: i128, twap: u256) -> u256 {
-    assert(k >= -BPS_i128, 'Strike level must be >= -10,000');
+    let k_plus_1: i128 = k + BPS_i128;
+    assert(k_plus_1 > 0, 'Strike price must be > 0');
 
-    // @dev Cast k from i128 to u256
-    let k_plus_1_felt252: felt252 = (k + BPS_i128).into();
-    let k_plus_1_u256: u256 = k_plus_1_felt252.into();
+    // @dev Cast k+1 from i128 to u256 (k is positive here)
+    let k_plus_1: u256 = Into::<i128, felt252>::into(k_plus_1).into();
 
-    (twap * k_plus_1_u256) / BPS_u256
+    (k_plus_1 * twap) / BPS_u256
 }

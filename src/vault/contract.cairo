@@ -17,8 +17,8 @@ mod Vault {
         ConstructorArgs as OptionRoundConstructorArgs, OptionRoundState, IOptionRoundDispatcher,
         IOptionRoundDispatcherTrait, PricingData,
     };
-    use pitch_lake::types::{Consts::{BPS, JOB_TIMESTAMP_TOLERANCE}};
-    use pitch_lake::library::utils::{assert_equal_in_range, generate_request_id,};
+    use pitch_lake::library::constants::{BPS_i128, BPS_felt252, BPS_u128, BPS_u256};
+    use pitch_lake::library::utils::{assert_equal_in_range, generate_request_id};
     use pitch_lake::library::pricing_utils::{calculate_strike_price, calculate_cap_level};
     use pitch_lake::library::constants::{REQUEST_TOLERANCE, PROGRAM_ID};
 
@@ -31,7 +31,7 @@ mod Vault {
         ///
         vault_type: VaultType,
         alpha: u128,
-        strike_level: u128,
+        strike_level: i128,
         ///
         l1_data: Map<u256, L1Data>,
         option_round_class_hash: ClassHash,
@@ -78,8 +78,14 @@ mod Vault {
         self.fossil_client_address.write(fossil_client_address);
         self.eth_address.write(eth_address);
         self.option_round_class_hash.write(option_round_class_hash);
-        self.strike_level.write(strike_level);
+
+        // @dev Alpha is between 0.01% and 100.00%
+        assert(alpha.is_non_zero() && alpha <= BPS_u128, Errors::AlphaOutOfRange);
         self.alpha.write(alpha);
+
+        // @dev Strike level is at least -99.99%
+        assert(strike_level > -BPS_i128, Errors::StrikeLevelOutOfRange);
+        self.strike_level.write(strike_level);
 
         // @dev Deploy the first round
         self.deploy_next_round(Default::default());
@@ -90,6 +96,8 @@ mod Vault {
     // *************************************************************************
 
     mod Errors {
+        const AlphaOutOfRange: felt252 = 'Alpha out of range';
+        const StrikeLevelOutOfRange: felt252 = 'Strike level out of range';
         // Fossil
         const CallerNotFossilClient: felt252 = 'Caller not Fossil client';
         const InvalidL1Data: felt252 = 'Invalid L1 data';
@@ -156,7 +164,7 @@ mod Vault {
     struct WithdrawalQueued {
         #[key]
         account: ContractAddress,
-        bps: u16,
+        bps: u128,
         account_queued_liquidity_now: u256,
         vault_queued_liquidity_now: u256,
     }
@@ -228,7 +236,7 @@ mod Vault {
             self.alpha.read()
         }
 
-        fn get_strike_level(self: @ContractState) -> u128 {
+        fn get_strike_level(self: @ContractState) -> i128 {
             self.strike_level.read()
         }
         fn get_round_address(self: @ContractState, option_round_id: u256) -> ContractAddress {
@@ -259,7 +267,7 @@ mod Vault {
             self.vault_stashed_balance.read()
         }
 
-        fn get_vault_queued_bps(self: @ContractState) -> u16 {
+        fn get_vault_queued_bps(self: @ContractState) -> u128 {
             // @dev Get the liquidity locked at the start of the current round
             let total_liq = self
                 .get_round_dispatcher(self.current_round_id.read())
@@ -274,7 +282,7 @@ mod Vault {
             // @dev Calculate the queued BPS %, avoiding division by 0
             match total_liq.is_zero() {
                 true => 0,
-                false => self.divide_into_bps(queued_liq, total_liq)
+                false => ((BPS_u256 * queued_liq) / total_liq).try_into().unwrap()
             }
         }
 
@@ -334,7 +342,7 @@ mod Vault {
             total
         }
 
-        fn get_account_queued_bps(self: @ContractState, account: ContractAddress) -> u16 {
+        fn get_account_queued_bps(self: @ContractState, account: ContractAddress) -> u128 {
             // @dev Get the liquidity locked at the start of the current round
             let current_round_id = self.current_round_id.read();
             let total_liq = self.get_realized_deposit_for_current_round(account);
@@ -345,7 +353,7 @@ mod Vault {
             // by 0
             match total_liq.is_zero() {
                 true => 0,
-                false => self.divide_into_bps(queued_liq, total_liq)
+                false => ((BPS_u256 * queued_liq) / total_liq).try_into().unwrap()
             }
         }
 
@@ -464,7 +472,7 @@ mod Vault {
             account_unlocked_balance_now
         }
 
-        fn queue_withdrawal(ref self: ContractState, bps: u16) {
+        fn queue_withdrawal(ref self: ContractState, bps: u128) {
             // @dev If the current round is Open, there is no locked liqudity to queue, exit early
             let current_round_id = self.current_round_id.read();
             let current_round = self.get_round_dispatcher(current_round_id);
@@ -474,7 +482,7 @@ mod Vault {
             }
 
             // @dev Check the caller is not queueing more than the max BPS
-            assert(bps.into() <= BPS, Errors::QueueingMoreThanPositionValue);
+            assert(bps <= BPS_u128, Errors::QueueingMoreThanPositionValue);
 
             // @dev Get the caller's calculated current round deposit
             let account = get_caller_address();
@@ -482,7 +490,7 @@ mod Vault {
             let current_round_deposit = self.get_realized_deposit_for_current_round(account);
 
             // @dev Calculate the starting liquidity for the account being queued
-            let account_queued_liquidity_now = (current_round_deposit * bps.into()) / BPS.into();
+            let account_queued_liquidity_now = (current_round_deposit * bps.into()) / BPS_u256;
 
             // @dev Calculate the's starting liquidity for the vault being queued
             let vault_previously_queued_liquidity = self
@@ -558,9 +566,9 @@ mod Vault {
             );
 
             // @dev Assert the L1 data is valid
-            let L1Data { twap, volatility, reserve_price } = l1_data;
+            let L1Data { twap, volatility:_, reserve_price } = l1_data;
             assert(
-                twap.is_non_zero() && volatility.is_non_zero() && reserve_price.is_non_zero(),
+                twap.is_non_zero() && reserve_price.is_non_zero(),
                 Errors::InvalidL1Data
             );
 
@@ -652,7 +660,7 @@ mod Vault {
                 .read();
 
             assert(
-                twap.is_non_zero() && volatility.is_non_zero() && reserve_price.is_non_zero(),
+                twap.is_non_zero() && reserve_price.is_non_zero(),
                 RoundErrors::PricingDataNotSet
             );
 
@@ -748,17 +756,6 @@ mod Vault {
             (round_starting_liq, remaining_liq, round_earned_liq)
         }
 
-
-        // @dev Divide numerator by denominator and turn into a u16 BPS
-        fn divide_into_bps(self: @ContractState, numerator: u256, denominator: u256) -> u16 {
-            assert!(
-                numerator <= denominator,
-                "Numerator must be less than or equal to the denominator to fit into BPS"
-            );
-
-            ((BPS.into() * numerator) / denominator).try_into().unwrap()
-        }
-
         /// Deploying rounds
 
         // @dev Deploy the next option round, if data is supplied, calculate the strike
@@ -808,11 +805,17 @@ mod Vault {
 
         // @dev Converts L1 data from Fossil (or 3rd party) to pricing data for the round
         fn convert_l1_data_to_round_data(self: @ContractState, l1_data: L1Data) -> PricingData {
-            let L1Data { twap, volatility, reserve_price } = l1_data;
-            let alpha = self.alpha.read();
+            if l1_data == Default::default() {
+                return PricingData { strike_price: 0, cap_level: 0, reserve_price: 0 };
+            }
 
-            let cap_level = calculate_cap_level(alpha, volatility);
-            let strike_price = calculate_strike_price(self.strike_level.read(), twap);
+            let L1Data { twap, volatility, reserve_price } = l1_data;
+
+            let alpha = self.alpha.read();
+            let k = self.strike_level.read();
+
+            let cap_level = calculate_cap_level(alpha, k, volatility);
+            let strike_price = calculate_strike_price(k, twap);
 
             PricingData { strike_price, cap_level, reserve_price }
         }

@@ -156,22 +156,25 @@ fn test_updating_bids_higher_price_wins() {
     let bidder2 = option_bidder_buyer_2();
 
     let bid_price = 2 * reserve_price;
-    let bid_amount = (3 * options_available / 4);
+    let bid_amount = (3 * options_available) / 4;
 
     // Bid 1 == Bid 2
     let _bid1 = current_round.place_bid(bid_amount, bid_price - 1, bidder);
-    let bid2 = current_round.place_bid(bid_amount, bid_price - 1, bidder2);
+    let bid2 = current_round.place_bid(bid_amount, bid_price - 2, bidder2);
 
     // Update Bid 2 to be > than Bid 1
-    let _bid2 = current_round.update_bid(bid2.bid_id, 1);
+    let _bid2 = current_round.update_bid(bid2.bid_id, 4);
 
     timeskip_and_end_auction(ref vault);
 
     let options_for1 = current_round.get_mintable_options_for(bidder);
     let options_for2 = current_round.get_mintable_options_for(bidder2);
 
-    assert_eq!(options_for1, options_available / 4, "Bidder 1 options wrong");
-    assert_eq!(options_for2, 3 * options_available / 4, "Bidder 1 options wrong");
+    let expected_2 = (3 * options_available) / 4;
+    let expected_1 = options_available - expected_2;
+
+    assert_eq!(options_for1, expected_1, "Bidder 1 options wrong");
+    assert_eq!(options_for2, expected_2, "Bidder 2 options wrong");
 }
 
 #[test]

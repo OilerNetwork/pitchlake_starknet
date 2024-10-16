@@ -164,16 +164,15 @@ fn test_over_bids_are_refundable() {
     // 2 bidders bid for combined all options, the bidder with the higher price should get a refund
     let mut bidders = option_bidders_get(2).span();
     let reserve_price = current_round.get_reserve_price();
-    let bid_amounts = create_array_linear(total_options_available / 2, 2).span();
+    let bid_amount = total_options_available / 2;
+    let bid_amounts = create_array_linear(bid_amount, 2).span();
     let bid_prices = create_array_gradient(reserve_price, reserve_price, 2).span();
     accelerate_to_running_custom(ref vault, bidders, bid_amounts, bid_prices);
 
     // Check that the first bidder gets no refund, and the second bidder gets a partial refund
     assert(current_round.get_refundable_balance_for(*bidders[0]) == 0, 'ob1 shd get no refunds');
     assert(
-        current_round.get_refundable_balance_for(*bidders[1]) == reserve_price
-            * total_options_available
-            / 2,
+        current_round.get_refundable_balance_for(*bidders[1]) == reserve_price * bid_amount,
         'ob2 shd have a partial refund'
     );
 }

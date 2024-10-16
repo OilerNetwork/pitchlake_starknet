@@ -76,12 +76,15 @@ fn test_unsold_liquidity_1() {
     let total_locked_before = vault.get_total_locked_balance();
 
     let bidders = option_bidders_get(2);
-    let bid_amounts = array![options_available / 4, options_available / 4];
+    let bid_amount = options_available / 4;
+    let bid_amounts = array![bid_amount, bid_amount];
     let bid_prices = create_array_linear((current_round.get_reserve_price()), bid_amounts.len());
     accelerate_to_running_custom(ref vault, bidders.span(), bid_amounts.span(), bid_prices.span());
 
-    // Check 1/3 of the total locked liquidity is unsold
-    let expected_unsold_liq = total_locked_before / 2;
+    let unsold_options = options_available - 2 * bid_amount;
+    let expected_unsold_liq = unsold_options * total_locked_before / options_available;
+
+    //let expected_unsold_liq = total_locked_before / 2;
     let unsold_liq = vault.get_unsold_liquidity(current_round.get_round_id());
     assert(unsold_liq == expected_unsold_liq, 'unsold liq wrong');
 }
@@ -201,9 +204,12 @@ fn test_unsold_liquidity_is_unlocked_for_liquidity_providers_end_of_round() {
 
     // Bid for 1/2 the options, end auction and round (no payout)
     let option_bidders = array![option_bidder_buyer_1()].span();
-    let bid_amounts = array![options_available / 2].span();
+    let bid_amount = options_available / 2;
+    let bid_amounts = array![bid_amount].span();
     let bid_prices = array![current_round.get_reserve_price()].span();
-    accelerate_to_running_custom(ref vault, option_bidders, bid_amounts, bid_prices);
+    let (_, options_sold) = accelerate_to_running_custom(
+        ref vault, option_bidders, bid_amounts, bid_prices
+    );
     accelerate_to_settled(ref vault, current_round.get_strike_price() - 1);
 
     // Unsold liquidity and premiums
@@ -219,7 +225,9 @@ fn test_unsold_liquidity_is_unlocked_for_liquidity_providers_end_of_round() {
 
     assert(locked_balance_after == 0, 'locked after wrong');
     assert(
-        unlocked_balance_after == deposit_amount / 2 + total_premium + unsold_liq,
+        unlocked_balance_after == ((deposit_amount * options_sold) / options_available)
+            + total_premium
+            + unsold_liq,
         'unlocked after wrong'
     );
 }
