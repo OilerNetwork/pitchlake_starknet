@@ -2,7 +2,6 @@ use starknet::{
     contract_address_const, ContractAddress, testing::{set_block_timestamp, set_contract_address}
 };
 use openzeppelin_token::erc20::interface::{ERC20ABIDispatcherTrait,};
-use pitch_lake::types::Consts::BPS;
 use pitch_lake::tests::{
     utils::{
         helpers::{

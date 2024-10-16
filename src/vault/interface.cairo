@@ -18,7 +18,7 @@ struct ConstructorArgs {
     eth_address: ContractAddress,
     option_round_class_hash: ClassHash,
     alpha: u128,
-    strike_level: u128,
+    strike_level: i128,
 }
 
 // The interface for the vault contract
@@ -33,7 +33,7 @@ trait IVault<TContractState> {
     fn get_alpha(self: @TContractState) -> u128;
 
     // @dev Get the strike level of the vault
-    fn get_strike_level(self: @TContractState) -> u128;
+    fn get_strike_level(self: @TContractState) -> i128;
 
     // @dev Get the ETH address
     fn get_eth_address(self: @TContractState) -> ContractAddress;
@@ -62,7 +62,7 @@ trait IVault<TContractState> {
     fn get_vault_stashed_balance(self: @TContractState) -> u256;
 
     // @dev The total % (bps) queued for withdrawal once the current round settles
-    fn get_vault_queued_bps(self: @TContractState) -> u16;
+    fn get_vault_queued_bps(self: @TContractState) -> u128;
 
     // @dev The total liquidity for an account
     fn get_account_total_balance(self: @TContractState, account: ContractAddress) -> u256;
@@ -77,7 +77,7 @@ trait IVault<TContractState> {
     fn get_account_stashed_balance(self: @TContractState, account: ContractAddress) -> u256;
 
     // @dev The account's % (bps) queued for withdrawal once the current round settles
-    fn get_account_queued_bps(self: @TContractState, account: ContractAddress) -> u16;
+    fn get_account_queued_bps(self: @TContractState, account: ContractAddress) -> u128;
 
     /// Fossil
 
@@ -105,7 +105,7 @@ trait IVault<TContractState> {
     // @dev The caller queues a % of their locked balance to be stashed once the current round
     // settles @param bps: The percentage points <= 10,000 the account queues to stash when the
     // round settles
-    fn queue_withdrawal(ref self: TContractState, bps: u16);
+    fn queue_withdrawal(ref self: TContractState, bps: u128);
 
     // @dev The caller withdraws all of an account's stashed liquidity for the account
     // @param account: The account to withdraw stashed liquidity for

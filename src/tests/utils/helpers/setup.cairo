@@ -96,7 +96,7 @@ fn deploy_fossil_client() -> FossilClientFacade {
 
 // Deploy the vault and fossil client
 fn deploy_vault_with_events(
-    alpha: u128, strike_level: u128, eth_address: ContractAddress
+    alpha: u128, strike_level: i128, eth_address: ContractAddress
 ) -> IVaultDispatcher {
     /// Deploy Vault
     let mut calldata = array![];
@@ -122,7 +122,7 @@ fn deploy_vault_with_events(
 }
 
 // Deploy the vault and fossil client with events cleared
-fn deploy_vault(alpha: u128, strike_level: u128, eth_address: ContractAddress) -> IVaultDispatcher {
+fn deploy_vault(alpha: u128, strike_level: i128, eth_address: ContractAddress) -> IVaultDispatcher {
     let vault = deploy_vault_with_events(alpha, strike_level, eth_address);
 
     // Clear the event log
@@ -143,7 +143,7 @@ fn to_gwei(amount: u256) -> u256 {
     amount * 1_000_000_000
 }
 
-fn setup_facade_custom(alpha: u128, strike_level: u128) -> VaultFacade {
+fn setup_facade_custom(alpha: u128, strike_level: i128) -> VaultFacade {
     set_block_timestamp(1234567890);
 
     // Deploy eth
@@ -191,7 +191,7 @@ fn setup_facade_custom(alpha: u128, strike_level: u128) -> VaultFacade {
 
 fn setup_facade() -> (VaultFacade, ERC20ABIDispatcher) {
     // Deploy vault with 33.33% risk factor and strikes equal to basefee at start
-    let mut vault_facade = setup_facade_custom(3333, 10_000);
+    let mut vault_facade = setup_facade_custom(10_000, 0);
     let eth_dispatcher = ERC20ABIDispatcher { contract_address: vault_facade.get_eth_address() };
 
     (vault_facade, eth_dispatcher)

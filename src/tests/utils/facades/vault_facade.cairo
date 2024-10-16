@@ -92,14 +92,14 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         sanity_checks::withdraw(ref self, liquidity_provider, updated_unlocked_position)
     }
 
-    fn queue_withdrawal(ref self: VaultFacade, liquidity_provider: ContractAddress, bps: u16) {
+    fn queue_withdrawal(ref self: VaultFacade, liquidity_provider: ContractAddress, bps: u128) {
         set_contract_address(liquidity_provider);
         self.vault_dispatcher.queue_withdrawal(bps);
     }
 
     #[feature("safe_dispatcher")]
     fn queue_withdrawal_expect_error(
-        ref self: VaultFacade, liquidity_provider: ContractAddress, bps: u16, error: felt252,
+        ref self: VaultFacade, liquidity_provider: ContractAddress, bps: u128, error: felt252,
     ) {
         set_contract_address(liquidity_provider);
         let safe_vault = self.get_safe_dispatcher();
@@ -129,7 +129,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     fn queue_multiple_withdrawals(
         ref self: VaultFacade,
         mut liquidity_providers: Span<ContractAddress>,
-        mut bps_multi: Span<u16>
+        mut bps_multi: Span<u128>
     ) {
         loop {
             match liquidity_providers.pop_front() {
@@ -280,7 +280,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         balances
     }
 
-    fn get_lp_queued_bps(ref self: VaultFacade, liquidity_provider: ContractAddress) -> u16 {
+    fn get_lp_queued_bps(ref self: VaultFacade, liquidity_provider: ContractAddress) -> u128 {
         self.vault_dispatcher.get_account_queued_bps(liquidity_provider)
     }
 
@@ -291,7 +291,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     fn get_lp_queued_bps_multi(
         ref self: VaultFacade, mut liquidity_providers: Span<ContractAddress>,
-    ) -> Array<u16> {
+    ) -> Array<u128> {
         let mut balances = array![];
         loop {
             match liquidity_providers.pop_front() {
@@ -412,7 +412,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         self.vault_dispatcher.get_vault_stashed_balance()
     }
 
-    fn get_vault_queued_bps(ref self: VaultFacade) -> u16 {
+    fn get_vault_queued_bps(ref self: VaultFacade) -> u128 {
         self.vault_dispatcher.get_vault_queued_bps()
     }
 
@@ -454,7 +454,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         self.vault_dispatcher.get_alpha()
     }
 
-    fn get_strike_level(ref self: VaultFacade) -> u128 {
+    fn get_strike_level(ref self: VaultFacade) -> i128 {
         self.vault_dispatcher.get_strike_level()
     }
 

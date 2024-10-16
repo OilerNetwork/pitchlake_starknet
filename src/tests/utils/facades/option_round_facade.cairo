@@ -2,7 +2,7 @@
 use openzeppelin_token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
 use starknet::{ContractAddress, testing::{set_contract_address}};
 use pitch_lake::{
-    types::{Errors, Bid, Consts::BPS},
+    types::{Errors, Bid}, library::constants::BPS_u256,
     option_round::{
         interface::{
             OptionRoundState, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,
@@ -84,7 +84,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         // L = M * Capped
         let strike_price = to_gwei(10); // 10 gwei
         let cap_level: u128 = 5000; // Max payout is 50.00 % above strike
-        let capped_payout_per_option = (strike_price * cap_level.into()) / BPS;
+        let capped_payout_per_option = (strike_price * cap_level.into()) / BPS_u256;
         let starting_liquidity = (options_available * capped_payout_per_option);
 
         // Update the params of the option round
