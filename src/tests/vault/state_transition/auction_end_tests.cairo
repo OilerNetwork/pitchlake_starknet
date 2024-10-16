@@ -129,7 +129,7 @@ fn test_auction_ended_option_round_event() {
         // Check the event emits correctly
         assert(clearing_price > 0, 'clearing price shd be > 0');
         assert_event_auction_end(
-            current_round.contract_address(), total_options_sold, clearing_price, 0
+            current_round.contract_address(), total_options_sold, clearing_price, 0, 0
         );
 
         accelerate_to_settled(ref vault, current_round.get_strike_price() * 2);

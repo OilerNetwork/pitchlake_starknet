@@ -542,7 +542,9 @@ mod OptionRound {
         fn end_auction(ref self: ContractState) -> (u256, u256) {
             // @dev Calculate how many options were sold and the price per one
             let options_available = self.bids_tree._get_total_options_available();
-            let (clearing_price, options_sold, clearing_bid_tree_nonce) = self.bids_tree.find_clearing_price();
+            let (clearing_price, options_sold, clearing_bid_tree_nonce) = self
+                .bids_tree
+                .find_clearing_price();
 
             // @dev Set unsold liquidity if some options do not sell
             let starting_liq = self.starting_liquidity.read();
@@ -566,7 +568,9 @@ mod OptionRound {
             self
                 .emit(
                     Event::AuctionEnded(
-                        AuctionEnded { options_sold, clearing_price, unsold_liquidity, clearing_bid_tree_nonce }
+                        AuctionEnded {
+                            options_sold, clearing_price, unsold_liquidity, clearing_bid_tree_nonce
+                        }
                     )
                 );
 
@@ -741,7 +745,7 @@ mod OptionRound {
             self.has_minted.write(account, true);
 
             // @dev Transfer the payout share to the bidder
-            let total_options_exercised = erc20_option_balance;
+            let total_options_exercised = erc20_option_balance + mintable_options_exercised;
             let exercised_amount = total_options_exercised * self.payout_per_option.read();
             self.get_eth_dispatcher().transfer(account, exercised_amount);
 
@@ -906,7 +910,7 @@ mod OptionRound {
                         // mintable & refundable
                         if bid_id == clearing_bid_id {
                             clearing_bid_option = Option::Some(bid);
-                        } // @dev If this bid is now the clearing bid, check if this bid is above or below the clearing bid
+                        } // @dev If this bid is not the clearing bid, check if this bid is above or below the clearing bid
                         else {
                             if bid > clearing_bid {
                                 winning_bids.append(bid);

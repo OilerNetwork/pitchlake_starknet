@@ -120,6 +120,7 @@ fn test_option_round_settled_event() {
 #[test]
 #[available_gas(500000000)]
 fn test_first_round_deployed_event() {
+    set_block_timestamp(123);
     let vault_dispatcher = deploy_vault_with_events(2222, 9999, contract_address_const::<'eth'>());
     let mut vault = VaultFacade { vault_dispatcher };
     let mut current_round = vault.get_current_round();
@@ -206,6 +207,7 @@ fn test_settling_option_round_updates_current_round_id() {
 
         let current_round_id = vault.get_current_round_id();
         accelerate_to_settled(ref vault, 123);
+
         let new_current_round_id = vault.get_current_round_id();
 
         assert(new_current_round_id == current_round_id + 1, 'current round id wrong');

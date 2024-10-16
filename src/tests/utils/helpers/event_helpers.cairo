@@ -148,12 +148,15 @@ fn assert_event_auction_end(
     option_round_address: ContractAddress,
     options_sold: u256,
     clearing_price: u256,
-    unsold_liquidity: u256
+    unsold_liquidity: u256,
+    clearing_bid_tree_nonce: u64,
 ) {
     match pop_log::<OptionRound::Event>(option_round_address) {
         Option::Some(e) => {
             let expected = OptionRound::Event::AuctionEnded(
-                OptionRound::AuctionEnded { options_sold, clearing_price, unsold_liquidity }
+                OptionRound::AuctionEnded {
+                    options_sold, clearing_price, unsold_liquidity, clearing_bid_tree_nonce
+                }
             );
             assert_events_equal(e, expected);
         },
@@ -219,6 +222,11 @@ fn assert_event_options_exercised(
     mintable_options_exercised: u256,
     exercised_amount: u256
 ) {
+    // If the account burned erc20 tokens, we need to remove that event from the log
+    if total_options_exercised > mintable_options_exercised {
+        let _ = pop_log::<ERC20Component::Event>(contract);
+    }
+
     match pop_log::<OptionRound::Event>(contract) {
         Option::Some(e) => {
             let expected = OptionRound::Event::OptionsExercised(

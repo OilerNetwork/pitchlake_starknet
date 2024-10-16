@@ -97,13 +97,14 @@ pub mod RBTreeComponent {
                     root, total_options_available, root_bid.price, root
                 );
             let clearing_node: Node = self.tree.entry(clearing_felt).read();
+            let clearing_bid: Bid = clearing_node.value;
             let total_options_sold = total_options_available - remaining_options;
             self.total_options_sold.write(total_options_sold);
             if (remaining_options == 0) {
                 self.clearing_bid.write(clearing_felt);
             }
             self.clearing_price.write(clearing_node.value.price);
-            (clearing_node.value.price, total_options_sold, clearing_node.tree_nonce)
+            (clearing_node.value.price, total_options_sold, clearing_bid.tree_nonce)
         }
 
         fn get_total_options_sold(self: @ComponentState<TContractState>) -> u256 {
