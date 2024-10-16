@@ -29,6 +29,7 @@ use pitch_lake::{
                 accelerators::{
                     accelerate_to_auctioning, timeskip_and_end_auction, accelerate_to_running,
                     accelerate_to_settled, timeskip_past_auction_end_date,
+                    accelerate_to_auctioning_custom,
                 },
                 event_helpers::{
                     assert_event_transfer, assert_event_auction_bid_placed, pop_log,
@@ -38,7 +39,7 @@ use pitch_lake::{
             lib::test_accounts::{
                 liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
                 option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
-                option_bidders_get,
+                option_bidders_get, liquidity_providers_get,
             },
             facades::{
                 vault_facade::{VaultFacade, VaultFacadeTrait},
@@ -150,6 +151,25 @@ fn test_bid_after_auction_end_failure_2() {
     clear_event_logs(array![round2.contract_address()]);
 
     round2.place_bid_expect_error(bid_amount, bid_price, bidder, Errors::BiddingWhileNotAuctioning);
+}
+
+// Test bidding fails if no options available
+#[test]
+#[available_gas(500000000)]
+fn test_bidding_no_options_fail() {
+    let (mut vault, _) = setup_facade();
+    let mut current_round = vault.get_current_round();
+    accelerate_to_auctioning_custom(
+        ref vault, liquidity_providers_get(2).span(), array![0, 0].span()
+    );
+
+    current_round
+        .place_bid_expect_error(
+            1234,
+            current_round.get_reserve_price(),
+            liquidity_provider_1(),
+            Errors::NoOptionsToBidFor
+        );
 }
 
 /// Event Tests ///

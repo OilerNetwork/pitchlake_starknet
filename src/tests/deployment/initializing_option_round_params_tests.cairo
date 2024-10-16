@@ -6,7 +6,6 @@ use starknet::{
 use openzeppelin_token::erc20::interface::ERC20ABIDispatcherTrait;
 
 use pitch_lake::{
-    library::eth::Eth, types::Consts::BPS,
     vault::{contract::Vault, interface::{VaultType, IVaultDispatcher, IVaultDispatcherTrait},},
     option_round::interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
     tests::{
@@ -44,11 +43,10 @@ fn to_gwei(amount: u256) -> u256 {
 #[available_gas(50000000)]
 fn test_calculated_strike_price() {
     let twap = to_gwei(100);
-    let k = 333; // +/- 3.33%
 
-    let atm_k = 10_000;
-    let itm_k = 10_000 - k;
-    let otm_k = 10_000 + k;
+    let atm_k = 0;
+    let itm_k = -333;
+    let otm_k = 333;
 
     let strike_atm = calculate_strike_price(atm_k, twap);
     let strike_itm = calculate_strike_price(itm_k, twap);
@@ -63,11 +61,10 @@ fn test_calculated_strike_price() {
 #[available_gas(50000000)]
 fn test_calculated_strike_price_2() {
     let twap = to_gwei(100);
-    let k = 1039; // +/- 10.39%
 
-    let atm_k = 10_000;
-    let itm_k = 10_000 - k;
-    let otm_k = 10_000 + k;
+    let atm_k = 0;
+    let itm_k = -1039;
+    let otm_k = 1039;
 
     let strike_atm = calculate_strike_price(atm_k, twap);
     let strike_itm = calculate_strike_price(itm_k, twap);
@@ -81,7 +78,7 @@ fn test_calculated_strike_price_2() {
 #[test]
 #[available_gas(50000000)]
 fn test_vault_strike_levels_atm() {
-    let k_atm = 10_000;
+    let k_atm = 0;
     let mut vault_atm = setup_facade_custom(3333, k_atm);
 
     accelerate_to_auctioning(ref vault_atm);
@@ -96,33 +93,35 @@ fn test_vault_strike_levels_atm() {
 #[test]
 #[available_gas(50000000)]
 fn test_vault_strike_levels_itm() {
-    let k_itm = 1_039; // - 89.61%
+    let k_itm = -1_039; // -10.39%
     let mut vault_itm = setup_facade_custom(3333, k_itm);
+    let s_price = to_gwei(100);
 
     accelerate_to_auctioning(ref vault_itm);
     accelerate_to_running(ref vault_itm);
-    accelerate_to_settled(ref vault_itm, to_gwei(100));
+    accelerate_to_settled(ref vault_itm, s_price);
 
     let mut itm_round = vault_itm.get_current_round();
     let itm_strike = itm_round.get_strike_price();
 
-    assert_eq!(itm_strike, to_gwei(1039) / 100);
+    assert_eq!(itm_strike, ((10_000 - 1039) * s_price) / 10000);
 }
 
 #[test]
 #[available_gas(50000000)]
 fn test_vault_strike_levels_otm() {
-    let k_otm = 10_007; // + 0.07%
+    let k_otm = 10_007; // + 100.07%
     let mut vault_otm = setup_facade_custom(3333, k_otm);
+    let s_price = to_gwei(100);
 
     accelerate_to_auctioning(ref vault_otm);
     accelerate_to_running(ref vault_otm);
-    accelerate_to_settled(ref vault_otm, to_gwei(100));
+    accelerate_to_settled(ref vault_otm, s_price);
 
     let mut otm_round = vault_otm.get_current_round();
     let otm_strike = otm_round.get_strike_price();
 
-    assert_eq!(otm_strike, to_gwei(10007) / 100);
+    assert_eq!(otm_strike, (10_000 + 10_007) * s_price / 10000);
 }
 //#[test]
 //#[available_gas(50000000)]
