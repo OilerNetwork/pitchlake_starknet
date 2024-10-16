@@ -475,7 +475,7 @@ fn test_last_bid_is_partial() {
 
             let expected_partial_amount = total_options_available - (4 * bid_amount);
 
-            assert(mintable_options == expected_partial_amount, 'losing bidder shd get 0 options');
+            assert(mintable_options == expected_partial_amount, 'losing bidder remaining options');
             loop {
                 match option_bidders.pop_front() {
                     Option::Some(bidder) => {
