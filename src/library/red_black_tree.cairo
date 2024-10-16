@@ -87,7 +87,7 @@ pub mod RBTreeComponent {
     pub impl RBTreeOptionRoundImpl<
         TContractState, +HasComponent<TContractState>
     > of RBTreeOptionRoundTrait<TContractState> {
-        fn find_clearing_price(ref self: ComponentState<TContractState>) -> (u256, u256) {
+        fn find_clearing_price(ref self: ComponentState<TContractState>) -> (u256, u256, u64) {
             let total_options_available = self._get_total_options_available();
             let root: felt252 = self.root.read();
             let root_node: Node = self.tree.entry(root).read();
@@ -103,7 +103,7 @@ pub mod RBTreeComponent {
                 self.clearing_bid.write(clearing_felt);
             }
             self.clearing_price.write(clearing_node.value.price);
-            (clearing_node.value.price, total_options_sold)
+            (clearing_node.value.price, total_options_sold, clearing_node.tree_nonce)
         }
 
         fn get_total_options_sold(self: @ComponentState<TContractState>) -> u256 {

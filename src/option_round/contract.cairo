@@ -175,6 +175,7 @@ mod OptionRound {
         options_sold: u256,
         clearing_price: u256,
         unsold_liquidity: u256,
+        clearing_bid_tree_nonce: u64,
     }
 
     // @dev Emitted when the round settles
@@ -541,7 +542,7 @@ mod OptionRound {
         fn end_auction(ref self: ContractState) -> (u256, u256) {
             // @dev Calculate how many options were sold and the price per one
             let options_available = self.bids_tree._get_total_options_available();
-            let (clearing_price, options_sold) = self.bids_tree.find_clearing_price();
+            let (clearing_price, options_sold, clearing_bid_tree_nonce) = self.bids_tree.find_clearing_price();
 
             // @dev Set unsold liquidity if some options do not sell
             let starting_liq = self.starting_liquidity.read();
@@ -565,7 +566,7 @@ mod OptionRound {
             self
                 .emit(
                     Event::AuctionEnded(
-                        AuctionEnded { options_sold, clearing_price, unsold_liquidity }
+                        AuctionEnded { options_sold, clearing_price, unsold_liquidity, clearing_bid_tree_nonce }
                     )
                 );
 
