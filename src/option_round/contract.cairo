@@ -11,7 +11,7 @@ mod OptionRound {
     use pitch_lake::option_round::interface::{
         PricingData, ConstructorArgs, IOptionRound, OptionRoundState
     };
-    use pitch_lake::types::{Bid, Consts::BPS,};
+    use pitch_lake::types::{Bid};
     use pitch_lake::library::utils::{max, min};
     use pitch_lake::library::pricing_utils::{
         calculate_total_options_available, calculate_payout_per_option,
@@ -89,6 +89,7 @@ mod OptionRound {
         const OptionSettlementDateNotReached: felt252 = 'Settlement date not reached';
         const OptionRoundAlreadySettled: felt252 = 'Option round already settled';
         // Bidding & upating bids
+        const NoOptionsToBidFor: felt252 = 'No options to bid for';
         const BiddingWhileNotAuctioning: felt252 = 'Can only bid while auctioning';
         const BidAmountZero: felt252 = 'Bid amount cannot be 0';
         const BidBelowReservePrice: felt252 = 'Bid price below reserve price';
@@ -238,13 +239,15 @@ mod OptionRound {
 
     // @dev Emitted when an account exercises their options
     // @param account: The account that exercised the options
-    // @param number_of_options: The number of options exercised
-    // @param exercised_amount: The amount transferred
+    // @param total_options_exercised: The total number of options exercised
+    // @param mintable_options_exercised: The number of options exercised that the caller could have
+    // minted @param exercised_amount: The amount transferred
     #[derive(Drop, starknet::Event, PartialEq)]
     struct OptionsExercised {
         #[key]
         account: ContractAddress,
-        number_of_options: u256,
+        total_options_exercised: u256,
+        mintable_options_exercised: u256,
         exercised_amount: u256
     }
 
@@ -725,29 +728,32 @@ mod OptionRound {
 
             // @dev Get the account's total option balance
             let account = get_caller_address();
-            let mut number_of_options = 0;
 
             // @dev Burn the ERC-20 options
             let erc20_option_balance = self.erc20.ERC20_balances.read(account);
             if erc20_option_balance > 0 {
-                number_of_options += erc20_option_balance;
                 self.erc20.burn(account, erc20_option_balance);
             }
 
             // @dev Update the account's has minted status
-            let mintable_amount = self.get_account_mintable_options(account);
-            number_of_options += mintable_amount;
+            let mintable_options_exercised = self.get_account_mintable_options(account);
             self.has_minted.write(account, true);
 
             // @dev Transfer the payout share to the bidder
-            let exercised_amount = number_of_options * self.payout_per_option.read();
+            let total_options_exercised = erc20_option_balance;
+            let exercised_amount = total_options_exercised * self.payout_per_option.read();
             self.get_eth_dispatcher().transfer(account, exercised_amount);
 
             // @dev Emit options exercised event
             self
                 .emit(
                     Event::OptionsExercised(
-                        OptionsExercised { account, number_of_options, exercised_amount, }
+                        OptionsExercised {
+                            account,
+                            total_options_exercised,
+                            mintable_options_exercised,
+                            exercised_amount
+                        }
                     )
                 );
 
@@ -841,7 +847,7 @@ mod OptionRound {
                 now < target && state == OptionRoundState::Auctioning,
                 Errors::BiddingWhileNotAuctioning
             );
-            assert(options_available.is_non_zero(), 'TODO: No options to bid for')
+            assert(options_available.is_non_zero(), Errors::NoOptionsToBidFor);
         }
 
         /// ERC-20

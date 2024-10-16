@@ -215,13 +215,16 @@ fn assert_event_options_tokenized(
 fn assert_event_options_exercised(
     contract: ContractAddress,
     account: ContractAddress,
-    number_of_options: u256,
+    total_options_exercised: u256,
+    mintable_options_exercised: u256,
     exercised_amount: u256
 ) {
     match pop_log::<OptionRound::Event>(contract) {
         Option::Some(e) => {
             let expected = OptionRound::Event::OptionsExercised(
-                OptionRound::OptionsExercised { account, number_of_options, exercised_amount }
+                OptionRound::OptionsExercised {
+                    account, total_options_exercised, mintable_options_exercised, exercised_amount
+                }
             );
             assert_events_equal(e, expected);
         },
@@ -366,7 +369,7 @@ fn assert_event_queued_liquidity_collected(
 fn assert_event_withdrawal_queued(
     vault: ContractAddress,
     account: ContractAddress,
-    bps: u16,
+    bps: u128,
     account_queued_liquidity_now: u256,
     vault_queued_liquidity_now: u256
 ) {
