@@ -396,12 +396,7 @@ fn test_null_round_settling() {
             options_available, reserve_price, option_buyer, Errors::NoOptionsToBidFor
         );
 
-    accelerate_to_running_custom(
-        ref vault,
-        array![].span(),
-        array![].span(),
-        array![].span()
-    );
+    accelerate_to_running_custom(ref vault, array![].span(), array![].span(), array![].span());
 
     accelerate_to_settled(ref vault, 2 * current_round.get_strike_price());
 }
@@ -412,16 +407,9 @@ fn test_null_round_settling() {
 fn test_no_buyers_round_settling() {
     let (mut vault, _) = setup_facade();
     let mut current_round = vault.get_current_round();
-    accelerate_to_auctioning(
-        ref vault
-    );
+    accelerate_to_auctioning(ref vault);
 
-    accelerate_to_running_custom(
-        ref vault,
-        array![].span(),
-        array![].span(),
-        array![].span()
-    );
+    accelerate_to_running_custom(ref vault, array![].span(), array![].span(), array![].span());
 
     accelerate_to_settled(ref vault, 2 * current_round.get_strike_price());
 }

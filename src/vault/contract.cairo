@@ -596,10 +596,10 @@ mod Vault {
                 self.l1_data.entry(current_round_id).write(l1_data);
             } // @dev If the first round is Open, the result is being used to set the pricing data for its auction to start
             else {
-                // @dev Ensure now < auction start date
-                let now = get_block_timestamp();
-                let auction_start_date = current_round.get_auction_start_date();
-                assert(now < auction_start_date, Errors::L1DataNotAcceptedNow);
+                // // @dev Ensure now < auction start date
+                // let now = get_block_timestamp();
+                // let auction_start_date = current_round.get_auction_start_date();
+                // assert(now < auction_start_date, Errors::L1DataNotAcceptedNow);
 
                 // @dev Ensure the job request's timestamp is for the round's deployment date
                 let deployment_date = current_round.get_deployment_date();
