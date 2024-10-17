@@ -948,10 +948,6 @@ fn test_queueing_multiple_rounds_stashed_amount_payouts() {
     accelerate_to_running(ref vault);
     let premiums = current_round.total_premiums();
     let sold_liq = current_round.sold_liquidity();
-    let unsold_liq = current_round.unsold_liquidity();
-    let total_liq = sold_liq + unsold_liq;
-    let earned_liq = premiums + unsold_liq;
-
 
     vault.queue_withdrawal(liquidity_provider, 10_000);
     let payout = accelerate_to_settled(ref vault, 110 * current_round.get_strike_price() / 100);
@@ -962,9 +958,6 @@ fn test_queueing_multiple_rounds_stashed_amount_payouts() {
     accelerate_to_running(ref vault);
     let premiums2 = current_round.total_premiums();
     let sold_liq2 = current_round.sold_liquidity();
-    let unsold_liq2 = current_round.unsold_liquidity();
-    let total_liq2 = sold_liq2 + unsold_liq2;
-    let earned_liq2 = premiums2 + unsold_liq2;
 
     // Queue just premiums from last round for stashing
     vault.queue_withdrawal(liquidity_provider, 10_000);
@@ -976,9 +969,6 @@ fn test_queueing_multiple_rounds_stashed_amount_payouts() {
     accelerate_to_running(ref vault);
     let premiums3 = current_round.total_premiums();
     let sold_liq3 = current_round.sold_liquidity();
-    let unsold_liq3 = current_round.unsold_liquidity();
-    let total_liq3 = sold_liq3 + unsold_liq3;
-    let earned_liq3 = premiums3 + unsold_liq3;
 
     vault.queue_withdrawal(liquidity_provider, 10_000);
     let payout3 = accelerate_to_settled(ref vault, 250 * current_round.get_strike_price() / 100);
