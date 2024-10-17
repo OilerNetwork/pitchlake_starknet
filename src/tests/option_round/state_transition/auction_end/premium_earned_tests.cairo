@@ -268,49 +268,31 @@ fn test_premium_amount_for_liquidity_providers_5() {
 
 // Internal tester to check the premiums collectable for LPs is correct
 fn _test_premiums_collectable_helper(
-    ref vault_facade: VaultFacade, liquidity_providers: Span<ContractAddress>, amounts: Span<u256>
+    ref vault: VaultFacade, liquidity_providers: Span<ContractAddress>, amounts: Span<u256>
 ) {
-    // @note: we don't need to setup it again right? we are doing this ??
-    // let (mut vault_facade, _) = setup_facade();
     assert(liquidity_providers.len() == amounts.len(), 'Span missmatch');
 
     // Deposit liquidity and start the auction
-    accelerate_to_auctioning_custom(ref vault_facade, liquidity_providers, amounts);
+    accelerate_to_auctioning_custom(ref vault, liquidity_providers, amounts);
 
-    // End auction, minting all options at reserve price
-    accelerate_to_running(ref vault_facade);
+    // End auction
+    accelerate_to_running(ref vault);
 
-    // Get total collateral in pool (deposit total) and total premium
-    let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
-    let amount_span = amounts;
-    let mut total_collateral_in_pool = 0;
-    let mut i = 0;
-    loop {
-        if (i == amount_span.len()) {
-            break;
-        }
-        total_collateral_in_pool += *amount_span.at(i);
-        i += 1;
-    };
-    let total_premium: u256 = current_round.get_auction_clearing_price()
-        * current_round.total_options_sold();
+    let mut current_round = vault.get_current_round();
+    let sold_liq = current_round.sold_liquidity();
+    let unsold_liq = current_round.unsold_liquidity();
+    let total_liq = sold_liq + unsold_liq;
+    let total_premium = current_round.total_premiums();
 
     // Check each LP's collectable premiums matches expected
-    i = 0;
-    loop {
-        if (i == liquidity_providers.len()) {
-            break;
-        }
-        // @note Handle precision loss ?
-        let lp_expected_premium = (*amount_span.at(i) * total_premium) / total_collateral_in_pool;
-        let lp_actual_premium = vault_facade.get_lp_unlocked_balance(*liquidity_providers.at(i));
+    for i in 0
+        ..liquidity_providers
+            .len() {
+                let deposit_amount = *amounts.at(i);
 
-        assert(lp_actual_premium == lp_expected_premium, 'LP premiums wrong');
+                let exp_lp_unlocked = (deposit_amount * (unsold_liq + total_premium)) / (total_liq);
+                let lp_unlocked = vault.get_lp_unlocked_balance(*liquidity_providers.at(i));
 
-        i += 1;
-    };
+                assert(lp_unlocked == exp_lp_unlocked, 'LP unlocked wrong');
+            };
 }
-// @note Need tests for premium collection: lp/round unallocated decrementing, remaining premiums
-// for other LPs unaffected, cannot collect twice/more than remaining collectable amount
-
-

@@ -14,7 +14,7 @@ mod OptionRound {
     use pitch_lake::types::{Bid};
     use pitch_lake::library::utils::{max, min};
     use pitch_lake::library::pricing_utils::{
-        calculate_total_options_available, calculate_payout_per_option,
+        max_payout_per_option, calculate_total_options_available, calculate_payout_per_option,
     };
     use pitch_lake::library::red_black_tree::{RBTreeComponent, RBTreeComponent::Node};
     use pitch_lake::library::constants::{
@@ -54,7 +54,6 @@ mod OptionRound {
         option_settlement_date: u64,
         ///
         starting_liquidity: u256,
-        unsold_liquidity: u256,
         settlement_price: u256,
         payout_per_option: u256,
         ///
@@ -312,8 +311,32 @@ mod OptionRound {
             self.starting_liquidity.read()
         }
 
+        fn get_sold_liquidity(self: @ContractState) -> u256 {
+            let state = self.get_state();
+
+            if state == OptionRoundState::Running || state == OptionRoundState::Settled {
+                let max_payout_per_option = max_payout_per_option(
+                    self.pricing_data.strike_price.read(), self.pricing_data.cap_level.read()
+                );
+                let options_sold = self.bids_tree.total_options_sold.read();
+
+                max_payout_per_option * options_sold
+            } else {
+                0
+            }
+        }
+
         fn get_unsold_liquidity(self: @ContractState) -> u256 {
-            self.unsold_liquidity.read()
+            let state = self.get_state();
+
+            if state == OptionRoundState::Running || state == OptionRoundState::Settled {
+                let starting_liq = self.starting_liquidity.read();
+                let sold_liq = self.get_sold_liquidity();
+
+                starting_liq - sold_liq
+            } else {
+                0
+            }
         }
 
         fn get_reserve_price(self: @ContractState) -> u256 {
@@ -541,22 +564,23 @@ mod OptionRound {
 
         fn end_auction(ref self: ContractState) -> (u256, u256) {
             // @dev Calculate how many options were sold and the price per one
-            let options_available = self.bids_tree._get_total_options_available();
             let (clearing_price, options_sold, clearing_bid_tree_nonce) = self
                 .bids_tree
                 .find_clearing_price();
 
             // @dev Set unsold liquidity if some options do not sell
             let starting_liq = self.starting_liquidity.read();
-            let options_unsold = options_available - options_sold;
-            let unsold_liquidity = match options_available.is_zero() {
-                true => 0,
-                false => (starting_liq * options_unsold) / options_available
-            };
+            let sold_liquidity = options_sold
+                * max_payout_per_option(
+                    self.pricing_data.strike_price.read(), self.pricing_data.cap_level.read()
+                );
+            let unsold_liquidity = starting_liq - sold_liquidity;
 
-            if unsold_liquidity.is_non_zero() {
-                self.unsold_liquidity.write(unsold_liquidity);
-            }
+            //let options_unsold = options_available - options_sold;
+            //let unsold_liquidity = match options_available.is_zero() {
+            //    true => 0,
+            //    false => (starting_liq * options_unsold) / options_available
+            //};
 
             // @dev Send premiums to Vault
             self

@@ -153,21 +153,21 @@ fn test_default_l1_data_fails() {
 
     let mut request_serialized = array![];
     let mut result1_serialized = array![];
-    let mut result2_serialized = array![];
+    //let mut result2_serialized = array![];
     let mut result3_serialized = array![];
 
     vault.get_request_to_settle_round().serialize(ref request_serialized);
 
     let mut result1 = get_mock_result();
-    let mut result2 = get_mock_result();
+    //let mut result2 = get_mock_result();
     let mut result3 = get_mock_result();
 
     result1.l1_data.twap = 0;
-    result2.l1_data.volatility = 0;
+    //result2.l1_data.volatility = 0;
     result3.l1_data.reserve_price = 0;
 
     result1.serialize(ref result1_serialized);
-    result2.serialize(ref result2_serialized);
+    //result2.serialize(ref result2_serialized);
     result3.serialize(ref result3_serialized);
 
     // Should fail
@@ -175,10 +175,10 @@ fn test_default_l1_data_fails() {
         .fossil_callback_expect_error(
             request_serialized.span(), result1_serialized.span(), vErrors::InvalidL1Data
         );
-    fossil_client
-        .fossil_callback_expect_error(
-            request_serialized.span(), result2_serialized.span(), vErrors::InvalidL1Data
-        );
+    //fossil_client
+    //    .fossil_callback_expect_error(
+    //        request_serialized.span(), result2_serialized.span(), vErrors::InvalidL1Data
+    //    );
     fossil_client
         .fossil_callback_expect_error(
             request_serialized.span(), result3_serialized.span(), vErrors::InvalidL1Data

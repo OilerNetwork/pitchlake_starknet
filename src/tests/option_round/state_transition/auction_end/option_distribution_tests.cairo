@@ -413,7 +413,7 @@ fn test_the_last_bidder_gets_no_options_if_none_left() {
     let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
 
     // Make bids, end auction
-    let bid_amount = total_options_available / (number_of_option_bidders.into() - 1);
+    let bid_amount = total_options_available / 3;
     let bid_amounts = create_array_linear(bid_amount, number_of_option_bidders);
     let bid_prices = create_array_linear(
         current_round.get_reserve_price(), number_of_option_bidders
@@ -422,13 +422,24 @@ fn test_the_last_bidder_gets_no_options_if_none_left() {
         ref vault_facade, option_bidders, bid_amounts.span(), bid_prices.span()
     );
 
-    // Check that the last bidder gets 0 options, and the rest get the bid amount
+    // Check that the last bidder gets 0 options,
     match option_bidders.pop_back() {
         Option::Some(last_bidder) => {
             assert(
                 current_round.get_mintable_options_for(*last_bidder) == 0,
                 'last bidder shd get 0 options'
             );
+            // Check the partial bidder gets the remaining
+            match option_bidders.pop_back() {
+                Option::Some(bidder) => {
+                    let expected = total_options_available - (3 * bid_amount);
+                    assert(
+                        current_round.get_mintable_options_for(*bidder) == expected,
+                        'bidder shd get bid amount'
+                    );
+                },
+                Option::None => { panic!("This shd not revert here") }
+            }
 
             loop {
                 match option_bidders.pop_front() {

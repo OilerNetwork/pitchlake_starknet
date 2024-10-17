@@ -403,9 +403,12 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         self.option_round_dispatcher.get_starting_liquidity()
     }
 
-    fn unsold_liquidity(ref self: OptionRoundFacade) -> u256 {
-        // @note Temp fix, can move this function to round facade
+    fn sold_liquidity(ref self: OptionRoundFacade) -> u256 {
+        self.option_round_dispatcher.get_sold_liquidity()
+    }
 
+
+    fn unsold_liquidity(ref self: OptionRoundFacade) -> u256 {
         self.option_round_dispatcher.get_unsold_liquidity()
     }
 

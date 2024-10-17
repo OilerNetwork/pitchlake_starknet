@@ -73,8 +73,11 @@ trait IOptionRound<TContractState> {
     // @dev The total options sold after in the auction
     fn get_options_sold(self: @TContractState) -> u256;
 
-    // @dev The total ETH not sold in the auction
+    // @dev The total liquidity not sold in the auction (no longer collateral)
     fn get_unsold_liquidity(self: @TContractState) -> u256;
+
+    // @dev The total liquidity sold in the auction (collateral)
+    fn get_sold_liquidity(self: @TContractState) -> u256;
 
     // @dev The price paid for each option after the auction ends
     fn get_clearing_price(self: @TContractState) -> u256;

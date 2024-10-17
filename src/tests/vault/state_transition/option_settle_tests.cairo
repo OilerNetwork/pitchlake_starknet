@@ -287,17 +287,21 @@ fn test_settling_option_round_updates_locked_and_unlocked_balances() {
         100 * decimals(), 100 * decimals(), number_of_liquidity_providers
     )
         .span();
-    let total_deposits = sum_u256_array(deposit_amounts);
+    //    let total_deposits = sum_u256_array(deposit_amounts);
     let (mut vault, _, liquidity_providers, _) = setup_test_auctioning_providers(
         number_of_liquidity_providers, deposit_amounts
     );
+    let mut current_round = vault.get_current_round();
 
     // End auction
-    let mut current_round = vault.get_current_round();
     let (clearing_price, options_sold) = accelerate_to_running(ref vault);
     let total_premiums = options_sold * clearing_price;
-    let mut liquidity_provider_premiums = get_portion_of_amount(deposit_amounts, total_premiums)
-        .span();
+    //    let mut liquidity_provider_premiums = get_portion_of_amount(deposit_amounts,
+    //    total_premiums)
+    //        .span();
+    let sold_liq = current_round.sold_liquidity();
+    let unsold_liq = current_round.unsold_liquidity();
+    let total_liq = sold_liq + unsold_liq;
 
     // Vault and liquidity provider balances before auction starts
     let mut liquidity_providers_locked_before = vault.get_lp_locked_balances(liquidity_providers);
@@ -308,11 +312,12 @@ fn test_settling_option_round_updates_locked_and_unlocked_balances() {
 
     // Settle the round with a payout
     let total_payouts = accelerate_to_settled(ref vault, 2 * current_round.get_strike_price());
-    let remaining_liquidity = total_deposits + total_premiums - total_payouts;
-    let mut individual_remaining_liquidty = get_portion_of_amount(
-        deposit_amounts, remaining_liquidity
-    )
-        .span();
+    let remaining_liq = sold_liq - total_payouts;
+    let gained_liq = total_premiums + unsold_liq;
+    //    let mut individual_remaining_liquidty = get_portion_of_amount(
+    //        deposit_amounts, remaining_liq
+    //    )
+    //        .span();
 
     // Vault and liquidity provider balances after auction starts
     let mut liquidity_providers_locked_after = vault.get_lp_locked_balances(liquidity_providers);
@@ -323,11 +328,11 @@ fn test_settling_option_round_updates_locked_and_unlocked_balances() {
     // Check vault balance
     assert(total_premiums > 0, 'premiums shd be > 0');
     assert(
-        (vault_locked_before, vault_unlocked_before) == (total_deposits, total_premiums),
+        (vault_locked_before, vault_unlocked_before) == (sold_liq, gained_liq),
         'vault balance before wrong'
     );
     assert(
-        (vault_locked_after, vault_unlocked_after) == (0, remaining_liquidity),
+        (vault_locked_after, vault_unlocked_after) == (0, gained_liq + remaining_liq),
         'vault balance after wrong'
     );
 
@@ -342,20 +347,27 @@ fn test_settling_option_round_updates_locked_and_unlocked_balances() {
                 let lp_unlocked_balance_after = liquidity_providers_unlocked_after
                     .pop_front()
                     .unwrap();
+
                 let lp_deposit_amount = deposit_amounts.pop_front().unwrap();
-                let lp_premium = liquidity_provider_premiums.pop_front().unwrap();
-                let lp_remaining_liquidity = individual_remaining_liquidty.pop_front().unwrap();
+
+                let lp_sold_liq = (*lp_deposit_amount * sold_liq) / total_liq;
+                let lp_gained_liq = (*lp_deposit_amount * gained_liq) / total_liq;
+                let lp_remaining_liq = (*lp_deposit_amount * remaining_liq) / total_liq;
+
+                //                let lp_premium = liquidity_provider_premiums.pop_front().unwrap();
+                //                let lp_remaining_liquidity =
+                //                individual_remaining_liquidty.pop_front().unwrap();
 
                 assert(
                     (
                         lp_locked_balance_before, lp_unlocked_balance_before
-                    ) == (*lp_deposit_amount, *lp_premium),
+                    ) == (lp_sold_liq, lp_gained_liq),
                     'LP balance before wrong'
                 );
                 assert(
                     (
                         lp_locked_balance_after, lp_unlocked_balance_after
-                    ) == (0, *lp_remaining_liquidity),
+                    ) == (0, lp_gained_liq + lp_remaining_liq),
                     'LP balance after wrong'
                 );
             },
