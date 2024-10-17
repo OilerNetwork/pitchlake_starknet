@@ -881,7 +881,6 @@ fn test_unstashed_liquidity_adds_to_next_round_deposits() {
     );
 }
 
-
 #[test]
 #[available_gas(500000000)]
 fn test_queueing_multiple_rounds_stashed_amount_no_payouts() {
@@ -925,11 +924,6 @@ fn test_queueing_multiple_rounds_stashed_amount_no_payouts() {
         deposit_amount + premiums + premiums2 + premiums3
     );
     assert_eq!(vault.get_total_balance(), deposit_amount + premiums + premiums2 + premiums3);
-    // after round 1 sold1 is stashed & premiums1 & unsold1 roll over
-    // after round 2 sold2 is stashed & premiums2 & unsold2 roll over
-    // after round 3 sold3 is stashed & premiums3 & unsold3 roll over
-    //assert_eq!(lp_stashed, (sold_liq + earned_liq) + (sold_liq2 + earned_liq2) + (sold_liq3 +
-    //earned_liq3));
     assert_eq!(lp_stashed, sold_liq + sold_liq2 + sold_liq3);
 }
 
