@@ -30,11 +30,11 @@ impl SerdeJobRequest of Serde<JobRequest> {
     }
     fn deserialize(ref serialized: Span<felt252>) -> Option<JobRequest> {
         let vault_address: ContractAddress = (*serialized.at(0))
-        .try_into()
-        .expect('failed to deserialize vault');
-    let timestamp: u64 = (*serialized.at(1))
-    .try_into()
-    .expect('failed to deserialize timestamp');
+            .try_into()
+            .expect('failed to deserialize vault');
+        let timestamp: u64 = (*serialized.at(1))
+            .try_into()
+            .expect('failed to deserialize timestamp');
         let program_id: felt252 = *serialized.at(2);
         Option::Some(JobRequest { program_id, vault_address, timestamp })
     }
