@@ -1,9 +1,14 @@
-use openzeppelin::token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait,};
+use openzeppelin_token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait,};
 use starknet::{ContractAddress};
 
 /// Array helpers ///
 
-// Create array of length `len`, each element is `amount` (For bids use the function twice for price and amount)
+fn to_gwei(value: u256) -> u256 {
+    value * 1_000_000_000
+}
+
+// Create array of length `len`, each element is `amount` (For bids use the function twice for price
+// and amount)
 fn create_array_linear<T, +Drop<T>, +Copy<T>>(amount: T, len: u32) -> Array<T> {
     let mut arr = array![];
     let mut index = 0;
@@ -14,7 +19,8 @@ fn create_array_linear<T, +Drop<T>, +Copy<T>>(amount: T, len: u32) -> Array<T> {
     arr
 }
 
-// Create array of length `len`, each element is `amount + index * step` (For bids use the function twice for price and amount)
+// Create array of length `len`, each element is `amount + index * step` (For bids use the function
+// twice for price and amount)
 fn create_array_gradient(amount: u256, step: u256, len: u32) -> Array<u256> {
     let mut arr: Array<u256> = array![];
     let mut index: u32 = 0;
@@ -25,7 +31,8 @@ fn create_array_gradient(amount: u256, step: u256, len: u32) -> Array<u256> {
     arr
 }
 
-// Create array of length `len`, each element is `amount - index * step` (For bids use the function twice for price and amount)
+// Create array of length `len`, each element is `amount - index * step` (For bids use the function
+// twice for price and amount)
 fn create_array_gradient_reverse(amount: u256, step: u256, len: u32) -> Array<u256> {
     let mut arr: Array<u256> = array![];
     let mut index: u32 = 0;
@@ -165,18 +172,27 @@ fn get_erc20_balances(
 // @dev Scaling with bps for precision
 // @dev Used to determine how many premiums and payouts belong to an account
 fn get_portion_of_amount(mut arr: Span<u256>, amount: u256) -> Array<u256> {
-    let precision_factor = 10000;
-    let mut total = sum_u256_array(arr);
+    let total = sum_u256_array(arr);
     let mut portions = array![];
     loop {
         match arr.pop_front() {
-            Option::Some(el) => {
-                let portion = ((precision_factor * *el * amount) / total) / precision_factor;
+            Option::Some(value) => {
+                let portion = (*value * amount) / total;
                 portions.append(portion);
             },
             Option::None => { break (); }
         }
     };
     portions
+}
+
+fn assert_u256s_equal_in_range(value1: u256, value2: u256, range: u256) {
+    let lower_bound = if range > value2 {
+        0
+    } else {
+        value2 - range
+    };
+    assert(value1 >= lower_bound, 'Value below range');
+    assert(value1 <= value2 + range, 'Value above range');
 }
 

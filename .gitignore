@@ -10,3 +10,7 @@ out/
 
 .DS_Store
 .env
+scripts/simulationData/simulationOutput/simulationResults*.json
+scripts/simulationData/simulationSheet*.json
+
+.starknet_accounts/starknet_open_zeppelin_accounts.json

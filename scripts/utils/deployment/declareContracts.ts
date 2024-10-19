@@ -1,17 +1,17 @@
 import { Account } from "starknet";
-import ethSierra from "../../../target/dev/pitch_lake_starknet_Eth.contract_class.json" assert { type: "json" };
-import ethCasm from "../../../target/dev/pitch_lake_starknet_Eth.compiled_contract_class.json" assert { type: "json" };
-import vaultSierra from "../../../target/dev/pitch_lake_starknet_Vault.contract_class.json" assert { type: "json" };
-import vaultCasm from "../../../target/dev/pitch_lake_starknet_Vault.compiled_contract_class.json" assert { type: "json" };
-import optionRoundSieraa from "../../../target/dev/pitch_lake_starknet_OptionRound.contract_class.json" assert { type: "json" };
-import optionRoundCasm from "../../../target/dev/pitch_lake_starknet_OptionRound.compiled_contract_class.json" assert { type: "json" };
-import marketAggregatorSierra from "../../../target/dev/pitch_lake_starknet_MarketAggregator.contract_class.json" assert { type: "json" };
-import marketAggregatorCasm from "../../../target/dev/pitch_lake_starknet_MarketAggregator.compiled_contract_class.json" assert { type: "json" };
+import ethSierra from "../../../target/dev/pitch_lake_Eth.contract_class.json" assert { type: "json" };
+import ethCasm from "../../../target/dev/pitch_lake_Eth.compiled_contract_class.json" assert { type: "json" };
+import vaultSierra from "../../../target/dev/pitch_lake_Vault.contract_class.json" assert { type: "json" };
+import vaultCasm from "../../../target/dev/pitch_lake_Vault.compiled_contract_class.json" assert { type: "json" };
+import optionRoundSieraa from "../../../target/dev/pitch_lake_OptionRound.contract_class.json" assert { type: "json" };
+import optionRoundCasm from "../../../target/dev/pitch_lake_OptionRound.compiled_contract_class.json" assert { type: "json" };
+import factRegistrySierra from "../../../target/dev/pitch_lake_FactRegistry.contract_class.json" assert { type: "json" };
+import factRegistryCasm from "../../../target/dev/pitch_lake_FactRegistry.compiled_contract_class.json" assert { type: "json" };
 async function declareContract(
   account: Account,
   sierra: any,
   casm: any,
-  placeholder: string
+  placeholder: string,
 ) {
   try {
     const declareResult = await account.declare({
@@ -34,7 +34,7 @@ async function declareContracts(account: Account) {
     account,
     vaultSierra,
     vaultCasm,
-    "vault"
+    "vault",
   );
 
   if (!vaultHash) {
@@ -44,27 +44,27 @@ async function declareContracts(account: Account) {
     account,
     optionRoundSieraa,
     optionRoundCasm,
-    "optionRound"
+    "optionRound",
   );
 
   if (!optionRoundHash) {
     throw Error("OptionRound Deploy Failed");
   }
 
-  let marketAggregatorHash = await declareContract(
+  let factRegistryHash = await declareContract(
     account,
-    marketAggregatorSierra,
-    marketAggregatorCasm,
-    "marketAggregator"
+    factRegistrySierra,
+    factRegistryCasm,
+    "factRegistry",
   );
-  if (!marketAggregatorHash) {
-    throw Error("MarketAggregator Deploy Failed");
+  if (!factRegistryHash) {
+    throw Error("FactRegistry Deploy Failed");
   }
   return {
     ethHash,
     vaultHash,
     optionRoundHash,
-    marketAggregatorHash,
+    factRegistryHash,
   };
 }
 export { declareContract, declareContracts };

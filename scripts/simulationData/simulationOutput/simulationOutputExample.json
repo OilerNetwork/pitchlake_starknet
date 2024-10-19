@@ -1,0 +1,2242 @@
+{
+  "results": [
+    {
+      "ethBalanceRound": "0",
+      "ethBalanceVault": "113605673092000",
+      "optionsAvailable": "37802",
+      "optionsSold": "12000",
+      "openStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "50000000000000",
+            "50000000000000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "1000000000000000000",
+          "1000000000000000000",
+          "1000000000000000000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "100000000000000"
+        },
+        "timeStamp": 1671417004
+      },
+      "auctioningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": [
+            "50000000000000",
+            "50000000000000",
+            "0",
+            "0",
+            "0"
+          ],
+          "lpUnlockedBalances": ["0", "0", "0", "0", "0"]
+        },
+        "ethBalancesBidders": [
+          "999994330969545000",
+          "1000000000000000000",
+          "999992063357363000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "100000000000000",
+          "vaultUnlocked": "0"
+        },
+        "timeStamp": 1672086605
+      },
+      "runningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": [
+            "15872176075340",
+            "15872176075340",
+            "0",
+            "0",
+            "0"
+          ],
+          "lpUnlockedBalances": [
+            "40930660470660",
+            "40930660470660",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999994330969545000",
+          "1000000000000000000",
+          "999992063357363000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "31744352150680",
+          "vaultUnlocked": "81861320941320"
+        },
+        "timeStamp": 1672756206
+      },
+      "settledStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "56802836546000",
+            "56802836546000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999994330969545000",
+          "1000000000000000000",
+          "999992063357363000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "113605673092000"
+        },
+        "timeStamp": 1673425807
+      }
+    },
+    {
+      "ethBalanceRound": "0",
+      "ethBalanceVault": "141079639576000",
+      "optionsAvailable": "35414",
+      "optionsSold": "12000",
+      "openStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "56802836546000",
+            "56802836546000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999994330969545000",
+          "1000000000000000000",
+          "999992063357363000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "113605673092000"
+        },
+        "timeStamp": 1674095407
+      },
+      "auctioningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": [
+            "56802836546000",
+            "56802836546000",
+            "0",
+            "0",
+            "0"
+          ],
+          "lpUnlockedBalances": ["0", "0", "0", "0", "0"]
+        },
+        "ethBalancesBidders": [
+          "999982883483510000",
+          "1000000000000000000",
+          "999976036876914000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "113605673092000",
+          "vaultUnlocked": "0"
+        },
+        "timeStamp": 1674765006
+      },
+      "runningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": [
+            "19247586789180",
+            "19247586789180",
+            "0",
+            "0",
+            "0"
+          ],
+          "lpUnlockedBalances": [
+            "51292232998820",
+            "51292232998820",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999982883483510000",
+          "1000000000000000000",
+          "999976036876914000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "38495173578359",
+          "vaultUnlocked": "102584465997641"
+        },
+        "timeStamp": 1675434606
+      },
+      "settledStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "70539819788000",
+            "70539819788000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999982883483510000",
+          "1000000000000000000",
+          "999976036876914000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "141079639576000"
+        },
+        "timeStamp": 1676104205
+      }
+    },
+    {
+      "ethBalanceRound": "0",
+      "ethBalanceVault": "156434787496000",
+      "optionsAvailable": "32393",
+      "optionsSold": "12000",
+      "openStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "70539819788000",
+            "70539819788000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999982883483510000",
+          "1000000000000000000",
+          "999976036876914000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "141079639576000"
+        },
+        "timeStamp": 1676741404
+      },
+      "auctioningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": [
+            "70539819788000",
+            "70539819788000",
+            "0",
+            "0",
+            "0"
+          ],
+          "lpUnlockedBalances": ["0", "0", "0", "0", "0"]
+        },
+        "ethBalancesBidders": [
+          "999976485505210000",
+          "1000000000000000000",
+          "999967079707294000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "141079639576000",
+          "vaultUnlocked": "0"
+        },
+        "timeStamp": 1677346203
+      },
+      "runningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": [
+            "26131504876239",
+            "26131504876239",
+            "0",
+            "0",
+            "0"
+          ],
+          "lpUnlockedBalances": [
+            "52085888871761",
+            "52085888871761",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999976485505210000",
+          "1000000000000000000",
+          "999967079707294000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "52263009752478",
+          "vaultUnlocked": "104171777743522"
+        },
+        "timeStamp": 1677951001
+      },
+      "settledStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "78217393748000",
+            "78217393748000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999976485505210000",
+          "1000000000000000000",
+          "999967079707294000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "156434787496000"
+        },
+        "timeStamp": 1678555800
+      }
+    },
+    {
+      "ethBalanceRound": "0",
+      "ethBalanceVault": "166942772392000",
+      "optionsAvailable": "27093",
+      "optionsSold": "12000",
+      "openStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "78217393748000",
+            "78217393748000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999976485505210000",
+          "1000000000000000000",
+          "999967079707294000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "156434787496000"
+        },
+        "timeStamp": 1679193000
+      },
+      "auctioningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": [
+            "78217393748000",
+            "78217393748000",
+            "0",
+            "0",
+            "0"
+          ],
+          "lpUnlockedBalances": ["0", "0", "0", "0", "0"]
+        },
+        "ethBalancesBidders": [
+          "999972107178170000",
+          "1000000000000000000",
+          "999960950049438000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "156434787496000",
+          "vaultUnlocked": "0"
+        },
+        "timeStamp": 1679862601
+      },
+      "runningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": [
+            "34643956925258",
+            "34643956925258",
+            "0",
+            "0",
+            "0"
+          ],
+          "lpUnlockedBalances": [
+            "48827429270742",
+            "48827429270742",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999972107178170000",
+          "1000000000000000000",
+          "999960950049438000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "69287913850515",
+          "vaultUnlocked": "97654858541485"
+        },
+        "timeStamp": 1680532201
+      },
+      "settledStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "83471386196000",
+            "83471386196000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999972107178170000",
+          "1000000000000000000",
+          "999960950049438000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "166942772392000"
+        },
+        "timeStamp": 1681201802
+      }
+    },
+    {
+      "ethBalanceRound": "0",
+      "ethBalanceVault": "198543173572000",
+      "optionsAvailable": "43749",
+      "optionsSold": "12000",
+      "openStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "83471386196000",
+            "83471386196000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999972107178170000",
+          "1000000000000000000",
+          "999960950049438000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "166942772392000"
+        },
+        "timeStamp": 1681860604
+      },
+      "auctioningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": [
+            "83471386196000",
+            "83471386196000",
+            "0",
+            "0",
+            "0"
+          ],
+          "lpUnlockedBalances": ["0", "0", "0", "0", "0"]
+        },
+        "ethBalancesBidders": [
+          "999958940344345000",
+          "1000000000000000000",
+          "999942516482083000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "166942772392000",
+          "vaultUnlocked": "0"
+        },
+        "timeStamp": 1682508606
+      },
+      "runningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": [
+            "22895532111637",
+            "22895532111637",
+            "0",
+            "0",
+            "0"
+          ],
+          "lpUnlockedBalances": [
+            "76376054674363",
+            "76376054674363",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999958940344345000",
+          "1000000000000000000",
+          "999942516482083000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "45791064223274",
+          "vaultUnlocked": "152752109348726"
+        },
+        "timeStamp": 1683156608
+      },
+      "settledStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "99271586786000",
+            "99271586786000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999958940344345000",
+          "1000000000000000000",
+          "999942516482083000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "198543173572000"
+        },
+        "timeStamp": 1683804610
+      }
+    },
+    {
+      "ethBalanceRound": "0",
+      "ethBalanceVault": "214817819464000",
+      "optionsAvailable": "17753",
+      "optionsSold": "12000",
+      "openStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "99271586786000",
+            "99271586786000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999958940344345000",
+          "1000000000000000000",
+          "999942516482083000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "198543173572000"
+        },
+        "timeStamp": 1684463410
+      },
+      "auctioningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": [
+            "99271586786000",
+            "99271586786000",
+            "0",
+            "0",
+            "0"
+          ],
+          "lpUnlockedBalances": ["0", "0", "0", "0", "0"]
+        },
+        "ethBalancesBidders": [
+          "999952159241890000",
+          "1000000000000000000",
+          "999933022938646000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "198543173572000",
+          "vaultUnlocked": "0"
+        },
+        "timeStamp": 1685133009
+      },
+      "runningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": [
+            "67101844276010",
+            "67101844276010",
+            "0",
+            "0",
+            "0"
+          ],
+          "lpUnlockedBalances": [
+            "40307065455990",
+            "40307065455990",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999952159241890000",
+          "1000000000000000000",
+          "999933022938646000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "134203688552020",
+          "vaultUnlocked": "80614130911980"
+        },
+        "timeStamp": 1685802608
+      },
+      "settledStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "107408909732000",
+            "107408909732000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999952159241890000",
+          "1000000000000000000",
+          "999933022938646000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "214817819464000"
+        },
+        "timeStamp": 1686472207
+      }
+    },
+    {
+      "ethBalanceRound": "0",
+      "ethBalanceVault": "238251144232000",
+      "optionsAvailable": "71119",
+      "optionsSold": "12000",
+      "openStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "107408909732000",
+            "107408909732000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999952159241890000",
+          "1000000000000000000",
+          "999933022938646000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "214817819464000"
+        },
+        "timeStamp": 1687131006
+      },
+      "auctioningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": [
+            "107408909732000",
+            "107408909732000",
+            "0",
+            "0",
+            "0"
+          ],
+          "lpUnlockedBalances": ["0", "0", "0", "0", "0"]
+        },
+        "ethBalancesBidders": [
+          "999942395356570000",
+          "1000000000000000000",
+          "999919353499198000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "214817819464000",
+          "vaultUnlocked": "0"
+        },
+        "timeStamp": 1687779004
+      },
+      "runningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": [
+            "18123242970009",
+            "18123242970009",
+            "0",
+            "0",
+            "0"
+          ],
+          "lpUnlockedBalances": [
+            "101002329145991",
+            "101002329145991",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999942395356570000",
+          "1000000000000000000",
+          "999919353499198000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "36246485940017",
+          "vaultUnlocked": "202004658291983"
+        },
+        "timeStamp": 1688427002
+      },
+      "settledStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "119125572116000",
+            "119125572116000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999942395356570000",
+          "1000000000000000000",
+          "999919353499198000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "238251144232000"
+        },
+        "timeStamp": 1689075000
+      }
+    },
+    {
+      "ethBalanceRound": "0",
+      "ethBalanceVault": "264011572564000",
+      "optionsAvailable": "69577",
+      "optionsSold": "12000",
+      "openStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "119125572116000",
+            "119125572116000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999942395356570000",
+          "1000000000000000000",
+          "999919353499198000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "238251144232000"
+        },
+        "timeStamp": 1689733801
+      },
+      "auctioningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": [
+            "119125572116000",
+            "119125572116000",
+            "0",
+            "0",
+            "0"
+          ],
+          "lpUnlockedBalances": ["0", "0", "0", "0", "0"]
+        },
+        "ethBalancesBidders": [
+          "999931661844765000",
+          "1000000000000000000",
+          "999904326582671000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "238251144232000",
+          "vaultUnlocked": "0"
+        },
+        "timeStamp": 1690403404
+      },
+      "runningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": [
+            "20545681265246",
+            "20545681265246",
+            "0",
+            "0",
+            "0"
+          ],
+          "lpUnlockedBalances": [
+            "111460105016754",
+            "111460105016754",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999931661844765000",
+          "1000000000000000000",
+          "999904326582671000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "41091362530492",
+          "vaultUnlocked": "222920210033508"
+        },
+        "timeStamp": 1691073006
+      },
+      "settledStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "132005786282000",
+            "132005786282000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999931661844765000",
+          "1000000000000000000",
+          "999904326582671000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "264011572564000"
+        },
+        "timeStamp": 1691742609
+      }
+    },
+    {
+      "ethBalanceRound": "0",
+      "ethBalanceVault": "283748973856000",
+      "optionsAvailable": "91099",
+      "optionsSold": "12000",
+      "openStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "132005786282000",
+            "132005786282000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999931661844765000",
+          "1000000000000000000",
+          "999904326582671000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "264011572564000"
+        },
+        "timeStamp": 1692412209
+      },
+      "auctioningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": [
+            "132005786282000",
+            "132005786282000",
+            "0",
+            "0",
+            "0"
+          ],
+          "lpUnlockedBalances": ["0", "0", "0", "0", "0"]
+        },
+        "ethBalancesBidders": [
+          "999923437927560000",
+          "1000000000000000000",
+          "999892813098584000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "264011572564000",
+          "vaultUnlocked": "0"
+        },
+        "timeStamp": 1693081807
+      },
+      "runningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": [
+            "17388439339444",
+            "17388439339444",
+            "0",
+            "0",
+            "0"
+          ],
+          "lpUnlockedBalances": [
+            "124486047588556",
+            "124486047588556",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999923437927560000",
+          "1000000000000000000",
+          "999892813098584000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "34776878678888",
+          "vaultUnlocked": "248972095177112"
+        },
+        "timeStamp": 1693751404
+      },
+      "settledStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "141874486928000",
+            "141874486928000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999923437927560000",
+          "1000000000000000000",
+          "999892813098584000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "283748973856000"
+        },
+        "timeStamp": 1694421002
+      }
+    },
+    {
+      "ethBalanceRound": "0",
+      "ethBalanceVault": "301363055236000",
+      "optionsAvailable": "120513",
+      "optionsSold": "12000",
+      "openStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "141874486928000",
+            "141874486928000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999923437927560000",
+          "1000000000000000000",
+          "999892813098584000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "283748973856000"
+        },
+        "timeStamp": 1695079801
+      },
+      "auctioningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": [
+            "141874486928000",
+            "141874486928000",
+            "0",
+            "0",
+            "0"
+          ],
+          "lpUnlockedBalances": ["0", "0", "0", "0", "0"]
+        },
+        "ethBalancesBidders": [
+          "999916098726985000",
+          "1000000000000000000",
+          "999882538217779000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "283748973856000",
+          "vaultUnlocked": "0"
+        },
+        "timeStamp": 1695727803
+      },
+      "runningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": [
+            "14127055530408",
+            "14127055530408",
+            "0",
+            "0",
+            "0"
+          ],
+          "lpUnlockedBalances": [
+            "136554472087592",
+            "136554472087592",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999916098726985000",
+          "1000000000000000000",
+          "999882538217779000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "28254111060816",
+          "vaultUnlocked": "273108944175184"
+        },
+        "timeStamp": 1696375805
+      },
+      "settledStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "150681527618000",
+            "150681527618000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999916098726985000",
+          "1000000000000000000",
+          "999882538217779000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "301363055236000"
+        },
+        "timeStamp": 1697023807
+      }
+    },
+    {
+      "ethBalanceRound": "0",
+      "ethBalanceVault": "308018394064000",
+      "optionsAvailable": "270778",
+      "optionsSold": "12000",
+      "openStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "150681527618000",
+            "150681527618000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999916098726985000",
+          "1000000000000000000",
+          "999882538217779000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "301363055236000"
+        },
+        "timeStamp": 1697682608
+      },
+      "auctioningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": [
+            "150681527618000",
+            "150681527618000",
+            "0",
+            "0",
+            "0"
+          ],
+          "lpUnlockedBalances": ["0", "0", "0", "0", "0"]
+        },
+        "ethBalancesBidders": [
+          "999913325669140000",
+          "1000000000000000000",
+          "999878655936796000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "301363055236000",
+          "vaultUnlocked": "0"
+        },
+        "timeStamp": 1698352208
+      },
+      "runningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["6677715070708", "6677715070708", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "147331481961292",
+            "147331481961292",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999913325669140000",
+          "1000000000000000000",
+          "999878655936796000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "13355430141415",
+          "vaultUnlocked": "294662963922585"
+        },
+        "timeStamp": 1699021808
+      },
+      "settledStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "154009197032000",
+            "154009197032000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999913325669140000",
+          "1000000000000000000",
+          "999878655936796000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "308018394064000"
+        },
+        "timeStamp": 1699691408
+      }
+    },
+    {
+      "ethBalanceRound": "0",
+      "ethBalanceVault": "354036959968000",
+      "optionsAvailable": "54549",
+      "optionsSold": "12000",
+      "openStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "154009197032000",
+            "154009197032000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999913325669140000",
+          "1000000000000000000",
+          "999878655936796000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "308018394064000"
+        },
+        "timeStamp": 1700350207
+      },
+      "auctioningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": [
+            "154009197032000",
+            "154009197032000",
+            "0",
+            "0",
+            "0"
+          ],
+          "lpUnlockedBalances": ["0", "0", "0", "0", "0"]
+        },
+        "ethBalancesBidders": [
+          "999894151266680000",
+          "1000000000000000000",
+          "999851811773352000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "308018394064000",
+          "vaultUnlocked": "0"
+        },
+        "timeStamp": 1700998207
+      },
+      "runningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": [
+            "33879821158665",
+            "33879821158665",
+            "0",
+            "0",
+            "0"
+          ],
+          "lpUnlockedBalances": [
+            "143138658825335",
+            "143138658825335",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999894151266680000",
+          "1000000000000000000",
+          "999851811773352000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "67759642317330",
+          "vaultUnlocked": "286277317650670"
+        },
+        "timeStamp": 1701646206
+      },
+      "settledStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "177018479984000",
+            "177018479984000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999894151266680000",
+          "1000000000000000000",
+          "999851811773352000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "354036959968000"
+        },
+        "timeStamp": 1702294206
+      }
+    },
+    {
+      "ethBalanceRound": "0",
+      "ethBalanceVault": "414168944368000",
+      "optionsAvailable": "59320",
+      "optionsSold": "12000",
+      "openStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "177018479984000",
+            "177018479984000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999894151266680000",
+          "1000000000000000000",
+          "999851811773352000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "354036959968000"
+        },
+        "timeStamp": 1702953005
+      },
+      "auctioningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": [
+            "177018479984000",
+            "177018479984000",
+            "0",
+            "0",
+            "0"
+          ],
+          "lpUnlockedBalances": ["0", "0", "0", "0", "0"]
+        },
+        "ethBalancesBidders": [
+          "999869096273180000",
+          "1000000000000000000",
+          "999816734782452000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "354036959968000",
+          "vaultUnlocked": "0"
+        },
+        "timeStamp": 1703622605
+      },
+      "runningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": [
+            "35809537420904",
+            "35809537420904",
+            "0",
+            "0",
+            "0"
+          ],
+          "lpUnlockedBalances": [
+            "171274934763096",
+            "171274934763096",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999869096273180000",
+          "1000000000000000000",
+          "999816734782452000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "71619074841808",
+          "vaultUnlocked": "342549869526192"
+        },
+        "timeStamp": 1704292205
+      },
+      "settledStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "207084472184000",
+            "207084472184000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999869096273180000",
+          "1000000000000000000",
+          "999816734782452000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "414168944368000"
+        },
+        "timeStamp": 1704961805
+      }
+    },
+    {
+      "ethBalanceRound": "0",
+      "ethBalanceVault": "439398713716000",
+      "optionsAvailable": "104776",
+      "optionsSold": "12000",
+      "openStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "207084472184000",
+            "207084472184000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999869096273180000",
+          "1000000000000000000",
+          "999816734782452000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "414168944368000"
+        },
+        "timeStamp": 1705631405
+      },
+      "auctioningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": [
+            "207084472184000",
+            "207084472184000",
+            "0",
+            "0",
+            "0"
+          ],
+          "lpUnlockedBalances": ["0", "0", "0", "0", "0"]
+        },
+        "ethBalancesBidders": [
+          "999858583869285000",
+          "1000000000000000000",
+          "999802017416999000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "414168944368000",
+          "vaultUnlocked": "0"
+        },
+        "timeStamp": 1706301006
+      },
+      "runningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": [
+            "23717393928076",
+            "23717393928076",
+            "0",
+            "0",
+            "0"
+          ],
+          "lpUnlockedBalances": [
+            "195981962929924",
+            "195981962929924",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999858583869285000",
+          "1000000000000000000",
+          "999802017416999000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "47434787856151",
+          "vaultUnlocked": "391963925859849"
+        },
+        "timeStamp": 1706970607
+      },
+      "settledStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "219699356858000",
+            "219699356858000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999858583869285000",
+          "1000000000000000000",
+          "999802017416999000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "439398713716000"
+        },
+        "timeStamp": 1707640208
+      }
+    },
+    {
+      "ethBalanceRound": "0",
+      "ethBalanceVault": "455703312556000",
+      "optionsAvailable": "72888",
+      "optionsSold": "12000",
+      "openStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "219699356858000",
+            "219699356858000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999858583869285000",
+          "1000000000000000000",
+          "999802017416999000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "439398713716000"
+        },
+        "timeStamp": 1708288209
+      },
+      "auctioningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": [
+            "219699356858000",
+            "219699356858000",
+            "0",
+            "0",
+            "0"
+          ],
+          "lpUnlockedBalances": ["0", "0", "0", "0", "0"]
+        },
+        "ethBalancesBidders": [
+          "999851790286435000",
+          "1000000000000000000",
+          "999792506401009000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "439398713716000",
+          "vaultUnlocked": "0"
+        },
+        "timeStamp": 1708914611
+      },
+      "runningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": [
+            "36170457171222",
+            "36170457171222",
+            "0",
+            "0",
+            "0"
+          ],
+          "lpUnlockedBalances": [
+            "191681199106778",
+            "191681199106778",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999851790286435000",
+          "1000000000000000000",
+          "999792506401009000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "72340914342444",
+          "vaultUnlocked": "383362398213556"
+        },
+        "timeStamp": 1709541012
+      },
+      "settledStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "227851656278000",
+            "227851656278000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999851790286435000",
+          "1000000000000000000",
+          "999792506401009000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "455703312556000"
+        },
+        "timeStamp": 1710167414
+      }
+    },
+    {
+      "ethBalanceRound": "0",
+      "ethBalanceVault": "544879197772000",
+      "optionsAvailable": "51931",
+      "optionsSold": "12000",
+      "openStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "227851656278000",
+            "227851656278000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999851790286435000",
+          "1000000000000000000",
+          "999792506401009000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "455703312556000"
+        },
+        "timeStamp": 1710815413
+      },
+      "auctioningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": [
+            "227851656278000",
+            "227851656278000",
+            "0",
+            "0",
+            "0"
+          ],
+          "lpUnlockedBalances": ["0", "0", "0", "0", "0"]
+        },
+        "ethBalancesBidders": [
+          "999814633667595000",
+          "1000000000000000000",
+          "999740487134633000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "455703312556000",
+          "vaultUnlocked": "0"
+        },
+        "timeStamp": 1711485011
+      },
+      "runningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": [
+            "52651015295989",
+            "52651015295989",
+            "0",
+            "0",
+            "0"
+          ],
+          "lpUnlockedBalances": [
+            "219788583590011",
+            "219788583590011",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999814633667595000",
+          "1000000000000000000",
+          "999740487134633000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "105302030591978",
+          "vaultUnlocked": "439577167180022"
+        },
+        "timeStamp": 1712154609
+      },
+      "settledStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "272439598886000",
+            "272439598886000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999814633667595000",
+          "1000000000000000000",
+          "999740487134633000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "544879197772000"
+        },
+        "timeStamp": 1712824207
+      }
+    },
+    {
+      "ethBalanceRound": "0",
+      "ethBalanceVault": "558143157412000",
+      "optionsAvailable": "149125",
+      "optionsSold": "12000",
+      "openStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "272439598886000",
+            "272439598886000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999814633667595000",
+          "1000000000000000000",
+          "999740487134633000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "544879197772000"
+        },
+        "timeStamp": 1713483007
+      },
+      "auctioningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": [
+            "272439598886000",
+            "272439598886000",
+            "0",
+            "0",
+            "0"
+          ],
+          "lpUnlockedBalances": ["0", "0", "0", "0", "0"]
+        },
+        "ethBalancesBidders": [
+          "999809107017745000",
+          "1000000000000000000",
+          "999732749824843000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "544879197772000",
+          "vaultUnlocked": "0"
+        },
+        "timeStamp": 1714131010
+      },
+      "runningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": [
+            "21923052383115",
+            "21923052383115",
+            "0",
+            "0",
+            "0"
+          ],
+          "lpUnlockedBalances": [
+            "257148526322885",
+            "257148526322885",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999809107017745000",
+          "1000000000000000000",
+          "999732749824843000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "43846104766230",
+          "vaultUnlocked": "514297052645770"
+        },
+        "timeStamp": 1714779012
+      },
+      "settledStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "279071578706000",
+            "279071578706000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999809107017745000",
+          "1000000000000000000",
+          "999732749824843000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "558143157412000"
+        },
+        "timeStamp": 1715427015
+      }
+    },
+    {
+      "ethBalanceRound": "0",
+      "ethBalanceVault": "564355909984000",
+      "optionsAvailable": "654950",
+      "optionsSold": "12000",
+      "openStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "279071578706000",
+            "279071578706000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999809107017745000",
+          "1000000000000000000",
+          "999732749824843000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "558143157412000"
+        },
+        "timeStamp": 1716085814
+      },
+      "auctioningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": [
+            "279071578706000",
+            "279071578706000",
+            "0",
+            "0",
+            "0"
+          ],
+          "lpUnlockedBalances": ["0", "0", "0", "0", "0"]
+        },
+        "ethBalancesBidders": [
+          "999806518370840000",
+          "1000000000000000000",
+          "999729125719176000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "558143157412000",
+          "vaultUnlocked": "0"
+        },
+        "timeStamp": 1716755409
+      },
+      "runningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["5113152064237", "5113152064237", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "277064802927763",
+            "277064802927763",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999806518370840000",
+          "1000000000000000000",
+          "999729125719176000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "10226304128474",
+          "vaultUnlocked": "554129605855526"
+        },
+        "timeStamp": 1717425004
+      },
+      "settledStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "282177954992000",
+            "282177954992000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999806518370840000",
+          "1000000000000000000",
+          "999729125719176000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "564355909984000"
+        },
+        "timeStamp": 1718094599
+      }
+    },
+    {
+      "ethBalanceRound": "0",
+      "ethBalanceVault": "576462535936000",
+      "optionsAvailable": "351397",
+      "optionsSold": "12000",
+      "openStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "282177954992000",
+            "282177954992000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999806518370840000",
+          "1000000000000000000",
+          "999729125719176000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "564355909984000"
+        },
+        "timeStamp": 1718753398
+      },
+      "auctioningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": [
+            "282177954992000",
+            "282177954992000",
+            "0",
+            "0",
+            "0"
+          ],
+          "lpUnlockedBalances": ["0", "0", "0", "0", "0"]
+        },
+        "ethBalancesBidders": [
+          "999801473943360000",
+          "1000000000000000000",
+          "999722063520704000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "564355909984000",
+          "vaultUnlocked": "0"
+        },
+        "timeStamp": 1719401401
+      },
+      "runningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["9636210496687", "9636210496687", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "278595057471313",
+            "278595057471313",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999801473943360000",
+          "1000000000000000000",
+          "999722063520704000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "19272420993373",
+          "vaultUnlocked": "557190114942627"
+        },
+        "timeStamp": 1720049404
+      },
+      "settledStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "288231267968000",
+            "288231267968000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999801473943360000",
+          "1000000000000000000",
+          "999722063520704000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "576462535936000"
+        },
+        "timeStamp": 1720697407
+      }
+    },
+    {
+      "ethBalanceRound": "0",
+      "ethBalanceVault": "580632558628000",
+      "optionsAvailable": "983401",
+      "optionsSold": "12000",
+      "openStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "288231267968000",
+            "288231267968000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999801473943360000",
+          "1000000000000000000",
+          "999722063520704000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "576462535936000"
+        },
+        "timeStamp": 1721038824
+      },
+      "auctioningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": [
+            "288231267968000",
+            "288231267968000",
+            "0",
+            "0",
+            "0"
+          ],
+          "lpUnlockedBalances": ["0", "0", "0", "0", "0"]
+        },
+        "ethBalancesBidders": [
+          "999799736433905000",
+          "1000000000000000000",
+          "999719631007467000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "576462535936000",
+          "vaultUnlocked": "0"
+        },
+        "timeStamp": 1721073654
+      },
+      "runningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["3517156496299", "3517156496299", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "286799122817701",
+            "286799122817701",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999799736433905000",
+          "1000000000000000000",
+          "999719631007467000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "7034312992597",
+          "vaultUnlocked": "573598245635403"
+        },
+        "timeStamp": 1721108485
+      },
+      "settledStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "290316279314000",
+            "290316279314000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999799736433905000",
+          "1000000000000000000",
+          "999719631007467000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "580632558628000"
+        },
+        "timeStamp": 1721143315
+      }
+    },
+    {
+      "ethBalanceRound": "0",
+      "ethBalanceVault": "584969383288000",
+      "optionsAvailable": "745647",
+      "optionsSold": "12000",
+      "openStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "290316279314000",
+            "290316279314000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999799736433905000",
+          "1000000000000000000",
+          "999719631007467000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "580632558628000"
+        },
+        "timeStamp": 1721160731
+      },
+      "auctioningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": [
+            "290316279314000",
+            "290316279314000",
+            "0",
+            "0",
+            "0"
+          ],
+          "lpUnlockedBalances": ["0", "0", "0", "0", "0"]
+        },
+        "ethBalancesBidders": [
+          "999797929423630000",
+          "1000000000000000000",
+          "999717101193082000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "580632558628000",
+          "vaultUnlocked": "0"
+        },
+        "timeStamp": 1721160731
+      },
+      "runningStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["4672177788911", "4672177788911", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "287812513855089",
+            "287812513855089",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999797929423630000",
+          "1000000000000000000",
+          "999717101193082000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "9344355577822",
+          "vaultUnlocked": "575625027710178"
+        },
+        "timeStamp": 1721160731
+      },
+      "settledStateData": {
+        "lockedUnlockedBalances": {
+          "lpLockedBalances": ["0", "0", "0", "0", "0"],
+          "lpUnlockedBalances": [
+            "292484691644000",
+            "292484691644000",
+            "0",
+            "0",
+            "0"
+          ]
+        },
+        "ethBalancesBidders": [
+          "999797929423630000",
+          "1000000000000000000",
+          "999717101193082000",
+          "1000000000000000000",
+          "1000000000000000000"
+        ],
+        "vaultBalances": {
+          "vaultLocked": "0",
+          "vaultUnlocked": "584969383288000"
+        },
+        "timeStamp": 1721160731
+      }
+    }
+  ]
+}

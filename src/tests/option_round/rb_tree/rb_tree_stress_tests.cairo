@@ -1,5 +1,5 @@
 use core::pedersen::pedersen;
-use pitch_lake_starknet::{
+use pitch_lake::{
     types::Bid,
     tests::{
         utils::helpers::setup::setup_rb_tree_test,
@@ -93,47 +93,43 @@ fn testing_random_insertion_and_deletion() {
 
     let mut i: u32 = 0;
 
-    while i < no_of_nodes
-        .try_into()
-        .unwrap() {
-            let price = random(i.try_into().unwrap());
-            let nonce = i.try_into().unwrap();
+    while i < no_of_nodes.try_into().unwrap() {
+        let price = random(i.try_into().unwrap());
+        let nonce = i.try_into().unwrap();
 
-            let new_bid = create_bid(price.try_into().unwrap(), nonce);
+        let new_bid = create_bid(price.try_into().unwrap(), nonce);
 
-            rb_tree.insert(new_bid);
+        rb_tree.insert(new_bid);
 
-            inserted_node_ids.append(new_bid.id);
+        inserted_node_ids.append(new_bid.bid_id);
 
-            let bid = rb_tree.find(new_bid.id);
-            println!("Inserting price {}", bid.price);
+        let bid = rb_tree.find(new_bid.bid_id);
+        println!("Inserting price {}", bid.price);
 
-            assert(bid.price == price.try_into().unwrap(), 'Insertion error');
+        assert(bid.price == price.try_into().unwrap(), 'Insertion error');
 
-            let is_tree_valid = rb_tree.is_tree_valid();
-            assert(is_tree_valid, 'Tree is not valid');
+        let is_tree_valid = rb_tree.is_tree_valid();
+        assert(is_tree_valid, 'Tree is not valid');
 
-            i += 1;
-        };
+        i += 1;
+    };
 
     let mut j: u32 = 0;
 
-    while j < no_of_nodes
-        .try_into()
-        .unwrap() {
-            let bid_id = inserted_node_ids.at(j);
+    while j < no_of_nodes.try_into().unwrap() {
+        let bid_id = inserted_node_ids.at(j);
 
-            delete(rb_tree, *bid_id);
+        delete(rb_tree, *bid_id);
 
-            let found_bid = rb_tree.find(*bid_id);
+        let found_bid = rb_tree.find(*bid_id);
 
-            assert(found_bid.id == 0, 'Bid delete error');
+        assert(found_bid.bid_id == 0, 'Bid delete error');
 
-            let is_tree_valid = rb_tree.is_tree_valid();
-            assert(is_tree_valid, 'Tree is not valid');
+        let is_tree_valid = rb_tree.is_tree_valid();
+        assert(is_tree_valid, 'Tree is not valid');
 
-            println!("Deleted node no. {}", j);
+        println!("Deleted node no. {}", j);
 
-            j += 1;
-        }
+        j += 1;
+    }
 }

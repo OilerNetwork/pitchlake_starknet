@@ -1,6 +1,5 @@
 import assert from "assert";
 import { DepositArgs, WithdrawArgs } from "../../utils/facades/types";
-import { getLiquidityProviderAccounts } from "../../utils/helpers/accounts";
 import { TestRunner } from "../../utils/facades/TestRunner";
 import { LibraryError } from "starknet";
 
@@ -11,8 +10,13 @@ export const smokeTest = async ({
   vaultFacade: vault,
   ethFacade: eth,
   constants: { depositAmount },
+  getLPUnlockedBalanceAll,
+  depositAll,
+  withdrawAll,
+  getBalancesAll,
+  getLiquidityProviderAccounts
 }: TestRunner) => {
-  const liquidityProviderAccounts = getLiquidityProviderAccounts(provider, 2);
+  const liquidityProviderAccounts = getLiquidityProviderAccounts(2);
 
   //Approve A for depositing
   await eth.approval({
@@ -21,9 +25,9 @@ export const smokeTest = async ({
     spender: vault.vaultContract.address,
   });
 
-  const ethBalancesBefore = await eth.getBalancesAll(liquidityProviderAccounts);
+  const ethBalancesBefore = await getBalancesAll(liquidityProviderAccounts);
 
-  const lpUnlockedBalancesBefore = await vault.getLPUnlockedBalanceAll(
+  const lpUnlockedBalancesBefore = await getLPUnlockedBalanceAll(
     liquidityProviderAccounts
   );
   //Deposits
@@ -43,13 +47,13 @@ export const smokeTest = async ({
     },
   ];
 
-  await vault.depositAll(depositAllArgs);
+  await depositAll(depositAllArgs);
   //Debug
 
-  const lpUnlockedBalancesAfter = await vault.getLPUnlockedBalanceAll(
+  const lpUnlockedBalancesAfter = await getLPUnlockedBalanceAll(
     liquidityProviderAccounts
   );
-  const ethBalancesAfter = await eth.getBalancesAll(liquidityProviderAccounts);
+  const ethBalancesAfter = await getBalancesAll(liquidityProviderAccounts);
 
   //Asserts
   //1) Check liquidity for A has increased by depositAmount
@@ -78,13 +82,13 @@ export const smokeTest = async ({
       amount: BigInt(depositAmount) / BigInt(2),
     },
   ];
-  await vault.withdrawAll(withdrawAllData);
+  await withdrawAll(withdrawAllData);
 
-  const lpUnlockedBalancesAfterWithdraw = await vault.getLPUnlockedBalanceAll(
+  const lpUnlockedBalancesAfterWithdraw = await getLPUnlockedBalanceAll(
     liquidityProviderAccounts
   );
 
-  const ethBalancesAfterWithdraw = await eth.getBalancesAll(
+  const ethBalancesAfterWithdraw = await getBalancesAll(
     liquidityProviderAccounts
   );
 
@@ -99,7 +103,7 @@ export const smokeTest = async ({
     assert(error.message !== "Should have reverted");
   }
 
-  const lpUnlockedBalancesAfterWithdraw2 = await vault.getLPUnlockedBalanceAll(
+  const lpUnlockedBalancesAfterWithdraw2 = await getLPUnlockedBalanceAll(
     liquidityProviderAccounts
   );
   //Asserts

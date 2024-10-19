@@ -1,18 +1,23 @@
 [package]
-name = "pitch_lake_starknet"
+name = "pitch_lake"
 description = "Oiler PitchLake"
 version = "0.1.0"
-cairo-version = "2.2.0"
-
-# See more keys and their definitions at https://docs.swmansion.com/scarb/docs/reference/manifest
 
 [[target.starknet-contract]]
 sierra = true
 casm = true
 
 [dependencies]
-starknet = "2.1.0"
-openzeppelin = { git = "https://github.com/OpenZeppelin/cairo-contracts.git", tag = "v0.11.0" }
+starknet = "2.8.4"
+openzeppelin_token = "0.18.0"
+openzeppelin_utils = "0.18.0"
+#snforge_std = "0.31.0"
+
+[dev-dependencies]
+cairo_test = "2.8.4"
 
 [tool.snforge]
-# exit_first = true
+
+
+
+

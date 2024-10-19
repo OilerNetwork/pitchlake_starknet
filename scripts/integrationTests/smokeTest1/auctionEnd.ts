@@ -3,16 +3,16 @@ import { getAccount } from "../../utils/helpers/common";
 import { getOptionRoundFacade } from "../../utils/helpers/setup";
 import assert from "assert";
 import { Constants } from "../../utils/facades/types";
-import {
-  getLiquidityProviderAccounts,
-  getOptionBidderAccounts,
-} from "../../utils/helpers/accounts";
 import { TestRunner } from "../../utils/facades/TestRunner";
 
 export const smokeTest = async ({
   provider,
   vaultFacade,
   constants,
+  getLPLockedBalanceAll,
+  getLPUnlockedBalanceAll,
+  endAuctionBystander,
+  getLiquidityProviderAccounts,
 }: TestRunner) => {
   const optionRoundFacade = await getOptionRoundFacade(
     provider,
@@ -35,15 +35,14 @@ export const smokeTest = async ({
     `Expected:Auctioning\nReceived:${state.activeVariant()}`
   );
 
-  const liquidityProviderAccounts = getLiquidityProviderAccounts(provider, 2);
-  const optionBidderAccounts = getOptionBidderAccounts(provider, 3);
+  const liquidityProviderAccounts = getLiquidityProviderAccounts(2);
 
-  await vaultFacade.endAuctionBystander(provider);
+  await endAuctionBystander();
 
-  const lpUnlockedBalances = await vaultFacade.getLPUnlockedBalanceAll(
+  const lpUnlockedBalances = await getLPUnlockedBalanceAll(
     liquidityProviderAccounts
   );
-  const lpLockedBalances = await vaultFacade.getLPLockedBalanceAll(
+  const lpLockedBalances = await getLPLockedBalanceAll(
     liquidityProviderAccounts
   );
   const totalPremiums = await optionRoundFacade.getTotalPremiums();

@@ -3,16 +3,14 @@ import {
   getOptionRoundFacade,
 } from "../../utils/helpers/setup";
 import assert from "assert";
-import {
-  getOptionBidderAccounts,
-} from "../../utils/helpers/accounts";
 import { TestRunner } from "../../utils/facades/TestRunner";
 import { ERC20Facade } from "../../utils/facades/erc20Facade";
 
 export const smokeTest = async ({
   provider,
   vaultFacade: vault,
-  ethFacade: eth,
+  getBalancesAll,
+  getOptionBidderAccounts
 }: TestRunner) => {
   const optionRoundFacade = await getOptionRoundFacade(
     provider,
@@ -28,9 +26,10 @@ export const smokeTest = async ({
   const totalOptionAvailable =
     await optionRoundFacade.getTotalOptionsAvailable();
   const reservePrice = await optionRoundFacade.getReservePrice();
-  const optionBidderAccounts = getOptionBidderAccounts(provider, 3);
+  const optionBidderAccounts = getOptionBidderAccounts(3);
 
-  const balancesBefore = await eth.getBalancesAll(optionBidderAccounts);
+  console.log("totalOptionsAvailable",totalOptionAvailable);
+  const balancesBefore = await getBalancesAll(optionBidderAccounts);
 
   try {
     await optionRoundFacade.refundUnusedBids({
@@ -44,7 +43,7 @@ export const smokeTest = async ({
   } catch (err) {
     console.log("Error while refunding the unused bids", err);
   }
-  const balancesAfter = await eth.getBalancesAll(optionBidderAccounts);
+  const balancesAfter = await getBalancesAll(optionBidderAccounts);
 
   checkpoint1({
     balancesBefore,
@@ -148,7 +147,7 @@ async function checkpoint2({
   assert(
     BigInt(optionBalancesBefore[0]) / BigInt(2) ===
       BigInt(optionBalancesAfter[0]),
-    "Final option balance of C should be half of initial"
+    `Final option balance of C should be half of initial.\n ${optionBalancesBefore[0]}\n${optionBalancesAfter[0]}`
   );
 
   assert(

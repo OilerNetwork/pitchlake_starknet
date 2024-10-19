@@ -2,23 +2,19 @@ use starknet::{
     contract_address_const, get_block_timestamp, ContractAddress,
     testing::{set_block_timestamp, set_contract_address}
 };
-use pitch_lake_starknet::{
-    types::{OptionRoundState, VaultType},
-    vault::{contract::Vault, interface::{IVaultDispatcher, IVaultDispatcherTrait}},
+use core::fmt::Display;
+use pitch_lake::{
+    vault::{contract::Vault, interface::{VaultType, IVaultDispatcher, IVaultDispatcherTrait}},
+    fossil_client::interface::{L1Data, JobRequest, FossilResult},
     option_round::{
-        contract::{OptionRound}, interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,},
-    },
-    market_aggregator::{
-        contract::MarketAggregator,
+        contract::{OptionRound},
         interface::{
-            IMarketAggregatorMock, IMarketAggregatorMockDispatcher,
-            IMarketAggregatorMockDispatcherTrait,
-        }
+            PricingData, OptionRoundState, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,
+        },
     },
     tests::{
         utils::{
             lib::{
-                structs::{OptionRoundParams},
                 test_accounts::{
                     vault_manager, liquidity_provider_1, option_bidder_buyer_1, bystander,
                     option_bidders_get, liquidity_providers_get,
@@ -27,13 +23,13 @@ use pitch_lake_starknet::{
             },
             helpers::{ // accelerators::{accelerate_to_auction_custom_auction_params},
                 event_helpers::{clear_event_logs,},
-                general_helpers::{assert_two_arrays_equal_length, get_erc20_balances},
-                setup::{deploy_custom_option_round},
+                general_helpers::{to_gwei, assert_two_arrays_equal_length, get_erc20_balances},
+                //setup::{deploy_custom_option_round},
             },
             facades::{
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
                 vault_facade::{VaultFacade, VaultFacadeTrait},
-                market_aggregator_facade::{MarketAggregatorFacade, MarketAggregatorFacadeTrait},
+                fossil_client_facade::{FossilClientFacade, FossilClientFacadeTrait},
             },
         },
     },
@@ -83,24 +79,58 @@ fn accelerate_to_running_custom(
 ) -> (u256, u256) {
     let mut current_round = self.get_current_round();
     current_round.place_bids(max_amounts, prices, bidders);
+
     // Jump to the auction end date and end the auction
     timeskip_and_end_auction(ref self)
 }
 
 /// Settling option round
 
-// Settle the option round with a custom settlement price (compared to strike to determine payout)
-fn accelerate_to_settled(ref self: VaultFacade, TWAP: u256) -> u256 {
-    let mut current_round = self.get_current_round();
-    let market_aggregator = self.get_market_aggregator_facade();
+fn accelerate_to_settled_custom(ref self: VaultFacade, l1_data: L1Data) -> u256 {
+    // Get the data request to fulfill
+    let mut request_serialized = array![];
+    self.get_request_to_settle_round().serialize(ref request_serialized);
 
-    // Set the TWAP for the round's duration
-    let from = current_round.get_auction_start_date();
-    let to = current_round.get_option_settlement_date();
-    market_aggregator.set_TWAP_for_time_period(from, to, TWAP);
+    // Create a mock result (proofs do not matter)
+    let mut result_serialized = array![];
+    let L1Data { twap, volatility, reserve_price } = l1_data;
+    FossilResult { l1_data: L1Data { twap, volatility, reserve_price }, proof: array![].span() }
+        .serialize(ref result_serialized);
+
+    // Make callback to fulfill the request
+    timeskip_to_settlement_date(ref self);
+    self
+        .get_fossil_client_facade()
+        .fossil_callback(request_serialized.span(), result_serialized.span());
 
     // Jump to the option expiry date and settle the round
-    timeskip_and_settle_round(ref self)
+    self.settle_option_round()
+}
+
+// Settle the option round with a custom settlement price (compared to strike to determine payout)
+fn accelerate_to_settled(ref self: VaultFacade, twap: u256) -> u256 {
+    accelerate_to_settled_custom(
+        ref self, L1Data { twap, volatility: 5000, reserve_price: to_gwei(2) }
+    )
+    //    // Get the data request to fulfill
+//    let mut request_serialized = array![];
+//    self.get_request_to_settle_round().serialize(ref request_serialized);
+//
+//    // Create a mock result (proofs do not matter)
+//    let mut result_serialized = array![];
+//    FossilResult {
+//        l1_data: L1Data { twap, volatility: 5000, reserve_price: to_gwei(2) },
+//        proof: array![].span()
+//    }
+//        .serialize(ref result_serialized);
+//
+//    // Make callback to fulfill the request
+//    self
+//        .get_fossil_client_facade()
+//        .fossil_callback(request_serialized.span(), result_serialized.span());
+//
+//    // Jump to the option expiry date and settle the round
+//    timeskip_and_settle_round(ref self)
 }
 
 
@@ -123,8 +153,14 @@ fn timeskip_past_option_expiry_date(ref self: VaultFacade) {
 // Jump past the round transition period
 fn timeskip_past_round_transition_period(ref self: VaultFacade) {
     let now = get_block_timestamp();
-    let round_transition_period = self.vault_dispatcher.get_round_transition_period();
+    let round_transition_period = self.get_round_transition_period();
     set_block_timestamp(now + round_transition_period);
+}
+
+// Jump to settlement date
+fn timeskip_to_settlement_date(ref self: VaultFacade) {
+    let mut current_round = self.get_current_round();
+    set_block_timestamp(current_round.get_option_settlement_date());
 }
 
 /// Timeskip and do something

@@ -1,4 +1,4 @@
-use pitch_lake_starknet::{
+use pitch_lake::{
     tests::{
         utils::{
             helpers::{
@@ -20,7 +20,7 @@ use pitch_lake_starknet::{
             },
             facades::{
                 vault_facade::{VaultFacade, VaultFacadeTrait},
-                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundParams},
+                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
             },
         },
     }
@@ -88,7 +88,8 @@ fn test_clearing_price_is_highest_price_to_sell_all_options() {
     let total_options_available = accelerate_to_auctioning(ref vault);
     let mut current_round = vault.get_current_round();
 
-    // Make bids, 4 bidders bid for 1/3 total options each, each bidder outbidding the previous one's price
+    // Make bids, 4 bidders bid for 1/3 total options each, each bidder outbidding the previous
+    // one's price
     let bidders = option_bidders_get(4).span();
     let bid_amounts = create_array_linear(total_options_available / 3 + 1, bidders.len()).span();
     let bid_prices = create_array_gradient(current_round.get_reserve_price(), 1, bidders.len())

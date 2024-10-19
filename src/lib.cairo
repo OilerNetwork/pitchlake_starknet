@@ -4,6 +4,8 @@ mod library {
     mod eth;
     mod red_black_tree;
     mod utils;
+    mod pricing_utils;
+    mod constants;
 }
 
 
@@ -17,19 +19,10 @@ mod option_round {
     mod contract;
 }
 
-mod market_aggregator {
+mod fossil_client {
     mod interface;
     mod contract;
-    mod types;
-}
-
-
-// @note Refactor these into their own modules
-mod contracts {
-    mod pitch_lake;
-    mod lp_token;
 }
 
 #[cfg(test)]
 mod tests;
-

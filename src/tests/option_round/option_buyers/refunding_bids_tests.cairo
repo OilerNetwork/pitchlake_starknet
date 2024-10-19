@@ -1,8 +1,8 @@
 use core::traits::TryInto;
 use starknet::{ContractAddress, testing::{set_block_timestamp, set_contract_address}};
-use openzeppelin::token::erc20::interface::{ERC20ABI, ERC20ABIDispatcher, ERC20ABIDispatcherTrait,};
-use pitch_lake_starknet::{
-    types::{Errors},
+use openzeppelin_token::erc20::interface::{ERC20ABI, ERC20ABIDispatcher, ERC20ABIDispatcherTrait,};
+use pitch_lake::{
+    option_round::contract::OptionRound::Errors,
     tests::{
         utils::{
             helpers::{
@@ -34,8 +34,9 @@ use pitch_lake_starknet::{
 };
 
 // @note Break up into separate files
-// - pending/refundable bids tests can be in the same file, needs to move to option_round/state_transition/auction_end/,
-// - refunding bids should be in a new file (option_round/option_buyers/refunding_bids_tests.cairo)
+// - pending/refundable bids tests can be in the same file, needs to move to
+// option_round/state_transition/auction_end/, - refunding bids should be in a new file
+// (option_round/option_buyers/refunding_bids_tests.cairo)
 
 /// Test Setup ///
 
@@ -157,7 +158,7 @@ fn test_refund_bids_sets_refunded_balance_to_0() {
         Option::Some(bidder) => {
             current_round.refund_bid(*bidder);
             // Check refunded bid balance is 0 for bidder
-            assert(0 == current_round.get_refundable_bids_for(*bidder), 'refunded bid shd be 0');
+            assert(0 == current_round.get_refundable_balance_for(*bidder), 'refunded bid shd be 0');
         },
         Option::None => { panic!("this should not panic") }
     }

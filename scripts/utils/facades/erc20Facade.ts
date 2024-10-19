@@ -20,15 +20,6 @@ export class ERC20Facade {
     );
   }
 
-  async getBalancesAll(accounts: Array<Account>) {
-    const balances = await Promise.all(
-      accounts.map(async (account: Account) => {
-        const balance = await this.getBalance(account.address);
-        return balance;
-      })
-    );
-    return balances;
-  }
   async getBalance(account: string) {
     const balance = await this.erc20Contract.balance_of(account);
 
@@ -72,12 +63,6 @@ export class ERC20Facade {
     }
   }
 
-  async approveAll(approveData: Array<ApprovalArgs>) {
-    for (const approvalArgs of approveData) {
-      await this.approval(approvalArgs);
-    }
-  }
-
   async supplyERC20(
     devAccount: Account,
     provider: Provider,
@@ -90,6 +75,7 @@ export class ERC20Facade {
       provider
     ).typedv2(erc20ABI);
 
+    await this.supply(devAccount, "0x06Fb643e5c834feA33EACeFc10A2F856E1C317E700523c8eA45681F52D2B1D60",BigInt(10000000000));
     for (let i = 0; i < 6; i++) {
       const lp = getCustomAccount(
         provider,
@@ -104,11 +90,11 @@ export class ERC20Facade {
       await this.supply(
         devAccount,
         liquidityProviders[i].account,
-        BigInt("100000000000000000")
+        BigInt("1000000000000000000")
       );
       await this.approval({
         owner: lp,
-        amount: BigInt("100000000000000000"),
+        amount: BigInt("1000000000000000000"),
         spender: approveFor,
       });
       console.log(`Liquidity Provider ${i} funded `);
@@ -116,11 +102,11 @@ export class ERC20Facade {
       await this.supply(
         devAccount,
         optionBidders[i].account,
-        BigInt("100000000000000000")
+        BigInt("1000000000000000000")
       );
       await this.approval({
         owner: ob,
-        amount: BigInt("100000000000000000"),
+        amount: BigInt("1000000000000000000"),
         spender: approveFor,
       });
       console.log(`Option Bidder ${i} funded `);

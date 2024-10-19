@@ -1,7 +1,6 @@
 
 import { getOptionRoundFacade } from "../../utils/helpers/setup";
 import assert from "assert";
-import { getOptionBidderAccounts } from "../../utils/helpers/accounts";
 import { TestRunner } from "../../utils/facades/TestRunner";
 import { ExerciseOptionArgs } from "../../utils/facades/types";
 
@@ -9,8 +8,8 @@ import { ExerciseOptionArgs } from "../../utils/facades/types";
 export const smokeTest = async ({
   provider,
   vaultFacade,
-  constants: { depositAmount },
-  ethFacade,
+  getBalancesAll,
+  getOptionBidderAccounts
 }: TestRunner) => {
   const optionRoundFacade = await getOptionRoundFacade(
     provider,
@@ -18,9 +17,9 @@ export const smokeTest = async ({
     true
   );
 
-  const optionBidderAccounts = getOptionBidderAccounts(provider, 3);
+  const optionBidderAccounts = getOptionBidderAccounts(3);
 
-  const ethBalancesBefore = await ethFacade.getBalancesAll(
+  const ethBalancesBefore = await getBalancesAll(
     optionBidderAccounts
   );
 
@@ -30,7 +29,7 @@ export const smokeTest = async ({
   await optionRoundFacade.exerciseOptionsAll(exerciseOptionsAllArgs);
 
 
-  const ethBalancesAfter = await ethFacade.getBalancesAll(optionBidderAccounts);
+  const ethBalancesAfter = await getBalancesAll(optionBidderAccounts);
   const totalPayout = await optionRoundFacade.getTotalPayout();
 
   checkpoint1({
@@ -40,7 +39,7 @@ export const smokeTest = async ({
   });
 
   await optionRoundFacade.exerciseOptionsAll(exerciseOptionsAllArgs);
-  const ethBalancesAfterTwice = await ethFacade.getBalancesAll(
+  const ethBalancesAfterTwice = await getBalancesAll(
     optionBidderAccounts
   );
 

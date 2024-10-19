@@ -3,16 +3,18 @@ use starknet::{
     Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
     testing::{set_block_timestamp, set_contract_address}
 };
-use openzeppelin::token::erc20::interface::{ERC20ABIDispatcherTrait,};
-use pitch_lake_starknet::{
-    types::{OptionRoundState, Errors}, library::eth::Eth,
+use openzeppelin_token::erc20::interface::{ERC20ABIDispatcherTrait,};
+use pitch_lake::{
     vault::{
         contract::Vault,
         interface::{
             IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcherTrait
         }
     },
-    option_round::{interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,},},
+    option_round::{
+        interface::{OptionRoundState, IOptionRoundDispatcher, IOptionRoundDispatcherTrait}
+    },
+    option_round::contract::OptionRound::Errors,
     tests::{
         utils::{
             helpers::{
@@ -77,9 +79,10 @@ fn test_starting_auction_while_round_running_fails() {
 #[available_gas(1000000000)]
 fn test_starting_auction_while_round_settled_before_round_transition_period_over_fails() {
     let (mut vault_facade, _) = setup_facade();
+    let mut current_round = vault_facade.get_current_round();
     accelerate_to_auctioning(ref vault_facade);
     accelerate_to_running(ref vault_facade);
-    accelerate_to_settled(ref vault_facade, 0);
+    accelerate_to_settled(ref vault_facade, current_round.get_strike_price());
 
     // Try to start auction while round is Settled, before round transition period is over
     vault_facade.start_auction_expect_error(Errors::AuctionStartDateNotReached);
@@ -100,9 +103,12 @@ fn test_auction_started_option_round_event() {
     while rounds_to_run > 0_u32 {
         let mut current_round = vault.get_current_round();
         let total_options_available = accelerate_to_auctioning(ref vault);
+        let starting_liquidity = current_round.starting_liquidity();
 
         // Check the event emits correctly
-        assert_event_auction_start(current_round.contract_address(), total_options_available);
+        assert_event_auction_start(
+            current_round.contract_address(), starting_liquidity, total_options_available
+        );
 
         accelerate_to_running(ref vault);
         accelerate_to_settled(ref vault, 2 * current_round.get_strike_price());
@@ -123,6 +129,7 @@ fn test_starting_auction_does_not_update_current_and_next_round_ids() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
     while rounds_to_run > 0_u32 {
+        let mut current_round = vault.get_current_round();
         let current_round_id = vault.get_current_round_id();
         accelerate_to_auctioning(ref vault);
         let new_current_round_id = vault.get_current_round_id();
@@ -130,7 +137,7 @@ fn test_starting_auction_does_not_update_current_and_next_round_ids() {
         assert(new_current_round_id == current_round_id, 'current round id shd not change');
 
         accelerate_to_running(ref vault);
-        accelerate_to_settled(ref vault, 0);
+        accelerate_to_settled(ref vault, current_round.get_strike_price());
 
         rounds_to_run -= 1;
     }
@@ -157,7 +164,7 @@ fn test_starting_auction_updates_current_rounds_state() {
         );
 
         accelerate_to_running(ref vault);
-        accelerate_to_settled(ref vault, 0);
+        accelerate_to_settled(ref vault, current_round.get_strike_price());
 
         rounds_to_run -= 1;
     }
@@ -234,19 +241,22 @@ fn test_starting_auction_updates_locked_and_unlocked_balances() {
 //fn test_start_auction_updates_vault_and_lp_spreads_complex() {
 //    let (mut vault, _) = setup_facade();
 //    let mut liquidity_providers = liquidity_providers_get(4).span();
-//    let mut deposit_amounts = create_array_gradient(100 * decimals(), 100 * decimals(), liquidity_providers.len())
+//    let mut deposit_amounts = create_array_gradient(100 * decimals(), 100 * decimals(),
+//    liquidity_providers.len())
 //        .span(); // (100, 200, 300, 400)
 //    let total_deposits = sum_u256_array(deposit_amounts);
 //
 //    // Vault and liquidity providers' balances before auction starts
 //    let mut liquidity_providers_locked_before = vault.get_lp_locked_balances(liquidity_providers);
-//    let mut liquidity_providers_unlocked_before = vault.deposit_multiple(deposit_amounts, liquidity_providers);
+//    let mut liquidity_providers_unlocked_before = vault.deposit_multiple(deposit_amounts,
+//    liquidity_providers);
 //    let (vault_locked_before, vault_unlocked_before) = vault.get_balance_spread();
 //    // Start auction
 //    vault.start_auction();
 //    // Vault and liquidity providers' balances after auction starts
 //    let mut liquidity_providers_locked_after = vault.get_lp_locked_balances(liquidity_providers);
-//    let mut liquidity_providers_unlocked_after = vault.get_lp_unlocked_balances(liquidity_providers);
+//    let mut liquidity_providers_unlocked_after =
+//    vault.get_lp_unlocked_balances(liquidity_providers);
 //    let (vault_locked_after, vault_unlocked_after) = vault.get_balance_spread();
 //
 //    // Check vault balance
@@ -285,7 +295,8 @@ fn test_starting_auction_updates_locked_and_unlocked_balances() {
 //
 //    let (mut vault, _) = setup_facade();
 //    let mut liquidity_providers = liquidity_providers_get(4).span();
-//    let mut round1_deposits = create_array_gradient(100 * decimals(), 100 * decimals(), liquidity_providers.len())
+//    let mut round1_deposits = create_array_gradient(100 * decimals(), 100 * decimals(),
+//    liquidity_providers.len())
 //        .span(); // (100, 200, 300, 400)
 //    let starting_liquidity1 = sum_u256_array(round1_deposits);
 //    accelerate_to_auctioning_custom(ref vault, liquidity_providers, round1_deposits);
@@ -334,7 +345,8 @@ fn test_starting_auction_updates_locked_and_unlocked_balances() {
 //            Option::Some(lp_spread_before) => {
 //                let lp_spread_after = lp_spreads_after.pop_front().unwrap();
 //                let lp_starting_liquidity2 = round2_deposits.pop_front().unwrap();
-//                assert(lp_spread_before == (0, *lp_starting_liquidity2), 'LP spread before wrong');
+//                assert(lp_spread_before == (0, *lp_starting_liquidity2), 'LP spread before
+//                wrong');
 //                assert(lp_spread_after == (*lp_starting_liquidity2, 0), 'LP spread after wrong');
 //            },
 //            Option::None => { break (); }
@@ -350,13 +362,16 @@ fn test_starting_auction_updates_locked_and_unlocked_balances() {
 //    let (mut vault, _) = setup_facade();
 //    // Accelerate the round to running
 //    let liquidity_providers = liquidity_providers_get(5);
-//    let mut deposit_amounts = create_array_gradient(100 * decimals(), 100 * decimals(), liquidity_providers.len()); // (100, 200, 300...500)
-//    accelerate_to_auctioning_custom(ref vault, liquidity_providers.span(), deposit_amounts.span());
+//    let mut deposit_amounts = create_array_gradient(100 * decimals(), 100 * decimals(),
+//    liquidity_providers.len()); // (100, 200, 300...500)
+//    accelerate_to_auctioning_custom(ref vault, liquidity_providers.span(),
+//    deposit_amounts.span());
 //    accelerate_to_running(ref vault);
 //    let mut current_round = vault.get_current_round();
 //
 //    // Spreads for the vault and each lp (locked, unlocked) before option round settles
-//    let mut all_lp_spreads_before: Array<(u256, u256)> = vault.deposit_multiple(deposit_amounts.span(), liquidity_providers.span());
+//    let mut all_lp_spreads_before: Array<(u256, u256)> =
+//    vault.deposit_multiple(deposit_amounts.span(), liquidity_providers.span());
 //    let (vault_locked_init, vault_unlocked) = vault.get_balance_spread();
 //    // Settle option round (with no payout)
 //    accelerate_to_settled(ref vault, current_round.get_strike_price(), );
@@ -374,7 +389,8 @@ fn test_starting_auction_updates_locked_and_unlocked_balances() {
 //            Option::Some((
 //                locked_amount, unlocked_amount
 //            )) => {
-//                assert(locked_amount == deposit_amounts.pop_front().unwrap(), 'Locked balance mismatch');
+//                assert(locked_amount == deposit_amounts.pop_front().unwrap(), 'Locked balance
+//                mismatch');
 //                assert(unlocked_amount == 0, 'Unlocked balance mismatch');
 //            },
 //            Option::None => { break (); }
@@ -393,8 +409,8 @@ fn test_starting_auction_updates_locked_and_unlocked_balances() {
 //fn test_start_auction_under_minium_collateral_required_failure() {
 //    let (mut vault_facade, _) = setup_facade();
 //
-//    // @dev Need to manually initialize round 1 unless it is initialed during the vault constructor
-//    // ... vault::_initialize_round_1()
+//    // @dev Need to manually initialize round 1 unless it is initialed during the vault
+//    constructor // ... vault::_initialize_round_1()
 //
 //    // Get round 1's minium collateral requirements
 //    let mut next_round: OptionRoundFacade = vault_facade.get_next_round();
