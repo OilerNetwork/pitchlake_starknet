@@ -2,57 +2,37 @@
 version = 1
 
 [[package]]
-name = "openzeppelin_access"
-version = "0.16.0"
-source = "registry+https://scarbs.xyz/"
-checksum = "sha256:b9139449e53d715992b2d9e887c0c723d886419bee7ceb5561648c70bd6d3174"
-dependencies = [
- "openzeppelin_introspection",
- "openzeppelin_utils",
-]
-
-[[package]]
 name = "openzeppelin_account"
-version = "0.16.0"
+version = "0.18.0"
 source = "registry+https://scarbs.xyz/"
-checksum = "sha256:841bb881adbe98b64fee1dc1329f6e3fbabdfbd9fa65c66ffb54c55f13764bce"
+checksum = "sha256:83e6571cac4c67049c8d0ab4e3c7ad146d582d7605e7354248835833e1d26c4a"
 dependencies = [
  "openzeppelin_introspection",
  "openzeppelin_utils",
-]
-
-[[package]]
-name = "openzeppelin_governance"
-version = "0.16.0"
-source = "registry+https://scarbs.xyz/"
-checksum = "sha256:a9d9c983cfd4369e7bbb69433fb264edf376805ed873b1f70a287825a6bd1eaf"
-dependencies = [
- "openzeppelin_access",
- "openzeppelin_introspection",
 ]
 
 [[package]]
 name = "openzeppelin_introspection"
-version = "0.16.0"
+version = "0.18.0"
 source = "registry+https://scarbs.xyz/"
-checksum = "sha256:312bc2e531f036480ad7392dbb31042c38d875ef9dbb5578ea8de5c05e35b7d8"
+checksum = "sha256:46c4cc6c95c9baa4c7d5cc0ed2bdaf334f46c25a8c92b3012829fff936e3042b"
 
 [[package]]
 name = "openzeppelin_token"
-version = "0.16.0"
+version = "0.18.0"
 source = "registry+https://scarbs.xyz/"
-checksum = "sha256:7074c23fbc300b3cccff1037264dfdbe976fb11ae42ce687f4a8ce469adc552a"
+checksum = "sha256:eafbe13f6a0487ce212459e25a81ae07f340ba76208ad4616626eb2d25a9625e"
 dependencies = [
  "openzeppelin_account",
- "openzeppelin_governance",
  "openzeppelin_introspection",
+ "openzeppelin_utils",
 ]
 
 [[package]]
 name = "openzeppelin_utils"
-version = "0.16.0"
+version = "0.18.0"
 source = "registry+https://scarbs.xyz/"
-checksum = "sha256:a494aeb5f1371db7f22e922196aa41d1d1698877a766a838350c0b6ffe49fda2"
+checksum = "sha256:725b212839f3eddc32791408609099c5e808c167ca0cf331d8c1d778b07a4e21"
 
 [[package]]
 name = "pitch_lake"

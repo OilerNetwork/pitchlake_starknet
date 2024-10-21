@@ -130,18 +130,10 @@ export const ABI = [
   },
   {
     "type": "struct",
-    "name": "pitch_lake::vault::interface::PricingDataPoints",
+    "name": "pitch_lake::option_round::interface::PricingData",
     "members": [
       {
-        "name": "twap",
-        "type": "core::integer::u256"
-      },
-      {
-        "name": "volatility",
-        "type": "core::integer::u128"
-      },
-      {
-        "name": "reserve_price",
+        "name": "strike_price",
         "type": "core::integer::u256"
       },
       {
@@ -149,7 +141,7 @@ export const ABI = [
         "type": "core::integer::u128"
       },
       {
-        "name": "strike_price",
+        "name": "reserve_price",
         "type": "core::integer::u256"
       }
     ]
@@ -237,28 +229,6 @@ export const ABI = [
       },
       {
         "type": "function",
-        "name": "get_starting_liquidity",
-        "inputs": [],
-        "outputs": [
-          {
-            "type": "core::integer::u256"
-          }
-        ],
-        "state_mutability": "view"
-      },
-      {
-        "type": "function",
-        "name": "get_unsold_liquidity",
-        "inputs": [],
-        "outputs": [
-          {
-            "type": "core::integer::u256"
-          }
-        ],
-        "state_mutability": "view"
-      },
-      {
-        "type": "function",
         "name": "get_reserve_price",
         "inputs": [],
         "outputs": [
@@ -292,6 +262,17 @@ export const ABI = [
       },
       {
         "type": "function",
+        "name": "get_starting_liquidity",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
         "name": "get_options_available",
         "inputs": [],
         "outputs": [
@@ -304,6 +285,28 @@ export const ABI = [
       {
         "type": "function",
         "name": "get_options_sold",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_unsold_liquidity",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::u256"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_sold_liquidity",
         "inputs": [],
         "outputs": [
           {
@@ -358,22 +361,6 @@ export const ABI = [
       },
       {
         "type": "function",
-        "name": "get_account_bid_nonce",
-        "inputs": [
-          {
-            "name": "account",
-            "type": "core::starknet::contract_address::ContractAddress"
-          }
-        ],
-        "outputs": [
-          {
-            "type": "core::integer::u64"
-          }
-        ],
-        "state_mutability": "view"
-      },
-      {
-        "type": "function",
         "name": "get_bid_tree_nonce",
         "inputs": [],
         "outputs": [
@@ -411,6 +398,22 @@ export const ABI = [
         "outputs": [
           {
             "type": "core::array::Array::<pitch_lake::types::Bid>"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_account_bid_nonce",
+        "inputs": [
+          {
+            "name": "account",
+            "type": "core::starknet::contract_address::ContractAddress"
+          }
+        ],
+        "outputs": [
+          {
+            "type": "core::integer::u64"
           }
         ],
         "state_mutability": "view"
@@ -481,15 +484,11 @@ export const ABI = [
       },
       {
         "type": "function",
-        "name": "refresh_pricing_data_points",
+        "name": "set_pricing_data",
         "inputs": [
           {
-            "name": "pricing_data_points_now",
-            "type": "pitch_lake::vault::interface::PricingDataPoints"
-          },
-          {
-            "name": "job_id",
-            "type": "core::felt252"
+            "name": "pricing_data",
+            "type": "pitch_lake::option_round::interface::PricingData"
           }
         ],
         "outputs": [],
@@ -829,20 +828,8 @@ export const ABI = [
         "type": "core::integer::u256"
       },
       {
-        "name": "auction_start_date",
-        "type": "core::integer::u64"
-      },
-      {
-        "name": "auction_end_date",
-        "type": "core::integer::u64"
-      },
-      {
-        "name": "option_settlement_date",
-        "type": "core::integer::u64"
-      },
-      {
-        "name": "pricing_data_points",
-        "type": "pitch_lake::vault::interface::PricingDataPoints"
+        "name": "pricing_data",
+        "type": "pitch_lake::option_round::interface::PricingData"
       }
     ]
   },
@@ -858,17 +845,12 @@ export const ABI = [
   },
   {
     "type": "event",
-    "name": "pitch_lake::option_round::contract::OptionRound::PricingDataUpdated",
+    "name": "pitch_lake::option_round::contract::OptionRound::PricingDataSet",
     "kind": "struct",
     "members": [
       {
-        "name": "pricing_data_points_now",
-        "type": "pitch_lake::vault::interface::PricingDataPoints",
-        "kind": "data"
-      },
-      {
-        "name": "job_id",
-        "type": "core::felt252",
+        "name": "pricing_data",
+        "type": "pitch_lake::option_round::interface::PricingData",
         "kind": "data"
       }
     ]
@@ -968,6 +950,11 @@ export const ABI = [
         "name": "unsold_liquidity",
         "type": "core::integer::u256",
         "kind": "data"
+      },
+      {
+        "name": "clearing_bid_tree_nonce",
+        "type": "core::integer::u64",
+        "kind": "data"
       }
     ]
   },
@@ -999,7 +986,12 @@ export const ABI = [
         "kind": "key"
       },
       {
-        "name": "number_of_options",
+        "name": "total_options_exercised",
+        "type": "core::integer::u256",
+        "kind": "data"
+      },
+      {
+        "name": "mintable_options_exercised",
         "type": "core::integer::u256",
         "kind": "data"
       },
@@ -1161,8 +1153,8 @@ export const ABI = [
     "kind": "enum",
     "variants": [
       {
-        "name": "PricingDataUpdated",
-        "type": "pitch_lake::option_round::contract::OptionRound::PricingDataUpdated",
+        "name": "PricingDataSet",
+        "type": "pitch_lake::option_round::contract::OptionRound::PricingDataSet",
         "kind": "nested"
       },
       {

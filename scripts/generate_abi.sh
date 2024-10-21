@@ -5,7 +5,8 @@
 contracts=(
 	"OptionRound:optionRound"
 	"Vault:vault"
-	"FactRegistry:factRegistry"
+	"FossilClient:fossilClient"
+	#"FactRegistry:factRegistry"
 	"Eth:eth"
 )
 

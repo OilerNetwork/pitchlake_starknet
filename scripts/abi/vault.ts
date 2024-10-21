@@ -48,33 +48,19 @@ export const ABI = [
   },
   {
     "type": "struct",
-    "name": "pitch_lake::fact_registry::interface::JobRequestParams",
+    "name": "pitch_lake::fossil_client::interface::L1Data",
     "members": [
       {
         "name": "twap",
-        "type": "(core::integer::u64, core::integer::u64)"
+        "type": "core::integer::u256"
       },
       {
         "name": "volatility",
-        "type": "(core::integer::u64, core::integer::u64)"
+        "type": "core::integer::u128"
       },
       {
         "name": "reserve_price",
-        "type": "(core::integer::u64, core::integer::u64)"
-      }
-    ]
-  },
-  {
-    "type": "struct",
-    "name": "pitch_lake::fact_registry::interface::JobRequest",
-    "members": [
-      {
-        "name": "identifiers",
-        "type": "core::array::Span::<core::felt252>"
-      },
-      {
-        "name": "params",
-        "type": "pitch_lake::fact_registry::interface::JobRequestParams"
+        "type": "core::integer::u256"
       }
     ]
   },
@@ -95,11 +81,22 @@ export const ABI = [
       },
       {
         "type": "function",
-        "name": "get_fact_registry_address",
+        "name": "get_alpha",
         "inputs": [],
         "outputs": [
           {
-            "type": "core::starknet::contract_address::ContractAddress"
+            "type": "core::integer::u128"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_strike_level",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::i128"
           }
         ],
         "state_mutability": "view"
@@ -117,33 +114,11 @@ export const ABI = [
       },
       {
         "type": "function",
-        "name": "get_auction_run_time",
+        "name": "get_fossil_client_address",
         "inputs": [],
         "outputs": [
           {
-            "type": "core::integer::u64"
-          }
-        ],
-        "state_mutability": "view"
-      },
-      {
-        "type": "function",
-        "name": "get_option_run_time",
-        "inputs": [],
-        "outputs": [
-          {
-            "type": "core::integer::u64"
-          }
-        ],
-        "state_mutability": "view"
-      },
-      {
-        "type": "function",
-        "name": "get_round_transition_period",
-        "inputs": [],
-        "outputs": [
-          {
-            "type": "core::integer::u64"
+            "type": "core::starknet::contract_address::ContractAddress"
           }
         ],
         "state_mutability": "view"
@@ -225,7 +200,7 @@ export const ABI = [
         "inputs": [],
         "outputs": [
           {
-            "type": "core::integer::u16"
+            "type": "core::integer::u128"
           }
         ],
         "state_mutability": "view"
@@ -305,7 +280,29 @@ export const ABI = [
         ],
         "outputs": [
           {
-            "type": "core::integer::u16"
+            "type": "core::integer::u128"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_request_to_settle_round",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::array::Span::<core::felt252>"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_request_to_start_first_round",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::array::Span::<core::felt252>"
           }
         ],
         "state_mutability": "view"
@@ -352,7 +349,7 @@ export const ABI = [
         "inputs": [
           {
             "name": "bps",
-            "type": "core::integer::u16"
+            "type": "core::integer::u128"
           }
         ],
         "outputs": [],
@@ -376,11 +373,15 @@ export const ABI = [
       },
       {
         "type": "function",
-        "name": "refresh_round_pricing_data",
+        "name": "fossil_client_callback",
         "inputs": [
           {
-            "name": "job_request",
-            "type": "pitch_lake::fact_registry::interface::JobRequest"
+            "name": "l1_data",
+            "type": "pitch_lake::fossil_client::interface::L1Data"
+          },
+          {
+            "name": "timestamp",
+            "type": "core::integer::u64"
           }
         ],
         "outputs": [],
@@ -411,12 +412,7 @@ export const ABI = [
       {
         "type": "function",
         "name": "settle_round",
-        "inputs": [
-          {
-            "name": "job_request",
-            "type": "pitch_lake::fact_registry::interface::JobRequest"
-          }
-        ],
+        "inputs": [],
         "outputs": [
           {
             "type": "core::integer::u256"
@@ -431,32 +427,24 @@ export const ABI = [
     "name": "pitch_lake::vault::interface::ConstructorArgs",
     "members": [
       {
-        "name": "round_transition_period",
-        "type": "core::integer::u64"
-      },
-      {
-        "name": "auction_run_time",
-        "type": "core::integer::u64"
-      },
-      {
-        "name": "option_run_time",
-        "type": "core::integer::u64"
+        "name": "fossil_client_address",
+        "type": "core::starknet::contract_address::ContractAddress"
       },
       {
         "name": "eth_address",
         "type": "core::starknet::contract_address::ContractAddress"
       },
       {
-        "name": "vault_type",
-        "type": "pitch_lake::vault::interface::VaultType"
-      },
-      {
-        "name": "fact_registry_address",
-        "type": "core::starknet::contract_address::ContractAddress"
-      },
-      {
         "name": "option_round_class_hash",
         "type": "core::starknet::class_hash::ClassHash"
+      },
+      {
+        "name": "alpha",
+        "type": "core::integer::u128"
+      },
+      {
+        "name": "strike_level",
+        "type": "core::integer::i128"
       }
     ]
   },
@@ -536,7 +524,7 @@ export const ABI = [
       },
       {
         "name": "bps",
-        "type": "core::integer::u16",
+        "type": "core::integer::u128",
         "kind": "data"
       },
       {
@@ -574,6 +562,24 @@ export const ABI = [
     ]
   },
   {
+    "type": "struct",
+    "name": "pitch_lake::option_round::interface::PricingData",
+    "members": [
+      {
+        "name": "strike_price",
+        "type": "core::integer::u256"
+      },
+      {
+        "name": "cap_level",
+        "type": "core::integer::u128"
+      },
+      {
+        "name": "reserve_price",
+        "type": "core::integer::u256"
+      }
+    ]
+  },
+  {
     "type": "event",
     "name": "pitch_lake::vault::contract::Vault::OptionRoundDeployed",
     "kind": "struct",
@@ -586,21 +592,6 @@ export const ABI = [
       {
         "name": "address",
         "type": "core::starknet::contract_address::ContractAddress",
-        "kind": "data"
-      },
-      {
-        "name": "reserve_price",
-        "type": "core::integer::u256",
-        "kind": "data"
-      },
-      {
-        "name": "strike_price",
-        "type": "core::integer::u256",
-        "kind": "data"
-      },
-      {
-        "name": "cap_level",
-        "type": "core::integer::u128",
         "kind": "data"
       },
       {
@@ -617,6 +608,28 @@ export const ABI = [
         "name": "option_settlement_date",
         "type": "core::integer::u64",
         "kind": "data"
+      },
+      {
+        "name": "pricing_data",
+        "type": "pitch_lake::option_round::interface::PricingData",
+        "kind": "data"
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "pitch_lake::vault::contract::Vault::L1RequestFulfilled",
+    "kind": "struct",
+    "members": [
+      {
+        "name": "id",
+        "type": "core::felt252",
+        "kind": "key"
+      },
+      {
+        "name": "caller",
+        "type": "core::starknet::contract_address::ContractAddress",
+        "kind": "key"
       }
     ]
   },
@@ -648,6 +661,11 @@ export const ABI = [
       {
         "name": "OptionRoundDeployed",
         "type": "pitch_lake::vault::contract::Vault::OptionRoundDeployed",
+        "kind": "nested"
+      },
+      {
+        "name": "L1RequestFulfilled",
+        "type": "pitch_lake::vault::contract::Vault::L1RequestFulfilled",
         "kind": "nested"
       }
     ]
