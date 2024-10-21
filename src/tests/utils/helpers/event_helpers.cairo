@@ -2,8 +2,12 @@ use core::array::SpanTrait;
 use starknet::{testing, ContractAddress,};
 use openzeppelin_utils::serde::SerializedAppend;
 use openzeppelin_token::erc20::{ERC20Component, ERC20Component::Transfer};
-use pitch_lake::{vault::contract::Vault, option_round::contract::OptionRound};
+use pitch_lake::{
+    vault::contract::Vault, option_round::contract::OptionRound,
+    fossil_client::contract::FossilClient
+};
 use pitch_lake::option_round::interface::{PricingData};
+use pitch_lake::fossil_client::interface::{L1Data};
 use debug::PrintTrait;
 
 /// Helpers ///
@@ -48,15 +52,30 @@ fn assert_events_equal<T, +PartialEq<T>, +Drop<T>>(actual: T, expected: T) {
     assert(actual == expected, 'Event does not match expected');
 }
 
+/// Fossil Client Events ///
+fn assert_fossil_callback_success_event(
+    fossil_client_address: ContractAddress,
+    vault_address: ContractAddress,
+    l1_data: L1Data,
+    timestamp: u64,
+) {
+    match pop_log::<FossilClient::Event>(fossil_client_address) {
+        Option::Some(e) => {
+            let expected = FossilClient::Event::FossilCallbackSuccess(
+                FossilClient::FossilCallbackSuccess { vault_address, l1_data, timestamp }
+            );
+            assert_events_equal(e, expected);
+        },
+        Option::None => { panic(array!['No events found']); }
+    };
+}
+
 /// OptionRound Events ///
 
 // Check AuctionStart emits correctly
 fn assert_event_auction_start(
     option_round_address: ContractAddress, starting_liquidity: u256, options_available: u256
 ) {
-    // @note Confirm this works (fix from discord), then work into other event assertions (should
-    // handle manual ones as well)
-    // @note Reminder to clear event logs at the end of the accelerators
     match pop_log::<OptionRound::Event>(option_round_address) {
         Option::Some(e) => {
             let expected = OptionRound::Event::AuctionStarted(
@@ -115,7 +134,9 @@ fn assert_event_pricing_data_set(
     match pop_log::<OptionRound::Event>(option_round_address) {
         Option::Some(e) => {
             let expected = OptionRound::Event::PricingDataSet(
-                OptionRound::PricingDataSet { strike_price, cap_level, reserve_price }
+                OptionRound::PricingDataSet {
+                    pricing_data: PricingData { strike_price, cap_level, reserve_price }
+                }
             );
             assert_events_equal(e, expected);
         },
@@ -127,12 +148,15 @@ fn assert_event_auction_end(
     option_round_address: ContractAddress,
     options_sold: u256,
     clearing_price: u256,
-    unsold_liquidity: u256
+    unsold_liquidity: u256,
+    clearing_bid_tree_nonce: u64,
 ) {
     match pop_log::<OptionRound::Event>(option_round_address) {
         Option::Some(e) => {
             let expected = OptionRound::Event::AuctionEnded(
-                OptionRound::AuctionEnded { options_sold, clearing_price, unsold_liquidity }
+                OptionRound::AuctionEnded {
+                    options_sold, clearing_price, unsold_liquidity, clearing_bid_tree_nonce
+                }
             );
             assert_events_equal(e, expected);
         },
@@ -194,13 +218,21 @@ fn assert_event_options_tokenized(
 fn assert_event_options_exercised(
     contract: ContractAddress,
     account: ContractAddress,
-    number_of_options: u256,
+    total_options_exercised: u256,
+    mintable_options_exercised: u256,
     exercised_amount: u256
 ) {
+    // If the account burned erc20 tokens, we need to remove that event from the log
+    if total_options_exercised > mintable_options_exercised {
+        let _ = pop_log::<ERC20Component::Event>(contract);
+    }
+
     match pop_log::<OptionRound::Event>(contract) {
         Option::Some(e) => {
             let expected = OptionRound::Event::OptionsExercised(
-                OptionRound::OptionsExercised { account, number_of_options, exercised_amount }
+                OptionRound::OptionsExercised {
+                    account, total_options_exercised, mintable_options_exercised, exercised_amount
+                }
             );
             assert_events_equal(e, expected);
         },
@@ -345,7 +377,7 @@ fn assert_event_queued_liquidity_collected(
 fn assert_event_withdrawal_queued(
     vault: ContractAddress,
     account: ContractAddress,
-    bps: u16,
+    bps: u128,
     account_queued_liquidity_now: u256,
     vault_queued_liquidity_now: u256
 ) {

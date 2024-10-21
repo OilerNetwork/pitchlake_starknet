@@ -2,7 +2,7 @@
 use openzeppelin_token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
 use starknet::{ContractAddress, testing::{set_contract_address}};
 use pitch_lake::{
-    types::{Errors, Bid, Consts::BPS},
+    types::{Errors, Bid}, library::constants::BPS_u256,
     option_round::{
         interface::{
             OptionRoundState, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,
@@ -84,7 +84,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         // L = M * Capped
         let strike_price = to_gwei(10); // 10 gwei
         let cap_level: u128 = 5000; // Max payout is 50.00 % above strike
-        let capped_payout_per_option = (strike_price * cap_level.into()) / BPS;
+        let capped_payout_per_option = (strike_price * cap_level.into()) / BPS_u256;
         let starting_liquidity = (options_available * capped_payout_per_option);
 
         // Update the params of the option round
@@ -403,9 +403,12 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         self.option_round_dispatcher.get_starting_liquidity()
     }
 
-    fn unsold_liquidity(ref self: OptionRoundFacade) -> u256 {
-        // @note Temp fix, can move this function to round facade
+    fn sold_liquidity(ref self: OptionRoundFacade) -> u256 {
+        self.option_round_dispatcher.get_sold_liquidity()
+    }
 
+
+    fn unsold_liquidity(ref self: OptionRoundFacade) -> u256 {
         self.option_round_dispatcher.get_unsold_liquidity()
     }
 
@@ -498,6 +501,11 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     fn get_total_options_available(ref self: OptionRoundFacade) -> u256 {
         self.option_round_dispatcher.get_options_available()
     }
+
+    fn get_settlement_price(ref self: OptionRoundFacade) -> u256 {
+        self.option_round_dispatcher.get_settlement_price()
+    }
+
 
     /// ERC20 functions
     fn to_erc20(ref self: OptionRoundFacade) -> ERC20ABIDispatcher {

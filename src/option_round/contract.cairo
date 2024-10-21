@@ -11,10 +11,10 @@ mod OptionRound {
     use pitch_lake::option_round::interface::{
         PricingData, ConstructorArgs, IOptionRound, OptionRoundState
     };
-    use pitch_lake::types::{Bid, Consts::BPS,};
+    use pitch_lake::types::{Bid};
     use pitch_lake::library::utils::{max, min};
     use pitch_lake::library::pricing_utils::{
-        calculate_total_options_available, calculate_payout_per_option,
+        max_payout_per_option, calculate_total_options_available, calculate_payout_per_option,
     };
     use pitch_lake::library::red_black_tree::{RBTreeComponent, RBTreeComponent::Node};
     use pitch_lake::library::constants::{
@@ -54,7 +54,6 @@ mod OptionRound {
         option_settlement_date: u64,
         ///
         starting_liquidity: u256,
-        unsold_liquidity: u256,
         settlement_price: u256,
         payout_per_option: u256,
         ///
@@ -76,6 +75,8 @@ mod OptionRound {
 
     mod Errors {
         const CallerIsNotVault: felt252 = 'Caller not the Vault';
+        const InvalidPricingData: felt252 = 'Invalid pricing data';
+        const NotFirstRound: felt252 = 'Not first round';
         // Starting an auction
         const PricingDataNotSet: felt252 = 'Pricing data not set';
         const AuctionStartDateNotReached: felt252 = 'Auction start date not reached';
@@ -87,6 +88,7 @@ mod OptionRound {
         const OptionSettlementDateNotReached: felt252 = 'Settlement date not reached';
         const OptionRoundAlreadySettled: felt252 = 'Option round already settled';
         // Bidding & upating bids
+        const NoOptionsToBidFor: felt252 = 'No options to bid for';
         const BiddingWhileNotAuctioning: felt252 = 'Can only bid while auctioning';
         const BidAmountZero: felt252 = 'Bid amount cannot be 0';
         const BidBelowReservePrice: felt252 = 'Bid price below reserve price';
@@ -151,9 +153,7 @@ mod OptionRound {
 
     #[derive(Drop, starknet::Event, PartialEq)]
     struct PricingDataSet {
-        strike_price: u256,
-        cap_level: u128,
-        reserve_price: u256,
+        pricing_data: PricingData,
     }
 
     // @dev Emitted when the auction starts
@@ -174,6 +174,7 @@ mod OptionRound {
         options_sold: u256,
         clearing_price: u256,
         unsold_liquidity: u256,
+        clearing_bid_tree_nonce: u64,
     }
 
     // @dev Emitted when the round settles
@@ -238,13 +239,15 @@ mod OptionRound {
 
     // @dev Emitted when an account exercises their options
     // @param account: The account that exercised the options
-    // @param number_of_options: The number of options exercised
-    // @param exercised_amount: The amount transferred
+    // @param total_options_exercised: The total number of options exercised
+    // @param mintable_options_exercised: The number of options exercised that the caller could have
+    // minted @param exercised_amount: The amount transferred
     #[derive(Drop, starknet::Event, PartialEq)]
     struct OptionsExercised {
         #[key]
         account: ContractAddress,
-        number_of_options: u256,
+        total_options_exercised: u256,
+        mintable_options_exercised: u256,
         exercised_amount: u256
     }
 
@@ -308,8 +311,32 @@ mod OptionRound {
             self.starting_liquidity.read()
         }
 
+        fn get_sold_liquidity(self: @ContractState) -> u256 {
+            let state = self.get_state();
+
+            if state == OptionRoundState::Running || state == OptionRoundState::Settled {
+                let max_payout_per_option = max_payout_per_option(
+                    self.pricing_data.strike_price.read(), self.pricing_data.cap_level.read()
+                );
+                let options_sold = self.bids_tree.total_options_sold.read();
+
+                max_payout_per_option * options_sold
+            } else {
+                0
+            }
+        }
+
         fn get_unsold_liquidity(self: @ContractState) -> u256 {
-            self.unsold_liquidity.read()
+            let state = self.get_state();
+
+            if state == OptionRoundState::Running || state == OptionRoundState::Settled {
+                let starting_liq = self.starting_liquidity.read();
+                let sold_liq = self.get_sold_liquidity();
+
+                starting_liq - sold_liq
+            } else {
+                0
+            }
         }
 
         fn get_reserve_price(self: @ContractState) -> u256 {
@@ -485,31 +512,34 @@ mod OptionRound {
 
         /// State transition
 
+        // @note todo: only if round 1
         fn set_pricing_data(ref self: ContractState, pricing_data: PricingData) {
             // @dev Assert the caller is the vault
             self.assert_caller_is_vault();
 
-            // @dev Assert the auction has not started yet
+            // @dev This function can only be called on a vault's first round if the auction has not
+            // started yet
+            assert(self.round_id.read() == 1, Errors::NotFirstRound);
             assert(self.state.read() == OptionRoundState::Open, Errors::AuctionAlreadyStarted);
-
-            // @dev Assert pricing data is not 0
-            assert(pricing_data != Default::<PricingData>::default(), 'REPLACE ME');
 
             // @dev Set the pricing data points
             self.pricing_data.write(pricing_data);
 
             // @dev Emit event
-            let PricingData { strike_price, cap_level, reserve_price } = pricing_data;
-            self
-                .emit(
-                    Event::PricingDataSet(PricingDataSet { strike_price, cap_level, reserve_price })
-                );
+            self.emit(Event::PricingDataSet(PricingDataSet { pricing_data }));
         }
 
         fn start_auction(ref self: ContractState, starting_liquidity: u256) -> u256 {
             // @dev Ensure pricing data is set
+            // @note todo: handle null rounds
             let pricing_data = self.pricing_data.read();
-            assert(pricing_data != Default::default(), Errors::PricingDataNotSet);
+            let PricingData { strike_price, cap_level, reserve_price } = pricing_data;
+            assert(
+                strike_price.is_non_zero()
+                    && cap_level.is_non_zero()
+                    && reserve_price.is_non_zero(),
+                Errors::PricingDataNotSet
+            );
             // @dev Calculate total options available
             let strike_price = pricing_data.strike_price;
             let cap_level = pricing_data.cap_level;
@@ -534,20 +564,23 @@ mod OptionRound {
 
         fn end_auction(ref self: ContractState) -> (u256, u256) {
             // @dev Calculate how many options were sold and the price per one
-            let options_available = self.bids_tree._get_total_options_available();
-            let (clearing_price, options_sold) = self.bids_tree.find_clearing_price();
+            let (clearing_price, options_sold, clearing_bid_tree_nonce) = self
+                .bids_tree
+                .find_clearing_price();
 
             // @dev Set unsold liquidity if some options do not sell
             let starting_liq = self.starting_liquidity.read();
-            let options_unsold = options_available - options_sold;
-            let unsold_liquidity = match options_available.is_zero() {
-                true => 0,
-                false => (starting_liq * options_unsold) / options_available
-            };
+            let sold_liquidity = options_sold
+                * max_payout_per_option(
+                    self.pricing_data.strike_price.read(), self.pricing_data.cap_level.read()
+                );
+            let unsold_liquidity = starting_liq - sold_liquidity;
 
-            if unsold_liquidity.is_non_zero() {
-                self.unsold_liquidity.write(unsold_liquidity);
-            }
+            //let options_unsold = options_available - options_sold;
+            //let unsold_liquidity = match options_available.is_zero() {
+            //    true => 0,
+            //    false => (starting_liq * options_unsold) / options_available
+            //};
 
             // @dev Send premiums to Vault
             self
@@ -559,7 +592,9 @@ mod OptionRound {
             self
                 .emit(
                     Event::AuctionEnded(
-                        AuctionEnded { options_sold, clearing_price, unsold_liquidity }
+                        AuctionEnded {
+                            options_sold, clearing_price, unsold_liquidity, clearing_bid_tree_nonce
+                        }
                     )
                 );
 
@@ -722,29 +757,32 @@ mod OptionRound {
 
             // @dev Get the account's total option balance
             let account = get_caller_address();
-            let mut number_of_options = 0;
 
             // @dev Burn the ERC-20 options
             let erc20_option_balance = self.erc20.ERC20_balances.read(account);
             if erc20_option_balance > 0 {
-                number_of_options += erc20_option_balance;
                 self.erc20.burn(account, erc20_option_balance);
             }
 
             // @dev Update the account's has minted status
-            let mintable_amount = self.get_account_mintable_options(account);
-            number_of_options += mintable_amount;
+            let mintable_options_exercised = self.get_account_mintable_options(account);
             self.has_minted.write(account, true);
 
             // @dev Transfer the payout share to the bidder
-            let exercised_amount = number_of_options * self.payout_per_option.read();
+            let total_options_exercised = erc20_option_balance + mintable_options_exercised;
+            let exercised_amount = total_options_exercised * self.payout_per_option.read();
             self.get_eth_dispatcher().transfer(account, exercised_amount);
 
             // @dev Emit options exercised event
             self
                 .emit(
                     Event::OptionsExercised(
-                        OptionsExercised { account, number_of_options, exercised_amount, }
+                        OptionsExercised {
+                            account,
+                            total_options_exercised,
+                            mintable_options_exercised,
+                            exercised_amount
+                        }
                     )
                 );
 
@@ -838,7 +876,7 @@ mod OptionRound {
                 now < target && state == OptionRoundState::Auctioning,
                 Errors::BiddingWhileNotAuctioning
             );
-            assert(options_available.is_non_zero(), 'TODO: No options to bid for')
+            assert(options_available.is_non_zero(), Errors::NoOptionsToBidFor);
         }
 
         /// ERC-20
@@ -896,7 +934,7 @@ mod OptionRound {
                         // mintable & refundable
                         if bid_id == clearing_bid_id {
                             clearing_bid_option = Option::Some(bid);
-                        } // @dev If this bid is now the clearing bid, check if this bid is above or below the clearing bid
+                        } // @dev If this bid is not the clearing bid, check if this bid is above or below the clearing bid
                         else {
                             if bid > clearing_bid {
                                 winning_bids.append(bid);

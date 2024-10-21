@@ -2,7 +2,6 @@ use starknet::{
     contract_address_const, ContractAddress, testing::{set_block_timestamp, set_contract_address}
 };
 use openzeppelin_token::erc20::interface::{ERC20ABIDispatcherTrait,};
-use pitch_lake::types::Consts::BPS;
 use pitch_lake::tests::{
     utils::{
         helpers::{
@@ -414,7 +413,7 @@ fn test_the_last_bidder_gets_no_options_if_none_left() {
     let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
 
     // Make bids, end auction
-    let bid_amount = total_options_available / (number_of_option_bidders.into() - 1);
+    let bid_amount = total_options_available / 3;
     let bid_amounts = create_array_linear(bid_amount, number_of_option_bidders);
     let bid_prices = create_array_linear(
         current_round.get_reserve_price(), number_of_option_bidders
@@ -423,13 +422,24 @@ fn test_the_last_bidder_gets_no_options_if_none_left() {
         ref vault_facade, option_bidders, bid_amounts.span(), bid_prices.span()
     );
 
-    // Check that the last bidder gets 0 options, and the rest get the bid amount
+    // Check that the last bidder gets 0 options,
     match option_bidders.pop_back() {
         Option::Some(last_bidder) => {
             assert(
                 current_round.get_mintable_options_for(*last_bidder) == 0,
                 'last bidder shd get 0 options'
             );
+            // Check the partial bidder gets the remaining
+            match option_bidders.pop_back() {
+                Option::Some(bidder) => {
+                    let expected = total_options_available - (3 * bid_amount);
+                    assert(
+                        current_round.get_mintable_options_for(*bidder) == expected,
+                        'bidder shd get bid amount'
+                    );
+                },
+                Option::None => { panic!("This shd not revert here") }
+            }
 
             loop {
                 match option_bidders.pop_front() {
@@ -450,7 +460,7 @@ fn test_the_last_bidder_gets_no_options_if_none_left() {
 // Test losing bidder gets no options
 #[test]
 #[available_gas(500000000)]
-fn test_losing_bid_gets_no_options() {
+fn test_last_bid_is_partial() {
     let number_of_option_bidders = 5;
     let (mut vault, _, mut option_bidders, total_options_available) = setup_test_auctioning_bidders(
         number_of_option_bidders
@@ -460,10 +470,8 @@ fn test_losing_bid_gets_no_options() {
 
     // Make bids, 5 bidders bid for 1/3 total options each, each bidder outbidding the previous
     // one's price
-    let mut bid_amounts = create_array_linear(
-        total_options_available / (number_of_option_bidders - 1).into(), option_bidders.len()
-    )
-        .span();
+    let bid_amount = total_options_available / 4;
+    let mut bid_amounts = create_array_linear(bid_amount, option_bidders.len()).span();
     let bid_prices = create_array_gradient(
         current_round.get_reserve_price(), 1, option_bidders.len()
     )
@@ -474,19 +482,17 @@ fn test_losing_bid_gets_no_options() {
     // Check that the first bidder gets no options, and the rest get their bid amounts
     match option_bidders.pop_front() {
         Option::Some(losing_bidder) => {
-            assert(
-                current_round.get_mintable_options_for(*losing_bidder) == 0,
-                'losing bidder shd get 0 options'
-            );
+            let mintable_options = current_round.get_mintable_options_for(*losing_bidder);
+
+            let expected_partial_amount = total_options_available - (4 * bid_amount);
+
+            assert(mintable_options == expected_partial_amount, 'losing bidder remaining options');
             loop {
                 match option_bidders.pop_front() {
                     Option::Some(bidder) => {
-                        // @dev Each bidder bids for the same amount so we can use [0] for all here
-                        let bid_amount = *bid_amounts[0];
-                        assert(
-                            current_round.get_mintable_options_for(*bidder) == bid_amount,
-                            'bidder should get bid amount'
-                        );
+                        // @dev Each bidder bids for the same amount
+                        let mintable_options = current_round.get_mintable_options_for(*bidder);
+                        assert(mintable_options == bid_amount, 'bidder should get bid amount');
                     },
                     Option::None => { break (); }
                 }

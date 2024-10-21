@@ -19,5 +19,10 @@ mod option_round {
     mod contract;
 }
 
+mod fossil_client {
+    mod interface;
+    mod contract;
+}
+
 #[cfg(test)]
 mod tests;

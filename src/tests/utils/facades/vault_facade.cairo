@@ -1,9 +1,10 @@
 use starknet::{ContractAddress, testing::{set_contract_address, set_block_timestamp}};
 use openzeppelin_token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
 use pitch_lake::{
+    fossil_client::interface::{JobRequest, L1Data, FossilResult},
     vault::{
         interface::{
-            L1DataRequest, L1Result, IVaultDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcher,
+            VaultType, IVaultDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcher,
             IVaultSafeDispatcherTrait
         }
     },
@@ -19,9 +20,10 @@ use pitch_lake::{
             },
             facades::{
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait}, sanity_checks,
+                fossil_client_facade::{FossilClientFacade, FossilClientFacadeTrait},
             },
             helpers::{
-                setup::{eth_supply_and_approve_all_bidders, get_fossil_address},
+                setup::{eth_supply_and_approve_all_bidders, FOSSIL_PROCESSOR},
                 general_helpers::{assert_two_arrays_equal_length}
             },
         },
@@ -37,6 +39,13 @@ struct VaultFacade {
 impl VaultFacadeImpl of VaultFacadeTrait {
     fn get_safe_dispatcher(ref self: VaultFacade) -> IVaultSafeDispatcher {
         IVaultSafeDispatcher { contract_address: self.contract_address() }
+    }
+
+
+    /// Fossil
+
+    fn get_fossil_client_facade(ref self: VaultFacade) -> FossilClientFacade {
+        FossilClientFacade { contract_address: self.vault_dispatcher.get_fossil_client_address() }
     }
 
     /// Writes ///
@@ -83,14 +92,14 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         sanity_checks::withdraw(ref self, liquidity_provider, updated_unlocked_position)
     }
 
-    fn queue_withdrawal(ref self: VaultFacade, liquidity_provider: ContractAddress, bps: u16) {
+    fn queue_withdrawal(ref self: VaultFacade, liquidity_provider: ContractAddress, bps: u128) {
         set_contract_address(liquidity_provider);
         self.vault_dispatcher.queue_withdrawal(bps);
     }
 
     #[feature("safe_dispatcher")]
     fn queue_withdrawal_expect_error(
-        ref self: VaultFacade, liquidity_provider: ContractAddress, bps: u16, error: felt252,
+        ref self: VaultFacade, liquidity_provider: ContractAddress, bps: u128, error: felt252,
     ) {
         set_contract_address(liquidity_provider);
         let safe_vault = self.get_safe_dispatcher();
@@ -120,7 +129,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     fn queue_multiple_withdrawals(
         ref self: VaultFacade,
         mut liquidity_providers: Span<ContractAddress>,
-        mut bps_multi: Span<u16>
+        mut bps_multi: Span<u128>
     ) {
         loop {
             match liquidity_providers.pop_front() {
@@ -144,17 +153,16 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     /// State transition
 
-    fn fulfill_request(ref self: VaultFacade, request: L1DataRequest, result: L1Result) {
-        set_contract_address(get_fossil_address());
-        self.vault_dispatcher.fulfill_request(request, result);
+    fn fossil_client_callback(ref self: VaultFacade, l1_data: L1Data, timestamp: u64) {
+        self.vault_dispatcher.fossil_client_callback(l1_data, timestamp);
     }
 
     #[feature("safe_dispatcher")]
-    fn fulfill_request_expect_error(
-        ref self: VaultFacade, request: L1DataRequest, result: L1Result, error: felt252
+    fn fossil_client_callback_expect_error(
+        ref self: VaultFacade, l1_data: L1Data, timestamp: u64, error: felt252
     ) {
         let safe_vault = self.get_safe_dispatcher();
-        safe_vault.fulfill_request(request, result).expect_err(error);
+        safe_vault.fossil_client_callback(l1_data, timestamp).expect_err(error);
     }
 
     fn start_auction(ref self: VaultFacade) -> u256 {
@@ -211,12 +219,14 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     /// Fossil
 
-    fn get_request_to_settle_round(ref self: VaultFacade) -> L1DataRequest {
-        self.vault_dispatcher.get_request_to_settle_round()
+    fn get_request_to_settle_round(ref self: VaultFacade) -> JobRequest {
+        let mut request = self.vault_dispatcher.get_request_to_settle_round();
+        Serde::deserialize(ref request).expect('failed to fetch request')
     }
 
-    fn get_request_to_start_auction(ref self: VaultFacade,) -> L1DataRequest {
-        self.vault_dispatcher.get_request_to_start_auction()
+    fn get_request_to_start_first_round(ref self: VaultFacade,) -> JobRequest {
+        let mut request = self.vault_dispatcher.get_request_to_start_first_round();
+        Serde::deserialize(ref request).expect('failed to fetch request')
     }
 
 
@@ -237,13 +247,21 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         OptionRoundFacade { option_round_dispatcher }
     }
 
+    fn get_sold_liquidity(ref self: VaultFacade, round_id: u256) -> u256 {
+        let contract_address = self.get_option_round_address(round_id);
+        let round = IOptionRoundDispatcher { contract_address };
+
+        round.get_sold_liquidity()
+    }
+
+
     fn get_unsold_liquidity(ref self: VaultFacade, round_id: u256) -> u256 {
-        // @note Temp fix, can move this function to round facade
         let contract_address = self.get_option_round_address(round_id);
         let round = IOptionRoundDispatcher { contract_address };
 
         round.get_unsold_liquidity()
     }
+
 
     /// Liquidity
 
@@ -269,7 +287,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         balances
     }
 
-    fn get_lp_queued_bps(ref self: VaultFacade, liquidity_provider: ContractAddress) -> u16 {
+    fn get_lp_queued_bps(ref self: VaultFacade, liquidity_provider: ContractAddress) -> u128 {
         self.vault_dispatcher.get_account_queued_bps(liquidity_provider)
     }
 
@@ -280,7 +298,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     fn get_lp_queued_bps_multi(
         ref self: VaultFacade, mut liquidity_providers: Span<ContractAddress>,
-    ) -> Array<u16> {
+    ) -> Array<u128> {
         let mut balances = array![];
         loop {
             match liquidity_providers.pop_front() {
@@ -334,8 +352,6 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         self.vault_dispatcher.get_account_total_balance(liquidity_provider)
     }
 
-
-    // @note replace this with get_lp_locked_and_unlocked_balance
     fn get_lp_locked_and_unlocked_balance(
         ref self: VaultFacade, liquidity_provider: ContractAddress
     ) -> (u256, u256) {
@@ -388,9 +404,6 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         spreads
     }
 
-
-    // @note add get_premiums_for_multiple()
-
     // For Vault
 
     fn get_total_locked_balance(ref self: VaultFacade) -> u256 {
@@ -406,7 +419,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         self.vault_dispatcher.get_vault_stashed_balance()
     }
 
-    fn get_vault_queued_bps(ref self: VaultFacade) -> u16 {
+    fn get_vault_queued_bps(ref self: VaultFacade) -> u128 {
         self.vault_dispatcher.get_vault_queued_bps()
     }
 
@@ -440,10 +453,28 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         self.vault_dispatcher.contract_address
     }
 
+    fn get_vault_type(ref self: VaultFacade) -> VaultType {
+        self.vault_dispatcher.get_vault_type()
+    }
+
+    fn get_alpha(ref self: VaultFacade) -> u128 {
+        self.vault_dispatcher.get_alpha()
+    }
+
+    fn get_strike_level(ref self: VaultFacade) -> i128 {
+        self.vault_dispatcher.get_strike_level()
+    }
+
     // Eth contract address
     fn get_eth_address(ref self: VaultFacade) -> ContractAddress {
         self.vault_dispatcher.get_eth_address()
     }
+
+    // Get the address of the Fossil Client contract
+    fn get_fossil_client_address(ref self: VaultFacade) -> ContractAddress {
+        self.vault_dispatcher.get_fossil_client_address()
+    }
+
 
     fn get_auction_run_time(ref self: VaultFacade) -> u64 {
         AUCTION_RUN_TIME

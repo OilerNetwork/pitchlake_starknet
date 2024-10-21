@@ -73,8 +73,11 @@ trait IOptionRound<TContractState> {
     // @dev The total options sold after in the auction
     fn get_options_sold(self: @TContractState) -> u256;
 
-    // @dev The total ETH not sold in the auction
+    // @dev The total liquidity not sold in the auction (no longer collateral)
     fn get_unsold_liquidity(self: @TContractState) -> u256;
+
+    // @dev The total liquidity sold in the auction (collateral)
+    fn get_sold_liquidity(self: @TContractState) -> u256;
 
     // @dev The price paid for each option after the auction ends
     fn get_clearing_price(self: @TContractState) -> u256;
@@ -129,10 +132,9 @@ trait IOptionRound<TContractState> {
 
     /// State transitions
 
-    // @dev Set pricing data for round to start
-    // @note Pricing data is normally set in the constructor, except for the first round. The first
-    // round will need to either have its pricing data set manually or the vault will need to deploy
-    // with the data + proofs already computed.
+    // @dev Set pricing data for the first round to start
+    // @note When one round settles, the same l1 data is used to deploy the next, meaning this
+    // function is only used to set the first round's pricing data
     fn set_pricing_data(ref self: TContractState, pricing_data: PricingData);
 
     // @dev Start the round's auction, return the options available in the auction
@@ -145,6 +147,7 @@ trait IOptionRound<TContractState> {
 
     // @dev Settle the round, return the total payout for all of the (sold) options
     fn settle_round(ref self: TContractState, settlement_price: u256) -> u256;
+
     /// Account functions
 
     // @dev The caller places a bid in the auction

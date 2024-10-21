@@ -4,18 +4,20 @@ use starknet::{
 };
 use pitch_lake::{
     vault::contract::Vault, vault::contract::Vault::Errors as vErrors,
-    option_round::contract::OptionRound::Errors,
-    vault::interface::{L1Data, L1DataRequest, L1Result, VaultType},
-    option_round::interface::PricingData, library::pricing_utils,
+    option_round::contract::OptionRound::Errors, vault::interface::{VaultType},
+    fossil_client::interface::{L1Data, JobRequest, FossilResult},
+    fossil_client::contract::FossilClient::Errors as fErrors, option_round::interface::PricingData,
+    library::pricing_utils,
     tests::{
         utils::{
             helpers::{
                 accelerators::{
                     accelerate_to_auctioning, accelerate_to_running, accelerate_to_running_custom,
-                    accelerate_to_settled, clear_event_logs,
+                    accelerate_to_settled, clear_event_logs, timeskip_and_settle_round
                 },
-                setup::{get_fossil_address, setup_facade, deploy_vault, deploy_eth},
-                general_helpers::{to_gwei}, event_helpers::{assert_event_pricing_data_set},
+                setup::{FOSSIL_PROCESSOR, setup_facade, deploy_vault, deploy_eth},
+                event_helpers::{assert_fossil_callback_success_event}, general_helpers::{to_gwei},
+                event_helpers::{assert_event_pricing_data_set},
             },
             lib::{
                 test_accounts::{
@@ -27,15 +29,14 @@ use pitch_lake::{
             facades::{
                 vault_facade::{VaultFacade, VaultFacadeTrait},
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
+                fossil_client_facade::{FossilClientFacade, FossilClientFacadeTrait},
             },
         },
     }
 };
 
 const salt: u64 = 0x123;
-
 const err: felt252 = Errors::CallerIsNotVault;
-const err2: felt252 = vErrors::CallerNotWhitelisted;
 
 fn not_vault() -> ContractAddress {
     contract_address_const::<'not vault'>()
@@ -123,44 +124,4 @@ fn test_set_pricing_data_on_round() {
     assert_eq!(reserve_price, random_pricing_data.reserve_price);
     assert_eq!(cap_level, random_pricing_data.cap_level);
     assert_eq!(strike_price, random_pricing_data.strike_price);
-}
-
-#[test]
-#[available_gas(50000000)]
-fn test_setting_first_round_params_updates_from_default() {
-    set_block_timestamp(123456789);
-    let eth = deploy_eth();
-    let vault_dispatcher = deploy_vault(VaultType::AtTheMoney, eth.contract_address);
-    let mut vault: VaultFacade = VaultFacade { vault_dispatcher };
-    let mut current_round = vault.get_current_round();
-
-    let strike_price0 = current_round.get_strike_price();
-    let cap_level0 = current_round.get_cap_level();
-    let reserve_price0 = current_round.get_reserve_price();
-
-    let request = vault.get_request_to_start_auction();
-    let result = L1Result {
-        proof: array![].span(),
-        data: L1Data { twap: to_gwei(10), volatility: 5000, reserve_price: to_gwei(123), }
-    };
-
-    set_contract_address(get_fossil_address());
-    vault.fulfill_request(request, result);
-
-    let strike_price = current_round.get_strike_price();
-    let cap_level = current_round.get_cap_level();
-    let reserve_price = current_round.get_reserve_price();
-
-    assert_eq!(reserve_price0, 0);
-    assert_eq!(strike_price0, 0);
-    assert_eq!(cap_level0, 0);
-
-    let ex_cap_level = pricing_utils::calculate_cap_level(0, 5000);
-    let ex_strike_price = pricing_utils::calculate_strike_price(
-        VaultType::AtTheMoney, to_gwei(10), 5000
-    );
-
-    assert_eq!(reserve_price, to_gwei(123));
-    assert_eq!(cap_level, ex_cap_level);
-    assert_eq!(strike_price, ex_strike_price);
 }

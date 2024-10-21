@@ -6,10 +6,7 @@ pub mod Errors {
     pub const BidsShouldNotHaveSameTreeNonce: felt252 = 'Tree nonces should be unique';
 }
 
-pub mod Consts {
-    pub const BPS: u256 = 10_000;
-    pub const JOB_TIMESTAMP_TOLERANCE: u64 = 1800; // 30 minutes
-}
+pub mod Consts {}
 
 
 // The struct for a bid placed in a round's auction
