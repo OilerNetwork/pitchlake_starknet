@@ -2,7 +2,7 @@ export const ABI = [
   {
     "type": "impl",
     "name": "ERC20MixinImpl",
-    "interface_name": "openzeppelin_token::erc20::interface::ERC20ABI"
+    "interface_name": "openzeppelin_token::erc20::interface::IERC20Mixin"
   },
   {
     "type": "struct",
@@ -52,7 +52,7 @@ export const ABI = [
   },
   {
     "type": "interface",
-    "name": "openzeppelin_token::erc20::interface::ERC20ABI",
+    "name": "openzeppelin_token::erc20::interface::IERC20Mixin",
     "items": [
       {
         "type": "function",
