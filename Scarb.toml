@@ -17,7 +17,3 @@ openzeppelin_utils = "0.18.0"
 cairo_test = "2.8.4"
 
 [tool.snforge]
-
-
-
-
