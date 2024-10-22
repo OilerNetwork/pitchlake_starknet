@@ -6,21 +6,21 @@ Copy .starknet_accounts/ex.starknet_open_zeppelin_accounts.json into: .starknet_
 
 `sncast declare -c FossilClient --fee-token eth`
 
-> Class Hash: 0x5b5b7facaf410276e1f15c0093ec172066243e82257e923c710f35b1ca29b4d (0400 UTC oct 17)
+> Class Hash: 0x6b67ef096da8c7b78b74b9a2420a7c92a881626a44ed6750597f9a85cfd73da
 
 `sncast declare -c OptionRound --fee-token eth`
 
-> Class Hash: 0xc3120f7bdeaa79d89614731abb645e64cb5bc4e05b2807e18ba57179fd6547 (0400 UTC oct 17)
+> Class Hash: 0x372268b086f5810604fafe6d75eecea5333de4be86c7501a8402bd6687b1cee
 
 `sncast declare -c Vault --fee-token eth`
 
-> Class Hash: 0x1bf112592e295c5ca2f9a1fc580893305fd9cb84e480e59994d757d60676376 (0400 UTC oct 17)
+> Class Hash: 0x6338420cb5b37fb43e562e7680c56ef97e24ca9b475fd8e84414d80e9004124
 
 ### Deploying a Fossil Client
 
 1. fossil_processor_address: doesnt matter for now
 
-`sncast deploy --fee-token eth --class-hash 0x5b5b7facaf410276e1f15c0093ec172066243e82257e923c710f35b1ca29b4d --constructor-calldata 0xdeadbeef`
+`sncast deploy --fee-token eth --class-hash 0x6b67ef096da8c7b78b74b9a2420a7c92a881626a44ed6750597f9a85cfd73da --constructor-calldata 0xdeadbeef`
 
 > Fossil Client: 0x611f705ff76a332f8861cbedaa267ba2ab4b9d5a5929dcb28dbb46b02f5db16 (0400 UTC oct 17)
 
