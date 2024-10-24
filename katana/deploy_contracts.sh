@@ -3,8 +3,10 @@
 # Ensure the script stops on the first error
 set -e
 
+
 # Load environment variables
 source ./.env
+
 # Declare the first contract
 echo "Declaring pitch_lake_FossilClient contract..."
 FOSSILCLIENT_HASH=$(starkli declare ../target/dev/pitch_lake_FossilClient.contract_class.json --compiler-version 2.8.2 | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
@@ -29,6 +31,7 @@ echo "Class hash declared: $VAULT_HASH"
 echo "Deploying pitch_lake_Vault contract..."
 VAULT_ADDRESS=$(starkli deploy $VAULT_HASH $FOSSILCLIENT_ADDRESS 0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7 $OPTIONROUND_HASH 5555 0 --salt 1 | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
 echo "Contract deployed at: $VAULT_ADDRESS"
+
 
 # Perform the first call to get the round address
 echo "Calling get_round_address on Vault contract..."
@@ -66,3 +69,4 @@ curl -X POST http://localhost:3000/pricing_data \
     }
   }' &
 
+echo "All contracts declared and deployed successfully."

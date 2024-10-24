@@ -11,13 +11,7 @@ casm = true
 starknet = "2.8.4"
 openzeppelin_token = "0.18.0"
 openzeppelin_utils = "0.18.0"
-#snforge_std = "0.31.0"
 
 [dev-dependencies]
 cairo_test = "2.8.4"
-
-[tool.snforge]
-
-
-
-
+#snforge_std = "0.32.0"
