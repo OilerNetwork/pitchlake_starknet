@@ -1,5 +1,12 @@
 [sncast.default]
+url = "http://127.0.0.1:6060"
+network = "juno"
+accounts-file = ".starknet_accounts/starknet_accounts.json"
+account = "user1"
+
+
+#[sncast.default]
 #url = "http://127.0.0.1:5050/rpc"
-url = "https://free-rpc.nethermind.io/sepolia-juno"
-accounts-file = ".starknet_accounts/starknet_open_zeppelin_accounts.json"
-account = "user1" # replace if desired
+#network = "devnet"
+#accounts-file = ".starknet_accounts/starknet_accounts.json"
+#account = "user1"
