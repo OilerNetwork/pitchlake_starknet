@@ -297,7 +297,7 @@ fn test_first_round_callback_fails_if_now_is_auction_start_date() {
 #[test]
 #[available_gas(50000000)]
 fn test_round_callback_fails_if_non_first_round_open() {
-  let (mut vault, _) = setup_facade();
+    let (mut vault, _) = setup_facade();
     accelerate_to_auctioning(ref vault);
     accelerate_to_running(ref vault);
     accelerate_to_settled(ref vault, to_gwei(4));
@@ -308,7 +308,7 @@ fn test_round_callback_fails_if_non_first_round_open() {
 
     // Should fail
     set_contract_address(vault.get_fossil_client_address());
-    vault.fossil_client_callback_expect_error(l1_data, timestamp, vErrors::L1DataNotAcceptedNow);   let (mut vault, _) = setup_facade();
+    vault.fossil_client_callback_expect_error(l1_data, timestamp, vErrors::L1DataNotAcceptedNow);
 }
 
 // Test callbacks fail if round is Auctioning
