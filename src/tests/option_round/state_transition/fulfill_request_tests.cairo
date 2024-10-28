@@ -274,7 +274,8 @@ fn test_callback_sets_pricing_data_for_round() {
 #[test]
 #[available_gas(50000000)]
 #[ignore]
-// @note ignored for now, not sure we need this logic, first round's data can only be set if the round is 1 and open, else fails
+// @note ignored for now, not sure we need this logic, first round's data can only be set if the
+// round is 1 and open, else fails
 fn test_first_round_callback_fails_if_now_is_auction_start_date() {
     let eth_address = deploy_eth().contract_address;
     let mut vault = VaultFacade { vault_dispatcher: deploy_vault(1234, 1234, eth_address) };
@@ -301,44 +302,43 @@ fn test_round_callback_fails_if_non_first_round_open() {
     accelerate_to_running(ref vault);
     accelerate_to_settled(ref vault, to_gwei(4));
 
-            let mut current_round = vault.get_current_round();
-            let strike_price0 = current_round.get_strike_price();
-            let cap_level0 = current_round.get_cap_level();
-            let reserve_price0 = current_round.get_reserve_price();
+    let mut current_round = vault.get_current_round();
+    let strike_price0 = current_round.get_strike_price();
+    let cap_level0 = current_round.get_cap_level();
+    let reserve_price0 = current_round.get_reserve_price();
 
-            // Check pricing data updates as expected
-            assert_eq!(cap_level0, exp_cap_level0);
-            assert_eq!(reserve_price0, exp_reserve_price0);
-            assert_eq!(strike_price0, exp_strike_price0);
+    // Check pricing data updates as expected
+    assert_eq!(cap_level0, exp_cap_level0);
+    assert_eq!(reserve_price0, exp_reserve_price0);
+    assert_eq!(strike_price0, exp_strike_price0);
 
-            // Refresh data again
-            let exp_twap1 = to_gwei(777);
-            let exp_volatility1 = 6789;
-            let exp_reserve_price1 = to_gwei(333);
-            let exp_cap_level1 = pricing_utils::calculate_cap_level(123, exp_volatility1);
-            let exp_strike_price1 = pricing_utils::calculate_strike_price(
-                VaultType::AtTheMoney, exp_twap1, exp_cap_level1
-            );
+    // Refresh data again
+    let exp_twap1 = to_gwei(777);
+    let exp_volatility1 = 6789;
+    let exp_reserve_price1 = to_gwei(333);
+    let exp_cap_level1 = pricing_utils::calculate_cap_level(123, exp_volatility1);
+    let exp_strike_price1 = pricing_utils::calculate_strike_price(
+        VaultType::AtTheMoney, exp_twap1, exp_cap_level1
+    );
 
-            let request = vault.get_request_to_start_auction();
-            let response = L1Result {
-                proof: array![].span(),
-                data: L1Data {
-                    twap: exp_twap1, volatility: exp_volatility1, reserve_price: exp_reserve_price1
-                }
-            };
-            set_contract_address(get_fossil_address());
-            vault.fulfill_request(request, response);
-
-            let strike_price1 = current_round.get_strike_price();
-            let cap_level1 = current_round.get_cap_level();
-            let reserve_price1 = current_round.get_reserve_price();
-
-            // Check pricing data updates as expected
-            assert_eq!(cap_level1, exp_cap_level1);
-            assert_eq!(reserve_price1, exp_reserve_price1);
-            assert_eq!(strike_price1, exp_strike_price1);
+    let request = vault.get_request_to_start_auction();
+    let response = L1Result {
+        proof: array![].span(),
+        data: L1Data {
+            twap: exp_twap1, volatility: exp_volatility1, reserve_price: exp_reserve_price1
         }
+    };
+    set_contract_address(get_fossil_address());
+    vault.fulfill_request(request, response);
+
+    let strike_price1 = current_round.get_strike_price();
+    let cap_level1 = current_round.get_cap_level();
+    let reserve_price1 = current_round.get_reserve_price();
+
+    // Check pricing data updates as expected
+    assert_eq!(cap_level1, exp_cap_level1);
+    assert_eq!(reserve_price1, exp_reserve_price1);
+    assert_eq!(strike_price1, exp_strike_price1);
 }
 // @note todo add test for request timestamp out of bounds (high and low for both fulfillment types
 // (auction start/round settle))
