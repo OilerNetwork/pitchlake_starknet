@@ -9,9 +9,11 @@ use pitch_lake::{
     library::pricing_utils,
     tests::{
         utils::{
+            lib::{test_accounts::{liquidity_provider_1,}},
             helpers::{
                 accelerators::{
-                    accelerate_to_auctioning, accelerate_to_running, timeskip_and_settle_round,
+                    accelerate_to_auctioning, accelerate_to_auctioning_custom,
+                    accelerate_to_running_custom, accelerate_to_running, timeskip_and_settle_round,
                     accelerate_to_settled_custom, timeskip_to_settlement_date, accelerate_to_settled
                 },
                 setup::{
@@ -439,5 +441,30 @@ fn test_callback_works_as_expected() {
     assert_eq!(next_round.get_strike_price(), strike);
     assert_eq!(next_round.get_reserve_price(), l1_data.reserve_price);
     assert_eq!(current_round.get_settlement_price(), l1_data.twap);
+}
+
+#[test]
+#[available_gas(90000000)]
+fn test_0_rounds() {
+    let (mut vault, _) = setup_facade();
+
+    // need to customize each to do 0s
+    accelerate_to_auctioning_custom(ref vault, array![].span(), array![].span());
+    accelerate_to_running_custom(ref vault, array![].span(), array![].span(), array![].span());
+    accelerate_to_settled(ref vault, 123456789);
+
+    let _x = vault.get_lp_locked_balance(liquidity_provider_1());
+    let _y = vault.get_lp_unlocked_balance(liquidity_provider_1());
+    let _z = vault.get_lp_stashed_balance(liquidity_provider_1());
+
+    accelerate_to_auctioning_custom(ref vault, array![].span(), array![].span());
+    accelerate_to_running_custom(ref vault, array![].span(), array![].span(), array![].span());
+    accelerate_to_settled(ref vault, 123456789);
+
+    let _x = vault.get_lp_locked_balance(liquidity_provider_1());
+    let _y = vault.get_lp_unlocked_balance(liquidity_provider_1());
+    let _z = vault.get_lp_stashed_balance(liquidity_provider_1());
+
+    vault.deposit(100, liquidity_provider_1());
 }
 
