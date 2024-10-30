@@ -31,7 +31,7 @@ mod signer_list_component {
     }
 
     /// @notice Emitted when a signer is added to link its details with its GUID
-    /// @param signer_guid The signer's GUID 
+    /// @param signer_guid The signer's GUID
     /// @param signer The signer struct
     #[derive(Drop, starknet::Event)]
     struct SignerLinked {
@@ -41,7 +41,9 @@ mod signer_list_component {
     }
 
     #[embeddable_as(SignerListInternalImpl)]
-    impl InternalImpl<TContractState, +HasComponent<TContractState>> of ISignerList<ComponentState<TContractState>> {
+    impl InternalImpl<
+        TContractState, +HasComponent<TContractState>
+    > of ISignerList<ComponentState<TContractState>> {
         #[inline(always)]
         fn is_signer_in_list(self: @ComponentState<TContractState>, signer: felt252) -> bool {
             if signer == 0 {
@@ -58,7 +60,9 @@ mod signer_list_component {
         }
 
         #[inline(always)]
-        fn add_signer(ref self: ComponentState<TContractState>, signer_to_add: felt252, last_signer: felt252) {
+        fn add_signer(
+            ref self: ComponentState<TContractState>, signer_to_add: felt252, last_signer: felt252
+        ) {
             assert(signer_to_add != 0, 'argent/invalid-zero-signer');
             let is_signer = self.is_signer_using_last(signer_to_add, last_signer);
             assert(!is_signer, 'argent/already-a-signer');
@@ -67,7 +71,9 @@ mod signer_list_component {
         }
 
         fn add_signers(
-            ref self: ComponentState<TContractState>, mut signers_to_add: Span<felt252>, last_signer: felt252
+            ref self: ComponentState<TContractState>,
+            mut signers_to_add: Span<felt252>,
+            last_signer: felt252
         ) {
             match signers_to_add.pop_front() {
                 Option::Some(signer_ref) => {
@@ -79,10 +85,13 @@ mod signer_list_component {
             }
         }
 
-        // Returns the last signer of the list after the removal. This is needed to efficiently remove multiple signers.
+        // Returns the last signer of the list after the removal. This is needed to efficiently
+        // remove multiple signers.
         #[inline(always)]
         fn remove_signer(
-            ref self: ComponentState<TContractState>, signer_to_remove: felt252, last_signer: felt252
+            ref self: ComponentState<TContractState>,
+            signer_to_remove: felt252,
+            last_signer: felt252
         ) -> felt252 {
             let is_signer = self.is_signer_using_last(signer_to_remove, last_signer);
             assert(is_signer, 'argent/not-a-signer');
@@ -103,14 +112,17 @@ mod signer_list_component {
         }
 
         fn remove_signers(
-            ref self: ComponentState<TContractState>, mut signers_to_remove: Span<felt252>, mut last_signer: felt252
+            ref self: ComponentState<TContractState>,
+            mut signers_to_remove: Span<felt252>,
+            mut last_signer: felt252
         ) {
             loop {
                 let signer = match signers_to_remove.pop_front() {
                     Option::Some(signer) => *signer,
                     Option::None => { break; }
                 };
-                last_signer = self.remove_signer(signer_to_remove: signer, last_signer: last_signer);
+                last_signer = self
+                    .remove_signer(signer_to_remove: signer, last_signer: last_signer);
             }
         }
 
@@ -140,8 +152,8 @@ mod signer_list_component {
             self.signer_list.write(signer_to_add, next_signer);
         }
 
-        // Returns the number of signers and the last signer (or zero if the list is empty). Cost increases with the list size
-        // returns (signers_len, last_signer)
+        // Returns the number of signers and the last signer (or zero if the list is empty). Cost
+        // increases with the list size returns (signers_len, last_signer)
         fn load(self: @ComponentState<TContractState>) -> (usize, felt252) {
             let mut current_signer = 0;
             let mut size = 0;
@@ -205,9 +217,12 @@ mod signer_list_component {
 
     #[generate_trait]
     impl Private<TContractState, +HasComponent<TContractState>> of PrivateTrait<TContractState> {
-        // Optimized version of `is_signer` with constant compute cost. To use when you know the last signer
+        // Optimized version of `is_signer` with constant compute cost. To use when you know the
+        // last signer
         #[inline(always)]
-        fn is_signer_using_last(self: @ComponentState<TContractState>, signer: felt252, last_signer: felt252) -> bool {
+        fn is_signer_using_last(
+            self: @ComponentState<TContractState>, signer: felt252, last_signer: felt252
+        ) -> bool {
             if signer == 0 {
                 return false;
             }
@@ -232,10 +247,12 @@ mod signer_list_component {
             }
         }
 
-        // Returns the signer before `signer_after` or 0 if the signer is the first one. 
+        // Returns the signer before `signer_after` or 0 if the signer is the first one.
         // Reverts if `signer_after` is not found
         // Cost increases with the list size
-        fn find_signer_before(self: @ComponentState<TContractState>, signer_after: felt252) -> felt252 {
+        fn find_signer_before(
+            self: @ComponentState<TContractState>, signer_after: felt252
+        ) -> felt252 {
             let mut current_signer = 0;
             loop {
                 let next_signer = self.signer_list.read(current_signer);

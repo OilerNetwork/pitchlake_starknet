@@ -1,5 +1,8 @@
 use argent::offchain_message::{
-    interface::{StarknetDomain, StructHashStarknetDomain, IMerkleLeafHash, IStructHashRev1, IOffChainMessageHashRev1,},
+    interface::{
+        StarknetDomain, StructHashStarknetDomain, IMerkleLeafHash, IStructHashRev1,
+        IOffChainMessageHashRev1,
+    },
     precalculated_hashing::get_message_hash_rev_1_with_precalc
 };
 use argent::session::interface::Session;
@@ -29,11 +32,15 @@ const SESSION_TYPE_HASH_REV_1: felt252 =
     );
 
 const ALLOWED_METHOD_HASH_REV_1: felt252 =
-    selector!("\"Allowed Method\"(\"Contract Address\":\"ContractAddress\",\"selector\":\"selector\")");
+    selector!(
+        "\"Allowed Method\"(\"Contract Address\":\"ContractAddress\",\"selector\":\"selector\")"
+    );
 
 impl MerkleLeafHash of IMerkleLeafHash<Call> {
     fn get_merkle_leaf(self: @Call) -> felt252 {
-        poseidon_hash_span(array![ALLOWED_METHOD_HASH_REV_1, (*self.to).into(), *self.selector].span())
+        poseidon_hash_span(
+            array![ALLOWED_METHOD_HASH_REV_1, (*self.to).into(), *self.selector].span()
+        )
     }
 }
 
@@ -62,7 +69,9 @@ impl OffChainMessageHashSessionRev1 of IOffChainMessageHashRev1<Session> {
         if chain_id == 'SN_SEPOLIA' {
             return get_message_hash_rev_1_with_precalc(SEPOLIA_FIRST_HADES_PERMUTATION, *self);
         }
-        let domain = StarknetDomain { name: 'SessionAccount.session', version: '1', chain_id, revision: 1, };
+        let domain = StarknetDomain {
+            name: 'SessionAccount.session', version: '1', chain_id, revision: 1,
+        };
         poseidon_hash_span(
             array![
                 'StarkNet Message',

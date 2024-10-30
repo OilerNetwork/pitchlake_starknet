@@ -1,7 +1,7 @@
 use argent::offchain_message::{
     interface::{
-        StarkNetDomain, StarknetDomain, StructHashStarkNetDomain, IOffChainMessageHashRev0, IStructHashRev0,
-        IOffChainMessageHashRev1, IStructHashRev1
+        StarkNetDomain, StarknetDomain, StructHashStarkNetDomain, IOffChainMessageHashRev0,
+        IStructHashRev0, IOffChainMessageHashRev1, IStructHashRev1
     },
     precalculated_hashing::get_message_hash_rev_1_with_precalc
 };
@@ -40,7 +40,9 @@ const OUTSIDE_EXECUTION_TYPE_HASH_REV_1: felt252 =
     );
 
 const CALL_TYPE_HASH_REV_1: felt252 =
-    selector!("\"Call\"(\"To\":\"ContractAddress\",\"Selector\":\"selector\",\"Calldata\":\"felt*\")");
+    selector!(
+        "\"Call\"(\"To\":\"ContractAddress\",\"Selector\":\"selector\",\"Calldata\":\"felt*\")"
+    );
 
 impl StructHashOutsideExecutionRev0 of IStructHashRev0<OutsideExecution> {
     fn get_struct_hash_rev_0(self: @OutsideExecution) -> felt252 {
@@ -94,7 +96,9 @@ impl StructHashCallRev0 of IStructHashRev0<Call> {
 impl OffChainMessageOutsideExecutionRev0 of IOffChainMessageHashRev0<OutsideExecution> {
     fn get_message_hash_rev_0(self: @OutsideExecution) -> felt252 {
         let domain = StarkNetDomain {
-            name: 'Account.execute_from_outside', version: 1, chain_id: get_tx_info().unbox().chain_id,
+            name: 'Account.execute_from_outside',
+            version: 1,
+            chain_id: get_tx_info().unbox().chain_id,
         };
 
         PedersenTrait::new(0)
@@ -110,7 +114,13 @@ impl OffChainMessageOutsideExecutionRev0 of IOffChainMessageHashRev0<OutsideExec
 impl StructHashCallRev1 of IStructHashRev1<Call> {
     fn get_struct_hash_rev_1(self: @Call) -> felt252 {
         poseidon_hash_span(
-            array![CALL_TYPE_HASH_REV_1, (*self.to).into(), *self.selector, poseidon_hash_span(*self.calldata)].span()
+            array![
+                CALL_TYPE_HASH_REV_1,
+                (*self.to).into(),
+                *self.selector,
+                poseidon_hash_span(*self.calldata)
+            ]
+                .span()
         )
     }
 }
@@ -140,8 +150,10 @@ impl StructHashOutsideExecutionRev1 of IStructHashRev1<OutsideExecution> {
 
 impl OffChainMessageOutsideExecutionRev1 of IOffChainMessageHashRev1<OutsideExecution> {
     fn get_message_hash_rev_1(self: @OutsideExecution) -> felt252 {
-        // Version is a felt instead of a shortstring in SNIP-9 due to a mistake in the Braavos contracts and has been copied for compatibility.
-        // Revision will also be a felt instead of a shortstring for all SNIP12-rev1 signatures because of the same issue
+        // Version is a felt instead of a shortstring in SNIP-9 due to a mistake in the Braavos
+        // contracts and has been copied for compatibility.
+        // Revision will also be a felt instead of a shortstring for all SNIP12-rev1 signatures
+        // because of the same issue
 
         let chain_id = get_tx_info().unbox().chain_id;
         if chain_id == 'SN_MAIN' {
@@ -150,7 +162,9 @@ impl OffChainMessageOutsideExecutionRev1 of IOffChainMessageHashRev1<OutsideExec
         if chain_id == 'SN_SEPOLIA' {
             return get_message_hash_rev_1_with_precalc(SEPOLIA_FIRST_HADES_PERMUTATION, *self);
         }
-        let domain = StarknetDomain { name: 'Account.execute_from_outside', version: 2, chain_id, revision: 1 };
+        let domain = StarknetDomain {
+            name: 'Account.execute_from_outside', version: 2, chain_id, revision: 1
+        };
         poseidon_hash_span(
             array![
                 'StarkNet Message',

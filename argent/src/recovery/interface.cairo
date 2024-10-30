@@ -4,7 +4,9 @@ use starknet::ContractAddress;
 
 #[starknet::interface]
 trait IRecovery<TContractState> {
-    fn trigger_escape(ref self: TContractState, target_signers: Array<Signer>, new_signers: Array<Signer>);
+    fn trigger_escape(
+        ref self: TContractState, target_signers: Array<Signer>, new_signers: Array<Signer>
+    );
     fn execute_escape(ref self: TContractState);
     fn cancel_escape(ref self: TContractState);
     fn get_escape_enabled(self: @TContractState) -> EscapeEnabled;
@@ -49,7 +51,8 @@ enum EscapeStatus {
     NotReady,
     /// The security period has elapsed and the escape is ready to be completed
     Ready,
-    /// No confirmation happened for `expiry_period` since it became `Ready`. The escape cannot be completed now, only canceled
+    /// No confirmation happened for `expiry_period` since it became `Ready`. The escape cannot be
+    /// completed now, only canceled
     Expired,
 }
 
@@ -128,11 +131,10 @@ impl PackEscape of starknet::StorePacking<Escape, Array<felt252>> {
         let mut target_signers_span = value.target_signers.span();
         let mut new_signers_span = value.new_signers.span();
         assert(target_signers_span.len() == new_signers_span.len(), 'argent/invalid-len');
-        while let Option::Some(target_signer) = target_signers_span
-            .pop_front() {
-                arr.append(*target_signer);
-                arr.append(*new_signers_span.pop_front().expect('argent/invalid-array-len'));
-            };
+        while let Option::Some(target_signer) = target_signers_span.pop_front() {
+            arr.append(*target_signer);
+            arr.append(*new_signers_span.pop_front().expect('argent/invalid-array-len'));
+        };
         arr
     }
 
@@ -154,7 +156,11 @@ impl PackEscape of starknet::StorePacking<Escape, Array<felt252>> {
                 target_signers.append(*target_signer.unwrap());
                 new_signers.append(new_signer);
             };
-            Escape { ready_at: ready_at.try_into().unwrap(), target_signers: target_signers, new_signers: new_signers }
+            Escape {
+                ready_at: ready_at.try_into().unwrap(),
+                target_signers: target_signers,
+                new_signers: new_signers
+            }
         }
     }
 }
@@ -167,10 +173,14 @@ impl PackEscape of starknet::StorePacking<Escape, Array<felt252>> {
 impl LegacyEscapeStorePacking of starknet::StorePacking<LegacyEscape, (felt252, felt252)> {
     fn pack(value: LegacyEscape) -> (felt252, felt252) {
         let (signer_type_ordinal, stored_value) = match value.new_signer {
-            Option::Some(new_signer) => (new_signer.signer_type.into(), new_signer.stored_value.into()),
+            Option::Some(new_signer) => (
+                new_signer.signer_type.into(), new_signer.stored_value.into()
+            ),
             Option::None => (0, 0)
         };
-        let packed = value.ready_at.into() + (value.escape_type.into() * SHIFT_64) + (signer_type_ordinal * SHIFT_128);
+        let packed = value.ready_at.into()
+            + (value.escape_type.into() * SHIFT_64)
+            + (signer_type_ordinal * SHIFT_128);
         (packed, stored_value)
     }
 

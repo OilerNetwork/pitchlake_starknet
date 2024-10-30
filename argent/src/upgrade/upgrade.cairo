@@ -12,7 +12,8 @@ mod upgrade_component {
     use argent::account::interface::SRC5_ACCOUNT_INTERFACE_ID;
     use argent::introspection::interface::{ISRC5LibraryDispatcher, ISRC5DispatcherTrait};
     use argent::upgrade::interface::{
-        IUpgradableCallback, IUpgradeable, IUpgradableCallbackLibraryDispatcher, IUpgradableCallbackDispatcherTrait
+        IUpgradableCallback, IUpgradeable, IUpgradableCallbackLibraryDispatcher,
+        IUpgradableCallbackDispatcherTrait
     };
     use argent::utils::asserts::assert_only_self;
     use starknet::{ClassHash, syscalls::replace_class_syscall};
@@ -37,7 +38,11 @@ mod upgrade_component {
     impl Upgradable<
         TContractState, +HasComponent<TContractState>, +IUpgradableCallback<TContractState>
     > of IUpgradeable<ComponentState<TContractState>> {
-        fn upgrade(ref self: ComponentState<TContractState>, new_implementation: ClassHash, data: Array<felt252>) {
+        fn upgrade(
+            ref self: ComponentState<TContractState>,
+            new_implementation: ClassHash,
+            data: Array<felt252>
+        ) {
             assert_only_self();
             let supports_interface = ISRC5LibraryDispatcher { class_hash: new_implementation }
                 .supports_interface(SRC5_ACCOUNT_INTERFACE_ID);
@@ -51,7 +56,9 @@ mod upgrade_component {
     impl UpgradableInternal<
         TContractState, +HasComponent<TContractState>
     > of super::IUpgradeInternal<ComponentState<TContractState>> {
-        fn complete_upgrade(ref self: ComponentState<TContractState>, new_implementation: ClassHash) {
+        fn complete_upgrade(
+            ref self: ComponentState<TContractState>, new_implementation: ClassHash
+        ) {
             replace_class_syscall(new_implementation).expect('argent/invalid-upgrade');
             self.emit(AccountUpgraded { new_implementation });
         }

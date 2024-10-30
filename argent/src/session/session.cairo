@@ -9,7 +9,9 @@ mod session_component {
         interface::{ISessionable, SessionToken, Session, ISessionCallback},
     };
     use argent::signer::signer_signature::{SignerSignatureTrait, SignerTrait, SignerSignature};
-    use argent::utils::{asserts::{assert_no_self_call, assert_only_self}, serialization::full_deserialize};
+    use argent::utils::{
+        asserts::{assert_no_self_call, assert_only_self}, serialization::full_deserialize
+    };
     use hash::{HashStateExTrait, HashStateTrait};
     use poseidon::PoseidonTrait;
     use starknet::{account::Call, get_contract_address, VALIDATED, get_block_timestamp};
@@ -38,7 +40,10 @@ mod session_component {
 
     #[embeddable_as(SessionImpl)]
     impl Sessionable<
-        TContractState, +HasComponent<TContractState>, +IAccount<TContractState>, +IArgentUserAccount<TContractState>,
+        TContractState,
+        +HasComponent<TContractState>,
+        +IAccount<TContractState>,
+        +IArgentUserAccount<TContractState>,
     > of ISessionable<ComponentState<TContractState>> {
         fn revoke_session(ref self: ComponentState<TContractState>, session_hash: felt252) {
             assert_only_self();
@@ -48,16 +53,23 @@ mod session_component {
         }
 
         #[inline(always)]
-        fn is_session_revoked(self: @ComponentState<TContractState>, session_hash: felt252) -> bool {
+        fn is_session_revoked(
+            self: @ComponentState<TContractState>, session_hash: felt252
+        ) -> bool {
             self.revoked_session.read(session_hash)
         }
 
         #[inline(always)]
-        fn is_session_authorization_cached(self: @ComponentState<TContractState>, session_hash: felt252) -> bool {
+        fn is_session_authorization_cached(
+            self: @ComponentState<TContractState>, session_hash: felt252
+        ) -> bool {
             let state = self.get_contract();
             if let Option::Some(guardian_guid) = state.get_guardian_guid() {
                 let owner_guid = state.get_owner_guid();
-                self.valid_session_cache.read((owner_guid, guardian_guid, session_hash)).is_non_zero()
+                self
+                    .valid_session_cache
+                    .read((owner_guid, guardian_guid, session_hash))
+                    .is_non_zero()
             } else {
                 false
             }
@@ -103,7 +115,10 @@ mod session_component {
 
             self
                 .assert_valid_session_authorization(
-                    state, token.session_authorization, token.cache_authorization, token_session_hash
+                    state,
+                    token.session_authorization,
+                    token.cache_authorization,
+                    token_session_hash
                 );
 
             let message_hash = PoseidonTrait::new()
@@ -114,12 +129,24 @@ mod session_component {
 
             // checks that the session key the user signed is the same key that signed the session
             let session_guid_from_sig = token.session_signature.signer().into_guid();
-            assert(token.session.session_key_guid == session_guid_from_sig, 'session/session-key-mismatch');
-            assert(token.session_signature.is_valid_signature(message_hash), 'session/invalid-session-sig');
+            assert(
+                token.session.session_key_guid == session_guid_from_sig,
+                'session/session-key-mismatch'
+            );
+            assert(
+                token.session_signature.is_valid_signature(message_hash),
+                'session/invalid-session-sig'
+            );
 
             // checks that its the account guardian that signed the session
-            assert(state.is_guardian(token.guardian_signature.signer()), 'session/guardian-key-mismatch');
-            assert(token.guardian_signature.is_valid_signature(message_hash), 'session/invalid-backend-sig');
+            assert(
+                state.is_guardian(token.guardian_signature.signer()),
+                'session/guardian-key-mismatch'
+            );
+            assert(
+                token.guardian_signature.is_valid_signature(message_hash),
+                'session/invalid-backend-sig'
+            );
 
             assert_valid_session_calls(@token, calls);
         }
@@ -139,11 +166,15 @@ mod session_component {
                 0
             };
             if use_cache {
-                let cached_sig_len = self.valid_session_cache.read((owner_guid_for_cache, guardian_guid, session_hash));
+                let cached_sig_len = self
+                    .valid_session_cache
+                    .read((owner_guid_for_cache, guardian_guid, session_hash));
                 if cached_sig_len != 0 {
                     // authorization is cached, we can skip the signature verification
                     // prevents a DoS attack where authorization can be replaced by a bigger one
-                    assert(session_authorization.len() <= cached_sig_len, 'session/invalid-auth-len');
+                    assert(
+                        session_authorization.len() <= cached_sig_len, 'session/invalid-auth-len'
+                    );
                     return;
                 }
             }
@@ -151,7 +182,7 @@ mod session_component {
             let parsed_session_authorization = state
                 .parse_and_verify_authorization(session_hash, session_authorization);
 
-            // only owner + guardian signed 
+            // only owner + guardian signed
             assert(parsed_session_authorization.len() == 2, 'session/invalid-signature-len');
             // checks that second signature is the guardian and not the backup guardian
             let guardian_guid_from_sig = (*parsed_session_authorization[1]).signer().into_guid();
@@ -160,7 +191,10 @@ mod session_component {
             if use_cache {
                 self
                     .valid_session_cache
-                    .write((owner_guid_for_cache, guardian_guid, session_hash), session_authorization.len());
+                    .write(
+                        (owner_guid_for_cache, guardian_guid, session_hash),
+                        session_authorization.len()
+                    );
             }
         }
     }
@@ -170,12 +204,11 @@ mod session_component {
         let merkle_root = *token.session.allowed_methods_root;
         let mut merkle_tree: MerkleTree<Hasher> = MerkleTreeImpl::new();
         let mut proofs = *token.proofs;
-        while let Option::Some(call) = calls
-            .pop_front() {
-                let leaf = call.get_merkle_leaf();
-                let proof = proofs.pop_front().expect('session/proof-empty');
-                let is_valid = merkle_tree.verify(merkle_root, leaf, *proof);
-                assert(is_valid, 'session/invalid-call');
-            };
+        while let Option::Some(call) = calls.pop_front() {
+            let leaf = call.get_merkle_leaf();
+            let proof = proofs.pop_front().expect('session/proof-empty');
+            let is_valid = merkle_tree.verify(merkle_root, leaf, *proof);
+            assert(is_valid, 'session/invalid-call');
+        };
     }
 }

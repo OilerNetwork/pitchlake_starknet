@@ -19,8 +19,10 @@ trait IArgentMultisig<TContractState> {
     /// @dev Will revert if any of the signers isn't in the multisig's list of signers
     /// @dev will revert if invalid threshold
     /// @param new_threshold New threshold
-    /// @param signers_to_remove All the signers to remove 
-    fn remove_signers(ref self: TContractState, new_threshold: usize, signers_to_remove: Array<Signer>);
+    /// @param signers_to_remove All the signers to remove
+    fn remove_signers(
+        ref self: TContractState, new_threshold: usize, signers_to_remove: Array<Signer>
+    );
 
     /// @notice Replace one signer with a different one
     /// @dev Will revert when trying to remove a signer that isn't in the list
@@ -36,18 +38,26 @@ trait IArgentMultisig<TContractState> {
     fn is_signer(self: @TContractState, signer: Signer) -> bool;
     fn is_signer_guid(self: @TContractState, signer_guid: felt252) -> bool;
 
-    /// @notice Verifies whether a provided signature is valid and comes from one of the multisig owners.
+    /// @notice Verifies whether a provided signature is valid and comes from one of the multisig
+    /// owners.
     /// @param hash Hash of the message being signed
     /// @param signer_signature Signature to be verified
-    fn is_valid_signer_signature(self: @TContractState, hash: felt252, signer_signature: SignerSignature) -> bool;
+    fn is_valid_signer_signature(
+        self: @TContractState, hash: felt252, signer_signature: SignerSignature
+    ) -> bool;
 }
 
 #[starknet::interface]
 trait IArgentMultisigInternal<TContractState> {
     fn initialize(ref self: TContractState, threshold: usize, signers: Array<Signer>);
-    fn assert_valid_threshold_and_signers_count(self: @TContractState, threshold: usize, signers_len: usize);
+    fn assert_valid_threshold_and_signers_count(
+        self: @TContractState, threshold: usize, signers_len: usize
+    );
     fn assert_valid_storage(self: @TContractState);
     fn is_valid_signature_with_threshold(
-        self: @TContractState, hash: felt252, threshold: u32, signer_signatures: Array<SignerSignature>
+        self: @TContractState,
+        hash: felt252,
+        threshold: u32,
+        signer_signatures: Array<SignerSignature>
     ) -> bool;
 }

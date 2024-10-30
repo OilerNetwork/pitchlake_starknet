@@ -1,4 +1,6 @@
-/// @dev 🚨 Attention: This file has not undergone an audit and is not intended for production use. Use at your own risk. Please exercise caution and conduct your own due diligence before interacting with this contract. 🚨
+/// @dev 🚨 Attention: This file has not undergone an audit and is not intended for production
+/// use. Use at your own risk. Please exercise caution and conduct your own due diligence before
+/// interacting with this contract. 🚨
 use starknet::{SyscallResult, storage_access::{Store, StorageBaseAddress}};
 
 // Can store up to 255 felt252
@@ -7,15 +9,20 @@ impl StoreFelt252Array of Store<Array<felt252>> {
         StoreFelt252Array::read_at_offset(address_domain, base, 0)
     }
 
-    fn write(address_domain: u32, base: StorageBaseAddress, value: Array<felt252>) -> SyscallResult<()> {
+    fn write(
+        address_domain: u32, base: StorageBaseAddress, value: Array<felt252>
+    ) -> SyscallResult<()> {
         StoreFelt252Array::write_at_offset(address_domain, base, 0, value)
     }
 
-    fn read_at_offset(address_domain: u32, base: StorageBaseAddress, mut offset: u8) -> SyscallResult<Array<felt252>> {
+    fn read_at_offset(
+        address_domain: u32, base: StorageBaseAddress, mut offset: u8
+    ) -> SyscallResult<Array<felt252>> {
         let mut arr: Array<felt252> = ArrayTrait::new();
 
         // Read the stored array's length. If the length is superior to 255, the read will fail.
-        let len: u8 = Store::<u8>::read_at_offset(address_domain, base, offset).expect('argent/array-too-large');
+        let len: u8 = Store::<u8>::read_at_offset(address_domain, base, offset)
+            .expect('argent/array-too-large');
         offset += 1;
 
         // Sequentially read all stored elements and append them to the array.
@@ -39,11 +46,10 @@ impl StoreFelt252Array of Store<Array<felt252>> {
         offset += 1;
 
         // Store the array elements sequentially
-        while let Option::Some(element) = value
-            .pop_front() {
-                Store::<felt252>::write_at_offset(address_domain, base, offset, element).unwrap();
-                offset += Store::<felt252>::size();
-            };
+        while let Option::Some(element) = value.pop_front() {
+            Store::<felt252>::write_at_offset(address_domain, base, offset, element).unwrap();
+            offset += Store::<felt252>::size();
+        };
         Result::Ok(())
     }
 

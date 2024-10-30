@@ -21,7 +21,11 @@ struct EscapeCall {
 trait IExternalRecovery<TContractState> {
     /// @notice Enables/Disables recovery and sets the recovery parameters
     fn toggle_escape(
-        ref self: TContractState, is_enabled: bool, security_period: u64, expiry_period: u64, guardian: ContractAddress
+        ref self: TContractState,
+        is_enabled: bool,
+        security_period: u64,
+        expiry_period: u64,
+        guardian: ContractAddress
     );
     fn get_guardian(self: @TContractState) -> ContractAddress;
     /// @notice Triggers the escape

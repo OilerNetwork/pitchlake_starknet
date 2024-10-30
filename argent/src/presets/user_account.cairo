@@ -1,26 +1,35 @@
-/// @dev 🚨 Attention: This smart contract has not undergone an audit and is not intended for production use. Use at your own risk. Please exercise caution and conduct your own due diligence before interacting with this contract. 🚨
+/// @dev 🚨 Attention: This smart contract has not undergone an audit and is not intended for
+/// production use. Use at your own risk. Please exercise caution and conduct your own due diligence
+/// before interacting with this contract. 🚨
 #[starknet::contract(account)]
 mod ArgentUserAccount {
     use argent::account::interface::{IAccount, IArgentAccount, Version};
     use argent::introspection::src5::src5_component;
-    use argent::multisig::{multisig::{multisig_component, multisig_component::MultisigInternalImpl}};
+    use argent::multisig::{
+        multisig::{multisig_component, multisig_component::MultisigInternalImpl}
+    };
     use argent::outside_execution::{
         outside_execution::outside_execution_component, interface::{IOutsideExecutionCallback}
     };
     use argent::recovery::threshold_recovery::IThresholdRecoveryInternal;
     use argent::recovery::{threshold_recovery::threshold_recovery_component};
-    use argent::signer::{signer_signature::{Signer, SignerTrait, SignerSignature, SignerSignatureTrait}};
+    use argent::signer::{
+        signer_signature::{Signer, SignerTrait, SignerSignature, SignerSignatureTrait}
+    };
     use argent::signer_storage::{
-        interface::ISignerList, signer_list::{signer_list_component, signer_list_component::SignerListInternalImpl}
+        interface::ISignerList,
+        signer_list::{signer_list_component, signer_list_component::SignerListInternalImpl}
     };
     use argent::upgrade::{upgrade::upgrade_component, interface::IUpgradableCallback};
     use argent::utils::{
-        asserts::{assert_no_self_call, assert_only_protocol, assert_only_self,}, calls::execute_multicall,
-        serialization::full_deserialize,
+        asserts::{assert_no_self_call, assert_only_protocol, assert_only_self,},
+        calls::execute_multicall, serialization::full_deserialize,
         transaction_version::{assert_correct_invoke_version, assert_correct_deploy_account_version},
     };
     use openzeppelin::security::reentrancyguard::ReentrancyGuardComponent;
-    use starknet::{get_tx_info, get_contract_address, get_execution_info, VALIDATED, ClassHash, account::Call};
+    use starknet::{
+        get_tx_info, get_contract_address, get_execution_info, VALIDATED, ClassHash, account::Call
+    };
 
     const NAME: felt252 = 'ArgentAccount';
     const VERSION_MAJOR: u8 = 0;
@@ -35,9 +44,14 @@ mod ArgentUserAccount {
     #[abi(embed_v0)]
     impl Multisig = multisig_component::MultisigImpl<ContractState>;
     // Execute from outside
-    component!(path: outside_execution_component, storage: execute_from_outside, event: ExecuteFromOutsideEvents);
+    component!(
+        path: outside_execution_component,
+        storage: execute_from_outside,
+        event: ExecuteFromOutsideEvents
+    );
     #[abi(embed_v0)]
-    impl ExecuteFromOutside = outside_execution_component::OutsideExecutionImpl<ContractState>;
+    impl ExecuteFromOutside =
+        outside_execution_component::OutsideExecutionImpl<ContractState>;
     // Introspection
     component!(path: src5_component, storage: src5, event: SRC5Events);
     #[abi(embed_v0)]
@@ -51,13 +65,17 @@ mod ArgentUserAccount {
     // Threshold Recovery
     component!(path: threshold_recovery_component, storage: escape, event: EscapeEvents);
     #[abi(embed_v0)]
-    impl ThresholdRecovery = threshold_recovery_component::ThresholdRecoveryImpl<ContractState>;
+    impl ThresholdRecovery =
+        threshold_recovery_component::ThresholdRecoveryImpl<ContractState>;
     #[abi(embed_v0)]
     impl ToggleThresholdRecovery =
         threshold_recovery_component::ToggleThresholdRecoveryImpl<ContractState>;
-    impl ThresholdRecoveryInternal = threshold_recovery_component::ThresholdRecoveryInternalImpl<ContractState>;
+    impl ThresholdRecoveryInternal =
+        threshold_recovery_component::ThresholdRecoveryInternalImpl<ContractState>;
     // Reentrancy guard
-    component!(path: ReentrancyGuardComponent, storage: reentrancy_guard, event: ReentrancyGuardEvent);
+    component!(
+        path: ReentrancyGuardComponent, storage: reentrancy_guard, event: ReentrancyGuardEvent
+    );
     impl ReentrancyGuardInternalImpl = ReentrancyGuardComponent::InternalImpl<ContractState>;
 
     #[storage]
@@ -143,11 +161,15 @@ mod ArgentUserAccount {
             retdata
         }
 
-        fn is_valid_signature(self: @ContractState, hash: felt252, signature: Array<felt252>) -> felt252 {
+        fn is_valid_signature(
+            self: @ContractState, hash: felt252, signature: Array<felt252>
+        ) -> felt252 {
             let threshold = self.multisig.threshold.read();
             if self
                 .multisig
-                .is_valid_signature_with_threshold(hash, threshold, parse_signature_array(signature.span())) {
+                .is_valid_signature_with_threshold(
+                    hash, threshold, parse_signature_array(signature.span())
+                ) {
                 VALIDATED
             } else {
                 0
@@ -193,7 +215,9 @@ mod ArgentUserAccount {
 
     #[abi(embed_v0)]
     impl UpgradeableCallbackImpl of IUpgradableCallback<ContractState> {
-        fn perform_upgrade(ref self: ContractState, new_implementation: ClassHash, data: Span<felt252>) {
+        fn perform_upgrade(
+            ref self: ContractState, new_implementation: ClassHash, data: Span<felt252>
+        ) {
             panic_with_felt252('argent/downgrade-not-allowed');
         }
     }
@@ -201,7 +225,10 @@ mod ArgentUserAccount {
     impl OutsideExecutionCallbackImpl of IOutsideExecutionCallback<ContractState> {
         #[inline(always)]
         fn execute_from_outside_callback(
-            ref self: ContractState, calls: Span<Call>, outside_execution_hash: felt252, signature: Span<felt252>,
+            ref self: ContractState,
+            calls: Span<Call>,
+            outside_execution_hash: felt252,
+            signature: Span<felt252>,
         ) -> Array<Span<felt252>> {
             // validate calls
             self.assert_valid_calls(calls);
@@ -209,7 +236,10 @@ mod ArgentUserAccount {
             self.assert_valid_signatures(calls, outside_execution_hash, signature);
 
             let retdata = execute_multicall(calls);
-            self.emit(TransactionExecuted { hash: outside_execution_hash, response: retdata.span() });
+            self
+                .emit(
+                    TransactionExecuted { hash: outside_execution_hash, response: retdata.span() }
+                );
             retdata
         }
     }
@@ -225,14 +255,18 @@ mod ArgentUserAccount {
                     assert(*call.selector != selector!("perform_upgrade"), 'argent/forbidden-call');
                 }
             } else {
-                // Make sure no call is to the account. We don't have any good reason to perform many calls to the account in the same transactions
-                // and this restriction will reduce the attack surface
+                // Make sure no call is to the account. We don't have any good reason to perform
+                // many calls to the account in the same transactions and this restriction will
+                // reduce the attack surface
                 assert_no_self_call(calls, account_address);
             }
         }
 
         fn assert_valid_signatures(
-            self: @ContractState, calls: Span<Call>, execution_hash: felt252, signature: Span<felt252>
+            self: @ContractState,
+            calls: Span<Call>,
+            execution_hash: felt252,
+            signature: Span<felt252>
         ) {
             // get threshold
             let threshold = self.multisig.threshold.read();
@@ -240,24 +274,31 @@ mod ArgentUserAccount {
 
             let signature_array = parse_signature_array(signature);
             let effective_threshold =
-                match self.parse_escape_call(*first_call.to, *first_call.selector, *first_call.calldata, threshold) {
+                match self
+                    .parse_escape_call(
+                        *first_call.to, *first_call.selector, *first_call.calldata, threshold
+                    ) {
                 Option::Some((
                     required_signatures, excluded_signer_guid
                 )) => {
                     let mut signature_span = signature_array.span();
-                    while !signature_span
-                        .is_empty() {
-                            let signer_sig = *signature_span.pop_front().unwrap();
-                            assert(
-                                signer_sig.signer().into_guid() != excluded_signer_guid, 'argent/unauthorized-signer'
-                            )
-                        };
+                    while !signature_span.is_empty() {
+                        let signer_sig = *signature_span.pop_front().unwrap();
+                        assert(
+                            signer_sig.signer().into_guid() != excluded_signer_guid,
+                            'argent/unauthorized-signer'
+                        )
+                    };
                     required_signatures
                 },
                 Option::None => threshold
             };
             assert(
-                self.multisig.is_valid_signature_with_threshold(execution_hash, effective_threshold, signature_array),
+                self
+                    .multisig
+                    .is_valid_signature_with_threshold(
+                        execution_hash, effective_threshold, signature_array
+                    ),
                 'argent/invalid-signature'
             );
         }

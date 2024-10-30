@@ -4,7 +4,7 @@ use starknet::account::Call;
 use starknet::{get_tx_info, get_contract_address, ContractAddress};
 
 /// @notice Session struct that the owner and guardian has to sign to initiate a session
-/// @dev The hash of the session is also signed by the guardian (backend) and 
+/// @dev The hash of the session is also signed by the guardian (backend) and
 /// the dapp (session key) for every session tx (which may include multiple calls)
 /// @param expires_at Expiry timestamp of the session (seconds)
 /// @param allowed_methods_root The root of the merkle tree of the allowed methods
@@ -20,8 +20,8 @@ struct Session {
 
 /// @notice Session Token struct contains the session struct, relevant signatures and merkle proofs
 /// @param session The session struct
-/// @param cache_authorization Flag indicating whether to cache the authorization signature for the session
-/// @param session_authorization A valid account signature over the Session
+/// @param cache_authorization Flag indicating whether to cache the authorization signature for the
+/// session @param session_authorization A valid account signature over the Session
 /// @param session_signature Session signature of the poseidon H(tx_hash, session hash)
 /// @param guardian_signature Guardian signature of the poseidon H(tx_hash, session hash)
 /// @param proofs The merkle proof of the session calls
@@ -36,7 +36,8 @@ struct SessionToken {
 }
 
 
-/// This trait has to be implemented when using the component `session_component` (This is enforced by the compiler)
+/// This trait has to be implemented when using the component `session_component` (This is enforced
+/// by the compiler)
 #[starknet::interface]
 trait ISessionCallback<TContractState> {
     /// @notice Callback performed to parse and validate account signature
@@ -54,7 +55,7 @@ trait ISessionable<TContractState> {
     /// @param session_hash Hash of the session token
     fn revoke_session(ref self: TContractState, session_hash: felt252);
 
-    /// @notice View function to see if a session is revoked, returns a boolean 
+    /// @notice View function to see if a session is revoked, returns a boolean
     fn is_session_revoked(self: @TContractState, session_hash: felt252) -> bool;
 
     /// @notice View function to see if a session authorization is cached

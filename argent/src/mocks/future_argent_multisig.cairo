@@ -1,4 +1,8 @@
-/// @dev 🚨 This smart contract is a mock implementation and is not meant for actual deployment or use in any live environment. It is solely for testing, educational, or demonstration purposes. Any interactions with this contract will not have real-world consequences or effects on blockchain networks. Please refrain from relying on the functionality of this contract for any production. 🚨
+/// @dev 🚨 This smart contract is a mock implementation and is not meant for actual deployment or
+/// use in any live environment. It is solely for testing, educational, or demonstration purposes.
+/// Any interactions with this contract will not have real-world consequences or effects on
+/// blockchain networks. Please refrain from relying on the functionality of this contract for any
+/// production. 🚨
 #[starknet::contract(account)]
 mod MockFutureArgentMultisig {
     use argent::account::interface::{
@@ -8,14 +12,19 @@ mod MockFutureArgentMultisig {
     use argent::introspection::src5::src5_component;
     use argent::multisig::{multisig::multisig_component};
 
-    use argent::signer::{signer_signature::{Signer, SignerTrait, SignerSignature, SignerSignatureTrait}};
-    use argent::signer_storage::{
-        interface::ISignerList, signer_list::{signer_list_component, signer_list_component::SignerListInternalImpl}
+    use argent::signer::{
+        signer_signature::{Signer, SignerTrait, SignerSignature, SignerSignatureTrait}
     };
-    use argent::upgrade::{upgrade::upgrade_component, interface::{IUpgradableCallback, IUpgradableCallbackOld}};
+    use argent::signer_storage::{
+        interface::ISignerList,
+        signer_list::{signer_list_component, signer_list_component::SignerListInternalImpl}
+    };
+    use argent::upgrade::{
+        upgrade::upgrade_component, interface::{IUpgradableCallback, IUpgradableCallbackOld}
+    };
     use argent::utils::{
-        asserts::{assert_no_self_call, assert_only_protocol, assert_only_self,}, calls::execute_multicall,
-        serialization::full_deserialize,
+        asserts::{assert_no_self_call, assert_only_protocol, assert_only_self,},
+        calls::execute_multicall, serialization::full_deserialize,
     };
     use core::array::ArrayTrait;
     use core::result::ResultTrait;
@@ -86,7 +95,9 @@ mod MockFutureArgentMultisig {
             execute_multicall(calls.span())
         }
 
-        fn is_valid_signature(self: @ContractState, hash: felt252, signature: Array<felt252>) -> felt252 {
+        fn is_valid_signature(
+            self: @ContractState, hash: felt252, signature: Array<felt252>
+        ) -> felt252 {
             if self
                 .multisig
                 .is_valid_signature_with_threshold(
@@ -139,10 +150,18 @@ mod MockFutureArgentMultisig {
     #[abi(embed_v0)]
     impl UpgradeableCallbackImpl of IUpgradableCallback<ContractState> {
         // Called when coming from account 0.2.0+
-        fn perform_upgrade(ref self: ContractState, new_implementation: ClassHash, data: Span<felt252>) {
+        fn perform_upgrade(
+            ref self: ContractState, new_implementation: ClassHash, data: Span<felt252>
+        ) {
             assert_only_self();
-            let current_version = IArgentAccountDispatcher { contract_address: get_contract_address() }.get_version();
-            assert(current_version.major == 0 && current_version.minor == 2, 'argent/invalid-from-version');
+            let current_version = IArgentAccountDispatcher {
+                contract_address: get_contract_address()
+            }
+                .get_version();
+            assert(
+                current_version.major == 0 && current_version.minor == 2,
+                'argent/invalid-from-version'
+            );
             assert(data.len() == 0, 'argent/unexpected-data');
             self.upgrade.complete_upgrade(new_implementation);
             self.multisig.assert_valid_storage();
@@ -151,7 +170,9 @@ mod MockFutureArgentMultisig {
 
     #[generate_trait]
     impl Private of PrivateTrait {
-        fn assert_valid_signatures(self: @ContractState, execution_hash: felt252, signature: Span<felt252>) {
+        fn assert_valid_signatures(
+            self: @ContractState, execution_hash: felt252, signature: Span<felt252>
+        ) {
             let valid = self
                 .multisig
                 .is_valid_signature_with_threshold(

@@ -1,9 +1,11 @@
-/// @dev 🚨 This smart contract is a mock implementation and is not meant for actual deployment or use in any live environment. It is solely for testing, educational, or demonstration purposes. Please refrain from relying on the functionality of this contract for any production. 🚨
+/// @dev 🚨 This smart contract is a mock implementation and is not meant for actual deployment or
+/// use in any live environment. It is solely for testing, educational, or demonstration purposes.
+/// Please refrain from relying on the functionality of this contract for any production. 🚨
 use argent::account::interface::{IAccount, IArgentAccount, Version};
 use argent::signer::{
     signer_signature::{
-        Signer, SignerStorageValue, SignerType, StarknetSigner, StarknetSignature, SignerTrait, SignerStorageTrait,
-        SignerSignature, SignerSignatureTrait, starknet_signer_from_pubkey
+        Signer, SignerStorageValue, SignerType, StarknetSigner, StarknetSignature, SignerTrait,
+        SignerStorageTrait, SignerSignature, SignerSignatureTrait, starknet_signer_from_pubkey
     }
 };
 
@@ -14,24 +16,34 @@ mod MockFutureArgentAccount {
 
     use argent::signer::{
         signer_signature::{
-            Signer, SignerStorageValue, SignerType, StarknetSigner, StarknetSignature, SignerTrait, SignerStorageTrait,
-            SignerSignature, SignerSignatureTrait, starknet_signer_from_pubkey
+            Signer, SignerStorageValue, SignerType, StarknetSigner, StarknetSignature, SignerTrait,
+            SignerStorageTrait, SignerSignature, SignerSignatureTrait, starknet_signer_from_pubkey
         }
     };
-    use argent::upgrade::{upgrade::upgrade_component, interface::{IUpgradableCallback, IUpgradableCallbackOld}};
+    use argent::upgrade::{
+        upgrade::upgrade_component, interface::{IUpgradableCallback, IUpgradableCallbackOld}
+    };
     use argent::utils::{
-        asserts::{assert_no_self_call, assert_only_self}, calls::execute_multicall, serialization::full_deserialize,
+        asserts::{assert_no_self_call, assert_only_self}, calls::execute_multicall,
+        serialization::full_deserialize,
     };
     use core::option::OptionTrait;
     use core::traits::TryInto;
     use hash::HashStateTrait;
     use pedersen::PedersenTrait;
     use starknet::{
-        ClassHash, get_block_timestamp, get_contract_address, VALIDATED, replace_class_syscall, account::Call,
-        SyscallResultTrait, get_tx_info, get_execution_info, syscalls::storage_read_syscall,
-        storage_access::{storage_address_from_base_and_offset, storage_base_address_from_felt252, storage_write_syscall}
+        ClassHash, get_block_timestamp, get_contract_address, VALIDATED, replace_class_syscall,
+        account::Call, SyscallResultTrait, get_tx_info, get_execution_info,
+        syscalls::storage_read_syscall,
+        storage_access::{
+            storage_address_from_base_and_offset, storage_base_address_from_felt252,
+            storage_write_syscall
+        }
     };
-    use super::{IFutureArgentUserAccount, IFutureArgentUserAccountDispatcher, IFutureArgentUserAccountDispatcherTrait};
+    use super::{
+        IFutureArgentUserAccount, IFutureArgentUserAccountDispatcher,
+        IFutureArgentUserAccountDispatcherTrait
+    };
 
     const NAME: felt252 = 'ArgentAccount';
     const VERSION_MAJOR: u8 = 0;
@@ -82,7 +94,10 @@ mod MockFutureArgentAccount {
     impl AccountImpl of IAccount<ContractState> {
         fn __validate__(ref self: ContractState, calls: Array<Call>) -> felt252 {
             let tx_info = get_tx_info().unbox();
-            self.assert_valid_calls_and_signature(calls.span(), tx_info.transaction_hash, tx_info.signature);
+            self
+                .assert_valid_calls_and_signature(
+                    calls.span(), tx_info.transaction_hash, tx_info.signature
+                );
             VALIDATED
         }
 
@@ -90,7 +105,9 @@ mod MockFutureArgentAccount {
             execute_multicall(calls.span())
         }
 
-        fn is_valid_signature(self: @ContractState, hash: felt252, signature: Array<felt252>) -> felt252 {
+        fn is_valid_signature(
+            self: @ContractState, hash: felt252, signature: Array<felt252>
+        ) -> felt252 {
             if self.is_valid_span_signature(hash, self.parse_signature_array(signature.span())) {
                 VALIDATED
             } else {
@@ -111,11 +128,18 @@ mod MockFutureArgentAccount {
     #[abi(embed_v0)]
     impl UpgradeableCallbackImpl of IUpgradableCallback<ContractState> {
         // Called when coming from account 0.4.0+
-        fn perform_upgrade(ref self: ContractState, new_implementation: ClassHash, data: Span<felt252>) {
+        fn perform_upgrade(
+            ref self: ContractState, new_implementation: ClassHash, data: Span<felt252>
+        ) {
             assert_only_self();
-            let current_version = IFutureArgentUserAccountDispatcher { contract_address: get_contract_address() }
+            let current_version = IFutureArgentUserAccountDispatcher {
+                contract_address: get_contract_address()
+            }
                 .get_version();
-            assert(current_version.major == 0 && current_version.minor == 4, 'argent/invalid-from-version');
+            assert(
+                current_version.major == 0 && current_version.minor == 4,
+                'argent/invalid-from-version'
+            );
             self.upgrade.complete_upgrade(new_implementation);
             if data.is_empty() {
                 return;
@@ -136,7 +160,10 @@ mod MockFutureArgentAccount {
             guardian: Option<Signer>
         ) -> felt252 {
             let tx_info = get_tx_info().unbox();
-            self.assert_valid_span_signature(tx_info.transaction_hash, self.parse_signature_array(tx_info.signature));
+            self
+                .assert_valid_span_signature(
+                    tx_info.transaction_hash, self.parse_signature_array(tx_info.signature)
+                );
             VALIDATED
         }
 
@@ -161,12 +188,20 @@ mod MockFutureArgentAccount {
     #[generate_trait]
     impl Private of PrivateTrait {
         fn assert_valid_calls_and_signature(
-            ref self: ContractState, calls: Span<Call>, execution_hash: felt252, mut signatures: Span<felt252>,
+            ref self: ContractState,
+            calls: Span<Call>,
+            execution_hash: felt252,
+            mut signatures: Span<felt252>,
         ) {
-            self.assert_valid_span_signature(execution_hash, self.parse_signature_array(signatures));
+            self
+                .assert_valid_span_signature(
+                    execution_hash, self.parse_signature_array(signatures)
+                );
         }
 
-        fn parse_signature_array(self: @ContractState, mut signatures: Span<felt252>) -> Array<SignerSignature> {
+        fn parse_signature_array(
+            self: @ContractState, mut signatures: Span<felt252>
+        ) -> Array<SignerSignature> {
             full_deserialize(signatures).expect('argent/invalid-signature-format')
         }
 
@@ -183,25 +218,40 @@ mod MockFutureArgentAccount {
             }
         }
 
-        fn assert_valid_span_signature(self: @ContractState, hash: felt252, signer_signatures: Array<SignerSignature>) {
+        fn assert_valid_span_signature(
+            self: @ContractState, hash: felt252, signer_signatures: Array<SignerSignature>
+        ) {
             if self._guardian.read() == 0 {
                 assert(signer_signatures.len() == 1, 'argent/invalid-signature-length');
-                assert(self.is_valid_owner_signature(hash, *signer_signatures.at(0)), 'argent/invalid-owner-sig');
+                assert(
+                    self.is_valid_owner_signature(hash, *signer_signatures.at(0)),
+                    'argent/invalid-owner-sig'
+                );
             } else {
                 assert(signer_signatures.len() == 2, 'argent/invalid-signature-length');
-                assert(self.is_valid_owner_signature(hash, *signer_signatures.at(0)), 'argent/invalid-owner-sig');
-                assert(self.is_valid_guardian_signature(hash, *signer_signatures.at(1)), 'argent/invalid-guardian-sig');
+                assert(
+                    self.is_valid_owner_signature(hash, *signer_signatures.at(0)),
+                    'argent/invalid-owner-sig'
+                );
+                assert(
+                    self.is_valid_guardian_signature(hash, *signer_signatures.at(1)),
+                    'argent/invalid-guardian-sig'
+                );
             }
         }
 
-        fn is_valid_owner_signature(self: @ContractState, hash: felt252, signer_signature: SignerSignature) -> bool {
+        fn is_valid_owner_signature(
+            self: @ContractState, hash: felt252, signer_signature: SignerSignature
+        ) -> bool {
             if self._signer.read() != signer_signature.signer().storage_value().stored_value {
                 return false;
             }
             return signer_signature.is_valid_signature(hash);
         }
 
-        fn is_valid_guardian_signature(self: @ContractState, hash: felt252, signer_signature: SignerSignature) -> bool {
+        fn is_valid_guardian_signature(
+            self: @ContractState, hash: felt252, signer_signature: SignerSignature
+        ) -> bool {
             if self._guardian.read() != signer_signature.signer().storage_value().stored_value {
                 return false;
             }
