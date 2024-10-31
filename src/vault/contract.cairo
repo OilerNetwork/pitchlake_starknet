@@ -988,17 +988,22 @@ mod Vault {
                     .entry(account)
                     .entry(round_id)
                     .read();
-                let account_remaining_liq_stashed = (round_remaining_liq * account_liq_queued)
-                    / round_starting_liq;
 
-                // @dev Calculate the amount of liquidity the account did not stashed
-                let account_remaining_liq = (round_remaining_liq * account_starting_liq)
-                    / round_starting_liq;
-                let account_remaining_liq_not_stashed = account_remaining_liq
-                    - account_remaining_liq_stashed;
+                // @dev If the starting liquidity is 0, avoid division by 0
+                if round_starting_liq.is_zero() {
+                    0
+                } else {
+                    // @dev Calculate the amount of liquidity the account did not stash
+                    let account_remaining_liq_stashed = (round_remaining_liq * account_liq_queued)
+                        / round_starting_liq;
+                    let account_remaining_liq = (round_remaining_liq * account_starting_liq)
+                        / round_starting_liq;
+                    let account_remaining_liq_not_stashed = account_remaining_liq
+                        - account_remaining_liq_stashed;
 
-                // @dev Return the remaining liquidity not stashed
-                account_remaining_liq_not_stashed
+                    // @dev Return the remaining liquidity not stashed
+                    account_remaining_liq_not_stashed
+                }
             }
         }
 

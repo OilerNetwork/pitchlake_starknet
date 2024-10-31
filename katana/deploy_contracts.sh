@@ -3,7 +3,6 @@
 # Ensure the script stops on the first error
 set -e
 
-
 # Load environment variables
 source ./.env
 
@@ -32,7 +31,6 @@ echo "Deploying pitch_lake_Vault contract..."
 VAULT_ADDRESS=$(starkli deploy $VAULT_HASH $FOSSILCLIENT_ADDRESS 0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7 $OPTIONROUND_HASH 5555 0 --salt 1 | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
 echo "Contract deployed at: $VAULT_ADDRESS"
 
-
 # Perform the first call to get the round address
 echo "Calling get_round_address on Vault contract..."
 ROUND_ADDRESS=$(starkli call $VAULT_ADDRESS get_round_address u256:1 | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
@@ -53,9 +51,9 @@ echo "All contracts declared, deployed, and calls executed successfully."
 echo "Executing curl command to post pricing data..."
 
 curl -X POST http://localhost:3000/pricing_data \
-  -H 'Content-Type: application/json' \
-  -H 'x-api-key: b2ed9cdc-2dd0-4b81-8ed4-bcefbf29ddc1' \
-  -d '{
+	-H 'Content-Type: application/json' \
+	-H 'x-api-key: b2ed9cdc-2dd0-4b81-8ed4-bcefbf29ddc1' \
+	-d '{
     "identifiers": ["PITCH_LAKE_V1"],
     "params": {
       "twap": ['$((DEPLOYMENT_DATE_INT - 86400))', '$DEPLOYMENT_DATE_INT'],
@@ -68,5 +66,22 @@ curl -X POST http://localhost:3000/pricing_data \
       "timestamp": '$DEPLOYMENT_DATE_INT'
     }
   }' &
+
+#curl -X POST http://localhost:3000/pricing_data \
+#	-H 'Content-Type: application/json' \
+#	-H 'x-api-key: b2ed9cdc-2dd0-4b81-8ed4-bcefbf29ddc1' \
+#	-d '{
+#    "identifiers": ["PITCH_LAKE_V1"],
+#    "params": {
+#      "twap": ['1730053616', '1730140016'],
+#      "volatility": ['1729880816', '1730140016'],
+#      "reserve_price": ['1729880816', '1730140016']
+#    },
+#    "client_info": {
+#      "client_address": "'0x5fa4f6b4a8ac48fa9eef00ea08eab32538bb40084cd39c5247fcfa62ee0b4e4'",
+#      "vault_address": "'0x586b503f2c806ec2555dfd763ef3d2e05d9789c0147da1c47b5057d46bbc6cc'",
+#      "timestamp": '1730140016'
+#    }
+#  }' &
 
 echo "All contracts declared and deployed successfully."
