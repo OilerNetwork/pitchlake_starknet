@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  pitchlake_starknet:
+    build:
+      context: .
+      args:
+        - SIGNER_PRIVATE_KEY=${SIGNER_PRIVATE_KEY}
+        - DEVNET_RPC=${DEVNET_RPC}
+        - SIGNER_ADDRESS=${SIGNER_ADDRESS}
+        - FOSSIL_PROCESSOR_ADDRESS=${FOSSIL_PROCESSOR_ADDRESS}
+        - VAULT_ROUND_DURATION=${VAULT_ROUND_DURATION}

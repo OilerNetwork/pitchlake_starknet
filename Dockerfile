@@ -1,10 +1,36 @@
 # Use Ubuntu as the base image
 FROM ubuntu:22.04
+SHELL ["/bin/bash", "-c"]
 
 # Set environment variables
 ENV SCARB_VERSION=2.8.4
 ENV STARKLI_VERSION=0.2.8
-ENV RUST_VERSION=1.75.0
+
+# Define build-time arguments
+ARG SIGNER_PRIVATE_KEY
+ARG DEVNET_RPC
+ARG SIGNER_ADDRESS
+ARG FOSSIL_PROCESSOR_ADDRESS
+ARG VAULT_ROUND_DURATION
+
+# Check if all required arguments are provided
+RUN if [ -z "$SIGNER_PRIVATE_KEY" ] || \
+       [ -z "$DEVNET_RPC" ] || \
+       [ -z "$SIGNER_ADDRESS" ] || \
+       [ -z "$FOSSIL_PROCESSOR_ADDRESS" ] || \
+       [ -z "$VAULT_ROUND_DURATION" ]; then \
+    echo "Error: All build arguments must be provided."; \
+    exit 1; \
+fi
+
+# Starkli environment variables
+ENV STARKNET_ACCOUNT=/root/starkli_deployer_account.json
+ENV STARKNET_PRIVATE_KEY=$SIGNER_PRIVATE_KEY
+ENV STARKNET_RPC=$DEVNET_RPC
+
+ENV SIGNER_ADDRESS=$SIGNER_ADDRESS
+ENV FOSSIL_PROCESSOR_ADDRESS=$FOSSIL_PROCESSOR_ADDRESS
+ENV VAULT_ROUND_DURATION=$VAULT_ROUND_DURATION
 
 # Install necessary dependencies
 RUN apt-get update && apt-get install -y \
@@ -15,24 +41,15 @@ RUN apt-get update && apt-get install -y \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-
 # Install Scarb
-## TODO: Find out why this fails without || true
-RUN curl --proto '=https' --tlsv1.2 -sSf https://docs.swmansion.com/scarb/install.sh | sh -s -- -v $SCARB_VERSION
 ENV PATH="$PATH:/root/.local/bin"
-
-# Verify Scarb installation
-RUN which scarb && scarb --version
+RUN curl --proto '=https' --tlsv1.2 -sSf https://docs.swmansion.com/scarb/install.sh | bash -s -- -v $SCARB_VERSION
 
 # Install Starkli
-RUN curl https://get.starkli.sh | sh
 ENV PATH="$PATH:/root/.starkli/bin"
-
-# Verify Starkli installation
-RUN starkli --version
-
-# Set working directory
-WORKDIR /app
+RUN curl https://get.starkli.sh | bash
+# RUN . /root/.starkli/env
+RUN starkliup
 
 # Copy project files
 COPY . .
@@ -40,33 +57,11 @@ COPY . .
 # Build contracts
 RUN scarb build
 
-# Hardcoded account details
-ENV SIGNER_PRIVATE_KEY="0x2bff1b26236b72d8a930be1dfbee09f79a536a49482a4c8b8f1030e2ab3bf1b"
-ENV SIGNER_ADDRESS="0x101"
-ENV STARKNET_RPC=http://localhost:6060
-ENV STARKNET_ACCOUNT=~/.starkli-wallets/deployer/account.json
-ENV STARKNET_PRIVATE_KEY=$SIGNER_PRIVATE_KEY
-
-# Create keystore using starkli
-# RUN echo "$ACCOUNT_PRIVATE_KEY" > private_key.txt && \
-#     starkli signer keystore from-key private_key.txt ~/.starkli-wallets/deployer/keystore.json && \
-#     rm private_key.txt
-
 # Create account file using starkli
-RUN starkli account fetch "$SIGNER_ADDRESS" --output ~/.starkli-wallets/deployer/account.json
+RUN starkli account fetch $SIGNER_ADDRESS --output $STARKNET_ACCOUNT
 
-# Send STRK tokens to the user
-RUN starkli invoke 0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d transfer $SIGNER_ADDRESS 1000000000000000000 --account ~/.starkli-wallets/deployer/account.json --keystore ~/.starkli-wallets/deployer/account.key
+# Make the deployment script executable
+RUN chmod +x ./katana/deploy_contracts_devnet.sh
 
-# Deploy contracts
-RUN source .env && \
-    ./katana/deploy_contracts_devnet.sh
-
-# Save contract addresses
-RUN echo "ETH_ADDRESS=$ETH_ADDRESS" >> /app/contract_addresses.env && \
-    echo "FOSSILCLIENT_ADDRESS=$FOSSILCLIENT_ADDRESS" >> /app/contract_addresses.env && \
-    echo "OPTIONROUND_HASH=$OPTIONROUND_HASH" >> /app/contract_addresses.env && \
-    echo "VAULT_ADDRESS=$VAULT_ADDRESS" >> /app/contract_addresses.env
-
-# Set the default command
-CMD ["cat", "/app/contract_addresses.env"]
+# Set the command to run the deployment script and then display the contract addresses
+CMD ["bash", "-c", "./katana/deploy_contracts_devnet.sh $SIGNER_ADDRESS $FOSSIL_PROCESSOR_ADDRESS $VAULT_ROUND_DURATION"]
