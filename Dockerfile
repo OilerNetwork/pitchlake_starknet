@@ -51,6 +51,9 @@ RUN curl https://get.starkli.sh | bash
 # RUN . /root/.starkli/env
 RUN starkliup
 
+# Set working directory
+WORKDIR /contracts
+
 # Copy project files
 COPY . .
 

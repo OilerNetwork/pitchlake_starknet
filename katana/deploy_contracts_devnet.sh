@@ -49,37 +49,37 @@ echo "Vault Round Duration: $VAULT_ROUND_DURATION"
 # Declare the ETH contract
 sleep 2
 ETH_HASH=$(starkli declare ../target/dev/pitch_lake_Eth.contract_class.json --compiler-version 2.8.2 | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
-echo "[ETH] Class hash declared: $ETH_HASH"
+echo "[ETH] Class hash declared"
 
 # Deploy the ETH contract
 sleep 2
 ETH_ADDRESS=$(starkli deploy $ETH_HASH 1000000000000000000000 0 $ETH_RECEIVER_ADDRESS --salt 1 | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
-echo "[ETH] Contract deployed at: $ETH_ADDRESS"
+echo "[ETH] Contract deployed"
 
 # Declare the first contract
 sleep 2
 FOSSILCLIENT_HASH=$(starkli declare ../target/dev/pitch_lake_FossilClient.contract_class.json --compiler-version 2.8.2 | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
-echo "[Fossil Client] Class hash declared: $FOSSILCLIENT_HASH"
+echo "[Fossil Client] Class hash declared"
 
 # Deploy the first contract with salt and FOSSIL_PROCESSOR_ADDRESS
 sleep 2
 FOSSILCLIENT_ADDRESS=$(starkli deploy $FOSSILCLIENT_HASH $FOSSIL_PROCESSOR_ADDRESS --salt 1 | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
-echo "[Fossil Client] Contract deployed at: $FOSSILCLIENT_ADDRESS"
+echo "[Fossil Client] Contract deployed"
 
 # Declare the second contract
 sleep 2
 OPTIONROUND_HASH=$(starkli declare ../target/dev/pitch_lake_OptionRound.contract_class.json --compiler-version 2.8.2 | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
-echo "[Option Round] Class hash declared: $OPTIONROUND_HASH"
+echo "[Option Round] Class hash declared"
 
 # Declare the third contract
 sleep 2
 VAULT_HASH=$(starkli declare ../target/dev/pitch_lake_Vault.contract_class.json --compiler-version 2.8.2 | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
-echo "[Vault] Class hash declared: $VAULT_HASH"
+echo "[Vault] Class hash declared"
 
 # Deploy the third contract with additional parameters and salt
 sleep 2
 VAULT_ADDRESS=$(starkli deploy $VAULT_HASH $FOSSILCLIENT_ADDRESS $ETH_ADDRESS $OPTIONROUND_HASH $VAULT_ROUND_DURATION 0 --salt 1 | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
-echo "[Vault] Contract deployed at: $VAULT_ADDRESS"
+echo "[Vault] Contract deployed"
 
 {
     echo "ETH_ADDRESS=$ETH_ADDRESS"
@@ -87,5 +87,5 @@ echo "[Vault] Contract deployed at: $VAULT_ADDRESS"
     echo "VAULT_ADDRESS=$VAULT_ADDRESS"
 } > deployment_addresses.env
 
-echo "Contents of deployment_addresses.env:"
+echo "Deployment addresses"
 cat deployment_addresses.env
