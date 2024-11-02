@@ -114,12 +114,15 @@ fn assert_event_auction_bid_updated(
     account: ContractAddress,
     bid_id: felt252,
     price_increase: u256,
+    bid_tree_nonce_before: u64,
     bid_tree_nonce_now: u64,
 ) {
     match pop_log::<OptionRound::Event>(contract) {
         Option::Some(e) => {
             let expected = OptionRound::Event::BidUpdated(
-                OptionRound::BidUpdated { account, bid_id, price_increase, bid_tree_nonce_now }
+                OptionRound::BidUpdated {
+                    account, bid_id, price_increase, bid_tree_nonce_before, bid_tree_nonce_now
+                }
             );
             assert_events_equal(e, expected);
         },
