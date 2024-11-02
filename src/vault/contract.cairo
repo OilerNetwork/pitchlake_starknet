@@ -165,6 +165,7 @@ mod Vault {
         #[key]
         account: ContractAddress,
         bps: u128,
+        round_id: u256,
         account_queued_liquidity_now: u256,
         vault_queued_liquidity_now: u256,
     }
@@ -525,7 +526,7 @@ mod Vault {
                 .emit(
                     Event::WithdrawalQueued(
                         WithdrawalQueued {
-                            account, bps, account_queued_liquidity_now, vault_queued_liquidity_now
+                            account, bps, round_id: current_round_id, account_queued_liquidity_now, vault_queued_liquidity_now
                         }
                     )
                 );
