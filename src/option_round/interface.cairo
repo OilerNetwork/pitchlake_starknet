@@ -22,7 +22,7 @@ struct PricingData {
 #[derive(Drop, Serde)]
 struct ConstructorArgs {
     vault_address: ContractAddress,
-    round_id: u256,
+    round_id: u64,
     pricing_data: PricingData
 }
 
@@ -37,7 +37,7 @@ trait IOptionRound<TContractState> {
     fn get_vault_address(self: @TContractState) -> ContractAddress;
 
     // @dev This round's id
-    fn get_round_id(self: @TContractState) -> u256;
+    fn get_round_id(self: @TContractState) -> u64;
 
     // @dev The state of this round
     fn get_state(self: @TContractState) -> OptionRoundState;

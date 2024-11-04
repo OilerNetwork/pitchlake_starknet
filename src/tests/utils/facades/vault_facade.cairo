@@ -232,11 +232,11 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     /// Rounds
 
-    fn get_current_round_id(ref self: VaultFacade) -> u256 {
+    fn get_current_round_id(ref self: VaultFacade) -> u64 {
         self.vault_dispatcher.get_current_round_id()
     }
 
-    fn get_option_round_address(ref self: VaultFacade, id: u256) -> ContractAddress {
+    fn get_option_round_address(ref self: VaultFacade, id: u64) -> ContractAddress {
         self.vault_dispatcher.get_round_address(id)
     }
 
@@ -247,7 +247,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         OptionRoundFacade { option_round_dispatcher }
     }
 
-    fn get_sold_liquidity(ref self: VaultFacade, round_id: u256) -> u256 {
+    fn get_sold_liquidity(ref self: VaultFacade, round_id: u64) -> u256 {
         let contract_address = self.get_option_round_address(round_id);
         let round = IOptionRoundDispatcher { contract_address };
 
@@ -255,7 +255,8 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     }
 
 
-    fn get_unsold_liquidity(ref self: VaultFacade, round_id: u256) -> u256 {
+    fn get_unsold_liquidity(ref self: VaultFacade,
+    round_id: u64) -> u256 {
         let contract_address = self.get_option_round_address(round_id);
         let round = IOptionRoundDispatcher { contract_address };
 

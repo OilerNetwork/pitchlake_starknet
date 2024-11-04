@@ -265,7 +265,7 @@ fn assert_event_transfer(
 
 fn assert_event_option_round_deployed(
     contract: ContractAddress,
-    round_id: u256,
+    round_id: u64,
     address: ContractAddress,
     auction_start_date: u64,
     auction_end_date: u64,
@@ -291,7 +291,7 @@ fn assert_event_option_round_deployed(
 // Test OptionRoundCreated event emits correctly
 fn assert_event_option_round_deployed_single(
     contract: ContractAddress,
-    round_id: u256,
+    round_id: u64,
     address: ContractAddress,
     auction_start_date: u64,
     auction_end_date: u64,
@@ -381,7 +381,7 @@ fn assert_event_withdrawal_queued(
     vault: ContractAddress,
     account: ContractAddress,
     bps: u128,
-    round_id: u256,
+    round_id: u64,
     account_queued_liquidity_now: u256,
     vault_queued_liquidity_now: u256
 ) {
