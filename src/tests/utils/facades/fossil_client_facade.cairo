@@ -3,6 +3,7 @@ use crate::fossil_client::interface::{
     IFossilClientSafeDispatcherTrait
 };
 use crate::tests::utils::helpers::setup::FOSSIL_PROCESSOR;
+use starknet::testing::set_contract_address;
 // add this and tests
 
 // test only fossil processor can call the client (fossil_callback)
@@ -27,6 +28,7 @@ impl FossilClientFacadeImpl of FossilClientFacadeTrait {
 
     /// Entrypoints
     fn fossil_callback(self: FossilClientFacade, request: Span<felt252>, result: Span<felt252>) {
+      set_contract_address(FOSSIL_PROCESSOR());
         self.dispatcher().fossil_callback(request, result);
     }
 

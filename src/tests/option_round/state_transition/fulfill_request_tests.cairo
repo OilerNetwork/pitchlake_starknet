@@ -83,7 +83,6 @@ fn get_request_serialized(ref vault: VaultFacade) -> Span<felt252> {
 // @note Un-ignore this after Fossil processor is setup
 #[test]
 #[available_gas(50000000)]
-#[ignore]
 fn test_only_fossil_processor_can_call_fossil_callback() {
     let (mut vault, _) = setup_facade();
     let fossil_client = vault.get_fossil_client_facade();
