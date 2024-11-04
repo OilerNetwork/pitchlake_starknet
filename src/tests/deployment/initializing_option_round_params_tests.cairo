@@ -123,6 +123,7 @@ fn test_vault_strike_levels_otm() {
 
     assert_eq!(otm_strike, (10_000 + 10_007) * s_price / 10000);
 }
+
 //#[test]
 //#[available_gas(50000000)]
 //fn test_calculated_strike_ITM_high_vol() {
