@@ -129,7 +129,7 @@ export const ABI = [
         "inputs": [],
         "outputs": [
           {
-            "type": "core::integer::u256"
+            "type": "core::integer::u64"
           }
         ],
         "state_mutability": "view"
@@ -140,7 +140,7 @@ export const ABI = [
         "inputs": [
           {
             "name": "option_round_id",
-            "type": "core::integer::u256"
+            "type": "core::integer::u64"
           }
         ],
         "outputs": [
@@ -528,6 +528,11 @@ export const ABI = [
         "kind": "data"
       },
       {
+        "name": "round_id",
+        "type": "core::integer::u64",
+        "kind": "data"
+      },
+      {
         "name": "account_queued_liquidity_now",
         "type": "core::integer::u256",
         "kind": "data"
@@ -586,7 +591,7 @@ export const ABI = [
     "members": [
       {
         "name": "round_id",
-        "type": "core::integer::u256",
+        "type": "core::integer::u64",
         "kind": "data"
       },
       {
