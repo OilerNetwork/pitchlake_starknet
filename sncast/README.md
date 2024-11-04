@@ -46,12 +46,14 @@ To use an Argent wallet on the devnet you need to fund and deploy it first.
 
 1. Clone the Fossil API [repo](https://github.com/OilerNetwork/fossil-offchain-processor) and checkout the `headers-from-rpc` branch
 
-2. Build the API using `cargo build` and run it using `cargo run`
+2. Fill in this repo's .env file uses the STARKNET_ACCOUNT_ADDRESS & STARKNET_PRIVATE_KEY associated with the PRE_FUNDED_WALLET_ADDRESS in the just made .env file
+
+3. Build the API using `cargo build` and run it using `cargo run`
 
 ### Running the Frontend
 
 1. Clone the Fossil Frontend [repo](https://github.com/OilerNetwork/pitchlake-ui-new) and install the dependencies (`pnpm install`)
 
-2. For now, we need to replace the vault address in the page.tsx file. Go to page.tsx, and at the top of the file is an array of vault addresses, only place the just deployed vault here
+2. For now, we need to replace the vault address in the page.tsx file. Go to page.tsx, and at the top of the file is an array of vault addresses, place just the deployed vault address here
 
-3. Run the frontend on port 3002 using `pnpm run dev -p 3002`
+3. Run the frontend on port 3002 using `pnpm run dev -p 3002` (making sure to have the NEXT_PUBLIC_ENVIRONMENT set to "rpc")
