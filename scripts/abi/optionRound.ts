@@ -67,20 +67,6 @@ export const ABI = [
     "interface_name": "pitch_lake::option_round::interface::IOptionRound"
   },
   {
-    "type": "struct",
-    "name": "core::integer::u256",
-    "members": [
-      {
-        "name": "low",
-        "type": "core::integer::u128"
-      },
-      {
-        "name": "high",
-        "type": "core::integer::u128"
-      }
-    ]
-  },
-  {
     "type": "enum",
     "name": "pitch_lake::option_round::interface::OptionRoundState",
     "variants": [
@@ -99,6 +85,20 @@ export const ABI = [
       {
         "name": "Settled",
         "type": "()"
+      }
+    ]
+  },
+  {
+    "type": "struct",
+    "name": "core::integer::u256",
+    "members": [
+      {
+        "name": "low",
+        "type": "core::integer::u128"
+      },
+      {
+        "name": "high",
+        "type": "core::integer::u128"
       }
     ]
   },
@@ -167,7 +167,7 @@ export const ABI = [
         "inputs": [],
         "outputs": [
           {
-            "type": "core::integer::u256"
+            "type": "core::integer::u64"
           }
         ],
         "state_mutability": "view"
@@ -825,7 +825,7 @@ export const ABI = [
       },
       {
         "name": "round_id",
-        "type": "core::integer::u256"
+        "type": "core::integer::u64"
       },
       {
         "name": "pricing_data",
@@ -922,6 +922,11 @@ export const ABI = [
       {
         "name": "price_increase",
         "type": "core::integer::u256",
+        "kind": "data"
+      },
+      {
+        "name": "bid_tree_nonce_before",
+        "type": "core::integer::u64",
         "kind": "data"
       },
       {

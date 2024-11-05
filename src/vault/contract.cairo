@@ -33,31 +33,31 @@ mod Vault {
         alpha: u128,
         strike_level: i128,
         ///
-        l1_data: Map<u256, L1Data>,
+        l1_data: Map<u64, L1Data>,
         option_round_class_hash: ClassHash,
         eth_address: ContractAddress,
         fossil_client_address: ContractAddress,
-        round_addresses: Map<u256, ContractAddress>,
+        round_addresses: Map<u64, ContractAddress>,
         ///
         // @note could use usize ?
-        current_round_id: u256,
+        current_round_id: u64,
         ///
         // @note could use CA, (usize, u256) ?
-        positions: Map<ContractAddress, Map<u256, u256>>,
+        positions: Map<ContractAddress, Map<u64, u256>>,
         ///
         vault_locked_balance: u256,
         vault_unlocked_balance: u256,
         vault_stashed_balance: u256,
         ///
         // @note could use CA, usize ?
-        position_checkpoints: Map<ContractAddress, u256>,
+        position_checkpoints: Map<ContractAddress, u64>,
         // @note could use CA, usize ?
-        stash_checkpoints: Map<ContractAddress, u256>,
+        stash_checkpoints: Map<ContractAddress, u64>,
         // @note could use CA, (usize, bool) ?
-        is_premium_moved: Map<ContractAddress, Map<u256, bool>>,
+        is_premium_moved: Map<ContractAddress, Map<u64, bool>>,
         ///
         // @note could use CA, (usize, u256)
-        queued_liquidity: Map<ContractAddress, Map<u256, u256>>,
+        queued_liquidity: Map<ContractAddress, Map<u64, u256>>,
     }
 
     // *************************************************************************
@@ -165,6 +165,7 @@ mod Vault {
         #[key]
         account: ContractAddress,
         bps: u128,
+        round_id: u64,
         account_queued_liquidity_now: u256,
         vault_queued_liquidity_now: u256,
     }
@@ -192,7 +193,7 @@ mod Vault {
     // @member option_settlement_date: The option settlement date for the deployed round
     #[derive(Serde, Drop, starknet::Event, PartialEq)]
     struct OptionRoundDeployed {
-        round_id: u256,
+        round_id: u64,
         address: ContractAddress,
         auction_start_date: u64,
         auction_end_date: u64,
@@ -239,11 +240,11 @@ mod Vault {
         fn get_strike_level(self: @ContractState) -> i128 {
             self.strike_level.read()
         }
-        fn get_round_address(self: @ContractState, option_round_id: u256) -> ContractAddress {
+        fn get_round_address(self: @ContractState, option_round_id: u64) -> ContractAddress {
             self.round_addresses.read(option_round_id)
         }
 
-        fn get_current_round_id(self: @ContractState) -> u256 {
+        fn get_current_round_id(self: @ContractState) -> u64 {
             self.current_round_id.read()
         }
 
@@ -525,7 +526,7 @@ mod Vault {
                 .emit(
                     Event::WithdrawalQueued(
                         WithdrawalQueued {
-                            account, bps, account_queued_liquidity_now, vault_queued_liquidity_now
+                            account, bps, round_id: current_round_id, account_queued_liquidity_now, vault_queued_liquidity_now
                         }
                     )
                 );
@@ -718,13 +719,13 @@ mod Vault {
             ERC20ABIDispatcher { contract_address: self.eth_address.read() }
         }
 
-        fn get_round_dispatcher(self: @ContractState, round_id: u256) -> IOptionRoundDispatcher {
+        fn get_round_dispatcher(self: @ContractState, round_id: u64) -> IOptionRoundDispatcher {
             IOptionRoundDispatcher { contract_address: self.round_addresses.read(round_id) }
         }
 
         /// Basic helpers
 
-        fn get_upcoming_round_id(self: @ContractState) -> u256 {
+        fn get_upcoming_round_id(self: @ContractState) -> u64 {
             let current_round_id = self.current_round_id.read();
             match self.get_round_dispatcher(current_round_id).get_state() {
                 OptionRoundState::Open => current_round_id,
@@ -732,7 +733,7 @@ mod Vault {
             }
         }
 
-        fn get_round_outcome(self: @ContractState, round_id: u256) -> (u256, u256, u256) {
+        fn get_round_outcome(self: @ContractState, round_id: u64) -> (u256, u256, u256) {
             let round = self.get_round_dispatcher(round_id);
             assert!(
                 round_id < self.current_round_id.read(), "Round must be settled to get outcome"
@@ -758,7 +759,7 @@ mod Vault {
         // price and cap level and set the next round's data
         fn deploy_next_round(ref self: ContractState, l1_data: L1Data) {
             let vault_address: ContractAddress = get_contract_address();
-            let round_id: u256 = self.current_round_id.read() + 1;
+            let round_id: u64 = self.current_round_id.read() + 1;
 
             // @dev Create this round's constructor args
             let mut calldata: Array<felt252> = array![];
@@ -940,7 +941,7 @@ mod Vault {
             self: @ContractState,
             account: ContractAddress,
             account_starting_liq: u256,
-            round_id: u256
+            round_id: u64
         ) -> u256 {
             // @dev If the round is Open | Auctioning, there are no premiums/unsold liquidity yet,
             // return 0 @dev If the unlocked liquidity was moved as a deposit into the next round,
@@ -973,7 +974,7 @@ mod Vault {
             self: @ContractState,
             account: ContractAddress,
             account_starting_liq: u256,
-            round_id: u256
+            round_id: u64
         ) -> u256 {
             // @dev Return 0 if the round is not Settled
             if self.get_round_dispatcher(round_id).get_state() != OptionRoundState::Settled {

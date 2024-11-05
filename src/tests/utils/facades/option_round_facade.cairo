@@ -480,7 +480,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         self.option_round_dispatcher.contract_address
     }
 
-    fn get_round_id(ref self: OptionRoundFacade) -> u256 {
+    fn get_round_id(ref self: OptionRoundFacade) -> u64 {
         self.option_round_dispatcher.get_round_id()
     }
 

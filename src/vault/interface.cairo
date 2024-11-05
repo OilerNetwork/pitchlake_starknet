@@ -42,10 +42,10 @@ trait IVault<TContractState> {
     fn get_fossil_client_address(self: @TContractState) -> ContractAddress;
 
     // @return the current option round id
-    fn get_current_round_id(self: @TContractState) -> u256;
+    fn get_current_round_id(self: @TContractState) -> u64;
 
     // @return the contract address of the option round
-    fn get_round_address(self: @TContractState, option_round_id: u256) -> ContractAddress;
+    fn get_round_address(self: @TContractState, option_round_id: u64) -> ContractAddress;
 
     /// Liquidity
 

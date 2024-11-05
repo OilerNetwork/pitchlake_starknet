@@ -153,7 +153,7 @@ fn test_first_round_deployed_event() {
 fn test_next_round_deployed_events() {
     let (mut vault, _) = setup_facade();
 
-    for i in 1_u256
+    for i in 1_u64
         ..4 {
             let mut round_i = vault.get_current_round();
             accelerate_to_auctioning(ref vault);

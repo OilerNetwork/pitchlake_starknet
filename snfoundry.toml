@@ -1,12 +1,20 @@
-#[sncast.default]
-#url = "http://127.0.0.1:6060"
-#network = "juno"
-#accounts-file = ".starknet_accounts/starknet_accounts.json"
-#account = "user1"
+#   [sncast.default]
+#   url = "http://127.0.0.1:6060"
+#   network = "juno"
+#   accounts-file = ".starknet_accounts/starknet_accounts.json"
+#   account = "user1"
 
+
+#   [sncast.default]
+#   url = "http://127.0.0.1:5050/rpc"
+#   network = "devnet"
+#   accounts-file = ".starknet_accounts/starknet_accounts.json"
+#   account = "user1"
 
 [sncast.default]
-url = "http://127.0.0.1:5050/rpc"
-network = "devnet"
+url = "https://starknet-sepolia.public.blastapi.io/rpc/v0_7"
+network = "alpha-sepolia"
 accounts-file = ".starknet_accounts/starknet_accounts.json"
 account = "user1"
+
+

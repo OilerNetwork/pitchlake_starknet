@@ -47,7 +47,7 @@ mod OptionRound {
         ///
         vault_address: ContractAddress,
         state: OptionRoundState,
-        round_id: u256,
+        round_id: u64,
         deployment_date: u64,
         auction_start_date: u64,
         auction_end_date: u64,
@@ -214,6 +214,7 @@ mod OptionRound {
         account: ContractAddress,
         bid_id: felt252,
         price_increase: u256,
+        bid_tree_nonce_before: u64,
         bid_tree_nonce_now: u64,
     }
 
@@ -283,7 +284,7 @@ mod OptionRound {
             self.vault_address.read()
         }
 
-        fn get_round_id(self: @ContractState) -> u256 {
+        fn get_round_id(self: @ContractState) -> u64 {
             self.round_id.read()
         }
 
@@ -680,6 +681,7 @@ mod OptionRound {
             let account = get_caller_address();
             let old_node: Node = self.bids_tree.tree.read(bid_id);
             let mut edited_bid: Bid = old_node.value;
+            let bid_tree_nonce_before = edited_bid.tree_nonce;
             assert(edited_bid.owner == account, Errors::CallerNotBidOwner);
 
             // @dev Assert caller is increasing the price of their bid
@@ -701,7 +703,11 @@ mod OptionRound {
                 .emit(
                     Event::BidUpdated(
                         BidUpdated {
-                            account, bid_id, price_increase, bid_tree_nonce_now: tree_nonce + 1,
+                            account,
+                            bid_id,
+                            price_increase,
+                            bid_tree_nonce_before,
+                            bid_tree_nonce_now: tree_nonce + 1,
                         }
                     )
                 );
@@ -883,7 +889,7 @@ mod OptionRound {
 
         // @dev Create the contract's ERC20 name and symbol
         fn generate_erc20_name_and_symbol(
-            self: @ContractState, round_id: u256
+            self: @ContractState, round_id: u64
         ) -> (ByteArray, ByteArray) {
             let name: ByteArray = format!("Pitch Lake Option Round {round_id}");
             let symbol: ByteArray = format!("PLOR{round_id}");

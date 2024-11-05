@@ -59,6 +59,7 @@ fn test_update_bid_event() {
         option_buyer,
         bid.bid_id,
         5, //Updated amount
+        bid.tree_nonce,
         current_round.get_bid_tree_nonce(),
     );
     assert(updated_bid.amount == bid_amount, 'Amount shd not change');

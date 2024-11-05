@@ -114,12 +114,15 @@ fn assert_event_auction_bid_updated(
     account: ContractAddress,
     bid_id: felt252,
     price_increase: u256,
+    bid_tree_nonce_before: u64,
     bid_tree_nonce_now: u64,
 ) {
     match pop_log::<OptionRound::Event>(contract) {
         Option::Some(e) => {
             let expected = OptionRound::Event::BidUpdated(
-                OptionRound::BidUpdated { account, bid_id, price_increase, bid_tree_nonce_now }
+                OptionRound::BidUpdated {
+                    account, bid_id, price_increase, bid_tree_nonce_before, bid_tree_nonce_now
+                }
             );
             assert_events_equal(e, expected);
         },
@@ -262,7 +265,7 @@ fn assert_event_transfer(
 
 fn assert_event_option_round_deployed(
     contract: ContractAddress,
-    round_id: u256,
+    round_id: u64,
     address: ContractAddress,
     auction_start_date: u64,
     auction_end_date: u64,
@@ -288,7 +291,7 @@ fn assert_event_option_round_deployed(
 // Test OptionRoundCreated event emits correctly
 fn assert_event_option_round_deployed_single(
     contract: ContractAddress,
-    round_id: u256,
+    round_id: u64,
     address: ContractAddress,
     auction_start_date: u64,
     auction_end_date: u64,
@@ -378,6 +381,7 @@ fn assert_event_withdrawal_queued(
     vault: ContractAddress,
     account: ContractAddress,
     bps: u128,
+    round_id: u64,
     account_queued_liquidity_now: u256,
     vault_queued_liquidity_now: u256
 ) {
@@ -385,7 +389,7 @@ fn assert_event_withdrawal_queued(
         Option::Some(e) => {
             let expected = Vault::Event::WithdrawalQueued(
                 Vault::WithdrawalQueued {
-                    account, bps, account_queued_liquidity_now, vault_queued_liquidity_now
+                    account, bps, round_id, account_queued_liquidity_now, vault_queued_liquidity_now
                 }
             );
 
