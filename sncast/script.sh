@@ -1,27 +1,28 @@
 #!/bin/bash
 
 cd argent
-FOSSIL_PROCESSOR=$(grep '^PRE_FUNDED_WALLET_ADDRESS=' .env | cut -d '=' -f2 | tr -d '"')
+FOSSIL_PROCESSOR=$(grep '^FOSSIL_PROCESSOR=' .env | cut -d '=' -f2 | tr -d '"')
 echo "Fossil processor address: $FOSSIL_PROCESSOR"
 cd ../
 
 # Declare Contracts
 echo "Declaring contracts..."
-sleep 2
-OUTPUT1=$(sncast declare -c FossilClient --fee-token eth)
-FOSSIL_CLASS_HASH=$(echo "$OUTPUT1" | awk '/class_hash:/ {print $2}')
+#   sleep 2
+#   OUTPUT1=$(sncast declare -c FossilClient --fee-token eth)
+#   FOSSIL_CLASS_HASH=$(echo "$OUTPUT1" | awk '/class_hash:/ {print $2}')
+FOSSIL_CLASS_HASH=0x0711b785a4c9741c731b01a7487e3aaaf73acb2d9da9f68704a06a39baa4f1b6
 CONSTRUCTOR_CALLDATA=$(echo "$OUTPUT1" | awk '/constructor_calldata:/ {print $2}')
 #echo "Fossil client clash hash: $FOSSIL_CLASS_HASH"
 
-sleep 2
-OUTPUT2=$(sncast declare -c OptionRound --fee-token eth)
-OPTION_ROUND_CLASS_HASH=$(echo "$OUTPUT2" | awk '/class_hash:/ {print $2}')
-#echo "Option round clash hash: $OPTION_ROUND_CLASS_HASH"
+#   sleep 2
+#   OUTPUT2=$(sncast declare -c OptionRound --fee-token eth)
+#   OPTION_ROUND_CLASS_HASH=$(echo "$OUTPUT2" | awk '/class_hash:/ {print $2}')
+OPTION_ROUND_CLASS_HASH=0x1125dca25aa13f10c7c929bef4ea39ff68672b2abc93cdce2f27c7c66ac0365
 
-sleep 2
-OUTPUT3=$(sncast declare -c Vault --fee-token eth)
-VAULT_CLASS_HASH=$(echo "$OUTPUT3" | awk '/class_hash:/ {print $2}')
-#echo "Vault clash hash: $VAULT_CLASS_HASH"
+#   sleep 2
+#   OUTPUT3=$(sncast declare -c Vault --fee-token eth)
+#   VAULT_CLASS_HASH=$(echo "$OUTPUT3" | awk '/class_hash:/ {print $2}')
+VAULT_CLASS_HASH=0x0740110b337e39f3c1099a89faf4fcac867442b21a81c490b98897f682cc7ae4
 
 # Deploy contracts
 echo "Deploying contracts..."
