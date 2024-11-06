@@ -37,11 +37,6 @@ RUN apt-get update && apt-get install -y \
     curl \
     libssl-dev 
 
-    # build-essential \
-    # pkg-config \
-    # git \
-    # && rm -rf /var/lib/apt/lists/*
-
 # Install Scarb
 ENV PATH="$PATH:/root/.local/bin"
 RUN curl --proto '=https' --tlsv1.2 -sSf https://docs.swmansion.com/scarb/install.sh | bash -s -- -v $SCARB_VERSION
@@ -49,7 +44,6 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://docs.swmansion.com/scarb/instal
 # Install Starkli
 ENV PATH="$PATH:/root/.starkli/bin"
 RUN curl https://get.starkli.sh | bash
-# RUN . /root/.starkli/env
 RUN starkliup
 
 WORKDIR /contracts
