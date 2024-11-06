@@ -166,6 +166,7 @@ mod Vault {
         account: ContractAddress,
         bps: u128,
         round_id: u64,
+        account_queued_liquidity_before: u256,
         account_queued_liquidity_now: u256,
         vault_queued_liquidity_now: u256,
     }
@@ -499,13 +500,13 @@ mod Vault {
                 .entry(get_contract_address())
                 .entry(current_round_id)
                 .read();
-            let account_previously_queued_liquidity = self
+            let account_queued_liquidity_before = self
                 .queued_liquidity
                 .entry(account)
                 .entry(current_round_id)
                 .read();
             let vault_queued_liquidity_now = vault_previously_queued_liquidity
-                - account_previously_queued_liquidity
+                - account_queued_liquidity_before
                 + account_queued_liquidity_now;
 
             // @dev Update the vault and account's queued liquidity
@@ -526,7 +527,7 @@ mod Vault {
                 .emit(
                     Event::WithdrawalQueued(
                         WithdrawalQueued {
-                            account, bps, round_id: current_round_id, account_queued_liquidity_now, vault_queued_liquidity_now
+                            account, bps, round_id: current_round_id, account_queued_liquidity_before, account_queued_liquidity_now, vault_queued_liquidity_now
                         }
                     )
                 );

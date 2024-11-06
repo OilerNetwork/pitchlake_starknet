@@ -382,6 +382,7 @@ fn assert_event_withdrawal_queued(
     account: ContractAddress,
     bps: u128,
     round_id: u64,
+    account_queued_liquidity_before: u256,
     account_queued_liquidity_now: u256,
     vault_queued_liquidity_now: u256
 ) {
@@ -389,7 +390,7 @@ fn assert_event_withdrawal_queued(
         Option::Some(e) => {
             let expected = Vault::Event::WithdrawalQueued(
                 Vault::WithdrawalQueued {
-                    account, bps, round_id, account_queued_liquidity_now, vault_queued_liquidity_now
+                    account, bps, round_id, account_queued_liquidity_before, account_queued_liquidity_now, vault_queued_liquidity_now
                 }
             );
 
