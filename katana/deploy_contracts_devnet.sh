@@ -3,48 +3,45 @@
 # Ensure the script stops on the first error
 set -e
 
-# Check if deployment_addresses.env exists
-if [ -f "deployment_addresses.env" ]; then
-    echo "deployment_addresses.env already exists. Exiting..."
-    exit 0
-fi
-
-
 # Print environment variables
 echo "Environment variables:"
 echo "STARKNET_ACCOUNT: $STARKNET_ACCOUNT"
 echo "STARKNET_PRIVATE_KEY: ${STARKNET_PRIVATE_KEY:0:10}..." # Only show first 10 characters for security
 echo "STARKNET_RPC: $STARKNET_RPC"
 
+# Check if environment variables exist
+if [ -z "$STARKNET_ACCOUNT" ] || [ -z "$STARKNET_PRIVATE_KEY" ] || [ -z "$STARKNET_RPC" ]; then
+    echo "Error: One or more required environment variables are missing."
+    exit 1
+fi
+
 # Check if all required arguments are provided
 if [ $# -ne 3 ]; then
-    echo "Usage: $0 <ETH_RECEIVER_ADDRESS> <FOSSIL_PROCESSOR_ADDRESS> <VAULT_ROUND_DURATION>"
+    echo "Usage: $0 <SIGNER_ADDRESS> <FOSSIL_PROCESSOR_ADDRESS> <VAULT_ROUND_DURATION>"
     exit 1
 fi
 
 # Assign command line arguments to variables
-ETH_RECEIVER_ADDRESS=$1
+SIGNER_ADDRESS=$1
 FOSSIL_PROCESSOR_ADDRESS=$2
 VAULT_ROUND_DURATION=$3
 
-# Validate the arguments
-if [ -z "$ETH_RECEIVER_ADDRESS" ]; then
-    echo "Error: ETH_RECEIVER_ADDRESS is not provided."
-    exit 1
+# Check if deployment_addresses.env exists
+if [ -f "deployment_addresses.env" ]; then
+    echo "Contracts already deployed"
+    echo "Deployment addresses:"
+    cat deployment_addresses.env
+    echo "Exiting..."
+    exit 0
 fi
-echo "ETH receiver address: $ETH_RECEIVER_ADDRESS"
 
-if [ -z "$FOSSIL_PROCESSOR_ADDRESS" ]; then
-    echo "Error: FOSSIL_PROCESSOR_ADDRESS is not provided."
-    exit 1
+# Check if the account file already exists
+if [ -f "$STARKNET_ACCOUNT" ]; then
+    echo "Account file at $STARKNET_ACCOUNT already exists. Reading file..."
+    exit 0
 fi
-echo "Fossil Processor address: $FOSSIL_PROCESSOR_ADDRESS"
 
-if [ -z "$VAULT_ROUND_DURATION" ]; then
-    echo "Error: VAULT_ROUND_DURATION is not provided."
-    exit 1
-fi
-echo "Vault Round Duration: $VAULT_ROUND_DURATION"
+starkli account fetch $SIGNER_ADDRESS --output $STARKNET_ACCOUNT
 
 # Declare the ETH contract
 sleep 2
@@ -53,7 +50,7 @@ echo "[ETH] Class hash declared"
 
 # Deploy the ETH contract
 sleep 2
-ETH_ADDRESS=$(starkli deploy $ETH_HASH 1000000000000000000000 0 $ETH_RECEIVER_ADDRESS --salt 1 | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
+ETH_ADDRESS=$(starkli deploy $ETH_HASH 1000000000000000000000 0 $SIGNER_ADDRESS --salt 1 | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
 echo "[ETH] Contract deployed"
 
 # Declare the first contract

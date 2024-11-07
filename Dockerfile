@@ -54,6 +54,6 @@ COPY . .
 RUN scarb build
 
 # Create account file using starkli
-CMD bash -c "starkli account fetch $SIGNER_ADDRESS --output $STARKNET_ACCOUNT && \
-chmod +x ./katana/deploy_contracts_devnet.sh && \
-./katana/deploy_contracts_devnet.sh $SIGNER_ADDRESS $FOSSIL_PROCESSOR_ADDRESS $VAULT_ROUND_DURATION"
+CMD bash -c " cd katana && \
+ chmod +x ./deploy_contracts_devnet.sh && \
+ ./deploy_contracts_devnet.sh $SIGNER_ADDRESS $FOSSIL_PROCESSOR_ADDRESS $VAULT_ROUND_DURATION"
