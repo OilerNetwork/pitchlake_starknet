@@ -25,12 +25,15 @@ if [ $# -ne 3 ]; then
     exit 1
 fi
 
+starkli account fetch $SIGNER_ADDRESS --output $STARKNET_ACCOUNT
+
 # Deploy Argent wallet
 ARGENT_HASH=$(starkli declare --watch argent_ArgentAccount.contract_class.json --compiler-version 2.8.2 | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
 echo "[Argent Wallet] Class hash declared: $ARGENT_HASH"
 
 if starkli class-hash-at $ADDRESS; then
     echo "Argent wallet already deployed at $ADDRESS"
+    exit 1
 fi
 
 DEPLOYED_ARGENT_ADDRESS=$(starkli deploy --watch $ARGENT_HASH 0 $ARG1 1 --salt $SALT --not-unique | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
