@@ -78,6 +78,17 @@ sleep 2
 VAULT_ADDRESS=$(starkli deploy $VAULT_HASH $FOSSILCLIENT_ADDRESS $ETH_ADDRESS $OPTIONROUND_HASH $VAULT_ROUND_DURATION 0 --salt 1 | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
 echo "[Vault] Contract deployed"
 
+
+# Set pricing data for first round to start
+echo "Fulfilling 1st round job request..."
+sleep 2
+OUTPUT6=$(starkli call $VAULT_ADDRESS get_request_to_start_first_round)
+CALLDATA1=$(echo "$OUTPUT6" | tr -d '[]"' | tr ',' ' ' | tr -s '[:space:]' | sed 's/^ *//; s/ *$//')
+echo $CALLDATA1
+sleep 2
+starkli invoke --watch $FOSSILCLIENT_ADDRESS fossil_callback $CALLDATA1 0x6 0x02540be400 0x00 0x0d05 0x77359400 0x00 0x00
+echo "Finished"
+
 {
     echo "ETH_ADDRESS=$ETH_ADDRESS"
     echo "FOSSILCLIENT_ADDRESS=$FOSSILCLIENT_ADDRESS"
