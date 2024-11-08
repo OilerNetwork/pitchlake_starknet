@@ -35,11 +35,7 @@ ENV VAULT_ROUND_DURATION=$VAULT_ROUND_DURATION
 # Install necessary dependencies
 RUN apt-get update && apt-get install -y \
     curl \
-    build-essential \
-    pkg-config \
-    libssl-dev \
-    git \
-    && rm -rf /var/lib/apt/lists/*
+    libssl-dev 
 
 # Install Scarb
 ENV PATH="$PATH:/root/.local/bin"
@@ -48,12 +44,9 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://docs.swmansion.com/scarb/instal
 # Install Starkli
 ENV PATH="$PATH:/root/.starkli/bin"
 RUN curl https://get.starkli.sh | bash
-# RUN . /root/.starkli/env
 RUN starkliup
 
-# Set working directory
 WORKDIR /contracts
-
 # Copy project files
 COPY . .
 
@@ -61,10 +54,6 @@ COPY . .
 RUN scarb build
 
 # Create account file using starkli
-RUN starkli account fetch $SIGNER_ADDRESS --output $STARKNET_ACCOUNT
-
-# Make the deployment script executable
-RUN chmod +x ./katana/deploy_contracts_devnet.sh
-
-# Set the command to run the deployment script and then display the contract addresses
-CMD ["bash", "-c", "./katana/deploy_contracts_devnet.sh $SIGNER_ADDRESS $FOSSIL_PROCESSOR_ADDRESS $VAULT_ROUND_DURATION"]
+CMD bash -c " cd katana && \
+ chmod +x ./deploy_contracts_devnet.sh && \
+ ./deploy_contracts_devnet.sh $SIGNER_ADDRESS $FOSSIL_PROCESSOR_ADDRESS $VAULT_ROUND_DURATION"
