@@ -14,8 +14,8 @@ const BPS_felt252: felt252 = 10_000;
 
 // Testing
 const ROUND_TRANSITION_PERIOD: u64 = 1 * MINUTE;
-const AUCTION_RUN_TIME: u64 = 10 * MINUTE;
-const OPTION_RUN_TIME: u64 = 5 * MINUTE;
+const AUCTION_RUN_TIME: u64 = 1 * MINUTE;
+const OPTION_RUN_TIME: u64 = 1 * MINUTE;
 
 // Realistic
 // const ROUND_TRANSITION_PERIOD: u64 = 1 * HOUR;
