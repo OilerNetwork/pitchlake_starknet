@@ -1,5 +1,11 @@
 # Declare Argent contract
 
+echo 
+echo "============================"
+echo "Deploy Argent Account"
+echo "============================"
+echo 
+
 # Check required environment variables
 if [ -z "$STARKNET_ACCOUNT" ] || [ -z "$STARKNET_RPC" ] || [ -z "$STARKNET_PRIVATE_KEY" ]; then
     echo "Error: Required environment variables not set"
@@ -25,7 +31,9 @@ if [ $# -ne 3 ]; then
     exit 1
 fi
 
-starkli account fetch $SIGNER_ADDRESS --output $STARKNET_ACCOUNT
+if [ ! -f "$STARKNET_ACCOUNT" ]; then
+    starkli account fetch $SIGNER_ADDRESS --output $STARKNET_ACCOUNT
+fi
 
 # Deploy Argent wallet
 ARGENT_HASH=$(starkli declare --watch argent_ArgentAccount.contract_class.json --compiler-version 2.8.2 | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
@@ -33,19 +41,18 @@ echo "[Argent Wallet] Class hash declared: $ARGENT_HASH"
 
 if starkli class-hash-at $ADDRESS; then
     echo "Argent wallet already deployed at $ADDRESS"
-    exit 1
+else
+    DEPLOYED_ARGENT_ADDRESS=$(starkli deploy --watch $ARGENT_HASH 0 $ARG1 1 --salt $SALT --not-unique | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
+
+    echo "Expected wallet address: $ADDRESS"
+    echo "Deployed wallet address: $DEPLOYED_ARGENT_ADDRESS"
+
+    # Verify addresses match
+    if [ "$ADDRESS" != "$DEPLOYED_ARGENT_ADDRESS" ]; then
+        echo "Error: Deployed address does not match expected address"
+        exit 1
+    fi
+
+    # OUTPUT=$(starkli invoke --watch 0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7 transfer $ADDRESS 10000 0)
+    # echo "Funded wallet $OUTPUT"
 fi
-
-DEPLOYED_ARGENT_ADDRESS=$(starkli deploy --watch $ARGENT_HASH 0 $ARG1 1 --salt $SALT --not-unique | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
-
-echo "Expected wallet address: $ADDRESS"
-echo "Deployed wallet address: $DEPLOYED_ARGENT_ADDRESS"
-
-# Verify addresses match
-if [ "$ADDRESS" != "$DEPLOYED_ARGENT_ADDRESS" ]; then
-    echo "Error: Deployed address does not match expected address"
-    exit 1
-fi
-
-# OUTPUT=$(starkli invoke --watch 0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7 transfer $ADDRESS 10000 0)
-# echo "Funded wallet $OUTPUT"
