@@ -28,7 +28,7 @@ echo "Class hash declared: $VAULT_HASH"
 
 # Deploy the third contract with additional parameters and salt
 echo "Deploying pitch_lake_Vault contract..."
-VAULT_ADDRESS=$(starkli deploy $VAULT_HASH $FOSSILCLIENT_ADDRESS 0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7 $OPTIONROUND_HASH 5555 0 --salt 1 | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
+VAULT_ADDRESS=$(starkli deploy $VAULT_HASH $FOSSILCLIENT_ADDRESS 0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7 $OPTIONROUND_HASH $VAULT_ALPHA $VAULT_STRIKE --salt 1 | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
 echo "Contract deployed at: $VAULT_ADDRESS"
 
 # Perform the first call to get the round address

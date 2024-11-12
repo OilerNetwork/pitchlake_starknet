@@ -11,34 +11,39 @@ echo "STARKNET_RPC: $STARKNET_RPC"
 
 # Check if environment variables exist
 if [ -z "$STARKNET_ACCOUNT" ] || [ -z "$STARKNET_PRIVATE_KEY" ] || [ -z "$STARKNET_RPC" ]; then
-    echo "Error: One or more required environment variables are missing."
-    exit 1
+	echo "Error: One or more required environment variables are missing."
+	exit 1
 fi
 
 # Check if all required arguments are provided
-if [ $# -ne 3 ]; then
-    echo "Usage: $0 <SIGNER_ADDRESS> <FOSSIL_PROCESSOR_ADDRESS> <VAULT_ROUND_DURATION>"
-    exit 1
+if [ $# -ne 4 ]; then
+	echo "Usage: $0 <SIGNER_ADDRESS> <FOSSIL_PROCESSOR_ADDRESS> <VAULT_ALPHA> <VAULT_STRIKE>"
+	exit 1
 fi
 
 # Assign command line arguments to variables
 SIGNER_ADDRESS=$1
 FOSSIL_PROCESSOR_ADDRESS=$2
-VAULT_ROUND_DURATION=$3
+VAULT_ALPHA=$3
+VAULT_STRIKE=$4
+
+echo "RM"
+echo "RM: $STRIKE_ALPHA"
+echo "RM: $STRIKE_LEVEL"
 
 # Check if deployment_addresses.env exists
 if [ -f "deployment_addresses.env" ]; then
-    echo "Contracts already deployed"
-    echo "Deployment addresses:"
-    cat deployment_addresses.env
-    echo "Exiting..."
-    exit 0
+	echo "Contracts already deployed"
+	echo "Deployment addresses:"
+	cat deployment_addresses.env
+	echo "Exiting..."
+	exit 0
 fi
 
 # Check if the account file already exists
 if [ -f "$STARKNET_ACCOUNT" ]; then
-    echo "Account file at $STARKNET_ACCOUNT already exists. Reading file..."
-    exit 0
+	echo "Account file at $STARKNET_ACCOUNT already exists. Reading file..."
+	exit 0
 fi
 
 starkli account fetch $SIGNER_ADDRESS --output $STARKNET_ACCOUNT
@@ -75,9 +80,8 @@ echo "[Vault] Class hash declared"
 
 # Deploy the third contract with additional parameters and salt
 sleep 2
-VAULT_ADDRESS=$(starkli deploy $VAULT_HASH $FOSSILCLIENT_ADDRESS $ETH_ADDRESS $OPTIONROUND_HASH $VAULT_ROUND_DURATION 0 --salt 1 | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
+VAULT_ADDRESS=$(starkli deploy $VAULT_HASH $FOSSILCLIENT_ADDRESS $ETH_ADDRESS $OPTIONROUND_HASH $VAULT_ALPHA $VAULT_STRIKE --salt 1 | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
 echo "[Vault] Contract deployed"
-
 
 # Set pricing data for first round to start
 echo "Fulfilling 1st round job request..."
@@ -90,10 +94,10 @@ starkli invoke --watch $FOSSILCLIENT_ADDRESS fossil_callback $CALLDATA1 0x6 0x02
 echo "Finished"
 
 {
-    echo "ETH_ADDRESS=$ETH_ADDRESS"
-    echo "FOSSILCLIENT_ADDRESS=$FOSSILCLIENT_ADDRESS"
-    echo "VAULT_ADDRESS=$VAULT_ADDRESS"
-} > deployment_addresses.env
+	echo "ETH_ADDRESS=$ETH_ADDRESS"
+	echo "FOSSILCLIENT_ADDRESS=$FOSSILCLIENT_ADDRESS"
+	echo "VAULT_ADDRESS=$VAULT_ADDRESS"
+} >deployment_addresses.env
 
 echo "Deployment addresses"
 cat deployment_addresses.env
