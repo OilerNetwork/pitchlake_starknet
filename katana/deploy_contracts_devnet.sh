@@ -3,6 +3,12 @@
 # Ensure the script stops on the first error
 set -e
 
+echo 
+echo "============================"
+echo "Deploy Pitchlake Contracts"
+echo "============================"
+echo 
+
 # Print environment variables
 echo "Environment variables:"
 echo "STARKNET_ACCOUNT: $STARKNET_ACCOUNT"
@@ -37,12 +43,11 @@ if [ -f "deployment_addresses.env" ]; then
 fi
 
 # Check if the account file already exists
-if [ -f "$STARKNET_ACCOUNT" ]; then
-	echo "Account file at $STARKNET_ACCOUNT already exists. Reading file..."
-	exit 0
+if [ ! -f "$STARKNET_ACCOUNT" ]; then
+    starkli account fetch $SIGNER_ADDRESS --output $STARKNET_ACCOUNT
+else 
+    echo "Acount config already exists at path $STARKNET_ACCOUNT"
 fi
-
-starkli account fetch $SIGNER_ADDRESS --output $STARKNET_ACCOUNT
 
 # Declare the ETH contract
 sleep 2
