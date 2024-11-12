@@ -12,8 +12,8 @@
 #   account = "user1"
 
 [sncast.default]
-url = "https://starknet-sepolia.public.blastapi.io/rpc/v0_7"
-network = "alpha-sepolia"
+url = "http://localhost:6060"
+network = "SN_JUNO_SEQUENCER"
 accounts-file = ".starknet_accounts/starknet_accounts.json"
 account = "user1"
 
