@@ -27,10 +27,6 @@ FOSSIL_PROCESSOR_ADDRESS=$2
 VAULT_ALPHA=$3
 VAULT_STRIKE=$4
 
-echo "RM"
-echo "RM: $STRIKE_ALPHA"
-echo "RM: $STRIKE_LEVEL"
-
 # Check if deployment_addresses.env exists
 if [ -f "deployment_addresses.env" ]; then
 	echo "Contracts already deployed"
