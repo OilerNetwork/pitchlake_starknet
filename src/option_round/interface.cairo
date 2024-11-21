@@ -23,7 +23,10 @@ struct PricingData {
 struct ConstructorArgs {
     vault_address: ContractAddress,
     round_id: u64,
-    pricing_data: PricingData
+    pricing_data: PricingData,
+    round_transition_duration: u64,
+    auction_duration: u64,
+    round_duration: u64,
 }
 
 // The interface for an option round contract
