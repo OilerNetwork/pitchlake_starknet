@@ -52,7 +52,7 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://docs.swmansion.com/scarb/instal
 
 # Install Starkli
 ENV PATH="$PATH:/root/.starkli/bin"
-RUN curl https://get.starkli.sh | bash
+RUN curl https://get.starkli.sh | sh
 RUN starkliup
 
 WORKDIR /contracts

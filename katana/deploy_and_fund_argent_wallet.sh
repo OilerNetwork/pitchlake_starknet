@@ -53,6 +53,6 @@ else
         exit 1
     fi
 
-    # OUTPUT=$(starkli invoke --watch 0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7 transfer $ADDRESS 10000 0)
-    # echo "Funded wallet $OUTPUT"
+    OUTPUT=$(starkli invoke --watch 0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7 transfer $ADDRESS 10000 0)
+    echo "Funded wallet $OUTPUT"
 fi
