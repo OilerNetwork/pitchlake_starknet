@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - feat/workflow
   pull_request:
     branches:
       - main
