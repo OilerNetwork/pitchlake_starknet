@@ -24,6 +24,14 @@ jobs:
         uses: software-mansion/setup-scarb@v1
         with:
           tool-versions: .tool-versions
+      
+      - name: Check Build
+        run: |
+          scarb build
+
+      - name: Check Formatting
+        run: |
+          scarb fmt --check
 
       - name: Test the code
         run: |
