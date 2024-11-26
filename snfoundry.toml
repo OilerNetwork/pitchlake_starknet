@@ -5,17 +5,17 @@
 #   account = "user1"
 
 
-#   [sncast.default]
-#   url = "http://127.0.0.1:5050/rpc"
-#   network = "devnet"
-#   accounts-file = ".starknet_accounts/starknet_accounts.json"
-#   account = "user1"
+# [sncast.default]
+# url = "http://127.0.0.1:5050/rpc"
+# network = "KATANA"
+# accounts-file = ".starknet_accounts/starknet_accounts.json"
+# account = "user1"
 
 [sncast.default]
 #url = "http://localhost:6060"
-#url = "https://starknet-sepolia.public.blastapi.io/rpc/v0_7"
-url = "http://localhost:6060/rpc"
-network = "juno"
+url = "https://starknet-sepolia.public.blastapi.io/rpc/v0_7"
+#url = "http://localhost:6060/rpc"
+#network = "juno"
 accounts-file = ".starknet_accounts/starknet_accounts.json"
 account = "user1"
 
