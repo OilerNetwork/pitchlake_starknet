@@ -125,6 +125,39 @@ export const ABI = [
       },
       {
         "type": "function",
+        "name": "get_round_transition_duration",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::u64"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_auction_duration",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::u64"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
+        "name": "get_round_duration",
+        "inputs": [],
+        "outputs": [
+          {
+            "type": "core::integer::u64"
+          }
+        ],
+        "state_mutability": "view"
+      },
+      {
+        "type": "function",
         "name": "get_current_round_id",
         "inputs": [],
         "outputs": [
@@ -445,6 +478,18 @@ export const ABI = [
       {
         "name": "strike_level",
         "type": "core::integer::i128"
+      },
+      {
+        "name": "round_transition_duration",
+        "type": "core::integer::u64"
+      },
+      {
+        "name": "auction_duration",
+        "type": "core::integer::u64"
+      },
+      {
+        "name": "round_duration",
+        "type": "core::integer::u64"
       }
     ]
   },
@@ -530,6 +575,11 @@ export const ABI = [
       {
         "name": "round_id",
         "type": "core::integer::u64",
+        "kind": "data"
+      },
+      {
+        "name": "account_queued_liquidity_before",
+        "type": "core::integer::u256",
         "kind": "data"
       },
       {
