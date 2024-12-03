@@ -64,7 +64,7 @@ trait IOptionRound<TContractState> {
     fn get_strike_price(self: @TContractState) -> u256;
 
     // @dev The percentage points (BPS) above the TWAP to cap the payout per option
-    // @note E.g. 3333 tranlates to a capped payout of 33.33% above the settlement price
+    // @note E.g. 3333 tranlates to a capped payout of 33.33% above the strike price
     fn get_cap_level(self: @TContractState) -> u128;
 
     // @dev The total ETH locked at the start of the auction

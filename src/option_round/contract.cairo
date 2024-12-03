@@ -156,6 +156,8 @@ mod OptionRound {
         ERC20Event: ERC20Component::Event,
     }
 
+    // @dev Emitted when the pricing data is set
+    // @member pricing_data: The pricing data (strike price, cap level, reserve price)
     #[derive(Drop, starknet::Event, PartialEq)]
     struct PricingDataSet {
         pricing_data: PricingData,
@@ -518,7 +520,6 @@ mod OptionRound {
 
         /// State transition
 
-        // @note todo: only if round 1
         fn set_pricing_data(ref self: ContractState, pricing_data: PricingData) {
             // @dev Assert the caller is the vault
             self.assert_caller_is_vault();
