@@ -25,7 +25,7 @@ if [ -z "$STARKNET_ACCOUNT" ] || [ -z "$STARKNET_PRIVATE_KEY" ] || [ -z "$STARKN
 fi
 
 # Check if all required arguments are provided
-if [ $# -ne 4 ]; then
+if [ $# -ne 7 ]; then
 	echo "Usage: $0 <SIGNER_ADDRESS> <FOSSIL_PROCESSOR_ADDRESS> <VAULT_ALPHA> <VAULT_STRIKE> <ROUND_TRANSITION_DURATION> <AUCTION_DURATION> <ROUND_DURATION>"
 	exit 1
 fi
@@ -68,32 +68,27 @@ ETH_ADDRESS="0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7"
 
 # Declare the first contract
 sleep 2
-FOSSILCLIENT_HASH=$(starkli declare ../target/dev/pitch_lake_FossilClient.contract_class.json --compiler-version $COMPILER_VERSION | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
+FOSSILCLIENT_HASH=$(starkli declare ../target/dev/pitch_lake_FossilClient.contract_class.json --compiler-version $COMPILER_VERSION --watch | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
 echo "[Fossil Client] Class hash declared"
 
 # Deploy the first contract with salt and FOSSIL_PROCESSOR_ADDRESS
-sleep 2
-FOSSILCLIENT_ADDRESS=$(starkli deploy $FOSSILCLIENT_HASH $FOSSIL_PROCESSOR_ADDRESS --salt 1 | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
+FOSSILCLIENT_ADDRESS=$(starkli deploy $FOSSILCLIENT_HASH $FOSSIL_PROCESSOR_ADDRESS --salt 1 --watch| grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
 echo "[Fossil Client] Contract deployed"
 
 # Declare the second contract
-sleep 2
-OPTIONROUND_HASH=$(starkli declare ../target/dev/pitch_lake_OptionRound.contract_class.json --compiler-version $COMPILER_VERSION | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
+OPTIONROUND_HASH=$(starkli declare ../target/dev/pitch_lake_OptionRound.contract_class.json --compiler-version $COMPILER_VERSION --watch | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
 echo "[Option Round] Class hash declared"
 
 # Declare the third contract
-sleep 2
-VAULT_HASH=$(starkli declare ../target/dev/pitch_lake_Vault.contract_class.json --compiler-version $COMPILER_VERSION | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
+VAULT_HASH=$(starkli declare ../target/dev/pitch_lake_Vault.contract_class.json --compiler-version $COMPILER_VERSION --watch | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
 echo "[Vault] Class hash declared"
 
 # Deploy the third contract with additional parameters and salt
-sleep 2
-VAULT_ADDRESS=$(starkli deploy $VAULT_HASH $FOSSILCLIENT_ADDRESS $ETH_ADDRESS $OPTIONROUND_HASH $VAULT_ALPHA $VAULT_STRIKE $ROUND_TRANSITION_DURATION $AUCTION_DURATION $ROUND_DURATION --salt 1 | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
+VAULT_ADDRESS=$(starkli deploy $VAULT_HASH $FOSSILCLIENT_ADDRESS $ETH_ADDRESS $OPTIONROUND_HASH $VAULT_ALPHA $VAULT_STRIKE $ROUND_TRANSITION_DURATION $AUCTION_DURATION $ROUND_DURATION --salt 1 --watch | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
 echo "[Vault] Contract deployed"
 
 # Set pricing data for first round to start
 echo "Fulfilling 1st round job request..."
-sleep 2
 OUTPUT6=$(starkli call $VAULT_ADDRESS get_request_to_start_first_round)
 CALLDATA1=$(echo "$OUTPUT6" | tr -d '[]"' | tr ',' ' ' | tr -s '[:space:]' | sed 's/^ *//; s/ *$//')
 echo $CALLDATA1
