@@ -12,7 +12,7 @@ use openzeppelin_token::erc20::{
 use pitch_lake::fossil_client::interface::{JobRequest, FossilResult, L1Data};
 use pitch_lake::fossil_client::contract::FossilClient;
 use pitch_lake::{
-    library::eth::Eth, vault::contract::Vault,
+    library::eth::Eth, vault::contract::Vault, library::constants::{MINUTE},
     vault::interface::{ConstructorArgs, VaultType, IVaultDispatcher, IVaultDispatcherTrait},
     option_round::{
         contract::OptionRound,
@@ -93,6 +93,10 @@ fn deploy_fossil_client() -> FossilClientFacade {
     return FossilClientFacade { contract_address };
 }
 
+const ROUND_TRANSITION_DURATION: u64= 3 * MINUTE;
+const AUCTION_DURATION: u64= 3 * MINUTE;
+const ROUND_DURATION: u64= 3 * MINUTE;
+
 
 // Deploy the vault and fossil client
 fn deploy_vault_with_events(
@@ -106,6 +110,9 @@ fn deploy_vault_with_events(
         option_round_class_hash: OptionRound::TEST_CLASS_HASH.try_into().unwrap(),
         alpha, // risk factor for vault
         strike_level, // strike price for r1 is settlement price of r0
+        round_transition_duration: ROUND_TRANSITION_DURATION,
+        auction_duration: AUCTION_DURATION,
+        round_duration: ROUND_DURATION
     };
     args.serialize(ref calldata);
 

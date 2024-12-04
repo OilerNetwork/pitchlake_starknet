@@ -82,10 +82,10 @@ mod FossilClient {
             // (timestamp & program id)/outputs (l1 data)/proof
 
             // @note Skipping for now for testnet testing
-               assert(
-                   get_caller_address() == self.fossil_processor.read(),
-                   Errors::CallerNotFossilProcessor
-               );
+            assert(
+                get_caller_address() == self.fossil_processor.read(),
+                Errors::CallerNotFossilProcessor
+            );
 
             // Relay L1 data to the vault
             IVaultDispatcher { contract_address: vault_address }

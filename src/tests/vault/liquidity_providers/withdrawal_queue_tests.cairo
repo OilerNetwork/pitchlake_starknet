@@ -1074,7 +1074,13 @@ fn test_queueing_withdrawal_event() {
     let queued_amount2 = (deposit_amount * bps2.into()) / BPS_u256;
 
     assert_event_withdrawal_queued(
-        vault.contract_address(), liquidity_provider, bps2, 1, queued_amount, queued_amount2, queued_amount2
+        vault.contract_address(),
+        liquidity_provider,
+        bps2,
+        1,
+        queued_amount,
+        queued_amount2,
+        queued_amount2
     );
 }
 

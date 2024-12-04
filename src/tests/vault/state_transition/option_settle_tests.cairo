@@ -6,7 +6,7 @@ use starknet::{
 use openzeppelin_utils::serde::SerializedAppend;
 use openzeppelin_token::erc20::interface::ERC20ABIDispatcherTrait;
 use pitch_lake::{
-    library::{eth::Eth, constants::{ROUND_TRANSITION_PERIOD, AUCTION_RUN_TIME, OPTION_RUN_TIME}},
+    library::{eth::Eth},
     vault::{
         contract::Vault,
         interface::{
@@ -33,7 +33,7 @@ use pitch_lake::{
                 },
                 setup::{
                     deploy_vault_with_events, setup_facade, setup_test_auctioning_providers,
-                    setup_test_running
+                    setup_test_running, AUCTION_DURATION, ROUND_TRANSITION_DURATION, ROUND_DURATION
                 },
             },
             lib::{
@@ -126,9 +126,9 @@ fn test_first_round_deployed_event() {
     let mut current_round = vault.get_current_round();
 
     let exp_deployment_date = get_block_timestamp();
-    let exp_auction_start_date = exp_deployment_date + ROUND_TRANSITION_PERIOD;
-    let exp_auction_end_date = exp_auction_start_date + AUCTION_RUN_TIME;
-    let exp_option_settlement_date = exp_auction_end_date + OPTION_RUN_TIME;
+    let exp_auction_start_date = exp_deployment_date + ROUND_TRANSITION_DURATION;
+    let exp_auction_end_date = exp_auction_start_date + AUCTION_DURATION;
+    let exp_option_settlement_date = exp_auction_end_date + ROUND_DURATION;
 
     assert_event_option_round_deployed_single(
         vault.contract_address(),

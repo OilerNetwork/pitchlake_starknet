@@ -830,6 +830,18 @@ export const ABI = [
       {
         "name": "pricing_data",
         "type": "pitch_lake::option_round::interface::PricingData"
+      },
+      {
+        "name": "round_transition_duration",
+        "type": "core::integer::u64"
+      },
+      {
+        "name": "auction_duration",
+        "type": "core::integer::u64"
+      },
+      {
+        "name": "round_duration",
+        "type": "core::integer::u64"
       }
     ]
   },

@@ -19,6 +19,9 @@ struct ConstructorArgs {
     option_round_class_hash: ClassHash,
     alpha: u128,
     strike_level: i128,
+    round_transition_duration: u64,
+    auction_duration: u64,
+    round_duration: u64,
 }
 
 // The interface for the vault contract
@@ -41,10 +44,19 @@ trait IVault<TContractState> {
     // @dev The the Fossil Client's address
     fn get_fossil_client_address(self: @TContractState) -> ContractAddress;
 
-    // @return the current option round id
+    // @dev The number of seconds between a round deploying and its auction starting
+    fn get_round_transition_duration(self: @TContractState) -> u64;
+
+    // @dev The number of seconds a round's auction runs for
+    fn get_auction_duration(self: @TContractState) -> u64;
+
+    // @dev The number of seconds between a round's auction ending and the round settling
+    fn get_round_duration(self: @TContractState) -> u64;
+
+    // @return The current option round id
     fn get_current_round_id(self: @TContractState) -> u64;
 
-    // @return the contract address of the option round
+    // @return The contract address of the option round
     fn get_round_address(self: @TContractState, option_round_id: u64) -> ContractAddress;
 
     /// Liquidity

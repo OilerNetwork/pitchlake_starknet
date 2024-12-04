@@ -11,7 +11,6 @@ use pitch_lake::{
     option_round::{
         contract::OptionRound, interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,}
     },
-    library::constants::{ROUND_TRANSITION_PERIOD, AUCTION_RUN_TIME, OPTION_RUN_TIME},
     tests::{
         utils::{
             lib::{
@@ -255,8 +254,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     }
 
 
-    fn get_unsold_liquidity(ref self: VaultFacade,
-    round_id: u64) -> u256 {
+    fn get_unsold_liquidity(ref self: VaultFacade, round_id: u64) -> u256 {
         let contract_address = self.get_option_round_address(round_id);
         let round = IOptionRoundDispatcher { contract_address };
 
@@ -478,20 +476,17 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
 
     fn get_auction_run_time(ref self: VaultFacade) -> u64 {
-        AUCTION_RUN_TIME
-        //self.vault_dispatcher.get_auction_run_time()
+        self.vault_dispatcher.get_auction_duration()
     }
 
     fn get_option_run_time(ref self: VaultFacade) -> u64 {
-        //self.vault_dispatcher.get_option_run_time()
-        OPTION_RUN_TIME
+        self.vault_dispatcher.get_round_duration()
     }
 
     // Gets the round transition period in seconds, 3 hours is a random number for testing
     // @note TODO impl this in contract later
     fn get_round_transition_period(ref self: VaultFacade) -> u64 {
-        //self.vault_dispatcher.get_round_transition_period()
-        ROUND_TRANSITION_PERIOD
+        self.vault_dispatcher.get_round_transition_duration()
     }
 }
 

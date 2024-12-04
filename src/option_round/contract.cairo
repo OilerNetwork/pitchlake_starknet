@@ -17,9 +17,6 @@ mod OptionRound {
         max_payout_per_option, calculate_total_options_available, calculate_payout_per_option,
     };
     use pitch_lake::library::red_black_tree::{RBTreeComponent, RBTreeComponent::Node};
-    use pitch_lake::library::constants::{
-        ROUND_TRANSITION_PERIOD, AUCTION_RUN_TIME, OPTION_RUN_TIME
-    };
 
     // *************************************************************************
     //                                COMPONENTS
@@ -108,7 +105,13 @@ mod OptionRound {
     #[constructor]
     fn constructor(ref self: ContractState, args: ConstructorArgs) {
         // @dev Get the constructor arguments
-        let ConstructorArgs { vault_address, round_id, pricing_data, } = args;
+        let ConstructorArgs { vault_address,
+        round_id,
+        pricing_data,
+        round_transition_duration,
+        auction_duration,
+        round_duration, } =
+            args;
 
         // @dev Set the name and symbol for the minted option (ERC-20) tokens
         let (name, symbol) = self.generate_erc20_name_and_symbol(round_id);
@@ -116,8 +119,10 @@ mod OptionRound {
 
         // @dev Set round's dates
         let deployment_date = get_block_timestamp();
-        let (auction_start_date, auction_end_date, settlement_date) = self
-            .calculate_dates(deployment_date);
+        let auction_start_date = deployment_date + round_transition_duration;
+        let auction_end_date = auction_start_date + auction_duration;
+        let settlement_date = auction_end_date + round_duration;
+
         self.deployment_date.write(get_block_timestamp());
         self.auction_start_date.write(auction_start_date);
         self.auction_end_date.write(auction_end_date);
@@ -151,6 +156,8 @@ mod OptionRound {
         ERC20Event: ERC20Component::Event,
     }
 
+    // @dev Emitted when the pricing data is set
+    // @member pricing_data: The pricing data (strike price, cap level, reserve price)
     #[derive(Drop, starknet::Event, PartialEq)]
     struct PricingDataSet {
         pricing_data: PricingData,
@@ -513,7 +520,6 @@ mod OptionRound {
 
         /// State transition
 
-        // @note todo: only if round 1
         fn set_pricing_data(ref self: ContractState, pricing_data: PricingData) {
             // @dev Assert the caller is the vault
             self.assert_caller_is_vault();
@@ -803,14 +809,6 @@ mod OptionRound {
 
     #[generate_trait]
     impl InternalImpl of OptionRoundInternalTrait {
-        fn calculate_dates(self: @ContractState, deployment_date: u64) -> (u64, u64, u64) {
-            let auction_start_date = deployment_date + ROUND_TRANSITION_PERIOD;
-            let auction_end_date = auction_start_date + AUCTION_RUN_TIME;
-            let option_settlement_date = auction_end_date + OPTION_RUN_TIME;
-
-            (auction_start_date, auction_end_date, option_settlement_date)
-        }
-
         // @dev Transitions the round's state to `to_state` if the proper conditions are met
         fn transition_state_to(ref self: ContractState, to_state: OptionRoundState) {
             // @dev Assert the caller is the vault

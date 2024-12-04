@@ -32,6 +32,9 @@ mod Vault {
         vault_type: VaultType,
         alpha: u128,
         strike_level: i128,
+        round_transition_duration: u64,
+        auction_duration: u64,
+        round_duration: u64,
         ///
         l1_data: Map<u64, L1Data>,
         option_round_class_hash: ClassHash,
@@ -71,13 +74,19 @@ mod Vault {
         eth_address,
         option_round_class_hash,
         strike_level,
-        alpha } =
+        alpha,
+        round_transition_duration,
+        auction_duration,
+        round_duration } =
             args;
 
         // @dev Set the Vault's parameters
         self.fossil_client_address.write(fossil_client_address);
         self.eth_address.write(eth_address);
         self.option_round_class_hash.write(option_round_class_hash);
+        self.round_transition_duration.write(round_transition_duration);
+        self.auction_duration.write(auction_duration);
+        self.round_duration.write(round_duration);
 
         // @dev Alpha is between 0.01% and 100.00%
         assert(alpha.is_non_zero() && alpha <= BPS_u128, Errors::AlphaOutOfRange);
@@ -241,6 +250,20 @@ mod Vault {
         fn get_strike_level(self: @ContractState) -> i128 {
             self.strike_level.read()
         }
+
+        fn get_round_transition_duration(self: @ContractState) -> u64 {
+            self.round_transition_duration.read()
+        }
+
+        fn get_auction_duration(self: @ContractState) -> u64 {
+            self.auction_duration.read()
+        }
+
+        fn get_round_duration(self: @ContractState) -> u64 {
+            self.round_duration.read()
+        }
+
+
         fn get_round_address(self: @ContractState, option_round_id: u64) -> ContractAddress {
             self.round_addresses.read(option_round_id)
         }
@@ -527,7 +550,12 @@ mod Vault {
                 .emit(
                     Event::WithdrawalQueued(
                         WithdrawalQueued {
-                            account, bps, round_id: current_round_id, account_queued_liquidity_before, account_queued_liquidity_now, vault_queued_liquidity_now
+                            account,
+                            bps,
+                            round_id: current_round_id,
+                            account_queued_liquidity_before,
+                            account_queued_liquidity_now,
+                            vault_queued_liquidity_now
                         }
                     )
                 );
@@ -765,8 +793,18 @@ mod Vault {
             // @dev Create this round's constructor args
             let mut calldata: Array<felt252> = array![];
             let pricing_data = self.convert_l1_data_to_round_data(l1_data);
+
+            let round_transition_duration = self.round_transition_duration.read();
+            let auction_duration = self.auction_duration.read();
+            let round_duration = self.round_duration.read();
+
             let constructor_args = OptionRoundConstructorArgs {
-                vault_address, round_id, pricing_data
+                vault_address,
+                round_id,
+                pricing_data,
+                round_transition_duration,
+                auction_duration,
+                round_duration
             };
             calldata.append_serde(constructor_args);
 
