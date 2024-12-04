@@ -4,7 +4,7 @@ SHELL ["/bin/bash", "-c"]
 
 # Set environment variables
 ENV SCARB_VERSION=2.8.4
-ENV STARKLI_VERSION=0.2.8
+ENV STARKLI_VERSION=0.3.5
 
 # Define build-time arguments
 ARG SIGNER_PRIVATE_KEY
@@ -55,8 +55,10 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://docs.swmansion.com/scarb/instal
 
 # Install Starkli
 ENV PATH="$PATH:/root/.starkli/bin"
-RUN curl https://get.starkli.sh | bash
-RUN starkliup
+RUN curl -L https://github.com/xJonathanLEI/starkli/releases/download/v${STARKLI_VERSION}/starkli-x86_64-unknown-linux-gnu.tar.gz -o starkli.tar.gz && \
+    mkdir -p /root/.starkli/bin && \
+    tar -xvf starkli.tar.gz -C /root/.starkli/bin && \
+    rm starkli.tar.gz
 
 WORKDIR /contracts
 # Copy project files

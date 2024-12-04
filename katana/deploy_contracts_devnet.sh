@@ -9,6 +9,9 @@ echo "Deploy Pitchlake Contracts"
 echo "============================"
 echo 
 
+# Set compiler version
+COMPILER_VERSION="2.8.2"
+
 # Print environment variables
 echo "Environment variables:"
 echo "STARKNET_ACCOUNT: $STARKNET_ACCOUNT"
@@ -49,19 +52,20 @@ else
     echo "Acount config already exists at path $STARKNET_ACCOUNT"
 fi
 
-# Declare the ETH contract
-sleep 2
-ETH_HASH=$(starkli declare ../target/dev/pitch_lake_Eth.contract_class.json --compiler-version 2.8.2 | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
-echo "[ETH] Class hash declared"
+# Declare and deploy the ETH contract
+# sleep 2
+# ETH_HASH=$(starkli declare ../target/dev/pitch_lake_Eth.contract_class.json --compiler-version 2.8.2 | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
+# echo "[ETH] Class hash declared"
 
-# Deploy the ETH contract
-sleep 2
-ETH_ADDRESS=$(starkli deploy $ETH_HASH 1000000000000000000000 0 $SIGNER_ADDRESS --salt 1 | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
-echo "[ETH] Contract deployed"
+# sleep 2
+# ETH_ADDRESS=$(starkli deploy $ETH_HASH 1000000000000000000000 0 $SIGNER_ADDRESS --salt 1 | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
+# echo "[ETH] Contract deployed"
+
+ETH_ADDRESS="0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7"
 
 # Declare the first contract
 sleep 2
-FOSSILCLIENT_HASH=$(starkli declare ../target/dev/pitch_lake_FossilClient.contract_class.json --compiler-version 2.8.2 | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
+FOSSILCLIENT_HASH=$(starkli declare ../target/dev/pitch_lake_FossilClient.contract_class.json --compiler-version $COMPILER_VERSION | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
 echo "[Fossil Client] Class hash declared"
 
 # Deploy the first contract with salt and FOSSIL_PROCESSOR_ADDRESS
@@ -71,12 +75,12 @@ echo "[Fossil Client] Contract deployed"
 
 # Declare the second contract
 sleep 2
-OPTIONROUND_HASH=$(starkli declare ../target/dev/pitch_lake_OptionRound.contract_class.json --compiler-version 2.8.2 | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
+OPTIONROUND_HASH=$(starkli declare ../target/dev/pitch_lake_OptionRound.contract_class.json --compiler-version $COMPILER_VERSION | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
 echo "[Option Round] Class hash declared"
 
 # Declare the third contract
 sleep 2
-VAULT_HASH=$(starkli declare ../target/dev/pitch_lake_Vault.contract_class.json --compiler-version 2.8.2 | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
+VAULT_HASH=$(starkli declare ../target/dev/pitch_lake_Vault.contract_class.json --compiler-version $COMPILER_VERSION | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
 echo "[Vault] Class hash declared"
 
 # Deploy the third contract with additional parameters and salt
