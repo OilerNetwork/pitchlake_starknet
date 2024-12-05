@@ -47,6 +47,9 @@ else
 	echo "Expected wallet address: $ADDRESS"
 	echo "Deployed wallet address: $DEPLOYED_ARGENT_ADDRESS"
 
+    OUTPUT=$(starkli invoke --watch 0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7 transfer $ADDRESS 99000000000000000000 0)
+	echo "Funded wallet $OUTPUT"
+
 	# Verify addresses match (case-insensitive)
 	ADDRESS_LOWER=${ADDRESS,,}
 	DEPLOYED_ADDRESS_LOWER=${DEPLOYED_ARGENT_ADDRESS,,}
@@ -55,6 +58,4 @@ else
 		exit 1
 	fi
 
-	OUTPUT=$(starkli invoke --watch 0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7 transfer $ADDRESS 10000 0)
-	echo "Funded wallet $OUTPUT"
 fi
