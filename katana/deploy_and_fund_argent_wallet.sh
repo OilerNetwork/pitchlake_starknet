@@ -42,13 +42,13 @@ echo "[Argent Wallet] Class hash declared: $ARGENT_HASH"
 if starkli class-hash-at $ADDRESS; then
 	echo "Argent wallet already deployed at $ADDRESS"
 else
+	starkli invoke --watch 0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7 transfer $ADDRESS 99000000000000000000 0
+	echo "Funded wallet $ADDRESS"
+
 	DEPLOYED_ARGENT_ADDRESS=$(starkli deploy --watch $ARGENT_HASH 0 $ARG1 1 --salt $SALT --not-unique | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
 
 	echo "Expected wallet address: $ADDRESS"
 	echo "Deployed wallet address: $DEPLOYED_ARGENT_ADDRESS"
-
-    OUTPUT=$(starkli invoke --watch 0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7 transfer $ADDRESS 99000000000000000000 0)
-	echo "Funded wallet $OUTPUT"
 
 	# Verify addresses match (case-insensitive)
 	ADDRESS_LOWER=${ADDRESS,,}
