@@ -1,0 +1,31 @@
+FROM ubuntu:22.04
+
+# Avoid prompts from apt
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install basic dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    ca-certificates \
+    build-essential \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Dojo
+RUN curl -L https://install.dojoengine.org | bash
+ENV PATH="/root/.dojo/bin:${PATH}"
+RUN dojoup -v 1.0.0-alpha.16
+
+# Create config directory
+RUN mkdir -p /app/config
+
+# Verify installation
+RUN katana --version
+
+# Expose default Katana port
+EXPOSE 5050
+
+# Default command to run Katana
+CMD bash -c "katana --disable-fee --disable-validate --host 0.0.0.0"

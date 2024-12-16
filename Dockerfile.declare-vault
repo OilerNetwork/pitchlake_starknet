@@ -2,16 +2,12 @@
 FROM ubuntu:22.04
 SHELL ["/bin/bash", "-c"]
 
+
 ARG SCARB_VERSION
 ARG STARKLI_VERSION
 ARG COMPILER_VERSION
 
-ENV SCARB_VERSION=${SCARB_VERSION}
-ENV STARKLI_VERSION=${STARKLI_VERSION}
 ENV COMPILER_VERSION=${COMPILER_VERSION}
-
-# Starkli environment variables
-ENV STARKNET_ACCOUNT=/root/starkli_deployer_account.json
 
 # Install necessary dependencies
 RUN apt-get update && apt-get install -y \
@@ -20,7 +16,7 @@ RUN apt-get update && apt-get install -y \
 
 # Install Scarb
 ENV PATH="$PATH:/root/.local/bin"
-RUN curl --proto '=https' --tlsv1.2 -sSf https://docs.swmansion.com/scarb/install.sh | bash -s -- -v $SCARB_VERSION
+RUN curl --proto '=https' --tlsv1.2 -sSf https://docs.swmansion.com/scarb/install.sh | bash -s -- -v ${SCARB_VERSION}
 
 # Install Starkli
 ENV PATH="$PATH:/root/.starkli/bin"
@@ -36,7 +32,4 @@ COPY . .
 # Build contracts
 RUN scarb build
 
-# Create account file using starkli
-CMD bash -c " cd katana && \
- chmod +x ./deploy_contracts_devnet.sh && \
- ./deploy_contracts_devnet.sh $SIGNER_ADDRESS $FOSSIL_PROCESSOR_ADDRESS $VAULT_ALPHA $VAULT_STRIKE $ROUND_TRANSITION_DURATION $AUCTION_DURATION $ROUND_DURATION"
+CMD bash -c "starkli declare target/dev/pitch_lake_Vault.contract_class.json --compiler-version $COMPILER_VERSION --watch"

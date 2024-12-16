@@ -9,17 +9,15 @@ echo "Deploy Pitchlake Contracts"
 echo "============================"
 echo
 
-# Set compiler version
-COMPILER_VERSION="2.8.2"
-
 # Print environment variables
 echo "Environment variables:"
 echo "STARKNET_ACCOUNT: $STARKNET_ACCOUNT"
 echo "STARKNET_PRIVATE_KEY: ${STARKNET_PRIVATE_KEY:0:10}..." # Only show first 10 characters for security
 echo "STARKNET_RPC: $STARKNET_RPC"
+echo "COMPILER_VERSION: $COMPILER_VERSION"
 
 # Check if environment variables exist
-if [ -z "$STARKNET_ACCOUNT" ] || [ -z "$STARKNET_PRIVATE_KEY" ] || [ -z "$STARKNET_RPC" ]; then
+if [ -z "$STARKNET_ACCOUNT" ] || [ -z "$STARKNET_PRIVATE_KEY" ] || [ -z "$STARKNET_RPC" ] || [ -z "$COMPILER_VERSION" ]; then
 	echo "Error: One or more required environment variables are missing."
 	exit 1
 fi
