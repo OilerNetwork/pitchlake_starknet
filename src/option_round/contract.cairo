@@ -637,6 +637,9 @@ mod OptionRound {
         /// Account functions
 
         fn place_bid(ref self: ContractState, amount: u256, price: u256) -> Bid {
+            // @dev Assert the caller is the vault
+            self.assert_caller_is_vault();
+
             // @dev Assert auction still on-going
             self.assert_bid_can_be_placed();
 
@@ -680,6 +683,9 @@ mod OptionRound {
         }
 
         fn update_bid(ref self: ContractState, bid_id: felt252, price_increase: u256) -> Bid {
+            // @dev Assert the caller is the vault
+            self.assert_caller_is_vault();
+
             // @dev Assert auction still on-going
             self.assert_bid_can_be_placed();
 
@@ -723,6 +729,9 @@ mod OptionRound {
         }
 
         fn refund_unused_bids(ref self: ContractState, account: ContractAddress) -> u256 {
+            // @dev Assert the caller is the vault
+            self.assert_caller_is_vault();
+
             // @dev Assert the auction has ended
             self.assert_auction_over();
 
@@ -743,6 +752,9 @@ mod OptionRound {
         }
 
         fn mint_options(ref self: ContractState) -> u256 {
+            // @dev Assert the caller is the vault
+            self.assert_caller_is_vault();
+
             // @dev Assert the auction has ended
             self.assert_auction_over();
 
@@ -764,6 +776,9 @@ mod OptionRound {
         }
 
         fn exercise_options(ref self: ContractState) -> u256 {
+            // @dev Assert the caller is the vault
+            self.assert_caller_is_vault();
+
             // @dev Assert the round has settled
             self.assert_round_settled();
 
