@@ -153,28 +153,37 @@ trait IOptionRound<TContractState> {
 
     /// Account functions
 
-    // @dev The caller places a bid in the auction
+    // @dev Place a bid in the auction
+    // @param account: The account placing the bid
     // @param amount: The max amount of options being bid for
     // @param price: The max price per option being bid
     // @return The bid struct just created
-    fn place_bid(ref self: TContractState, amount: u256, price: u256) -> Bid;
+    fn place_bid(ref self: TContractState, account: ContractAddress, amount: u256, price: u256) -> Bid;
 
-    // @dev The caller increases one of their bids in the auction
+    // @dev Increase one of the account's bids in the auction
+    // @param account: The account updating the bid
     // @param bid_id: The id of the bid to update
     // @param price_increase: The amount to increase the bid's price by
     // @return The updated bid struct
-    fn update_bid(ref self: TContractState, bid_id: felt252, price_increase: u256) -> Bid;
+    fn update_bid(
+        ref self: TContractState, 
+        account: ContractAddress,
+        bid_id: felt252, 
+        price_increase: u256
+    ) -> Bid;
 
     // @dev Refund the account's unused bids from the auction
     // @param account: The account to refund the unused bids for
     // @return The amount of refundable ETH transferred
     fn refund_unused_bids(ref self: TContractState, account: ContractAddress) -> u256;
 
-    // @dev The caller exercises all of their options (mintable and already minted)
-    // @param account: The account to exercise the options for
-    // @return The amount of exerciseable ETH transferred
-    fn exercise_options(ref self: TContractState) -> u256;
+    // @dev Mint options won in the auction for an account
+    // @param account: The account to mint options for
+    // @return The amount of options minted
+    fn mint_options(ref self: TContractState, account: ContractAddress) -> u256;
 
-    // Convert options won from auction into erc20 tokens
-    fn mint_options(ref self: TContractState) -> u256;
+    // @dev Exercise options from the current round for an account
+    // @param account: The account to exercise options for
+    // @return The amount exercised, total options exercised, and mintable options exercised
+    fn exercise_options(ref self: TContractState, account: ContractAddress) -> (u256, u256, u256);
 }

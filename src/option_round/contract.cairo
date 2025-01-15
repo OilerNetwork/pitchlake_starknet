@@ -531,9 +531,6 @@ mod OptionRound {
 
             // @dev Set the pricing data points
             self.pricing_data.write(pricing_data);
-
-            // @dev Emit event
-            self.emit(Event::PricingDataSet(PricingDataSet { pricing_data }));
         }
 
         fn start_auction(ref self: ContractState, starting_liquidity: u256) -> u256 {
@@ -560,10 +557,6 @@ mod OptionRound {
 
             // @dev Transition state and emit event
             self.transition_state_to(OptionRoundState::Auctioning);
-            self
-                .emit(
-                    Event::AuctionStarted(AuctionStarted { starting_liquidity, options_available })
-                );
 
             // @dev Return total options available in the auction
             options_available
@@ -596,14 +589,6 @@ mod OptionRound {
 
             // @dev Transition state and emit event
             self.transition_state_to(OptionRoundState::Running);
-            self
-                .emit(
-                    Event::AuctionEnded(
-                        AuctionEnded {
-                            options_sold, clearing_price, unsold_liquidity, clearing_bid_tree_nonce
-                        }
-                    )
-                );
 
             // @dev Return clearing price and options sold
             (clearing_price, options_sold)
@@ -623,20 +608,19 @@ mod OptionRound {
 
             // @dev Transition state and emit event
             self.transition_state_to(OptionRoundState::Settled);
-            self
-                .emit(
-                    Event::OptionRoundSettled(
-                        OptionRoundSettled { settlement_price, payout_per_option, }
-                    )
-                );
-
+    
             // @dev Return total payout
             payout_per_option * self.bids_tree.total_options_sold.read()
         }
 
         /// Account functions
 
-        fn place_bid(ref self: ContractState, amount: u256, price: u256) -> Bid {
+        fn place_bid(
+            ref self: ContractState, 
+            account: ContractAddress,
+            amount: u256, 
+            price: u256
+        ) -> Bid {
             // @dev Assert the caller is the vault
             self.assert_caller_is_vault();
 
@@ -650,7 +634,6 @@ mod OptionRound {
             // @note todo Do we need to restrict bid amount <= total available ?
 
             // @dev Create Bid struct
-            let account = get_caller_address();
             let account_bid_nonce = self.account_bid_nonce.read(account);
             let bid_id = self.create_bid_id(account, account_bid_nonce);
             let tree_nonce = self.bids_tree.tree_nonce.read();
@@ -668,21 +651,16 @@ mod OptionRound {
                 .get_eth_dispatcher()
                 .transfer_from(account, get_contract_address(), transfer_amount);
 
-            // @dev Emit bid placed event
-            self
-                .emit(
-                    Event::BidPlaced(
-                        BidPlaced {
-                            account, bid_id, amount, price, bid_tree_nonce_now: tree_nonce + 1
-                        }
-                    )
-                );
-
             // @dev Return the created Bid struct
             bid
         }
 
-        fn update_bid(ref self: ContractState, bid_id: felt252, price_increase: u256) -> Bid {
+        fn update_bid(
+            ref self: ContractState,
+            account: ContractAddress,
+            bid_id: felt252,
+            price_increase: u256
+        ) -> Bid {
             // @dev Assert the caller is the vault
             self.assert_caller_is_vault();
 
@@ -690,7 +668,6 @@ mod OptionRound {
             self.assert_bid_can_be_placed();
 
             // @dev Assert caller owns the bid
-            let account = get_caller_address();
             let old_node: Node = self.bids_tree.tree.read(bid_id);
             let mut edited_bid: Bid = old_node.value;
             let bid_tree_nonce_before = edited_bid.tree_nonce;
@@ -709,20 +686,6 @@ mod OptionRound {
             // @dev Charge the difference
             let difference = edited_bid.amount * price_increase;
             self.get_eth_dispatcher().transfer_from(account, get_contract_address(), difference);
-
-            // @dev Emit bid updated event
-            self
-                .emit(
-                    Event::BidUpdated(
-                        BidUpdated {
-                            account,
-                            bid_id,
-                            price_increase,
-                            bid_tree_nonce_before,
-                            bid_tree_nonce_now: tree_nonce + 1,
-                        }
-                    )
-                );
 
             // @dev Return the edited bid
             edited_bid
@@ -744,14 +707,11 @@ mod OptionRound {
             // @dev Transfer the refunded amount to the bidder
             self.get_eth_dispatcher().transfer(account, refunded_amount);
 
-            // @dev Emit bids refunded event
-            self.emit(Event::UnusedBidsRefunded(UnusedBidsRefunded { account, refunded_amount }));
-
             // @dev Return the refunded amount
             refunded_amount
         }
 
-        fn mint_options(ref self: ContractState) -> u256 {
+        fn mint_options(ref self: ContractState, account: ContractAddress) -> u256 {
             // @dev Assert the caller is the vault
             self.assert_caller_is_vault();
 
@@ -759,7 +719,6 @@ mod OptionRound {
             self.assert_auction_over();
 
             // @dev Get the total mintable balance for the account
-            let account = get_caller_address();
             let minted_amount = self.get_account_mintable_options(account);
 
             // @dev Update the account's has minted status
@@ -768,22 +727,16 @@ mod OptionRound {
             // @dev Mint option ERC-20 tokens to the account
             self.erc20.mint(account, minted_amount);
 
-            // @dev Emit options minted event
-            self.emit(Event::OptionsMinted(OptionsMinted { account, minted_amount }));
-
             // @dev Return the amount of option tokens minted
             minted_amount
         }
 
-        fn exercise_options(ref self: ContractState) -> u256 {
+        fn exercise_options(ref self: ContractState, account: ContractAddress) -> (u256, u256, u256) {
             // @dev Assert the caller is the vault
             self.assert_caller_is_vault();
 
             // @dev Assert the round has settled
             self.assert_round_settled();
-
-            // @dev Get the account's total option balance
-            let account = get_caller_address();
 
             // @dev Burn the ERC-20 options
             let erc20_option_balance = self.erc20.ERC20_balances.read(account);
@@ -800,21 +753,8 @@ mod OptionRound {
             let exercised_amount = total_options_exercised * self.payout_per_option.read();
             self.get_eth_dispatcher().transfer(account, exercised_amount);
 
-            // @dev Emit options exercised event
-            self
-                .emit(
-                    Event::OptionsExercised(
-                        OptionsExercised {
-                            account,
-                            total_options_exercised,
-                            mintable_options_exercised,
-                            exercised_amount
-                        }
-                    )
-                );
-
-            // @dev Return the exercised amount
-            exercised_amount
+            // @dev Return the exercised amount, total options exercised, and mintable options exercised
+            (exercised_amount, total_options_exercised, mintable_options_exercised)
         }
     }
 

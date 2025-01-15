@@ -139,4 +139,38 @@ trait IVault<TContractState> {
     // @dev Settle the current round
     // @return The total payout for the round
     fn settle_round(ref self: TContractState) -> u256;
+
+    // User actions
+
+    // @dev Place a bid in the current round's auction
+    // @param amount: The max amount of options being bid for
+    // @param price: The max price per option being bid
+    // @return The bid struct just created
+    fn place_bid(ref self: TContractState, amount: u256, price: u256) -> Bid;
+
+    // @dev Update a bid in the current round's auction
+    // @param bid_id: The id of the bid to update
+    // @param price_increase: The amount to increase the bid's price by
+    // @return The updated bid struct
+    fn update_bid(ref self: TContractState, bid_id: felt252, price_increase: u256) -> Bid;
+
+    // @dev Refund unused bids from a specific round's auction
+    // @param round_address: The address of the round to refund bids from
+    // @param account: The account to refund unused bids for
+    // @return The amount refunded
+    fn refund_unused_bids(
+        ref self: TContractState, 
+        round_address: ContractAddress, 
+        account: ContractAddress
+    ) -> u256;
+
+    // @dev Mint options won in a specific round's auction
+    // @param round_address: The address of the round to mint options from
+    // @return The amount of options minted
+    fn mint_options(ref self: TContractState, round_address: ContractAddress) -> u256;
+
+    // @dev Exercise options from a specific round
+    // @param round_address: The address of the round to exercise options from
+    // @return The amount exercised
+    fn exercise_options(ref self: TContractState, round_address: ContractAddress) -> u256;
 }
