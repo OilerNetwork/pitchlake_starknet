@@ -22,6 +22,7 @@ mod Vault {
     use pitch_lake::library::pricing_utils::{calculate_strike_price, calculate_cap_level};
     use pitch_lake::library::constants::{REQUEST_TOLERANCE, PROGRAM_ID};
     use pitch_lake::types::{Bid};
+    use core::fmt::{Formatter, Error, Debug};
 
     // *************************************************************************
     //                              STORAGE
@@ -126,7 +127,7 @@ mod Vault {
     // *************************************************************************
 
     #[event]
-    #[derive(Serde, PartialEq, Drop, starknet::Event)]
+    #[derive(Drop, PartialEq, starknet::Event, Debug)]
     enum Event {
         Deposit: Deposit,
         Withdrawal: Withdrawal,
@@ -152,7 +153,7 @@ mod Vault {
     // @member amount: The amount deposited
     // @member: account_unlocked_balance_now: The account's unlocked balance after the deposit
     // @member: vault_unlocked_balance_now: The vault's unlocked balance after the deposit
-    #[derive(Serde, Drop, starknet::Event, PartialEq)]
+    #[derive(Serde, Drop, starknet::Event, PartialEq, Debug)]
     struct Deposit {
         #[key]
         account: ContractAddress,
@@ -166,7 +167,7 @@ mod Vault {
     // @member amount: The amount withdrawn
     // @member account_unlocked_balance_now: The account's unlocked balance after the withdrawal
     // @member vault_unlocked_balance_now: The vault's unlocked balance after the withdrawal
-    #[derive(Serde, Drop, starknet::Event, PartialEq)]
+    #[derive(Serde, Drop, starknet::Event, PartialEq, Debug)]
     struct Withdrawal {
         #[key]
         account: ContractAddress,
@@ -181,7 +182,7 @@ mod Vault {
     // @member account_queued_liquidity_now: The account's starting liquidity queued after the
     // withdrawal @member vault_queued_liquidity_now: The vault's starting liquidity queued after
     // the withdrawal
-    #[derive(Serde, Drop, starknet::Event, PartialEq)]
+    #[derive(Serde, Drop, starknet::Event, PartialEq, Debug)]
     struct WithdrawalQueued {
         #[key]
         account: ContractAddress,
@@ -196,7 +197,7 @@ mod Vault {
     // @member account: The account that withdrew the stashed liquidity
     // @member amount: The amount withdrawn
     // @member vault_stashed_balance_now: The vault's stashed balance after the withdrawal
-    #[derive(Serde, Drop, starknet::Event, PartialEq)]
+    #[derive(Serde, Drop, starknet::Event, PartialEq, Debug)]
     struct StashWithdrawn {
         #[key]
         account: ContractAddress,
@@ -213,7 +214,7 @@ mod Vault {
     // @member auction_start_date: The auction start date for the deployed round
     // @member auction_end_date: The auction end date for the deployed round
     // @member option_settlement_date: The option settlement date for the deployed round
-    #[derive(Serde, Drop, starknet::Event, PartialEq)]
+    #[derive(Serde, Drop, starknet::Event, PartialEq, Debug)]
     struct OptionRoundDeployed {
         round_id: u64,
         address: ContractAddress,
@@ -223,7 +224,7 @@ mod Vault {
         pricing_data: PricingData,
     }
 
-    #[derive(Serde, Drop, starknet::Event, PartialEq)]
+    #[derive(Serde, Drop, starknet::Event, PartialEq, Debug)]
     struct L1RequestFulfilled {
         #[key]
         id: felt252,
@@ -231,14 +232,14 @@ mod Vault {
         caller: ContractAddress,
     }
 
-    #[derive(Drop, starknet::Event, PartialEq)]
+    #[derive(Drop, starknet::Event, PartialEq, Serde, Debug)]
     struct PricingDataSet {
         pricing_data: PricingData,
         round_id: u64,
         round_address: ContractAddress,
     }
 
-    #[derive(Drop, starknet::Event, PartialEq)]
+    #[derive(Drop, starknet::Event, PartialEq, Debug)]
     struct AuctionStarted {
         starting_liquidity: u256,
         options_available: u256,
@@ -246,7 +247,7 @@ mod Vault {
         round_address: ContractAddress,
     }
 
-    #[derive(Drop, starknet::Event, PartialEq)]
+    #[derive(Drop, starknet::Event, PartialEq, Debug)]
     struct AuctionEnded {
         options_sold: u256,
         clearing_price: u256,
@@ -256,7 +257,7 @@ mod Vault {
         round_address: ContractAddress,
     }
 
-    #[derive(Drop, starknet::Event, PartialEq)]
+    #[derive(Drop, starknet::Event, PartialEq, Debug)]
     struct OptionRoundSettled {
         settlement_price: u256,
         payout_per_option: u256,
@@ -264,7 +265,7 @@ mod Vault {
         round_address: ContractAddress,
     }
 
-    #[derive(Drop, starknet::Event, PartialEq)]
+    #[derive(Drop, starknet::Event, PartialEq, Debug)]
     struct BidPlaced {
         #[key]
         account: ContractAddress,
@@ -276,7 +277,7 @@ mod Vault {
         round_address: ContractAddress,
     }
 
-    #[derive(Drop, starknet::Event, PartialEq)]
+    #[derive(Drop, starknet::Event, PartialEq, Debug)]
     struct BidUpdated {
         #[key]
         account: ContractAddress,
@@ -288,7 +289,7 @@ mod Vault {
         round_address: ContractAddress,
     }
 
-    #[derive(Drop, starknet::Event, PartialEq)]
+    #[derive(Drop, starknet::Event, PartialEq, Debug)]
     struct UnusedBidsRefunded {
         #[key]
         account: ContractAddress,
@@ -297,7 +298,7 @@ mod Vault {
         round_address: ContractAddress,
     }
 
-    #[derive(Drop, starknet::Event, PartialEq)]
+    #[derive(Drop, starknet::Event, PartialEq, Debug)]
     struct OptionsMinted {
         #[key]
         account: ContractAddress,
@@ -306,7 +307,7 @@ mod Vault {
         round_address: ContractAddress,
     }
 
-    #[derive(Drop, starknet::Event, PartialEq)]
+    #[derive(Drop, starknet::Event, PartialEq, Debug)]
     struct OptionsExercised {
         #[key]
         account: ContractAddress,
@@ -737,12 +738,16 @@ mod Vault {
                 current_round.set_pricing_data(self.convert_l1_data_to_round_data(l1_data));
 
                 // @dev Emit pricing data set event
-                self
-                    .emit(
-                        Event::PricingDataSet(
-                            PricingDataSet { pricing_data: l1_data, round_id: current_round_id }
-                        )
-                    );
+                let pricing_data = PricingData {
+                    strike_price: l1_data.twap,
+                    cap_level: l1_data.volatility,
+                    reserve_price: l1_data.reserve_price,
+                };
+                self.emit(PricingDataSet { 
+                    pricing_data,  // Use the converted data
+                    round_id: current_round_id,
+                    round_address: current_round.contract_address
+                });
             }
         }
 
@@ -1024,11 +1029,16 @@ mod Vault {
 
             // @dev Create this round's constructor args
             let mut calldata: Array<felt252> = array![];
-            let pricing_data = self.convert_l1_data_to_round_data(l1_data);
 
             let round_transition_duration = self.round_transition_duration.read();
             let auction_duration = self.auction_duration.read();
             let round_duration = self.round_duration.read();
+
+            let pricing_data = PricingData {
+                strike_price: l1_data.twap,
+                cap_level: l1_data.volatility,
+                reserve_price: l1_data.reserve_price,
+            };
 
             let constructor_args = OptionRoundConstructorArgs {
                 vault_address,
@@ -1054,19 +1064,14 @@ mod Vault {
             self.round_addresses.write(round_id, address);
 
             // @dev Emit option round deployed event
-            self
-                .emit(
-                    Event::OptionRoundDeployed(
-                        OptionRoundDeployed {
-                            round_id,
-                            address,
-                            auction_start_date: round.get_auction_start_date(),
-                            auction_end_date: round.get_auction_end_date(),
-                            option_settlement_date: round.get_option_settlement_date(),
-                            pricing_data
-                        }
-                    )
-                );
+            self.emit(OptionRoundDeployed {
+                round_id,
+                address,
+                auction_start_date: round.get_auction_start_date(),
+                auction_end_date: round.get_auction_end_date(),
+                option_settlement_date: round.get_option_settlement_date(),
+                pricing_data,  // Use the converted data
+            });
         }
 
         /// Fossil

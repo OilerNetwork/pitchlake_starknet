@@ -35,7 +35,6 @@ use pitch_lake::{
     },
 };
 
-
 /// Accelerators ///
 
 // Start the auction with LP1 depositing 100 eth
@@ -52,6 +51,8 @@ fn accelerate_to_auctioning_custom(
     // Deposit liquidity
     self.deposit_multiple(amounts, liquidity_providers);
     // Jump past round transition period and start the auction
+    // Clear logs before starting auction
+    clear_event_logs(array![self.contract_address()]);
     timeskip_and_start_auction(ref self)
 }
 

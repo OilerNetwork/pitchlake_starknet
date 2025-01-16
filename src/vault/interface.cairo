@@ -1,6 +1,6 @@
 use starknet::{ContractAddress, ClassHash};
 use pitch_lake::option_round::interface::OptionRoundState;
-
+use pitch_lake::types::Bid;
 use pitch_lake::fossil_client::interface::{JobRequest, L1Data};
 
 // @dev An enum for each type of Vault

@@ -135,131 +135,6 @@ mod OptionRound {
     }
 
     // *************************************************************************
-    //                              EVENTS
-    // *************************************************************************
-
-    #[event]
-    #[derive(Drop, starknet::Event, PartialEq)]
-    enum Event {
-        PricingDataSet: PricingDataSet,
-        AuctionStarted: AuctionStarted,
-        BidPlaced: BidPlaced,
-        BidUpdated: BidUpdated,
-        AuctionEnded: AuctionEnded,
-        OptionRoundSettled: OptionRoundSettled,
-        OptionsExercised: OptionsExercised,
-        UnusedBidsRefunded: UnusedBidsRefunded,
-        #[flat]
-        BidTreeEvent: RBTreeComponent::Event,
-        OptionsMinted: OptionsMinted,
-        #[flat]
-        ERC20Event: ERC20Component::Event,
-    }
-
-    // @dev Emitted when the pricing data is set
-    // @member pricing_data: The pricing data (strike price, cap level, reserve price)
-    #[derive(Drop, starknet::Event, PartialEq)]
-    struct PricingDataSet {
-        pricing_data: PricingData,
-    }
-
-    // @dev Emitted when the auction starts
-    // @member starting_liquidity: The liquidity locked at the start of the auction
-    // @member options_available: The max number of options that can sell in the auction
-    #[derive(Drop, starknet::Event, PartialEq)]
-    struct AuctionStarted {
-        starting_liquidity: u256,
-        options_available: u256,
-    }
-
-    // @dev Emitted when the auction ends
-    // @member clearing_price: The calculated price per option after the auction
-    // @member options_sold: The number of options that sold in the auction
-    // @memeber unsold_liquidity: The amount of liquidity that was not sold in the auction
-    #[derive(Drop, starknet::Event, PartialEq)]
-    struct AuctionEnded {
-        options_sold: u256,
-        clearing_price: u256,
-        unsold_liquidity: u256,
-        clearing_bid_tree_nonce: u64,
-    }
-
-    // @dev Emitted when the round settles
-    // @member payout_per_option: The exercisable amount for 1 option
-    // @member settlement_price: The basefee TWAP used to settle the round
-    #[derive(Drop, starknet::Event, PartialEq)]
-    struct OptionRoundSettled {
-        settlement_price: u256,
-        payout_per_option: u256,
-    }
-
-    // @dev Emitted when a bid is placed
-    // @memeber account: The account that placed the bid
-    // @member bid_id: The bid's identifier
-    // @memeber amount: The max amount of options the account is bidding for
-    // @member price: The max price per option the account is bidding for
-    // @member account_bid_nonce_now: The amount of bids the account has placed now
-    // @member tree_bid_nonce_now: The bid tree's nonce now
-    #[derive(Drop, starknet::Event, PartialEq)]
-    struct BidPlaced {
-        #[key]
-        account: ContractAddress,
-        bid_id: felt252,
-        amount: u256,
-        price: u256,
-        bid_tree_nonce_now: u64,
-    }
-
-    // @dev Emitted when a bid is updated
-    // @member account: The account that updated the bid
-    // @member bid_id: The bid's identifier
-    // @member price_increase: The bid's price increase amount
-    // @member tree_bid_nonce_now: The nonce of the bid tree now
-    #[derive(Drop, starknet::Event, PartialEq)]
-    struct BidUpdated {
-        #[key]
-        account: ContractAddress,
-        bid_id: felt252,
-        price_increase: u256,
-        bid_tree_nonce_before: u64,
-        bid_tree_nonce_now: u64,
-    }
-
-    // @dev Emitted when an account mints option ERC-20 tokens
-    // @member account: The account that minted the options
-    // @member minted_amount: The amount of options minted
-    #[derive(Drop, starknet::Event, PartialEq)]
-    struct OptionsMinted {
-        #[key]
-        account: ContractAddress,
-        minted_amount: u256,
-    }
-
-    // @dev Emitted when an accounts unused bids are refunded
-    // @param account: The account that's bids were refuned
-    // @param refunded_amount: The amount refunded
-    #[derive(Drop, starknet::Event, PartialEq)]
-    struct UnusedBidsRefunded {
-        #[key]
-        account: ContractAddress,
-        refunded_amount: u256
-    }
-
-    // @dev Emitted when an account exercises their options
-    // @param account: The account that exercised the options
-    // @param total_options_exercised: The total number of options exercised
-    // @param mintable_options_exercised: The number of options exercised that the caller could have
-    // minted @param exercised_amount: The amount transferred
-    #[derive(Drop, starknet::Event, PartialEq)]
-    struct OptionsExercised {
-        #[key]
-        account: ContractAddress,
-        total_options_exercised: u256,
-        mintable_options_exercised: u256,
-        exercised_amount: u256
-    }
-
-    // *************************************************************************
     //                            IMPLEMENTATIONS
     // *************************************************************************
 
@@ -555,7 +430,7 @@ mod OptionRound {
             self.starting_liquidity.write(starting_liquidity);
             self.bids_tree.total_options_available.write(options_available);
 
-            // @dev Transition state and emit event
+            // @dev Transition state
             self.transition_state_to(OptionRoundState::Auctioning);
 
             // @dev Return total options available in the auction
@@ -587,7 +462,7 @@ mod OptionRound {
                 .get_eth_dispatcher()
                 .transfer(self.vault_address.read(), options_sold * clearing_price);
 
-            // @dev Transition state and emit event
+            // @dev Transition state
             self.transition_state_to(OptionRoundState::Running);
 
             // @dev Return clearing price and options sold
@@ -606,7 +481,7 @@ mod OptionRound {
             self.payout_per_option.write(payout_per_option);
             self.settlement_price.write(settlement_price);
 
-            // @dev Transition state and emit event
+            // @dev Transition state
             self.transition_state_to(OptionRoundState::Settled);
     
             // @dev Return total payout

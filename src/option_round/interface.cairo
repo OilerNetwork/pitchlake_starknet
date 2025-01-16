@@ -12,7 +12,7 @@ enum OptionRoundState {
 }
 
 // @dev Data needed for a round's auction to start
-#[derive(Default, PartialEq, Copy, Drop, Serde, starknet::Store)]
+#[derive(Default, PartialEq, Copy, Drop, Serde, starknet::Store, Debug)]
 struct PricingData {
     strike_price: u256,
     cap_level: u128,

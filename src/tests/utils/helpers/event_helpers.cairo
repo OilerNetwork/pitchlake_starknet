@@ -25,7 +25,7 @@ fn pop_log<T, +Drop<T>, impl TEvent: starknet::Event<T>>(address: ContractAddres
 
 // Clear event logs for an array of contracts
 // @dev Drops each event
-fn clear_event_logs(mut addresses: Array<ContractAddress>) {
+pub fn clear_event_logs(mut addresses: Array<ContractAddress>) {
     loop {
         match addresses.pop_front() {
             Option::Some(addr) => {
@@ -74,13 +74,24 @@ fn assert_fossil_callback_success_event(
 
 // Check AuctionStart emits correctly
 fn assert_event_auction_start(
-    option_round_address: ContractAddress, starting_liquidity: u256, options_available: u256
+    vault_address: ContractAddress, 
+    starting_liquidity: u256, 
+    options_available: u256,
+    round_id: u64,
+    round_address: ContractAddress
 ) {
-    match pop_log::<OptionRound::Event>(option_round_address) {
+    match pop_log::<Vault::Event>(vault_address) {
         Option::Some(e) => {
-            let expected = OptionRound::Event::AuctionStarted(
-                OptionRound::AuctionStarted { starting_liquidity, options_available }
+            let expected = Vault::Event::AuctionStarted(
+                Vault::AuctionStarted { 
+                    starting_liquidity, 
+                    options_available,
+                    round_id,
+                    round_address
+                }
             );
+            println!("AuctionStarted actual event: {:?}", e);
+            println!("AuctionStarted expected event: {:?}", expected);
             assert_events_equal(e, expected);
         },
         Option::None => { panic(array!['Could not find event']); },
@@ -148,19 +159,28 @@ fn assert_event_pricing_data_set(
 }
 // Check AuctionEnd emits correctly
 fn assert_event_auction_end(
-    option_round_address: ContractAddress,
+    vault_address: ContractAddress,
     options_sold: u256,
     clearing_price: u256,
     unsold_liquidity: u256,
     clearing_bid_tree_nonce: u64,
+    round_id: u64,
+    round_address: ContractAddress,
 ) {
-    match pop_log::<OptionRound::Event>(option_round_address) {
+    match pop_log::<Vault::Event>(vault_address) {
         Option::Some(e) => {
-            let expected = OptionRound::Event::AuctionEnded(
-                OptionRound::AuctionEnded {
-                    options_sold, clearing_price, unsold_liquidity, clearing_bid_tree_nonce
+            let expected = Vault::Event::AuctionEnded(
+                Vault::AuctionEnded {
+                    options_sold,
+                    clearing_price,
+                    unsold_liquidity,
+                    clearing_bid_tree_nonce,
+                    round_id,
+                    round_address,
                 }
             );
+            println!("AuctionEnded actual event: {:?}", e);
+            println!("AuctionEnded expected event: {:?}", expected);
             assert_events_equal(e, expected);
         },
         Option::None => { panic(array!['No events found']); }
