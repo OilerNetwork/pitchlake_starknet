@@ -446,7 +446,6 @@ fn test_callback_works_as_expected() {
 #[available_gas(90000000)]
 fn test_0_rounds() {
     let (mut vault, _) = setup_facade();
-
     // need to customize each to do 0s
     accelerate_to_auctioning_custom(ref vault, array![].span(), array![].span());
     accelerate_to_running_custom(ref vault, array![].span(), array![].span(), array![].span());
