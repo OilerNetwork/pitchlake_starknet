@@ -135,6 +135,18 @@ mod OptionRound {
     }
 
     // *************************************************************************
+    //                              EVENTS
+    // *************************************************************************
+
+    #[event]
+    #[derive(Drop, starknet::Event, PartialEq)]
+    enum Event {
+        #[flat]
+        BidTreeEvent: RBTreeComponent::Event,
+        #[flat]
+        ERC20Event: ERC20Component::Event,
+    }
+    // *************************************************************************
     //                            IMPLEMENTATIONS
     // *************************************************************************
 
@@ -469,7 +481,7 @@ mod OptionRound {
             (clearing_price, options_sold)
         }
 
-        fn settle_round(ref self: ContractState, settlement_price: u256) -> u256 {
+        fn settle_round(ref self: ContractState, settlement_price: u256) -> (u256, u256) {
             // @dev Calculate payout per option
             let strike_price = self.pricing_data.strike_price.read();
             let cap_level = self.pricing_data.cap_level.read();
@@ -481,11 +493,12 @@ mod OptionRound {
             self.payout_per_option.write(payout_per_option);
             self.settlement_price.write(settlement_price);
 
-            // @dev Transition state
+            // @dev Transition state 
             self.transition_state_to(OptionRoundState::Settled);
-    
-            // @dev Return total payout
-            payout_per_option * self.bids_tree.total_options_sold.read()
+
+            // @dev Calculate and return total payout and payout per option
+            let total_payout = payout_per_option * self.bids_tree.total_options_sold.read();
+            (total_payout, payout_per_option)
         }
 
         /// Account functions

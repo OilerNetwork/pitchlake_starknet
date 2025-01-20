@@ -190,7 +190,7 @@ fn test_bid_accepted_events() {
     let mut option_bidders = option_bidders_get(3).span();
     let mut bid_amounts = create_array_linear(options_available, 3).span();
     let mut bid_prices = create_array_gradient(reserve_price, reserve_price, 3).span();
-    clear_event_logs(array![current_round.contract_address()]);
+    clear_event_logs(array![vault_facade.contract_address()]);
     let mut bids = current_round.place_bids(bid_amounts, bid_prices, option_bidders).span();
 
     // Check bid accepted events
@@ -203,12 +203,14 @@ fn test_bid_accepted_events() {
                 let bid_amount = bid_amounts.pop_front().unwrap();
                 let bid_price = bid_prices.pop_front().unwrap();
                 assert_event_auction_bid_placed(
-                    current_round.contract_address(),
+                    vault_facade.contract_address(),
                     *ob,
                     *bid_id,
                     *bid_amount,
                     *bid_price,
-                    *tree_nonce + 1
+                    *tree_nonce + 1,
+                    current_round.get_round_id(),
+                    current_round.contract_address()
                 );
             },
             Option::None => { break; }

@@ -117,7 +117,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
 
     // Settle the current option round
     fn settle_option_round(ref self: OptionRoundFacade, settlement_price: u256) -> u256 {
-        let total_payout = self.option_round_dispatcher.settle_round(settlement_price);
+        let (total_payout, payout_per_option) = self.option_round_dispatcher.settle_round(settlement_price);
 
         // Set ETH approvals for next round
         let vault_dispatcher = IVaultDispatcher { contract_address: self.vault_address() };

@@ -106,12 +106,17 @@ fn test_option_round_settled_event() {
 
         let mut round = vault.get_current_round();
         let settlement_price = round.get_strike_price() + rounds_to_run.into();
-        clear_event_logs(array![round.contract_address()]);
         let total_payout = accelerate_to_settled(ref vault, settlement_price);
         let payout_per_option = total_payout / round.total_options_sold();
 
         // Check the event emits correctly
-        assert_event_option_settle(round.contract_address(), settlement_price, payout_per_option);
+        assert_event_option_settle(
+            vault.contract_address(), 
+            settlement_price, 
+            payout_per_option,
+            round.get_round_id(),
+            round.contract_address()
+        );
 
         rounds_to_run -= 1;
     }

@@ -149,7 +149,7 @@ trait IOptionRound<TContractState> {
     fn end_auction(ref self: TContractState) -> (u256, u256);
 
     // @dev Settle the round, return the total payout for all of the (sold) options
-    fn settle_round(ref self: TContractState, settlement_price: u256) -> u256;
+    fn settle_round(ref self: TContractState, settlement_price: u256) -> (u256, u256);
 
     /// Account functions
 

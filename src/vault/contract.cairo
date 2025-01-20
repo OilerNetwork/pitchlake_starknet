@@ -712,7 +712,7 @@ mod Vault {
 
             // @dev If the current round is Running, the l1 data is being used to settle it
             if state == OptionRoundState::Running {
-                // @dev Ensure now is >= the settlement date
+                // @dev Ensure now >= the settlement date
                 let now = get_block_timestamp();
                 let settlement_date = current_round.get_option_settlement_date();
                 assert(now >= settlement_date, Errors::L1DataNotAcceptedNow);
@@ -825,46 +825,17 @@ mod Vault {
 
             // @dev Settle the current round and return the total payout
             let current_round = self.get_round_dispatcher(current_round_id);
-            let total_payout = current_round.settle_round(twap);
+            let (total_payout, payout_per_option) = current_round.settle_round(twap);
 
-            // @dev Calculate the remaining liquidity after the round settles
-            let starting_liq = current_round.get_starting_liquidity();
-            let unsold_liq = current_round.get_unsold_liquidity();
-            let remaining_liq = starting_liq - unsold_liq - total_payout;
+            // @dev Emit event
+            self.emit(Event::OptionRoundSettled(OptionRoundSettled {
+                round_id: current_round_id,
+                round_address: current_round.contract_address,
+                settlement_price: twap,
+                payout_per_option
+            }));
 
-            // @dev Calculate the amount of liquidity that was stashed/not stashed by liquidity
-            // providers, avoiding division by 0
-            let vault = get_contract_address();
-            let starting_liq_queued = self
-                .queued_liquidity
-                .entry(vault)
-                .entry(current_round_id)
-                .read();
-            let remaining_liq_stashed = match starting_liq.is_zero() {
-                true => 0,
-                false => (remaining_liq * starting_liq_queued) / starting_liq
-            };
-            let remaining_liq_not_stashed = remaining_liq - remaining_liq_stashed;
-
-            // @dev All of the remaining liquidity becomes unlocked, any stashed liquidity is
-            // set aside and no longer participates in the protocol
-            self.vault_locked_balance.write(0);
-            self
-                .vault_stashed_balance
-                .write(self.vault_stashed_balance.read() + remaining_liq_stashed);
-            self
-                .vault_unlocked_balance
-                .write(self.vault_unlocked_balance.read() + remaining_liq_not_stashed);
-
-            // @dev Transfer payout from the vault to the just settled round,
-            if (total_payout > 0) {
-                self.get_eth_dispatcher().transfer(current_round.contract_address, total_payout);
-            }
-
-            // @dev Deploy the next option round contract & update the current round id
-            self.deploy_next_round(L1Data { twap, volatility, reserve_price });
-
-            // @dev Return the total payout of the settled round
+            // @dev Return just the total payout
             total_payout
         }
 

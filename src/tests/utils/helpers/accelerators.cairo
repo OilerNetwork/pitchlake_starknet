@@ -104,6 +104,7 @@ fn accelerate_to_settled_custom(ref self: VaultFacade, l1_data: L1Data) -> u256 
         .get_fossil_client_facade()
         .fossil_callback(request_serialized.span(), result_serialized.span());
 
+    clear_event_logs(array![self.contract_address()]);
     // Jump to the option expiry date and settle the round
     self.settle_option_round()
 }

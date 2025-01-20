@@ -96,7 +96,11 @@ fn test_tokenizing_options_events() {
                 // Tokenize options
                 let options_minted = current_round.mint_options(*bidder);
                 assert_event_options_tokenized(
-                    current_round.contract_address(), *bidder, options_minted
+                    current_round.contract_address(),
+                    *bidder,
+                    options_minted,
+                    current_round.get_round_id(),
+                    current_round.contract_address()
                 );
                 // User's option erc20 balance after tokenizing
             },
