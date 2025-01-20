@@ -734,15 +734,10 @@ mod Vault {
                 let deployment_date = current_round.get_deployment_date();
                 assert(timestamp == deployment_date, Errors::L1DataOutOfRange);
 
+                let pricing_data = self.convert_l1_data_to_round_data(l1_data);
                 // @dev Set the round's pricing data directly
-                current_round.set_pricing_data(self.convert_l1_data_to_round_data(l1_data));
+                current_round.set_pricing_data(pricing_data);
 
-                // @dev Emit pricing data set event
-                let pricing_data = PricingData {
-                    strike_price: l1_data.twap,
-                    cap_level: l1_data.volatility,
-                    reserve_price: l1_data.reserve_price,
-                };
                 self.emit(PricingDataSet { 
                     pricing_data,  // Use the converted data
                     round_id: current_round_id,
@@ -779,7 +774,7 @@ mod Vault {
             let current_round_id = self.current_round_id.read();
             let current_round_address = self.round_addresses.read(current_round_id);
             let current_round = self.get_round_dispatcher(current_round_id);
-            let (clearing_price, options_sold) = current_round.end_auction();
+            let (clearing_price, options_sold, clearing_bid_tree_nonce) = current_round.end_auction();
 
             // @dev Calculate the total premium and add it to the total unlocked liquidity
             let mut unlocked_liquidity = self.vault_unlocked_balance.read();
@@ -803,7 +798,7 @@ mod Vault {
                 options_sold,
                 clearing_price,
                 unsold_liquidity,
-                clearing_bid_tree_nonce: current_round.get_bid_tree_nonce(),
+                clearing_bid_tree_nonce,
                 round_id: current_round_id,
                 round_address: current_round_address,
             }));
@@ -1042,11 +1037,7 @@ mod Vault {
             let auction_duration = self.auction_duration.read();
             let round_duration = self.round_duration.read();
 
-            let pricing_data = PricingData {
-                strike_price: l1_data.twap,
-                cap_level: l1_data.volatility,
-                reserve_price: l1_data.reserve_price,
-            };
+            let pricing_data = self.convert_l1_data_to_round_data(l1_data);
 
             let constructor_args = OptionRoundConstructorArgs {
                 vault_address,

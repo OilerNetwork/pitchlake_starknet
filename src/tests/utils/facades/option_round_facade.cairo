@@ -111,7 +111,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
 
     // End the current option round's auction
     fn end_auction(ref self: OptionRoundFacade) -> (u256, u256) {
-        let (clearing_price, total_options_sold) = self.option_round_dispatcher.end_auction();
+        let (clearing_price, total_options_sold, _) = self.option_round_dispatcher.end_auction();
         sanity_checks::end_auction(ref self, clearing_price, total_options_sold)
     }
 

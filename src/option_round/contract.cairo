@@ -449,7 +449,7 @@ mod OptionRound {
             options_available
         }
 
-        fn end_auction(ref self: ContractState) -> (u256, u256) {
+        fn end_auction(ref self: ContractState) -> (u256, u256, u64) {
             // @dev Calculate how many options were sold and the price per one
             let (clearing_price, options_sold, clearing_bid_tree_nonce) = self
                 .bids_tree
@@ -463,12 +463,6 @@ mod OptionRound {
                 );
             let unsold_liquidity = starting_liq - sold_liquidity;
 
-            //let options_unsold = options_available - options_sold;
-            //let unsold_liquidity = match options_available.is_zero() {
-            //    true => 0,
-            //    false => (starting_liq * options_unsold) / options_available
-            //};
-
             // @dev Send premiums to Vault
             self
                 .get_eth_dispatcher()
@@ -477,8 +471,8 @@ mod OptionRound {
             // @dev Transition state
             self.transition_state_to(OptionRoundState::Running);
 
-            // @dev Return clearing price and options sold
-            (clearing_price, options_sold)
+            // @dev Return clearing price, options sold, and clearing bid tree nonce
+            (clearing_price, options_sold, clearing_bid_tree_nonce)
         }
 
         fn settle_round(ref self: ContractState, settlement_price: u256) -> (u256, u256) {

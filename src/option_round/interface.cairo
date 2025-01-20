@@ -144,9 +144,9 @@ trait IOptionRound<TContractState> {
     // @param starting_liquidity: The total amount of ETH being locked in the auction
     fn start_auction(ref self: TContractState, starting_liquidity: u256) -> u256;
 
-    // @dev End the round's auction, return the price paid for each option and number
-    // of options sold
-    fn end_auction(ref self: TContractState) -> (u256, u256);
+    // @dev End the round's auction, return the price paid for each option, number
+    // of options sold, and the clearing bid's tree nonce
+    fn end_auction(ref self: TContractState) -> (u256, u256, u64);
 
     // @dev Settle the round, return the total payout for all of the (sold) options
     fn settle_round(ref self: TContractState, settlement_price: u256) -> (u256, u256);

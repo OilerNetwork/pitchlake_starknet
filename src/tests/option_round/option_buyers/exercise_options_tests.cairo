@@ -71,7 +71,6 @@ fn test_exercise_options_before_round_settles_fails() {
 #[test]
 #[available_gas(5000000000)]
 fn test_exercise_options_events() {
-    println!("BEGIN TEST");
     let (mut vault, _) = setup_facade();
     let mut option_bidders = option_bidders_get(3).span();
     let mut current_round = vault.get_current_round();
@@ -84,15 +83,10 @@ fn test_exercise_options_events() {
     let bid_prices = create_array_linear(reserve_price, option_bidders.len()).span();
     accelerate_to_running_custom(ref vault, option_bidders, bid_amounts, bid_prices);
     accelerate_to_settled(ref vault, 2 * current_round.get_strike_price());
-    // clear_event_logs(array![vault.contract_address()]);
 
-    println!("AFTER ACCELERATE");
-    println!("VAULT: {:?}", vault.contract_address());
-    println!("CURRENT ROUND: {:?}", current_round.contract_address());
     // OB1 mints all options before exercising, emitting 0 for mintable options exercised
     match option_bidders.pop_front() {
         Option::Some(ob) => {
-            println!("OB: {:?}", *ob);
             current_round.mint_options(*ob);
             clear_event_logs(array![vault.contract_address()]);
             let payout_amount = current_round.exercise_options(*ob);
@@ -102,7 +96,6 @@ fn test_exercise_options_events() {
         },
         Option::None => {}
     };
-    println!("AFTER EXERCISE - BEFORE LOOP");
     // The rest of the OBs exercise all of their options which are mintable
     loop {
         match option_bidders.pop_front() {
@@ -116,7 +109,6 @@ fn test_exercise_options_events() {
             Option::None => { break (); }
         }
     };
-    println!("AFTER LOOP");
 }
 
 

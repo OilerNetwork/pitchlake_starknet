@@ -120,13 +120,7 @@ fn test_auction_ended_option_round_event() {
         let bidder: ContractAddress = *option_bidders_get(1)[0];
         let bid_amount = current_round.get_total_options_available();
         let bid_price = current_round.get_reserve_price();
-        let t1 = current_round.get_bid_tree_nonce();
-        let b = current_round.place_bid(bid_amount, bid_price, bidder);
-        let t2 = current_round.get_bid_tree_nonce();
-        println!("Bid: {:?}", b);
-        println!("Tree nonce before: {:?}", t1);
-        println!("Tree nonce after: {:?}", t2);
-        // current_round.place_bid(bid_amount, bid_price, bidder);
+        current_round.place_bid(bid_amount, bid_price, bidder);
 
         // End auction
         clear_event_logs(array![vault.contract_address()]);

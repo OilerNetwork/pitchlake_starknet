@@ -276,11 +276,6 @@ fn assert_event_options_exercised(
     round_id: u64,
     round_address: ContractAddress
 ) {
-    // If the account burned erc20 tokens, we need to remove that event from the log
-    if total_options_exercised > mintable_options_exercised {
-        let _ = pop_log::<ERC20Component::Event>(contract);
-    }
-
     match pop_log::<Vault::Event>(contract) {
         Option::Some(e) => {
             let expected = Vault::Event::OptionsExercised(
@@ -351,6 +346,9 @@ fn assert_event_option_round_deployed_single(
     option_settlement_date: u64,
     pricing_data: PricingData,
 ) {
+    // Remove the RoundSettled event
+    let x = pop_log::<Vault::Event>(contract);
+    // Get the event we're interested in
     match pop_log::<Vault::Event>(contract) {
         Option::Some(e) => {
             let expected = Vault::Event::OptionRoundDeployed(
