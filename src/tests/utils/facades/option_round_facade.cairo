@@ -221,7 +221,8 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     ) {
         assert_two_arrays_equal_length(bidders, amounts);
         assert_two_arrays_equal_length(bidders, prices);
-        let mut safe_option_round = self.get_safe_dispatcher();
+        let mut vault = self.get_vault_facade();
+        let safe_vault = vault.get_safe_dispatcher();
 
         loop {
             match bidders.pop_front() {
@@ -229,7 +230,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
                     let bid_amount = amounts.pop_front().unwrap();
                     let bid_price = prices.pop_front().unwrap();
                     set_contract_address(*bidder);
-                    match safe_option_round.place_bid(*bidder, *bid_amount, *bid_price) {
+                    match safe_vault.place_bid(*bid_amount, *bid_price) {
                         Result::Ok(_) => {},
                         Result::Err(_) => {}
                     }
