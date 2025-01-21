@@ -50,17 +50,20 @@ fn test_update_bid_event() {
     let option_buyer = option_bidder_buyer_1();
     let bid_price = reserve_price;
     let mut bid_amount = options_available / 2;
+    let bid_tree_nonce_before = current_round.get_bid_tree_nonce();
     let bid = current_round.place_bid(bid_amount, bid_price, option_buyer);
+    let bid_tree_nonce_after = current_round.get_bid_tree_nonce();
     clear_event_logs(array![vault_facade.contract_address()]);
 
     let updated_bid = current_round.update_bid(bid.bid_id, 5);
+    assert_eq!(bid_tree_nonce_after, bid_tree_nonce_before+1);
     assert_event_auction_bid_updated(
         vault_facade.contract_address(),
         option_buyer,
         bid.bid_id,
         5, //Updated amount
-        bid.tree_nonce,
-        current_round.get_bid_tree_nonce(),
+        bid_tree_nonce_before,
+        bid_tree_nonce_after,
         current_round.get_round_id(),
         current_round.contract_address()
     );

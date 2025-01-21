@@ -249,23 +249,19 @@ fn assert_event_options_tokenized(
     round_id: u64,
     round_address: ContractAddress
 ) {
-    // We pop here twice since the method fires a ERC20 transfer event before the OptionsTokenized
-    // event
-    match pop_log::<ERC20Component::Transfer>(contract) {
-        Option::Some(_) => {
-            match pop_log::<Vault::Event>(contract) {
-                Option::Some(e) => {
-                    let expected = Vault::Event::OptionsMinted(
-                        Vault::OptionsMinted { account, minted_amount, round_id, round_address }
-                    );
-                    assert_events_equal(e, expected);
-                },
-                Option::None => { panic(array!['No events found']); },
-            }
+    match pop_log::<Vault::Event>(contract) {
+        Option::Some(e) => {
+            let expected = Vault::Event::OptionsMinted(
+                Vault::OptionsMinted { account, minted_amount, round_id, round_address }
+            );
+            println!("OptionsMinted actual event: {:?}", e);
+            println!("OptionsMinted expected event: {:?}", expected);
+            assert_events_equal(e, expected);
         },
-        Option::None => { panic!("ERC20 event not found") }
+        Option::None => { panic(array!['No events found']); },
     }
 }
+
 // Check OptionsExercised emits correctly
 fn assert_event_options_exercised(
     contract: ContractAddress,
@@ -346,8 +342,6 @@ fn assert_event_option_round_deployed_single(
     option_settlement_date: u64,
     pricing_data: PricingData,
 ) {
-    // Remove the RoundSettled event
-    let x = pop_log::<Vault::Event>(contract);
     // Get the event we're interested in
     match pop_log::<Vault::Event>(contract) {
         Option::Some(e) => {

@@ -899,15 +899,16 @@ mod Vault {
             let current_round_id = self.current_round_id.read();
             let current_round_address = self.round_addresses.read(current_round_id);
             let current_round = self.get_round_dispatcher(current_round_id);
-            
+
+            let current_bid = current_round.get_bid_details(bid_id);
             let updated_bid = current_round.update_bid(account, bid_id, price_increase);
             
             self.emit(Event::BidUpdated(BidUpdated {
                 account,
                 bid_id,
                 price_increase,
-                bid_tree_nonce_before: updated_bid.tree_nonce,
-                bid_tree_nonce_now: updated_bid.tree_nonce + 1,
+                bid_tree_nonce_before: current_bid.tree_nonce,
+                bid_tree_nonce_now: updated_bid.tree_nonce,
                 round_id: current_round_id,
                 round_address: current_round_address,
             }));
