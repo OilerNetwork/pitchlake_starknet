@@ -38,7 +38,7 @@ fn test_clearing_price_0_before_auction_end() {
     let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
     let bid_amount: u256 = total_options_available;
     let bid_price: u256 = current_round.get_reserve_price();
-    current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
+    vault_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
 
     // Check that clearing price is 0 before auction end
     let clearing_price = current_round.get_auction_clearing_price();

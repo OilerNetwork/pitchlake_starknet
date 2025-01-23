@@ -62,7 +62,7 @@ fn test_only_vault_can_end_auction() {
     let (mut vault, _) = setup_facade();
     let mut current_round = vault.get_current_round();
     accelerate_to_auctioning(ref vault);
-    current_round.place_bid(100, current_round.get_reserve_price(), option_bidder_buyer_1());
+    vault.place_bid(100, current_round.get_reserve_price(), option_bidder_buyer_1());
     set_block_timestamp(current_round.get_auction_end_date());
 
     set_contract_address(not_vault());

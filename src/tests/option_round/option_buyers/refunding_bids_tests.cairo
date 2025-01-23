@@ -78,7 +78,7 @@ fn place_incremental_bids_internal(
     let mut bid_amounts = create_array_linear(options_available, bid_prices.len());
 
     // Place bids
-    current_round.place_bids(bid_amounts.span(), bid_prices.span(), option_bidders);
+    vault.place_bids(bid_amounts.span(), bid_prices.span(), option_bidders);
 
     (bid_amounts.span(), bid_prices.span(), current_round)
 }
@@ -96,10 +96,10 @@ fn test_refunding_bids_before_auction_end_fails() {
     let (mut vault, _, mut option_bidders) = setup_test(number_of_option_bidders);
 
     // Each option buyer out bids the next
-    let (_, _, mut current_round) = place_incremental_bids_internal(ref vault, option_bidders);
+    let (_, _, _) = place_incremental_bids_internal(ref vault, option_bidders);
 
     // Try to refund bids before auction ends
-    current_round.refund_bid_expect_error(*option_bidders[0], Errors::AuctionNotEnded);
+    vault.refund_bid_expect_error(*option_bidders[0], Errors::AuctionNotEnded);
 }
 
 
@@ -125,7 +125,7 @@ fn test_refunding_bids_events() {
                     Option::Some(bidder) => {
                         // Check refunding bids emits the correct event
                         clear_event_logs(array![vault.contract_address()]);
-                        let refund_amount = current_round.refund_bid(*bidder);
+                        let refund_amount = vault.refund_bid(*bidder);
                         assert_event_unused_bids_refunded(
                             vault.contract_address(),
                             *bidder,
@@ -160,7 +160,7 @@ fn test_refund_bids_sets_refunded_balance_to_0() {
     // Pop first bidder from array because their bid is refundable
     match option_bidders.pop_front() {
         Option::Some(bidder) => {
-            current_round.refund_bid(*bidder);
+            vault.refund_bid(*bidder);
             // Check refunded bid balance is 0 for bidder
             assert(0 == current_round.get_refundable_balance_for(*bidder), 'refunded bid shd be 0');
         },
@@ -176,7 +176,7 @@ fn test_refund_bids_eth_transfer() {
     let (mut vault, eth_dispatcher, mut option_bidders) = setup_test(number_of_option_bidders);
 
     // Each option bidder out bids the next
-    let (_, _, mut current_round) = place_incremental_bids_internal(ref vault, option_bidders);
+    let (_, _, _) = place_incremental_bids_internal(ref vault, option_bidders);
 
     // End auction
     timeskip_and_end_auction(ref vault);
@@ -189,7 +189,7 @@ fn test_refund_bids_eth_transfer() {
                 match option_bidders.pop_front() {
                     Option::Some(bidder) => {
                         let eth_balance_before = eth_dispatcher.balance_of(*bidder);
-                        let refunded_amount = current_round.refund_bid(*bidder);
+                        let refunded_amount = vault.refund_bid(*bidder);
                         let eth_balance_after = eth_dispatcher.balance_of(*bidder);
                         assert(
                             eth_balance_after == eth_balance_before + refunded_amount,

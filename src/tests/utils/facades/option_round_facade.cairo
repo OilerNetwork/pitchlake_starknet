@@ -151,271 +151,271 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     }
 
 
-    /// OB functions
+    // /// OB functions
 
-    // Place a bid for an option bidder
-    // @return: The bid id
-    fn place_bid(
-        ref self: OptionRoundFacade, 
-        amount: u256, 
-        price: u256, 
-        bidder: ContractAddress,
-    ) -> Bid {
-        set_contract_address(bidder);
-        let vault = self.get_vault_facade();
-        let bid = vault.vault_dispatcher.place_bid(amount, price);
-        sanity_checks::place_bid(ref self, bid)
-    }
+    // // Place a bid for an option bidder
+    // // @return: The bid id
+    // fn place_bid(
+    //     ref self: OptionRoundFacade, 
+    //     amount: u256, 
+    //     price: u256, 
+    //     bidder: ContractAddress,
+    // ) -> Bid {
+    //     set_contract_address(bidder);
+    //     let vault = self.get_vault_facade();
+    //     let bid = vault.vault_dispatcher.place_bid(amount, price);
+    //     sanity_checks::place_bid(ref self, bid)
+    // }
 
-    // Place multiple bids for multiple option bidders
-    // @return: Array of bid ids
-    fn place_bids(
-        ref self: OptionRoundFacade,
-        mut amounts: Span<u256>,
-        mut prices: Span<u256>,
-        mut bidders: Span<ContractAddress>,
-    ) -> Array<Bid> {
-        assert_two_arrays_equal_length(bidders, amounts);
-        assert_two_arrays_equal_length(bidders, prices);
-        let mut results = array![];
-        loop {
-            match bidders.pop_front() {
-                Option::Some(bidder) => {
-                    let bid_amount = amounts.pop_front().unwrap();
-                    let bid_price = prices.pop_front().unwrap();
-                    // Make bid
-                    let bid_id = self.place_bid(*bid_amount, *bid_price, *bidder);
-                    // Append result
-                    results.append(bid_id);
-                },
-                Option::None => { break (); }
-            }
-        };
-        results
-    }
+    // // Place multiple bids for multiple option bidders
+    // // @return: Array of bid ids
+    // fn place_bids(
+    //     ref self: OptionRoundFacade,
+    //     mut amounts: Span<u256>,
+    //     mut prices: Span<u256>,
+    //     mut bidders: Span<ContractAddress>,
+    // ) -> Array<Bid> {
+    //     assert_two_arrays_equal_length(bidders, amounts);
+    //     assert_two_arrays_equal_length(bidders, prices);
+    //     let mut results = array![];
+    //     loop {
+    //         match bidders.pop_front() {
+    //             Option::Some(bidder) => {
+    //                 let bid_amount = amounts.pop_front().unwrap();
+    //                 let bid_price = prices.pop_front().unwrap();
+    //                 // Make bid
+    //                 let bid_id = self.place_bid(*bid_amount, *bid_price, *bidder);
+    //                 // Append result
+    //                 results.append(bid_id);
+    //             },
+    //             Option::None => { break (); }
+    //         }
+    //     };
+    //     results
+    // }
 
-    // Place a bid for an option bidder
-    // @return: An result for whether the bid was accepted or rejected
-    #[feature("safe_dispatcher")]
-    fn place_bid_expect_error(
-        ref self: OptionRoundFacade,
-        amount: u256,
-        price: u256,
-        option_bidder_buyer: ContractAddress,
-        error: felt252,
-    ) {
-        set_contract_address(option_bidder_buyer);
-        let mut vault = self.get_vault_facade();
-        let safe_vault = vault.get_safe_dispatcher();
-        safe_vault.place_bid(amount, price).expect_err(error);
-    }
+    // // Place a bid for an option bidder
+    // // @return: An result for whether the bid was accepted or rejected
+    // #[feature("safe_dispatcher")]
+    // fn place_bid_expect_error(
+    //     ref self: OptionRoundFacade,
+    //     amount: u256,
+    //     price: u256,
+    //     option_bidder_buyer: ContractAddress,
+    //     error: felt252,
+    // ) {
+    //     set_contract_address(option_bidder_buyer);
+    //     let mut vault = self.get_vault_facade();
+    //     let safe_vault = vault.get_safe_dispatcher();
+    //     safe_vault.place_bid(amount, price).expect_err(error);
+    // }
 
-    // Place bids for option bidders, ignoring failed rejected bids
-    // @return: An result for whether the bid was accepted or rejected
-    #[feature("safe_dispatcher")]
-    fn place_bids_ignore_errors(
-        ref self: OptionRoundFacade,
-        mut amounts: Span<u256>,
-        mut prices: Span<u256>,
-        mut bidders: Span<ContractAddress>,
-    ) {
-        assert_two_arrays_equal_length(bidders, amounts);
-        assert_two_arrays_equal_length(bidders, prices);
-        let mut vault = self.get_vault_facade();
-        let safe_vault = vault.get_safe_dispatcher();
+    // // Place bids for option bidders, ignoring failed rejected bids
+    // // @return: An result for whether the bid was accepted or rejected
+    // #[feature("safe_dispatcher")]
+    // fn place_bids_ignore_errors(
+    //     ref self: OptionRoundFacade,
+    //     mut amounts: Span<u256>,
+    //     mut prices: Span<u256>,
+    //     mut bidders: Span<ContractAddress>,
+    // ) {
+    //     assert_two_arrays_equal_length(bidders, amounts);
+    //     assert_two_arrays_equal_length(bidders, prices);
+    //     let mut vault = self.get_vault_facade();
+    //     let safe_vault = vault.get_safe_dispatcher();
 
-        loop {
-            match bidders.pop_front() {
-                Option::Some(bidder) => {
-                    let bid_amount = amounts.pop_front().unwrap();
-                    let bid_price = prices.pop_front().unwrap();
-                    set_contract_address(*bidder);
-                    match safe_vault.place_bid(*bid_amount, *bid_price) {
-                        Result::Ok(_) => {},
-                        Result::Err(_) => {}
-                    }
-                },
-                Option::None => { break (); }
-            }
-        }
-    }
+    //     loop {
+    //         match bidders.pop_front() {
+    //             Option::Some(bidder) => {
+    //                 let bid_amount = amounts.pop_front().unwrap();
+    //                 let bid_price = prices.pop_front().unwrap();
+    //                 set_contract_address(*bidder);
+    //                 match safe_vault.place_bid(*bid_amount, *bid_price) {
+    //                     Result::Ok(_) => {},
+    //                     Result::Err(_) => {}
+    //                 }
+    //             },
+    //             Option::None => { break (); }
+    //         }
+    //     }
+    // }
 
 
-    // Place multiple bids for multiple option bidders
-    // @return: An result for whether the bids were accepted or rejected
-    #[feature("safe_dispatcher")]
-    fn place_bids_expect_error(
-        ref self: OptionRoundFacade,
-        mut amounts: Span<u256>,
-        mut prices: Span<u256>,
-        mut bidders: Span<ContractAddress>,
-        mut errors: Span<felt252>,
-    ) {
-        assert_two_arrays_equal_length(bidders, amounts);
-        assert_two_arrays_equal_length(bidders, prices);
-        let mut vault = self.get_vault_facade();
-        let safe_vault = vault.get_safe_dispatcher();
+    // // Place multiple bids for multiple option bidders
+    // // @return: An result for whether the bids were accepted or rejected
+    // #[feature("safe_dispatcher")]
+    // fn place_bids_expect_error(
+    //     ref self: OptionRoundFacade,
+    //     mut amounts: Span<u256>,
+    //     mut prices: Span<u256>,
+    //     mut bidders: Span<ContractAddress>,
+    //     mut errors: Span<felt252>,
+    // ) {
+    //     assert_two_arrays_equal_length(bidders, amounts);
+    //     assert_two_arrays_equal_length(bidders, prices);
+    //     let mut vault = self.get_vault_facade();
+    //     let safe_vault = vault.get_safe_dispatcher();
         
-        loop {
-            match bidders.pop_front() {
-                Option::Some(bidder) => {
-                    set_contract_address(*bidder);
-                    let bid_amount = amounts.pop_front().unwrap();
-                    let bid_price = prices.pop_front().unwrap();
-                    let error = errors.pop_front().unwrap();
-                    safe_vault.place_bid(*bid_amount, *bid_price).expect_err(*error);
-                },
-                Option::None => { break (); }
-            }
-        };
-    }
+    //     loop {
+    //         match bidders.pop_front() {
+    //             Option::Some(bidder) => {
+    //                 set_contract_address(*bidder);
+    //                 let bid_amount = amounts.pop_front().unwrap();
+    //                 let bid_price = prices.pop_front().unwrap();
+    //                 let error = errors.pop_front().unwrap();
+    //                 safe_vault.place_bid(*bid_amount, *bid_price).expect_err(*error);
+    //             },
+    //             Option::None => { break (); }
+    //         }
+    //     };
+    // }
 
-    // Update a bid for an option bidder
-    // @return: The updated bid
-    fn update_bid(
-        ref self: OptionRoundFacade,
-        bid_id: felt252,
-        price_increase: u256,
-    ) -> Bid {
-        // Get the bid owner from the bid details
-        let old_bid = self.get_bid_details(bid_id);
-        let bidder = old_bid.owner;
-        set_contract_address(bidder);
-        let vault = self.get_vault_facade();
-        let new_bid = vault.vault_dispatcher.update_bid(bid_id, price_increase);
+    // // Update a bid for an option bidder
+    // // @return: The updated bid
+    // fn update_bid(
+    //     ref self: OptionRoundFacade,
+    //     bid_id: felt252,
+    //     price_increase: u256,
+    // ) -> Bid {
+    //     // Get the bid owner from the bid details
+    //     let old_bid = self.get_bid_details(bid_id);
+    //     let bidder = old_bid.owner;
+    //     set_contract_address(bidder);
+    //     let vault = self.get_vault_facade();
+    //     let new_bid = vault.vault_dispatcher.update_bid(bid_id, price_increase);
         
-        sanity_checks::update_bid(ref self, old_bid, new_bid)
-    }
+    //     sanity_checks::update_bid(ref self, old_bid, new_bid)
+    // }
 
-    // @note add bidder as param for testing
-    #[feature("safe_dispatcher")]
-    fn update_bid_expect_error(
-        ref self: OptionRoundFacade,
-        bid_id: felt252,
-        price_increase: u256,
-        bidder: ContractAddress,
-        error: felt252,
-    ) {
-        set_contract_address(bidder);
-        let mut vault = self.get_vault_facade();
-        let safe_vault = vault.get_safe_dispatcher();
-        safe_vault.update_bid(bid_id, price_increase).expect_err(error);
-    }
+    // // @note add bidder as param for testing
+    // #[feature("safe_dispatcher")]
+    // fn update_bid_expect_error(
+    //     ref self: OptionRoundFacade,
+    //     bid_id: felt252,
+    //     price_increase: u256,
+    //     bidder: ContractAddress,
+    //     error: felt252,
+    // ) {
+    //     set_contract_address(bidder);
+    //     let mut vault = self.get_vault_facade();
+    //     let safe_vault = vault.get_safe_dispatcher();
+    //     safe_vault.update_bid(bid_id, price_increase).expect_err(error);
+    // }
 
-    // Refunds all unused bids of an option bidder
-    // @return: The amount refunded
-    fn refund_bid(ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress) -> u256 {
-        set_contract_address(option_bidder_buyer);
-        let refundable_balance = self.get_refundable_balance_for(option_bidder_buyer);
+    // // Refunds all unused bids of an option bidder
+    // // @return: The amount refunded
+    // fn refund_bid(ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress) -> u256 {
+    //     set_contract_address(option_bidder_buyer);
+    //     let refundable_balance = self.get_refundable_balance_for(option_bidder_buyer);
         
-        let vault = self.get_vault_facade();
-        let refunded_amount = vault.vault_dispatcher.refund_unused_bids(
-            self.contract_address(), 
-            option_bidder_buyer
-        );
+    //     let vault = self.get_vault_facade();
+    //     let refunded_amount = vault.vault_dispatcher.refund_unused_bids(
+    //         self.contract_address(), 
+    //         option_bidder_buyer
+    //     );
         
-        sanity_checks::refund_bid(ref self, refunded_amount, refundable_balance)
-    }
+    //     sanity_checks::refund_bid(ref self, refunded_amount, refundable_balance)
+    // }
 
-    #[feature("safe_dispatcher")]
-    fn refund_bid_expect_error(
-        ref self: OptionRoundFacade,
-        option_bidder_buyer: ContractAddress,
-        error: felt252,
-    ) {
-        set_contract_address(option_bidder_buyer);
-        let mut vault = self.get_vault_facade();
-        let safe_vault = vault.get_safe_dispatcher();
-        safe_vault.refund_unused_bids(
-            self.contract_address(),
-            option_bidder_buyer
-        ).expect_err(error);
-    }
-    // Refunds all unused bids of multiple option bidders
-    // @return: The amounts refunded
-    fn refund_bids(ref self: OptionRoundFacade, mut bidders: Span<ContractAddress>) -> Array<u256> {
-        let mut refund_amounts = array![];
-        loop {
-            match bidders.pop_front() {
-                Option::Some(bidder) => {
-                    let refund_amount = self.refund_bid(*bidder);
-                    refund_amounts.append(refund_amount)
-                },
-                Option::None => { break (); }
-            }
-        };
-        refund_amounts
-    }
+    // #[feature("safe_dispatcher")]
+    // fn refund_bid_expect_error(
+    //     ref self: OptionRoundFacade,
+    //     option_bidder_buyer: ContractAddress,
+    //     error: felt252,
+    // ) {
+    //     set_contract_address(option_bidder_buyer);
+    //     let mut vault = self.get_vault_facade();
+    //     let safe_vault = vault.get_safe_dispatcher();
+    //     safe_vault.refund_unused_bids(
+    //         self.contract_address(),
+    //         option_bidder_buyer
+    //     ).expect_err(error);
+    // }
+    // // Refunds all unused bids of multiple option bidders
+    // // @return: The amounts refunded
+    // fn refund_bids(ref self: OptionRoundFacade, mut bidders: Span<ContractAddress>) -> Array<u256> {
+    //     let mut refund_amounts = array![];
+    //     loop {
+    //         match bidders.pop_front() {
+    //             Option::Some(bidder) => {
+    //                 let refund_amount = self.refund_bid(*bidder);
+    //                 refund_amounts.append(refund_amount)
+    //             },
+    //             Option::None => { break (); }
+    //         }
+    //     };
+    //     refund_amounts
+    // }
 
-    // Exercise options for an option buyer
-    // @return: The payout amount
-    // @note: Call using bystander ?
-    fn exercise_options(ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress) -> u256 {
-        set_contract_address(option_bidder_buyer);
-        let individual_payout = self.get_payout_balance_for(option_bidder_buyer);
-        let vault = self.get_vault_facade();
-        let exercised_amount = vault.vault_dispatcher.exercise_options(self.contract_address());
-        sanity_checks::exercise_options(ref self, exercised_amount, individual_payout)
-    }
+    // // Exercise options for an option buyer
+    // // @return: The payout amount
+    // // @note: Call using bystander ?
+    // fn exercise_options(ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress) -> u256 {
+    //     set_contract_address(option_bidder_buyer);
+    //     let individual_payout = self.get_payout_balance_for(option_bidder_buyer);
+    //     let vault = self.get_vault_facade();
+    //     let exercised_amount = vault.vault_dispatcher.exercise_options(self.contract_address());
+    //     sanity_checks::exercise_options(ref self, exercised_amount, individual_payout)
+    // }
 
-    #[feature("safe_dispatcher")]
-    fn exercise_options_expect_error(
-        ref self: OptionRoundFacade,
-        option_bidder_buyer: ContractAddress,
-        error: felt252,
-    ) {
-        set_contract_address(option_bidder_buyer);
-        let mut vault = self.get_vault_facade();
-        let safe_vault = vault.get_safe_dispatcher();
-        safe_vault.exercise_options(self.contract_address()).expect_err(error);
-    }
+    // #[feature("safe_dispatcher")]
+    // fn exercise_options_expect_error(
+    //     ref self: OptionRoundFacade,
+    //     option_bidder_buyer: ContractAddress,
+    //     error: felt252,
+    // ) {
+    //     set_contract_address(option_bidder_buyer);
+    //     let mut vault = self.get_vault_facade();
+    //     let safe_vault = vault.get_safe_dispatcher();
+    //     safe_vault.exercise_options(self.contract_address()).expect_err(error);
+    // }
 
-    // Exercise options for multiple option buyers
-    // @return: The payout amounts
-    fn exercise_options_multiple(
-        ref self: OptionRoundFacade, mut bidders: Span<ContractAddress>
-    ) -> Array<u256> {
-        let mut payouts = array![];
-        loop {
-            match bidders.pop_front() {
-                Option::Some(bidder) => { payouts.append(self.exercise_options(*bidder)); },
-                Option::None => { break (); }
-            }
-        };
-        payouts
-    }
+    // // Exercise options for multiple option buyers
+    // // @return: The payout amounts
+    // fn exercise_options_multiple(
+    //     ref self: OptionRoundFacade, mut bidders: Span<ContractAddress>
+    // ) -> Array<u256> {
+    //     let mut payouts = array![];
+    //     loop {
+    //         match bidders.pop_front() {
+    //             Option::Some(bidder) => { payouts.append(self.exercise_options(*bidder)); },
+    //             Option::None => { break (); }
+    //         }
+    //     };
+    //     payouts
+    // }
 
-    // Tokenize options for an option buyer
-    // @return: The amount of options minted
-    fn mint_options(ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress) -> u256 {
-        set_contract_address(option_bidder_buyer);
-        let option_erc20_balance_before = get_erc20_balance(
-            self.contract_address(), 
-            option_bidder_buyer
-        );
+    // // Tokenize options for an option buyer
+    // // @return: The amount of options minted
+    // fn mint_options(ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress) -> u256 {
+    //     set_contract_address(option_bidder_buyer);
+    //     let option_erc20_balance_before = get_erc20_balance(
+    //         self.contract_address(), 
+    //         option_bidder_buyer
+    //     );
         
-        let vault = self.get_vault_facade();
-        let options_minted = vault.vault_dispatcher.mint_options(self.contract_address());
+    //     let vault = self.get_vault_facade();
+    //     let options_minted = vault.vault_dispatcher.mint_options(self.contract_address());
         
-        sanity_checks::tokenize_options(
-            ref self,
-            option_bidder_buyer,
-            option_erc20_balance_before,
-            options_minted,
-        )
-    }
+    //     sanity_checks::tokenize_options(
+    //         ref self,
+    //         option_bidder_buyer,
+    //         option_erc20_balance_before,
+    //         options_minted,
+    //     )
+    // }
 
-    #[feature("safe_dispatcher")]
-    fn mint_options_expect_error(
-        ref self: OptionRoundFacade,
-        option_bidder_buyer: ContractAddress,
-        error: felt252,
-    ) {
-        set_contract_address(option_bidder_buyer);
-        let mut vault = self.get_vault_facade();
-        let safe_vault = vault.get_safe_dispatcher();
-        safe_vault.mint_options(self.contract_address()).expect_err(error);
-    }
+    // #[feature("safe_dispatcher")]
+    // fn mint_options_expect_error(
+    //     ref self: OptionRoundFacade,
+    //     option_bidder_buyer: ContractAddress,
+    //     error: felt252,
+    // ) {
+    //     set_contract_address(option_bidder_buyer);
+    //     let mut vault = self.get_vault_facade();
+    //     let safe_vault = vault.get_safe_dispatcher();
+    //     safe_vault.mint_options(self.contract_address()).expect_err(error);
+    // }
 
     /// Reads ///
 

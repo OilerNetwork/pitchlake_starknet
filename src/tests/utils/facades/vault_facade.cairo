@@ -48,6 +48,15 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         FossilClientFacade { contract_address: self.vault_dispatcher.get_fossil_client_address() }
     }
 
+    /// Option round
+    
+    fn get_option_round_facade(ref self: VaultFacade, round_id: u64) -> OptionRoundFacade {
+        let contract_address = self.vault_dispatcher.get_round_address(round_id);
+        let option_round_dispatcher = IOptionRoundDispatcher { contract_address };
+
+        OptionRoundFacade { option_round_dispatcher }
+    }
+
     /// Writes ///
 
     /// LP functions
@@ -656,12 +665,11 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         refund_amounts
     }
 
-    fn exercise_options(ref self: VaultFacade, option_bidder_buyer: ContractAddress) -> u256 {
+    fn exercise_options(ref self: VaultFacade, option_bidder_buyer: ContractAddress, ref round: OptionRoundFacade) -> u256 {
         set_contract_address(option_bidder_buyer);
-        let mut current_round = self.get_current_round();
-        let individual_payout = current_round.get_payout_balance_for(option_bidder_buyer);
-        let exercised_amount = self.vault_dispatcher.exercise_options(current_round.contract_address());
-        sanity_checks::exercise_options(ref current_round, exercised_amount, individual_payout)
+        let individual_payout = round.get_payout_balance_for(option_bidder_buyer);
+        let exercised_amount = self.vault_dispatcher.exercise_options(round.contract_address());
+        sanity_checks::exercise_options(ref round, exercised_amount, individual_payout)
     }
 
     #[feature("safe_dispatcher")]
@@ -669,38 +677,37 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         ref self: VaultFacade,
         option_bidder_buyer: ContractAddress,
         error: felt252,
+        ref round: OptionRoundFacade
     ) {
         set_contract_address(option_bidder_buyer);
         let safe_vault = self.get_safe_dispatcher();
-        let mut current_round = self.get_current_round();
-        safe_vault.exercise_options(current_round.contract_address()).expect_err(error);
+        safe_vault.exercise_options(round.contract_address()).expect_err(error);
     }
 
     fn exercise_options_multiple(
-        ref self: VaultFacade, mut bidders: Span<ContractAddress>
+        ref self: VaultFacade, mut bidders: Span<ContractAddress>, ref round: OptionRoundFacade
     ) -> Array<u256> {
         let mut payouts = array![];
         loop {
             match bidders.pop_front() {
-                Option::Some(bidder) => { payouts.append(self.exercise_options(*bidder)); },
+                Option::Some(bidder) => { payouts.append(self.exercise_options(*bidder, ref round)); },
                 Option::None => { break (); }
             }
         };
         payouts
     }
 
-    fn mint_options(ref self: VaultFacade, option_bidder_buyer: ContractAddress) -> u256 {
+    fn mint_options(ref self: VaultFacade, option_bidder_buyer: ContractAddress, ref round: OptionRoundFacade) -> u256 {
         set_contract_address(option_bidder_buyer);
-        let mut current_round = self.get_current_round();
         let option_erc20_balance_before = get_erc20_balance(
-            current_round.contract_address(), 
+            round.contract_address(), 
             option_bidder_buyer
         );
         
-        let options_minted = self.vault_dispatcher.mint_options(current_round.contract_address());
+        let options_minted = self.vault_dispatcher.mint_options(round.contract_address());
         
         sanity_checks::tokenize_options(
-            ref current_round,
+            ref round,
             option_bidder_buyer,
             option_erc20_balance_before,
             options_minted,
@@ -712,11 +719,11 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         ref self: VaultFacade,
         option_bidder_buyer: ContractAddress,
         error: felt252,
+        ref round: OptionRoundFacade,
     ) {
         set_contract_address(option_bidder_buyer);
         let safe_vault = self.get_safe_dispatcher();
-        let mut current_round = self.get_current_round();
-        safe_vault.mint_options(current_round.contract_address()).expect_err(error);
+        safe_vault.mint_options(round.contract_address()).expect_err(error);
     }
 }
 

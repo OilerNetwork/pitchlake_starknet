@@ -435,25 +435,7 @@ fn test_callback_works_as_expected() {
     let cap = pricing_utils::calculate_cap_level(
         vault.get_alpha(), vault.get_strike_level(), l1_data.volatility
     );
-
-    // Print expected values
-    println!("Expected values:");
-    println!("Cap level: {:?}", cap);
-    println!("Strike price: {:?}", strike);
-    println!("Reserve price: {:?}", l1_data.reserve_price);
-
-    // Print actual values from next round
-    println!("Actual values:");
-    println!("Cap level: {:?}", next_round.get_cap_level());
-    println!("Strike price: {:?}", next_round.get_strike_price());
-    println!("Reserve price: {:?}", next_round.get_reserve_price());
-
-    // Print actual values from current round
-    println!("Current round values:");
-    println!("Cap level: {:?}", current_round.get_cap_level());
-    println!("Strike price: {:?}", current_round.get_strike_price());
-    println!("Reserve price: {:?}", current_round.get_reserve_price());
-
+    
     assert_eq!(next_round.get_cap_level(), cap);
     assert_eq!(next_round.get_strike_price(), strike);
     assert_eq!(next_round.get_reserve_price(), l1_data.reserve_price);

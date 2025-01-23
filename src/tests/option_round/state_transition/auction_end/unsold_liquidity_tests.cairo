@@ -44,7 +44,7 @@ fn test_unsold_liquidity_0_before_auction_end() {
     let mut current_round = vault.get_current_round();
     let bid_amount = total_options_available;
     let bid_price = current_round.get_reserve_price();
-    current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
+    vault.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
 
     // Check that unsold liquidity is 0 before auction end
     let unsold_liq = vault.get_unsold_liquidity(current_round.get_round_id());
@@ -62,7 +62,7 @@ fn test_sold_liquidity_0_before_auction_end() {
     let mut current_round = vault.get_current_round();
     let bid_amount = total_options_available;
     let bid_price = current_round.get_reserve_price();
-    current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
+    vault.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
 
     // Check that sold liquidity is 0 before auction end
     let sold_liq = vault.get_sold_liquidity(current_round.get_round_id());

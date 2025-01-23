@@ -49,7 +49,7 @@ fn place_incremental_bids_internal(
     let mut bid_amounts = create_array_linear(options_available, bid_prices.len());
 
     // Place bids
-    let bids = current_round.place_bids(bid_amounts.span(), bid_prices.span(), option_bidders);
+    let bids = vault.place_bids(bid_amounts.span(), bid_prices.span(), option_bidders);
     (bid_amounts.span(), bid_prices.span(), current_round, bids.span())
 }
 

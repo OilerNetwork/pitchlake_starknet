@@ -2,7 +2,7 @@ use starknet::{ContractAddress, StorePacking};
 use pitch_lake::types::{Bid};
 
 // An enum for each state an option round can be in
-#[derive(Default, Copy, Drop, Serde, PartialEq, starknet::Store)]
+#[derive(Default, Copy, Drop, Serde, PartialEq, starknet::Store, Debug)]
 enum OptionRoundState {
     #[default]
     Open, // Accepting deposits, waiting for auction to start

@@ -38,7 +38,7 @@ fn test_helper(ref vault: VaultFacade) -> (OptionRoundFacade, Span<ContractAddre
     let mut option_bidders = option_bidders_get(number_of_option_bidders).span();
     let bid_amounts = to_wei_multi(array![50, 142, 235, 222, 75, 35].span(), d);
     let bid_prices = to_wei_multi(array![20, 11, 11, 2, 1, 1].span(), d);
-    current_round.place_bids_ignore_errors(bid_amounts, bid_prices, option_bidders);
+    vault.place_bids_ignore_errors(bid_amounts, bid_prices, option_bidders);
     timeskip_and_end_auction(ref vault);
 
     (current_round, option_bidders)
@@ -62,7 +62,7 @@ fn test_tokenizing_options_mints_option_tokens() {
                 );
 
                 // Tokenize options
-                let options_minted = current_round.mint_options(*bidder);
+                let options_minted = vault.mint_options(*bidder, ref current_round);
 
                 // User's option erc20 balance after tokenizing
                 let option_erc20_balance_after = get_erc20_balance(
@@ -94,7 +94,7 @@ fn test_tokenizing_options_events() {
             Option::Some(bidder) => {
                 // User's option erc20 balance before tokenizing
                 // Tokenize options
-                let options_minted = current_round.mint_options(*bidder);
+                let options_minted = vault.mint_options(*bidder, ref current_round);
                 assert_event_options_tokenized(
                     vault.contract_address(),
                     *bidder,
@@ -113,14 +113,13 @@ fn test_tokenizing_options_events() {
 #[available_gas(500000000)]
 fn test_tokenizing_options_before_auction_end_fails() {
     let (mut vault, _) = setup_facade();
-    let mut current_round = vault.get_current_round();
     let option_bidder = option_bidder_buyer_1();
     let err = Errors::AuctionNotEnded;
-
-    current_round.mint_options_expect_error(option_bidder, err);
+    let mut current_round = vault.get_current_round();
+    vault.mint_options_expect_error(option_bidder, err, ref current_round);
     accelerate_to_auctioning(ref vault);
     // @note needed ?
-    current_round.mint_options_expect_error(option_bidder, err);
+    vault.mint_options_expect_error(option_bidder, err, ref current_round);
 }
 
 
@@ -137,7 +136,7 @@ fn test_tokenizing_options_twice_does_nothing() {
         match option_bidders.pop_front() {
             Option::Some(bidder) => {
                 // Tokenize options
-                current_round.mint_options(*bidder);
+                vault.mint_options(*bidder, ref current_round);
 
                 // User's option erc20 balance before tokenizing again
                 let option_erc20_balance_before = get_erc20_balance(
@@ -145,7 +144,7 @@ fn test_tokenizing_options_twice_does_nothing() {
                 );
 
                 // Tokenize again, should do nothing
-                current_round.mint_options(*bidder);
+                vault.mint_options(*bidder, ref current_round);
 
                 // User's option erc20 balance after tokenizing
                 let option_erc20_balance_after = get_erc20_balance(
@@ -177,7 +176,7 @@ fn test_tokenizing_options_sets_option_storage_balance_to_0() {
         match option_bidders.pop_front() {
             Option::Some(bidder) => {
                 // Tokenize options
-                current_round.mint_options(*bidder);
+                vault.mint_options(*bidder, ref current_round);
 
                 // Check that the user's option balance in storage is set to 0 (all erc20 now)
                 assert(

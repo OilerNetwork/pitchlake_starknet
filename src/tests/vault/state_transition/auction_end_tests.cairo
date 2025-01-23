@@ -120,7 +120,7 @@ fn test_auction_ended_option_round_event() {
         let bidder: ContractAddress = *option_bidders_get(1)[0];
         let bid_amount = current_round.get_total_options_available();
         let bid_price = current_round.get_reserve_price();
-        current_round.place_bid(bid_amount, bid_price, bidder);
+        vault.place_bid(bid_amount, bid_price, bidder);
 
         // End auction
         clear_event_logs(array![vault.contract_address()]);
@@ -207,7 +207,7 @@ fn test_end_auction_eth_transfer() {
     let bid_amount = current_round.get_total_options_available();
     let losing_price = current_round.get_reserve_price();
     let winning_price = 2 * losing_price;
-    current_round
+    vault_facade
         .place_bids(
             array![bid_amount, bid_amount].span(),
             array![losing_price, winning_price].span(),

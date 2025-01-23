@@ -396,7 +396,7 @@ fn test_null_round_settling() {
     let option_buyer = option_bidder_buyer_1();
     let options_available = current_round.get_total_options_available();
     let reserve_price = current_round.get_reserve_price();
-    current_round
+    vault
         .place_bid_expect_error(
             options_available, reserve_price, option_buyer, Errors::NoOptionsToBidFor
         );

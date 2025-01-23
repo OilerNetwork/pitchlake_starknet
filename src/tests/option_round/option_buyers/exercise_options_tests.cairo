@@ -47,9 +47,9 @@ fn test_exercising_0_options() {
     accelerate_to_running(ref vault);
     let mut current_round = vault.get_current_round();
     accelerate_to_settled(ref vault, 2 * current_round.get_strike_price());
-
+    
     // @dev OB 2 does not participate in the default accelerators
-    current_round.exercise_options(option_bidder_buyer_2());
+    vault.exercise_options(option_bidder_buyer_2(), ref current_round);
 }
 
 // Test evercising options before round settles fails
@@ -57,12 +57,12 @@ fn test_exercising_0_options() {
 #[available_gas(50000000)]
 fn test_exercise_options_before_round_settles_fails() {
     let (mut vault, _) = setup_facade();
+    let mut current_round = vault.get_current_round();
     accelerate_to_auctioning(ref vault);
     accelerate_to_running(ref vault);
     // Try to exercise before round settles
-    let mut current_round = vault.get_current_round();
-    current_round
-        .exercise_options_expect_error(option_bidder_buyer_1(), Errors::OptionRoundNotSettled);
+    vault
+        .exercise_options_expect_error(option_bidder_buyer_1(), Errors::OptionRoundNotSettled, ref current_round);
 }
 
 /// Event Tests ///
@@ -87,9 +87,9 @@ fn test_exercise_options_events() {
     // OB1 mints all options before exercising, emitting 0 for mintable options exercised
     match option_bidders.pop_front() {
         Option::Some(ob) => {
-            current_round.mint_options(*ob);
+            vault.mint_options(*ob, ref current_round);
             clear_event_logs(array![vault.contract_address()]);
-            let payout_amount = current_round.exercise_options(*ob);
+            let payout_amount = vault.exercise_options(*ob, ref current_round);
             assert_event_options_exercised(
                 vault.contract_address(), *ob, bid_count, 0_u256, payout_amount, current_round.get_round_id(), current_round.contract_address()
             );
@@ -101,7 +101,7 @@ fn test_exercise_options_events() {
         match option_bidders.pop_front() {
             Option::Some(ob) => {
                 clear_event_logs(array![vault.contract_address()]);
-                let payout_amount = current_round.exercise_options(*ob);
+                let payout_amount = vault.exercise_options(*ob, ref current_round);
                 assert_event_options_exercised(
                     vault.contract_address(), *ob, bid_count, bid_count, payout_amount, current_round.get_round_id(), current_round.contract_address()
                 );
@@ -138,7 +138,7 @@ fn test_exercise_options_eth_transfer() {
         match option_bidders.pop_front() {
             Option::Some(ob) => {
                 let lp_balance_before = get_erc20_balance(eth.contract_address, *ob);
-                let payout_amount = current_round.exercise_options(*ob);
+                let payout_amount = vault.exercise_options(*ob, ref current_round);
 
                 let lp_balance_after = get_erc20_balance(eth.contract_address, *ob);
                 assert_eq!(lp_balance_after, lp_balance_before + payout_amount);
