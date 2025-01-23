@@ -90,8 +90,6 @@ fn assert_event_auction_start(
                     round_address
                 }
             );
-            println!("AuctionStarted actual event: {:?}", e);
-            println!("AuctionStarted expected event: {:?}", expected);
             assert_events_equal(e, expected);
         },
         Option::None => { panic(array!['Could not find event']); },
@@ -114,8 +112,6 @@ fn assert_event_auction_bid_placed(
             let expected = Vault::Event::BidPlaced(
                 Vault::BidPlaced { account, bid_id, amount, price, bid_tree_nonce_now, round_id, round_address }
             );
-            println!("BidPlaced actual event: {:?}", e);
-            println!("BidPlaced expected event: {:?}", expected);
             assert_events_equal(e, expected);
         },
         Option::None => { panic(array!['Could not find event']); },
@@ -139,8 +135,6 @@ fn assert_event_auction_bid_updated(
                     account, bid_id, price_increase, bid_tree_nonce_before, bid_tree_nonce_now, round_id, round_address
                 }
             );
-            println!("BidUpdated actual event: {:?}", e);
-            println!("BidUpdated expected event: {:?}", expected);
             assert_events_equal(e, expected);
         },
         Option::None => { panic(array!['Could not find event']); }
@@ -192,8 +186,6 @@ fn assert_event_auction_end(
                     round_address,
                 }
             );
-            println!("AuctionEnded actual event: {:?}", e);
-            println!("AuctionEnded expected event: {:?}", expected);
             assert_events_equal(e, expected);
         },
         Option::None => { panic(array!['No events found']); }
@@ -213,8 +205,6 @@ fn assert_event_option_settle(
             let expected = Vault::Event::OptionRoundSettled(
                 Vault::OptionRoundSettled { settlement_price, payout_per_option, round_id, round_address }
             );
-            println!("OptionRoundSettled actual event: {:?}", e);
-            println!("OptionRoundSettled expected event: {:?}", expected);
             assert_events_equal(e, expected);
         },
         Option::None => { panic(array!['No events found']); }
@@ -234,8 +224,6 @@ fn assert_event_unused_bids_refunded(
             let expected = Vault::Event::UnusedBidsRefunded(
                 Vault::UnusedBidsRefunded { account, refunded_amount, round_id, round_address }
             );
-            println!("UnusedBidsRefunded actual event: {:?}", e);
-            println!("UnusedBidsRefunded expected event: {:?}", expected);
             assert_events_equal(e, expected);
         },
         Option::None => { panic(array!['No events found']); },
@@ -254,8 +242,6 @@ fn assert_event_options_tokenized(
             let expected = Vault::Event::OptionsMinted(
                 Vault::OptionsMinted { account, minted_amount, round_id, round_address }
             );
-            println!("OptionsMinted actual event: {:?}", e);
-            println!("OptionsMinted expected event: {:?}", expected);
             assert_events_equal(e, expected);
         },
         Option::None => { panic(array!['No events found']); },
@@ -279,8 +265,6 @@ fn assert_event_options_exercised(
                     account, total_options_exercised, mintable_options_exercised, exercised_amount, round_id, round_address
                 }
             );
-            println!("OptionsExercised actual event: {:?}", e);
-            println!("OptionsExercised expected event: {:?}", expected);
             assert_events_equal(e, expected);
         },
         Option::None => { panic(array!['No events found']); },

@@ -613,8 +613,6 @@ fn auction_real_numbers_test_helper(
     let (_, options_sold) = timeskip_and_end_auction(ref vault);
 
     // Check that the correct number of options were sold and distributed
-    println!("Options sold: {:?}", options_sold);
-    println!("Expected options sold: {:?}", expected_options_sold); 
     assert(options_sold == expected_options_sold, 'options sold should match');
     let mut option_bidders = option_bidders_get(bid_amounts.len()).span();
     loop {
