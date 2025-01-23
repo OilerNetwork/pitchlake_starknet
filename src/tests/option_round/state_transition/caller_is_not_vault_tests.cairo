@@ -45,7 +45,7 @@ fn not_vault() -> ContractAddress {
 // Test that only the vault can start an auction
 #[test]
 #[available_gas(50000000)]
-fn test_only_vault_can_start_auction() {
+fn test_start_auction_caller_is_not_the_vault() {
     let (mut vault, _) = setup_facade();
     let mut round_to_start = vault.get_current_round();
     vault.deposit(100 * decimals(), liquidity_provider_1());
@@ -58,7 +58,7 @@ fn test_only_vault_can_start_auction() {
 // Test that only the vault can end an auction
 #[test]
 #[available_gas(50000000)]
-fn test_only_vault_can_end_auction() {
+fn test_end_auction_caller_is_not_the_vault() {
     let (mut vault, _) = setup_facade();
     let mut current_round = vault.get_current_round();
     accelerate_to_auctioning(ref vault);
@@ -72,7 +72,7 @@ fn test_only_vault_can_end_auction() {
 // Test that only the vault can settle an option round
 #[test]
 #[available_gas(50000000)]
-fn test_only_vault_can_settle_option_round() {
+fn test_settle_option_round_caller_is_not_the_vault() {
     let (mut vault, _) = setup_facade();
     let mut current_round = vault.get_current_round();
     accelerate_to_auctioning(ref vault);
@@ -89,7 +89,7 @@ fn get_random_pricing_data_points() -> PricingData {
 
 #[test]
 #[available_gas(50000000)]
-fn test_only_vault_can_update_round_params() {
+fn test_update_round_params_caller_is_not_the_vault() {
     let (mut vault, _) = setup_facade();
     let mut round = vault.get_current_round();
     let data = get_random_pricing_data_points();
@@ -128,7 +128,7 @@ fn test_set_pricing_data_on_round() {
 
 #[test]
 #[available_gas(50000000)]
-fn test_only_vault_can_place_bid() {
+fn test_place_bid_caller_is_not_the_vault() {
     let (mut vault, _) = setup_facade();
     let mut current_round = vault.get_current_round();
     accelerate_to_auctioning(ref vault);
@@ -139,7 +139,7 @@ fn test_only_vault_can_place_bid() {
 
 #[test]
 #[available_gas(50000000)]
-fn test_only_vault_can_update_bid() {
+fn test_update_bid_caller_is_not_the_vault() {
     let (mut vault, _) = setup_facade();
     let mut current_round = vault.get_current_round();
     accelerate_to_auctioning(ref vault);
@@ -151,7 +151,7 @@ fn test_only_vault_can_update_bid() {
 
 #[test]
 #[available_gas(50000000)]
-fn test_only_vault_can_refund_unused_bids() {
+fn test_refund_unused_bids_caller_is_not_the_vault() {
     let (mut vault, _) = setup_facade();
     let mut current_round = vault.get_current_round();
     accelerate_to_auctioning(ref vault);
@@ -164,7 +164,7 @@ fn test_only_vault_can_refund_unused_bids() {
 
 #[test]
 #[available_gas(50000000)]
-fn test_only_vault_can_mint_options() {
+fn test_mint_options_caller_is_not_the_vault() {
     let (mut vault, _) = setup_facade();
     let mut current_round = vault.get_current_round();
     accelerate_to_auctioning(ref vault);
@@ -177,7 +177,7 @@ fn test_only_vault_can_mint_options() {
 
 #[test]
 #[available_gas(50000000)]
-fn test_only_vault_can_exercise_options() {
+fn test_exercise_options_caller_is_not_the_vault() {
     let (mut vault, _) = setup_facade();
     let mut current_round = vault.get_current_round();
     accelerate_to_auctioning(ref vault);
