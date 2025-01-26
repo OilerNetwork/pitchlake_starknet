@@ -28,4 +28,4 @@ RUN katana --version
 EXPOSE 5050
 
 # Default command to run Katana
-CMD bash -c "katana --disable-fee --disable-validate --host 0.0.0.0"
+CMD bash -c "katana --chain-id SN_KATANA --disable-fee --disable-validate --host 0.0.0.0"
