@@ -1,7 +1,7 @@
 use starknet::{ContractAddress, testing::{set_contract_address, set_block_timestamp}};
 use openzeppelin_token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
 use pitch_lake::{
-    fossil_client::interface::{JobRequest, L1Data, FossilResult},
+    fossil_client::interface::{JobRequest, L1Data, FossilResult, FossilCallbackReturn, RoundSettledReturn},
     vault::{
         interface::{
             VaultType, IVaultDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcher,
@@ -162,7 +162,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     /// State transition
 
-    fn fossil_client_callback(ref self: VaultFacade, l1_data: L1Data, timestamp: u64) {
+    fn fossil_client_callback(ref self: VaultFacade, l1_data: L1Data, timestamp: u64) -> FossilCallbackReturn {
         self.vault_dispatcher.fossil_client_callback(l1_data, timestamp);
     }
 
@@ -205,26 +205,26 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         safe_vault.end_auction().expect_err(error);
     }
 
-    fn settle_option_round(ref self: VaultFacade) -> u256 {
-        // @dev Using bystander as caller so that gas fees do not throw off balance calculations
-        set_contract_address(bystander());
+    // fn settle_option_round(ref self: VaultFacade) -> u256 {
+    //     // @dev Using bystander as caller so that gas fees do not throw off balance calculations
+    //     set_contract_address(bystander());
 
-        // Settle the current round
-        let mut current_round = self.get_current_round();
-        let total_payout = self.vault_dispatcher.settle_round();
-        let total_payout = sanity_checks::settle_option_round(ref current_round, total_payout);
+    //     // Settle the current round
+    //     let mut current_round = self.get_current_round();
+    //     let total_payout = self.vault_dispatcher.settle_round();
+    //     let total_payout = sanity_checks::settle_option_round(ref current_round, total_payout);
 
-        let current_round_address = self.get_option_round_address(self.get_current_round_id());
-        eth_supply_and_approve_all_bidders(current_round_address, self.get_eth_address());
-        total_payout
-    }
+    //     let current_round_address = self.get_option_round_address(self.get_current_round_id());
+    //     eth_supply_and_approve_all_bidders(current_round_address, self.get_eth_address());
+    //     total_payout
+    // }
 
-    #[feature("safe_dispatcher")]
-    fn settle_option_round_expect_error(ref self: VaultFacade, error: felt252) {
-        set_contract_address(bystander());
-        let safe_vault = self.get_safe_dispatcher();
-        safe_vault.settle_round().expect_err(error);
-    }
+    // #[feature("safe_dispatcher")]
+    // fn settle_option_round_expect_error(ref self: VaultFacade, error: felt252) {
+    //     set_contract_address(bystander());
+    //     let safe_vault = self.get_safe_dispatcher();
+    //     safe_vault.settle_round().expect_err(error);
+    // }
 
     /// Fossil
 

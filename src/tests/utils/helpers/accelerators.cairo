@@ -5,7 +5,7 @@ use starknet::{
 use core::fmt::Display;
 use pitch_lake::{
     vault::{contract::Vault, interface::{VaultType, IVaultDispatcher, IVaultDispatcherTrait}},
-    fossil_client::interface::{L1Data, JobRequest, FossilResult},
+    fossil_client::interface::{L1Data, JobRequest, FossilResult, FossilCallbackReturn, RoundSettledReturn},
     option_round::{
         contract::{OptionRound},
         interface::{
@@ -99,13 +99,20 @@ fn accelerate_to_settled_custom(ref self: VaultFacade, l1_data: L1Data) -> u256 
 
     // Make callback to fulfill the request
     timeskip_to_settlement_date(ref self);
-    self
+    clear_event_logs(array![self.contract_address()]);
+
+    let callback_return = self
         .get_fossil_client_facade()
         .fossil_callback(request_serialized.span(), result_serialized.span());
+    
+    let round_settled_return = match callback_return {
+        FossilCallbackReturn::RoundSettled(total_payout) => {
+            total_payout
+        },
+        _ => panic!("Expected RoundSettled return")
+    };
 
-    clear_event_logs(array![self.contract_address()]);
-    // Jump to the option expiry date and settle the round
-    self.settle_option_round()
+    round_settled_return.total_payout
 }
 
 // Settle the option round with a custom settlement price (compared to strike to determine payout)
