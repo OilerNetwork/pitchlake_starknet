@@ -35,7 +35,6 @@ use pitch_lake::{
     },
 };
 
-
 /// Accelerators ///
 
 // Start the auction with LP1 depositing 100 eth
@@ -52,6 +51,8 @@ fn accelerate_to_auctioning_custom(
     // Deposit liquidity
     self.deposit_multiple(amounts, liquidity_providers);
     // Jump past round transition period and start the auction
+    // Clear logs before starting auction
+    clear_event_logs(array![self.contract_address()]);
     timeskip_and_start_auction(ref self)
 }
 
@@ -77,8 +78,7 @@ fn accelerate_to_running_custom(
     max_amounts: Span<u256>,
     prices: Span<u256>
 ) -> (u256, u256) {
-    let mut current_round = self.get_current_round();
-    current_round.place_bids(max_amounts, prices, bidders);
+    self.place_bids(max_amounts, prices, bidders);
 
     // Jump to the auction end date and end the auction
     timeskip_and_end_auction(ref self)
@@ -103,6 +103,7 @@ fn accelerate_to_settled_custom(ref self: VaultFacade, l1_data: L1Data) -> u256 
         .get_fossil_client_facade()
         .fossil_callback(request_serialized.span(), result_serialized.span());
 
+    clear_event_logs(array![self.contract_address()]);
     // Jump to the option expiry date and settle the round
     self.settle_option_round()
 }

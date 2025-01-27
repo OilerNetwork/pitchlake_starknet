@@ -107,7 +107,11 @@ fn test_auction_started_option_round_event() {
 
         // Check the event emits correctly
         assert_event_auction_start(
-            current_round.contract_address(), starting_liquidity, total_options_available
+            vault.contract_address(),
+            starting_liquidity,
+            total_options_available,
+            current_round.get_round_id(),
+            current_round.contract_address()
         );
 
         accelerate_to_running(ref vault);

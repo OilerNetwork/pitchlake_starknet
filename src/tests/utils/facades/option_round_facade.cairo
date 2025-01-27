@@ -111,13 +111,13 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
 
     // End the current option round's auction
     fn end_auction(ref self: OptionRoundFacade) -> (u256, u256) {
-        let (clearing_price, total_options_sold) = self.option_round_dispatcher.end_auction();
+        let (clearing_price, total_options_sold, _) = self.option_round_dispatcher.end_auction();
         sanity_checks::end_auction(ref self, clearing_price, total_options_sold)
     }
 
     // Settle the current option round
     fn settle_option_round(ref self: OptionRoundFacade, settlement_price: u256) -> u256 {
-        let total_payout = self.option_round_dispatcher.settle_round(settlement_price);
+        let (total_payout, _) = self.option_round_dispatcher.settle_round(settlement_price);
 
         // Set ETH approvals for next round
         let vault_dispatcher = IVaultDispatcher { contract_address: self.vault_address() };
@@ -159,7 +159,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         ref self: OptionRoundFacade, amount: u256, price: u256, bidder: ContractAddress,
     ) -> Bid {
         set_contract_address(bidder);
-        let bid: Bid = self.option_round_dispatcher.place_bid(amount, price);
+        let bid: Bid = self.option_round_dispatcher.place_bid(bidder, amount, price);
         sanity_checks::place_bid(ref self, bid)
     }
 
@@ -202,7 +202,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     ) {
         set_contract_address(option_bidder_buyer);
         let safe_option_round = self.get_safe_dispatcher();
-        safe_option_round.place_bid(amount, price).expect_err(error);
+        safe_option_round.place_bid(option_bidder_buyer, amount, price).expect_err(error);
     }
 
     // Place bids for option bidders, ignoring failed rejected bids
@@ -225,7 +225,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
                     let bid_price = prices.pop_front().unwrap();
                     // Make bid
                     set_contract_address(*bidder);
-                    match safe_option_round.place_bid(*bid_amount, *bid_price) {
+                    match safe_option_round.place_bid(*bidder, *bid_amount, *bid_price) {
                         Result::Ok(_) => {},
                         Result::Err(_) => {}
                     }
@@ -257,7 +257,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
                     let bid_price = prices.pop_front().unwrap();
                     let error = errors.pop_front().unwrap();
                     // Make bid
-                    safe_option_round.place_bid(*bid_amount, *bid_price).expect_err(*error);
+                    safe_option_round.place_bid(*bidder, *bid_amount, *bid_price).expect_err(*error);
                 },
                 Option::None => { break (); }
             }
@@ -270,7 +270,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         let old_bid = self.get_bid_details(id);
         let bidder = old_bid.owner;
         set_contract_address(bidder);
-        let new_bid = self.option_round_dispatcher.update_bid(id, price_increase);
+        let new_bid = self.option_round_dispatcher.update_bid(bidder, id, price_increase);
         sanity_checks::update_bid(ref self, old_bid, new_bid)
     }
 
@@ -285,7 +285,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     ) {
         let safe_option_round = self.get_safe_dispatcher();
         set_contract_address(bidder);
-        safe_option_round.update_bid(id, price_increase).expect_err(error);
+        safe_option_round.update_bid(bidder,id, price_increase).expect_err(error);
     }
 
     // Refunds all unused bids of an option bidder
@@ -326,7 +326,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     fn exercise_options(ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress) -> u256 {
         set_contract_address(option_bidder_buyer);
         let individual_payout = self.get_payout_balance_for(option_bidder_buyer);
-        let exercised_amount = self.option_round_dispatcher.exercise_options();
+        let (exercised_amount, _, _) = self.option_round_dispatcher.exercise_options(option_bidder_buyer);
         sanity_checks::exercise_options(ref self, exercised_amount, individual_payout)
     }
 
@@ -336,7 +336,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     ) {
         set_contract_address(option_bidder_buyer);
         let safe_option_round = self.get_safe_dispatcher();
-        safe_option_round.exercise_options().expect_err(error);
+        safe_option_round.exercise_options(option_bidder_buyer).expect_err(error);
     }
 
     // Exercise options for multiple option buyers
@@ -361,7 +361,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         let option_erc20_balance_before = get_erc20_balance(
             self.contract_address(), option_bidder_buyer
         );
-        let options_minted = self.option_round_dispatcher.mint_options();
+        let options_minted = self.option_round_dispatcher.mint_options(option_bidder_buyer);
         sanity_checks::tokenize_options(
             ref self, option_bidder_buyer, option_erc20_balance_before, options_minted,
         )
@@ -373,7 +373,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     ) {
         set_contract_address(option_bidder_buyer);
         let safe_option_round = self.get_safe_dispatcher();
-        safe_option_round.mint_options().expect_err(error);
+        safe_option_round.mint_options(option_bidder_buyer).expect_err(error);
     }
 
     /// Reads ///

@@ -435,7 +435,7 @@ fn test_callback_works_as_expected() {
     let cap = pricing_utils::calculate_cap_level(
         vault.get_alpha(), vault.get_strike_level(), l1_data.volatility
     );
-
+    
     assert_eq!(next_round.get_cap_level(), cap);
     assert_eq!(next_round.get_strike_price(), strike);
     assert_eq!(next_round.get_reserve_price(), l1_data.reserve_price);
@@ -446,7 +446,6 @@ fn test_callback_works_as_expected() {
 #[available_gas(90000000)]
 fn test_0_rounds() {
     let (mut vault, _) = setup_facade();
-
     // need to customize each to do 0s
     accelerate_to_auctioning_custom(ref vault, array![].span(), array![].span());
     accelerate_to_running_custom(ref vault, array![].span(), array![].span(), array![].span());
