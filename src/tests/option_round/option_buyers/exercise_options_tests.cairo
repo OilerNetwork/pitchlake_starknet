@@ -47,7 +47,7 @@ fn test_exercising_0_options() {
     accelerate_to_running(ref vault);
     let mut current_round = vault.get_current_round();
     accelerate_to_settled(ref vault, 2 * current_round.get_strike_price());
-    
+
     // @dev OB 2 does not participate in the default accelerators
     vault.exercise_options(option_bidder_buyer_2(), ref current_round);
 }
@@ -62,7 +62,9 @@ fn test_exercise_options_before_round_settles_fails() {
     accelerate_to_running(ref vault);
     // Try to exercise before round settles
     vault
-        .exercise_options_expect_error(option_bidder_buyer_1(), Errors::OptionRoundNotSettled, ref current_round);
+        .exercise_options_expect_error(
+            option_bidder_buyer_1(), Errors::OptionRoundNotSettled, ref current_round
+        );
 }
 
 /// Event Tests ///
@@ -91,7 +93,13 @@ fn test_exercise_options_events() {
             clear_event_logs(array![vault.contract_address()]);
             let payout_amount = vault.exercise_options(*ob, ref current_round);
             assert_event_options_exercised(
-                vault.contract_address(), *ob, bid_count, 0_u256, payout_amount, current_round.get_round_id(), current_round.contract_address()
+                vault.contract_address(),
+                *ob,
+                bid_count,
+                0_u256,
+                payout_amount,
+                current_round.get_round_id(),
+                current_round.contract_address()
             );
         },
         Option::None => {}
@@ -103,7 +111,13 @@ fn test_exercise_options_events() {
                 clear_event_logs(array![vault.contract_address()]);
                 let payout_amount = vault.exercise_options(*ob, ref current_round);
                 assert_event_options_exercised(
-                    vault.contract_address(), *ob, bid_count, bid_count, payout_amount, current_round.get_round_id(), current_round.contract_address()
+                    vault.contract_address(),
+                    *ob,
+                    bid_count,
+                    bid_count,
+                    payout_amount,
+                    current_round.get_round_id(),
+                    current_round.contract_address()
                 );
             },
             Option::None => { break (); }

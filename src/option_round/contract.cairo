@@ -487,7 +487,7 @@ mod OptionRound {
             self.payout_per_option.write(payout_per_option);
             self.settlement_price.write(settlement_price);
 
-            // @dev Transition state 
+            // @dev Transition state
             self.transition_state_to(OptionRoundState::Settled);
 
             // @dev Calculate and return total payout and payout per option
@@ -498,10 +498,7 @@ mod OptionRound {
         /// Account functions
 
         fn place_bid(
-            ref self: ContractState, 
-            account: ContractAddress,
-            amount: u256, 
-            price: u256
+            ref self: ContractState, account: ContractAddress, amount: u256, price: u256
         ) -> Bid {
             // @dev Assert the caller is the vault
             self.assert_caller_is_vault();
@@ -538,10 +535,7 @@ mod OptionRound {
         }
 
         fn update_bid(
-            ref self: ContractState,
-            account: ContractAddress,
-            bid_id: felt252,
-            price_increase: u256
+            ref self: ContractState, account: ContractAddress, bid_id: felt252, price_increase: u256
         ) -> Bid {
             // @dev Assert the caller is the vault
             self.assert_caller_is_vault();
@@ -613,7 +607,9 @@ mod OptionRound {
             minted_amount
         }
 
-        fn exercise_options(ref self: ContractState, account: ContractAddress) -> (u256, u256, u256) {
+        fn exercise_options(
+            ref self: ContractState, account: ContractAddress
+        ) -> (u256, u256, u256) {
             // @dev Assert the caller is the vault
             self.assert_caller_is_vault();
 
@@ -635,7 +631,8 @@ mod OptionRound {
             let exercised_amount = total_options_exercised * self.payout_per_option.read();
             self.get_eth_dispatcher().transfer(account, exercised_amount);
 
-            // @dev Return the exercised amount, total options exercised, and mintable options exercised
+            // @dev Return the exercised amount, total options exercised, and mintable options
+            // exercised
             (exercised_amount, total_options_exercised, mintable_options_exercised)
         }
     }

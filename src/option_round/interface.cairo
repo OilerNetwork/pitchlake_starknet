@@ -158,7 +158,9 @@ trait IOptionRound<TContractState> {
     // @param amount: The max amount of options being bid for
     // @param price: The max price per option being bid
     // @return The bid struct just created
-    fn place_bid(ref self: TContractState, account: ContractAddress, amount: u256, price: u256) -> Bid;
+    fn place_bid(
+        ref self: TContractState, account: ContractAddress, amount: u256, price: u256
+    ) -> Bid;
 
     // @dev Increase one of the account's bids in the auction
     // @param account: The account updating the bid
@@ -166,10 +168,7 @@ trait IOptionRound<TContractState> {
     // @param price_increase: The amount to increase the bid's price by
     // @return The updated bid struct
     fn update_bid(
-        ref self: TContractState, 
-        account: ContractAddress,
-        bid_id: felt252, 
-        price_increase: u256
+        ref self: TContractState, account: ContractAddress, bid_id: felt252, price_increase: u256
     ) -> Bid;
 
     // @dev Refund the account's unused bids from the auction

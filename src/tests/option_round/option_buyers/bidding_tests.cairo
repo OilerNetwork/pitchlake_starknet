@@ -84,7 +84,8 @@ fn test_bid_price_below_reserve_fails() {
     clear_event_logs(array![current_round.contract_address()]);
 
     // Check txn revert reason
-    vault_facade.place_bid_expect_error(bid_amount, bid_price, bidder, Errors::BidBelowReservePrice);
+    vault_facade
+        .place_bid_expect_error(bid_amount, bid_price, bidder, Errors::BidBelowReservePrice);
 }
 
 // Test bidding before auction starts fails
@@ -162,7 +163,13 @@ fn test_bidding_no_options_fail() {
         ref vault, liquidity_providers_get(2).span(), array![0, 0].span()
     );
 
-    vault.place_bid_expect_error(1234, current_round.get_reserve_price(), liquidity_provider_1(), Errors::NoOptionsToBidFor);
+    vault
+        .place_bid_expect_error(
+            1234,
+            current_round.get_reserve_price(),
+            liquidity_provider_1(),
+            Errors::NoOptionsToBidFor
+        );
 }
 
 /// Event Tests ///

@@ -56,7 +56,7 @@ fn test_update_bid_event() {
     clear_event_logs(array![vault_facade.contract_address()]);
 
     let updated_bid = vault_facade.update_bid(bid.bid_id, 5);
-    assert_eq!(bid_tree_nonce_after, bid_tree_nonce_before+1);
+    assert_eq!(bid_tree_nonce_after, bid_tree_nonce_before + 1);
     assert_event_auction_bid_updated(
         vault_facade.contract_address(),
         option_buyer,

@@ -111,8 +111,8 @@ fn test_option_round_settled_event() {
 
         // Check the event emits correctly
         assert_event_option_settle(
-            vault.contract_address(), 
-            settlement_price, 
+            vault.contract_address(),
+            settlement_price,
             payout_per_option,
             round.get_round_id(),
             round.contract_address()
