@@ -97,14 +97,11 @@ fn accelerate_to_settled_custom(ref self: VaultFacade, l1_data: L1Data) -> u256 
     FossilResult { l1_data: L1Data { twap, volatility, reserve_price }, proof: array![].span() }
         .serialize(ref result_serialized);
 
-    // Make callback to fulfill the request
+    // Make callback to fulfill the request and settle the round
     timeskip_to_settlement_date(ref self);
     self
         .get_fossil_client_facade()
-        .fossil_callback(request_serialized.span(), result_serialized.span());
-
-    // Jump to the option expiry date and settle the round
-    self.settle_option_round()
+        .fossil_callback(request_serialized.span(), result_serialized.span())
 }
 
 // Settle the option round with a custom settlement price (compared to strike to determine payout)

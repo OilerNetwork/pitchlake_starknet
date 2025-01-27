@@ -126,7 +126,8 @@ trait IVault<TContractState> {
 
     /// State transitions
 
-    fn fossil_client_callback(ref self: TContractState, l1_data: L1Data, timestamp: u64);
+    // @dev Initialize the first round
+    fn initialize_first_round(ref self: TContractState, l1_data: L1Data, l1_data_timestamp: u64);
 
     // @dev Start the current round's auction
     // @return The total options available in the auction
@@ -138,5 +139,5 @@ trait IVault<TContractState> {
 
     // @dev Settle the current round
     // @return The total payout for the round
-    fn settle_round(ref self: TContractState) -> u256;
+    fn settle_round(ref self: TContractState, l1_data: L1Data, l1_data_timestamp: u64) -> u256;
 }

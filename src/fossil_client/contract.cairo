@@ -6,8 +6,9 @@ mod FossilClient {
 
     use pitch_lake::library::constants::PROGRAM_ID;
     use pitch_lake::vault::interface::{IVaultDispatcher, IVaultDispatcherTrait};
-    use pitch_lake::option_round::interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait};
+    use pitch_lake::option_round::interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState};
     use pitch_lake::fossil_client::interface::{JobRequest, FossilResult, L1Data, IFossilClient,};
+    use pitch_lake::vault::contract::Vault::Errors::L1DataNotAcceptedNow;
 
     // *************************************************************************
     //                              STORAGE
@@ -63,7 +64,7 @@ mod FossilClient {
     impl FossilClientImpl of IFossilClient<ContractState> {
         fn fossil_callback(
             ref self: ContractState, mut request: Span<felt252>, mut result: Span<felt252>
-        ) {
+        ) -> u256 {
             // Deserialize request & result
             let JobRequest { vault_address, timestamp, program_id } = Serde::deserialize(
                 ref request
@@ -87,17 +88,34 @@ mod FossilClient {
                 Errors::CallerNotFossilProcessor
             );
 
-            // Relay L1 data to the vault
-            IVaultDispatcher { contract_address: vault_address }
-                .fossil_client_callback(l1_data, timestamp);
+            let vault = IVaultDispatcher { contract_address: vault_address };
+            let current_round_id = vault.get_current_round_id();
+            let current_round_address = vault.get_round_address(current_round_id);
+            let current_round = IOptionRoundDispatcher { contract_address: current_round_address };
+            let state = current_round.get_state();
+
+            assert(
+                state == OptionRoundState::Running
+                    || (current_round_id == 1 && state == OptionRoundState::Open),
+                L1DataNotAcceptedNow
+            );
 
             // Emit callback success event
+            // @note is this event needed?
             self
                 .emit(
                     Event::FossilCallbackSuccess(
                         FossilCallbackSuccess { vault_address, l1_data, timestamp }
                     )
-                );
+                );      
+
+            if (state == OptionRoundState::Running) {
+                vault.settle_round(l1_data, timestamp)
+            } else {
+                // @dev Set the round's pricing data directly
+                vault.initialize_first_round(l1_data, timestamp);
+                0
+            }
         }
     }
 }

@@ -152,17 +152,18 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     /// State transition
 
-    fn fossil_client_callback(ref self: VaultFacade, l1_data: L1Data, timestamp: u64) {
-        self.vault_dispatcher.fossil_client_callback(l1_data, timestamp);
-    }
+    // @note TODO: Remove this
+    // fn fossil_client_callback(ref self: VaultFacade, l1_data: L1Data, timestamp: u64) {
+    //     self.vault_dispatcher.fossil_client_callback(l1_data, timestamp);
+    // }
 
-    #[feature("safe_dispatcher")]
-    fn fossil_client_callback_expect_error(
-        ref self: VaultFacade, l1_data: L1Data, timestamp: u64, error: felt252
-    ) {
-        let safe_vault = self.get_safe_dispatcher();
-        safe_vault.fossil_client_callback(l1_data, timestamp).expect_err(error);
-    }
+    // #[feature("safe_dispatcher")]
+    // fn fossil_client_callback_expect_error(
+    //     ref self: VaultFacade, l1_data: L1Data, timestamp: u64, error: felt252
+    // ) {
+    //     let safe_vault = self.get_safe_dispatcher();
+    //     safe_vault.fossil_client_callback(l1_data, timestamp).expect_err(error);
+    // }
 
     fn start_auction(ref self: VaultFacade) -> u256 {
         // @dev Using bystander as caller so that gas fees do not throw off balance calculations

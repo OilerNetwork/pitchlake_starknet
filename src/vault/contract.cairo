@@ -36,7 +36,6 @@ mod Vault {
         auction_duration: u64,
         round_duration: u64,
         ///
-        l1_data: Map<u64, L1Data>,
         option_round_class_hash: ClassHash,
         eth_address: ContractAddress,
         fossil_client_address: ContractAddress,
@@ -588,56 +587,50 @@ mod Vault {
         }
 
         /// State transitions
-        fn fossil_client_callback(ref self: ContractState, l1_data: L1Data, timestamp: u64) {
-            // @dev Only the Fossil Client contract can call this function
-            assert(
-                get_caller_address() == self.fossil_client_address.read(),
-                Errors::CallerNotFossilClient
-            );
+        // fn fossil_client_callback(ref self: ContractState, l1_data: L1Data, timestamp: u64) {
+        //     // @dev Only the Fossil Client contract can call this function
+            
 
-            // @dev Assert the L1 data is valid
-            let L1Data { twap, volatility: _, reserve_price } = l1_data;
-            assert(twap.is_non_zero() && reserve_price.is_non_zero(), Errors::InvalidL1Data);
+        //     // @dev Assert the L1 data is valid
+        //     let L1Data { twap, volatility: _, reserve_price } = l1_data;
+        //     assert(twap.is_non_zero() && reserve_price.is_non_zero(), Errors::InvalidL1Data);
 
-            // @dev Requests can only be fulfilled if the current round is Running, or if the
-            // first round is Open
+        //     // @dev Requests can only be fulfilled if the current round is Running, or if the
+        //     // first round is Open
+        //     let current_round_id = self.current_round_id.read();
+        //     let current_round = self.get_round_dispatcher(current_round_id);
+        //     let state = current_round.get_state();
+
+            
+        //     // @dev If the current round is Running, the l1 data is being used to settle it
+        //     if state == OptionRoundState::Running {
+        //         // @dev Ensure now is >= the settlement dat
+
+        //         // @dev Store l1 data for this round's settlement
+        //         // @note Could settle round right now instead of storing the results ?
+        //         self.settle_round(l1_data);
+        //     } // @dev If the first round is Open, the result is being used to set the pricing data for its auction to start
+        //     else {
+        //         // // @dev Ensure now < auction start date
+        //         // let now = get_block_timestamp();
+        //         // let auction_start_date = current_round.get_auction_start_date();
+        //         // assert(now < auction_start_date, Errors::L1DataNotAcceptedNow);
+
+                
+        //     }
+        // }
+        fn initialize_first_round(ref self: ContractState, l1_data: L1Data, l1_data_timestamp: u64) {
+            self.assert_caller_is_fossil_client();
             let current_round_id = self.current_round_id.read();
             let current_round = self.get_round_dispatcher(current_round_id);
-            let state = current_round.get_state();
 
-            assert(
-                state == OptionRoundState::Running
-                    || (current_round_id == 1 && state == OptionRoundState::Open),
-                Errors::L1DataNotAcceptedNow
-            );
 
-            // @dev If the current round is Running, the l1 data is being used to settle it
-            if state == OptionRoundState::Running {
-                // @dev Ensure now is >= the settlement date
-                let now = get_block_timestamp();
-                let settlement_date = current_round.get_option_settlement_date();
-                assert(now >= settlement_date, Errors::L1DataNotAcceptedNow);
+            // @dev Ensure the job request's timestamp is for the round's deployment date
+            let deployment_date = current_round.get_deployment_date();
+            assert(l1_data_timestamp == deployment_date, Errors::L1DataOutOfRange);
 
-                // @dev Ensure the job request's timestamp is for the settlement date
-                assert(timestamp == settlement_date, Errors::L1DataOutOfRange);
-
-                // @dev Store l1 data for this round's settlement
-                // @note Could settle round right now instead of storing the results ?
-                self.l1_data.entry(current_round_id).write(l1_data);
-            } // @dev If the first round is Open, the result is being used to set the pricing data for its auction to start
-            else {
-                // // @dev Ensure now < auction start date
-                // let now = get_block_timestamp();
-                // let auction_start_date = current_round.get_auction_start_date();
-                // assert(now < auction_start_date, Errors::L1DataNotAcceptedNow);
-
-                // @dev Ensure the job request's timestamp is for the round's deployment date
-                let deployment_date = current_round.get_deployment_date();
-                assert(timestamp == deployment_date, Errors::L1DataOutOfRange);
-
-                // @dev Set the round's pricing data directly
-                current_round.set_pricing_data(self.convert_l1_data_to_round_data(l1_data));
-            }
+            // @dev Set the round's pricing data directly
+            current_round.set_pricing_data(self.convert_l1_data_to_round_data(l1_data));
         }
 
         fn start_auction(ref self: ContractState) -> u256 {
@@ -678,20 +671,27 @@ mod Vault {
             (clearing_price, options_sold)
         }
 
-        fn settle_round(ref self: ContractState) -> u256 {
-            // @dev Get pricing data set for the current round's settlement
+        fn settle_round(ref self: ContractState, l1_data: L1Data, l1_data_timestamp: u64) -> u256 {
+            self.assert_caller_is_fossil_client();
+
             let current_round_id = self.current_round_id.read();
-            let L1Data { twap, volatility, reserve_price } = self
-                .l1_data
-                .entry(current_round_id)
-                .read();
+            let current_round = self.get_round_dispatcher(current_round_id);
+
+            let now = get_block_timestamp();
+            let settlement_date = current_round.get_option_settlement_date();
+            assert(now >= settlement_date, Errors::L1DataNotAcceptedNow);
+
+            // @dev Ensure the job request's timestamp is for the settlement date
+            assert(l1_data_timestamp == settlement_date, Errors::L1DataOutOfRange);
+
+            // @dev Get pricing data set for the current round's settlement
+            let L1Data { twap, volatility, reserve_price } = l1_data;
 
             assert(
                 twap.is_non_zero() && reserve_price.is_non_zero(), RoundErrors::PricingDataNotSet
             );
 
             // @dev Settle the current round and return the total payout
-            let current_round = self.get_round_dispatcher(current_round_id);
             let total_payout = current_round.settle_round(twap);
 
             // @dev Calculate the remaining liquidity after the round settles
@@ -753,6 +753,12 @@ mod Vault {
         }
 
         /// Basic helpers
+        fn assert_caller_is_fossil_client(self: @ContractState) {
+            assert(
+                get_caller_address() == self.fossil_client_address.read(),
+                Errors::CallerNotFossilClient
+            );
+        }
 
         fn get_upcoming_round_id(self: @ContractState) -> u64 {
             let current_round_id = self.current_round_id.read();
