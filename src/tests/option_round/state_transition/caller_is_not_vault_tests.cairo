@@ -13,7 +13,7 @@ use pitch_lake::{
             helpers::{
                 accelerators::{
                     accelerate_to_auctioning, accelerate_to_running, accelerate_to_running_custom,
-                    accelerate_to_settled, clear_event_logs, timeskip_and_settle_round
+                    accelerate_to_settled, clear_event_logs
                 },
                 setup::{FOSSIL_PROCESSOR, setup_facade, deploy_vault, deploy_eth},
                 event_helpers::{assert_fossil_callback_success_event}, general_helpers::{to_gwei},

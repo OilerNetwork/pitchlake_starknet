@@ -163,7 +163,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     /// State transition
 
     fn fossil_client_callback(ref self: VaultFacade, l1_data: L1Data, timestamp: u64) -> FossilCallbackReturn {
-        self.vault_dispatcher.fossil_client_callback(l1_data, timestamp);
+        self.vault_dispatcher.fossil_client_callback(l1_data, timestamp)
     }
 
     #[feature("safe_dispatcher")]

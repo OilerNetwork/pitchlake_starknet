@@ -3,7 +3,7 @@ use starknet::{
     testing::{set_contract_address, set_block_timestamp}
 };
 use pitch_lake::{
-    vault::interface::{VaultType}, fossil_client::interface::{L1Data, JobRequest, FossilResult},
+    vault::interface::{VaultType}, fossil_client::interface::{L1Data, JobRequest, FossilResult, FossilCallbackReturn},
     vault::contract::Vault, vault::contract::Vault::Errors as vErrors,
     fossil_client::contract::FossilClient::Errors as fErrors, option_round::interface::PricingData,
     library::pricing_utils,
@@ -13,7 +13,7 @@ use pitch_lake::{
             helpers::{
                 accelerators::{
                     accelerate_to_auctioning, accelerate_to_auctioning_custom,
-                    accelerate_to_running_custom, accelerate_to_running, timeskip_and_settle_round,
+                    accelerate_to_running_custom, accelerate_to_running,
                     accelerate_to_settled_custom, timeskip_to_settlement_date, accelerate_to_settled
                 },
                 setup::{
@@ -22,6 +22,7 @@ use pitch_lake::{
                 },
                 event_helpers::{clear_event_logs, assert_fossil_callback_success_event},
                 general_helpers::{to_gwei},
+                fossil_client_helpers::{get_mock_l1_data, get_mock_result, get_mock_result_serialized, get_request, get_request_serialized}
             },
             facades::{
                 vault_facade::{VaultFacade, VaultFacadeTrait},
@@ -34,7 +35,6 @@ use pitch_lake::{
 
 use pitch_lake::library::pricing_utils::{calculate_strike_price};
 use core::integer::{I128Neg};
-
 
 //#[test]
 //#[available_gas(50000000)]
@@ -52,30 +52,6 @@ use core::integer::{I128Neg};
 //    println!("strike2: {}", strike2);
 //    println!("strike3: {}", strike3);
 //}
-
-fn get_mock_l1_data() -> L1Data {
-    L1Data { twap: to_gwei(33) / 100, volatility: 1009, reserve_price: to_gwei(11) / 10 }
-}
-
-fn get_mock_result() -> FossilResult {
-    FossilResult { proof: array![].span(), l1_data: get_mock_l1_data() }
-}
-
-fn get_mock_result_serialized() -> Span<felt252> {
-    let mut result_serialized = array![];
-    get_mock_result().serialize(ref result_serialized);
-    result_serialized.span()
-}
-
-fn get_request(ref vault: VaultFacade) -> JobRequest {
-    vault.get_request_to_settle_round()
-}
-
-fn get_request_serialized(ref vault: VaultFacade) -> Span<felt252> {
-    let mut request_serialized = array![];
-    get_request(ref vault).serialize(ref request_serialized);
-    request_serialized.span()
-}
 
 // Test only the fossil processor can call the fossil callback
 
@@ -186,32 +162,6 @@ fn test_default_l1_data_fails() {
         );
 }
 
-// Test callback event
-#[test]
-#[available_gas(50000000)]
-fn test_callback_event() {
-    let (mut vault, _) = setup_facade();
-    let mut current_round = vault.get_current_round();
-    let fossil_client = vault.get_fossil_client_facade();
-
-    accelerate_to_auctioning(ref vault);
-    accelerate_to_running(ref vault);
-    timeskip_to_settlement_date(ref vault);
-    clear_event_logs(array![fossil_client.contract_address]);
-
-    set_contract_address(FOSSIL_PROCESSOR());
-    let request = get_request_serialized(ref vault);
-    let result = get_mock_result_serialized();
-    fossil_client.fossil_callback(request, result);
-
-    assert_fossil_callback_success_event(
-        vault.get_fossil_client_facade().contract_address,
-        vault.contract_address(),
-        get_mock_result().l1_data,
-        current_round.get_option_settlement_date()
-    );
-}
-
 // Vault Callback for Client
 
 // Test only fossil client can call fossil client callback
@@ -249,14 +199,11 @@ fn test_callback_sets_pricing_data_for_round() {
     accelerate_to_running(ref vault);
     timeskip_to_settlement_date(ref vault);
 
-    // Fossil API callback
+    // Fossil API callback - gets calculation data and settles the round
     let request = get_request_serialized(ref vault);
     let result = get_mock_result_serialized();
     set_contract_address(vault.get_fossil_client_address());
     fossil_client.fossil_callback(request, result);
-
-    // Settle round using callback data
-    vault.settle_option_round();
 
     // Check pricing data set as expected
     let mut current_round = vault.get_current_round();
@@ -425,9 +372,6 @@ fn test_callback_works_as_expected() {
     let request = get_request_serialized(ref vault);
     let result = get_mock_result_serialized();
     fossil_client.fossil_callback(request, result);
-
-    // Settle round
-    vault.settle_option_round();
 
     let mut next_round = vault.get_current_round();
     let l1_data = get_mock_l1_data();

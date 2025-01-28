@@ -189,10 +189,10 @@ fn timeskip_and_end_auction(ref self: VaultFacade) -> (u256, u256) {
 }
 
 // Jump to the option expriry date and settle the round
-fn timeskip_and_settle_round(ref self: VaultFacade) -> u256 {
-    let mut current_round = self.get_current_round();
-    set_block_timestamp(current_round.get_option_settlement_date());
-    set_contract_address(bystander());
-    self.settle_option_round()
-}
+// fn timeskip_and_settle_round(ref self: VaultFacade) -> u256 {
+//     let mut current_round = self.get_current_round();
+//     set_block_timestamp(current_round.get_option_settlement_date());
+//     set_contract_address(bystander());
+//     self.settle_option_round()
+// }
 
