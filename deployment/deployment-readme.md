@@ -24,6 +24,9 @@ Let's say you want to deploy 2 vaults and 2 fossil clients. You can do this by a
    
 ## Steps
 
+#### 0. Build the contracts
+First, build the contracts running `scarb build` in the `pitchlake_starknet` directory. Then, cd into the `deployment` directory.
+
 #### 1. Create a config file from the template
 Run the command below in the `deployment` directory, then fill in the values.
 ```bash
