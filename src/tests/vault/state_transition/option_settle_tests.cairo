@@ -247,7 +247,7 @@ fn test_settling_option_round_updates_current_round_id() {
 // Test settling an option round updates the current round's state
 // @note should this be a state transition test in option round tests
 #[test]
-#[available_gas(5000000000)]
+#[available_gas(500000000)]
 fn test_settle_option_round_updates_round_state() {
     let mut rounds_to_run = 3;
     let (mut vault, _) = setup_facade();
