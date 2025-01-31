@@ -42,11 +42,11 @@ RUN scarb build
 
 CMD cd katana && \
     echo "Environment in Dockerfile:" && \
-    echo "SIGNER_ADDRESS=$SIGNER_ADDRESS" && \
+    echo "DEPLOYER_ADDRESS=$DEPLOYER_ADDRESS" && \
     echo "FOSSIL_PROCESSOR_ADDRESS=$FOSSIL_PROCESSOR_ADDRESS" && \
     echo "VAULT_ALPHA=$VAULT_ALPHA" && \
     echo "VAULT_STRIKE=$VAULT_STRIKE" && \
     echo "ROUND_TRANSITION_DURATION=$ROUND_TRANSITION_DURATION" && \
     echo "AUCTION_DURATION=$AUCTION_DURATION" && \
     echo "ROUND_DURATION=$ROUND_DURATION" && \
-    chmod +x deploy_contracts_devnet.sh && ./deploy_contracts_devnet.sh "$SIGNER_ADDRESS" "$FOSSIL_PROCESSOR_ADDRESS" "$VAULT_ALPHA" "$VAULT_STRIKE" "$ROUND_TRANSITION_DURATION" "$AUCTION_DURATION" "$ROUND_DURATION"
+    chmod +x deploy_contracts_devnet.sh && ./deploy_contracts_devnet.sh "$DEPLOYER_ADDRESS" "$FOSSIL_PROCESSOR_ADDRESS" "$VAULT_ALPHA" "$VAULT_STRIKE" "$ROUND_TRANSITION_DURATION" "$AUCTION_DURATION" "$ROUND_DURATION"
