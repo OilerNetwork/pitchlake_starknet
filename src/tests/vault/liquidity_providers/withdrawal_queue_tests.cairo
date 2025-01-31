@@ -169,14 +169,12 @@ fn test_stashed_liquidity_does_not_roll_over() {
     let (mut vault, _) = setup_facade();
     let mut current_round = vault.get_current_round();
 
-    println!("Good so far 1");
     /// Deposit 100
     let liquidity_provider = liquidity_provider_1();
     let deposit_amount = 100 * decimals();
     accelerate_to_auctioning_custom(
         ref vault, array![liquidity_provider].span(), array![deposit_amount].span()
     );
-    println!("Good so far 2");
     accelerate_to_running_custom(
         ref vault,
         array![option_bidder_buyer_1()].span(),
@@ -187,17 +185,14 @@ fn test_stashed_liquidity_does_not_roll_over() {
     let premiums = current_round.total_premiums();
     let unsold_liq = vault.get_unsold_liquidity(current_round.get_round_id());
 
-    println!("Good so far 3");
     // Queue 100/100 for stash
     vault.queue_withdrawal(liquidity_provider, 10_000);
-    println!("Good so far 4");
 
     // Start round 2
     let total_payout = accelerate_to_settled(
         ref vault, current_round.get_strike_price()
     ); //no payout
     accelerate_to_auctioning_custom(ref vault, array![].span(), array![].span());
-    println!("Good so far 5");
     let (total_locked, total_unlocked, total_stashed) = vault
         .get_total_locked_and_unlocked_and_stashed_balance();
     let lp_stashed = vault.get_lp_stashed_balance(liquidity_provider);
@@ -215,16 +210,12 @@ fn test_stashed_liquidity_does_not_roll_over() {
     let starting_liq2 = current_round2.starting_liquidity();
 
     // Queue withdrawal
-    println!("Good so far 6");
     vault.queue_withdrawal(liquidity_provider, 10_000);
-    println!("Good so far 7");
     accelerate_to_running(ref vault);
-    println!("Good so far 8");
     let unsold_liq2 = vault.get_unsold_liquidity(current_round2.get_round_id());
     let total_premiums2 = current_round2.total_premiums();
     let total_payout2 = accelerate_to_settled(ref vault, 1); //no payout
     accelerate_to_auctioning_custom(ref vault, array![].span(), array![].span());
-    println!("Good so far 9");
     let (total_locked2, total_unlocked2, total_stashed2) = vault
         .get_total_locked_and_unlocked_and_stashed_balance();
     let lp_stashed2 = vault.get_lp_stashed_balance(liquidity_provider);
@@ -627,7 +618,6 @@ fn test_claiming_queued_liquidity_sets_stashed_to_0() {
     let stashed_balance_after = vault.get_lp_stashed_balance(liquidity_provider);
 
     assert_eq!(stashed_balance_before, (sold_liq * bps.into()) / BPS_u256);
-    println!("stashed_balance_after: {}", stashed_balance_after);
     assert_eq!(stashed_balance_after, 0);
 }
 

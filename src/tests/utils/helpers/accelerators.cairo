@@ -24,7 +24,7 @@ use pitch_lake::{
             helpers::{ // accelerators::{accelerate_to_auction_custom_auction_params},
                 event_helpers::{clear_event_logs,},
                 general_helpers::{to_gwei, assert_two_arrays_equal_length, get_erc20_balances},
-                //setup::{deploy_custom_option_round},
+                setup::{eth_supply_and_approve_all_bidders},
             },
             facades::{
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
@@ -111,6 +111,10 @@ fn accelerate_to_settled_custom(ref self: VaultFacade, l1_data: L1Data) -> u256 
         },
         _ => panic!("Expected RoundSettled return")
     };
+
+    // Set the ETH allowance for the next round
+    let current_round_address = self.get_option_round_address(self.get_current_round_id());
+    eth_supply_and_approve_all_bidders(current_round_address, self.get_eth_address());
 
     round_settled_return.total_payout
 }

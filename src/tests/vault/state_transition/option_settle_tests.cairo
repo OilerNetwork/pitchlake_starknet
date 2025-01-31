@@ -253,7 +253,6 @@ fn test_settle_option_round_updates_round_state() {
     let (mut vault, _) = setup_facade();
 
     while rounds_to_run > 0_u32 {
-        println!("rounds_to_run: {}", rounds_to_run);
         accelerate_to_auctioning(ref vault);
         accelerate_to_running(ref vault);
         let mut current_round = vault.get_current_round();
