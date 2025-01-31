@@ -40,14 +40,6 @@
     },
     "first_round_initialization": {
       "fossil_api_url": "http://localhost:3000",
-      "fossil_api_key": "ab062...",
-      "vaults": [
-        {
-          "calculation_window_seconds": 2592000
-        },
-        {
-          "calculation_window_seconds": 2592000
-        }
-      ]
+      "fossil_api_key": "ab062..."
     }
   }

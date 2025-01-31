@@ -52,21 +52,27 @@ export STARKNET_PRIVATE_KEY=$DEPLOYER_PRIVATE_KEY
 export STARKNET_RPC=$RPC
 
 # Initialize each vault
-VAULT_COUNT=$(jq -r '.first_round_initialization.vaults | length' "$CONFIG_FILE")
+# Get number of vault addresses from vault_addresses.env
+VAULT_COUNT=$(grep -c "VAULT_ADDRESS_" vault_addresses.env)
 
 for ((i=1; i<=$VAULT_COUNT; i++)); do
     VAULT_ADDRESS_VAR="VAULT_ADDRESS_$i"
     VAULT_ADDRESS=${!VAULT_ADDRESS_VAR}
     
-    # Get calculation window for this vault
-    CALCULATION_WINDOW_SECONDS=$(jq -r ".first_round_initialization.vaults[$(($i-1))].calculation_window_seconds" "$CONFIG_FILE")
+    # Get round duration from vault contract
+    ROUND_DURATION_HEX=$(starkli call $VAULT_ADDRESS get_round_duration | jq -r '.[0]')
+    # Convert hex to decimal (strip 0x prefix if present)
+    ROUND_DURATION=$((16#${ROUND_DURATION_HEX#0x}))
+    # Calculate window as 3 * round_duration
+    CALCULATION_WINDOW_SECONDS=$((ROUND_DURATION * 3))
     
     echo
     echo "Vault $i Configuration:"
     echo "VAULT_ADDRESS: $VAULT_ADDRESS"
+    echo "ROUND_DURATION: $ROUND_DURATION"
     echo "CALCULATION_WINDOW_SECONDS: $CALCULATION_WINDOW_SECONDS"
     echo
-    
+
     # Get fossil client address from vault contract
     FOSSIL_CLIENT_ADDRESS=$(starkli call $VAULT_ADDRESS get_fossil_client_address | jq -r '.[0]')
     echo "Fossil Client Address: $FOSSIL_CLIENT_ADDRESS"
