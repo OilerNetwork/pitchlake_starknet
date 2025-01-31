@@ -93,9 +93,9 @@ fn deploy_fossil_client() -> FossilClientFacade {
     return FossilClientFacade { contract_address };
 }
 
-const ROUND_TRANSITION_DURATION: u64= 3 * MINUTE;
-const AUCTION_DURATION: u64= 3 * MINUTE;
-const ROUND_DURATION: u64= 3 * MINUTE;
+const ROUND_TRANSITION_DURATION: u64 = 3 * MINUTE;
+const AUCTION_DURATION: u64 = 3 * MINUTE;
+const ROUND_DURATION: u64 = 3 * MINUTE;
 
 
 // Deploy the vault and fossil client

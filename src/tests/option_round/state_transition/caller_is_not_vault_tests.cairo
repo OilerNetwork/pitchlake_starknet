@@ -132,9 +132,12 @@ fn test_place_bid_caller_is_not_the_vault() {
     let (mut vault, _) = setup_facade();
     let mut current_round = vault.get_current_round();
     accelerate_to_auctioning(ref vault);
-    
+
     set_contract_address(not_vault());
-    current_round.place_bid_expect_error(100, current_round.get_reserve_price(), option_bidder_buyer_1(), err);
+    current_round
+        .place_bid_expect_error(
+            100, current_round.get_reserve_price(), option_bidder_buyer_1(), err
+        );
 }
 
 #[test]
@@ -144,7 +147,7 @@ fn test_update_bid_caller_is_not_the_vault() {
     let mut current_round = vault.get_current_round();
     accelerate_to_auctioning(ref vault);
     let bid = vault.place_bid(100, current_round.get_reserve_price(), option_bidder_buyer_1());
-    
+
     set_contract_address(not_vault());
     current_round.update_bid_expect_error(bid.bid_id, to_gwei(1), option_bidder_buyer_1(), err);
 }
@@ -157,7 +160,7 @@ fn test_refund_unused_bids_caller_is_not_the_vault() {
     accelerate_to_auctioning(ref vault);
     vault.place_bid(100, current_round.get_reserve_price(), option_bidder_buyer_1());
     accelerate_to_running(ref vault);
-    
+
     set_contract_address(not_vault());
     current_round.refund_bid_expect_error(option_bidder_buyer_1(), err);
 }
@@ -170,7 +173,7 @@ fn test_mint_options_caller_is_not_the_vault() {
     accelerate_to_auctioning(ref vault);
     vault.place_bid(100, current_round.get_reserve_price(), option_bidder_buyer_1());
     accelerate_to_running(ref vault);
-    
+
     set_contract_address(not_vault());
     current_round.mint_options_expect_error(option_bidder_buyer_1(), err);
 }
@@ -184,7 +187,7 @@ fn test_exercise_options_caller_is_not_the_vault() {
     vault.place_bid(100, current_round.get_reserve_price(), option_bidder_buyer_1());
     accelerate_to_running(ref vault);
     accelerate_to_settled(ref vault, 1);
-    
+
     set_contract_address(not_vault());
     current_round.exercise_options_expect_error(option_bidder_buyer_1(), err);
 }

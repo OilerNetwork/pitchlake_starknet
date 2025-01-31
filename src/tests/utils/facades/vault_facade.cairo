@@ -49,7 +49,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     }
 
     /// Option round
-    
+
     fn get_option_round_facade(ref self: VaultFacade, round_id: u64) -> OptionRoundFacade {
         let contract_address = self.vault_dispatcher.get_round_address(round_id);
         let option_round_dispatcher = IOptionRoundDispatcher { contract_address };
@@ -535,11 +535,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     #[feature("safe_dispatcher")]
     fn place_bid_expect_error(
-        ref self: VaultFacade,
-        amount: u256,
-        price: u256,
-        bidder: ContractAddress,
-        error: felt252,
+        ref self: VaultFacade, amount: u256, price: u256, bidder: ContractAddress, error: felt252,
     ) {
         set_contract_address(bidder);
         let safe_vault = self.get_safe_dispatcher();
@@ -584,7 +580,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         assert_two_arrays_equal_length(bidders, amounts);
         assert_two_arrays_equal_length(bidders, prices);
         let safe_vault = self.get_safe_dispatcher();
-        
+
         loop {
             match bidders.pop_front() {
                 Option::Some(bidder) => {
@@ -599,11 +595,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         };
     }
 
-    fn update_bid(
-        ref self: VaultFacade,
-        bid_id: felt252,
-        price_increase: u256,
-    ) -> Bid {
+    fn update_bid(ref self: VaultFacade, bid_id: felt252, price_increase: u256,) -> Bid {
         let mut current_round = self.get_current_round();
         let old_bid = current_round.get_bid_details(bid_id);
         let bidder = old_bid.owner;
@@ -629,26 +621,22 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         set_contract_address(option_bidder_buyer);
         let mut current_round = self.get_current_round();
         let refundable_balance = current_round.get_refundable_balance_for(option_bidder_buyer);
-        let refunded_amount = self.vault_dispatcher.refund_unused_bids(
-            current_round.contract_address(), 
-            option_bidder_buyer
-        );
+        let refunded_amount = self
+            .vault_dispatcher
+            .refund_unused_bids(current_round.contract_address(), option_bidder_buyer);
         sanity_checks::refund_bid(ref current_round, refunded_amount, refundable_balance)
     }
 
     #[feature("safe_dispatcher")]
     fn refund_bid_expect_error(
-        ref self: VaultFacade,
-        option_bidder_buyer: ContractAddress,
-        error: felt252,
+        ref self: VaultFacade, option_bidder_buyer: ContractAddress, error: felt252,
     ) {
         set_contract_address(option_bidder_buyer);
         let safe_vault = self.get_safe_dispatcher();
         let mut current_round = self.get_current_round();
-        safe_vault.refund_unused_bids(
-            current_round.contract_address(),
-            option_bidder_buyer
-        ).expect_err(error);
+        safe_vault
+            .refund_unused_bids(current_round.contract_address(), option_bidder_buyer)
+            .expect_err(error);
     }
 
     fn refund_bids(ref self: VaultFacade, mut bidders: Span<ContractAddress>) -> Array<u256> {
@@ -665,7 +653,9 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         refund_amounts
     }
 
-    fn exercise_options(ref self: VaultFacade, option_bidder_buyer: ContractAddress, ref round: OptionRoundFacade) -> u256 {
+    fn exercise_options(
+        ref self: VaultFacade, option_bidder_buyer: ContractAddress, ref round: OptionRoundFacade
+    ) -> u256 {
         set_contract_address(option_bidder_buyer);
         let individual_payout = round.get_payout_balance_for(option_bidder_buyer);
         let exercised_amount = self.vault_dispatcher.exercise_options(round.contract_address());
@@ -690,27 +680,27 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         let mut payouts = array![];
         loop {
             match bidders.pop_front() {
-                Option::Some(bidder) => { payouts.append(self.exercise_options(*bidder, ref round)); },
+                Option::Some(bidder) => {
+                    payouts.append(self.exercise_options(*bidder, ref round));
+                },
                 Option::None => { break (); }
             }
         };
         payouts
     }
 
-    fn mint_options(ref self: VaultFacade, option_bidder_buyer: ContractAddress, ref round: OptionRoundFacade) -> u256 {
+    fn mint_options(
+        ref self: VaultFacade, option_bidder_buyer: ContractAddress, ref round: OptionRoundFacade
+    ) -> u256 {
         set_contract_address(option_bidder_buyer);
         let option_erc20_balance_before = get_erc20_balance(
-            round.contract_address(), 
-            option_bidder_buyer
+            round.contract_address(), option_bidder_buyer
         );
-        
+
         let options_minted = self.vault_dispatcher.mint_options(round.contract_address());
-        
+
         sanity_checks::tokenize_options(
-            ref round,
-            option_bidder_buyer,
-            option_erc20_balance_before,
-            options_minted,
+            ref round, option_bidder_buyer, option_erc20_balance_before, options_minted,
         )
     }
 

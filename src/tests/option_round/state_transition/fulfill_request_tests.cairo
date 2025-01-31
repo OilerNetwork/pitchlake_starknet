@@ -379,7 +379,7 @@ fn test_callback_works_as_expected() {
     let cap = pricing_utils::calculate_cap_level(
         vault.get_alpha(), vault.get_strike_level(), l1_data.volatility
     );
-    
+
     assert_eq!(next_round.get_cap_level(), cap);
     assert_eq!(next_round.get_strike_price(), strike);
     assert_eq!(next_round.get_reserve_price(), l1_data.reserve_price);

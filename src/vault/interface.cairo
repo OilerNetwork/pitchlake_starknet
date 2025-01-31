@@ -159,9 +159,7 @@ trait IVault<TContractState> {
     // @param account: The account to refund unused bids for
     // @return The amount refunded
     fn refund_unused_bids(
-        ref self: TContractState, 
-        round_address: ContractAddress, 
-        account: ContractAddress
+        ref self: TContractState, round_address: ContractAddress, account: ContractAddress
     ) -> u256;
 
     // @dev Mint options won in a specific round's auction
