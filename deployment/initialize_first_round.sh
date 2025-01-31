@@ -63,14 +63,19 @@ for ((i=1; i<=$VAULT_COUNT; i++)); do
     ROUND_DURATION_HEX=$(starkli call $VAULT_ADDRESS get_round_duration | jq -r '.[0]')
     # Convert hex to decimal (strip 0x prefix if present)
     ROUND_DURATION=$((16#${ROUND_DURATION_HEX#0x}))
-    # Calculate window as 3 * round_duration
-    CALCULATION_WINDOW_SECONDS=$((ROUND_DURATION * 3))
+    
+    # Calculate windows for each metric
+    TWAP_CALCULATION_WINDOW_SECONDS=$ROUND_DURATION
+    VOLATILITY_CALCULATION_WINDOW_SECONDS=$((ROUND_DURATION * 3))
+    RESERVE_PRICE_CALCULATION_WINDOW_SECONDS=$((ROUND_DURATION * 3))
     
     echo
     echo "Vault $i Configuration:"
     echo "VAULT_ADDRESS: $VAULT_ADDRESS"
     echo "ROUND_DURATION: $ROUND_DURATION"
-    echo "CALCULATION_WINDOW_SECONDS: $CALCULATION_WINDOW_SECONDS"
+    echo "TWAP calculation window: $TWAP_CALCULATION_WINDOW_SECONDS seconds"
+    echo "Volatility calculation window: $VOLATILITY_CALCULATION_WINDOW_SECONDS seconds"
+    echo "Reserve price calculation window: $RESERVE_PRICE_CALCULATION_WINDOW_SECONDS seconds"
     echo
 
     # Get fossil client address from vault contract
@@ -82,16 +87,15 @@ for ((i=1; i<=$VAULT_COUNT; i++)); do
     echo "Settlement request data: $REQUEST_DATA"
 
     # Format request for Fossil API
-    # The request data contains [id, vault_address, timestamp, program_id]
     VAULT_ADDRESS=$(echo $REQUEST_DATA | jq -r '.[1]')
     TIMESTAMP_HEX=$(echo $REQUEST_DATA | jq -r '.[2]')
     IDENTIFIER=$(echo $REQUEST_DATA | jq -r '.[3]')
     # Convert hex timestamp to decimal (strip 0x and convert)
     TIMESTAMP=$((16#${TIMESTAMP_HEX#0x}))
 
-    TWAP_FROM=$(($TIMESTAMP - $CALCULATION_WINDOW_SECONDS))
-    VOLATILITY_FROM=$(($TIMESTAMP - $CALCULATION_WINDOW_SECONDS))
-    RESERVE_PRICE_FROM=$(($TIMESTAMP - $CALCULATION_WINDOW_SECONDS))
+    TWAP_FROM=$(($TIMESTAMP - $TWAP_CALCULATION_WINDOW_SECONDS))
+    VOLATILITY_FROM=$(($TIMESTAMP - $VOLATILITY_CALCULATION_WINDOW_SECONDS))
+    RESERVE_PRICE_FROM=$(($TIMESTAMP - $RESERVE_PRICE_CALCULATION_WINDOW_SECONDS))
 
     echo
     echo "Request Parameters:"
