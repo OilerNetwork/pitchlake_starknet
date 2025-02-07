@@ -24,12 +24,12 @@ fi
 
 # Check if all required arguments are provided
 if [ $# -ne 7 ]; then
-	echo "Usage: $0 <SIGNER_ADDRESS> <FOSSIL_PROCESSOR_ADDRESS> <VAULT_ALPHA> <VAULT_STRIKE> <ROUND_TRANSITION_DURATION> <AUCTION_DURATION> <ROUND_DURATION>"
+	echo "Usage: $0 <DEPLOYER_ADDRESS> <FOSSIL_PROCESSOR_ADDRESS> <VAULT_ALPHA> <VAULT_STRIKE> <ROUND_TRANSITION_DURATION> <AUCTION_DURATION> <ROUND_DURATION>"
 	exit 1
 fi
 
 # Assign command line arguments to variables
-SIGNER_ADDRESS=$1
+DEPLOYER_ADDRESS=$1
 FOSSIL_PROCESSOR_ADDRESS=$2
 VAULT_ALPHA=$3
 VAULT_STRIKE=$4
@@ -48,7 +48,7 @@ fi
 
 # Check if the account file already exists
 if [ ! -f "$STARKNET_ACCOUNT" ]; then
-	starkli account fetch $SIGNER_ADDRESS --output $STARKNET_ACCOUNT
+	starkli account fetch $DEPLOYER_ADDRESS --output $STARKNET_ACCOUNT
 else
 	echo "Acount config already exists at path $STARKNET_ACCOUNT"
 fi
@@ -59,7 +59,7 @@ fi
 # echo "[ETH] Class hash declared"
 
 # sleep 2
-# ETH_ADDRESS=$(starkli deploy $ETH_HASH 1000000000000000000000 0 $SIGNER_ADDRESS --salt 1 | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
+# ETH_ADDRESS=$(starkli deploy $ETH_HASH 1000000000000000000000 0 $DEPLOYER_ADDRESS --salt 1 | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
 # echo "[ETH] Contract deployed"
 
 ETH_ADDRESS="0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7"

@@ -14,3 +14,7 @@ scripts/simulationData/simulationOutput/simulationResults*.json
 scripts/simulationData/simulationSheet*.json
 
 .starknet_accounts/starknet_accounts.json
+
+*.env
+deployment/deployer_account.json
+deployment/deployment_config.json
