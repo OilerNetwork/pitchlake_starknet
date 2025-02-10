@@ -15,6 +15,44 @@ export const ABI = [
     ]
   },
   {
+    "type": "struct",
+    "name": "core::integer::u256",
+    "members": [
+      {
+        "name": "low",
+        "type": "core::integer::u128"
+      },
+      {
+        "name": "high",
+        "type": "core::integer::u128"
+      }
+    ]
+  },
+  {
+    "type": "struct",
+    "name": "pitch_lake::fossil_client::interface::RoundSettledReturn",
+    "members": [
+      {
+        "name": "total_payout",
+        "type": "core::integer::u256"
+      }
+    ]
+  },
+  {
+    "type": "enum",
+    "name": "pitch_lake::fossil_client::interface::FossilCallbackReturn",
+    "variants": [
+      {
+        "name": "RoundSettled",
+        "type": "pitch_lake::fossil_client::interface::RoundSettledReturn"
+      },
+      {
+        "name": "FirstRoundInitialized",
+        "type": "()"
+      }
+    ]
+  },
+  {
     "type": "interface",
     "name": "pitch_lake::fossil_client::interface::IFossilClient",
     "items": [
@@ -31,7 +69,11 @@ export const ABI = [
             "type": "core::array::Span::<core::felt252>"
           }
         ],
-        "outputs": [],
+        "outputs": [
+          {
+            "type": "pitch_lake::fossil_client::interface::FossilCallbackReturn"
+          }
+        ],
         "state_mutability": "external"
       }
     ]
@@ -43,20 +85,6 @@ export const ABI = [
       {
         "name": "fossil_processor",
         "type": "core::starknet::contract_address::ContractAddress"
-      }
-    ]
-  },
-  {
-    "type": "struct",
-    "name": "core::integer::u256",
-    "members": [
-      {
-        "name": "low",
-        "type": "core::integer::u128"
-      },
-      {
-        "name": "high",
-        "type": "core::integer::u128"
       }
     ]
   },
