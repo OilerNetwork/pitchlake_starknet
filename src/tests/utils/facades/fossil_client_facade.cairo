@@ -1,6 +1,6 @@
 use crate::fossil_client::interface::{
     IFossilClientDispatcher, IFossilClientSafeDispatcher, IFossilClientDispatcherTrait,
-    IFossilClientSafeDispatcherTrait
+    IFossilClientSafeDispatcherTrait, FossilCallbackReturn
 };
 use crate::tests::utils::helpers::setup::FOSSIL_PROCESSOR;
 use starknet::testing::set_contract_address;
@@ -27,9 +27,9 @@ impl FossilClientFacadeImpl of FossilClientFacadeTrait {
     }
 
     /// Entrypoints
-    fn fossil_callback(self: FossilClientFacade, request: Span<felt252>, result: Span<felt252>) {
+    fn fossil_callback(self: FossilClientFacade, request: Span<felt252>, result: Span<felt252>) -> FossilCallbackReturn {
         set_contract_address(FOSSIL_PROCESSOR());
-        self.dispatcher().fossil_callback(request, result);
+        self.dispatcher().fossil_callback(request, result)
     }
 
     #[feature("safe_dispatcher")]

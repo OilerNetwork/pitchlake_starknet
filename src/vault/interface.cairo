@@ -1,7 +1,7 @@
 use starknet::{ContractAddress, ClassHash};
 use pitch_lake::option_round::interface::OptionRoundState;
 use pitch_lake::types::Bid;
-use pitch_lake::fossil_client::interface::{JobRequest, L1Data};
+use pitch_lake::fossil_client::interface::{JobRequest, L1Data, FossilCallbackReturn};
 
 // @dev An enum for each type of Vault
 #[derive(starknet::Store, Copy, Drop, Serde, PartialEq)]
@@ -126,7 +126,7 @@ trait IVault<TContractState> {
 
     /// State transitions
 
-    fn fossil_client_callback(ref self: TContractState, l1_data: L1Data, timestamp: u64);
+    fn fossil_client_callback(ref self: TContractState, l1_data: L1Data, timestamp: u64) -> FossilCallbackReturn;
 
     // @dev Start the current round's auction
     // @return The total options available in the auction
@@ -138,7 +138,7 @@ trait IVault<TContractState> {
 
     // @dev Settle the current round
     // @return The total payout for the round
-    fn settle_round(ref self: TContractState) -> u256;
+    // fn settle_round(ref self: TContractState, l1_data: L1Data) -> u256;
 
     // User actions
 

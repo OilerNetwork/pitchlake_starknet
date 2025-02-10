@@ -10,7 +10,7 @@ mod Vault {
         ERC20Component, interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait}
     };
     use openzeppelin_utils::serde::SerializedAppend;
-    use pitch_lake::fossil_client::interface::{L1Data, JobRequest};
+    use pitch_lake::fossil_client::interface::{L1Data, JobRequest, FossilCallbackReturn, RoundSettledReturn};
     use pitch_lake::vault::interface::{ConstructorArgs, IVault, VaultType,};
     use pitch_lake::option_round::contract::{OptionRound, OptionRound::Errors as RoundErrors};
     use pitch_lake::option_round::interface::{
@@ -694,13 +694,12 @@ mod Vault {
             amount
         }
 
+        
+
         /// State transitions
-        fn fossil_client_callback(ref self: ContractState, l1_data: L1Data, timestamp: u64) {
+        fn fossil_client_callback(ref self: ContractState, l1_data: L1Data, timestamp: u64) ->  FossilCallbackReturn {
             // @dev Only the Fossil Client contract can call this function
-            assert(
-                get_caller_address() == self.fossil_client_address.read(),
-                Errors::CallerNotFossilClient
-            );
+            self.assert_caller_is_fossil_client();
 
             // @dev Assert the L1 data is valid
             let L1Data { twap, volatility: _, reserve_price } = l1_data;
@@ -728,9 +727,10 @@ mod Vault {
                 // @dev Ensure the job request's timestamp is for the settlement date
                 assert(timestamp == settlement_date, Errors::L1DataOutOfRange);
 
-                // @dev Store l1 data for this round's settlement
-                // @note Could settle round right now instead of storing the results ?
-                self.l1_data.entry(current_round_id).write(l1_data);
+                // @dev Settle the current round
+                let total_payout = self.settle_round(l1_data);
+                
+                FossilCallbackReturn::RoundSettled(RoundSettledReturn { total_payout })
             } // @dev If the first round is Open, the result is being used to set the pricing data for its auction to start
             else {
                 // // @dev Ensure now < auction start date
@@ -754,6 +754,9 @@ mod Vault {
                             round_address: current_round.contract_address
                         }
                     );
+                
+
+                FossilCallbackReturn::FirstRoundInitialized
             }
         }
 
@@ -826,76 +829,6 @@ mod Vault {
                 );
 
             (clearing_price, options_sold)
-        }
-
-        fn settle_round(ref self: ContractState) -> u256 {
-            // @dev Get pricing data set for the current round's settlement
-            let current_round_id = self.current_round_id.read();
-            let L1Data { twap, volatility, reserve_price } = self
-                .l1_data
-                .entry(current_round_id)
-                .read();
-
-            assert(
-                twap.is_non_zero() && reserve_price.is_non_zero(), RoundErrors::PricingDataNotSet
-            );
-
-            // @dev Settle the current round and return the total payout
-            let current_round = self.get_round_dispatcher(current_round_id);
-            let (total_payout, payout_per_option) = current_round.settle_round(twap);
-
-            // @dev Calculate the remaining liquidity after the round settles
-            let starting_liq = current_round.get_starting_liquidity();
-            let unsold_liq = current_round.get_unsold_liquidity();
-            let remaining_liq = starting_liq - unsold_liq - total_payout;
-
-            // @dev Calculate the amount of liquidity that was stashed/not stashed by liquidity
-            // providers, avoiding division by 0
-            let vault = get_contract_address();
-            let starting_liq_queued = self
-                .queued_liquidity
-                .entry(vault)
-                .entry(current_round_id)
-                .read();
-            let remaining_liq_stashed = match starting_liq.is_zero() {
-                true => 0,
-                false => (remaining_liq * starting_liq_queued) / starting_liq
-            };
-            let remaining_liq_not_stashed = remaining_liq - remaining_liq_stashed;
-
-            // @dev All of the remaining liquidity becomes unlocked, any stashed liquidity is
-            // set aside and no longer participates in the protocol
-            self.vault_locked_balance.write(0);
-            self
-                .vault_stashed_balance
-                .write(self.vault_stashed_balance.read() + remaining_liq_stashed);
-            self
-                .vault_unlocked_balance
-                .write(self.vault_unlocked_balance.read() + remaining_liq_not_stashed);
-
-            // @dev Transfer payout from the vault to the just settled round,
-            if (total_payout > 0) {
-                self.get_eth_dispatcher().transfer(current_round.contract_address, total_payout);
-            }
-
-            // @dev Emit event
-            self
-                .emit(
-                    Event::OptionRoundSettled(
-                        OptionRoundSettled {
-                            round_id: current_round_id,
-                            round_address: current_round.contract_address,
-                            settlement_price: twap,
-                            payout_per_option
-                        }
-                    )
-                );
-
-            // @dev Deploy the next option round contract & update the current round id
-            self.deploy_next_round(L1Data { twap, volatility, reserve_price });
-
-            // @dev Return just the total payout
-            total_payout
         }
 
         // Option round user actions
@@ -1034,6 +967,13 @@ mod Vault {
         }
 
         /// Basic helpers
+        
+        fn assert_caller_is_fossil_client(self: @ContractState) {
+            assert(
+                get_caller_address() == self.fossil_client_address.read(),
+                Errors::CallerNotFossilClient
+            );
+        }
 
         fn get_upcoming_round_id(self: @ContractState) -> u64 {
             let current_round_id = self.current_round_id.read();
@@ -1115,6 +1055,68 @@ mod Vault {
                         pricing_data, // Use the converted data
                     }
                 );
+        }
+
+        fn settle_round(ref self: ContractState, l1_data: L1Data) -> u256 {
+            // @dev Get pricing data set for the current round's settlement
+            let current_round_id = self.current_round_id.read();
+            let L1Data { twap, volatility, reserve_price } = l1_data;
+
+            assert(
+                twap.is_non_zero() && reserve_price.is_non_zero(), RoundErrors::PricingDataNotSet
+            );
+
+            // @dev Settle the current round and return the total payout
+            let current_round = self.get_round_dispatcher(current_round_id);
+            let (total_payout, payout_per_option) = current_round.settle_round(twap);
+
+            // @dev Calculate the remaining liquidity after the round settles
+            let starting_liq = current_round.get_starting_liquidity();
+            let unsold_liq = current_round.get_unsold_liquidity();
+            let remaining_liq = starting_liq - unsold_liq - total_payout;
+
+            // @dev Calculate the amount of liquidity that was stashed/not stashed by liquidity
+            // providers, avoiding division by 0
+            let vault = get_contract_address();
+            let starting_liq_queued = self
+                .queued_liquidity
+                .entry(vault)
+                .entry(current_round_id)
+                .read();
+            let remaining_liq_stashed = match starting_liq.is_zero() {
+                true => 0,
+                false => (remaining_liq * starting_liq_queued) / starting_liq
+            };
+            let remaining_liq_not_stashed = remaining_liq - remaining_liq_stashed;
+
+            // @dev All of the remaining liquidity becomes unlocked, any stashed liquidity is
+            // set aside and no longer participates in the protocol
+            self.vault_locked_balance.write(0);
+            self
+                .vault_stashed_balance
+                .write(self.vault_stashed_balance.read() + remaining_liq_stashed);
+            self
+                .vault_unlocked_balance
+                .write(self.vault_unlocked_balance.read() + remaining_liq_not_stashed);
+
+            // @dev Transfer payout from the vault to the just settled round,
+            if (total_payout > 0) {
+                self.get_eth_dispatcher().transfer(current_round.contract_address, total_payout);
+            }
+
+            // @dev Emit event
+            self.emit(Event::OptionRoundSettled(OptionRoundSettled {
+                round_id: current_round_id,
+                round_address: current_round.contract_address,
+                settlement_price: twap,
+                payout_per_option
+            }));
+
+            // @dev Deploy the next option round contract & update the current round id
+            self.deploy_next_round(L1Data { twap, volatility, reserve_price });
+
+            // @dev Return just the total payout
+            total_payout
         }
 
         /// Fossil
