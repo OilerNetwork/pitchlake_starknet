@@ -55,7 +55,7 @@ fi
 
 # Declare and deploy the ETH contract
 # sleep 2
-# ETH_HASH=$(starkli declare ../target/dev/pitch_lake_Eth.contract_class.json --compiler-version 2.8.2 | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
+# ETH_HASH=$(starkli declare ../target/dev/pitch_lake_Eth.contract_class.json --compiler-version 2.8.5 | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
 # echo "[ETH] Class hash declared"
 
 # sleep 2
@@ -70,7 +70,7 @@ FOSSILCLIENT_HASH=$(starkli declare ../target/dev/pitch_lake_FossilClient.contra
 echo "[Fossil Client] Class hash declared"
 
 # Deploy the first contract with salt and FOSSIL_PROCESSOR_ADDRESS
-FOSSILCLIENT_ADDRESS=$(starkli deploy $FOSSILCLIENT_HASH $FOSSIL_PROCESSOR_ADDRESS --salt 1 --watch| grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
+FOSSILCLIENT_ADDRESS=$(starkli deploy $FOSSILCLIENT_HASH $FOSSIL_PROCESSOR_ADDRESS --salt 1 --watch | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
 echo "[Fossil Client] Contract deployed"
 
 # Declare the second contract
