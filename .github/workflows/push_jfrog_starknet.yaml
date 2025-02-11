@@ -3,7 +3,7 @@ name: Build and Push Docker image on jfrog
 on:
   push:
     branches:
-      - feat/ci_push
+      - main
 
 env:
   DOCKER_REGISTRY: nethermind.jfrog.io
