@@ -17,4 +17,5 @@ scripts/simulationData/simulationSheet*.json
 
 *.env
 deployment/deployer_account.json
+deployment/demo-deployer_account.json
 deployment/deployment_config.json
