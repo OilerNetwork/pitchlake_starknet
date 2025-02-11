@@ -1,0 +1,72 @@
+name: Build and Push Docker image on jfrog 
+
+on:
+  push:
+    branches:
+      - feat/ci_push
+
+env:
+  DOCKER_REGISTRY: nethermind.jfrog.io
+  JFROG_REPOSITORY: kyoto-oiler-oci-local-staging
+  AGENT_NAME: pitchlake-starknet
+  SCARB_VERSION: 2.8.4
+  STARKLI_VERSION: 0.3.5
+  COMPILER_VERSION: 2.8.2
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  deploy-agent:
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set up ORAS
+        uses: oras-project/setup-oras@v1
+
+      - name: Verify ORAS version
+        run: oras version
+
+      - name: Log in to Docker registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.DOCKER_REGISTRY }}
+          username: ${{ secrets.ARTIFACTORY_KYOTO_OILER_USERNAME }}
+          password: ${{ secrets.ARTIFACTORY_KYOTO_OILER_TOKEN_DEVELOPER }}
+
+      - name: Login to registry with ORAS
+        run: |
+          oras login ${{ env.DOCKER_REGISTRY }} \
+            -u ${{ secrets.ARTIFACTORY_KYOTO_OILER_USERNAME }} \
+            -p ${{ secrets.ARTIFACTORY_KYOTO_OILER_TOKEN_DEVELOPER }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: "linux/amd64"
+          push: true
+          file: ./Dockerfile
+          tags: |
+            ${{ env.DOCKER_REGISTRY }}/${{ env.JFROG_REPOSITORY }}/${{ env.AGENT_NAME }}:${{ github.sha }}
+            ${{ env.DOCKER_REGISTRY }}/${{ env.JFROG_REPOSITORY }}/${{ env.AGENT_NAME }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            GITHUB_SHA=${{ github.sha }}
+            PORT=${{ env.PORT }}
+            NEXT_PUBLIC_VAULT_ADDRESSES=${{ env.NEXT_PUBLIC_VAULT_ADDRESSES }}
+            SCARB_VERSION=${{ env.SCARB_VERSION }}
+            STARKLI_VERSION=${{ env.STARKLI_VERSION }}
+            COMPILER_VERSION=${{ env.COMPILER_VERSION }}
+            
