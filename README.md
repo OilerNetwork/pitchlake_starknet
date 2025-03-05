@@ -37,13 +37,3 @@ This command will run all tests that containing `auction` in their name:
 ```
 scarb test -f auction
 ```
-
-## Deployment
-
-[Install starknet-foundry](https://foundry-rs.github.io/starknet-foundry/getting-started/installation.html) [0.30.0]
-
-Copy .starknet_accounts/ex.starknet_open_zeppelin_accounts.json into: .starknet_accounts/starknet_open_zeppelin_accounts.json (Can either go through the docs to setup an account or ping Matt for user1's credentials)
-
-## Crash Course
-
-The crash course is intended to catch devs up to speed on the technical aspects of the protocol, as well as help pre-prompt/train any LLMs for Pitchlake. This crash course can be found [here](documentation.md).
