@@ -1,7 +1,9 @@
 use starknet::{ContractAddress, testing::{set_contract_address, set_block_timestamp}};
 use openzeppelin_token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
 use pitch_lake::{
-    fossil_client::interface::{JobRequest, L1Data, FossilResult, FossilCallbackReturn, RoundSettledReturn},
+    fossil_client::interface::{
+        JobRequest, L1Data, FossilResult, FossilCallbackReturn, RoundSettledReturn
+    },
     vault::{
         interface::{
             VaultType, IVaultDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcher,
@@ -162,7 +164,9 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     /// State transition
 
-    fn fossil_client_callback(ref self: VaultFacade, l1_data: L1Data, timestamp: u64) -> FossilCallbackReturn {
+    fn fossil_client_callback(
+        ref self: VaultFacade, l1_data: L1Data, timestamp: u64
+    ) -> FossilCallbackReturn {
         self.vault_dispatcher.fossil_client_callback(l1_data, timestamp)
     }
 

@@ -6,7 +6,9 @@ use starknet::{ContractAddress, StorePacking};
 
 #[starknet::interface]
 trait IFossilClient<TContractState> {
-    fn fossil_callback(ref self: TContractState, request: Span<felt252>, result: Span<felt252>) -> FossilCallbackReturn;
+    fn fossil_callback(
+        ref self: TContractState, request: Span<felt252>, result: Span<felt252>
+    ) -> FossilCallbackReturn;
 }
 
 // *************************************************************************
@@ -53,9 +55,9 @@ enum FossilCallbackReturn {
     RoundSettled: RoundSettledReturn,
     FirstRoundInitialized,
 }
-  
+
 #[derive(Copy, Drop, Serde)]
-struct RoundSettledReturn{ 
+struct RoundSettledReturn {
     total_payout: u256
 }
 

@@ -7,7 +7,9 @@ mod FossilClient {
     use pitch_lake::library::constants::PROGRAM_ID;
     use pitch_lake::vault::interface::{IVaultDispatcher, IVaultDispatcherTrait};
     use pitch_lake::option_round::interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait};
-    use pitch_lake::fossil_client::interface::{JobRequest, FossilResult, L1Data, IFossilClient, FossilCallbackReturn};
+    use pitch_lake::fossil_client::interface::{
+        JobRequest, FossilResult, L1Data, IFossilClient, FossilCallbackReturn
+    };
 
     // *************************************************************************
     //                              STORAGE

@@ -3,7 +3,8 @@ use starknet::{
     testing::{set_contract_address, set_block_timestamp}
 };
 use pitch_lake::{
-    vault::interface::{VaultType}, fossil_client::interface::{L1Data, JobRequest, FossilResult, FossilCallbackReturn},
+    vault::interface::{VaultType},
+    fossil_client::interface::{L1Data, JobRequest, FossilResult, FossilCallbackReturn},
     vault::contract::Vault, vault::contract::Vault::Errors as vErrors,
     fossil_client::contract::FossilClient::Errors as fErrors, option_round::interface::PricingData,
     library::pricing_utils,
@@ -22,7 +23,10 @@ use pitch_lake::{
                 },
                 event_helpers::{clear_event_logs, assert_fossil_callback_success_event},
                 general_helpers::{to_gwei},
-                fossil_client_helpers::{get_mock_l1_data, get_mock_result, get_mock_result_serialized, get_request, get_request_serialized}
+                fossil_client_helpers::{
+                    get_mock_l1_data, get_mock_result, get_mock_result_serialized, get_request,
+                    get_request_serialized
+                }
             },
             facades::{
                 vault_facade::{VaultFacade, VaultFacadeTrait},

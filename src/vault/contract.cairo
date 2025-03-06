@@ -10,7 +10,9 @@ mod Vault {
         ERC20Component, interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait}
     };
     use openzeppelin_utils::serde::SerializedAppend;
-    use pitch_lake::fossil_client::interface::{L1Data, JobRequest, FossilCallbackReturn, RoundSettledReturn};
+    use pitch_lake::fossil_client::interface::{
+        L1Data, JobRequest, FossilCallbackReturn, RoundSettledReturn
+    };
     use pitch_lake::vault::interface::{ConstructorArgs, IVault, VaultType,};
     use pitch_lake::option_round::contract::{OptionRound, OptionRound::Errors as RoundErrors};
     use pitch_lake::option_round::interface::{
@@ -694,10 +696,11 @@ mod Vault {
             amount
         }
 
-        
 
         /// State transitions
-        fn fossil_client_callback(ref self: ContractState, l1_data: L1Data, timestamp: u64) ->  FossilCallbackReturn {
+        fn fossil_client_callback(
+            ref self: ContractState, l1_data: L1Data, timestamp: u64
+        ) -> FossilCallbackReturn {
             // @dev Only the Fossil Client contract can call this function
             self.assert_caller_is_fossil_client();
 
@@ -729,7 +732,7 @@ mod Vault {
 
                 // @dev Settle the current round
                 let total_payout = self.settle_round(l1_data);
-                
+
                 FossilCallbackReturn::RoundSettled(RoundSettledReturn { total_payout })
             } // @dev If the first round is Open, the result is being used to set the pricing data for its auction to start
             else {
@@ -754,7 +757,6 @@ mod Vault {
                             round_address: current_round.contract_address
                         }
                     );
-                
 
                 FossilCallbackReturn::FirstRoundInitialized
             }
@@ -967,7 +969,7 @@ mod Vault {
         }
 
         /// Basic helpers
-        
+
         fn assert_caller_is_fossil_client(self: @ContractState) {
             assert(
                 get_caller_address() == self.fossil_client_address.read(),
@@ -1105,12 +1107,17 @@ mod Vault {
             }
 
             // @dev Emit event
-            self.emit(Event::OptionRoundSettled(OptionRoundSettled {
-                round_id: current_round_id,
-                round_address: current_round.contract_address,
-                settlement_price: twap,
-                payout_per_option
-            }));
+            self
+                .emit(
+                    Event::OptionRoundSettled(
+                        OptionRoundSettled {
+                            round_id: current_round_id,
+                            round_address: current_round.contract_address,
+                            settlement_price: twap,
+                            payout_per_option
+                        }
+                    )
+                );
 
             // @dev Deploy the next option round contract & update the current round id
             self.deploy_next_round(L1Data { twap, volatility, reserve_price });

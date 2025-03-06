@@ -126,7 +126,9 @@ trait IVault<TContractState> {
 
     /// State transitions
 
-    fn fossil_client_callback(ref self: TContractState, l1_data: L1Data, timestamp: u64) -> FossilCallbackReturn;
+    fn fossil_client_callback(
+        ref self: TContractState, l1_data: L1Data, timestamp: u64
+    ) -> FossilCallbackReturn;
 
     // @dev Start the current round's auction
     // @return The total options available in the auction

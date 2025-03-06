@@ -5,7 +5,9 @@ use starknet::{
 use core::fmt::Display;
 use pitch_lake::{
     vault::{contract::Vault, interface::{VaultType, IVaultDispatcher, IVaultDispatcherTrait}},
-    fossil_client::interface::{L1Data, JobRequest, FossilResult, FossilCallbackReturn, RoundSettledReturn},
+    fossil_client::interface::{
+        L1Data, JobRequest, FossilResult, FossilCallbackReturn, RoundSettledReturn
+    },
     option_round::{
         contract::{OptionRound},
         interface::{
@@ -104,11 +106,9 @@ fn accelerate_to_settled_custom(ref self: VaultFacade, l1_data: L1Data) -> u256 
     let callback_return = self
         .get_fossil_client_facade()
         .fossil_callback(request_serialized.span(), result_serialized.span());
-    
+
     let round_settled_return = match callback_return {
-        FossilCallbackReturn::RoundSettled(total_payout) => {
-            total_payout
-        },
+        FossilCallbackReturn::RoundSettled(total_payout) => { total_payout },
         _ => panic!("Expected RoundSettled return")
     };
 
@@ -191,7 +191,6 @@ fn timeskip_and_end_auction(ref self: VaultFacade) -> (u256, u256) {
     set_contract_address(bystander());
     self.vault_dispatcher.end_auction()
 }
-
 // Jump to the option expriry date and settle the round
 // fn timeskip_and_settle_round(ref self: VaultFacade) -> u256 {
 //     let mut current_round = self.get_current_round();
@@ -199,4 +198,5 @@ fn timeskip_and_end_auction(ref self: VaultFacade) -> (u256, u256) {
 //     set_contract_address(bystander());
 //     self.settle_option_round()
 // }
+
 
