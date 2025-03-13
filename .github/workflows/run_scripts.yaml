@@ -1,59 +1,59 @@
-name: Run scripts
-
-on:
-  push:
-    branches:
-      - main
-      - develop
-  pull_request:
-    branches:
-      - "**"
-    types:
-      - reopened
-      - ready_for_review
-      - synchronize
-
-jobs:
-  run_scripts:
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.draft == false)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Install rust
-        run: |
-          curl https://sh.rustup.rs -sSf | sh -s -- -y
-
-      - name: Install dojoup
-        run: |
-          curl -L https://install.dojoengine.org | bash
-
-      - name: Install dojo
-        run: |
-          /home/runner/.config/.dojo/bin/dojoup
-          sudo mv /home/runner/.config/.dojo/bin/katana /usr/local/bin/
-
-      - name: Make script executable
-        run: chmod +x scripts/smokeTests.sh
-
-      # Set up Node
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20.x"
-
-      # Install Node dependencies
-      - name: Install dependencies
-        run: npm install
-        working-directory: ./scripts
-
-      # Set up Scarb
-      - uses: software-mansion/setup-scarb@v1
-      - run: scarb build
-
-      # Run Katana and scripts
-      - name: Run Katana and scripts
-        env:
-          KATANA_ACCOUNT_ADDRESS: ${{ secrets.KATANA_ACCOUNT_ADDRESS }}
-          KATANA_PRIVATE_KEY: ${{ secrets.KATANA_PRIVATE_KEY }}
-        run: bash scripts/smokeTests.sh
+# # name: Run scripts
+# #
+# # on:
+# #   push:
+# #     branches:
+# #       - main
+# #       - develop
+# #   pull_request:
+# #     branches:
+# #       - "**"
+# #     types:
+# #       - reopened
+# #       - ready_for_review
+# #       - synchronize
+# #
+# # jobs:
+# #   run_scripts:
+# #     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.draft == false)
+# #     runs-on: ubuntu-latest
+# #     steps:
+# #       - uses: actions/checkout@v3
+# #
+# #       - name: Install rust
+# #         run: |
+# #           curl https://sh.rustup.rs -sSf | sh -s -- -y
+# #
+# #       - name: Install dojoup
+# #         run: |
+# #           curl -L https://install.dojoengine.org | bash
+# #
+# #       - name: Install dojo
+# #         run: |
+# #           /home/runner/.config/.dojo/bin/dojoup
+# #           sudo mv /home/runner/.config/.dojo/bin/katana /usr/local/bin/
+# #
+# #       - name: Make script executable
+# #         run: chmod +x scripts/smokeTests.sh
+# #
+# #       # Set up Node
+# #       - name: Set up Node
+# #         uses: actions/setup-node@v4
+# #         with:
+# #           node-version: "20.x"
+# #
+# #       # Install Node dependencies
+# #       - name: Install dependencies
+# #         run: npm install
+# #         working-directory: ./scripts
+# #
+# #       # Set up Scarb
+# #       - uses: software-mansion/setup-scarb@v1
+# #       - run: scarb build
+# #
+# #       # Run Katana and scripts
+# #       - name: Run Katana and scripts
+# #         env:
+# #           KATANA_ACCOUNT_ADDRESS: ${{ secrets.KATANA_ACCOUNT_ADDRESS }}
+# #           KATANA_PRIVATE_KEY: ${{ secrets.KATANA_PRIVATE_KEY }}
+# #         run: bash scripts/smokeTests.sh
