@@ -95,8 +95,8 @@ fn accelerate_to_settled_custom(ref self: VaultFacade, l1_data: L1Data) -> u256 
 
     // Create a mock result (proofs do not matter)
     let mut result_serialized = array![];
-    let L1Data { twap, volatility, reserve_price } = l1_data;
-    FossilResult { l1_data: L1Data { twap, volatility, reserve_price }, proof: array![].span() }
+    let L1Data { twap, max_returns, reserve_price } = l1_data;
+    FossilResult { l1_data: L1Data { twap, max_returns, reserve_price }, proof: array![].span() }
         .serialize(ref result_serialized);
 
     // Make callback to fulfill the request
@@ -122,7 +122,7 @@ fn accelerate_to_settled_custom(ref self: VaultFacade, l1_data: L1Data) -> u256 
 // Settle the option round with a custom settlement price (compared to strike to determine payout)
 fn accelerate_to_settled(ref self: VaultFacade, twap: u256) -> u256 {
     accelerate_to_settled_custom(
-        ref self, L1Data { twap, volatility: 5000, reserve_price: to_gwei(2) }
+        ref self, L1Data { twap, max_returns: 5000, reserve_price: to_gwei(2) }
     )
     //    // Get the data request to fulfill
 //    let mut request_serialized = array![];
@@ -131,7 +131,7 @@ fn accelerate_to_settled(ref self: VaultFacade, twap: u256) -> u256 {
 //    // Create a mock result (proofs do not matter)
 //    let mut result_serialized = array![];
 //    FossilResult {
-//        l1_data: L1Data { twap, volatility: 5000, reserve_price: to_gwei(2) },
+//        l1_data: L1Data { twap, max_returns: 5000, reserve_price: to_gwei(2) },
 //        proof: array![].span()
 //    }
 //        .serialize(ref result_serialized);

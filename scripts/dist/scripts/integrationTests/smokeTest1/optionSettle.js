@@ -1,7 +1,7 @@
 import { getAccount } from "../../utils/helpers/common";
 import { getOptionRoundFacade } from "../../utils/helpers/setup";
 import assert from "assert";
-export const smokeTest = async ({ provider, vaultFacade, constants: { depositAmount, settlementPrice, volatility, reservePrice }, ethFacade, getLPUnlockedBalanceAll, settleOptionRoundBystander, getLiquidityProviderAccounts, getOptionBidderAccounts, }) => {
+export const smokeTest = async ({ provider, vaultFacade, constants: { depositAmount, settlementPrice, maxReturns, reservePrice }, ethFacade, getLPUnlockedBalanceAll, settleOptionRoundBystander, getLiquidityProviderAccounts, getOptionBidderAccounts, }) => {
     const optionRoundFacade = await getOptionRoundFacade(provider, vaultFacade.vaultContract);
     const liquidityProviderAccounts = getLiquidityProviderAccounts(2);
     const devAccount = getAccount("dev", provider);
@@ -35,7 +35,7 @@ export const smokeTest = async ({ provider, vaultFacade, constants: { depositAmo
     });
     const marketData = {
         settlementPrice,
-        volatility,
+        maxReturns,
         reservePrice,
     };
     await settleOptionRoundBystander(marketData);

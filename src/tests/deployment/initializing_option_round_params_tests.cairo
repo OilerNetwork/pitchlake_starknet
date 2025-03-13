@@ -125,10 +125,10 @@ fn test_vault_strike_levels_otm() {
 }
 //#[test]
 //#[available_gas(50000000)]
-//fn test_calculated_strike_ITM_high_vol() {
+//fn test_calculated_strike_ITM_high_max_returns() {
 //    let avg_basefee = to_gwei(100);
-//    let volatility = 20000; // 200.00%
-//    let strike_itm = calculate_strike_price(VaultType::InTheMoney, avg_basefee, volatility);
+//    let max_returns = 20000; // 200.00%
+//    let strike_itm = calculate_strike_price(VaultType::InTheMoney, avg_basefee, max_returns);
 //
 //    assert_eq!(strike_itm, avg_basefee / 2);
 //}

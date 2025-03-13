@@ -15,7 +15,7 @@ async function main(environment, port) {
         reservePrice: BigInt(4000000000),
         strikePrice: BigInt(8000000000),
         settlementPrice: BigInt(16000000000),
-        volatility: 10,
+        maxReturns: 10,
         capLevel: 5000,
     };
     const testRunner = new TestRunner(provider, vaultAddress, ethAddress, constants);

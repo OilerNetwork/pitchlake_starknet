@@ -7,7 +7,7 @@ import { eth, LibraryError } from "starknet";
 export const smokeTest = async ({
   provider,
   vaultFacade,
-  constants: { depositAmount, settlementPrice, volatility, reservePrice },
+  constants: { depositAmount, settlementPrice, maxReturns, reservePrice },
   ethFacade,
   getLPUnlockedBalanceAll,
   settleOptionRoundBystander,
@@ -69,7 +69,7 @@ export const smokeTest = async ({
 
   const marketData = {
     settlementPrice,
-    volatility,
+    maxReturns,
     reservePrice,
   };
 

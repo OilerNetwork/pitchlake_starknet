@@ -14,7 +14,7 @@ async function main(environment: string, port?: string) {
     reservePrice:BigInt(4000000000),
     strikePrice:BigInt(8000000000),
     settlementPrice:BigInt(16000000000),
-    volatility:10,
+    maxReturns:10,
     capLevel:5000,
   }
   console.log("HASHES",hashes)

@@ -238,7 +238,7 @@ export class TestRunner {
     //    );
     //
     //    const twapRange = 3600 * 24 * 30;
-    //    const volatilityRange = 3600 * 24 * 90;
+    //    const maxReturnsRange = 3600 * 24 * 90;
     //    const reservePriceRange = 3600 * 24 * 90;
     //
     //    const job_request: JobRequest = {
@@ -248,8 +248,8 @@ export class TestRunner {
     //          parseInt(optionSettlementDate.toString()) - twapRange,
     //          optionSettlementDate,
     //        ],
-    //        volatility: [
-    //          optionSettlementDate - volatilityRange,
+    //        maxReturns: [
+    //          optionSettlementDate - maxReturnsRange,
     //          optionSettlementDate,
     //        ],
     //        reserve_price: [
@@ -310,7 +310,7 @@ export class TestRunner {
     // );
 
     // const twapRange = 3600 * 24 * 30;
-    // const volatilityRange = 3600 * 24 * 90;
+    // const maxReturnsRange = 3600 * 24 * 90;
     // const reservePriceRange = 3600 * 24 * 90;
 
     // const job_request: JobRequest = {
@@ -320,8 +320,8 @@ export class TestRunner {
     //       parseInt(optionSettlementDate.toString()) - twapRange,
     //       optionSettlementDate,
     //     ],
-    //     volatility: [
-    //       optionSettlementDate - volatilityRange,
+    //     max_returns: [
+    //       optionSettlementDate - maxReturnsRange,
     //       optionSettlementDate,
     //     ],
     //     reserve_price: [

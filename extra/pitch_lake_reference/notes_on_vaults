@@ -16,9 +16,9 @@
 # auction starts and CL is 80 ETH per option
 # payout is 1 ETH per GWei of difference between the settlement and strike
 # max payout is cl - strike (100 - 20)
-# (auction parameters are set based on historical volatility and averages)
+# (auction parameters are set based on historical volatility and averages) (edit: now they are set based on max returns (max 30 day twap returns))
 # for each 1 ATM_VLT in the oct_23_atm_collateral_pool
-# holders receive 1/80 OCT_23_ATM_AUCTION token 
+# holders receive 1/80 OCT_23_ATM_AUCTION token
 # deposits / withdrawals (from the unallocated pool) are never stopped!
 # -------------
 # so 12500 OCT_23_ATM_AUCTION (1mln / 80) options are placed in the auction
@@ -65,7 +65,7 @@
 #   10000 at 10
 #   12000 at 8
 #   17000 at 5
-#   17500 at 3  
+#   17500 at 3
 #   22500 at 2
 
 # supply curve:

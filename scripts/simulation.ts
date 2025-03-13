@@ -14,7 +14,7 @@ async function main(environment: string, port?: string) {
   let { ethAddress, vaultAddress } = await deployContracts(
     environment,
     devAccount,
-    hashes
+    hashes,
   );
 
   //@Note remove this when testRunner refactor by Jithin is finished
@@ -24,7 +24,7 @@ async function main(environment: string, port?: string) {
     reservePrice: BigInt(4000000000),
     strikePrice: BigInt(8000000000),
     settlementPrice: BigInt(16000000000),
-    volatility:10,
+    maxReturns: 10,
     capLevel: 5000,
   };
 
@@ -32,28 +32,28 @@ async function main(environment: string, port?: string) {
     provider,
     vaultAddress,
     ethAddress,
-    constants
+    constants,
   );
 
   const feeTokenFacade = new ERC20Facade(
     "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
-    provider
+    provider,
   );
 
   feeTokenFacade.erc20Contract.connect(devAccount);
   await feeTokenFacade.erc20Contract.transfer(
     "0x0134f47366096198eb8f86e3ae6b075d399ca7abd918a56e01bb3b24963c2f75",
-    BigInt(1000000000000000000)
+    BigInt(1000000000000000000),
   );
   await feeTokenFacade.erc20Contract.transfer(
     "0x01577908d02E0a3A6B243A149Eb91BB4514f3aAb948CFE63b2f8bb52397618D4",
-    BigInt(1000000000000000000)
+    BigInt(1000000000000000000),
   );
   await testRunner.ethFacade.supplyERC20(
     devAccount,
     provider,
     ethAddress,
-    vaultAddress
+    vaultAddress,
   );
 
   await simulationTesting(testRunner);

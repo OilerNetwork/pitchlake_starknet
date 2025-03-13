@@ -37,7 +37,7 @@ export class OptionRoundFacade {
       identifiers: ["PITCH_LAKE_V1"],
       params: {
         twap: [upperBound - 30 * DAY, upperBound],
-        volatility: [upperBound - 90 * DAY, upperBound],
+        max_returns: [upperBound - 90 * DAY, upperBound],
         reserve_price: [upperBound - 90 * DAY, upperBound],
       },
     };

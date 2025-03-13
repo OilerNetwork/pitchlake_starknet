@@ -63,7 +63,7 @@ export const generateSheet = () => {
   const simulationMarketData: Array<MarketData> = marketData.map((data) => {
     return {
       settlementPrice: Math.floor(data.settlement_price),
-      volatility: data.volatility,
+      max_returns: data.max_returns,
       reservePrice: Math.floor(data.reserve_price),
       strikePrice: Math.floor(data.strike_price),
       startTime: data.starting_timestamp,

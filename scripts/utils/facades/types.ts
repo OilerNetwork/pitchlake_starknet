@@ -6,7 +6,7 @@ export type JobRequest = {
   identifiers: string[];
   params: {
     twap: [number, number];
-    volatility: [number, number];
+    maxReturns: [number, number];
     reserve_price: [number, number];
   };
 };
@@ -89,13 +89,13 @@ export type Constants = {
   settlementPrice: number | bigint;
   strikePrice: number | bigint;
   capLevel: number | bigint;
-  volatility: number | bigint;
+  maxReturns: number | bigint;
 };
 
 //Simulation Types
 export type MarketData = {
   settlementPrice: number | bigint;
-  volatility: number | bigint;
+  maxReturns: number | bigint;
   reservePrice: number | bigint;
   strikePrice?: number | bigint;
   capLevel?: number | bigint;

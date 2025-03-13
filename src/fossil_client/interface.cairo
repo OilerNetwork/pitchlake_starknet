@@ -44,7 +44,7 @@ impl SerdeJobRequest of Serde<JobRequest> {
 
 #[derive(Copy, Drop)]
 struct FossilResult {
-    // TWAP, volatility, reserve price
+    // TWAP, maxReturns, reserve price
     l1_data: L1Data,
     // Place holder for proof data
     proof: Span<felt252>,
@@ -69,9 +69,9 @@ impl SerdeFossilResult of Serde<FossilResult> {
     fn deserialize(ref serialized: Span<felt252>) -> Option<FossilResult> {
         let twap_low: u128 = (*serialized.at(0)).try_into().expect('failed deserialize twap');
         let twap_high: u128 = (*serialized.at(1)).try_into().expect('failed deserialize twap');
-        let volatility: u128 = (*serialized.at(2))
+        let max_returns: u128 = (*serialized.at(2))
             .try_into()
-            .expect('failed deserialize volatility');
+            .expect('failed deserialize max_returns');
         let reserve_price_low: u128 = (*serialized.at(3))
             .try_into()
             .expect('failed deserialize reserve');
@@ -83,7 +83,7 @@ impl SerdeFossilResult of Serde<FossilResult> {
             FossilResult {
                 l1_data: L1Data {
                     twap: u256 { low: twap_low, high: twap_high },
-                    volatility,
+                    max_returns: max_returns,
                     reserve_price: u256 { low: reserve_price_low, high: reserve_price_high }
                 },
                 proof
@@ -95,7 +95,7 @@ impl SerdeFossilResult of Serde<FossilResult> {
 #[derive(Default, Copy, Drop, Serde, PartialEq, starknet::Store)]
 struct L1Data {
     twap: u256,
-    volatility: u128,
+    max_returns: u128,
     reserve_price: u256,
 }
 

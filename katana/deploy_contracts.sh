@@ -57,7 +57,7 @@ curl -X POST http://localhost:3000/pricing_data \
     "identifiers": ["PITCH_LAKE_V1"],
     "params": {
       "twap": ['$((DEPLOYMENT_DATE_INT - 86400))', '$DEPLOYMENT_DATE_INT'],
-      "volatility": ['$((DEPLOYMENT_DATE_INT - 259200))', '$DEPLOYMENT_DATE_INT'],
+      "max_returns": ['$((DEPLOYMENT_DATE_INT - 259200))', '$DEPLOYMENT_DATE_INT'],
       "reserve_price": ['$((DEPLOYMENT_DATE_INT - 259200))', '$DEPLOYMENT_DATE_INT']
     },
     "client_info": {
@@ -74,7 +74,7 @@ curl -X POST http://localhost:3000/pricing_data \
 #    "identifiers": ["PITCH_LAKE_V1"],
 #    "params": {
 #      "twap": ['1730053616', '1730140016'],
-#      "volatility": ['1729880816', '1730140016'],
+#      "max_returns": ['1729880816', '1730140016'],
 #      "reserve_price": ['1729880816', '1730140016']
 #    },
 #    "client_info": {
