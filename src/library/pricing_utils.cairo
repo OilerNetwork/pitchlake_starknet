@@ -21,6 +21,11 @@ fn calculate_payout_per_option(
         min(capped, uncapped)
     }
 }
+// 1000000000000000000
+// 100000000000000000
+
+//1000000000000000000
+//100000000000000000
 
 // Calculate the total number of options available to sell in an auction
 fn calculate_total_options_available(
@@ -36,28 +41,47 @@ fn calculate_total_options_available(
     }
 }
 
-// Calculate cap level using max returns
-// - `max_returns * 1.2`
-// - result is a percentage (BPS) that is >= 0
-fn calculate_cap_level(max_returns: u128) -> u128 {
-    if max_returns > 0 {
-        (120 * max_returns) / 100
-    } else {
-        1
+// Calculate cap level using max returns, alpha, and k
+// `cl = (max_returns - k) / (alpha * (1 + k))`
+// @param max_returns: maximum returns in BPS (e.g., 20349 for 203.49%)
+// @param k: strike level in BPS (e.g., 0 for ATM, -2500 for -25%)
+// @param alpha: target percentage of max returns in BPS (e.g., 2500 for 25%)
+fn calculate_cap_level(max_returns: u128, k: i128, alpha: u128) -> u128 {
+    let max_returns_minus_k: i128 = (max_returns.try_into().unwrap()) - k;
+    let k_plus_one = BPS_i128 + k;
+
+    // Avoid division by zero
+    if (alpha == 0 || k_plus_one <= 0) {
+        return 0;
     }
+
+    // If (max_returns - k) is negative => clamp to zero
+    if max_returns_minus_k <= 0 {
+        return 0;
+    }
+
+    let alpha_i128: i128 = alpha.try_into().unwrap();
+    let cl = (max_returns_minus_k * BPS_i128 * BPS_i128) / (alpha_i128 * k_plus_one);
+
+    return cl.try_into().unwrap();
 }
 
-// Calculate a round's strike price `K = (1 + k)BF`
+
+// Calculate a round's strike price `K = (1 + k)TWAP`
 // @param twap: the current TWAP of the basefee
 // @param k: the strike level
 // @note The minimum strike_level of -9999 translates to a strike price -99.99% the current twap
 // (-10_000 would mean a strike price == 0)
 fn calculate_strike_price(k: i128, twap: u256) -> u256 {
-    let k_plus_1: i128 = k + BPS_i128;
-    assert(k_plus_1 > 0, 'Strike price must be > 0');
+    let k_plus_one_i128: i128 = k + BPS_i128;
 
-    // @dev Cast k+1 from i128 to u256 (k is positive here)
-    let k_plus_1: u256 = Into::<i128, felt252>::into(k_plus_1).into();
+    if k_plus_one_i128 <= 0 {
+        // @dev k+1 should never be 0 or less => clamp to 0.
+        return 0;
+    }
 
-    (k_plus_1 * twap) / BPS_u256
+    // @dev Cast k+1 from i128 to felt252 to u256 (k is positive here)
+    let k_plus_one_u256: u256 = Into::<i128, felt252>::into(k_plus_one_i128).into();
+
+    (k_plus_one_u256 * twap) / BPS_u256
 }
