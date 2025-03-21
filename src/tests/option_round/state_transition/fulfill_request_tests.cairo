@@ -40,23 +40,6 @@ use pitch_lake::{
 use pitch_lake::library::pricing_utils::{calculate_strike_price};
 use core::integer::{I128Neg};
 
-//#[test]
-//#[available_gas(50000000)]
-//#[ignore]
-//fn asdf() {
-//    let k1: i128 = -2222;
-//    let k2: i128 = 2222;
-//    let k3: i128 = 0;
-//
-//    let strike1 = calculate_strike_price(k1, 10_000_000);
-//    let strike2 = calculate_strike_price(k2, 10_000_000);
-//    let strike3 = calculate_strike_price(k3, 10_000_000);
-//
-//    println!("strike1: {}", strike1);
-//    println!("strike2: {}", strike2);
-//    println!("strike3: {}", strike3);
-//}
-
 // Test only the fossil processor can call the fossil callback
 
 // Fossil Client Contract
@@ -206,59 +189,14 @@ fn test_callback_sets_pricing_data_for_round() {
     let mut current_round = vault.get_current_round();
     let L1Data { twap, max_returns, reserve_price } = get_mock_l1_data();
     let exp_strike_price = pricing_utils::calculate_strike_price(vault.get_strike_level(), twap);
-    let exp_cap_level = pricing_utils::calculate_cap_level(max_returns);
+    let exp_cap_level = pricing_utils::calculate_cap_level(
+        max_returns, vault.get_strike_level(), vault.get_alpha()
+    );
 
     assert_eq!(current_round.get_strike_price(), exp_strike_price);
     assert_eq!(current_round.get_cap_level(), exp_cap_level);
     assert_eq!(current_round.get_reserve_price(), reserve_price);
 }
-
-
-// Test cap level calculation
-#[test]
-#[available_gas(50000000)]
-fn test_cap_level_calculations() {
-    let mr0 = 0;
-    let mr1 = 1;
-    let mr2 = 11;
-    let mr3 = 111;
-    let mr4 = 1111;
-    let mr5 = 11111;
-
-    let cap0 = pricing_utils::calculate_cap_level(mr0);
-    let cap1 = pricing_utils::calculate_cap_level(mr1);
-    let cap2 = pricing_utils::calculate_cap_level(mr2);
-    let cap3 = pricing_utils::calculate_cap_level(mr3);
-    let cap4 = pricing_utils::calculate_cap_level(mr4);
-    let cap5 = pricing_utils::calculate_cap_level(mr5);
-
-    let expected_cap0 = 1;
-    let expected_cap1 = 1;
-    let expected_cap2 = 13;
-    let expected_cap3 = 133;
-    let expected_cap4 = 1333;
-    let expected_cap5 = 13333;
-
-    assert_eq!(cap0, expected_cap0);
-    assert_eq!(cap1, expected_cap1);
-    assert_eq!(cap2, expected_cap2);
-    assert_eq!(cap3, expected_cap3);
-    assert_eq!(cap4, expected_cap4);
-    assert_eq!(cap5, expected_cap5);
-}
-
-#[test]
-#[available_gas(50000000)]
-fn test_asdf() {
-    let strike = 1_000_000_000;
-    let cap = (120 * 3333) / 100;
-    let settle_price = 12_000_000_000;
-
-    let payout = pricing_utils::calculate_payout_per_option(strike, cap, settle_price);
-
-    println!("payout: {}", payout);
-}
-
 
 // Test first callback fails if round is round not open
 #[test]
@@ -334,7 +272,9 @@ fn test_callback_for_first_round_if_in_range() {
     vault.fossil_client_callback(l1_data, deployment_date);
 
     let expected_strike = pricing_utils::calculate_strike_price(vault.get_strike_level(), twap);
-    let expected_cap = pricing_utils::calculate_cap_level(max_returns);
+    let expected_cap = pricing_utils::calculate_cap_level(
+        max_returns, vault.get_strike_level(), vault.get_alpha()
+    );
 
     assert_eq!(current_round.get_strike_price(), expected_strike);
     assert_eq!(current_round.get_cap_level(), expected_cap);
@@ -416,7 +356,9 @@ fn test_callback_works_as_expected() {
     let mut next_round = vault.get_current_round();
     let l1_data = get_mock_l1_data();
     let strike = pricing_utils::calculate_strike_price(vault.get_strike_level(), l1_data.twap);
-    let cap = pricing_utils::calculate_cap_level(l1_data.max_returns);
+    let cap = pricing_utils::calculate_cap_level(
+        l1_data.max_returns, vault.get_strike_level(), vault.get_alpha()
+    );
 
     assert_eq!(next_round.get_cap_level(), cap);
     assert_eq!(next_round.get_strike_price(), strike);
