@@ -55,8 +55,8 @@ mod deployment {
 }
 
 #[cfg(test)]
-mod misc {
-    //mod eth_test;
+mod pricing_utils {
+    mod pricing_util_tests;
 }
 
 #[cfg(test)]

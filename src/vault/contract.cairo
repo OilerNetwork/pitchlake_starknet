@@ -1137,8 +1137,9 @@ mod Vault {
             let L1Data { twap, max_returns, reserve_price } = l1_data;
 
             let k = self.strike_level.read();
+            let alpha = self.alpha.read();
 
-            let cap_level = calculate_cap_level(max_returns);
+            let cap_level = calculate_cap_level(max_returns, k, alpha);
             let strike_price = calculate_strike_price(k, twap);
 
             PricingData { strike_price, cap_level, reserve_price }
