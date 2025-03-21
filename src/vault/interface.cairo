@@ -6,7 +6,7 @@ use pitch_lake::fossil_client::interface::{JobRequest, L1Data, FossilCallbackRet
 // @dev Constructor arguments
 #[derive(Drop, Serde)]
 struct ConstructorArgs {
-    fossil_client_address: ContractAddress,
+    l1_data_processor_address: ContractAddress,
     eth_address: ContractAddress,
     option_round_class_hash: ClassHash,
     alpha: u128,
@@ -31,7 +31,7 @@ trait IVault<TContractState> {
     fn get_eth_address(self: @TContractState) -> ContractAddress;
 
     // @dev The the Fossil Client's address
-    fn get_fossil_client_address(self: @TContractState) -> ContractAddress;
+    fn get_l1_data_processor_address(self: @TContractState) -> ContractAddress;
 
     // @dev The number of seconds between a round deploying and its auction starting
     fn get_round_transition_duration(self: @TContractState) -> u64;
@@ -115,7 +115,7 @@ trait IVault<TContractState> {
 
     /// State transitions
 
-    fn fossil_client_callback(
+    fn l1_data_processor_callback(
         ref self: TContractState, l1_data: L1Data, timestamp: u64
     ) -> FossilCallbackReturn;
 

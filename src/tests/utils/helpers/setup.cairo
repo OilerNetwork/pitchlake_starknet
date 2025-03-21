@@ -105,7 +105,7 @@ fn deploy_vault_with_events(
     /// Deploy Vault
     let mut calldata = array![];
     let args = ConstructorArgs {
-        fossil_client_address: deploy_fossil_client().contract_address,
+        l1_data_processor_address: deploy_fossil_client().contract_address,
         eth_address,
         option_round_class_hash: OptionRound::TEST_CLASS_HASH.try_into().unwrap(),
         alpha, // risk factor for vault
