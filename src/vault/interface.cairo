@@ -3,14 +3,6 @@ use pitch_lake::option_round::interface::OptionRoundState;
 use pitch_lake::types::Bid;
 use pitch_lake::fossil_client::interface::{JobRequest, L1Data, FossilCallbackReturn};
 
-// @dev An enum for each type of Vault
-#[derive(starknet::Store, Copy, Drop, Serde, PartialEq)]
-enum VaultType {
-    InTheMoney,
-    AtTheMoney,
-    OutOfMoney,
-}
-
 // @dev Constructor arguments
 #[derive(Drop, Serde)]
 struct ConstructorArgs {
@@ -28,9 +20,6 @@ struct ConstructorArgs {
 #[starknet::interface]
 trait IVault<TContractState> {
     /// Reads ///
-
-    // @dev Get the type of vault (ITM | ATM | OTM)
-    fn get_vault_type(self: @TContractState) -> VaultType;
 
     // @dev Get the alpha risk factor of the vault
     fn get_alpha(self: @TContractState) -> u128;

@@ -6,8 +6,7 @@ use pitch_lake::{
     },
     vault::{
         interface::{
-            VaultType, IVaultDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcher,
-            IVaultSafeDispatcherTrait
+            IVaultDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcher, IVaultSafeDispatcherTrait
         }
     },
     option_round::{
@@ -464,10 +463,6 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     // member instead of an entry point
     fn contract_address(ref self: VaultFacade) -> ContractAddress {
         self.vault_dispatcher.contract_address
-    }
-
-    fn get_vault_type(ref self: VaultFacade) -> VaultType {
-        self.vault_dispatcher.get_vault_type()
     }
 
     fn get_alpha(ref self: VaultFacade) -> u128 {

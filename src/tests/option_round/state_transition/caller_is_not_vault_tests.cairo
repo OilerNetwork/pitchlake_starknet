@@ -4,7 +4,7 @@ use starknet::{
 };
 use pitch_lake::{
     vault::contract::Vault, vault::contract::Vault::Errors as vErrors,
-    option_round::contract::OptionRound::Errors, vault::interface::{VaultType},
+    option_round::contract::OptionRound::Errors,
     fossil_client::interface::{L1Data, JobRequest, FossilResult},
     fossil_client::contract::FossilClient::Errors as fErrors, option_round::interface::PricingData,
     library::pricing_utils,

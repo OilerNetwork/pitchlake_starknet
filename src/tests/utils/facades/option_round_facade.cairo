@@ -11,7 +11,7 @@ use pitch_lake::{
     },
     vault::{
         interface::{
-            VaultType, IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait,
+            IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait,
             IVaultSafeDispatcherTrait,
         },
         contract::Vault,

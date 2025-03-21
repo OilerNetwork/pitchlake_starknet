@@ -1,5 +1,4 @@
 use core::num::traits::Zero;
-use pitch_lake::vault::interface::VaultType;
 use pitch_lake::library::utils::min;
 use pitch_lake::library::constants::{BPS_i128, BPS_felt252, BPS_u256, BPS_u128};
 

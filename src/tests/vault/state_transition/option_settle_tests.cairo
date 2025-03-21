@@ -11,7 +11,7 @@ use pitch_lake::{
         contract::Vault,
         interface::{
             IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait,
-            IVaultSafeDispatcherTrait, VaultType,
+            IVaultSafeDispatcherTrait,
         }
     },
     option_round::contract::OptionRound::Errors, option_round::interface::PricingData,
