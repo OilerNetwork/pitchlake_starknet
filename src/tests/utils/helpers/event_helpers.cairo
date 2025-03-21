@@ -7,7 +7,7 @@ use pitch_lake::{
     fossil_client::contract::FossilClient
 };
 use pitch_lake::option_round::interface::{PricingData};
-use pitch_lake::fossil_client::interface::{L1Data};
+use pitch_lake::vault::interface::{L1Data};
 use debug::PrintTrait;
 
 /// Helpers ///

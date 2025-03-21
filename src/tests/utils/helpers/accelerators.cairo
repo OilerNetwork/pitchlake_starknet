@@ -4,10 +4,14 @@ use starknet::{
 };
 use core::fmt::Display;
 use pitch_lake::{
-    vault::{contract::Vault, interface::{IVaultDispatcher, IVaultDispatcherTrait}},
-    fossil_client::interface::{
-        L1Data, JobRequest, FossilResult, FossilCallbackReturn, RoundSettledReturn
+    vault::{
+        contract::Vault,
+        interface::{
+            IVaultDispatcher, IVaultDispatcherTrait, L1Data, L1DataCallbackReturn,
+            RoundSettledReturn
+        }
     },
+    fossil_client::interface::{JobRequest, FossilResult,},
     option_round::{
         contract::{OptionRound},
         interface::{
@@ -108,7 +112,7 @@ fn accelerate_to_settled_custom(ref self: VaultFacade, l1_data: L1Data) -> u256 
         .fossil_callback(request_serialized.span(), result_serialized.span());
 
     let round_settled_return = match callback_return {
-        FossilCallbackReturn::RoundSettled(total_payout) => { total_payout },
+        L1DataCallbackReturn::RoundSettled(total_payout) => { total_payout },
         _ => panic!("Expected RoundSettled return")
     };
 

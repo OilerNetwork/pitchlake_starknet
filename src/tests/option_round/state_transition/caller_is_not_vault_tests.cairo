@@ -3,9 +3,9 @@ use starknet::{
     testing::{set_contract_address, set_block_timestamp}
 };
 use pitch_lake::{
-    vault::contract::Vault, vault::contract::Vault::Errors as vErrors,
+    vault::contract::Vault, vault::contract::Vault::Errors as vErrors, vault::interface::{L1Data},
     option_round::contract::OptionRound::Errors,
-    fossil_client::interface::{L1Data, JobRequest, FossilResult},
+    fossil_client::interface::{JobRequest, FossilResult},
     fossil_client::contract::FossilClient::Errors as fErrors, option_round::interface::PricingData,
     library::pricing_utils,
     tests::{

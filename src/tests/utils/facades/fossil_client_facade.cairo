@@ -1,7 +1,8 @@
 use crate::fossil_client::interface::{
     IFossilClientDispatcher, IFossilClientSafeDispatcher, IFossilClientDispatcherTrait,
-    IFossilClientSafeDispatcherTrait, FossilCallbackReturn
+    IFossilClientSafeDispatcherTrait
 };
+use crate::vault::interface::{L1DataCallbackReturn};
 use crate::tests::utils::helpers::setup::FOSSIL_PROCESSOR;
 use starknet::testing::set_contract_address;
 // add this and tests
@@ -29,7 +30,7 @@ impl FossilClientFacadeImpl of FossilClientFacadeTrait {
     /// Entrypoints
     fn fossil_callback(
         self: FossilClientFacade, request: Span<felt252>, result: Span<felt252>
-    ) -> FossilCallbackReturn {
+    ) -> L1DataCallbackReturn {
         set_contract_address(FOSSIL_PROCESSOR());
         self.dispatcher().fossil_callback(request, result)
     }

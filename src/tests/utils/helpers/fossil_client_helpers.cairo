@@ -1,4 +1,5 @@
-use pitch_lake::fossil_client::interface::{L1Data, JobRequest, FossilResult};
+use pitch_lake::fossil_client::interface::{JobRequest, FossilResult};
+use pitch_lake::vault::interface::L1Data;
 use pitch_lake::tests::utils::facades::vault_facade::{VaultFacade, VaultFacadeTrait};
 use pitch_lake::tests::utils::helpers::general_helpers::to_gwei;
 
