@@ -46,7 +46,7 @@ impl SerdeJobRequest of Serde<JobRequest> {
 
 #[derive(Copy, Drop)]
 struct FossilResult {
-    // TWAP, maxReturns, reserve price
+    // TWAP, max returns, reserve price
     l1_data: L1Data,
     // Place holder for proof data
     proof: Span<felt252>,
