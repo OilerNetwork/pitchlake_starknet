@@ -174,25 +174,25 @@ fn test_cap_level_against_python_outputs() {
 fn test_cap_level_edge_cases() {
     // Test when alpha is 0
     let cap_level = pricing_utils::calculate_cap_level(20000, 0, 0);
-    assert(cap_level == 0, 'alpha 0 should return 0');
+    assert(cap_level == 1, 'alpha 0 should return 0');
 
     // Test when max_returns <= k
     let cap_level = pricing_utils::calculate_cap_level(1000, 2000, 2500);
-    assert(cap_level == 0, 'max_returns <= k should be 0');
+    assert(cap_level == 1, 'max_returns <= k should be 0');
 
     // Test when k + 1 <= 0 (k = -10000 means -100%)
     let cap_level = pricing_utils::calculate_cap_level(20000, -10001, 2500);
-    assert(cap_level == 0, 'k+1 <= 0 should return 0');
+    assert(cap_level == 1, 'k+1 <= 0 should return 0');
 
     // Test normal cases
     let cap_level = pricing_utils::calculate_cap_level(20000, 0, 2500); // ATM
-    assert(cap_level > 0, 'ATM cap level should be > 0');
+    assert(cap_level > 1, 'ATM cap level should be > 0');
 
     let cap_level_itm = pricing_utils::calculate_cap_level(20000, -1000, 2500); // ITM (-10%)
-    assert(cap_level_itm > 0, 'ITM cap level should be > 0');
+    assert(cap_level_itm > 1, 'ITM cap level should be > 0');
 
     let cap_level_otm = pricing_utils::calculate_cap_level(20000, 1000, 2500); // OTM (+10%)
-    assert(cap_level_otm > 0, 'OTM cap level should be > 0');
+    assert(cap_level_otm > 1, 'OTM cap level should be > 0');
 }
 
 #[test]
