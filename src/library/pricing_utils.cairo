@@ -20,11 +20,6 @@ fn calculate_payout_per_option(
         min(capped, uncapped)
     }
 }
-// 1000000000000000000
-// 100000000000000000
-
-//1000000000000000000
-//100000000000000000
 
 // Calculate the total number of options available to sell in an auction
 fn calculate_total_options_available(
