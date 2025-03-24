@@ -5,24 +5,6 @@ export const ABI = [
     "interface_name": "pitch_lake::vault::interface::IVault"
   },
   {
-    "type": "enum",
-    "name": "pitch_lake::vault::interface::VaultType",
-    "variants": [
-      {
-        "name": "InTheMoney",
-        "type": "()"
-      },
-      {
-        "name": "AtTheMoney",
-        "type": "()"
-      },
-      {
-        "name": "OutOfMoney",
-        "type": "()"
-      }
-    ]
-  },
-  {
     "type": "struct",
     "name": "core::integer::u256",
     "members": [
@@ -48,14 +30,14 @@ export const ABI = [
   },
   {
     "type": "struct",
-    "name": "pitch_lake::fossil_client::interface::L1Data",
+    "name": "pitch_lake::vault::interface::L1Data",
     "members": [
       {
         "name": "twap",
         "type": "core::integer::u256"
       },
       {
-        "name": "volatility",
+        "name": "max_returns",
         "type": "core::integer::u128"
       },
       {
@@ -66,7 +48,7 @@ export const ABI = [
   },
   {
     "type": "struct",
-    "name": "pitch_lake::fossil_client::interface::RoundSettledReturn",
+    "name": "pitch_lake::vault::interface::RoundSettledReturn",
     "members": [
       {
         "name": "total_payout",
@@ -76,11 +58,11 @@ export const ABI = [
   },
   {
     "type": "enum",
-    "name": "pitch_lake::fossil_client::interface::FossilCallbackReturn",
+    "name": "pitch_lake::vault::interface::L1DataCallbackReturn",
     "variants": [
       {
         "name": "RoundSettled",
-        "type": "pitch_lake::fossil_client::interface::RoundSettledReturn"
+        "type": "pitch_lake::vault::interface::RoundSettledReturn"
       },
       {
         "name": "FirstRoundInitialized",
@@ -120,17 +102,6 @@ export const ABI = [
     "items": [
       {
         "type": "function",
-        "name": "get_vault_type",
-        "inputs": [],
-        "outputs": [
-          {
-            "type": "pitch_lake::vault::interface::VaultType"
-          }
-        ],
-        "state_mutability": "view"
-      },
-      {
-        "type": "function",
         "name": "get_alpha",
         "inputs": [],
         "outputs": [
@@ -164,7 +135,7 @@ export const ABI = [
       },
       {
         "type": "function",
-        "name": "get_fossil_client_address",
+        "name": "get_l1_data_processor_address",
         "inputs": [],
         "outputs": [
           {
@@ -456,11 +427,11 @@ export const ABI = [
       },
       {
         "type": "function",
-        "name": "fossil_client_callback",
+        "name": "l1_data_processor_callback",
         "inputs": [
           {
             "name": "l1_data",
-            "type": "pitch_lake::fossil_client::interface::L1Data"
+            "type": "pitch_lake::vault::interface::L1Data"
           },
           {
             "name": "timestamp",
@@ -469,7 +440,7 @@ export const ABI = [
         ],
         "outputs": [
           {
-            "type": "pitch_lake::fossil_client::interface::FossilCallbackReturn"
+            "type": "pitch_lake::vault::interface::L1DataCallbackReturn"
           }
         ],
         "state_mutability": "external"
@@ -595,7 +566,7 @@ export const ABI = [
     "name": "pitch_lake::vault::interface::ConstructorArgs",
     "members": [
       {
-        "name": "fossil_client_address",
+        "name": "l1_data_processor_address",
         "type": "core::starknet::contract_address::ContractAddress"
       },
       {
