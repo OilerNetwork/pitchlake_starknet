@@ -1,5 +1,6 @@
 //use openzeppelin_token::erc20::interface::{ERC20ABIDispatcherTrait,};
 use starknet::ContractAddress;
+use starknet::testing::set_block_number;
 use pitch_lake::{
     library::eth::Eth,
     vault::{
@@ -40,9 +41,13 @@ use debug::PrintTrait;
 #[test]
 #[available_gas(50000000)]
 fn test_vault_constructor() {
+    set_block_number(1234);
     let (mut vault, eth) = setup_facade();
     let mut current_round = vault.get_current_round();
     let current_round_id = vault.get_current_round_id();
+
+    // Check the deployment block
+    assert(vault.get_deployment_block() == 1234, 'deployment block should be 1234');
 
     // Check current round is 1
     assert(current_round_id == 1, 'current round should be 1');

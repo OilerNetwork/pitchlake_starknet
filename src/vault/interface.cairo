@@ -52,6 +52,9 @@ trait IVault<TContractState> {
     // @dev The the Fossil Client's address
     fn get_l1_data_processor_address(self: @TContractState) -> ContractAddress;
 
+    // @dev The block this vault is deployed at
+    fn get_deployment_block(self: @TContractState) -> u64;
+
     // @dev The number of seconds between a round deploying and its auction starting
     fn get_round_transition_duration(self: @TContractState) -> u64;
 

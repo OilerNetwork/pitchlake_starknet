@@ -484,6 +484,10 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         self.vault_dispatcher.get_l1_data_processor_address()
     }
 
+    fn get_deployment_block(ref self: VaultFacade) -> u64 {
+        self.vault_dispatcher.get_deployment_block()
+    }
+
 
     fn get_auction_run_time(ref self: VaultFacade) -> u64 {
         self.vault_dispatcher.get_auction_duration()
