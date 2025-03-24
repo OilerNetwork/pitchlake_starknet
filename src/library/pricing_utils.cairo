@@ -44,14 +44,14 @@ fn calculate_cap_level(max_returns: u128, k: i128, alpha: u128) -> u128 {
     let max_returns_minus_k: i128 = (max_returns.try_into().unwrap()) - k;
     let k_plus_one = BPS_i128 + k;
 
-    // Avoid division by zero
+    // Avoid division by zero, clamp to 1
     if (alpha == 0 || k_plus_one <= 0) {
-        return 0;
+        return 1;
     }
 
-    // If (max_returns - k) is negative => clamp to zero
+    // If (max_returns - k) is negative => clamp to 1
     if max_returns_minus_k <= 0 {
-        return 0;
+        return 1;
     }
 
     let alpha_i128: i128 = alpha.try_into().unwrap();
