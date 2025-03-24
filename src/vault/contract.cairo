@@ -4,7 +4,7 @@ mod Vault {
     use starknet::storage::{Map, StoragePathEntry};
     use starknet::{
         ContractAddress, ClassHash, deploy_syscall, get_caller_address, contract_address_const,
-        get_contract_address, get_block_timestamp
+        get_contract_address, get_block_timestamp, get_block_number
     };
     use openzeppelin_token::erc20::{
         ERC20Component, interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait}
@@ -44,6 +44,7 @@ mod Vault {
         eth_address: ContractAddress,
         l1_data_processor_address: ContractAddress,
         round_addresses: Map<u64, ContractAddress>,
+        deployment_block: u64,
         ///
         // @note could use usize ?
         current_round_id: u64,
@@ -100,6 +101,7 @@ mod Vault {
         self.strike_level.write(strike_level);
 
         // @dev Deploy the first round
+        self.deployment_block.write(get_block_number());
         self.deploy_next_round(Default::default());
     }
 
