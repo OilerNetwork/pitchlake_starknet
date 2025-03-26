@@ -39,22 +39,6 @@ use pitch_lake::{
 use pitch_lake::library::pricing_utils::{calculate_strike_price};
 use core::integer::{I128Neg};
 
-//#[test]
-//#[available_gas(50000000)]
-//#[ignore]
-//fn asdf() {
-//    let k1: i128 = -2222;
-//    let k2: i128 = 2222;
-//    let k3: i128 = 0;
-//
-//    let strike1 = calculate_strike_price(k1, 10_000_000);
-//    let strike2 = calculate_strike_price(k2, 10_000_000);
-//    let strike3 = calculate_strike_price(k3, 10_000_000);
-//
-//    println!("strike1: {}", strike1);
-//    println!("strike2: {}", strike2);
-//    println!("strike3: {}", strike3);
-//}
 
 // Test only the fossil processor can call the fossil callback
 
