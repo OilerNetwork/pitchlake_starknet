@@ -35,6 +35,7 @@ mod Vault {
         ///
         alpha: u128,
         strike_level: i128,
+        minimum_cap_level: u128,
         deployment_block: u64,
         round_transition_duration: u64,
         auction_duration: u64,
@@ -79,6 +80,7 @@ mod Vault {
         option_round_class_hash,
         strike_level,
         alpha,
+        minimum_cap_level,
         round_transition_duration,
         auction_duration,
         round_duration } =
@@ -89,6 +91,7 @@ mod Vault {
         self.eth_address.write(eth_address);
         self.option_round_class_hash.write(option_round_class_hash);
         self.deployment_block.write(get_block_number());
+        self.minimum_cap_level.write(minimum_cap_level);
         self.round_transition_duration.write(round_transition_duration);
         self.auction_duration.write(auction_duration);
         self.round_duration.write(round_duration);
@@ -354,6 +357,11 @@ mod Vault {
         fn get_strike_level(self: @ContractState) -> i128 {
             self.strike_level.read()
         }
+
+        fn get_minimum_cap_level(self: @ContractState) -> u128 {
+            self.minimum_cap_level.read()
+        }
+
 
         fn get_deployment_block(self: @ContractState) -> u64 {
             self.deployment_block.read()

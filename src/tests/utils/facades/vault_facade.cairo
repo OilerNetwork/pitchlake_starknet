@@ -474,6 +474,11 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         self.vault_dispatcher.get_strike_level()
     }
 
+    fn get_minimum_cap_level(ref self: VaultFacade) -> u128 {
+        self.vault_dispatcher.get_minimum_cap_level()
+    }
+
+
     // Eth contract address
     fn get_eth_address(ref self: VaultFacade) -> ContractAddress {
         self.vault_dispatcher.get_eth_address()

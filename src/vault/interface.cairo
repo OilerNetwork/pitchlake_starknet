@@ -11,6 +11,7 @@ struct ConstructorArgs {
     option_round_class_hash: ClassHash,
     alpha: u128,
     strike_level: i128,
+    minimum_cap_level: u128,
     round_transition_duration: u64,
     auction_duration: u64,
     round_duration: u64,
@@ -45,6 +46,9 @@ trait IVault<TContractState> {
 
     // @dev Get the strike level of the vault
     fn get_strike_level(self: @TContractState) -> i128;
+
+    // @dev Get the minimum cap level of the vault
+    fn get_minimum_cap_level(self: @TContractState) -> u128;
 
     // @dev Get the ETH address
     fn get_eth_address(self: @TContractState) -> ContractAddress;

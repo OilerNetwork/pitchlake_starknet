@@ -110,6 +110,7 @@ fn deploy_vault_with_events(
         option_round_class_hash: OptionRound::TEST_CLASS_HASH.try_into().unwrap(),
         alpha, // risk factor for vault
         strike_level, // strike price for r1 is settlement price of r0
+        minimum_cap_level: 0, // minimum cap level for vault
         round_transition_duration: ROUND_TRANSITION_DURATION,
         auction_duration: AUCTION_DURATION,
         round_duration: ROUND_DURATION
