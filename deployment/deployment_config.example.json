@@ -1,0 +1,47 @@
+{
+  "deployment": {
+    "network": {
+      "rpc": "http://localhost:6060",
+      "deployer_address": "0x101",
+      "deployer_private_key": "0x2bff1b26236b72d8a930be1dfbee09f79a536a49482a4c8b8f1030e2ab3bf1b"
+    },
+    "compiler_version": "2.8.5",
+    "contracts": {
+      "FossilClient": {
+        "constructor_args": [
+          {
+            "fossil_processor_address": "0x101"
+          }
+        ]
+      },
+      "Vault": {
+        "constructor_args": [
+          {
+            "fossil_client_address": "0xdeadbeef",
+            "eth_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+            "alpha": "2500",
+            "strike": "0",
+            "minimum_cap_level": "0",
+            "round_transition_duration": "180",
+            "auction_duration": "180",
+            "round_duration": "720"
+          },
+          {
+            "fossil_client_address": "0xdeadbeef",
+            "eth_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+            "alpha": "3000",
+            "strike": "1000",
+            "minimum_cap_level": "0",
+            "round_transition_duration": "60",
+            "auction_duration": "60",
+            "round_duration": "60"
+          }
+        ]
+      }
+    }
+  },
+  "first_round_initialization": {
+    "fossil_api_url": "http://localhost:3000",
+    "fossil_api_key": "ab062..."
+  }
+}

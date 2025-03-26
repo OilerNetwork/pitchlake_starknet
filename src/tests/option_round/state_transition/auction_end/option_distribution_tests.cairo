@@ -7,7 +7,7 @@ use pitch_lake::tests::{
         helpers::{
             accelerators::{
                 accelerate_to_auctioning, accelerate_to_auctioning_custom, accelerate_to_running,
-                accelerate_to_running_custom, timeskip_and_settle_round, timeskip_and_end_auction,
+                accelerate_to_running_custom, timeskip_and_end_auction,
                 //accelerate_to_running_custom_option_round,
             },
             setup::{setup_facade, setup_test_auctioning_bidders},
@@ -43,7 +43,7 @@ fn test_options_sold_0_before_auction_end() {
     let mut current_round: OptionRoundFacade = vault.get_current_round();
     let bid_amount: u256 = total_options_available;
     let bid_price: u256 = current_round.get_reserve_price();
-    current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
+    vault.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
 
     // Check that options sold is 0 before auction end
     let options_sold = current_round.total_options_sold();
@@ -609,7 +609,7 @@ fn auction_real_numbers_test_helper(
 
     // Place bids, ignoring the failed bids
     let bidders = option_bidders_get(bid_amounts.len()).span();
-    current_round.place_bids_ignore_errors(bid_amounts, bid_prices, bidders);
+    vault.place_bids_ignore_errors(bid_amounts, bid_prices, bidders);
     let (_, options_sold) = timeskip_and_end_auction(ref vault);
 
     // Check that the correct number of options were sold and distributed

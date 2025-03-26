@@ -10,8 +10,7 @@ use pitch_lake::{
     vault::{
         contract::Vault,
         interface::{
-            IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait,
-            IVaultSafeDispatcherTrait, VaultType,
+            IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcherTrait
         }
     },
     option_round::contract::OptionRound::Errors, option_round::interface::PricingData,
@@ -35,6 +34,9 @@ use pitch_lake::{
                     deploy_vault_with_events, setup_facade, setup_test_auctioning_providers,
                     setup_test_running, AUCTION_DURATION, ROUND_TRANSITION_DURATION, ROUND_DURATION
                 },
+                fossil_client_helpers::{
+                    get_mock_result_serialized, get_mock_result, get_request, get_request_serialized
+                }
             },
             lib::{
                 test_accounts::{
@@ -46,12 +48,14 @@ use pitch_lake::{
             },
             facades::{
                 vault_facade::{VaultFacade, VaultFacadeTrait},
+                fossil_client_facade::{FossilClientFacade, FossilClientFacadeTrait},
                 option_round_facade::{OptionRoundState, OptionRoundFacade, OptionRoundFacadeTrait},
             },
         },
     }
 };
 use debug::PrintTrait;
+use crate::tests::utils::helpers::setup::FOSSIL_PROCESSOR;
 
 
 /// Failures ///
@@ -65,7 +69,13 @@ fn test_settling_option_round_while_round_auctioning_fails() {
     accelerate_to_auctioning(ref vault_facade);
 
     // Settle option round before auction ends
-    vault_facade.settle_option_round_expect_error(Errors::OptionSettlementDateNotReached);
+    // vault_facade.settle_option_round_expect_error(Errors::OptionSettlementDateNotReached);
+    let request = get_request_serialized(ref vault_facade);
+    let mut result = get_mock_result_serialized();
+    set_contract_address(FOSSIL_PROCESSOR());
+    vault_facade
+        .get_fossil_client_facade()
+        .fossil_callback_expect_error(request, result, Errors::OptionSettlementDateNotReached);
 }
 
 // Test settling an option round before the option expiry date fails
@@ -75,7 +85,13 @@ fn test_settling_option_round_before_settlement_date_fails() {
     let (mut vault_facade, _) = setup_test_running();
 
     // Settle option round before expiry
-    vault_facade.settle_option_round_expect_error(Errors::OptionSettlementDateNotReached);
+    // vault_facade.settle_option_round_expect_error(Errors::OptionSettlementDateNotReached);
+    let request = get_request_serialized(ref vault_facade);
+    let mut result = get_mock_result_serialized();
+    set_contract_address(FOSSIL_PROCESSOR());
+    vault_facade
+        .get_fossil_client_facade()
+        .fossil_callback_expect_error(request, result, Errors::OptionSettlementDateNotReached);
 }
 
 // Test settling an option round while round settled fails
@@ -88,7 +104,13 @@ fn test_settling_option_round_while_settled_fails() {
     accelerate_to_settled(ref vault_facade, 0x123);
 
     // Settle option round after it has already settled
-    vault_facade.settle_option_round_expect_error(Errors::OptionRoundAlreadySettled);
+    // vault_facade.settle_option_round_expect_error(Errors::OptionRoundAlreadySettled);
+    let request = get_request_serialized(ref vault_facade);
+    let mut result = get_mock_result_serialized();
+    set_contract_address(FOSSIL_PROCESSOR());
+    vault_facade
+        .get_fossil_client_facade()
+        .fossil_callback_expect_error(request, result, Errors::OptionRoundAlreadySettled);
 }
 
 /// Event Tests ///
@@ -106,12 +128,17 @@ fn test_option_round_settled_event() {
 
         let mut round = vault.get_current_round();
         let settlement_price = round.get_strike_price() + rounds_to_run.into();
-        clear_event_logs(array![round.contract_address()]);
         let total_payout = accelerate_to_settled(ref vault, settlement_price);
         let payout_per_option = total_payout / round.total_options_sold();
 
         // Check the event emits correctly
-        assert_event_option_settle(round.contract_address(), settlement_price, payout_per_option);
+        assert_event_option_settle(
+            vault.contract_address(),
+            settlement_price,
+            payout_per_option,
+            round.get_round_id(),
+            round.contract_address()
+        );
 
         rounds_to_run -= 1;
     }
@@ -177,7 +204,7 @@ fn test_next_round_deployed_events() {
             };
 
             assert(pricing_data != Default::default(), 'Pricing data not set correctly');
-            assert_event_option_round_deployed_single(
+            assert_event_option_round_deployed(
                 vault.contract_address(),
                 i + 1,
                 round_i_plus_1.contract_address(),
@@ -391,7 +418,7 @@ fn test_null_round_settling() {
     let option_buyer = option_bidder_buyer_1();
     let options_available = current_round.get_total_options_available();
     let reserve_price = current_round.get_reserve_price();
-    current_round
+    vault
         .place_bid_expect_error(
             options_available, reserve_price, option_buyer, Errors::NoOptionsToBidFor
         );

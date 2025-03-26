@@ -4,14 +4,16 @@ mod Vault {
     use starknet::storage::{Map, StoragePathEntry};
     use starknet::{
         ContractAddress, ClassHash, deploy_syscall, get_caller_address, contract_address_const,
-        get_contract_address, get_block_timestamp
+        get_contract_address, get_block_timestamp, get_block_number
     };
     use openzeppelin_token::erc20::{
         ERC20Component, interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait}
     };
     use openzeppelin_utils::serde::SerializedAppend;
-    use pitch_lake::fossil_client::interface::{L1Data, JobRequest};
-    use pitch_lake::vault::interface::{ConstructorArgs, IVault, VaultType,};
+    use pitch_lake::fossil_client::interface::{JobRequest,};
+    use pitch_lake::vault::interface::{
+        ConstructorArgs, IVault, L1Data, L1DataProcessorCallbackReturn, RoundSettledReturn
+    };
     use pitch_lake::option_round::contract::{OptionRound, OptionRound::Errors as RoundErrors};
     use pitch_lake::option_round::interface::{
         ConstructorArgs as OptionRoundConstructorArgs, OptionRoundState, IOptionRoundDispatcher,
@@ -21,6 +23,8 @@ mod Vault {
     use pitch_lake::library::utils::{assert_equal_in_range, generate_request_id};
     use pitch_lake::library::pricing_utils::{calculate_strike_price, calculate_cap_level};
     use pitch_lake::library::constants::{REQUEST_TOLERANCE, PROGRAM_ID};
+    use pitch_lake::types::{Bid};
+    use core::fmt::{Formatter, Error, Debug};
 
     // *************************************************************************
     //                              STORAGE
@@ -29,9 +33,10 @@ mod Vault {
     #[storage]
     struct Storage {
         ///
-        vault_type: VaultType,
         alpha: u128,
         strike_level: i128,
+        minimum_cap_level: u128,
+        deployment_block: u64,
         round_transition_duration: u64,
         auction_duration: u64,
         round_duration: u64,
@@ -39,7 +44,7 @@ mod Vault {
         l1_data: Map<u64, L1Data>,
         option_round_class_hash: ClassHash,
         eth_address: ContractAddress,
-        fossil_client_address: ContractAddress,
+        l1_data_processor_address: ContractAddress,
         round_addresses: Map<u64, ContractAddress>,
         ///
         // @note could use usize ?
@@ -70,20 +75,23 @@ mod Vault {
     #[constructor]
     fn constructor(ref self: ContractState, args: ConstructorArgs) {
         // @dev Get the constructor arguments
-        let ConstructorArgs { fossil_client_address,
+        let ConstructorArgs { l1_data_processor_address,
         eth_address,
         option_round_class_hash,
         strike_level,
         alpha,
+        minimum_cap_level,
         round_transition_duration,
         auction_duration,
         round_duration } =
             args;
 
         // @dev Set the Vault's parameters
-        self.fossil_client_address.write(fossil_client_address);
+        self.l1_data_processor_address.write(l1_data_processor_address);
         self.eth_address.write(eth_address);
         self.option_round_class_hash.write(option_round_class_hash);
+        self.deployment_block.write(get_block_number());
+        self.minimum_cap_level.write(minimum_cap_level);
         self.round_transition_duration.write(round_transition_duration);
         self.auction_duration.write(auction_duration);
         self.round_duration.write(round_duration);
@@ -107,8 +115,8 @@ mod Vault {
     mod Errors {
         const AlphaOutOfRange: felt252 = 'Alpha out of range';
         const StrikeLevelOutOfRange: felt252 = 'Strike level out of range';
-        // Fossil
-        const CallerNotFossilClient: felt252 = 'Caller not Fossil client';
+        // L1 data processing
+        const CallerNotL1DataProcessor: felt252 = 'Caller not l1 data processor';
         const InvalidL1Data: felt252 = 'Invalid L1 data';
         const L1DataNotAcceptedNow: felt252 = 'L1 data not accepted now';
         const L1DataOutOfRange: felt252 = 'L1 data out of range';
@@ -125,7 +133,7 @@ mod Vault {
     // *************************************************************************
 
     #[event]
-    #[derive(Serde, PartialEq, Drop, starknet::Event)]
+    #[derive(Drop, PartialEq, starknet::Event, Debug)]
     enum Event {
         Deposit: Deposit,
         Withdrawal: Withdrawal,
@@ -133,6 +141,16 @@ mod Vault {
         StashWithdrawn: StashWithdrawn,
         OptionRoundDeployed: OptionRoundDeployed,
         L1RequestFulfilled: L1RequestFulfilled,
+        // Option round events
+        PricingDataSet: PricingDataSet,
+        AuctionStarted: AuctionStarted,
+        AuctionEnded: AuctionEnded,
+        OptionRoundSettled: OptionRoundSettled,
+        BidPlaced: BidPlaced,
+        BidUpdated: BidUpdated,
+        UnusedBidsRefunded: UnusedBidsRefunded,
+        OptionsMinted: OptionsMinted,
+        OptionsExercised: OptionsExercised,
     }
 
     // @dev Emitted when a deposit is made for an account
@@ -140,7 +158,7 @@ mod Vault {
     // @member amount: The amount deposited
     // @member: account_unlocked_balance_now: The account's unlocked balance after the deposit
     // @member: vault_unlocked_balance_now: The vault's unlocked balance after the deposit
-    #[derive(Serde, Drop, starknet::Event, PartialEq)]
+    #[derive(Serde, Drop, starknet::Event, PartialEq, Debug)]
     struct Deposit {
         #[key]
         account: ContractAddress,
@@ -154,7 +172,7 @@ mod Vault {
     // @member amount: The amount withdrawn
     // @member account_unlocked_balance_now: The account's unlocked balance after the withdrawal
     // @member vault_unlocked_balance_now: The vault's unlocked balance after the withdrawal
-    #[derive(Serde, Drop, starknet::Event, PartialEq)]
+    #[derive(Serde, Drop, starknet::Event, PartialEq, Debug)]
     struct Withdrawal {
         #[key]
         account: ContractAddress,
@@ -169,7 +187,7 @@ mod Vault {
     // @member account_queued_liquidity_now: The account's starting liquidity queued after the
     // withdrawal @member vault_queued_liquidity_now: The vault's starting liquidity queued after
     // the withdrawal
-    #[derive(Serde, Drop, starknet::Event, PartialEq)]
+    #[derive(Serde, Drop, starknet::Event, PartialEq, Debug)]
     struct WithdrawalQueued {
         #[key]
         account: ContractAddress,
@@ -184,7 +202,7 @@ mod Vault {
     // @member account: The account that withdrew the stashed liquidity
     // @member amount: The amount withdrawn
     // @member vault_stashed_balance_now: The vault's stashed balance after the withdrawal
-    #[derive(Serde, Drop, starknet::Event, PartialEq)]
+    #[derive(Serde, Drop, starknet::Event, PartialEq, Debug)]
     struct StashWithdrawn {
         #[key]
         account: ContractAddress,
@@ -201,7 +219,7 @@ mod Vault {
     // @member auction_start_date: The auction start date for the deployed round
     // @member auction_end_date: The auction end date for the deployed round
     // @member option_settlement_date: The option settlement date for the deployed round
-    #[derive(Serde, Drop, starknet::Event, PartialEq)]
+    #[derive(Serde, Drop, starknet::Event, PartialEq, Debug)]
     struct OptionRoundDeployed {
         round_id: u64,
         address: ContractAddress,
@@ -211,12 +229,107 @@ mod Vault {
         pricing_data: PricingData,
     }
 
-    #[derive(Serde, Drop, starknet::Event, PartialEq)]
+    #[derive(Serde, Drop, starknet::Event, PartialEq, Debug)]
     struct L1RequestFulfilled {
         #[key]
         id: felt252,
         #[key]
         caller: ContractAddress,
+    }
+
+    #[derive(Drop, starknet::Event, PartialEq, Serde, Debug)]
+    struct PricingDataSet {
+        pricing_data: PricingData,
+        #[key]
+        round_id: u64,
+        round_address: ContractAddress,
+    }
+
+    #[derive(Drop, starknet::Event, PartialEq, Debug)]
+    struct AuctionStarted {
+        starting_liquidity: u256,
+        options_available: u256,
+        #[key]
+        round_id: u64,
+        round_address: ContractAddress,
+    }
+
+    #[derive(Drop, starknet::Event, PartialEq, Debug)]
+    struct AuctionEnded {
+        options_sold: u256,
+        clearing_price: u256,
+        unsold_liquidity: u256,
+        clearing_bid_tree_nonce: u64,
+        #[key]
+        round_id: u64,
+        round_address: ContractAddress,
+    }
+
+    #[derive(Drop, starknet::Event, PartialEq, Debug)]
+    struct OptionRoundSettled {
+        settlement_price: u256,
+        payout_per_option: u256,
+        #[key]
+        round_id: u64,
+        round_address: ContractAddress,
+    }
+
+    #[derive(Drop, starknet::Event, PartialEq, Debug)]
+    struct BidPlaced {
+        #[key]
+        account: ContractAddress,
+        bid_id: felt252,
+        amount: u256,
+        price: u256,
+        bid_tree_nonce_now: u64,
+        #[key]
+        round_id: u64,
+        round_address: ContractAddress,
+    }
+
+    #[derive(Drop, starknet::Event, PartialEq, Debug)]
+    struct BidUpdated {
+        #[key]
+        account: ContractAddress,
+        bid_id: felt252,
+        price_increase: u256,
+        bid_tree_nonce_before: u64,
+        bid_tree_nonce_now: u64,
+        #[key]
+        round_id: u64,
+        round_address: ContractAddress,
+    }
+
+    #[derive(Drop, starknet::Event, PartialEq, Debug)]
+    struct UnusedBidsRefunded {
+        #[key]
+        account: ContractAddress,
+        refunded_amount: u256,
+        #[key]
+        round_id: u64,
+        round_address: ContractAddress,
+    }
+
+    #[derive(Drop, starknet::Event, PartialEq, Debug)]
+    struct OptionsMinted {
+        #[key]
+        account: ContractAddress,
+        minted_amount: u256,
+        #[key]
+        round_id: u64,
+        round_address: ContractAddress,
+    }
+
+    #[derive(Drop, starknet::Event, PartialEq, Debug)]
+    struct OptionsExercised {
+        #[key]
+        account: ContractAddress,
+        total_options_exercised: u256,
+        mintable_options_exercised: u256,
+        exercised_amount: u256,
+        #[key]
+        round_id: u64,
+        round_address: ContractAddress,
     }
 
     // *************************************************************************
@@ -229,18 +342,12 @@ mod Vault {
         //               READS
         // ***********************************
 
-        ///
-
-        fn get_vault_type(self: @ContractState) -> VaultType {
-            self.vault_type.read()
-        }
-
         fn get_eth_address(self: @ContractState) -> ContractAddress {
             self.eth_address.read()
         }
 
-        fn get_fossil_client_address(self: @ContractState) -> ContractAddress {
-            self.fossil_client_address.read()
+        fn get_l1_data_processor_address(self: @ContractState) -> ContractAddress {
+            self.l1_data_processor_address.read()
         }
 
         fn get_alpha(self: @ContractState) -> u128 {
@@ -249,6 +356,15 @@ mod Vault {
 
         fn get_strike_level(self: @ContractState) -> i128 {
             self.strike_level.read()
+        }
+
+        fn get_minimum_cap_level(self: @ContractState) -> u128 {
+            self.minimum_cap_level.read()
+        }
+
+
+        fn get_deployment_block(self: @ContractState) -> u64 {
+            self.deployment_block.read()
         }
 
         fn get_round_transition_duration(self: @ContractState) -> u64 {
@@ -262,7 +378,6 @@ mod Vault {
         fn get_round_duration(self: @ContractState) -> u64 {
             self.round_duration.read()
         }
-
 
         fn get_round_address(self: @ContractState, option_round_id: u64) -> ContractAddress {
             self.round_addresses.read(option_round_id)
@@ -588,12 +703,11 @@ mod Vault {
         }
 
         /// State transitions
-        fn fossil_client_callback(ref self: ContractState, l1_data: L1Data, timestamp: u64) {
+        fn l1_data_processor_callback(
+            ref self: ContractState, l1_data: L1Data, timestamp: u64
+        ) -> L1DataProcessorCallbackReturn {
             // @dev Only the Fossil Client contract can call this function
-            assert(
-                get_caller_address() == self.fossil_client_address.read(),
-                Errors::CallerNotFossilClient
-            );
+            self.assert_caller_is_l1_data_processor();
 
             // @dev Assert the L1 data is valid
             let L1Data { twap, volatility: _, reserve_price } = l1_data;
@@ -613,7 +727,7 @@ mod Vault {
 
             // @dev If the current round is Running, the l1 data is being used to settle it
             if state == OptionRoundState::Running {
-                // @dev Ensure now is >= the settlement date
+                // @dev Ensure now >= the settlement date
                 let now = get_block_timestamp();
                 let settlement_date = current_round.get_option_settlement_date();
                 assert(now >= settlement_date, Errors::L1DataNotAcceptedNow);
@@ -621,9 +735,10 @@ mod Vault {
                 // @dev Ensure the job request's timestamp is for the settlement date
                 assert(timestamp == settlement_date, Errors::L1DataOutOfRange);
 
-                // @dev Store l1 data for this round's settlement
-                // @note Could settle round right now instead of storing the results ?
-                self.l1_data.entry(current_round_id).write(l1_data);
+                // @dev Settle the current round
+                let total_payout = self.settle_round(l1_data);
+
+                L1DataProcessorCallbackReturn::RoundSettled(RoundSettledReturn { total_payout })
             } // @dev If the first round is Open, the result is being used to set the pricing data for its auction to start
             else {
                 // // @dev Ensure now < auction start date
@@ -635,8 +750,20 @@ mod Vault {
                 let deployment_date = current_round.get_deployment_date();
                 assert(timestamp == deployment_date, Errors::L1DataOutOfRange);
 
+                let pricing_data = self.convert_l1_data_to_round_data(l1_data);
                 // @dev Set the round's pricing data directly
-                current_round.set_pricing_data(self.convert_l1_data_to_round_data(l1_data));
+                current_round.set_pricing_data(pricing_data);
+
+                self
+                    .emit(
+                        PricingDataSet {
+                            pricing_data, // Use the converted data
+                            round_id: current_round_id,
+                            round_address: current_round.contract_address
+                        }
+                    );
+
+                L1DataProcessorCallbackReturn::FirstRoundInitialized
             }
         }
 
@@ -647,15 +774,34 @@ mod Vault {
             self.vault_unlocked_balance.write(0);
 
             // @dev Start the current round's auction and return the total options available
+            let current_round_id = self.current_round_id.read();
+            let current_round_address = self.round_addresses.read(current_round_id);
+            let options_available = self
+                .get_round_dispatcher(current_round_id)
+                .start_auction(unlocked_liquidity_before_auction);
+
             self
-                .get_round_dispatcher(self.current_round_id.read())
-                .start_auction(unlocked_liquidity_before_auction)
+                .emit(
+                    Event::AuctionStarted(
+                        AuctionStarted {
+                            starting_liquidity: unlocked_liquidity_before_auction,
+                            options_available,
+                            round_id: current_round_id,
+                            round_address: current_round_address,
+                        }
+                    )
+                );
+
+            options_available
         }
 
         fn end_auction(ref self: ContractState) -> (u256, u256) {
             // @dev End the current round's auction
-            let current_round = self.get_round_dispatcher(self.current_round_id.read());
-            let (clearing_price, options_sold) = current_round.end_auction();
+            let current_round_id = self.current_round_id.read();
+            let current_round_address = self.round_addresses.read(current_round_id);
+            let current_round = self.get_round_dispatcher(current_round_id);
+            let (clearing_price, options_sold, clearing_bid_tree_nonce) = current_round
+                .end_auction();
 
             // @dev Calculate the total premium and add it to the total unlocked liquidity
             let mut unlocked_liquidity = self.vault_unlocked_balance.read();
@@ -675,64 +821,139 @@ mod Vault {
             self.vault_unlocked_balance.write(unlocked_liquidity);
 
             // @dev Return the clearing price of the auction and the number of options sold
+            self
+                .emit(
+                    Event::AuctionEnded(
+                        AuctionEnded {
+                            options_sold,
+                            clearing_price,
+                            unsold_liquidity,
+                            clearing_bid_tree_nonce,
+                            round_id: current_round_id,
+                            round_address: current_round_address,
+                        }
+                    )
+                );
+
             (clearing_price, options_sold)
         }
 
-        fn settle_round(ref self: ContractState) -> u256 {
-            // @dev Get pricing data set for the current round's settlement
+        // Option round user actions
+
+        fn place_bid(ref self: ContractState, amount: u256, price: u256) -> Bid {
+            let account = get_caller_address();
             let current_round_id = self.current_round_id.read();
-            let L1Data { twap, volatility, reserve_price } = self
-                .l1_data
-                .entry(current_round_id)
-                .read();
-
-            assert(
-                twap.is_non_zero() && reserve_price.is_non_zero(), RoundErrors::PricingDataNotSet
-            );
-
-            // @dev Settle the current round and return the total payout
+            let current_round_address = self.round_addresses.read(current_round_id);
             let current_round = self.get_round_dispatcher(current_round_id);
-            let total_payout = current_round.settle_round(twap);
 
-            // @dev Calculate the remaining liquidity after the round settles
-            let starting_liq = current_round.get_starting_liquidity();
-            let unsold_liq = current_round.get_unsold_liquidity();
-            let remaining_liq = starting_liq - unsold_liq - total_payout;
+            let bid = current_round.place_bid(account, amount, price);
 
-            // @dev Calculate the amount of liquidity that was stashed/not stashed by liquidity
-            // providers, avoiding division by 0
-            let vault = get_contract_address();
-            let starting_liq_queued = self
-                .queued_liquidity
-                .entry(vault)
-                .entry(current_round_id)
-                .read();
-            let remaining_liq_stashed = match starting_liq.is_zero() {
-                true => 0,
-                false => (remaining_liq * starting_liq_queued) / starting_liq
-            };
-            let remaining_liq_not_stashed = remaining_liq - remaining_liq_stashed;
-
-            // @dev All of the remaining liquidity becomes unlocked, any stashed liquidity is
-            // set aside and no longer participates in the protocol
-            self.vault_locked_balance.write(0);
             self
-                .vault_stashed_balance
-                .write(self.vault_stashed_balance.read() + remaining_liq_stashed);
+                .emit(
+                    Event::BidPlaced(
+                        BidPlaced {
+                            account,
+                            bid_id: bid.bid_id,
+                            amount,
+                            price,
+                            bid_tree_nonce_now: bid.tree_nonce + 1,
+                            round_id: current_round_id,
+                            round_address: current_round_address,
+                        }
+                    )
+                );
+
+            bid
+        }
+
+        fn update_bid(ref self: ContractState, bid_id: felt252, price_increase: u256) -> Bid {
+            let account = get_caller_address();
+            let current_round_id = self.current_round_id.read();
+            let current_round_address = self.round_addresses.read(current_round_id);
+            let current_round = self.get_round_dispatcher(current_round_id);
+
+            let current_bid = current_round.get_bid_details(bid_id);
+            let updated_bid = current_round.update_bid(account, bid_id, price_increase);
+
             self
-                .vault_unlocked_balance
-                .write(self.vault_unlocked_balance.read() + remaining_liq_not_stashed);
+                .emit(
+                    Event::BidUpdated(
+                        BidUpdated {
+                            account,
+                            bid_id,
+                            price_increase,
+                            bid_tree_nonce_before: current_bid.tree_nonce,
+                            bid_tree_nonce_now: updated_bid.tree_nonce,
+                            round_id: current_round_id,
+                            round_address: current_round_address,
+                        }
+                    )
+                );
 
-            // @dev Transfer payout from the vault to the just settled round,
-            if (total_payout > 0) {
-                self.get_eth_dispatcher().transfer(current_round.contract_address, total_payout);
-            }
+            updated_bid
+        }
 
-            // @dev Deploy the next option round contract & update the current round id
-            self.deploy_next_round(L1Data { twap, volatility, reserve_price });
+        fn refund_unused_bids(
+            ref self: ContractState, round_address: ContractAddress, account: ContractAddress
+        ) -> u256 {
+            // Get round info from address
+            let round = IOptionRoundDispatcher { contract_address: round_address };
+            let round_id = round.get_round_id();
 
-            // @dev Return the total payout of the settled round
-            total_payout
+            // Refund unused bids
+            let refunded_amount = round.refund_unused_bids(account);
+
+            // Emit event
+            self
+                .emit(
+                    Event::UnusedBidsRefunded(
+                        UnusedBidsRefunded { account, refunded_amount, round_id, round_address, }
+                    )
+                );
+
+            refunded_amount
+        }
+
+        fn mint_options(ref self: ContractState, round_address: ContractAddress) -> u256 {
+            let account = get_caller_address();
+            let round = IOptionRoundDispatcher { contract_address: round_address };
+            let round_id = round.get_round_id();
+
+            let minted_amount = round.mint_options(account);
+
+            self
+                .emit(
+                    Event::OptionsMinted(
+                        OptionsMinted { account, minted_amount, round_id, round_address, }
+                    )
+                );
+
+            minted_amount
+        }
+
+        fn exercise_options(ref self: ContractState, round_address: ContractAddress) -> u256 {
+            let account = get_caller_address();
+            let round = IOptionRoundDispatcher { contract_address: round_address };
+            let round_id = round.get_round_id();
+
+            let (exercised_amount, total_options_exercised, mintable_options_exercised) = round
+                .exercise_options(account);
+
+            self
+                .emit(
+                    Event::OptionsExercised(
+                        OptionsExercised {
+                            account,
+                            total_options_exercised,
+                            mintable_options_exercised,
+                            exercised_amount,
+                            round_id,
+                            round_address,
+                        }
+                    )
+                );
+
+            exercised_amount
         }
     }
 
@@ -753,6 +974,13 @@ mod Vault {
         }
 
         /// Basic helpers
+
+        fn assert_caller_is_l1_data_processor(self: @ContractState) {
+            assert(
+                get_caller_address() == self.l1_data_processor_address.read(),
+                Errors::CallerNotL1DataProcessor
+            );
+        }
 
         fn get_upcoming_round_id(self: @ContractState) -> u64 {
             let current_round_id = self.current_round_id.read();
@@ -792,11 +1020,12 @@ mod Vault {
 
             // @dev Create this round's constructor args
             let mut calldata: Array<felt252> = array![];
-            let pricing_data = self.convert_l1_data_to_round_data(l1_data);
 
             let round_transition_duration = self.round_transition_duration.read();
             let auction_duration = self.auction_duration.read();
             let round_duration = self.round_duration.read();
+
+            let pricing_data = self.convert_l1_data_to_round_data(l1_data);
 
             let constructor_args = OptionRoundConstructorArgs {
                 vault_address,
@@ -824,17 +1053,82 @@ mod Vault {
             // @dev Emit option round deployed event
             self
                 .emit(
-                    Event::OptionRoundDeployed(
-                        OptionRoundDeployed {
-                            round_id,
-                            address,
-                            auction_start_date: round.get_auction_start_date(),
-                            auction_end_date: round.get_auction_end_date(),
-                            option_settlement_date: round.get_option_settlement_date(),
-                            pricing_data
+                    OptionRoundDeployed {
+                        round_id,
+                        address,
+                        auction_start_date: round.get_auction_start_date(),
+                        auction_end_date: round.get_auction_end_date(),
+                        option_settlement_date: round.get_option_settlement_date(),
+                        pricing_data, // Use the converted data
+                    }
+                );
+        }
+
+        fn settle_round(ref self: ContractState, l1_data: L1Data) -> u256 {
+            // @dev Get pricing data set for the current round's settlement
+            let current_round_id = self.current_round_id.read();
+            let L1Data { twap, volatility, reserve_price } = l1_data;
+
+            assert(
+                twap.is_non_zero() && reserve_price.is_non_zero(), RoundErrors::PricingDataNotSet
+            );
+
+            // @dev Settle the current round and return the total payout
+            let current_round = self.get_round_dispatcher(current_round_id);
+            let (total_payout, payout_per_option) = current_round.settle_round(twap);
+
+            // @dev Calculate the remaining liquidity after the round settles
+            let starting_liq = current_round.get_starting_liquidity();
+            let unsold_liq = current_round.get_unsold_liquidity();
+            let remaining_liq = starting_liq - unsold_liq - total_payout;
+
+            // @dev Calculate the amount of liquidity that was stashed/not stashed by liquidity
+            // providers, avoiding division by 0
+            let vault = get_contract_address();
+            let starting_liq_queued = self
+                .queued_liquidity
+                .entry(vault)
+                .entry(current_round_id)
+                .read();
+            let remaining_liq_stashed = match starting_liq.is_zero() {
+                true => 0,
+                false => (remaining_liq * starting_liq_queued) / starting_liq
+            };
+            let remaining_liq_not_stashed = remaining_liq - remaining_liq_stashed;
+
+            // @dev All of the remaining liquidity becomes unlocked, any stashed liquidity is
+            // set aside and no longer participates in the protocol
+            self.vault_locked_balance.write(0);
+            self
+                .vault_stashed_balance
+                .write(self.vault_stashed_balance.read() + remaining_liq_stashed);
+            self
+                .vault_unlocked_balance
+                .write(self.vault_unlocked_balance.read() + remaining_liq_not_stashed);
+
+            // @dev Transfer payout from the vault to the just settled round,
+            if (total_payout > 0) {
+                self.get_eth_dispatcher().transfer(current_round.contract_address, total_payout);
+            }
+
+            // @dev Emit event
+            self
+                .emit(
+                    Event::OptionRoundSettled(
+                        OptionRoundSettled {
+                            round_id: current_round_id,
+                            round_address: current_round.contract_address,
+                            settlement_price: twap,
+                            payout_per_option
                         }
                     )
                 );
+
+            // @dev Deploy the next option round contract & update the current round id
+            self.deploy_next_round(L1Data { twap, volatility, reserve_price });
+
+            // @dev Return just the total payout
+            total_payout
         }
 
         /// Fossil
@@ -849,8 +1143,9 @@ mod Vault {
 
             let alpha = self.alpha.read();
             let k = self.strike_level.read();
+            let minimum_cap_level = self.minimum_cap_level.read();
 
-            let cap_level = calculate_cap_level(alpha, k, volatility);
+            let cap_level = calculate_cap_level(alpha, k, volatility, minimum_cap_level);
             let strike_price = calculate_strike_price(k, twap);
 
             PricingData { strike_price, cap_level, reserve_price }
@@ -946,25 +1241,30 @@ mod Vault {
 
             // @dev If the current round is Running, there could be premiums/unsold liquidity to
             // to move to the upcoming round
-            if self
+            let is_running = self
                 .get_round_dispatcher(current_round_id)
-                .get_state() == OptionRoundState::Running {
-                // @dev If the premiums/unsold liquidity were not moved as a deposit into the
-                // next round, move them
-                if !self.is_premium_moved.entry(account).entry(current_round_id).read() {
-                    self.is_premium_moved.entry(account).entry(current_round_id).write(true);
-                    // @dev Update the account's upcoming round deposit if it has changed
-                    if upcoming_round_deposit != self
+                .get_state() == OptionRoundState::Running;
+            // @dev If the premiums/unsold liquidity were not moved as a deposit into the
+            // next round, move them
+            let is_premium_moved = self
+                .is_premium_moved
+                .entry(account)
+                .entry(current_round_id)
+                .read();
+
+            if is_running && !is_premium_moved {
+                self.is_premium_moved.entry(account).entry(current_round_id).write(true);
+                // @dev Update the account's upcoming round deposit if it has changed
+                if upcoming_round_deposit != self
+                    .positions
+                    .entry(account)
+                    .entry(current_round_id + 1)
+                    .read() {
+                    self
                         .positions
                         .entry(account)
                         .entry(current_round_id + 1)
-                        .read() {
-                        self
-                            .positions
-                            .entry(account)
-                            .entry(current_round_id + 1)
-                            .write(upcoming_round_deposit);
-                    }
+                        .write(upcoming_round_deposit);
                 }
             }
         }

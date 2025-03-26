@@ -56,6 +56,7 @@ mod deployment {
 
 #[cfg(test)]
 mod misc {
+    mod pricing_util_tests;
     //mod eth_test;
 }
 
@@ -72,6 +73,7 @@ mod utils {
         mod accelerators;
         mod event_helpers;
         mod general_helpers;
+        mod fossil_client_helpers;
         mod setup;
     }
 

@@ -1,36 +1,45 @@
 use starknet::{ContractAddress, ClassHash};
 use pitch_lake::option_round::interface::OptionRoundState;
-
-use pitch_lake::fossil_client::interface::{JobRequest, L1Data};
-
-// @dev An enum for each type of Vault
-#[derive(starknet::Store, Copy, Drop, Serde, PartialEq)]
-enum VaultType {
-    InTheMoney,
-    AtTheMoney,
-    OutOfMoney,
-}
+use pitch_lake::types::Bid;
+use pitch_lake::fossil_client::interface::JobRequest;
 
 // @dev Constructor arguments
 #[derive(Drop, Serde)]
 struct ConstructorArgs {
-    fossil_client_address: ContractAddress,
+    l1_data_processor_address: ContractAddress,
     eth_address: ContractAddress,
     option_round_class_hash: ClassHash,
     alpha: u128,
     strike_level: i128,
+    minimum_cap_level: u128,
     round_transition_duration: u64,
     auction_duration: u64,
     round_duration: u64,
 }
 
+#[derive(Default, Copy, Drop, Serde, PartialEq, starknet::Store)]
+struct L1Data {
+    twap: u256,
+    volatility: u128,
+    reserve_price: u256,
+}
+
+#[derive(Copy, Drop, Serde)]
+enum L1DataProcessorCallbackReturn {
+    RoundSettled: RoundSettledReturn,
+    FirstRoundInitialized,
+}
+
+#[derive(Copy, Drop, Serde)]
+struct RoundSettledReturn {
+    total_payout: u256
+}
+
+
 // The interface for the vault contract
 #[starknet::interface]
 trait IVault<TContractState> {
     /// Reads ///
-
-    // @dev Get the type of vault (ITM | ATM | OTM)
-    fn get_vault_type(self: @TContractState) -> VaultType;
 
     // @dev Get the alpha risk factor of the vault
     fn get_alpha(self: @TContractState) -> u128;
@@ -38,11 +47,17 @@ trait IVault<TContractState> {
     // @dev Get the strike level of the vault
     fn get_strike_level(self: @TContractState) -> i128;
 
+    // @dev Get the minimum cap level of the vault
+    fn get_minimum_cap_level(self: @TContractState) -> u128;
+
     // @dev Get the ETH address
     fn get_eth_address(self: @TContractState) -> ContractAddress;
 
-    // @dev The the Fossil Client's address
-    fn get_fossil_client_address(self: @TContractState) -> ContractAddress;
+    // @dev The address that sets pricing data for rounds
+    fn get_l1_data_processor_address(self: @TContractState) -> ContractAddress;
+
+    // @dev The block this vault is deployed at
+    fn get_deployment_block(self: @TContractState) -> u64;
 
     // @dev The number of seconds between a round deploying and its auction starting
     fn get_round_transition_duration(self: @TContractState) -> u64;
@@ -126,7 +141,9 @@ trait IVault<TContractState> {
 
     /// State transitions
 
-    fn fossil_client_callback(ref self: TContractState, l1_data: L1Data, timestamp: u64);
+    fn l1_data_processor_callback(
+        ref self: TContractState, l1_data: L1Data, timestamp: u64
+    ) -> L1DataProcessorCallbackReturn;
 
     // @dev Start the current round's auction
     // @return The total options available in the auction
@@ -138,5 +155,37 @@ trait IVault<TContractState> {
 
     // @dev Settle the current round
     // @return The total payout for the round
-    fn settle_round(ref self: TContractState) -> u256;
+    // fn settle_round(ref self: TContractState, l1_data: L1Data) -> u256;
+
+    // User actions
+
+    // @dev Place a bid in the current round's auction
+    // @param amount: The max amount of options being bid for
+    // @param price: The max price per option being bid
+    // @return The bid struct just created
+    fn place_bid(ref self: TContractState, amount: u256, price: u256) -> Bid;
+
+    // @dev Update a bid in the current round's auction
+    // @param bid_id: The id of the bid to update
+    // @param price_increase: The amount to increase the bid's price by
+    // @return The updated bid struct
+    fn update_bid(ref self: TContractState, bid_id: felt252, price_increase: u256) -> Bid;
+
+    // @dev Refund unused bids from a specific round's auction
+    // @param round_address: The address of the round to refund bids from
+    // @param account: The account to refund unused bids for
+    // @return The amount refunded
+    fn refund_unused_bids(
+        ref self: TContractState, round_address: ContractAddress, account: ContractAddress
+    ) -> u256;
+
+    // @dev Mint options won in a specific round's auction
+    // @param round_address: The address of the round to mint options from
+    // @return The amount of options minted
+    fn mint_options(ref self: TContractState, round_address: ContractAddress) -> u256;
+
+    // @dev Exercise options from a specific round
+    // @param round_address: The address of the round to exercise options from
+    // @return The amount exercised
+    fn exercise_options(ref self: TContractState, round_address: ContractAddress) -> u256;
 }

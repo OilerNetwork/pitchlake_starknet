@@ -5,9 +5,11 @@ mod FossilClient {
     use starknet::storage::{Map, StoragePathEntry};
 
     use pitch_lake::library::constants::PROGRAM_ID;
-    use pitch_lake::vault::interface::{IVaultDispatcher, IVaultDispatcherTrait};
+    use pitch_lake::vault::interface::{
+        IVaultDispatcher, IVaultDispatcherTrait, L1DataProcessorCallbackReturn
+    };
     use pitch_lake::option_round::interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait};
-    use pitch_lake::fossil_client::interface::{JobRequest, FossilResult, L1Data, IFossilClient,};
+    use pitch_lake::fossil_client::interface::{JobRequest, FossilResult, L1Data, IFossilClient};
 
     // *************************************************************************
     //                              STORAGE
@@ -63,7 +65,7 @@ mod FossilClient {
     impl FossilClientImpl of IFossilClient<ContractState> {
         fn fossil_callback(
             ref self: ContractState, mut request: Span<felt252>, mut result: Span<felt252>
-        ) {
+        ) -> L1DataProcessorCallbackReturn {
             // Deserialize request & result
             let JobRequest { vault_address, timestamp, program_id } = Serde::deserialize(
                 ref request
@@ -89,15 +91,7 @@ mod FossilClient {
 
             // Relay L1 data to the vault
             IVaultDispatcher { contract_address: vault_address }
-                .fossil_client_callback(l1_data, timestamp);
-
-            // Emit callback success event
-            self
-                .emit(
-                    Event::FossilCallbackSuccess(
-                        FossilCallbackSuccess { vault_address, l1_data, timestamp }
-                    )
-                );
+                .l1_data_processor_callback(l1_data, timestamp)
         }
     }
 }

@@ -32,10 +32,10 @@ fn test_update_bids_price_increase_cannot_be_0() {
     let bidder = option_bidder_buyer_1();
     let bid_price = reserve_price;
     let mut bid_amount = options_available;
-    let bid = current_round.place_bid(bid_amount, bid_price, bidder);
+    let bid = vault_facade.place_bid(bid_amount, bid_price, bidder);
 
     // Update bid to lower price
-    current_round.update_bid_expect_error(bid.bid_id, 0, bidder, Errors::BidMustBeIncreased);
+    vault_facade.update_bid_expect_error(bid.bid_id, 0, bidder, Errors::BidMustBeIncreased);
 }
 
 #[test]
@@ -50,17 +50,22 @@ fn test_update_bid_event() {
     let option_buyer = option_bidder_buyer_1();
     let bid_price = reserve_price;
     let mut bid_amount = options_available / 2;
-    let bid = current_round.place_bid(bid_amount, bid_price, option_buyer);
-    clear_event_logs(array![current_round.contract_address()]);
+    let bid_tree_nonce_before = current_round.get_bid_tree_nonce();
+    let bid = vault_facade.place_bid(bid_amount, bid_price, option_buyer);
+    let bid_tree_nonce_after = current_round.get_bid_tree_nonce();
+    clear_event_logs(array![vault_facade.contract_address()]);
 
-    let updated_bid = current_round.update_bid(bid.bid_id, 5);
+    let updated_bid = vault_facade.update_bid(bid.bid_id, 5);
+    assert_eq!(bid_tree_nonce_after, bid_tree_nonce_before + 1);
     assert_event_auction_bid_updated(
-        current_round.contract_address(),
+        vault_facade.contract_address(),
         option_buyer,
         bid.bid_id,
         5, //Updated amount
-        bid.tree_nonce,
-        current_round.get_bid_tree_nonce(),
+        bid_tree_nonce_before,
+        bid_tree_nonce_after,
+        current_round.get_round_id(),
+        current_round.contract_address()
     );
     assert(updated_bid.amount == bid_amount, 'Amount shd not change');
     assert(updated_bid.price == bid_price + 5, 'Updated price incorrect');
@@ -78,14 +83,14 @@ fn test_update_bid_nonces() {
     let option_buyer = option_bidder_buyer_1();
     let bid_price = reserve_price;
     let mut bid_amount = options_available / 2;
-    let bid1 = current_round.place_bid(bid_amount, bid_price, option_buyer);
-    current_round.place_bid(bid_amount, bid_price, option_buyer);
-    current_round.place_bid(bid_amount, bid_price, option_buyer);
+    let bid1 = vault_facade.place_bid(bid_amount, bid_price, option_buyer);
+    vault_facade.place_bid(bid_amount, bid_price, option_buyer);
+    vault_facade.place_bid(bid_amount, bid_price, option_buyer);
     clear_event_logs(array![current_round.contract_address()]);
 
     let bidder_nonce_before = current_round.get_bidding_nonce_for(option_buyer);
     let tree_nonce_before = current_round.get_bid_tree_nonce();
-    current_round.update_bid(bid1.bid_id, 10000000000000);
+    vault_facade.update_bid(bid1.bid_id, 10000000000000);
     let bidder_nonce_after = current_round.get_bidding_nonce_for(option_buyer);
     let tree_nonce_after = current_round.get_bid_tree_nonce();
     assert(bidder_nonce_before == bidder_nonce_after, 'Bidder nonce should not change');
@@ -108,10 +113,10 @@ fn test_update_bids_must_be_called_by_bid_owner() {
     let non_bidder = option_bidder_buyer_2();
     let bid_price = reserve_price;
     let bid_amount = options_available;
-    let bid = current_round.place_bid(bid_amount, bid_price, bidder);
+    let bid = vault_facade.place_bid(bid_amount, bid_price, bidder);
 
     // Update bid as non bidder
-    current_round.update_bid_expect_error(bid.bid_id, 1, non_bidder, Errors::CallerNotBidOwner);
+    vault_facade.update_bid_expect_error(bid.bid_id, 1, non_bidder, Errors::CallerNotBidOwner);
 }
 
 // Test that updating bids keeps get_bids_for working as expected
@@ -127,12 +132,12 @@ fn test_updating_bids_and_get_bids_for() {
     let bidder = option_bidder_buyer_1();
     let bid_price = reserve_price;
     let bid_amount = options_available;
-    let bid1 = current_round.place_bid(bid_amount, bid_price, bidder);
-    let bid2 = current_round.place_bid(bid_amount + 1, bid_price + 1, bidder);
-    let bid3 = current_round.place_bid(bid_amount + 2, bid_price + 2, bidder);
+    let bid1 = vault.place_bid(bid_amount, bid_price, bidder);
+    let bid2 = vault.place_bid(bid_amount + 1, bid_price + 1, bidder);
+    let bid3 = vault.place_bid(bid_amount + 2, bid_price + 2, bidder);
 
     // Edit bid 3, should not change order or amount of bids
-    let bid4 = current_round.update_bid(bid3.bid_id, 3);
+    let bid4 = vault.update_bid(bid3.bid_id, 3);
 
     let expected_bids = array![bid1, bid2, bid4];
     let actual_bids = current_round.get_bids_for(bidder);
@@ -160,11 +165,11 @@ fn test_updating_bids_higher_price_wins() {
     let bid_amount = (3 * options_available) / 4;
 
     // Bid 1 == Bid 2
-    let _bid1 = current_round.place_bid(bid_amount, bid_price - 1, bidder);
-    let bid2 = current_round.place_bid(bid_amount, bid_price - 2, bidder2);
+    let _bid1 = vault.place_bid(bid_amount, bid_price - 1, bidder);
+    let bid2 = vault.place_bid(bid_amount, bid_price - 2, bidder2);
 
     // Update Bid 2 to be > than Bid 1
-    let _bid2 = current_round.update_bid(bid2.bid_id, 4);
+    let _bid2 = vault.update_bid(bid2.bid_id, 4);
 
     timeskip_and_end_auction(ref vault);
 
@@ -193,11 +198,11 @@ fn test_updating_bids_lower_tree_index_loses() {
 
     // Bid 1 amount > Bid 2 amount, Bid 1 price < Bid 2 price, Bid 2 is ranked higher because of
     // price
-    let bid1 = current_round.place_bid(amount, reserve_price, bidder);
-    let _bid2 = current_round.place_bid(amount / 2, reserve_price + 1, bidder2);
+    let bid1 = vault.place_bid(amount, reserve_price, bidder);
+    let _bid2 = vault.place_bid(amount / 2, reserve_price + 1, bidder2);
 
     // Update Bid 1 to be same price as Bid 2. Bid 2 ranked higher because of tree nonce still
-    current_round.update_bid(bid1.bid_id, 1);
+    vault.update_bid(bid1.bid_id, 1);
 
     timeskip_and_end_auction(ref vault);
 

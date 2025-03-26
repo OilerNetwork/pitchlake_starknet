@@ -22,7 +22,7 @@ use pitch_lake::{
                 accelerators::{
                     accelerate_to_auctioning, accelerate_to_running, accelerate_to_settled,
                     accelerate_to_auctioning_custom, accelerate_to_running_custom,
-                    timeskip_and_settle_round, timeskip_and_end_auction, timeskip_and_start_auction,
+                    timeskip_and_end_auction, timeskip_and_start_auction,
                 },
                 general_helpers::{
                     create_array_linear, create_array_gradient, sum_u256_array,
@@ -107,7 +107,11 @@ fn test_auction_started_option_round_event() {
 
         // Check the event emits correctly
         assert_event_auction_start(
-            current_round.contract_address(), starting_liquidity, total_options_available
+            vault.contract_address(),
+            starting_liquidity,
+            total_options_available,
+            current_round.get_round_id(),
+            current_round.contract_address()
         );
 
         accelerate_to_running(ref vault);
