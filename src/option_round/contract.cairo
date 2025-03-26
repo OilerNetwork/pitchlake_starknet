@@ -455,14 +455,6 @@ mod OptionRound {
                 .bids_tree
                 .find_clearing_price();
 
-            // @dev Set unsold liquidity if some options do not sell
-            let starting_liq = self.starting_liquidity.read();
-            let sold_liquidity = options_sold
-                * max_payout_per_option(
-                    self.pricing_data.strike_price.read(), self.pricing_data.cap_level.read()
-                );
-            let unsold_liquidity = starting_liq - sold_liquidity;
-
             // @dev Send premiums to Vault
             self
                 .get_eth_dispatcher()
