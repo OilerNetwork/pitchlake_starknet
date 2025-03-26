@@ -168,7 +168,7 @@ fn test_only_fossil_client_can_call_fossil_client_callback() {
     set_contract_address(contract_address_const::<'NOT IT'>());
     vault
         .fossil_client_callback_expect_error(
-            l1_data, settlement_date, vErrors::CallerNotFossilClient
+            l1_data, settlement_date, vErrors::CallerNotL1DataProcessor
         );
 
     // Should not fail

@@ -91,7 +91,7 @@ mod FossilClient {
 
             // Relay L1 data to the vault
             IVaultDispatcher { contract_address: vault_address }
-                .fossil_client_callback(l1_data, timestamp)
+                .l1_data_processor_callback(l1_data, timestamp)
         }
     }
 }

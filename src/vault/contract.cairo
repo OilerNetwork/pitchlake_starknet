@@ -42,7 +42,7 @@ mod Vault {
         l1_data: Map<u64, L1Data>,
         option_round_class_hash: ClassHash,
         eth_address: ContractAddress,
-        fossil_client_address: ContractAddress,
+        l1_data_processor_address: ContractAddress,
         round_addresses: Map<u64, ContractAddress>,
         ///
         // @note could use usize ?
@@ -73,7 +73,7 @@ mod Vault {
     #[constructor]
     fn constructor(ref self: ContractState, args: ConstructorArgs) {
         // @dev Get the constructor arguments
-        let ConstructorArgs { fossil_client_address,
+        let ConstructorArgs { l1_data_processor_address,
         eth_address,
         option_round_class_hash,
         strike_level,
@@ -84,7 +84,7 @@ mod Vault {
             args;
 
         // @dev Set the Vault's parameters
-        self.fossil_client_address.write(fossil_client_address);
+        self.l1_data_processor_address.write(l1_data_processor_address);
         self.eth_address.write(eth_address);
         self.option_round_class_hash.write(option_round_class_hash);
         self.round_transition_duration.write(round_transition_duration);
@@ -110,8 +110,8 @@ mod Vault {
     mod Errors {
         const AlphaOutOfRange: felt252 = 'Alpha out of range';
         const StrikeLevelOutOfRange: felt252 = 'Strike level out of range';
-        // Fossil
-        const CallerNotFossilClient: felt252 = 'Caller not Fossil client';
+        // L1 data processing
+        const CallerNotL1DataProcessor: felt252 = 'Caller not l1 data processor';
         const InvalidL1Data: felt252 = 'Invalid L1 data';
         const L1DataNotAcceptedNow: felt252 = 'L1 data not accepted now';
         const L1DataOutOfRange: felt252 = 'L1 data out of range';
@@ -341,8 +341,8 @@ mod Vault {
             self.eth_address.read()
         }
 
-        fn get_fossil_client_address(self: @ContractState) -> ContractAddress {
-            self.fossil_client_address.read()
+        fn get_l1_data_processor_address(self: @ContractState) -> ContractAddress {
+            self.l1_data_processor_address.read()
         }
 
         fn get_alpha(self: @ContractState) -> u128 {
@@ -688,13 +688,12 @@ mod Vault {
             amount
         }
 
-
         /// State transitions
-        fn fossil_client_callback(
+        fn l1_data_processor_callback(
             ref self: ContractState, l1_data: L1Data, timestamp: u64
         ) -> FossilCallbackReturn {
             // @dev Only the Fossil Client contract can call this function
-            self.assert_caller_is_fossil_client();
+            self.assert_caller_is_l1_data_processor();
 
             // @dev Assert the L1 data is valid
             let L1Data { twap, volatility: _, reserve_price } = l1_data;
@@ -962,10 +961,10 @@ mod Vault {
 
         /// Basic helpers
 
-        fn assert_caller_is_fossil_client(self: @ContractState) {
+        fn assert_caller_is_l1_data_processor(self: @ContractState) {
             assert(
-                get_caller_address() == self.fossil_client_address.read(),
-                Errors::CallerNotFossilClient
+                get_caller_address() == self.l1_data_processor_address.read(),
+                Errors::CallerNotL1DataProcessor
             );
         }
 
