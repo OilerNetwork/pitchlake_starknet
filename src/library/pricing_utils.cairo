@@ -63,13 +63,11 @@ fn calculate_cap_level(alpha: u128, k: i128, volatility: u128, minimum_cap_level
     // - volatility: 0% <= volatility < ∞%
     let vol_i128: i128 = volatility.try_into().unwrap_or(max_i128);
 
-    // @dev λ = 2.33 x volatility
-    let lambda = (vol_i128 * 233) / 100;
-
     // @dev Calculate the cap level as BPs
     let scalar = BPS_i128 * BPS_i128;
-    let numerator = lambda - k;
-    let denominator = alpha * (k + BPS_i128);
+    // @dev λ = 2.33 x volatility
+    let numerator = ((233 * vol_i128) - (100 * k));
+    let denominator = 100 * (alpha * (k + BPS_i128));
 
     // @dev Avoid division by zero
     if denominator == 0 {
