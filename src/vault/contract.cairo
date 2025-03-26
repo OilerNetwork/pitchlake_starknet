@@ -10,10 +10,10 @@ mod Vault {
         ERC20Component, interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait}
     };
     use openzeppelin_utils::serde::SerializedAppend;
-    use pitch_lake::fossil_client::interface::{
-        L1Data, JobRequest, FossilCallbackReturn, RoundSettledReturn
+    use pitch_lake::fossil_client::interface::{JobRequest,};
+    use pitch_lake::vault::interface::{
+        ConstructorArgs, IVault, L1Data, L1DataProcessorCallbackReturn, RoundSettledReturn
     };
-    use pitch_lake::vault::interface::{ConstructorArgs, IVault,};
     use pitch_lake::option_round::contract::{OptionRound, OptionRound::Errors as RoundErrors};
     use pitch_lake::option_round::interface::{
         ConstructorArgs as OptionRoundConstructorArgs, OptionRoundState, IOptionRoundDispatcher,
@@ -691,7 +691,7 @@ mod Vault {
         /// State transitions
         fn l1_data_processor_callback(
             ref self: ContractState, l1_data: L1Data, timestamp: u64
-        ) -> FossilCallbackReturn {
+        ) -> L1DataProcessorCallbackReturn {
             // @dev Only the Fossil Client contract can call this function
             self.assert_caller_is_l1_data_processor();
 
@@ -724,7 +724,7 @@ mod Vault {
                 // @dev Settle the current round
                 let total_payout = self.settle_round(l1_data);
 
-                FossilCallbackReturn::RoundSettled(RoundSettledReturn { total_payout })
+                L1DataProcessorCallbackReturn::RoundSettled(RoundSettledReturn { total_payout })
             } // @dev If the first round is Open, the result is being used to set the pricing data for its auction to start
             else {
                 // // @dev Ensure now < auction start date
@@ -749,7 +749,7 @@ mod Vault {
                         }
                     );
 
-                FossilCallbackReturn::FirstRoundInitialized
+                L1DataProcessorCallbackReturn::FirstRoundInitialized
             }
         }
 

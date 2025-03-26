@@ -1,4 +1,5 @@
 use starknet::{ContractAddress, StorePacking};
+use pitch_lake::vault::interface::{L1Data, L1DataProcessorCallbackReturn};
 
 // *************************************************************************
 //                            FOSSIL CLIENT
@@ -8,7 +9,7 @@ use starknet::{ContractAddress, StorePacking};
 trait IFossilClient<TContractState> {
     fn fossil_callback(
         ref self: TContractState, request: Span<felt252>, result: Span<felt252>
-    ) -> FossilCallbackReturn;
+    ) -> L1DataProcessorCallbackReturn;
 }
 
 // *************************************************************************
@@ -17,7 +18,8 @@ trait IFossilClient<TContractState> {
 
 #[derive(Copy, Drop)]
 struct JobRequest {
-    vault_address: ContractAddress, // Which vault is this request for
+    // Which vault is this request for
+    vault_address: ContractAddress,
     // The timestamp the results are for
     timestamp: u64,
     // 'PITCH_LAKE_V1' (or program hash when proving ?)
@@ -50,17 +52,6 @@ struct FossilResult {
     proof: Span<felt252>,
 }
 
-#[derive(Copy, Drop, Serde)]
-enum FossilCallbackReturn {
-    RoundSettled: RoundSettledReturn,
-    FirstRoundInitialized,
-}
-
-#[derive(Copy, Drop, Serde)]
-struct RoundSettledReturn {
-    total_payout: u256
-}
-
 impl SerdeFossilResult of Serde<FossilResult> {
     fn serialize(self: @FossilResult, ref output: Array<felt252>) {
         self.l1_data.serialize(ref output);
@@ -90,12 +81,5 @@ impl SerdeFossilResult of Serde<FossilResult> {
             }
         )
     }
-}
-
-#[derive(Default, Copy, Drop, Serde, PartialEq, starknet::Store)]
-struct L1Data {
-    twap: u256,
-    volatility: u128,
-    reserve_price: u256,
 }
 

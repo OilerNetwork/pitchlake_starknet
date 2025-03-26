@@ -1,7 +1,7 @@
 use starknet::{ContractAddress, ClassHash};
 use pitch_lake::option_round::interface::OptionRoundState;
 use pitch_lake::types::Bid;
-use pitch_lake::fossil_client::interface::{JobRequest, L1Data, FossilCallbackReturn};
+use pitch_lake::fossil_client::interface::JobRequest;
 
 // @dev Constructor arguments
 #[derive(Drop, Serde)]
@@ -15,6 +15,25 @@ struct ConstructorArgs {
     auction_duration: u64,
     round_duration: u64,
 }
+
+#[derive(Default, Copy, Drop, Serde, PartialEq, starknet::Store)]
+struct L1Data {
+    twap: u256,
+    volatility: u128,
+    reserve_price: u256,
+}
+
+#[derive(Copy, Drop, Serde)]
+enum L1DataProcessorCallbackReturn {
+    RoundSettled: RoundSettledReturn,
+    FirstRoundInitialized,
+}
+
+#[derive(Copy, Drop, Serde)]
+struct RoundSettledReturn {
+    total_payout: u256
+}
+
 
 // The interface for the vault contract
 #[starknet::interface]
@@ -117,7 +136,7 @@ trait IVault<TContractState> {
 
     fn l1_data_processor_callback(
         ref self: TContractState, l1_data: L1Data, timestamp: u64
-    ) -> FossilCallbackReturn;
+    ) -> L1DataProcessorCallbackReturn;
 
     // @dev Start the current round's auction
     // @return The total options available in the auction

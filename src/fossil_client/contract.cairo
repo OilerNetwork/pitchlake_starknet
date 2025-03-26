@@ -5,11 +5,11 @@ mod FossilClient {
     use starknet::storage::{Map, StoragePathEntry};
 
     use pitch_lake::library::constants::PROGRAM_ID;
-    use pitch_lake::vault::interface::{IVaultDispatcher, IVaultDispatcherTrait};
-    use pitch_lake::option_round::interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait};
-    use pitch_lake::fossil_client::interface::{
-        JobRequest, FossilResult, L1Data, IFossilClient, FossilCallbackReturn
+    use pitch_lake::vault::interface::{
+        IVaultDispatcher, IVaultDispatcherTrait, L1DataProcessorCallbackReturn
     };
+    use pitch_lake::option_round::interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait};
+    use pitch_lake::fossil_client::interface::{JobRequest, FossilResult, L1Data, IFossilClient};
 
     // *************************************************************************
     //                              STORAGE
@@ -65,7 +65,7 @@ mod FossilClient {
     impl FossilClientImpl of IFossilClient<ContractState> {
         fn fossil_callback(
             ref self: ContractState, mut request: Span<felt252>, mut result: Span<felt252>
-        ) -> FossilCallbackReturn {
+        ) -> L1DataProcessorCallbackReturn {
             // Deserialize request & result
             let JobRequest { vault_address, timestamp, program_id } = Serde::deserialize(
                 ref request
