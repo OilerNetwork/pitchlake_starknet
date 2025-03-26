@@ -6,7 +6,7 @@ use starknet::{
 use openzeppelin_token::erc20::interface::ERC20ABIDispatcherTrait;
 
 use pitch_lake::{
-    vault::{contract::Vault, interface::{VaultType, IVaultDispatcher, IVaultDispatcherTrait},},
+    vault::{contract::Vault, interface::{IVaultDispatcher, IVaultDispatcherTrait},},
     option_round::interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
     tests::{
         utils::{

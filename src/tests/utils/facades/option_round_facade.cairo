@@ -11,7 +11,7 @@ use pitch_lake::{
     },
     vault::{
         interface::{
-            VaultType, IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait,
+            IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait,
             IVaultSafeDispatcherTrait,
         },
         contract::Vault,
@@ -23,11 +23,7 @@ use pitch_lake::{
                 general_helpers::{to_gwei, assert_two_arrays_equal_length, get_erc20_balance},
                 accelerators::{accelerate_to_auctioning_custom},
             },
-            lib::{
-                test_accounts::{
-                    vault_manager, bystander, liquidity_provider_1
-                }, //structs::{OptionRoundParams}
-            },
+            lib::{test_accounts::{vault_manager, bystander, liquidity_provider_1},},
             facades::{sanity_checks, vault_facade::{VaultFacade, VaultFacadeTrait},},
         }
     },

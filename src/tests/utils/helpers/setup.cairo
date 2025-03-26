@@ -13,7 +13,7 @@ use pitch_lake::fossil_client::interface::{JobRequest, FossilResult, L1Data};
 use pitch_lake::fossil_client::contract::FossilClient;
 use pitch_lake::{
     library::eth::Eth, vault::contract::Vault, library::constants::{MINUTE},
-    vault::interface::{ConstructorArgs, VaultType, IVaultDispatcher, IVaultDispatcherTrait},
+    vault::interface::{ConstructorArgs, IVaultDispatcher, IVaultDispatcherTrait},
     option_round::{
         contract::OptionRound,
         interface::{

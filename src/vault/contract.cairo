@@ -13,7 +13,7 @@ mod Vault {
     use pitch_lake::fossil_client::interface::{
         L1Data, JobRequest, FossilCallbackReturn, RoundSettledReturn
     };
-    use pitch_lake::vault::interface::{ConstructorArgs, IVault, VaultType,};
+    use pitch_lake::vault::interface::{ConstructorArgs, IVault,};
     use pitch_lake::option_round::contract::{OptionRound, OptionRound::Errors as RoundErrors};
     use pitch_lake::option_round::interface::{
         ConstructorArgs as OptionRoundConstructorArgs, OptionRoundState, IOptionRoundDispatcher,
@@ -33,7 +33,6 @@ mod Vault {
     #[storage]
     struct Storage {
         ///
-        vault_type: VaultType,
         alpha: u128,
         strike_level: i128,
         round_transition_duration: u64,
@@ -338,12 +337,6 @@ mod Vault {
         //               READS
         // ***********************************
 
-        ///
-
-        fn get_vault_type(self: @ContractState) -> VaultType {
-            self.vault_type.read()
-        }
-
         fn get_eth_address(self: @ContractState) -> ContractAddress {
             self.eth_address.read()
         }
@@ -371,7 +364,6 @@ mod Vault {
         fn get_round_duration(self: @ContractState) -> u64 {
             self.round_duration.read()
         }
-
 
         fn get_round_address(self: @ContractState, option_round_id: u64) -> ContractAddress {
             self.round_addresses.read(option_round_id)
