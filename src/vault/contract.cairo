@@ -1143,8 +1143,9 @@ mod Vault {
 
             let alpha = self.alpha.read();
             let k = self.strike_level.read();
+            let minimum_cap_level = self.minimum_cap_level.read();
 
-            let cap_level = calculate_cap_level(alpha, k, volatility);
+            let cap_level = calculate_cap_level(alpha, k, volatility, minimum_cap_level);
             let strike_price = calculate_strike_price(k, twap);
 
             PricingData { strike_price, cap_level, reserve_price }
@@ -1240,25 +1241,30 @@ mod Vault {
 
             // @dev If the current round is Running, there could be premiums/unsold liquidity to
             // to move to the upcoming round
-            if self
+            let is_running = self
                 .get_round_dispatcher(current_round_id)
-                .get_state() == OptionRoundState::Running {
-                // @dev If the premiums/unsold liquidity were not moved as a deposit into the
-                // next round, move them
-                if !self.is_premium_moved.entry(account).entry(current_round_id).read() {
-                    self.is_premium_moved.entry(account).entry(current_round_id).write(true);
-                    // @dev Update the account's upcoming round deposit if it has changed
-                    if upcoming_round_deposit != self
+                .get_state() == OptionRoundState::Running;
+            // @dev If the premiums/unsold liquidity were not moved as a deposit into the
+            // next round, move them
+            let is_premium_moved = self
+                .is_premium_moved
+                .entry(account)
+                .entry(current_round_id)
+                .read();
+
+            if is_running && !is_premium_moved {
+                self.is_premium_moved.entry(account).entry(current_round_id).write(true);
+                // @dev Update the account's upcoming round deposit if it has changed
+                if upcoming_round_deposit != self
+                    .positions
+                    .entry(account)
+                    .entry(current_round_id + 1)
+                    .read() {
+                    self
                         .positions
                         .entry(account)
                         .entry(current_round_id + 1)
-                        .read() {
-                        self
-                            .positions
-                            .entry(account)
-                            .entry(current_round_id + 1)
-                            .write(upcoming_round_deposit);
-                    }
+                        .write(upcoming_round_deposit);
                 }
             }
         }
