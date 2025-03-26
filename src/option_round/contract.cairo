@@ -535,7 +535,6 @@ mod OptionRound {
             // @dev Assert caller owns the bid
             let old_node: Node = self.bids_tree.tree.read(bid_id);
             let mut edited_bid: Bid = old_node.value;
-            let bid_tree_nonce_before = edited_bid.tree_nonce;
             assert(edited_bid.owner == account, Errors::CallerNotBidOwner);
 
             // @dev Assert caller is increasing the price of their bid
