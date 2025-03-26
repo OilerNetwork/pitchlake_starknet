@@ -4,16 +4,16 @@ mod Vault {
     use starknet::storage::{Map, StoragePathEntry};
     use starknet::{
         ContractAddress, ClassHash, deploy_syscall, get_caller_address, contract_address_const,
-        get_contract_address, get_block_timestamp
+        get_contract_address, get_block_timestamp, get_block_number
     };
     use openzeppelin_token::erc20::{
         ERC20Component, interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait}
     };
     use openzeppelin_utils::serde::SerializedAppend;
-    use pitch_lake::fossil_client::interface::{
-        L1Data, JobRequest, FossilCallbackReturn, RoundSettledReturn
+    use pitch_lake::fossil_client::interface::{JobRequest,};
+    use pitch_lake::vault::interface::{
+        ConstructorArgs, IVault, L1Data, L1DataProcessorCallbackReturn, RoundSettledReturn
     };
-    use pitch_lake::vault::interface::{ConstructorArgs, IVault, VaultType,};
     use pitch_lake::option_round::contract::{OptionRound, OptionRound::Errors as RoundErrors};
     use pitch_lake::option_round::interface::{
         ConstructorArgs as OptionRoundConstructorArgs, OptionRoundState, IOptionRoundDispatcher,
@@ -33,9 +33,10 @@ mod Vault {
     #[storage]
     struct Storage {
         ///
-        vault_type: VaultType,
         alpha: u128,
         strike_level: i128,
+        minimum_cap_level: u128,
+        deployment_block: u64,
         round_transition_duration: u64,
         auction_duration: u64,
         round_duration: u64,
@@ -43,7 +44,7 @@ mod Vault {
         l1_data: Map<u64, L1Data>,
         option_round_class_hash: ClassHash,
         eth_address: ContractAddress,
-        fossil_client_address: ContractAddress,
+        l1_data_processor_address: ContractAddress,
         round_addresses: Map<u64, ContractAddress>,
         ///
         // @note could use usize ?
@@ -74,20 +75,23 @@ mod Vault {
     #[constructor]
     fn constructor(ref self: ContractState, args: ConstructorArgs) {
         // @dev Get the constructor arguments
-        let ConstructorArgs { fossil_client_address,
+        let ConstructorArgs { l1_data_processor_address,
         eth_address,
         option_round_class_hash,
         strike_level,
         alpha,
+        minimum_cap_level,
         round_transition_duration,
         auction_duration,
         round_duration } =
             args;
 
         // @dev Set the Vault's parameters
-        self.fossil_client_address.write(fossil_client_address);
+        self.l1_data_processor_address.write(l1_data_processor_address);
         self.eth_address.write(eth_address);
         self.option_round_class_hash.write(option_round_class_hash);
+        self.deployment_block.write(get_block_number());
+        self.minimum_cap_level.write(minimum_cap_level);
         self.round_transition_duration.write(round_transition_duration);
         self.auction_duration.write(auction_duration);
         self.round_duration.write(round_duration);
@@ -111,8 +115,8 @@ mod Vault {
     mod Errors {
         const AlphaOutOfRange: felt252 = 'Alpha out of range';
         const StrikeLevelOutOfRange: felt252 = 'Strike level out of range';
-        // Fossil
-        const CallerNotFossilClient: felt252 = 'Caller not Fossil client';
+        // L1 data processing
+        const CallerNotL1DataProcessor: felt252 = 'Caller not l1 data processor';
         const InvalidL1Data: felt252 = 'Invalid L1 data';
         const L1DataNotAcceptedNow: felt252 = 'L1 data not accepted now';
         const L1DataOutOfRange: felt252 = 'L1 data out of range';
@@ -338,18 +342,12 @@ mod Vault {
         //               READS
         // ***********************************
 
-        ///
-
-        fn get_vault_type(self: @ContractState) -> VaultType {
-            self.vault_type.read()
-        }
-
         fn get_eth_address(self: @ContractState) -> ContractAddress {
             self.eth_address.read()
         }
 
-        fn get_fossil_client_address(self: @ContractState) -> ContractAddress {
-            self.fossil_client_address.read()
+        fn get_l1_data_processor_address(self: @ContractState) -> ContractAddress {
+            self.l1_data_processor_address.read()
         }
 
         fn get_alpha(self: @ContractState) -> u128 {
@@ -358,6 +356,15 @@ mod Vault {
 
         fn get_strike_level(self: @ContractState) -> i128 {
             self.strike_level.read()
+        }
+
+        fn get_minimum_cap_level(self: @ContractState) -> u128 {
+            self.minimum_cap_level.read()
+        }
+
+
+        fn get_deployment_block(self: @ContractState) -> u64 {
+            self.deployment_block.read()
         }
 
         fn get_round_transition_duration(self: @ContractState) -> u64 {
@@ -371,7 +378,6 @@ mod Vault {
         fn get_round_duration(self: @ContractState) -> u64 {
             self.round_duration.read()
         }
-
 
         fn get_round_address(self: @ContractState, option_round_id: u64) -> ContractAddress {
             self.round_addresses.read(option_round_id)
@@ -696,13 +702,12 @@ mod Vault {
             amount
         }
 
-
         /// State transitions
-        fn fossil_client_callback(
+        fn l1_data_processor_callback(
             ref self: ContractState, l1_data: L1Data, timestamp: u64
-        ) -> FossilCallbackReturn {
+        ) -> L1DataProcessorCallbackReturn {
             // @dev Only the Fossil Client contract can call this function
-            self.assert_caller_is_fossil_client();
+            self.assert_caller_is_l1_data_processor();
 
             // @dev Assert the L1 data is valid
             let L1Data { twap, volatility: _, reserve_price } = l1_data;
@@ -733,7 +738,7 @@ mod Vault {
                 // @dev Settle the current round
                 let total_payout = self.settle_round(l1_data);
 
-                FossilCallbackReturn::RoundSettled(RoundSettledReturn { total_payout })
+                L1DataProcessorCallbackReturn::RoundSettled(RoundSettledReturn { total_payout })
             } // @dev If the first round is Open, the result is being used to set the pricing data for its auction to start
             else {
                 // // @dev Ensure now < auction start date
@@ -758,7 +763,7 @@ mod Vault {
                         }
                     );
 
-                FossilCallbackReturn::FirstRoundInitialized
+                L1DataProcessorCallbackReturn::FirstRoundInitialized
             }
         }
 
@@ -970,10 +975,10 @@ mod Vault {
 
         /// Basic helpers
 
-        fn assert_caller_is_fossil_client(self: @ContractState) {
+        fn assert_caller_is_l1_data_processor(self: @ContractState) {
             assert(
-                get_caller_address() == self.fossil_client_address.read(),
-                Errors::CallerNotFossilClient
+                get_caller_address() == self.l1_data_processor_address.read(),
+                Errors::CallerNotL1DataProcessor
             );
         }
 
@@ -1138,8 +1143,9 @@ mod Vault {
 
             let alpha = self.alpha.read();
             let k = self.strike_level.read();
+            let minimum_cap_level = self.minimum_cap_level.read();
 
-            let cap_level = calculate_cap_level(alpha, k, volatility);
+            let cap_level = calculate_cap_level(alpha, k, volatility, minimum_cap_level);
             let strike_price = calculate_strike_price(k, twap);
 
             PricingData { strike_price, cap_level, reserve_price }
@@ -1235,25 +1241,30 @@ mod Vault {
 
             // @dev If the current round is Running, there could be premiums/unsold liquidity to
             // to move to the upcoming round
-            if self
+            let is_running = self
                 .get_round_dispatcher(current_round_id)
-                .get_state() == OptionRoundState::Running {
-                // @dev If the premiums/unsold liquidity were not moved as a deposit into the
-                // next round, move them
-                if !self.is_premium_moved.entry(account).entry(current_round_id).read() {
-                    self.is_premium_moved.entry(account).entry(current_round_id).write(true);
-                    // @dev Update the account's upcoming round deposit if it has changed
-                    if upcoming_round_deposit != self
+                .get_state() == OptionRoundState::Running;
+            // @dev If the premiums/unsold liquidity were not moved as a deposit into the
+            // next round, move them
+            let is_premium_moved = self
+                .is_premium_moved
+                .entry(account)
+                .entry(current_round_id)
+                .read();
+
+            if is_running && !is_premium_moved {
+                self.is_premium_moved.entry(account).entry(current_round_id).write(true);
+                // @dev Update the account's upcoming round deposit if it has changed
+                if upcoming_round_deposit != self
+                    .positions
+                    .entry(account)
+                    .entry(current_round_id + 1)
+                    .read() {
+                    self
                         .positions
                         .entry(account)
                         .entry(current_round_id + 1)
-                        .read() {
-                        self
-                            .positions
-                            .entry(account)
-                            .entry(current_round_id + 1)
-                            .write(upcoming_round_deposit);
-                    }
+                        .write(upcoming_round_deposit);
                 }
             }
         }

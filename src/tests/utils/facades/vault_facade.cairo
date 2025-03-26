@@ -1,13 +1,11 @@
 use starknet::{ContractAddress, testing::{set_contract_address, set_block_timestamp}};
 use openzeppelin_token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
 use pitch_lake::{
-    fossil_client::interface::{
-        JobRequest, L1Data, FossilResult, FossilCallbackReturn, RoundSettledReturn
-    },
+    fossil_client::interface::{JobRequest, FossilResult,},
     vault::{
         interface::{
-            VaultType, IVaultDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcher,
-            IVaultSafeDispatcherTrait
+            IVaultDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcher, L1Data,
+            IVaultSafeDispatcherTrait, L1DataProcessorCallbackReturn, RoundSettledReturn
         }
     },
     option_round::{
@@ -47,7 +45,9 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     /// Fossil
 
     fn get_fossil_client_facade(ref self: VaultFacade) -> FossilClientFacade {
-        FossilClientFacade { contract_address: self.vault_dispatcher.get_fossil_client_address() }
+        FossilClientFacade {
+            contract_address: self.vault_dispatcher.get_l1_data_processor_address()
+        }
     }
 
     /// Option round
@@ -166,8 +166,8 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     fn fossil_client_callback(
         ref self: VaultFacade, l1_data: L1Data, timestamp: u64
-    ) -> FossilCallbackReturn {
-        self.vault_dispatcher.fossil_client_callback(l1_data, timestamp)
+    ) -> L1DataProcessorCallbackReturn {
+        self.vault_dispatcher.l1_data_processor_callback(l1_data, timestamp)
     }
 
     #[feature("safe_dispatcher")]
@@ -175,7 +175,7 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         ref self: VaultFacade, l1_data: L1Data, timestamp: u64, error: felt252
     ) {
         let safe_vault = self.get_safe_dispatcher();
-        safe_vault.fossil_client_callback(l1_data, timestamp).expect_err(error);
+        safe_vault.l1_data_processor_callback(l1_data, timestamp).expect_err(error);
     }
 
     fn start_auction(ref self: VaultFacade) -> u256 {
@@ -466,10 +466,6 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         self.vault_dispatcher.contract_address
     }
 
-    fn get_vault_type(ref self: VaultFacade) -> VaultType {
-        self.vault_dispatcher.get_vault_type()
-    }
-
     fn get_alpha(ref self: VaultFacade) -> u128 {
         self.vault_dispatcher.get_alpha()
     }
@@ -478,6 +474,11 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         self.vault_dispatcher.get_strike_level()
     }
 
+    fn get_minimum_cap_level(ref self: VaultFacade) -> u128 {
+        self.vault_dispatcher.get_minimum_cap_level()
+    }
+
+
     // Eth contract address
     fn get_eth_address(ref self: VaultFacade) -> ContractAddress {
         self.vault_dispatcher.get_eth_address()
@@ -485,7 +486,11 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     // Get the address of the Fossil Client contract
     fn get_fossil_client_address(ref self: VaultFacade) -> ContractAddress {
-        self.vault_dispatcher.get_fossil_client_address()
+        self.vault_dispatcher.get_l1_data_processor_address()
+    }
+
+    fn get_deployment_block(ref self: VaultFacade) -> u64 {
+        self.vault_dispatcher.get_deployment_block()
     }
 
 

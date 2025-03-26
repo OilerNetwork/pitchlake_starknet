@@ -1,36 +1,45 @@
 use starknet::{ContractAddress, ClassHash};
 use pitch_lake::option_round::interface::OptionRoundState;
 use pitch_lake::types::Bid;
-use pitch_lake::fossil_client::interface::{JobRequest, L1Data, FossilCallbackReturn};
-
-// @dev An enum for each type of Vault
-#[derive(starknet::Store, Copy, Drop, Serde, PartialEq)]
-enum VaultType {
-    InTheMoney,
-    AtTheMoney,
-    OutOfMoney,
-}
+use pitch_lake::fossil_client::interface::JobRequest;
 
 // @dev Constructor arguments
 #[derive(Drop, Serde)]
 struct ConstructorArgs {
-    fossil_client_address: ContractAddress,
+    l1_data_processor_address: ContractAddress,
     eth_address: ContractAddress,
     option_round_class_hash: ClassHash,
     alpha: u128,
     strike_level: i128,
+    minimum_cap_level: u128,
     round_transition_duration: u64,
     auction_duration: u64,
     round_duration: u64,
 }
 
+#[derive(Default, Copy, Drop, Serde, PartialEq, starknet::Store)]
+struct L1Data {
+    twap: u256,
+    volatility: u128,
+    reserve_price: u256,
+}
+
+#[derive(Copy, Drop, Serde)]
+enum L1DataProcessorCallbackReturn {
+    RoundSettled: RoundSettledReturn,
+    FirstRoundInitialized,
+}
+
+#[derive(Copy, Drop, Serde)]
+struct RoundSettledReturn {
+    total_payout: u256
+}
+
+
 // The interface for the vault contract
 #[starknet::interface]
 trait IVault<TContractState> {
     /// Reads ///
-
-    // @dev Get the type of vault (ITM | ATM | OTM)
-    fn get_vault_type(self: @TContractState) -> VaultType;
 
     // @dev Get the alpha risk factor of the vault
     fn get_alpha(self: @TContractState) -> u128;
@@ -38,11 +47,17 @@ trait IVault<TContractState> {
     // @dev Get the strike level of the vault
     fn get_strike_level(self: @TContractState) -> i128;
 
+    // @dev Get the minimum cap level of the vault
+    fn get_minimum_cap_level(self: @TContractState) -> u128;
+
     // @dev Get the ETH address
     fn get_eth_address(self: @TContractState) -> ContractAddress;
 
-    // @dev The the Fossil Client's address
-    fn get_fossil_client_address(self: @TContractState) -> ContractAddress;
+    // @dev The address that sets pricing data for rounds
+    fn get_l1_data_processor_address(self: @TContractState) -> ContractAddress;
+
+    // @dev The block this vault is deployed at
+    fn get_deployment_block(self: @TContractState) -> u64;
 
     // @dev The number of seconds between a round deploying and its auction starting
     fn get_round_transition_duration(self: @TContractState) -> u64;
@@ -126,9 +141,9 @@ trait IVault<TContractState> {
 
     /// State transitions
 
-    fn fossil_client_callback(
+    fn l1_data_processor_callback(
         ref self: TContractState, l1_data: L1Data, timestamp: u64
-    ) -> FossilCallbackReturn;
+    ) -> L1DataProcessorCallbackReturn;
 
     // @dev Start the current round's auction
     // @return The total options available in the auction

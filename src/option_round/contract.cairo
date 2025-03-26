@@ -424,12 +424,9 @@ mod OptionRound {
             // @dev Ensure pricing data is set
             // @note todo: handle null rounds
             let pricing_data = self.pricing_data.read();
-            let PricingData { strike_price, cap_level, reserve_price } = pricing_data;
+            let PricingData { strike_price, cap_level: _, reserve_price } = pricing_data;
             assert(
-                strike_price.is_non_zero()
-                    && cap_level.is_non_zero()
-                    && reserve_price.is_non_zero(),
-                Errors::PricingDataNotSet
+                strike_price.is_non_zero() && reserve_price.is_non_zero(), Errors::PricingDataNotSet
             );
             // @dev Calculate total options available
             let strike_price = pricing_data.strike_price;
@@ -454,14 +451,6 @@ mod OptionRound {
             let (clearing_price, options_sold, clearing_bid_tree_nonce) = self
                 .bids_tree
                 .find_clearing_price();
-
-            // @dev Set unsold liquidity if some options do not sell
-            let starting_liq = self.starting_liquidity.read();
-            let sold_liquidity = options_sold
-                * max_payout_per_option(
-                    self.pricing_data.strike_price.read(), self.pricing_data.cap_level.read()
-                );
-            let unsold_liquidity = starting_liq - sold_liquidity;
 
             // @dev Send premiums to Vault
             self
@@ -546,7 +535,6 @@ mod OptionRound {
             // @dev Assert caller owns the bid
             let old_node: Node = self.bids_tree.tree.read(bid_id);
             let mut edited_bid: Bid = old_node.value;
-            let bid_tree_nonce_before = edited_bid.tree_nonce;
             assert(edited_bid.owner == account, Errors::CallerNotBidOwner);
 
             // @dev Assert caller is increasing the price of their bid

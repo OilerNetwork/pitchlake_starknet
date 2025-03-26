@@ -21,6 +21,7 @@
             "eth_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
             "alpha": "2500",
             "strike": "0",
+            "minimum_cap_level": "0",
             "round_transition_duration": "180",
             "auction_duration": "180",
             "round_duration": "720"
@@ -30,6 +31,7 @@
             "eth_address": "0x49d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
             "alpha": "3000",
             "strike": "1000",
+            "minimum_cap_level": "0",
             "round_transition_duration": "60",
             "auction_duration": "60",
             "round_duration": "60"
@@ -43,4 +45,3 @@
     "fossil_api_key": "ab062..."
   }
 }
-

@@ -3,9 +3,9 @@ use starknet::{
     testing::{set_contract_address, set_block_timestamp}
 };
 use pitch_lake::{
-    vault::interface::{VaultType},
-    fossil_client::interface::{L1Data, JobRequest, FossilResult, FossilCallbackReturn},
-    vault::contract::Vault, vault::contract::Vault::Errors as vErrors,
+    fossil_client::interface::{JobRequest, FossilResult}, vault::contract::Vault,
+    vault::contract::Vault::Errors as vErrors,
+    vault::interface::{L1DataProcessorCallbackReturn, L1Data},
     fossil_client::contract::FossilClient::Errors as fErrors, option_round::interface::PricingData,
     library::pricing_utils,
     tests::{
@@ -40,22 +40,6 @@ use pitch_lake::{
 use pitch_lake::library::pricing_utils::{calculate_strike_price};
 use core::integer::{I128Neg};
 
-//#[test]
-//#[available_gas(50000000)]
-//#[ignore]
-//fn asdf() {
-//    let k1: i128 = -2222;
-//    let k2: i128 = 2222;
-//    let k3: i128 = 0;
-//
-//    let strike1 = calculate_strike_price(k1, 10_000_000);
-//    let strike2 = calculate_strike_price(k2, 10_000_000);
-//    let strike3 = calculate_strike_price(k3, 10_000_000);
-//
-//    println!("strike1: {}", strike1);
-//    println!("strike2: {}", strike2);
-//    println!("strike3: {}", strike3);
-//}
 
 // Test only the fossil processor can call the fossil callback
 
@@ -185,7 +169,7 @@ fn test_only_fossil_client_can_call_fossil_client_callback() {
     set_contract_address(contract_address_const::<'NOT IT'>());
     vault
         .fossil_client_callback_expect_error(
-            l1_data, settlement_date, vErrors::CallerNotFossilClient
+            l1_data, settlement_date, vErrors::CallerNotL1DataProcessor
         );
 
     // Should not fail
@@ -214,7 +198,7 @@ fn test_callback_sets_pricing_data_for_round() {
     let L1Data { twap, volatility, reserve_price } = get_mock_l1_data();
     let exp_strike_price = pricing_utils::calculate_strike_price(vault.get_strike_level(), twap);
     let exp_cap_level = pricing_utils::calculate_cap_level(
-        vault.get_alpha(), vault.get_strike_level(), volatility
+        vault.get_alpha(), vault.get_strike_level(), volatility, vault.get_minimum_cap_level()
     );
 
     assert_eq!(current_round.get_strike_price(), exp_strike_price);
@@ -297,7 +281,7 @@ fn test_callback_for_first_round_if_in_range() {
 
     let expected_strike = pricing_utils::calculate_strike_price(vault.get_strike_level(), twap);
     let expected_cap = pricing_utils::calculate_cap_level(
-        vault.get_alpha(), vault.get_strike_level(), volatility
+        vault.get_alpha(), vault.get_strike_level(), volatility, vault.get_minimum_cap_level()
     );
 
     assert_eq!(current_round.get_strike_price(), expected_strike);
@@ -381,7 +365,10 @@ fn test_callback_works_as_expected() {
     let l1_data = get_mock_l1_data();
     let strike = pricing_utils::calculate_strike_price(vault.get_strike_level(), l1_data.twap);
     let cap = pricing_utils::calculate_cap_level(
-        vault.get_alpha(), vault.get_strike_level(), l1_data.volatility
+        vault.get_alpha(),
+        vault.get_strike_level(),
+        l1_data.volatility,
+        vault.get_minimum_cap_level()
     );
 
     assert_eq!(next_round.get_cap_level(), cap);
