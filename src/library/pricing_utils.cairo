@@ -35,33 +35,54 @@ fn calculate_total_options_available(
     }
 }
 
-// @note TODO
-// cl = λ − k / (α × (k + 1))
-fn calculate_cap_level(a: u128, k: i128, vol: u128) -> u128 {
-    // @dev λ = 2.3300 * vol
-    let lambda: i128 = 23300 * vol.try_into().expect('Vol u128 -> i128 failed') / BPS_i128;
+// Calculate cap level using volatility, alpha, k, and minimum cap level
+// @param volatility: volatility of returns in BPs (e.g., 3333 for 33.33%)
+// @param k: strike level in BPS (e.g., -2500 for -25%)
+// @param alpha: target percentage of max returns in BPS (e.g., 5000 for 50%)
+// @param minimum_cap_level: minimum cap level in BPS (e.g., 1000 for 10%)
+//
+// cl = max[min_cl, (λ - k) / (α * (1 + k))]
+// - min_cl: 0% <= min_cl < ∞%
+// - λ = 2.33 x volatility: 0% <= λ < ∞%
+// - k: -100.00% < k < ∞%
+// - a: 0.00% < a <= 100%
+fn calculate_cap_level(alpha: u128, k: i128, volatility: u128, minimum_cap_level: u128) -> u128 {
+    // @dev Max values for i128 and u128 (+100_000_000%)
+    let max_i128: i128 = 1_000_000 * BPS_i128;
+    let max_u128: u128 = 1_000_000 * BPS_u128;
 
-    // @dev Cap level must be positive
-    if k >= lambda {
-        1
+    // @dev Cast alpha to i128
+    // - a: 0.00% < a <= 100%
+    let alpha: i128 = min(BPS_i128, alpha.try_into().unwrap_or(BPS_i128));
+
+    // @dev Cast minimum_cap_level to i128
+    // - cl: 0% <= cl < ∞%
+    let minimum_cap_level_i128 = minimum_cap_level.try_into().unwrap_or(max_i128);
+
+    // @dev Cast volatility to i128
+    // - volatility: 0% <= volatility < ∞%
+    let vol_i128: i128 = volatility.try_into().unwrap_or(max_i128);
+
+    // @dev λ = 2.33 x volatility
+    let lambda = (vol_i128 * 233) / 100;
+
+    // @dev Calculate the cap level as BPs
+    let scalar = BPS_i128 * BPS_i128;
+    let numerator = lambda - k;
+    let denominator = alpha * (k + BPS_i128);
+
+    // @dev Avoid division by zero
+    if denominator == 0 {
+        return minimum_cap_level;
+    }
+
+    // @dev Return max(minimum_cap_level, cap_level)
+    let cap_level = (scalar * numerator) / denominator;
+
+    if cap_level < minimum_cap_level_i128 {
+        return minimum_cap_level;
     } else {
-        // @dev `λ - k` >= 0 here, cast from i128 to u128 through felt252
-        let lambda_minus_k: u128 = Into::<i128, felt252>::into(lambda - k).try_into().unwrap();
-
-        // @dev Ensure k+1 is positive then cast from i128 to u128 through felt252
-        let k_plus_1 = k + BPS_i128;
-        assert(k_plus_1 > 0, 'Strike price must be > 0');
-
-        let k_plus_1 = Into::<i128, felt252>::into(k_plus_1)
-            .try_into()
-            .expect('k_plus_1 felt252 -> u128 failed');
-
-        // @dev cl = λ − k / (α × (k + 1))
-        let numerator: u128 = lambda_minus_k;
-        let denominator: u128 = a * k_plus_1;
-
-        // @dev (λ - k) is BPS - BPS, (a * (k + 1)) is BPS * BPS, so multip
-        (BPS_u128 * BPS_u128 * numerator / denominator)
+        return cap_level.try_into().unwrap_or(max_u128);
     }
 }
 
