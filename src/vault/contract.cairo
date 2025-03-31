@@ -10,7 +10,8 @@ mod Vault {
         ERC20Component, interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait}
     };
     use openzeppelin_utils::serde::SerializedAppend;
-    use pitch_lake::fossil_client::interface::{JobRequest,};
+    use pitch_lake::fossil_client::interface::JobRequest;
+    use pitch_lake::fossil_client::contract::FossilClient::Errors as FossilErrors;
     use pitch_lake::vault::interface::{
         ConstructorArgs, IVault, L1Data, L1DataProcessorCallbackReturn, RoundSettledReturn
     };
@@ -19,10 +20,9 @@ mod Vault {
         ConstructorArgs as OptionRoundConstructorArgs, OptionRoundState, IOptionRoundDispatcher,
         IOptionRoundDispatcherTrait, PricingData,
     };
-    use pitch_lake::library::constants::{BPS_i128, BPS_felt252, BPS_u128, BPS_u256};
+    use pitch_lake::library::constants::{PROGRAM_ID, BPS_i128, BPS_felt252, BPS_u128, BPS_u256};
     use pitch_lake::library::utils::{assert_equal_in_range, generate_request_id};
     use pitch_lake::library::pricing_utils::{calculate_strike_price, calculate_cap_level};
-    use pitch_lake::library::constants::{REQUEST_TOLERANCE, PROGRAM_ID};
     use pitch_lake::types::{Bid};
     use core::fmt::{Formatter, Error, Debug};
 
@@ -118,6 +118,7 @@ mod Vault {
         // L1 data processing
         const CallerNotL1DataProcessor: felt252 = 'Caller not l1 data processor';
         const InvalidL1Data: felt252 = 'Invalid L1 data';
+        const InvalidL1JobRequest: felt252 = 'Invalid L1 data request';
         const L1DataNotAcceptedNow: felt252 = 'L1 data not accepted now';
         const L1DataOutOfRange: felt252 = 'L1 data out of range';
         // Withdraw/queuing withdrawals
@@ -704,21 +705,36 @@ mod Vault {
 
         /// State transitions
         fn l1_data_processor_callback(
-            ref self: ContractState, l1_data: L1Data, timestamp: u64
+            ref self: ContractState, mut job_request_serialized: Span<felt252>, l1_data: L1Data,
         ) -> L1DataProcessorCallbackReturn {
             // @dev Only the Fossil Client contract can call this function
             self.assert_caller_is_l1_data_processor();
 
-            // @dev Assert the L1 data is valid
-            let L1Data { twap, volatility: _, reserve_price } = l1_data;
-            assert(twap.is_non_zero() && reserve_price.is_non_zero(), Errors::InvalidL1Data);
+            // @dev Deserialize the job request
+            let JobRequest { vault_address, timestamp, program_id, alpha, k } = Serde::deserialize(
+                ref job_request_serialized
+            )
+                .expect(FossilErrors::FailedToDeserializeRequest);
 
-            // @dev Requests can only be fulfilled if the current round is Running, or if the
-            // first round is Open
+            // @dev Assert job request matches expected
+            assert(vault_address == get_contract_address(), Errors::InvalidL1JobRequest);
+            assert(program_id == PROGRAM_ID, Errors::InvalidL1JobRequest);
+            assert(alpha == self.alpha.read(), Errors::InvalidL1JobRequest);
+            assert(k == self.strike_level.read(), Errors::InvalidL1JobRequest);
+
+            // @dev Assert TWAP & reserve price are non-zero
+            assert(
+                l1_data.twap.is_non_zero() && l1_data.reserve_price.is_non_zero(),
+                Errors::InvalidL1Data
+            );
+
+            // @dev Get the current round's state
             let current_round_id = self.current_round_id.read();
             let current_round = self.get_round_dispatcher(current_round_id);
             let state = current_round.get_state();
 
+            // @dev Requests can only be fulfilled if the current round is Running, or
+            // if the first round is Open
             assert(
                 state == OptionRoundState::Running
                     || (current_round_id == 1 && state == OptionRoundState::Open),
@@ -739,25 +755,21 @@ mod Vault {
                 let total_payout = self.settle_round(l1_data);
 
                 L1DataProcessorCallbackReturn::RoundSettled(RoundSettledReturn { total_payout })
-            } // @dev If the first round is Open, the result is being used to set the pricing data for its auction to start
+            } // @dev If the first round is Open, the result is being used to set the
+            // pricing data for its auction to start
             else {
-                // // @dev Ensure now < auction start date
-                // let now = get_block_timestamp();
-                // let auction_start_date = current_round.get_auction_start_date();
-                // assert(now < auction_start_date, Errors::L1DataNotAcceptedNow);
-
                 // @dev Ensure the job request's timestamp is for the round's deployment date
                 let deployment_date = current_round.get_deployment_date();
                 assert(timestamp == deployment_date, Errors::L1DataOutOfRange);
 
-                let pricing_data = self.convert_l1_data_to_round_data(l1_data);
                 // @dev Set the round's pricing data directly
+                let pricing_data = self.convert_l1_data_to_round_data(l1_data);
                 current_round.set_pricing_data(pricing_data);
 
                 self
                     .emit(
                         PricingDataSet {
-                            pricing_data, // Use the converted data
+                            pricing_data,
                             round_id: current_round_id,
                             round_address: current_round.contract_address
                         }
@@ -766,6 +778,7 @@ mod Vault {
                 L1DataProcessorCallbackReturn::FirstRoundInitialized
             }
         }
+
 
         fn start_auction(ref self: ContractState) -> u256 {
             // @dev Update all unlocked liquidity to locked
@@ -1067,7 +1080,7 @@ mod Vault {
         fn settle_round(ref self: ContractState, l1_data: L1Data) -> u256 {
             // @dev Get pricing data set for the current round's settlement
             let current_round_id = self.current_round_id.read();
-            let L1Data { twap, volatility, reserve_price } = l1_data;
+            let L1Data { twap, cap_level, reserve_price } = l1_data;
 
             assert(
                 twap.is_non_zero() && reserve_price.is_non_zero(), RoundErrors::PricingDataNotSet
@@ -1125,7 +1138,7 @@ mod Vault {
                 );
 
             // @dev Deploy the next option round contract & update the current round id
-            self.deploy_next_round(L1Data { twap, volatility, reserve_price });
+            self.deploy_next_round(L1Data { twap, cap_level, reserve_price });
 
             // @dev Return just the total payout
             total_payout
@@ -1135,20 +1148,19 @@ mod Vault {
 
         // @dev Converts L1 data from Fossil (or 3rd party) to pricing data for the round
         fn convert_l1_data_to_round_data(self: @ContractState, l1_data: L1Data) -> PricingData {
-            if l1_data == Default::default() {
-                return PricingData { strike_price: 0, cap_level: 0, reserve_price: 0 };
-            }
+            let L1Data { twap, cap_level, reserve_price } = l1_data;
 
-            let L1Data { twap, volatility, reserve_price } = l1_data;
-
-            let alpha = self.alpha.read();
+            // @dev Calculate the strike price
             let k = self.strike_level.read();
-            let minimum_cap_level = self.minimum_cap_level.read();
-
-            let cap_level = calculate_cap_level(alpha, k, volatility, minimum_cap_level);
             let strike_price = calculate_strike_price(k, twap);
 
-            PricingData { strike_price, cap_level, reserve_price }
+            // @dev Replace cap level if it is above the minimum
+            let minimum_cap_level = self.minimum_cap_level.read();
+            if cap_level < minimum_cap_level {
+                return PricingData { strike_price, cap_level: minimum_cap_level, reserve_price };
+            } else {
+                return PricingData { strike_price, cap_level, reserve_price };
+            }
         }
 
         /// Position management
@@ -1350,7 +1362,11 @@ mod Vault {
         // @dev Generate a JobRequest for a specific timestamp
         fn generate_job_request(self: @ContractState, timestamp: u64) -> Span<felt252> {
             let mut serialized_request = array![];
-            JobRequest { program_id: PROGRAM_ID, vault_address: get_contract_address(), timestamp }
+            let alpha = self.alpha.read();
+            let k = self.strike_level.read();
+            JobRequest {
+                program_id: PROGRAM_ID, vault_address: get_contract_address(), timestamp, alpha, k
+            }
                 .serialize(ref serialized_request);
             serialized_request.span()
         }

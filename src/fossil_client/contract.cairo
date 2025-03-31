@@ -6,10 +6,10 @@ mod FossilClient {
 
     use pitch_lake::library::constants::PROGRAM_ID;
     use pitch_lake::vault::interface::{
-        IVaultDispatcher, IVaultDispatcherTrait, L1DataProcessorCallbackReturn
+        IVaultDispatcher, IVaultDispatcherTrait, L1DataProcessorCallbackReturn, L1Data,
     };
     use pitch_lake::option_round::interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait};
-    use pitch_lake::fossil_client::interface::{JobRequest, FossilResult, L1Data, IFossilClient};
+    use pitch_lake::fossil_client::interface::{JobRequest, FossilResult, IFossilClient};
 
     // *************************************************************************
     //                              STORAGE
@@ -67,17 +67,14 @@ mod FossilClient {
             ref self: ContractState, mut request: Span<felt252>, mut result: Span<felt252>
         ) -> L1DataProcessorCallbackReturn {
             // Deserialize request & result
-            let JobRequest { vault_address, timestamp, program_id } = Serde::deserialize(
+            let JobRequest { vault_address, timestamp: _, program_id: _, alpha: _, k: _ } =
+                Serde::deserialize(
                 ref request
             )
                 .expect(Errors::FailedToDeserializeRequest);
 
             let FossilResult { l1_data, proof: _ } = Serde::deserialize(ref result)
                 .expect(Errors::FailedToDeserializeResult);
-
-            // Validate the request
-            assert(program_id == PROGRAM_ID, Errors::InvalidRequest);
-            assert(timestamp.is_non_zero(), Errors::InvalidRequest);
 
             // Verify caller is the fossil processor
             // @note Once proving is implemented, remove caller assertion and verify inputs
@@ -89,9 +86,10 @@ mod FossilClient {
                 Errors::CallerNotFossilProcessor
             );
 
-            // Relay L1 data to the vault
+            // Relay request & L1 data to the vault
+
             IVaultDispatcher { contract_address: vault_address }
-                .l1_data_processor_callback(l1_data, timestamp)
+                .l1_data_processor_callback(request, l1_data)
         }
     }
 }

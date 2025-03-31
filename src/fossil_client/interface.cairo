@@ -24,6 +24,10 @@ struct JobRequest {
     timestamp: u64,
     // 'PITCH_LAKE_V1' (or program hash when proving ?)
     program_id: felt252, // 'PITCH_LAKE_V1'}
+    // The riskiness of the vault
+    alpha: u128,
+    // The strike level of the vault
+    k: i128,
 }
 
 impl SerdeJobRequest of Serde<JobRequest> {
@@ -31,6 +35,8 @@ impl SerdeJobRequest of Serde<JobRequest> {
         self.vault_address.serialize(ref output);
         self.timestamp.serialize(ref output);
         self.program_id.serialize(ref output);
+        self.alpha.serialize(ref output);
+        self.k.serialize(ref output);
     }
     fn deserialize(ref serialized: Span<felt252>) -> Option<JobRequest> {
         let vault_address: ContractAddress = (*serialized.at(0))
@@ -40,13 +46,15 @@ impl SerdeJobRequest of Serde<JobRequest> {
             .try_into()
             .expect('failed to deserialize timestamp');
         let program_id: felt252 = *serialized.at(2);
-        Option::Some(JobRequest { program_id, vault_address, timestamp })
+        let alpha: u128 = (*serialized.at(3)).try_into().expect('failed to deserialize alpha');
+        let k: i128 = (*serialized.at(4)).try_into().expect('failed to deserialize k');
+        Option::Some(JobRequest { program_id, vault_address, timestamp, alpha, k })
     }
 }
 
 #[derive(Copy, Drop)]
 struct FossilResult {
-    // TWAP, volatility, reserve price
+    // TWAP, cap level, reserve price
     l1_data: L1Data,
     // Place holder for proof data
     proof: Span<felt252>,
@@ -60,9 +68,7 @@ impl SerdeFossilResult of Serde<FossilResult> {
     fn deserialize(ref serialized: Span<felt252>) -> Option<FossilResult> {
         let twap_low: u128 = (*serialized.at(0)).try_into().expect('failed deserialize twap');
         let twap_high: u128 = (*serialized.at(1)).try_into().expect('failed deserialize twap');
-        let volatility: u128 = (*serialized.at(2))
-            .try_into()
-            .expect('failed deserialize volatility');
+        let cap_level: u128 = (*serialized.at(2)).try_into().expect('failed deserialize cap level');
         let reserve_price_low: u128 = (*serialized.at(3))
             .try_into()
             .expect('failed deserialize reserve');
@@ -74,7 +80,7 @@ impl SerdeFossilResult of Serde<FossilResult> {
             FossilResult {
                 l1_data: L1Data {
                     twap: u256 { low: twap_low, high: twap_high },
-                    volatility,
+                    cap_level,
                     reserve_price: u256 { low: reserve_price_low, high: reserve_price_high }
                 },
                 proof

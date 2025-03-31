@@ -17,10 +17,10 @@ struct ConstructorArgs {
     round_duration: u64,
 }
 
-#[derive(Default, Copy, Drop, Serde, PartialEq, starknet::Store)]
+#[derive(Default, Copy, Drop, Serde, PartialEq, starknet::Store, Debug)]
 struct L1Data {
     twap: u256,
-    volatility: u128,
+    cap_level: u128,
     reserve_price: u256,
 }
 
@@ -142,7 +142,7 @@ trait IVault<TContractState> {
     /// State transitions
 
     fn l1_data_processor_callback(
-        ref self: TContractState, l1_data: L1Data, timestamp: u64
+        ref self: TContractState, job_request_serialized: Span<felt252>, l1_data: L1Data
     ) -> L1DataProcessorCallbackReturn;
 
     // @dev Start the current round's auction

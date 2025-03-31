@@ -66,7 +66,7 @@ for ((i = 1; i <= $VAULT_COUNT; i++)); do
 
 	# Calculate windows for each metric
 	TWAP_CALCULATION_WINDOW_SECONDS=$ROUND_DURATION
-	VOLATILITY_CALCULATION_WINDOW_SECONDS=$((ROUND_DURATION * 3))
+	CAP_LEVEL_CALCULATION_WINDOW_SECONDS=$((ROUND_DURATION * 5))
 	RESERVE_PRICE_CALCULATION_WINDOW_SECONDS=$((ROUND_DURATION * 3))
 
 	echo
@@ -74,7 +74,7 @@ for ((i = 1; i <= $VAULT_COUNT; i++)); do
 	echo "VAULT_ADDRESS: $VAULT_ADDRESS"
 	echo "ROUND_DURATION: $ROUND_DURATION"
 	echo "TWAP calculation window: $TWAP_CALCULATION_WINDOW_SECONDS seconds"
-	echo "Volatility calculation window: $VOLATILITY_CALCULATION_WINDOW_SECONDS seconds"
+	echo "Cap level calculation window: $CAP_LEVEL_CALCULATION_WINDOW_SECONDS seconds"
 	echo "Reserve price calculation window: $RESERVE_PRICE_CALCULATION_WINDOW_SECONDS seconds"
 	echo
 
@@ -90,11 +90,13 @@ for ((i = 1; i <= $VAULT_COUNT; i++)); do
 	VAULT_ADDRESS=$(echo $REQUEST_DATA | jq -r '.[1]')
 	TIMESTAMP_HEX=$(echo $REQUEST_DATA | jq -r '.[2]')
 	IDENTIFIER=$(echo $REQUEST_DATA | jq -r '.[3]')
+	ALPHA=$(echo $REQUEST_DATA | jq -r '.[4]')
+	K=$(echo $REQUEST_DATA | jq -r '.[5]')
 	# Convert hex timestamp to decimal (strip 0x and convert)
 	TIMESTAMP=$((16#${TIMESTAMP_HEX#0x}))
 
 	TWAP_FROM=$(($TIMESTAMP - $TWAP_CALCULATION_WINDOW_SECONDS))
-	VOLATILITY_FROM=$(($TIMESTAMP - $VOLATILITY_CALCULATION_WINDOW_SECONDS))
+	CAP_LEVEL_FROM=$(($TIMESTAMP - $CAP_LEVEL_CALCULATION_WINDOW_SECONDS))
 	RESERVE_PRICE_FROM=$(($TIMESTAMP - $RESERVE_PRICE_CALCULATION_WINDOW_SECONDS))
 
 	echo
@@ -102,7 +104,7 @@ for ((i = 1; i <= $VAULT_COUNT; i++)); do
 	echo
 	echo "Current time: $(date -r $TIMESTAMP)"
 	echo "TWAP from: $(date -r $TWAP_FROM)"
-	echo "Volatility from: $(date -r $VOLATILITY_FROM)"
+	echo "Cap level from: $(date -r $CAP_LEVEL_FROM)"
 	echo "Reserve price from: $(date -r $RESERVE_PRICE_FROM)"
 	echo "Vault address: $VAULT_ADDRESS"
 	echo "Timestamp: $TIMESTAMP"
@@ -116,8 +118,10 @@ for ((i = 1; i <= $VAULT_COUNT; i++)); do
             \"identifiers\":[\"$IDENTIFIER\"],
             \"params\": {
                 \"twap\": [$TWAP_FROM, $TIMESTAMP],
-                \"volatility\": [$VOLATILITY_FROM, $TIMESTAMP],
+                \"cap_level\": [$CAP_LEVEL_FROM, $TIMESTAMP],
                 \"reserve_price\": [$RESERVE_PRICE_FROM, $TIMESTAMP]
+                \"alpha\": $ALPHA,
+                \"k\": $K
             },
             \"client_info\": {
                 \"client_address\": \"$FOSSIL_CLIENT_ADDRESS\",

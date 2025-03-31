@@ -3,7 +3,7 @@ use pitch_lake::tests::utils::facades::vault_facade::{VaultFacade, VaultFacadeTr
 use pitch_lake::tests::utils::helpers::general_helpers::to_gwei;
 
 fn get_mock_l1_data() -> L1Data {
-    L1Data { twap: to_gwei(33) / 100, volatility: 1009, reserve_price: to_gwei(11) / 10 }
+    L1Data { twap: to_gwei(33) / 100, cap_level: 1009, reserve_price: to_gwei(11) / 10 }
 }
 
 fn get_mock_result() -> FossilResult {

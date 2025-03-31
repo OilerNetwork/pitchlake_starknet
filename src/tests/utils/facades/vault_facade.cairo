@@ -165,17 +165,26 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     /// State transition
 
     fn fossil_client_callback(
-        ref self: VaultFacade, l1_data: L1Data, timestamp: u64
+        ref self: VaultFacade, job_request: JobRequest, l1_data: L1Data
     ) -> L1DataProcessorCallbackReturn {
-        self.vault_dispatcher.l1_data_processor_callback(l1_data, timestamp)
+        // @dev Serialize the job request
+        let mut request_serialized = array![];
+        job_request.serialize(ref request_serialized);
+
+        self.vault_dispatcher.l1_data_processor_callback(request_serialized.span(), l1_data)
     }
 
     #[feature("safe_dispatcher")]
     fn fossil_client_callback_expect_error(
-        ref self: VaultFacade, l1_data: L1Data, timestamp: u64, error: felt252
+        ref self: VaultFacade, job_request: JobRequest, l1_data: L1Data, error: felt252
     ) {
         let safe_vault = self.get_safe_dispatcher();
-        safe_vault.l1_data_processor_callback(l1_data, timestamp).expect_err(error);
+
+        // @dev Serialize the job request
+        let mut request_serialized = array![];
+        job_request.serialize(ref request_serialized);
+
+        safe_vault.l1_data_processor_callback(request_serialized.span(), l1_data).expect_err(error);
     }
 
     fn start_auction(ref self: VaultFacade) -> u256 {

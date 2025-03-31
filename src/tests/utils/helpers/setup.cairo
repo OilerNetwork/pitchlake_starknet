@@ -168,7 +168,7 @@ fn setup_facade_custom(alpha: u128, strike_level: i128) -> VaultFacade {
     let mut serialized_result = array![];
     vault_facade.get_request_to_start_first_round().serialize(ref serialized_request);
     FossilResult {
-        l1_data: L1Data { twap: to_gwei(10), volatility: 5000, reserve_price: to_gwei(2), },
+        l1_data: L1Data { twap: to_gwei(10), cap_level: 2222, reserve_price: to_gwei(2), },
         proof: array!['doesnt', 'matter'].span()
     }
         .serialize(ref serialized_result);
@@ -199,7 +199,7 @@ fn setup_facade_custom(alpha: u128, strike_level: i128) -> VaultFacade {
 
 fn setup_facade() -> (VaultFacade, ERC20ABIDispatcher) {
     // Deploy vault with 33.33% risk factor and strikes equal to basefee at start
-    let mut vault_facade = setup_facade_custom(10_000, 0);
+    let mut vault_facade = setup_facade_custom(2500, 0);
     let eth_dispatcher = ERC20ABIDispatcher { contract_address: vault_facade.get_eth_address() };
 
     (vault_facade, eth_dispatcher)
