@@ -532,7 +532,8 @@ fn test_option_distribution_real_numbers_1() {
         bid_amounts,
         bid_prices,
         expected_options_sold,
-        expected_option_distribution
+        expected_option_distribution,
+        11,
     )
 }
 
@@ -557,7 +558,188 @@ fn test_option_distribution_real_numbers_2() {
         bid_amounts,
         bid_prices,
         expected_options_sold,
-        expected_option_distribution
+        expected_option_distribution,
+        2,
+    )
+}
+
+// Test where 0 reserve price
+#[test]
+#[available_gas(500000000)]
+fn test_0_reserve_price() {
+    let (mut vault, _) = setup_facade();
+    let options_available = 200;
+
+    let reserve_price = 0;
+    let bid_amounts = array![100, 100, 100].span();
+    let bid_prices = array![0, 0, 0].span();
+    let expected_options_sold = 200;
+
+    let mut expected_option_distribution = array![100, 100, 0].span();
+
+    auction_real_numbers_test_helper(
+        ref vault,
+        options_available,
+        reserve_price,
+        bid_amounts,
+        bid_prices,
+        expected_options_sold,
+        expected_option_distribution,
+        0
+    )
+}
+
+// Test where 0 reserve price not all options sold
+#[test]
+#[available_gas(500000000)]
+fn test_0_reserve_price_partial_sale_asdf() {
+    let (mut vault, _) = setup_facade();
+    let options_available = 200;
+
+    let reserve_price = 0;
+    let bid_amounts = array![10, 20, 30].span();
+    let bid_prices = array![0, 0, 0].span();
+    let expected_options_sold = 60;
+
+    let mut expected_option_distribution = array![10, 20, 30].span();
+
+    auction_real_numbers_test_helper(
+        ref vault,
+        options_available,
+        reserve_price,
+        bid_amounts,
+        bid_prices,
+        expected_options_sold,
+        expected_option_distribution,
+        0
+    )
+}
+
+// Test where 0 reserve price all options sold
+#[test]
+#[available_gas(500000000)]
+fn test_0_reserve_price_partial_sale_clearing_bid() {
+    let (mut vault, _) = setup_facade();
+    let options_available = 200;
+
+    let reserve_price = 0;
+    let bid_amounts = array![100, 200, 300].span();
+    let bid_prices = array![0, 0, 0].span();
+    let expected_options_sold = 200;
+
+    let mut expected_option_distribution = array![100, 100, 0].span();
+
+    auction_real_numbers_test_helper(
+        ref vault,
+        options_available,
+        reserve_price,
+        bid_amounts,
+        bid_prices,
+        expected_options_sold,
+        expected_option_distribution,
+        0
+    )
+}
+
+// Test where 0 reserve price not all options sold
+#[test]
+#[available_gas(500000000)]
+fn test_0_reserve_price_partial_sale_clearing_bid_2() {
+    let (mut vault, _) = setup_facade();
+    let options_available = 200;
+
+    let reserve_price = 0;
+    let bid_amounts = array![199, 50, 100].span();
+    let bid_prices = array![0, 0, 0].span();
+    let expected_options_sold = 200;
+
+    let mut expected_option_distribution = array![199, 1, 0].span();
+
+    auction_real_numbers_test_helper(
+        ref vault,
+        options_available,
+        reserve_price,
+        bid_amounts,
+        bid_prices,
+        expected_options_sold,
+        expected_option_distribution,
+        0
+    )
+}
+// Test where 0 reserve price not all options sold
+#[test]
+#[available_gas(500000000)]
+fn test_0_reserve_price_loses() {
+    let (mut vault, _) = setup_facade();
+    let options_available = 200;
+
+    let reserve_price = 0;
+    let bid_amounts = array![1, 2, 3].span();
+    let bid_prices = array![0, 1, 0].span();
+    let expected_options_sold = 6;
+
+    let mut expected_option_distribution = array![1, 2, 3].span();
+
+    auction_real_numbers_test_helper(
+        ref vault,
+        options_available,
+        reserve_price,
+        bid_amounts,
+        bid_prices,
+        expected_options_sold,
+        expected_option_distribution,
+        0
+    )
+}
+
+// Test edge case
+#[test]
+#[available_gas(500000000)]
+fn test_tree_edge_case() {
+    let (mut vault, _) = setup_facade();
+    let options_available = 200;
+
+    let reserve_price = 1;
+    let bid_amounts = array![1, 2, 3].span();
+    let bid_prices = array![1, 2, 1].span();
+    let expected_options_sold = 6;
+
+    let mut expected_option_distribution = array![1, 2, 3].span();
+
+    auction_real_numbers_test_helper(
+        ref vault,
+        options_available,
+        reserve_price,
+        bid_amounts,
+        bid_prices,
+        expected_options_sold,
+        expected_option_distribution,
+        1
+    )
+}
+
+#[test]
+#[available_gas(500000000)]
+fn test_tree_edge_case_2() {
+    let (mut vault, _) = setup_facade();
+    let options_available = 200;
+
+    let reserve_price = 1;
+    let bid_amounts = array![150, 25].span();
+    let bid_prices = array![20, 10].span();
+    let expected_options_sold = 175;
+
+    let mut expected_option_distribution = array![150, 25].span();
+
+    auction_real_numbers_test_helper(
+        ref vault,
+        options_available,
+        reserve_price,
+        bid_amounts,
+        bid_prices,
+        expected_options_sold,
+        expected_option_distribution,
+        10
     )
 }
 
@@ -581,7 +763,8 @@ fn test_option_distribution_real_numbers_3() {
         bid_amounts,
         bid_prices,
         expected_options_sold,
-        expected_option_distribution
+        expected_option_distribution,
+        20
     )
 }
 
@@ -594,6 +777,7 @@ fn auction_real_numbers_test_helper(
     bid_prices: Span<u256>,
     expected_options_sold: u256,
     mut expected_option_distribution: Span<u256>,
+    expected_clearing_price: u256,
 ) {
     let mut current_round: OptionRoundFacade = vault.get_current_round();
     let d = current_round.decimals();
@@ -610,10 +794,11 @@ fn auction_real_numbers_test_helper(
     // Place bids, ignoring the failed bids
     let bidders = option_bidders_get(bid_amounts.len()).span();
     vault.place_bids_ignore_errors(bid_amounts, bid_prices, bidders);
-    let (_, options_sold) = timeskip_and_end_auction(ref vault);
+    let (clearing_price, options_sold) = timeskip_and_end_auction(ref vault);
 
     // Check that the correct number of options were sold and distributed
-    assert(options_sold == expected_options_sold, 'options sold should match');
+    assert_eq!(clearing_price, expected_clearing_price);
+    assert_eq!(options_sold, expected_options_sold);
     let mut option_bidders = option_bidders_get(bid_amounts.len()).span();
     loop {
         match option_bidders.pop_front() {
