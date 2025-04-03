@@ -1079,8 +1079,6 @@ mod Vault {
             let current_round_id = self.current_round_id.read();
             let L1Data { twap, cap_level, reserve_price } = l1_data;
 
-            assert(twap.is_non_zero(), RoundErrors::PricingDataNotSet);
-
             // @dev Settle the current round and return the total payout
             let current_round = self.get_round_dispatcher(current_round_id);
             let (total_payout, payout_per_option) = current_round.settle_round(twap);
