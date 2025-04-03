@@ -30,7 +30,7 @@ export const ABI = [
   },
   {
     "type": "struct",
-    "name": "pitch_lake::fossil_client::interface::RoundSettledReturn",
+    "name": "pitch_lake::vault::interface::RoundSettledReturn",
     "members": [
       {
         "name": "total_payout",
@@ -40,11 +40,11 @@ export const ABI = [
   },
   {
     "type": "enum",
-    "name": "pitch_lake::fossil_client::interface::FossilCallbackReturn",
+    "name": "pitch_lake::vault::interface::L1DataProcessorCallbackReturn",
     "variants": [
       {
         "name": "RoundSettled",
-        "type": "pitch_lake::fossil_client::interface::RoundSettledReturn"
+        "type": "pitch_lake::vault::interface::RoundSettledReturn"
       },
       {
         "name": "FirstRoundInitialized",
@@ -71,7 +71,7 @@ export const ABI = [
         ],
         "outputs": [
           {
-            "type": "pitch_lake::fossil_client::interface::FossilCallbackReturn"
+            "type": "pitch_lake::vault::interface::L1DataProcessorCallbackReturn"
           }
         ],
         "state_mutability": "external"
@@ -90,14 +90,14 @@ export const ABI = [
   },
   {
     "type": "struct",
-    "name": "pitch_lake::fossil_client::interface::L1Data",
+    "name": "pitch_lake::vault::interface::L1Data",
     "members": [
       {
         "name": "twap",
         "type": "core::integer::u256"
       },
       {
-        "name": "volatility",
+        "name": "cap_level",
         "type": "core::integer::u128"
       },
       {
@@ -118,7 +118,7 @@ export const ABI = [
       },
       {
         "name": "l1_data",
-        "type": "pitch_lake::fossil_client::interface::L1Data",
+        "type": "pitch_lake::vault::interface::L1Data",
         "kind": "data"
       },
       {
