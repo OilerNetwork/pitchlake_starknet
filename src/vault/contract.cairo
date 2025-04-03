@@ -722,11 +722,8 @@ mod Vault {
             assert(alpha == self.alpha.read(), Errors::InvalidL1JobRequest);
             assert(k == self.strike_level.read(), Errors::InvalidL1JobRequest);
 
-            // @dev Assert TWAP & reserve price are non-zero
-            assert(
-                l1_data.twap.is_non_zero() && l1_data.reserve_price.is_non_zero(),
-                Errors::InvalidL1Data
-            );
+            // @dev Assert TWAP is non-zero
+            assert(l1_data.twap.is_non_zero(), Errors::InvalidL1Data);
 
             // @dev Get the current round's state
             let current_round_id = self.current_round_id.read();
@@ -1082,9 +1079,7 @@ mod Vault {
             let current_round_id = self.current_round_id.read();
             let L1Data { twap, cap_level, reserve_price } = l1_data;
 
-            assert(
-                twap.is_non_zero() && reserve_price.is_non_zero(), RoundErrors::PricingDataNotSet
-            );
+            assert(twap.is_non_zero(), RoundErrors::PricingDataNotSet);
 
             // @dev Settle the current round and return the total payout
             let current_round = self.get_round_dispatcher(current_round_id);

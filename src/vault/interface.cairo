@@ -117,7 +117,7 @@ trait IVault<TContractState> {
 
     /// Writes ///
 
-    /// Account functions
+    /// Liquidity provider functions
 
     // @dev The caller adds liquidity for an account's upcoming round deposit (unlocked balance)
     // @param amount: The amount of liquidity to deposit
@@ -139,25 +139,7 @@ trait IVault<TContractState> {
     // @return The amount withdrawn
     fn withdraw_stash(ref self: TContractState, account: ContractAddress) -> u256;
 
-    /// State transitions
-
-    fn l1_data_processor_callback(
-        ref self: TContractState, job_request_serialized: Span<felt252>, l1_data: L1Data
-    ) -> L1DataProcessorCallbackReturn;
-
-    // @dev Start the current round's auction
-    // @return The total options available in the auction
-    fn start_auction(ref self: TContractState) -> u256;
-
-    // @dev Ends the current round's auction
-    // @return The clearing price and total options sold
-    fn end_auction(ref self: TContractState) -> (u256, u256);
-
-    // @dev Settle the current round
-    // @return The total payout for the round
-    // fn settle_round(ref self: TContractState, l1_data: L1Data) -> u256;
-
-    // User actions
+    /// Option bidder/buyer actions
 
     // @dev Place a bid in the current round's auction
     // @param amount: The max amount of options being bid for
@@ -188,4 +170,21 @@ trait IVault<TContractState> {
     // @param round_address: The address of the round to exercise options from
     // @return The amount exercised
     fn exercise_options(ref self: TContractState, round_address: ContractAddress) -> u256;
+
+    /// State transitions
+
+    // @dev Start the current round's auction
+    // @return The total options available in the auction
+    fn start_auction(ref self: TContractState) -> u256;
+
+    // @dev Ends the current round's auction
+    // @return The clearing price and total options sold
+    fn end_auction(ref self: TContractState) -> (u256, u256);
+
+    // @dev Settle the current round/initialize the first round and deploy the next round
+    // @param job_request_serialized: The serialized job request from the L1 data processor
+    // @param l1_data: The data from the L1 data processor (twap, cap level, reserve price)
+    fn l1_data_processor_callback(
+        ref self: TContractState, job_request_serialized: Span<felt252>, l1_data: L1Data
+    ) -> L1DataProcessorCallbackReturn;
 }

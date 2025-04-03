@@ -247,7 +247,6 @@ fn test_get_bids_for() {
     assert(bids3 == array![*bids[2]], 'Bids 3 mismatch');
 }
 
-
 /// Liquidity Tests ///
 
 // Test bidding transfers eth from bidder to round
