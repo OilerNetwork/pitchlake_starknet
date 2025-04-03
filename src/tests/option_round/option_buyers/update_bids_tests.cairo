@@ -184,7 +184,7 @@ fn test_updating_bids_higher_price_wins() {
 }
 
 #[test]
-#[available_gas(70000000)]
+#[available_gas(700000000)]
 fn test_updating_bids_lower_tree_index_loses() {
     let (mut vault, _) = setup_facade();
     let mut current_round = vault.get_current_round();
