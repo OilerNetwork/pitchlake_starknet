@@ -22,7 +22,7 @@ mod Vault {
     };
     use pitch_lake::library::constants::{PROGRAM_ID, BPS_i128, BPS_felt252, BPS_u128, BPS_u256};
     use pitch_lake::library::utils::{assert_equal_in_range, generate_request_id};
-    use pitch_lake::library::pricing_utils::{calculate_strike_price, calculate_cap_level};
+    use pitch_lake::library::pricing_utils::calculate_strike_price;
     use pitch_lake::types::{Bid};
     use core::fmt::{Formatter, Error, Debug};
 
