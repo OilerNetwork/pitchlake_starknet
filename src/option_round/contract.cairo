@@ -384,6 +384,7 @@ mod OptionRound {
             };
 
             mintable_balance
+            
         }
 
         fn get_account_total_options(self: @ContractState, account: ContractAddress) -> u256 {
@@ -745,6 +746,7 @@ mod OptionRound {
                 // @dev Get the clearing bid
                 let clearing_bid_id: felt252 = self.bids_tree.clearing_bid.read();
                 let clearing_bid: Bid = self.bids_tree._find(clearing_bid_id);
+                println!("clearing_bid: {:?}", clearing_bid);
                 let mut clearing_bid_option: Option<Bid> = Option::None(());
 
                 // @dev Iterate over the account's bids and compare them to the clearing bid
@@ -756,7 +758,10 @@ mod OptionRound {
 
                         // @dev If this bid is the clearing bid it is special because it could be
                         // mintable & refundable
-                        if bid_id == clearing_bid_id {
+                        if(clearing_bid_id.is_zero()) {
+                            winning_bids.append(bid);
+                        }
+                        else if bid_id == clearing_bid_id {
                             clearing_bid_option = Option::Some(bid);
                         } // @dev If this bid is not the clearing bid, check if this bid is above or below the clearing bid
                         else {
