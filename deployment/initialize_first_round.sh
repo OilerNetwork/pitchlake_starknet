@@ -67,7 +67,8 @@ for ((i = 1; i <= $VAULT_COUNT; i++)); do
 	# Calculate windows for each metric
 	TWAP_CALCULATION_WINDOW_SECONDS=$ROUND_DURATION
 	CAP_LEVEL_CALCULATION_WINDOW_SECONDS=$((ROUND_DURATION * 5))
-	RESERVE_PRICE_CALCULATION_WINDOW_SECONDS=$((ROUND_DURATION * 3))
+	# Hardcode 150 days for reserve price calculation window
+	RESERVE_PRICE_CALCULATION_WINDOW_SECONDS=$((3600 * 24 * 150))
 
 	echo
 	echo "Vault $i Configuration:"
