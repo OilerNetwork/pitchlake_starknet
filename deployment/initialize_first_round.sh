@@ -156,7 +156,7 @@ for ((i = 1; i <= $VAULT_COUNT; i++)); do
 			exit 1
 		fi
 
-		sleep 10
+		sleep 30
 	done
 
 	echo "Vault $i initialization complete"
