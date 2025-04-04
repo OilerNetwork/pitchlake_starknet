@@ -81,6 +81,7 @@ for ((i = 0; i < $VAULT_COUNT; i++)); do
 	ADDRESS=$(starkli deploy $VAULT_HASH $FOSSIL_CLIENT_ADDRESS $ETH_ADDRESS $OPTIONROUND_HASH $ALPHA $STRIKE $MINIMUM_CAP_LEVEL $ROUND_TRANSITION_DURATION $AUCTION_DURATION $ROUND_DURATION --watch | grep -o '0x[a-fA-F0-9]\{64\}' | head -1)
 	VAULT_ADDRESSES+=($ADDRESS)
 	echo "[Vault $((i + 1))] Contract deployed at: $ADDRESS"
+	sleep 30
 done
 
 # Save deployment addresses to file
