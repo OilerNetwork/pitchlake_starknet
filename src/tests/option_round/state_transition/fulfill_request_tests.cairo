@@ -98,9 +98,10 @@ fn test_invalid_result_fails() {
     let request = get_request_serialized(ref vault);
     let mut result = get_mock_result_serialized();
 
-    // Should fail
     set_contract_address(FOSSIL_PROCESSOR());
-    let _ = result.pop_front();
+    let _ = result.pop_front(); // proof: [0]
+    let _ = result.pop_front(); // proof: []
+    let _ = result.pop_front(); // should fail
     fossil_client.fossil_callback_expect_error(request, result, fErrors::FailedToDeserializeResult);
 }
 
