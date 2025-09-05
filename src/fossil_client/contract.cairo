@@ -62,18 +62,18 @@ mod FossilClient {
     #[abi(embed_v0)]
     impl FossilClientImpl of IFossilClient<ContractState> {
         fn fossil_callback(
-            ref self: ContractState, mut request: Span<felt252>, mut result: Span<felt252>
+            ref self: ContractState, mut job_request: Span<felt252>, mut result: Span<felt252>
         ) {
-            // Deserialize request & result
+            // Deserialize job_request & result
             let JobRequest { vault_address, timestamp, program_id } = Serde::deserialize(
-                ref request
+                ref job_request
             )
                 .expect(Errors::FailedToDeserializeRequest);
 
             let FossilResult { l1_data, proof: _ } = Serde::deserialize(ref result)
                 .expect(Errors::FailedToDeserializeResult);
 
-            // Validate the request
+            // Validate the job_request
             assert(program_id == PROGRAM_ID, Errors::InvalidRequest);
             assert(timestamp.is_non_zero(), Errors::InvalidRequest);
 
