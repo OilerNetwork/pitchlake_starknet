@@ -9,7 +9,7 @@ mod FossilClient {
     use pitch_lake::library::constants::PROGRAM_ID;
     use pitch_lake::vault::interface::{IVaultDispatcher, IVaultDispatcherTrait};
     use pitch_lake::option_round::interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait};
-    use pitch_lake::fossil_client::interface::{JobRequest, FossilResult, L1Data, IFossilClient,};
+    use pitch_lake::fossil_client::interface::{JobRequest, VerifierData, L1Data, IFossilClient,};
 
     // *************************************************************************
     //                              COMPONENTS
@@ -40,7 +40,7 @@ mod FossilClient {
         const VerifierAlreadySet: felt252 = 'Verifier already set';
         const CallerNotVerifier: felt252 = 'Caller not the verifier';
         const FailedToDeserializeRequest: felt252 = 'Failed to deserialize request';
-        const FailedToDeserializeResult: felt252 = 'Failed to deserialize result';
+        const FailedToDeserializeVerifierData: felt252 = 'Failed to desr. verifier data';
         const InvalidRequest: felt252 = 'Invalid request';
     }
 
@@ -96,29 +96,43 @@ mod FossilClient {
         fn fossil_callback(
             ref self: ContractState, mut job_request: Span<felt252>, mut result: Span<felt252>
         ) {
-            // Deserialize job_request & result
+            // Verify caller is the Pitchlake Verifier
+            assert(get_caller_address() == self.verifier.read(), Errors::CallerNotVerifier);
+
+            // Deserialize job_request
             let JobRequest { vault_address, timestamp, program_id } = Serde::deserialize(
                 ref job_request
             )
                 .expect(Errors::FailedToDeserializeRequest);
 
-            let FossilResult { l1_data, proof: _ } = Serde::deserialize(ref result)
-                .expect(Errors::FailedToDeserializeResult);
+            // Deserialize verifier data
+            let VerifierData { start_timestamp,
+            end_timestamp,
+            reserve_price,
+            floating_point_tolerance,
+            reserve_price_tolerance,
+            twap_tolerance,
+            gradient_tolerance,
+            twap_result,
+            max_return } =
+                Serde::deserialize(
+                ref result
+            )
+                .expect(Errors::FailedToDeserializeVerifierData);
+
+            // Create L1Data
+            let l1_data = L1Data {
+                twap: twap_result.into(),
+                max_return: max_return.try_into().unwrap(),
+                reserve_price: reserve_price.into()
+            };
 
             // Validate the job_request
             assert(program_id == PROGRAM_ID, Errors::InvalidRequest);
-            assert(timestamp.is_non_zero(), Errors::InvalidRequest);
 
-            // Verify caller is the fossil processor
-            // @note Once proving is implemented, remove caller assertion and verify inputs
-            // (timestamp & program id)/outputs (l1 data)/proof
-
-            // @note Skipping for now for testnet testing
-            assert(get_caller_address() == self.verifier.read(), Errors::CallerNotVerifier);
-
-            // Relay L1 data to the vault
-            IVaultDispatcher { contract_address: vault_address }
-                .fossil_client_callback(l1_data, timestamp);
+            //// Relay L1 data to the vault
+            //IVaultDispatcher { contract_address: vault_address }
+            //    .fossil_client_callback(l1_data, timestamp);
 
             // Emit callback success event
             self
