@@ -541,12 +541,7 @@ mod OptionRound {
             // @note todo: handle null rounds
             let pricing_data = self.pricing_data.read();
             let PricingData { strike_price, cap_level, reserve_price } = pricing_data;
-            assert(
-                strike_price.is_non_zero()
-                    && cap_level.is_non_zero()
-                    && reserve_price.is_non_zero(),
-                Errors::PricingDataNotSet
-            );
+            assert(strike_price.is_non_zero(), Errors::PricingDataNotSet);
             // @dev Calculate total options available
             let strike_price = pricing_data.strike_price;
             let cap_level = pricing_data.cap_level;
