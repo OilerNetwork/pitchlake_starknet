@@ -36,25 +36,8 @@ use pitch_lake::library::pricing_utils::{calculate_strike_price};
 use core::integer::{I128Neg};
 
 
-//#[test]
-//#[available_gas(50000000)]
-//#[ignore]
-//fn asdf() {
-//    let k1: i128 = -2222;
-//    let k2: i128 = 2222;
-//    let k3: i128 = 0;
-//
-//    let strike1 = calculate_strike_price(k1, 10_000_000);
-//    let strike2 = calculate_strike_price(k2, 10_000_000);
-//    let strike3 = calculate_strike_price(k3, 10_000_000);
-//
-//    println!("strike1: {}", strike1);
-//    println!("strike2: {}", strike2);
-//    println!("strike3: {}", strike3);
-//}
-
 fn get_mock_l1_data() -> L1Data {
-    L1Data { twap: to_gwei(33) / 100, volatility: 1009, reserve_price: to_gwei(11) / 10 }
+    L1Data { twap: to_gwei(33) / 100, max_return: 1009, reserve_price: to_gwei(11) / 10 }
 }
 
 fn get_mock_result() -> FossilResult {
@@ -95,7 +78,7 @@ fn test_only_fossil_processor_can_call_fossil_callback() {
 
     // Should fail
     set_contract_address(contract_address_const::<'NOT IT'>());
-    fossil_client.fossil_callback_expect_error(request, result, fErrors::CallerNotFossilProcessor);
+    fossil_client.fossil_callback_expect_error(request, result, fErrors::CallerNotVerifier);
 
     // Should not fail
     set_contract_address(FOSSIL_PROCESSOR());
@@ -164,7 +147,7 @@ fn test_default_l1_data_fails() {
     let mut result3 = get_mock_result();
 
     result1.l1_data.twap = 0;
-    //result2.l1_data.volatility = 0;
+    //result2.l1_data.max_return = 0;
     result3.l1_data.reserve_price = 0;
 
     result1.serialize(ref result1_serialized);
@@ -214,7 +197,7 @@ fn test_callback_event() {
 
 // Vault Callback for Client
 
-// Test only fossil client can call fossil client callback
+// Test only pitch lake client can call pitch client callback
 #[test]
 #[available_gas(50000000)]
 fn test_only_fossil_client_can_call_fossil_client_callback() {
@@ -260,10 +243,10 @@ fn test_callback_sets_pricing_data_for_round() {
 
     // Check pricing data set as expected
     let mut current_round = vault.get_current_round();
-    let L1Data { twap, volatility, reserve_price } = get_mock_l1_data();
+    let L1Data { twap, max_return, reserve_price } = get_mock_l1_data();
     let exp_strike_price = pricing_utils::calculate_strike_price(vault.get_strike_level(), twap);
     let exp_cap_level = pricing_utils::calculate_cap_level(
-        vault.get_alpha(), vault.get_strike_level(), volatility
+        vault.get_alpha(), vault.get_strike_level(), max_return
     );
 
     assert_eq!(current_round.get_strike_price(), exp_strike_price);
@@ -336,8 +319,8 @@ fn test_callback_for_first_round_if_in_range() {
     let mut vault = VaultFacade { vault_dispatcher: deploy_vault(1234, 1234, eth_address) };
     let mut current_round = vault.get_current_round();
 
-    let L1Data { twap, volatility, reserve_price } = get_mock_l1_data();
-    let l1_data = L1Data { twap, volatility, reserve_price };
+    let L1Data { twap, max_return, reserve_price } = get_mock_l1_data();
+    let l1_data = L1Data { twap, max_return, reserve_price };
     let deployment_date = current_round.get_deployment_date();
 
     set_block_timestamp(current_round.get_auction_start_date() - 1);
@@ -346,7 +329,7 @@ fn test_callback_for_first_round_if_in_range() {
 
     let expected_strike = pricing_utils::calculate_strike_price(vault.get_strike_level(), twap);
     let expected_cap = pricing_utils::calculate_cap_level(
-        vault.get_alpha(), vault.get_strike_level(), volatility
+        vault.get_alpha(), vault.get_strike_level(), max_return
     );
 
     assert_eq!(current_round.get_strike_price(), expected_strike);
@@ -364,8 +347,8 @@ fn test_callback_out_of_range_fails_first_round_start() {
     let mut vault = VaultFacade { vault_dispatcher: deploy_vault(1234, 1234, eth_address) };
     let mut current_round = vault.get_current_round();
 
-    let L1Data { twap, volatility, reserve_price } = get_mock_l1_data();
-    let l1_data = L1Data { twap, volatility, reserve_price };
+    let L1Data { twap, max_return, reserve_price } = get_mock_l1_data();
+    let l1_data = L1Data { twap, max_return, reserve_price };
     let deployment_date = current_round.get_deployment_date();
 
     set_block_timestamp(current_round.get_auction_start_date() - 1);
@@ -391,8 +374,8 @@ fn test_callback_out_of_range_fails_settle_current_round() {
     accelerate_to_auctioning(ref vault);
     accelerate_to_running(ref vault);
 
-    let L1Data { twap, volatility, reserve_price } = get_mock_l1_data();
-    let l1_data = L1Data { twap, volatility, reserve_price };
+    let L1Data { twap, max_return, reserve_price } = get_mock_l1_data();
+    let l1_data = L1Data { twap, max_return, reserve_price };
     let settlement_date = current_round.get_option_settlement_date();
 
     set_block_timestamp(current_round.get_auction_start_date() - 1);
@@ -433,7 +416,7 @@ fn test_callback_works_as_expected() {
     let l1_data = get_mock_l1_data();
     let strike = pricing_utils::calculate_strike_price(vault.get_strike_level(), l1_data.twap);
     let cap = pricing_utils::calculate_cap_level(
-        vault.get_alpha(), vault.get_strike_level(), l1_data.volatility
+        vault.get_alpha(), vault.get_strike_level(), l1_data.max_return
     );
 
     assert_eq!(next_round.get_cap_level(), cap);

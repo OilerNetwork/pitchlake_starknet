@@ -596,7 +596,7 @@ mod Vault {
             );
 
             // @dev Assert the L1 data is valid
-            let L1Data { twap, volatility: _, reserve_price } = l1_data;
+            let L1Data { twap, max_return: _, reserve_price } = l1_data;
             assert(twap.is_non_zero() && reserve_price.is_non_zero(), Errors::InvalidL1Data);
 
             // @dev Requests can only be fulfilled if the current round is Running, or if the
@@ -681,7 +681,7 @@ mod Vault {
         fn settle_round(ref self: ContractState) -> u256 {
             // @dev Get pricing data set for the current round's settlement
             let current_round_id = self.current_round_id.read();
-            let L1Data { twap, volatility, reserve_price } = self
+            let L1Data { twap, max_return, reserve_price } = self
                 .l1_data
                 .entry(current_round_id)
                 .read();
@@ -729,7 +729,7 @@ mod Vault {
             }
 
             // @dev Deploy the next option round contract & update the current round id
-            self.deploy_next_round(L1Data { twap, volatility, reserve_price });
+            self.deploy_next_round(L1Data { twap, max_return, reserve_price });
 
             // @dev Return the total payout of the settled round
             total_payout
@@ -845,12 +845,12 @@ mod Vault {
                 return PricingData { strike_price: 0, cap_level: 0, reserve_price: 0 };
             }
 
-            let L1Data { twap, volatility, reserve_price } = l1_data;
+            let L1Data { twap, max_return, reserve_price } = l1_data;
 
             let alpha = self.alpha.read();
             let k = self.strike_level.read();
 
-            let cap_level = calculate_cap_level(alpha, k, volatility);
+            let cap_level = calculate_cap_level(alpha, k, max_return);
             let strike_price = calculate_strike_price(k, twap);
 
             PricingData { strike_price, cap_level, reserve_price }

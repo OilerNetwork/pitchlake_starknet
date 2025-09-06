@@ -167,7 +167,7 @@ fn setup_facade_custom(alpha: u128, strike_level: i128) -> VaultFacade {
     let mut serialized_result = array![];
     vault_facade.get_request_to_start_first_round().serialize(ref serialized_request);
     FossilResult {
-        l1_data: L1Data { twap: to_gwei(10), volatility: 5000, reserve_price: to_gwei(2), },
+        l1_data: L1Data { twap: to_gwei(10), max_return: 5000, reserve_price: to_gwei(2), },
         proof: array!['doesnt', 'matter'].span()
     }
         .serialize(ref serialized_result);
