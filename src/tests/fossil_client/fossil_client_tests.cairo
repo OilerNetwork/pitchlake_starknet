@@ -1,4 +1,12 @@
 use pitch_lake::fossil_client::interface::{JobRequest, VerifierData};
+use pitch_lake::fossil_client::contract::FossilClient::Errors;
+use pitch_lake::tests::utils::helpers::setup::{deploy_fossil_client};
+use pitch_lake::tests::utils::helpers::setup::{FOSSIL_CLIENT_OWNER, PITCHLAKE_VERIFIER};
+use pitch_lake::tests::utils::facades::fossil_client_facade::{
+    FossilClientFacade, FossilClientFacadeTrait
+};
+use openzeppelin_access::ownable::interface::{IOwnableDispatcher, IOwnableDispatcherTrait};
+use openzeppelin_access::ownable::{OwnableComponent::Errors as OErrors};
 
 #[test]
 fn test_job_request_serialization() {
@@ -66,5 +74,59 @@ fn test_verifier_deserialization() {
     let deserialized: VerifierData = Serde::deserialize(ref serialized_span)
         .expect('failed to deser verifier data');
     assert(verifier_data == deserialized, 'deserialized does not match');
+}
+
+#[test]
+fn test_deploy_verifier() {
+    let fossil_client = deploy_fossil_client();
+
+    assert_eq!(fossil_client.is_verifier_set(), false);
+    assert_eq!(fossil_client.get_verifier().into(), 0);
+}
+
+#[test]
+fn test_initialize_verifier() {
+    let fossil_client = deploy_fossil_client();
+
+    fossil_client.initialize_verifier(0xb00b.try_into().unwrap());
+
+    assert_eq!(fossil_client.is_verifier_set(), true);
+    assert_eq!(fossil_client.get_verifier().into(), 0xb00b);
+}
+
+#[test]
+fn test_initialize_verifier_only_once() {
+    let fossil_client = deploy_fossil_client();
+
+    fossil_client.initialize_verifier(0xb00b.try_into().unwrap());
+    fossil_client
+        .initialize_verifier_expect_error(0xc0de.try_into().unwrap(), Errors::VerifierAlreadySet);
+
+    assert_eq!(fossil_client.is_verifier_set(), true);
+    assert_eq!(fossil_client.get_verifier(), 0xb00b.try_into().unwrap());
+}
+
+#[test]
+fn test_initialize_verifier_only_owner() {
+    let fossil_client = deploy_fossil_client();
+
+    starknet::testing::set_contract_address(0xdead.try_into().unwrap());
+    fossil_client.initialize_verifier_expect_error(0xb00b.try_into().unwrap(), OErrors::NOT_OWNER);
+
+    assert_eq!(fossil_client.is_verifier_set(), false);
+    assert_eq!(fossil_client.get_verifier().into(), 0);
+}
+
+#[test]
+fn test_caller_not_verifier_fossil_callback() {
+    let fossil_client = deploy_fossil_client();
+
+    // Set verifier
+    fossil_client.initialize_verifier(0xdead.try_into().unwrap());
+
+    // Call from non-verifier
+    starknet::testing::set_contract_address(0xbeef.try_into().unwrap());
+    fossil_client
+        .fossil_callback_expect_error(array![].span(), array![].span(), Errors::CallerNotVerifier);
 }
 
