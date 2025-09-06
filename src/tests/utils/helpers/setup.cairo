@@ -59,6 +59,15 @@ fn FOSSIL_PROCESSOR() -> ContractAddress {
     contract_address_const::<'FOSSIL PROCESSOR'>()
 }
 
+fn FOSSIL_CLIENT_OWNER() -> ContractAddress {
+    contract_address_const::<'FOSSIL CLIENT OWNER'>()
+}
+
+fn PITCHLAKE_VERIFIER() -> ContractAddress {
+    contract_address_const::<'FOSSIL PROCESSOR'>()
+}
+
+
 // Deploy eth contract for testing
 fn deploy_eth() -> ERC20ABIDispatcher {
     let mut calldata = array![];
@@ -81,16 +90,21 @@ fn deploy_eth() -> ERC20ABIDispatcher {
 
 fn deploy_fossil_client() -> FossilClientFacade {
     let mut calldata = array![];
-    calldata.append_serde(FOSSIL_PROCESSOR());
+    calldata.append_serde(FOSSIL_CLIENT_OWNER());
     let (contract_address, _): (ContractAddress, Span<felt252>) = deploy_syscall(
         FossilClient::TEST_CLASS_HASH.try_into().unwrap(), 'some salt', calldata.span(), false
     )
         .expect('DEPLOY_FOSSIL_CLIENT_FAILED');
 
+    let facade = FossilClientFacade { contract_address };
+
+    // Initialize verifier
+    facade.initialize_verifier(PITCHLAKE_VERIFIER());
+
     // Clear the event log (not needed)
     clear_event_logs(array![contract_address]);
 
-    return FossilClientFacade { contract_address };
+    facade
 }
 
 const ROUND_TRANSITION_DURATION: u64 = 3 * MINUTE;
