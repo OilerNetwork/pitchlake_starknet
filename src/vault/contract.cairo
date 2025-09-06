@@ -10,7 +10,7 @@ mod Vault {
         ERC20Component, interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait}
     };
     use openzeppelin_utils::serde::SerializedAppend;
-    use pitch_lake::fossil_client::interface::{L1Data, JobRequest};
+    use pitch_lake::fossil_client::interface::{VerifierData, JobRequest};
     use pitch_lake::vault::interface::{ConstructorArgs, IVault, VaultType,};
     use pitch_lake::option_round::contract::{OptionRound, OptionRound::Errors as RoundErrors};
     use pitch_lake::option_round::interface::{
@@ -26,6 +26,13 @@ mod Vault {
     //                              STORAGE
     // *************************************************************************
 
+    #[derive(Default, Copy, Drop, Serde, PartialEq, starknet::Store)]
+    struct L1Data {
+        twap: u256,
+        max_return: u256,
+        reserve_price: u256,
+    }
+
     #[storage]
     struct Storage {
         ///
@@ -39,7 +46,7 @@ mod Vault {
         l1_data: Map<u64, L1Data>,
         option_round_class_hash: ClassHash,
         eth_address: ContractAddress,
-        fossil_client_address: ContractAddress,
+        verifier_address: ContractAddress,
         round_addresses: Map<u64, ContractAddress>,
         ///
         // @note could use usize ?
@@ -70,7 +77,7 @@ mod Vault {
     #[constructor]
     fn constructor(ref self: ContractState, args: ConstructorArgs) {
         // @dev Get the constructor arguments
-        let ConstructorArgs { fossil_client_address,
+        let ConstructorArgs { verifier_address,
         eth_address,
         option_round_class_hash,
         strike_level,
@@ -81,7 +88,7 @@ mod Vault {
             args;
 
         // @dev Set the Vault's parameters
-        self.fossil_client_address.write(fossil_client_address);
+        self.verifier_address.write(verifier_address);
         self.eth_address.write(eth_address);
         self.option_round_class_hash.write(option_round_class_hash);
         self.round_transition_duration.write(round_transition_duration);
@@ -108,10 +115,13 @@ mod Vault {
         const AlphaOutOfRange: felt252 = 'Alpha out of range';
         const StrikeLevelOutOfRange: felt252 = 'Strike level out of range';
         // Fossil
-        const CallerNotFossilClient: felt252 = 'Caller not Fossil client';
-        const InvalidL1Data: felt252 = 'Invalid L1 data';
         const L1DataNotAcceptedNow: felt252 = 'L1 data not accepted now';
         const L1DataOutOfRange: felt252 = 'L1 data out of range';
+        const InvalidL1Data: felt252 = 'Invalid L1 data';
+        const CallerNotVerifier: felt252 = 'Caller not the verifier';
+        const InvalidRequest: felt252 = 'Invalid request';
+        const FailedToDeserializeJobRequest: felt252 = 'Failed to deserialize request';
+        const FailedToDeserializeVerifierData: felt252 = 'Failed to desr. verifier data';
         // Withdraw/queuing withdrawals
         const InsufficientBalance: felt252 = 'Insufficient unlocked balance';
         const QueueingMoreThanPositionValue: felt252 = 'Insufficient balance to queue';
@@ -239,8 +249,8 @@ mod Vault {
             self.eth_address.read()
         }
 
-        fn get_fossil_client_address(self: @ContractState) -> ContractAddress {
-            self.fossil_client_address.read()
+        fn get_verifier_address(self: @ContractState) -> ContractAddress {
+            self.verifier_address.read()
         }
 
         fn get_alpha(self: @ContractState) -> u128 {
@@ -588,30 +598,51 @@ mod Vault {
         }
 
         /// State transitions
-        fn fossil_client_callback(ref self: ContractState, l1_data: L1Data, timestamp: u64) {
-            // @dev Only the Fossil Client contract can call this function
-            assert(
-                get_caller_address() == self.fossil_client_address.read(),
-                Errors::CallerNotFossilClient
-            );
+        fn fossil_callback(
+            ref self: ContractState, mut job_request: Span<felt252>, mut result: Span<felt252>
+        ) {
+            // @dev Only the Pitchlake Verifier can call this function
+            assert(get_caller_address() == self.verifier_address.read(), Errors::CallerNotVerifier);
 
-            // @dev Assert the L1 data is valid
-            let L1Data { twap, max_return: _, reserve_price } = l1_data;
-            assert(twap.is_non_zero() && reserve_price.is_non_zero(), Errors::InvalidL1Data);
+            // @dev Deserialize job_request
+            let JobRequest { vault_address, timestamp, program_id } = Serde::deserialize(
+                ref job_request
+            )
+                .expect(Errors::FailedToDeserializeJobRequest);
 
-            // @dev Requests can only be fulfilled if the current round is Running, or if the
-            // first round is Open
+            // @dev Deserialize verifier data
+            let VerifierData { start_timestamp: _,
+            end_timestamp: _,
+            reserve_price,
+            floating_point_tolerance: _,
+            reserve_price_tolerance: _,
+            twap_tolerance: _,
+            gradient_tolerance: _,
+            twap_result,
+            max_return } =
+                Serde::deserialize(
+                ref result
+            )
+                .expect(Errors::FailedToDeserializeVerifierData);
+
+            // @dev Validate the job_request
+            assert(program_id == PROGRAM_ID, Errors::InvalidRequest);
+
+            // @dev Assert L1 data is valid
+            assert(twap_result.is_non_zero() && reserve_price.is_non_zero(), Errors::InvalidL1Data);
+
+            // @dev This function is used to start round 1 (will be Open), or to settle each round
+            // (will be Running).
             let current_round_id = self.current_round_id.read();
             let current_round = self.get_round_dispatcher(current_round_id);
             let state = current_round.get_state();
-
             assert(
                 state == OptionRoundState::Running
                     || (current_round_id == 1 && state == OptionRoundState::Open),
                 Errors::L1DataNotAcceptedNow
             );
 
-            // @dev If the current round is Running, the l1 data is being used to settle it
+            // @dev If the current round is Running, the L1 data is being used to settle it
             if state == OptionRoundState::Running {
                 // @dev Ensure now is >= the settlement date
                 let now = get_block_timestamp();
@@ -620,24 +651,71 @@ mod Vault {
 
                 // @dev Ensure the job request's timestamp is for the settlement date
                 assert(timestamp == settlement_date, Errors::L1DataOutOfRange);
-
-                // @dev Store l1 data for this round's settlement
-                // @note Could settle round right now instead of storing the results ?
-                self.l1_data.entry(current_round_id).write(l1_data);
-            } // @dev If the first round is Open, the result is being used to set the pricing data for its auction to start
+                // @dev Settle the current round and start the next
+            // ...
+            } // @dev If the first round is Open, the L1 data is being used to set the pricing data (for its auction to start)
             else {
-                // // @dev Ensure now < auction start date
-                // let now = get_block_timestamp();
-                // let auction_start_date = current_round.get_auction_start_date();
-                // assert(now < auction_start_date, Errors::L1DataNotAcceptedNow);
-
                 // @dev Ensure the job request's timestamp is for the round's deployment date
                 let deployment_date = current_round.get_deployment_date();
                 assert(timestamp == deployment_date, Errors::L1DataOutOfRange);
 
                 // @dev Set the round's pricing data directly
+
+                // @dev Replace this
+                let l1_data = L1Data {
+                    twap: twap_result.into(),
+                    max_return: max_return.try_into().unwrap(),
+                    reserve_price: reserve_price.into()
+                };
+
                 current_round.set_pricing_data(self.convert_l1_data_to_round_data(l1_data));
             }
+            // @dev Requests can only be fulfilled if the current round is Running, or if the
+        // first round is Open
+        //////////////////////////////////////////
+        //            // @dev Assert the L1 data is valid
+        //            let L1Data { twap, max_return: _, reserve_price } = l1_data;
+        //            assert(twap.is_non_zero() && reserve_price.is_non_zero(),
+        //            Errors::InvalidL1Data);
+        //            // @dev Requests can only be fulfilled if the current round is Running, or
+        //            if the // first round is Open
+        //            let current_round_id = self.current_round_id.read();
+        //            let current_round = self.get_round_dispatcher(current_round_id);
+        //            let state = current_round.get_state();
+        //
+        //            assert(
+        //                state == OptionRoundState::Running
+        //                    || (current_round_id == 1 && state == OptionRoundState::Open),
+        //                Errors::L1DataNotAcceptedNow
+        //            );
+        //            // @dev If the current round is Running, the l1 data is being used to
+        //            settle it if state == OptionRoundState::Running {
+        //                // @dev Ensure now is >= the settlement date
+        //                let now = get_block_timestamp();
+        //                let settlement_date = current_round.get_option_settlement_date();
+        //                assert(now >= settlement_date, Errors::L1DataNotAcceptedNow);
+        //
+        //                // @dev Ensure the job request's timestamp is for the settlement date
+        //                assert(timestamp == settlement_date, Errors::L1DataOutOfRange);
+        //
+        //                // @dev Store l1 data for this round's settlement
+        //                // @note Could settle round right now instead of storing the results ?
+        //                self.l1_data.entry(current_round_id).write(l1_data);
+        //            } // @dev If the first round is Open, the result is being used to set the
+        //            pricing data for its auction to start else {
+        //                // // @dev Ensure now < auction start date
+        //                // let now = get_block_timestamp();
+        //                // let auction_start_date = current_round.get_auction_start_date();
+        //                // assert(now < auction_start_date, Errors::L1DataNotAcceptedNow);
+        //
+        //                // @dev Ensure the job request's timestamp is for the round's
+        //                deployment date let deployment_date =
+        //                current_round.get_deployment_date();
+        //                assert(timestamp == deployment_date, Errors::L1DataOutOfRange);
+        //
+        //                // @dev Set the round's pricing data directly
+        //                current_round.set_pricing_data(self.convert_l1_data_to_round_data(l1_data));
+        //            }
         }
 
         fn start_auction(ref self: ContractState) -> u256 {
@@ -850,7 +928,7 @@ mod Vault {
             let alpha = self.alpha.read();
             let k = self.strike_level.read();
 
-            let cap_level = calculate_cap_level(alpha, k, max_return);
+            let cap_level = calculate_cap_level(alpha, k, 'todo'.try_into().unwrap());
             let strike_price = calculate_strike_price(k, twap);
 
             PricingData { strike_price, cap_level, reserve_price }
