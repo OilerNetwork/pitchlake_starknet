@@ -4,10 +4,21 @@ mod FossilClient {
     use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess,};
     use starknet::storage::{Map, StoragePathEntry};
 
+    use openzeppelin_access::ownable::OwnableComponent;
+
     use pitch_lake::library::constants::PROGRAM_ID;
     use pitch_lake::vault::interface::{IVaultDispatcher, IVaultDispatcherTrait};
     use pitch_lake::option_round::interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait};
     use pitch_lake::fossil_client::interface::{JobRequest, FossilResult, L1Data, IFossilClient,};
+
+    // *************************************************************************
+    //                              COMPONENTS
+    // *************************************************************************
+
+    component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
+    #[abi(embed_v0)]
+    impl OwnableMixinImpl = OwnableComponent::OwnableMixinImpl<ContractState>;
+    impl OwnableInternalImpl = OwnableComponent::InternalImpl<ContractState>;
 
     // *************************************************************************
     //                              STORAGE
@@ -15,7 +26,9 @@ mod FossilClient {
 
     #[storage]
     struct Storage {
-        fossil_processor: ContractAddress,
+        verifier: ContractAddress,
+        #[substorage(v0)]
+        ownable: OwnableComponent::Storage,
     }
 
     // *************************************************************************
@@ -23,7 +36,7 @@ mod FossilClient {
     // *************************************************************************
 
     mod Errors {
-        const CallerNotFossilProcessor: felt252 = 'Caller not the fossil processor';
+        const CallerNotVerifier: felt252 = 'Caller not the verifier';
         const FailedToDeserializeRequest: felt252 = 'Failed to deserialize request';
         const FailedToDeserializeResult: felt252 = 'Failed to deserialize result';
         const InvalidRequest: felt252 = 'Invalid request';
@@ -34,8 +47,8 @@ mod FossilClient {
     // *************************************************************************
 
     #[constructor]
-    fn constructor(ref self: ContractState, fossil_processor: ContractAddress) {
-        self.fossil_processor.write(fossil_processor);
+    fn constructor(ref self: ContractState, owner: ContractAddress) {
+        self.ownable.initializer(owner);
     }
 
     // *************************************************************************
@@ -43,9 +56,11 @@ mod FossilClient {
     // *************************************************************************
 
     #[event]
-    #[derive(Serde, PartialEq, Drop, starknet::Event)]
+    #[derive(PartialEq, Drop, starknet::Event)]
     enum Event {
         FossilCallbackSuccess: FossilCallbackSuccess,
+        #[flat]
+        OwnableEvent: OwnableComponent::Event,
     }
 
     #[derive(Serde, Drop, starknet::Event, PartialEq)]
@@ -61,6 +76,11 @@ mod FossilClient {
 
     #[abi(embed_v0)]
     impl FossilClientImpl of IFossilClient<ContractState> {
+        fn initialize_verifier(ref self: ContractState, verifier: ContractAddress) {
+            self.ownable.assert_only_owner();
+            self.verifier.write(verifier);
+        }
+
         fn fossil_callback(
             ref self: ContractState, mut job_request: Span<felt252>, mut result: Span<felt252>
         ) {
@@ -82,10 +102,7 @@ mod FossilClient {
             // (timestamp & program id)/outputs (l1 data)/proof
 
             // @note Skipping for now for testnet testing
-            assert(
-                get_caller_address() == self.fossil_processor.read(),
-                Errors::CallerNotFossilProcessor
-            );
+            assert(get_caller_address() == self.verifier.read(), Errors::CallerNotVerifier);
 
             // Relay L1 data to the vault
             IVaultDispatcher { contract_address: vault_address }
