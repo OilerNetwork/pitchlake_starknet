@@ -929,11 +929,14 @@ mod OptionRound {
                         let bid_id = self.create_bid_id(account, i);
                         let bid = self.bids_tree._find(bid_id);
 
-                        // @dev If this bid is the clearing bid it is special because it could be
-                        // mintable & refundable
+                        // @dev If there is no clearing bid, all bids are winning bids
                         if bid_id == clearing_bid_id {
+                            winning_bids.append(bid);
+                        } // @dev If this bid is the clearing bid it could be mintable and refundable
+                        else if bid_id == clearing_bid_id {
                             clearing_bid_option = Option::Some(bid);
-                        } // @dev If this bid is not the clearing bid, check if this bid is above or below the clearing bid
+                        } // @dev If this bid is not the clearing bid, check if this bid is above or
+                        // below the clearing bid
                         else {
                             if bid > clearing_bid {
                                 winning_bids.append(bid);
