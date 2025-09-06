@@ -49,24 +49,18 @@ mod Vault {
         verifier_address: ContractAddress,
         round_addresses: Map<u64, ContractAddress>,
         ///
-        // @note could use usize ?
         current_round_id: u64,
         ///
-        // @note could use CA, (usize, u256) ?
         positions: Map<ContractAddress, Map<u64, u256>>,
         ///
         vault_locked_balance: u256,
         vault_unlocked_balance: u256,
         vault_stashed_balance: u256,
         ///
-        // @note could use CA, usize ?
         position_checkpoints: Map<ContractAddress, u64>,
-        // @note could use CA, usize ?
         stash_checkpoints: Map<ContractAddress, u64>,
-        // @note could use CA, (usize, bool) ?
         is_premium_moved: Map<ContractAddress, Map<u64, bool>>,
         ///
-        // @note could use CA, (usize, u256)
         queued_liquidity: Map<ContractAddress, Map<u64, u256>>,
     }
 
