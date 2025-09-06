@@ -1,4 +1,9 @@
 #[cfg(test)]
+mod fossil_client {
+    mod fossil_client_tests;
+}
+
+#[cfg(test)]
 mod vault {
     mod state_transition {
         mod auction_end_tests;
