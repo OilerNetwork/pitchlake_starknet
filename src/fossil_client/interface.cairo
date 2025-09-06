@@ -11,6 +11,12 @@ trait IFossilClient<TContractState> {
 
     // Called by Pitchlake Verifier
     fn fossil_callback(ref self: TContractState, job_request: Span<felt252>, result: Span<felt252>);
+
+    // Get the verifier address
+    fn get_verifier(self: @TContractState) -> ContractAddress;
+
+    // Get if the verifier has been set
+    fn is_verifier_set(self: @TContractState) -> bool;
 }
 
 // *************************************************************************

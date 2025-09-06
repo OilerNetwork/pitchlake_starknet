@@ -27,6 +27,7 @@ mod FossilClient {
     #[storage]
     struct Storage {
         verifier: ContractAddress,
+        is_verifier_set: bool,
         #[substorage(v0)]
         ownable: OwnableComponent::Storage,
     }
@@ -36,6 +37,7 @@ mod FossilClient {
     // *************************************************************************
 
     mod Errors {
+        const VerifierAlreadySet: felt252 = 'Verifier already set';
         const CallerNotVerifier: felt252 = 'Caller not the verifier';
         const FailedToDeserializeRequest: felt252 = 'Failed to deserialize request';
         const FailedToDeserializeResult: felt252 = 'Failed to deserialize result';
@@ -76,9 +78,19 @@ mod FossilClient {
 
     #[abi(embed_v0)]
     impl FossilClientImpl of IFossilClient<ContractState> {
+        fn get_verifier(self: @ContractState) -> ContractAddress {
+            self.verifier.read()
+        }
+
+        fn is_verifier_set(self: @ContractState) -> bool {
+            self.is_verifier_set.read()
+        }
+
         fn initialize_verifier(ref self: ContractState, verifier: ContractAddress) {
+            assert(!self.is_verifier_set.read(), Errors::VerifierAlreadySet);
             self.ownable.assert_only_owner();
             self.verifier.write(verifier);
+            self.is_verifier_set.write(true);
         }
 
         fn fossil_callback(
