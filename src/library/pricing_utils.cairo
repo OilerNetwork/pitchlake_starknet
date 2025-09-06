@@ -36,7 +36,7 @@ fn calculate_total_options_available(
     }
 }
 
-// @note TODO
+// @note TODO: switch to using max_return and possibly floating points
 // cl = λ − k / (α × (k + 1))
 fn calculate_cap_level(a: u128, k: i128, vol: u128) -> u128 {
     // @dev λ = 2.3300 * vol
