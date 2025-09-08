@@ -452,10 +452,6 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         self.vault_dispatcher.contract_address
     }
 
-    fn get_vault_type(ref self: VaultFacade) -> VaultType {
-        self.vault_dispatcher.get_vault_type()
-    }
-
     fn get_alpha(ref self: VaultFacade) -> u128 {
         self.vault_dispatcher.get_alpha()
     }
@@ -471,7 +467,11 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     // Get the address of the Fossil Client contract
     fn get_fossil_client_address(ref self: VaultFacade) -> ContractAddress {
-        self.vault_dispatcher.get_fossil_client_address()
+        self.vault_dispatcher.get_verifier_address()
+    }
+
+    fn get_deployment_block(ref self: VaultFacade) -> u64 {
+        self.vault_dispatcher.get_deployment_block()
     }
 
 

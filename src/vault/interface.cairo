@@ -29,9 +29,6 @@ struct ConstructorArgs {
 trait IVault<TContractState> {
     /// Reads ///
 
-    // @dev Get the type of vault (ITM | ATM | OTM)
-    fn get_vault_type(self: @TContractState) -> VaultType;
-
     // @dev Get the alpha risk factor of the vault
     fn get_alpha(self: @TContractState) -> u128;
 
@@ -41,8 +38,11 @@ trait IVault<TContractState> {
     // @dev Get the ETH address
     fn get_eth_address(self: @TContractState) -> ContractAddress;
 
-    // @dev The the Fossil Client's address
+    // @dev The Fossil verifier address
     fn get_verifier_address(self: @TContractState) -> ContractAddress;
+
+    // @dev The block this vault was deployed at
+    fn get_deployment_block(self: @TContractState) -> u64;
 
     // @dev The number of seconds between a round deploying and its auction starting
     fn get_round_transition_duration(self: @TContractState) -> u64;

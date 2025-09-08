@@ -39,6 +39,7 @@ mod Vault {
         vault_type: VaultType,
         alpha: u128,
         strike_level: i128,
+        deployment_block: u64,
         round_transition_duration: u64,
         auction_duration: u64,
         round_duration: u64,
@@ -88,6 +89,7 @@ mod Vault {
         self.round_transition_duration.write(round_transition_duration);
         self.auction_duration.write(auction_duration);
         self.round_duration.write(round_duration);
+        self.deployment_block.write(get_block_number());
 
         // @dev Alpha is between 0.01% and 100.00%
         assert(alpha.is_non_zero() && alpha <= BPS_u128, Errors::AlphaOutOfRange);
@@ -235,10 +237,6 @@ mod Vault {
 
         ///
 
-        fn get_vault_type(self: @ContractState) -> VaultType {
-            self.vault_type.read()
-        }
-
         fn get_eth_address(self: @ContractState) -> ContractAddress {
             self.eth_address.read()
         }
@@ -253,6 +251,10 @@ mod Vault {
 
         fn get_strike_level(self: @ContractState) -> i128 {
             self.strike_level.read()
+        }
+
+        fn get_deployment_block(self: @ContractState) -> u64 {
+            self.deployment_block.read()
         }
 
         fn get_round_transition_duration(self: @ContractState) -> u64 {
