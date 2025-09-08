@@ -2,9 +2,13 @@
 FROM ubuntu:22.04
 SHELL ["/bin/bash", "-c"]
 
-# Set environment variables
-ENV SCARB_VERSION=2.8.4
-ENV STARKLI_VERSION=0.3.5
+ARG SCARB_VERSION
+ARG STARKLI_VERSION
+ARG COMPILER_VERSION
+
+ENV SCARB_VERSION=${SCARB_VERSION}
+ENV STARKLI_VERSION=${STARKLI_VERSION}
+ENV COMPILER_VERSION=${COMPILER_VERSION}
 
 # Starkli environment variables
 ENV STARKNET_ACCOUNT=/root/starkli_deployer_account.json
@@ -12,7 +16,8 @@ ENV STARKNET_ACCOUNT=/root/starkli_deployer_account.json
 # Install necessary dependencies
 RUN apt-get update && apt-get install -y \
     curl \
-    libssl-dev
+    libssl-dev \
+    dos2unix
 
 # Install Scarb
 ENV PATH="$PATH:/root/.local/bin"
@@ -26,15 +31,22 @@ RUN curl -L https://github.com/xJonathanLEI/starkli/releases/download/v${STARKLI
     rm starkli.tar.gz
 
 WORKDIR /contracts
-# Copy project files
+
 COPY . .
+
+# Enforce the unix line endings
+RUN find . -type f -name "*.sh" -exec sh -c 'dos2unix "$1" && chmod +x "$1"' _ {} \;
 
 # Build contracts
 RUN scarb build
 
-# Create account file using starkli
-CMD bash -c " cd katana && \
- chmod +x ./deploy_contracts_devnet.sh && \
- chmod +x ./deploy_and_fund_argent_wallet.sh && \
- ./deploy_contracts_devnet.sh $SIGNER_ADDRESS $FOSSIL_PROCESSOR_ADDRESS $VAULT_ALPHA $VAULT_STRIKE $ROUND_TRANSITION_DURATION $AUCTION_DURATION $ROUND_DURATION && \
- ./deploy_and_fund_argent_wallet.sh $ARGENT_ADDRESS $ARGENT_SALT $ARGENT_CONSTRUCTOR_ARG1"
+CMD cd katana && \
+    echo "Environment in Dockerfile:" && \
+    echo "DEPLOYER_ADDRESS=$DEPLOYER_ADDRESS" && \
+    echo "FOSSIL_PROCESSOR_ADDRESS=$FOSSIL_PROCESSOR_ADDRESS" && \
+    echo "VAULT_ALPHA=$VAULT_ALPHA" && \
+    echo "VAULT_STRIKE=$VAULT_STRIKE" && \
+    echo "ROUND_TRANSITION_DURATION=$ROUND_TRANSITION_DURATION" && \
+    echo "AUCTION_DURATION=$AUCTION_DURATION" && \
+    echo "ROUND_DURATION=$ROUND_DURATION" && \
+    chmod +x deploy_contracts_devnet.sh && ./deploy_contracts_devnet.sh "$DEPLOYER_ADDRESS" "$FOSSIL_PROCESSOR_ADDRESS" "$VAULT_ALPHA" "$VAULT_STRIKE" "$ROUND_TRANSITION_DURATION" "$AUCTION_DURATION" "$ROUND_DURATION"

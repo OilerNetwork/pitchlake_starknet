@@ -193,7 +193,6 @@ fn test_stashed_liquidity_does_not_roll_over() {
         ref vault, current_round.get_strike_price()
     ); //no payout
     accelerate_to_auctioning_custom(ref vault, array![].span(), array![].span());
-
     let (total_locked, total_unlocked, total_stashed) = vault
         .get_total_locked_and_unlocked_and_stashed_balance();
     let lp_stashed = vault.get_lp_stashed_balance(liquidity_provider);
@@ -212,13 +211,11 @@ fn test_stashed_liquidity_does_not_roll_over() {
 
     // Queue withdrawal
     vault.queue_withdrawal(liquidity_provider, 10_000);
-
     accelerate_to_running(ref vault);
     let unsold_liq2 = vault.get_unsold_liquidity(current_round2.get_round_id());
     let total_premiums2 = current_round2.total_premiums();
     let total_payout2 = accelerate_to_settled(ref vault, 1); //no payout
     accelerate_to_auctioning_custom(ref vault, array![].span(), array![].span());
-
     let (total_locked2, total_unlocked2, total_stashed2) = vault
         .get_total_locked_and_unlocked_and_stashed_balance();
     let lp_stashed2 = vault.get_lp_stashed_balance(liquidity_provider);
@@ -621,7 +618,6 @@ fn test_claiming_queued_liquidity_sets_stashed_to_0() {
     let stashed_balance_after = vault.get_lp_stashed_balance(liquidity_provider);
 
     assert_eq!(stashed_balance_before, (sold_liq * bps.into()) / BPS_u256);
-    println!("stashed_balance_after: {}", stashed_balance_after);
     assert_eq!(stashed_balance_after, 0);
 }
 

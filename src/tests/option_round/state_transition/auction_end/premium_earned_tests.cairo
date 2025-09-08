@@ -43,7 +43,7 @@ fn test_premium_amount_0_before_auction_end() {
     // Bid for all options at reserve price
     let bid_amount = current_round.get_total_options_available();
     let bid_price = current_round.get_reserve_price();
-    current_round.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
+    vault_facade.place_bid(bid_amount, bid_price, option_bidder_buyer_1());
 
     // Check premiums collectable is 0 since auction is still on going
     let premiums_collectable = vault_facade.get_lp_unlocked_balance(liquidity_provider_1());

@@ -10,7 +10,7 @@ pub mod Consts {}
 
 
 // The struct for a bid placed in a round's auction
-#[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
+#[derive(Copy, Drop, Serde, starknet::Store, PartialEq, Debug)]
 pub struct Bid {
     bid_id: felt252,
     owner: ContractAddress,

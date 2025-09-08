@@ -1,5 +1,4 @@
 use core::num::traits::Zero;
-use pitch_lake::vault::interface::VaultType;
 use pitch_lake::library::utils::min;
 use pitch_lake::library::constants::{BPS_i128, BPS_felt252, BPS_u256, BPS_u128};
 
@@ -33,36 +32,6 @@ fn calculate_total_options_available(
         // @dev Else the number of options available is the starting liquidity divided by
         // the capped amount
         false => starting_liquidity / capped
-    }
-}
-
-// @note TODO
-// cl = λ − k / (α × (k + 1))
-fn calculate_cap_level(a: u128, k: i128, vol: u128) -> u128 {
-    // @dev λ = 2.3300 * vol
-    let lambda: i128 = 23300 * vol.try_into().expect('Vol u128 -> i128 failed') / BPS_i128;
-
-    // @dev Cap level must be positive
-    if k >= lambda {
-        1
-    } else {
-        // @dev `λ - k` >= 0 here, cast from i128 to u128 through felt252
-        let lambda_minus_k: u128 = Into::<i128, felt252>::into(lambda - k).try_into().unwrap();
-
-        // @dev Ensure k+1 is positive then cast from i128 to u128 through felt252
-        let k_plus_1 = k + BPS_i128;
-        assert(k_plus_1 > 0, 'Strike price must be > 0');
-
-        let k_plus_1 = Into::<i128, felt252>::into(k_plus_1)
-            .try_into()
-            .expect('k_plus_1 felt252 -> u128 failed');
-
-        // @dev cl = λ − k / (α × (k + 1))
-        let numerator: u128 = lambda_minus_k;
-        let denominator: u128 = a * k_plus_1;
-
-        // @dev (λ - k) is BPS - BPS, (a * (k + 1)) is BPS * BPS, so multip
-        (BPS_u128 * BPS_u128 * numerator / denominator)
     }
 }
 

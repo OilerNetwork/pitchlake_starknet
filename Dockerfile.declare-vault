@@ -1,0 +1,35 @@
+# Use Ubuntu as the base image
+FROM ubuntu:22.04
+SHELL ["/bin/bash", "-c"]
+
+
+ARG SCARB_VERSION
+ARG STARKLI_VERSION
+ARG COMPILER_VERSION
+
+ENV COMPILER_VERSION=${COMPILER_VERSION}
+
+# Install necessary dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    libssl-dev
+
+# Install Scarb
+ENV PATH="$PATH:/root/.local/bin"
+RUN curl --proto '=https' --tlsv1.2 -sSf https://docs.swmansion.com/scarb/install.sh | bash -s -- -v ${SCARB_VERSION}
+
+# Install Starkli
+ENV PATH="$PATH:/root/.starkli/bin"
+RUN curl -L https://github.com/xJonathanLEI/starkli/releases/download/v${STARKLI_VERSION}/starkli-x86_64-unknown-linux-gnu.tar.gz -o starkli.tar.gz && \
+    mkdir -p /root/.starkli/bin && \
+    tar -xvf starkli.tar.gz -C /root/.starkli/bin && \
+    rm starkli.tar.gz
+
+WORKDIR /contracts
+# Copy project files
+COPY . .
+
+# Build contracts
+RUN scarb build
+
+CMD bash -c "starkli declare target/dev/pitch_lake_Vault.contract_class.json --compiler-version $COMPILER_VERSION --watch"

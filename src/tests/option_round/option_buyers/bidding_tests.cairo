@@ -66,7 +66,7 @@ fn test_bid_amount_0_gets_rejected() {
     let bid_price = 2 * reserve_price;
     let bid_amount = 0;
 
-    current_round.place_bid_expect_error(bid_amount, bid_price, bidder, Errors::BidAmountZero);
+    vault.place_bid_expect_error(bid_amount, bid_price, bidder, Errors::BidAmountZero);
 }
 
 // Test bidding price < reserve fails (covers 0 amount as well since 0 is always < reserve price)
@@ -84,7 +84,7 @@ fn test_bid_price_below_reserve_fails() {
     clear_event_logs(array![current_round.contract_address()]);
 
     // Check txn revert reason
-    current_round
+    vault_facade
         .place_bid_expect_error(bid_amount, bid_price, bidder, Errors::BidBelowReservePrice);
 }
 
@@ -105,7 +105,7 @@ fn test_bid_before_auction_starts_failure() {
     clear_event_logs(array![round2.contract_address()]);
 
     // Check txn revert reason
-    round2.place_bid_expect_error(bid_amount, bid_price, bidder, Errors::BiddingWhileNotAuctioning);
+    vault.place_bid_expect_error(bid_amount, bid_price, bidder, Errors::BiddingWhileNotAuctioning);
 }
 
 // Test bidding after auction ends fails
@@ -129,7 +129,7 @@ fn test_bid_after_auction_ends_failure() {
     clear_event_logs(array![round2.contract_address()]);
 
     // Check txn revert reason
-    round2.place_bid_expect_error(bid_amount, bid_price, bidder, Errors::BiddingWhileNotAuctioning);
+    vault.place_bid_expect_error(bid_amount, bid_price, bidder, Errors::BiddingWhileNotAuctioning);
 }
 
 // Test bidding after auction end date fail (if end_auction() is not called first)
@@ -150,7 +150,7 @@ fn test_bid_after_auction_end_failure_2() {
     let bid_amount = round2.get_total_options_available();
     clear_event_logs(array![round2.contract_address()]);
 
-    round2.place_bid_expect_error(bid_amount, bid_price, bidder, Errors::BiddingWhileNotAuctioning);
+    vault.place_bid_expect_error(bid_amount, bid_price, bidder, Errors::BiddingWhileNotAuctioning);
 }
 
 // Test bidding fails if no options available
@@ -163,7 +163,7 @@ fn test_bidding_no_options_fail() {
         ref vault, liquidity_providers_get(2).span(), array![0, 0].span()
     );
 
-    current_round
+    vault
         .place_bid_expect_error(
             1234,
             current_round.get_reserve_price(),
@@ -190,8 +190,8 @@ fn test_bid_accepted_events() {
     let mut option_bidders = option_bidders_get(3).span();
     let mut bid_amounts = create_array_linear(options_available, 3).span();
     let mut bid_prices = create_array_gradient(reserve_price, reserve_price, 3).span();
-    clear_event_logs(array![current_round.contract_address()]);
-    let mut bids = current_round.place_bids(bid_amounts, bid_prices, option_bidders).span();
+    clear_event_logs(array![vault_facade.contract_address()]);
+    let mut bids = vault_facade.place_bids(bid_amounts, bid_prices, option_bidders);
 
     // Check bid accepted events
     loop {
@@ -203,12 +203,14 @@ fn test_bid_accepted_events() {
                 let bid_amount = bid_amounts.pop_front().unwrap();
                 let bid_price = bid_prices.pop_front().unwrap();
                 assert_event_auction_bid_placed(
-                    current_round.contract_address(),
+                    vault_facade.contract_address(),
                     *ob,
-                    *bid_id,
+                    bid_id,
                     *bid_amount,
                     *bid_price,
-                    *tree_nonce + 1
+                    tree_nonce + 1,
+                    current_round.get_round_id(),
+                    current_round.contract_address()
                 );
             },
             Option::None => { break; }
@@ -233,7 +235,7 @@ fn test_get_bids_for() {
 
     let mut bid_amounts = create_array_gradient(options_available, 123, 4).span();
     let mut bid_prices = create_array_gradient(reserve_price, reserve_price, 4).span();
-    let bids = current_round.place_bids(bid_amounts, bid_prices, option_bidders);
+    let bids = vault_facade.place_bids(bid_amounts, bid_prices, option_bidders);
 
     // Check bid arrays
     let bids1 = current_round.get_bids_for(*option_bidders[0]);
@@ -244,7 +246,6 @@ fn test_get_bids_for() {
     assert(bids2 == array![*bids[1]], 'Bids 2 mismatch');
     assert(bids3 == array![*bids[2]], 'Bids 3 mismatch');
 }
-
 
 /// Liquidity Tests ///
 
@@ -267,7 +268,7 @@ fn test_bid_eth_transfer() {
     let mut bid_prices = create_array_gradient(reserve_price, reserve_price, 3).span();
     let mut bid_amounts = create_array_linear(options_available, 3).span();
     let bids_total = get_total_bids_amount(bid_prices, bid_amounts);
-    current_round.place_bids(bid_amounts, bid_prices, option_bidders);
+    let bids = vault_facade.place_bids(bid_amounts, bid_prices, option_bidders);
     // Eth balances after bid
     let mut ob_balances_after = get_erc20_balances(eth.contract_address, option_bidders).span();
     let round_balance_after = get_erc20_balance(
@@ -364,7 +365,7 @@ fn test_bidding_updates_bid_nonce() {
     let mut i: u256 = 0;
     while i < 3 {
         let nonce_before = current_round.get_bidding_nonce_for(bidder);
-        current_round.place_bid(bid_amount, bid_price, bidder);
+        vault_facade.place_bid(bid_amount, bid_price, bidder);
         let nonce_after = current_round.get_bidding_nonce_for(bidder);
         assert(nonce_before + 1 == nonce_after, 'Nonce Mismatch');
         i += 1;
@@ -391,14 +392,14 @@ fn test_failed_bid_nonce_unchanged() {
         let nonce_before = current_round.get_bidding_nonce_for(bidder);
         if (i % 2 == 1) {
             //Failed bid in alternate rounds and check nonce update
-            let _ = current_round
+            let _ = vault_facade
                 .place_bid_expect_error(
                     bid_amount, bid_price - 1, bidder, Errors::BidBelowReservePrice
                 );
             let nonce_after = current_round.get_bidding_nonce_for(bidder);
             assert(nonce_before == nonce_after, 'Nonce Mismatch');
         } else {
-            current_round.place_bid(bid_amount, bid_price, bidder);
+            vault_facade.place_bid(bid_amount, bid_price, bidder);
         }
 
         i += 1;
@@ -426,7 +427,7 @@ fn test_place_bid_id() {
         let expected_hash = poseidon::poseidon_hash_span(
             array![bidder.into(), bid_nonce.into()].span()
         );
-        let bid = current_round.place_bid(bid_amount, bid_price, bidder);
+        let bid = vault_facade.place_bid(bid_amount, bid_price, bidder);
         assert(bid.bid_id == expected_hash, 'Bid Id Incorrect');
         i -= 1;
     };

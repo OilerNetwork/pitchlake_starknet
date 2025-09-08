@@ -42,7 +42,7 @@ fn end_auction(
     (clearing_price, total_options_sold)
 }
 
-fn settle_option_round(ref option_round: OptionRoundFacade, total_payout: u256) -> u256 {
+fn settle_option_round(ref option_round: OptionRoundFacade, total_payout: u256,) -> u256 {
     let expected = option_round.total_payout();
     assert(expected == total_payout, 'Settle round sanity check fail');
     total_payout
