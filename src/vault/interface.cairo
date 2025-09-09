@@ -189,6 +189,14 @@ struct VerifierData {
     pub max_return: felt252,
 }
 
+#[derive(Default, Copy, Drop, Serde, PartialEq, starknet::Store)]
+struct L1Data {
+    twap: u256,
+    max_return: u128,
+    reserve_price: u256,
+}
+
+
 // JobRequest <-> Array<felt252>
 impl SerdeJobRequest of Serde<JobRequest> {
     fn serialize(self: @JobRequest, ref output: Array<felt252>) {

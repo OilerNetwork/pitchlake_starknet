@@ -8,9 +8,8 @@ use openzeppelin_token::erc20::interface::ERC20ABIDispatcherTrait;
 use pitch_lake::{
     library::{eth::Eth, constants::PROGRAM_ID}, vault::interface::JobRequest,
     vault::{
-        contract::Vault::L1Data,
         interface::{
-            IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait,
+            L1Data, IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait,
             IVaultSafeDispatcherTrait,
         }
     },

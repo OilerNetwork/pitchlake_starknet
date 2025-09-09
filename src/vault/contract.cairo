@@ -10,7 +10,7 @@ mod Vault {
         ERC20Component, interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait}
     };
     use openzeppelin_utils::serde::SerializedAppend;
-    use pitch_lake::vault::interface::{ConstructorArgs, IVault, VerifierData, JobRequest};
+    use pitch_lake::vault::interface::{L1Data, ConstructorArgs, IVault, VerifierData, JobRequest};
     use pitch_lake::option_round::contract::{OptionRound, OptionRound::Errors as RoundErrors};
     use pitch_lake::option_round::interface::{
         ConstructorArgs as OptionRoundConstructorArgs, OptionRoundState, IOptionRoundDispatcher,
@@ -22,12 +22,6 @@ mod Vault {
     use pitch_lake::library::constants::{REQUEST_TOLERANCE, PROGRAM_ID};
     use fp::{UFixedPoint123x128, UFixedPoint123x128Impl, UFixedPoint123x128StorePacking};
 
-    #[derive(Debug, Default, Copy, Drop, Serde, PartialEq, starknet::Store)]
-    struct L1Data {
-        twap: u256,
-        max_return: u128,
-        reserve_price: u256,
-    }
 
     // *************************************************************************
     //                              STORAGE

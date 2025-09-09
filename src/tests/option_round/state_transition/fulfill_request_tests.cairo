@@ -3,8 +3,8 @@ use starknet::{
     testing::{set_contract_address, set_block_timestamp}
 };
 use pitch_lake::{
-    vault::interface::{VerifierData, JobRequest}, vault::contract::Vault,
-    vault::contract::Vault::{Errors as vErrors, L1Data}, option_round::interface::PricingData,
+    vault::interface::{VerifierData, JobRequest, L1Data}, vault::contract::Vault,
+    vault::contract::Vault::{Errors as vErrors}, option_round::interface::PricingData,
     library::pricing_utils,
     tests::{
         utils::{

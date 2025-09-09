@@ -12,10 +12,7 @@ use openzeppelin_token::erc20::{
 use pitch_lake::vault::interface::{JobRequest};
 use pitch_lake::{
     library::eth::Eth, vault::contract::Vault, library::constants::{MINUTE},
-    vault::{
-        interface::{ConstructorArgs, IVaultDispatcher, IVaultDispatcherTrait},
-        contract::Vault::L1Data
-    },
+    vault::interface::{ConstructorArgs, IVaultDispatcher, IVaultDispatcherTrait, L1Data},
     option_round::{
         contract::OptionRound,
         interface::{
@@ -33,7 +30,6 @@ use pitch_lake::{
         },
         utils::{
             lib::{
-                //structs::{OptionRoundParams},
                 test_accounts::{weth_owner, liquidity_providers_get, option_bidders_get, bystander},
                 variables::{week_duration, decimals},
             },
