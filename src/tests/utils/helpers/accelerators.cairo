@@ -4,8 +4,8 @@ use starknet::{
 };
 use core::fmt::Display;
 use pitch_lake::{
-    vault::{contract::Vault, interface::{VaultType, IVaultDispatcher, IVaultDispatcherTrait}},
-    fossil_client::interface::{L1Data, JobRequest, FossilResult},
+    vault::{contract::Vault::{L1Data}, interface::{IVaultDispatcher, IVaultDispatcherTrait}},
+    fossil_client::interface::{JobRequest, FossilResult},
     option_round::{
         contract::{OptionRound},
         interface::{
@@ -28,8 +28,7 @@ use pitch_lake::{
             },
             facades::{
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
-                vault_facade::{VaultFacade, VaultFacadeTrait},
-                fossil_client_facade::{FossilClientFacade, FossilClientFacadeTrait},
+                vault_facade::{VaultFacade, VaultFacadeTrait, l1_data_to_verifier_data_serialized},
             },
         },
     },
@@ -88,23 +87,14 @@ fn accelerate_to_running_custom(
 
 fn accelerate_to_settled_custom(ref self: VaultFacade, l1_data: L1Data) -> u256 {
     // Get the data request to fulfill
-    let mut request_serialized = array![];
-    self.get_request_to_settle_round().serialize(ref request_serialized);
-
-    // Create a mock result (proofs do not matter)
-    let mut result_serialized = array![];
-    let L1Data { twap, max_return, reserve_price } = l1_data;
-    FossilResult { l1_data: L1Data { twap, max_return, reserve_price }, proof: array![].span() }
-        .serialize(ref result_serialized);
-
-    // Make callback to fulfill the request
-    timeskip_to_settlement_date(ref self);
-    self
-        .get_fossil_client_facade()
-        .fossil_callback(request_serialized.span(), result_serialized.span());
+    let mut j = array![];
+    self.get_request_to_settle_round().serialize(ref j);
 
     // Jump to the option expiry date and settle the round
-    self.settle_option_round()
+    timeskip_to_settlement_date(ref self);
+    let mut current_round = self.get_current_round();
+    let settlement_timestamp = current_round.get_option_settlement_date();
+    self.fossil_callback_using_l1_data(l1_data, settlement_timestamp)
 }
 
 // Settle the option round with a custom settlement price (compared to strike to determine payout)
@@ -112,25 +102,6 @@ fn accelerate_to_settled(ref self: VaultFacade, twap: u256) -> u256 {
     accelerate_to_settled_custom(
         ref self, L1Data { twap, max_return: 5000, reserve_price: to_gwei(2) }
     )
-    //    // Get the data request to fulfill
-//    let mut request_serialized = array![];
-//    self.get_request_to_settle_round().serialize(ref request_serialized);
-//
-//    // Create a mock result (proofs do not matter)
-//    let mut result_serialized = array![];
-//    FossilResult {
-//        l1_data: L1Data { twap, max_return: 5000, reserve_price: to_gwei(2) },
-//        proof: array![].span()
-//    }
-//        .serialize(ref result_serialized);
-//
-//    // Make callback to fulfill the request
-//    self
-//        .get_fossil_client_facade()
-//        .fossil_callback(request_serialized.span(), result_serialized.span());
-//
-//    // Jump to the option expiry date and settle the round
-//    timeskip_and_settle_round(ref self)
 }
 
 
@@ -178,13 +149,5 @@ fn timeskip_and_end_auction(ref self: VaultFacade) -> (u256, u256) {
     set_block_timestamp(current_round.get_auction_end_date());
     set_contract_address(bystander());
     self.vault_dispatcher.end_auction()
-}
-
-// Jump to the option expriry date and settle the round
-fn timeskip_and_settle_round(ref self: VaultFacade) -> u256 {
-    let mut current_round = self.get_current_round();
-    set_block_timestamp(current_round.get_option_settlement_date());
-    set_contract_address(bystander());
-    self.settle_option_round()
 }
 

@@ -3,8 +3,8 @@ use starknet::{
     testing::{set_contract_address, set_block_timestamp}
 };
 use pitch_lake::{
-    vault::interface::{VaultType}, fossil_client::interface::{L1Data, JobRequest, FossilResult},
-    vault::contract::Vault, vault::contract::Vault::Errors as vErrors,
+    fossil_client::interface::{VerifierData, JobRequest, FossilResult}, vault::contract::Vault,
+    vault::contract::Vault::{Errors as vErrors, L1Data},
     fossil_client::contract::FossilClient::Errors as fErrors, option_round::interface::PricingData,
     library::pricing_utils,
     tests::{
@@ -13,20 +13,22 @@ use pitch_lake::{
             helpers::{
                 accelerators::{
                     accelerate_to_auctioning, accelerate_to_auctioning_custom,
-                    accelerate_to_running_custom, accelerate_to_running, timeskip_and_settle_round,
+                    accelerate_to_running_custom, accelerate_to_running,
                     accelerate_to_settled_custom, timeskip_to_settlement_date, accelerate_to_settled
                 },
                 setup::{
                     eth_supply_and_approve_all_providers, eth_supply_and_approve_all_bidders,
-                    deploy_eth, deploy_vault, setup_facade, FOSSIL_PROCESSOR
+                    deploy_eth, deploy_vault, setup_facade, PITCHLAKE_VERIFIER
                 },
                 event_helpers::{clear_event_logs, assert_fossil_callback_success_event},
                 general_helpers::{to_gwei},
             },
             facades::{
-                vault_facade::{VaultFacade, VaultFacadeTrait},
+                vault_facade::{
+                    VaultFacadeImpl, VaultFacade, VaultFacadeTrait,
+                    l1_data_to_verifier_data_serialized, l1_data_to_verifier_data
+                },
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
-                fossil_client_facade::{FossilClientFacade, FossilClientFacadeTrait},
             },
         },
     }
@@ -40,8 +42,8 @@ fn get_mock_l1_data() -> L1Data {
     L1Data { twap: to_gwei(33) / 100, max_return: 1009, reserve_price: to_gwei(11) / 10 }
 }
 
-fn get_mock_result() -> FossilResult {
-    FossilResult { proof: array![].span(), l1_data: get_mock_l1_data() }
+fn get_mock_result() -> VerifierData {
+    l1_data_to_verifier_data(get_mock_l1_data())
 }
 
 fn get_mock_result_serialized() -> Span<felt252> {
@@ -66,9 +68,9 @@ fn get_request_serialized(ref vault: VaultFacade) -> Span<felt252> {
 // @note Un-ignore this after Fossil processor is setup
 #[test]
 #[available_gas(50000000)]
-fn test_only_fossil_processor_can_call_fossil_callback() {
+fn test_only_pitchlake_verifier_can_call_fossil_callback() {
     let (mut vault, _) = setup_facade();
-    let fossil_client = vault.get_fossil_client_facade();
+
     accelerate_to_auctioning(ref vault);
     accelerate_to_running(ref vault);
     timeskip_to_settlement_date(ref vault);
@@ -78,11 +80,12 @@ fn test_only_fossil_processor_can_call_fossil_callback() {
 
     // Should fail
     set_contract_address(contract_address_const::<'NOT IT'>());
-    fossil_client.fossil_callback_expect_error(request, result, fErrors::CallerNotVerifier);
+    // l1 data, timestamp, error
+    vault.fossil_callback_expect_error(request, result, fErrors::CallerNotVerifier);
 
     // Should not fail
-    set_contract_address(FOSSIL_PROCESSOR());
-    fossil_client.fossil_callback(request, result);
+    set_contract_address(PITCHLAKE_VERIFIER());
+    vault.fossil_callback(request, result);
 }
 
 // Test invalid request fails
@@ -90,7 +93,6 @@ fn test_only_fossil_processor_can_call_fossil_callback() {
 #[available_gas(50000000)]
 fn test_invalid_request_fails() {
     let (mut vault, _) = setup_facade();
-    let fossil_client = vault.get_fossil_client_facade();
     accelerate_to_auctioning(ref vault);
     accelerate_to_running(ref vault);
     timeskip_to_settlement_date(ref vault);
@@ -99,10 +101,9 @@ fn test_invalid_request_fails() {
     let result = get_mock_result_serialized();
 
     // Should fail
-    set_contract_address(FOSSIL_PROCESSOR());
+    set_contract_address(PITCHLAKE_VERIFIER());
     let _ = request.pop_front();
-    fossil_client
-        .fossil_callback_expect_error(request, result, fErrors::FailedToDeserializeRequest);
+    vault.fossil_callback_expect_error(request, result, fErrors::FailedToDeserializeRequest);
 }
 
 // Test invalid Fossil result fails
@@ -110,7 +111,6 @@ fn test_invalid_request_fails() {
 #[available_gas(50000000)]
 fn test_invalid_result_fails() {
     let (mut vault, _) = setup_facade();
-    let fossil_client = vault.get_fossil_client_facade();
     accelerate_to_auctioning(ref vault);
     accelerate_to_running(ref vault);
     timeskip_to_settlement_date(ref vault);
@@ -119,9 +119,9 @@ fn test_invalid_result_fails() {
     let mut result = get_mock_result_serialized();
 
     // Should fail
-    set_contract_address(FOSSIL_PROCESSOR());
+    set_contract_address(PITCHLAKE_VERIFIER());
     let _ = result.pop_front();
-    fossil_client.fossil_callback_expect_error(request, result, fErrors::FailedToDeserializeResult);
+    vault.fossil_callback_expect_error(request, result, fErrors::FailedToDeserializeVerifierData);
 }
 
 // Test empty L1 data is not accepted
@@ -133,39 +133,29 @@ fn test_default_l1_data_fails() {
     accelerate_to_running(ref vault);
     timeskip_to_settlement_date(ref vault);
 
-    let fossil_client = vault.get_fossil_client_facade();
-
     let mut request_serialized = array![];
     let mut result1_serialized = array![];
-    //let mut result2_serialized = array![];
-    let mut result3_serialized = array![];
+    let mut result2_serialized = array![];
 
     vault.get_request_to_settle_round().serialize(ref request_serialized);
 
     let mut result1 = get_mock_result();
-    //let mut result2 = get_mock_result();
-    let mut result3 = get_mock_result();
+    let mut result2 = get_mock_result();
 
-    result1.l1_data.twap = 0;
-    //result2.l1_data.max_return = 0;
-    result3.l1_data.reserve_price = 0;
+    result1.twap_result = 0;
+    result2.reserve_price = 0;
 
     result1.serialize(ref result1_serialized);
-    //result2.serialize(ref result2_serialized);
-    result3.serialize(ref result3_serialized);
+    result2.serialize(ref result2_serialized);
 
     // Should fail
-    fossil_client
+    vault
         .fossil_callback_expect_error(
             request_serialized.span(), result1_serialized.span(), vErrors::InvalidL1Data
         );
-    //fossil_client
-    //    .fossil_callback_expect_error(
-    //        request_serialized.span(), result2_serialized.span(), vErrors::InvalidL1Data
-    //    );
-    fossil_client
+    vault
         .fossil_callback_expect_error(
-            request_serialized.span(), result3_serialized.span(), vErrors::InvalidL1Data
+            request_serialized.span(), result2_serialized.span(), vErrors::InvalidL1Data
         );
 }
 
@@ -175,23 +165,19 @@ fn test_default_l1_data_fails() {
 fn test_callback_event() {
     let (mut vault, _) = setup_facade();
     let mut current_round = vault.get_current_round();
-    let fossil_client = vault.get_fossil_client_facade();
 
     accelerate_to_auctioning(ref vault);
     accelerate_to_running(ref vault);
     timeskip_to_settlement_date(ref vault);
-    clear_event_logs(array![fossil_client.contract_address]);
+    clear_event_logs(array![vault.contract_address()]);
 
-    set_contract_address(FOSSIL_PROCESSOR());
+    set_contract_address(PITCHLAKE_VERIFIER());
     let request = get_request_serialized(ref vault);
     let result = get_mock_result_serialized();
-    fossil_client.fossil_callback(request, result);
+    vault.fossil_callback(request, result);
 
     assert_fossil_callback_success_event(
-        vault.get_fossil_client_facade().contract_address,
-        vault.contract_address(),
-        get_mock_result().l1_data,
-        current_round.get_option_settlement_date()
+        vault.contract_address(), get_mock_l1_data(), current_round.get_option_settlement_date()
     );
 }
 
@@ -213,13 +199,13 @@ fn test_only_fossil_client_can_call_fossil_client_callback() {
     // Should fail
     set_contract_address(contract_address_const::<'NOT IT'>());
     vault
-        .fossil_client_callback_expect_error(
-            l1_data, settlement_date, vErrors::CallerNotFossilClient
+        .fossil_callback_expect_error_using_l1_data(
+            l1_data, settlement_date, vErrors::CallerNotVerifier
         );
 
     // Should not fail
     set_contract_address(vault.get_fossil_client_address());
-    vault.fossil_client_callback(l1_data, settlement_date);
+    vault.fossil_callback_using_l1_data(l1_data, settlement_date);
 }
 
 // Test successfull callback sets the pricing data for the round
@@ -227,19 +213,15 @@ fn test_only_fossil_client_can_call_fossil_client_callback() {
 #[available_gas(50000000)]
 fn test_callback_sets_pricing_data_for_round() {
     let (mut vault, _) = setup_facade();
-    let fossil_client = vault.get_fossil_client_facade();
     accelerate_to_auctioning(ref vault);
     accelerate_to_running(ref vault);
     timeskip_to_settlement_date(ref vault);
 
-    // Fossil API callback
+    // Settle round using callback data
     let request = get_request_serialized(ref vault);
     let result = get_mock_result_serialized();
     set_contract_address(vault.get_fossil_client_address());
-    fossil_client.fossil_callback(request, result);
-
-    // Settle round using callback data
-    vault.settle_option_round();
+    vault.fossil_callback(request, result);
 
     // Check pricing data set as expected
     let mut current_round = vault.get_current_round();
@@ -272,7 +254,7 @@ fn test_first_round_callback_fails_if_now_is_auction_start_date() {
     set_contract_address(vault.get_fossil_client_address());
     // Should fail
     vault
-        .fossil_client_callback_expect_error(
+        .fossil_callback_expect_error_using_l1_data(
             l1_data, settlement_date, vErrors::L1DataNotAcceptedNow
         );
 }
@@ -292,7 +274,10 @@ fn test_round_callback_fails_if_non_first_round_open() {
 
     // Should fail
     set_contract_address(vault.get_fossil_client_address());
-    vault.fossil_client_callback_expect_error(l1_data, timestamp, vErrors::L1DataNotAcceptedNow);
+    vault
+        .fossil_callback_expect_error_using_l1_data(
+            l1_data, timestamp, vErrors::L1DataNotAcceptedNow
+        );
 }
 
 // Test callbacks fail if round is Auctioning
@@ -308,7 +293,10 @@ fn test_callback_fails_if_current_round_auctioning() {
 
     // Should fail
     set_contract_address(vault.get_fossil_client_address());
-    vault.fossil_client_callback_expect_error(l1_data, timestamp, vErrors::L1DataNotAcceptedNow);
+    vault
+        .fossil_callback_expect_error_using_l1_data(
+            l1_data, timestamp, vErrors::L1DataNotAcceptedNow
+        );
 }
 
 // Test callback can init first round if in range
@@ -325,7 +313,7 @@ fn test_callback_for_first_round_if_in_range() {
 
     set_block_timestamp(current_round.get_auction_start_date() - 1);
     set_contract_address(vault.get_fossil_client_address());
-    vault.fossil_client_callback(l1_data, deployment_date);
+    vault.fossil_callback_using_l1_data(l1_data, deployment_date);
 
     let expected_strike = pricing_utils::calculate_strike_price(vault.get_strike_level(), twap);
     let expected_cap = pricing_utils::calculate_cap_level(
@@ -356,11 +344,11 @@ fn test_callback_out_of_range_fails_first_round_start() {
 
     // Should fail
     vault
-        .fossil_client_callback_expect_error(
+        .fossil_callback_expect_error_using_l1_data(
             l1_data, deployment_date - 1, vErrors::L1DataOutOfRange
         );
     vault
-        .fossil_client_callback_expect_error(
+        .fossil_callback_expect_error_using_l1_data(
             l1_data, deployment_date + 1, vErrors::L1DataOutOfRange
         );
 }
@@ -383,11 +371,11 @@ fn test_callback_out_of_range_fails_settle_current_round() {
 
     // Should fail
     vault
-        .fossil_client_callback_expect_error(
+        .fossil_callback_expect_error_using_l1_data(
             l1_data, settlement_date + 1, vErrors::L1DataOutOfRange
         );
     vault
-        .fossil_client_callback_expect_error(
+        .fossil_callback_expect_error_using_l1_data(
             l1_data, settlement_date - 1, vErrors::L1DataOutOfRange
         );
 }
@@ -399,18 +387,14 @@ fn test_callback_out_of_range_fails_settle_current_round() {
 fn test_callback_works_as_expected() {
     let (mut vault, _) = setup_facade();
     let mut current_round = vault.get_current_round();
-    let fossil_client = vault.get_fossil_client_facade();
     accelerate_to_auctioning(ref vault);
     accelerate_to_running(ref vault);
     timeskip_to_settlement_date(ref vault);
 
-    // Callback
+    // Callback/settle round
     let request = get_request_serialized(ref vault);
     let result = get_mock_result_serialized();
-    fossil_client.fossil_callback(request, result);
-
-    // Settle round
-    vault.settle_option_round();
+    vault.fossil_callback(request, result);
 
     let mut next_round = vault.get_current_round();
     let l1_data = get_mock_l1_data();

@@ -7,7 +7,7 @@ use pitch_lake::tests::{
         helpers::{
             accelerators::{
                 accelerate_to_auctioning, accelerate_to_auctioning_custom, accelerate_to_running,
-                accelerate_to_running_custom, timeskip_and_settle_round, timeskip_and_end_auction,
+                accelerate_to_running_custom, timeskip_and_end_auction,
                 //accelerate_to_running_custom_option_round,
             },
             setup::{setup_facade, setup_test_auctioning_bidders},

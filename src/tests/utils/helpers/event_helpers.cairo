@@ -3,11 +3,10 @@ use starknet::{testing, ContractAddress,};
 use openzeppelin_utils::serde::SerializedAppend;
 use openzeppelin_token::erc20::{ERC20Component, ERC20Component::Transfer};
 use pitch_lake::{
-    vault::contract::Vault, option_round::contract::OptionRound,
+    vault::contract::{Vault, Vault::L1Data}, option_round::contract::OptionRound,
     fossil_client::contract::FossilClient
 };
 use pitch_lake::option_round::interface::{PricingData};
-use pitch_lake::fossil_client::interface::{L1Data};
 use debug::PrintTrait;
 
 /// Helpers ///
@@ -54,15 +53,12 @@ fn assert_events_equal<T, +PartialEq<T>, +Drop<T>>(actual: T, expected: T) {
 
 /// Fossil Client Events ///
 fn assert_fossil_callback_success_event(
-    fossil_client_address: ContractAddress,
-    vault_address: ContractAddress,
-    l1_data: L1Data,
-    timestamp: u64,
+    vault_address: ContractAddress, l1_data: L1Data, timestamp: u64,
 ) {
-    match pop_log::<FossilClient::Event>(fossil_client_address) {
+    match pop_log::<Vault::Event>(vault_address) {
         Option::Some(e) => {
-            let expected = FossilClient::Event::FossilCallbackSuccess(
-                FossilClient::FossilCallbackSuccess { vault_address, l1_data, timestamp }
+            let expected = Vault::Event::FossilCallbackSuccess(
+                Vault::FossilCallbackSuccess { vault_address, l1_data, timestamp }
             );
             assert_events_equal(e, expected);
         },
