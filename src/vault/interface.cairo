@@ -239,12 +239,11 @@ impl SerdeVerifierData of Serde<VerifierData> {
             .try_into()
             .expect('failed to deser. end timestamp');
         let reserve_price: felt252 = *serialized.at(2);
-        //        let floating_point_tolerance: felt252 = *serialized.at(3);
-        //        let reserve_price_tolerance: felt252 = *serialized.at(4);
+        let twap_result: felt252 = *serialized.at(3);
+        let max_return: felt252 = *serialized.at(4);
+
         //        let twap_tolerance: felt252 = *serialized.at(5);
         //        let gradient_tolerance: felt252 = *serialized.at(6);
-        let twap_result: felt252 = *serialized.at(7);
-        let max_return: felt252 = *serialized.at(8);
 
         Option::Some(
             VerifierData {

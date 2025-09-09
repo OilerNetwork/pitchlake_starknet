@@ -97,7 +97,7 @@ fn test_verifier_serialization() {
         twap_result: 5000,
         max_return: 6000
     };
-    let mut serialized_span = array![1000, 2000, 3000, 10, 20, 30, 40, 5000, 6000].span();
+    let mut serialized_span = array![1000, 2000, 3000, 5000, 6000].span();
 
     // Test serialize
     let mut serialized: Array<felt252> = array![];
@@ -118,7 +118,7 @@ fn test_verifier_deserialization() {
         twap_result: 5000,
         max_return: 6000
     };
-    let mut serialized_span = array![1000, 2000, 3000, 10, 20, 30, 40, 5000, 6000].span();
+    let mut serialized_span = array![1000, 2000, 3000, 5000, 6000].span();
 
     // Test deserialize
     let deserialized: VerifierData = Serde::deserialize(ref serialized_span)
