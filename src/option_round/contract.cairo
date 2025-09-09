@@ -538,13 +538,10 @@ mod OptionRound {
 
         fn start_auction(ref self: ContractState, starting_liquidity: u256) -> u256 {
             // @dev Ensure pricing data is set
-            // @note todo: handle null rounds
             let pricing_data = self.pricing_data.read();
-            let PricingData { strike_price, cap_level, reserve_price } = pricing_data;
+            let PricingData { strike_price, cap_level, reserve_price: _ } = pricing_data;
             assert(strike_price.is_non_zero(), Errors::PricingDataNotSet);
             // @dev Calculate total options available
-            let strike_price = pricing_data.strike_price;
-            let cap_level = pricing_data.cap_level;
             let options_available = calculate_total_options_available(
                 starting_liquidity, strike_price, cap_level
             );
@@ -577,12 +574,6 @@ mod OptionRound {
                     self.pricing_data.strike_price.read(), self.pricing_data.cap_level.read()
                 );
             let unsold_liquidity = starting_liq - sold_liquidity;
-
-            //let options_unsold = options_available - options_sold;
-            //let unsold_liquidity = match options_available.is_zero() {
-            //    true => 0,
-            //    false => (starting_liq * options_unsold) / options_available
-            //};
 
             // @dev Send premiums to Vault
             self
