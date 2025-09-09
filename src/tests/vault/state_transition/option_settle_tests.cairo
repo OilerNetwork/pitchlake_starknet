@@ -6,21 +6,21 @@ use starknet::{
 use openzeppelin_utils::serde::SerializedAppend;
 use openzeppelin_token::erc20::interface::ERC20ABIDispatcherTrait;
 use pitch_lake::{
-    library::{eth::Eth},
+    library::{eth::Eth, constants::PROGRAM_ID}, vault::interface::JobRequest,
     vault::{
-        contract::Vault,
         interface::{
-            IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait,
-            IVaultSafeDispatcherTrait, VaultType,
+            L1Data, IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait,
+            IVaultSafeDispatcherTrait,
         }
     },
     option_round::contract::OptionRound::Errors, option_round::interface::PricingData,
+    vault::interface::VerifierData,
     tests::{
         utils::{
             helpers::{
                 general_helpers::{
                     get_portion_of_amount, create_array_linear, create_array_gradient,
-                    get_erc20_balances, sum_u256_array,
+                    get_erc20_balances, sum_u256_array, to_gwei,
                 },
                 event_helpers::{
                     clear_event_logs, assert_event_option_settle, assert_event_transfer,
@@ -45,7 +45,10 @@ use pitch_lake::{
                 variables::{decimals},
             },
             facades::{
-                vault_facade::{VaultFacade, VaultFacadeTrait},
+                vault_facade::{
+                    l1_data_to_verifier_data_serialized, l1_data_to_verifier_data, VaultFacade,
+                    VaultFacadeTrait
+                },
                 option_round_facade::{OptionRoundState, OptionRoundFacade, OptionRoundFacadeTrait},
             },
         },
@@ -61,11 +64,48 @@ use debug::PrintTrait;
 #[available_gas(50000000)]
 fn test_settling_option_round_while_round_auctioning_fails() {
     let (mut vault_facade, _) = setup_facade();
+    let mut current_round = vault_facade.get_current_round();
 
-    accelerate_to_auctioning(ref vault_facade);
+    let mut j: Array<felt252> = array![];
+    let _j = JobRequest {
+        program_id: PROGRAM_ID,
+        vault_address: vault_facade.contract_address(),
+        timestamp: current_round.get_option_settlement_date()
+    };
+    _j.serialize(ref j);
+
+    let l1_data = L1Data { twap: to_gwei(5), reserve_price: to_gwei(2), max_return: (3333) };
+    let v = l1_data_to_verifier_data_serialized(l1_data);
+
+    accelerate_to_auctioning(ref vault_facade,);
 
     // Settle option round before auction ends
-    vault_facade.settle_option_round_expect_error(Errors::OptionSettlementDateNotReached);
+    vault_facade
+        .settle_option_round_expect_error(j.span(), v, Errors::OptionSettlementDateNotReached);
+}
+
+fn get_mock_l1_data() -> L1Data {
+    L1Data { twap: to_gwei(33) / 100, max_return: 1009, reserve_price: to_gwei(11) / 10 }
+}
+
+fn get_mock_result() -> VerifierData {
+    l1_data_to_verifier_data(get_mock_l1_data())
+}
+
+fn get_mock_result_serialized() -> Span<felt252> {
+    let mut result_serialized = array![];
+    get_mock_result().serialize(ref result_serialized);
+    result_serialized.span()
+}
+
+fn get_request(ref vault: VaultFacade) -> JobRequest {
+    vault.get_request_to_settle_round()
+}
+
+fn get_request_serialized(ref vault: VaultFacade) -> Span<felt252> {
+    let mut request_serialized = array![];
+    get_request(ref vault).serialize(ref request_serialized);
+    request_serialized.span()
 }
 
 // Test settling an option round before the option expiry date fails
@@ -74,8 +114,11 @@ fn test_settling_option_round_while_round_auctioning_fails() {
 fn test_settling_option_round_before_settlement_date_fails() {
     let (mut vault_facade, _) = setup_test_running();
 
+    let j = get_request_serialized(ref vault_facade);
+    let v = get_mock_result_serialized();
+
     // Settle option round before expiry
-    vault_facade.settle_option_round_expect_error(Errors::OptionSettlementDateNotReached);
+    vault_facade.settle_option_round_expect_error(j, v, Errors::OptionSettlementDateNotReached);
 }
 
 // Test settling an option round while round settled fails
@@ -87,8 +130,11 @@ fn test_settling_option_round_while_settled_fails() {
     accelerate_to_running(ref vault_facade);
     accelerate_to_settled(ref vault_facade, 0x123);
 
+    let j = get_request_serialized(ref vault_facade);
+    let v = get_mock_result_serialized();
+
     // Settle option round after it has already settled
-    vault_facade.settle_option_round_expect_error(Errors::OptionRoundAlreadySettled);
+    vault_facade.settle_option_round_expect_error(j, v, Errors::OptionRoundAlreadySettled);
 }
 
 /// Event Tests ///

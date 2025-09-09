@@ -9,11 +9,10 @@ use openzeppelin_utils::serde::SerializedAppend;
 use openzeppelin_token::erc20::{
     ERC20Component, interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait}
 };
-use pitch_lake::fossil_client::interface::{JobRequest, FossilResult, L1Data};
-use pitch_lake::fossil_client::contract::FossilClient;
+use pitch_lake::vault::interface::{JobRequest};
 use pitch_lake::{
     library::eth::Eth, vault::contract::Vault, library::constants::{MINUTE},
-    vault::interface::{ConstructorArgs, VaultType, IVaultDispatcher, IVaultDispatcherTrait},
+    vault::interface::{ConstructorArgs, IVaultDispatcher, IVaultDispatcherTrait, L1Data},
     option_round::{
         contract::OptionRound,
         interface::{
@@ -31,7 +30,6 @@ use pitch_lake::{
         },
         utils::{
             lib::{
-                //structs::{OptionRoundParams},
                 test_accounts::{weth_owner, liquidity_providers_get, option_bidders_get, bystander},
                 variables::{week_duration, decimals},
             },
@@ -45,7 +43,6 @@ use pitch_lake::{
             facades::{
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
                 vault_facade::{VaultFacade, VaultFacadeImpl, VaultFacadeTrait},
-                fossil_client_facade::{FossilClientFacade, FossilClientFacadeTrait},
             },
         },
     },
@@ -55,7 +52,7 @@ use debug::PrintTrait;
 const DECIMALS: u8 = 18_u8;
 const SUPPLY: u256 = 999999999999999999999999999999;
 
-fn FOSSIL_PROCESSOR() -> ContractAddress {
+fn PITCHLAKE_VERIFIER() -> ContractAddress {
     contract_address_const::<'FOSSIL PROCESSOR'>()
 }
 
@@ -79,24 +76,9 @@ fn deploy_eth() -> ERC20ABIDispatcher {
     return ERC20ABIDispatcher { contract_address };
 }
 
-fn deploy_fossil_client() -> FossilClientFacade {
-    let mut calldata = array![];
-    calldata.append_serde(FOSSIL_PROCESSOR());
-    let (contract_address, _): (ContractAddress, Span<felt252>) = deploy_syscall(
-        FossilClient::TEST_CLASS_HASH.try_into().unwrap(), 'some salt', calldata.span(), false
-    )
-        .expect('DEPLOY_FOSSIL_CLIENT_FAILED');
-
-    // Clear the event log (not needed)
-    clear_event_logs(array![contract_address]);
-
-    return FossilClientFacade { contract_address };
-}
-
-const ROUND_TRANSITION_DURATION: u64= 3 * MINUTE;
-const AUCTION_DURATION: u64= 3 * MINUTE;
-const ROUND_DURATION: u64= 3 * MINUTE;
-
+const ROUND_TRANSITION_DURATION: u64 = 3 * MINUTE;
+const AUCTION_DURATION: u64 = 3 * MINUTE;
+const ROUND_DURATION: u64 = 3 * MINUTE;
 
 // Deploy the vault and fossil client
 fn deploy_vault_with_events(
@@ -105,7 +87,7 @@ fn deploy_vault_with_events(
     /// Deploy Vault
     let mut calldata = array![];
     let args = ConstructorArgs {
-        fossil_client_address: deploy_fossil_client().contract_address,
+        verifier_address: PITCHLAKE_VERIFIER(),
         eth_address,
         option_round_class_hash: OptionRound::TEST_CLASS_HASH.try_into().unwrap(),
         alpha, // risk factor for vault
@@ -163,18 +145,11 @@ fn setup_facade_custom(alpha: u128, strike_level: i128) -> VaultFacade {
     let mut vault_facade = VaultFacade { vault_dispatcher };
 
     // Fulfill request to start auction
-    let mut serialized_request = array![];
-    let mut serialized_result = array![];
-    vault_facade.get_request_to_start_first_round().serialize(ref serialized_request);
-    FossilResult {
-        l1_data: L1Data { twap: to_gwei(10), volatility: 5000, reserve_price: to_gwei(2), },
-        proof: array!['doesnt', 'matter'].span()
-    }
-        .serialize(ref serialized_result);
+    let l1_data = L1Data { twap: to_gwei(10), max_return: 5000, reserve_price: to_gwei(2), };
+    let mut current_round = vault_facade.get_current_round();
+    let timestamp = current_round.get_deployment_date();
 
-    vault_facade
-        .get_fossil_client_facade()
-        .fossil_callback(serialized_request.span(), serialized_result.span());
+    vault_facade.fossil_callback_using_l1_data(l1_data, timestamp);
 
     // @dev Supply eth to liquidity providers and approve vault for transferring eth
     eth_supply_and_approve_all_providers(

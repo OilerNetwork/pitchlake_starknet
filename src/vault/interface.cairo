@@ -1,20 +1,10 @@
 use starknet::{ContractAddress, ClassHash};
 use pitch_lake::option_round::interface::OptionRoundState;
 
-use pitch_lake::fossil_client::interface::{JobRequest, L1Data};
-
-// @dev An enum for each type of Vault
-#[derive(starknet::Store, Copy, Drop, Serde, PartialEq)]
-enum VaultType {
-    InTheMoney,
-    AtTheMoney,
-    OutOfMoney,
-}
-
 // @dev Constructor arguments
 #[derive(Drop, Serde)]
 struct ConstructorArgs {
-    fossil_client_address: ContractAddress,
+    verifier_address: ContractAddress,
     eth_address: ContractAddress,
     option_round_class_hash: ClassHash,
     alpha: u128,
@@ -29,9 +19,6 @@ struct ConstructorArgs {
 trait IVault<TContractState> {
     /// Reads ///
 
-    // @dev Get the type of vault (ITM | ATM | OTM)
-    fn get_vault_type(self: @TContractState) -> VaultType;
-
     // @dev Get the alpha risk factor of the vault
     fn get_alpha(self: @TContractState) -> u128;
 
@@ -41,8 +28,11 @@ trait IVault<TContractState> {
     // @dev Get the ETH address
     fn get_eth_address(self: @TContractState) -> ContractAddress;
 
-    // @dev The the Fossil Client's address
-    fn get_fossil_client_address(self: @TContractState) -> ContractAddress;
+    // @dev The Fossil verifier address
+    fn get_verifier_address(self: @TContractState) -> ContractAddress;
+
+    // @dev The block this vault was deployed at
+    fn get_deployment_block(self: @TContractState) -> u64;
 
     // @dev The number of seconds between a round deploying and its auction starting
     fn get_round_transition_duration(self: @TContractState) -> u64;
@@ -91,14 +81,42 @@ trait IVault<TContractState> {
     // @dev The account's % (bps) queued for withdrawal once the current round settles
     fn get_account_queued_bps(self: @TContractState, account: ContractAddress) -> u128;
 
-    /// Fossil
+    /// L1 Data
 
-    // @dev Get the request for Fossil to fulfill in order to settle the current round
-    fn get_request_to_settle_round(self: @TContractState) -> Span<felt252>;
+    // For each round, L1 data is required to:
+    // 1) Settle the current round
+    // 2) Deploy/initialize the next round
 
-    // @dev When a round settles, the l1 data used to settle round i also deploys round i+1,
-    // therefore this request is only needs to initialize the first round
+    // Round 1 requires a 1-time initialization with L1 data after the Vault's deployment (because
+    // there is no previous round), but upon its (and all subsequent round's) settlement the L1 data
+    // provided is also used to initialize the next round.
+    // The flow looks like this:
+    // -> Vault deployed
+    // *-> L1 data provided to initialize round 1
+    // -> Round 1 auction starts
+    // -> Round 1 auction ends
+    // *-> L1 data provided to settle round 1 and initialize round 2
+    // -> Round 2 auction starts
+    // -> Round 2 auction ends
+    // *-> L1 data provided to settle round n (2) and initialize round n + 1
+    // -> Round n + 1 auction starts
+    // -> Round n + 1 auction ends
+    // *-> L1 data provided to settle round n + 1 and initialize round n + 2
+    // ...
+
+    // Each of these job request is fulfilled and verified by the Pitchlake Verifier (via Fossil).
+    // They both result in the `fossil_callback` function being called by the verfier to provide the
+    // L1 data to the vault. This function is responsible for routing the data accordingly (either
+    // to initialize round 1, or to settle the current round and initialize the next round).
+
+    // @dev Gets the job request required to initialize round 1 (serialized)
+    // @dev This job's result is only used once
     fn get_request_to_start_first_round(self: @TContractState) -> Span<felt252>;
+
+    // @dev Gets the job request required to settle the current round (serialized)
+    // @dev This job's result is used for each round's settlement. It is also used to initialize the
+    // next round.
+    fn get_request_to_settle_round(self: @TContractState) -> Span<felt252>;
 
     /// Writes ///
 
@@ -126,8 +144,6 @@ trait IVault<TContractState> {
 
     /// State transitions
 
-    fn fossil_client_callback(ref self: TContractState, l1_data: L1Data, timestamp: u64);
-
     // @dev Start the current round's auction
     // @return The total options available in the auction
     fn start_auction(ref self: TContractState) -> u256;
@@ -136,7 +152,111 @@ trait IVault<TContractState> {
     // @return The clearing price and total options sold
     fn end_auction(ref self: TContractState) -> (u256, u256);
 
-    // @dev Settle the current round
-    // @return The total payout for the round
-    fn settle_round(ref self: TContractState) -> u256;
+    // @dev This function is called by the Pitchlake Verifier to provide L1 data to
+    // the vault.
+    // @dev This function uses the data to initialize round 1 or to settle the current round (and
+    // open the next).
+    // @returns 0 if the callback was used to initialize round 1, or the total payout of the settled
+    // round if it was used to settle
+    fn fossil_callback(
+        ref self: TContractState, job_request: Span<felt252>, result: Span<felt252>
+    ) -> u256;
 }
+
+/// Verifier/Fossil Integration
+// Job request sent to Fossil
+// vault_address: Which vault is the data for
+// timestamp: Upper bound timestamp of gas data used in data calculation
+// program_id: 'PITCH_LAKE_V1'
+#[derive(Copy, Drop, PartialEq)]
+struct JobRequest {
+    vault_address: ContractAddress,
+    timestamp: u64,
+    program_id: felt252,
+}
+
+// Fossil job results (args, data and tolerances)
+#[derive(Copy, Drop, PartialEq)]
+struct VerifierData {
+    pub start_timestamp: u64,
+    pub end_timestamp: u64,
+    pub reserve_price: felt252,
+    pub twap_result: felt252,
+    pub max_return: felt252,
+    //pub floating_point_tolerance: felt252,
+//pub reserve_price_tolerance: felt252,
+//pub twap_tolerance: felt252,
+//pub gradient_tolerance: felt252,
+}
+
+#[derive(Default, Copy, Drop, Serde, PartialEq, starknet::Store)]
+struct L1Data {
+    twap: u256,
+    max_return: u128,
+    reserve_price: u256,
+}
+
+
+// JobRequest <-> Array<felt252>
+impl SerdeJobRequest of Serde<JobRequest> {
+    fn serialize(self: @JobRequest, ref output: Array<felt252>) {
+        self.vault_address.serialize(ref output);
+        self.timestamp.serialize(ref output);
+        self.program_id.serialize(ref output);
+    }
+
+    fn deserialize(ref serialized: Span<felt252>) -> Option<JobRequest> {
+        let vault_address: ContractAddress = (*serialized.at(0))
+            .try_into()
+            .expect('failed to deserialize vault');
+        let timestamp: u64 = (*serialized.at(1))
+            .try_into()
+            .expect('failed to deserialize timestamp');
+        let program_id: felt252 = *serialized.at(2);
+        Option::Some(JobRequest { program_id, vault_address, timestamp })
+    }
+}
+
+// VerifierData <-> Array<felt252>
+impl SerdeVerifierData of Serde<VerifierData> {
+    fn serialize(self: @VerifierData, ref output: Array<felt252>) {
+        self.start_timestamp.serialize(ref output);
+        self.end_timestamp.serialize(ref output);
+        self.reserve_price.serialize(ref output);
+        //self.floating_point_tolerance.serialize(ref output);
+        //self.reserve_price_tolerance.serialize(ref output);
+        //self.twap_tolerance.serialize(ref output);
+        //self.gradient_tolerance.serialize(ref output);
+        self.twap_result.serialize(ref output);
+        self.max_return.serialize(ref output);
+    }
+
+    fn deserialize(ref serialized: Span<felt252>) -> Option<VerifierData> {
+        let start_timestamp: u64 = (*serialized.at(0))
+            .try_into()
+            .expect('failed to deser. start timestmp');
+        let end_timestamp: u64 = (*serialized.at(1))
+            .try_into()
+            .expect('failed to deser. end timestamp');
+        let reserve_price: felt252 = *serialized.at(2);
+        let twap_result: felt252 = *serialized.at(3);
+        let max_return: felt252 = *serialized.at(4);
+
+        //        let twap_tolerance: felt252 = *serialized.at(5);
+        //        let gradient_tolerance: felt252 = *serialized.at(6);
+
+        Option::Some(
+            VerifierData {
+                start_timestamp,
+                end_timestamp,
+                reserve_price, //                floating_point_tolerance,
+                //                reserve_price_tolerance,
+                //                twap_tolerance,
+                //                gradient_tolerance,
+                twap_result,
+                max_return
+            }
+        )
+    }
+}
+

@@ -1,4 +1,9 @@
 #[cfg(test)]
+mod pitchlake_verifier {
+    mod verifier_tests;
+}
+
+#[cfg(test)]
 mod vault {
     mod state_transition {
         mod auction_end_tests;
@@ -64,7 +69,6 @@ mod utils {
     mod facades {
         mod vault_facade;
         mod option_round_facade;
-        mod fossil_client_facade;
         mod sanity_checks;
     }
 

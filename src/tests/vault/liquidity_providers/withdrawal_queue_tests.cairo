@@ -621,7 +621,6 @@ fn test_claiming_queued_liquidity_sets_stashed_to_0() {
     let stashed_balance_after = vault.get_lp_stashed_balance(liquidity_provider);
 
     assert_eq!(stashed_balance_before, (sold_liq * bps.into()) / BPS_u256);
-    println!("stashed_balance_after: {}", stashed_balance_after);
     assert_eq!(stashed_balance_after, 0);
 }
 

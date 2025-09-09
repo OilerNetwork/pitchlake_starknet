@@ -8,18 +8,12 @@ mod library {
     mod constants;
 }
 
-
 mod vault {
     mod interface;
     mod contract;
 }
 
 mod option_round {
-    mod interface;
-    mod contract;
-}
-
-mod fossil_client {
     mod interface;
     mod contract;
 }

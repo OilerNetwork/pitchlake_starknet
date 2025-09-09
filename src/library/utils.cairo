@@ -1,5 +1,5 @@
 use core::poseidon::poseidon_hash_span;
-use pitch_lake::fossil_client::interface::JobRequest;
+use pitch_lake::vault::interface::JobRequest;
 
 pub const VALUES_NOT_IN_RANGE: felt252 = 'Values not in range';
 
