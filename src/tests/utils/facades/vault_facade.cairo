@@ -1,18 +1,19 @@
+use core::fmt::{Display, Error, Formatter};
 use fp::{UFixedPoint123x128, UFixedPoint123x128Impl};
 use starknet::{ContractAddress, testing::{set_contract_address, set_block_timestamp}};
 use openzeppelin_token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
 use pitch_lake::{
-    library::constants::PROGRAM_ID, fossil_client::interface::{JobRequest},
+    library::constants::PROGRAM_ID,
     vault::{
         contract::Vault::{L1Data},
         interface::{
-            IVaultDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcher, IVaultSafeDispatcherTrait
+            VerifierData, IVaultDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcher, JobRequest,
+            IVaultSafeDispatcherTrait
         }
     },
     option_round::{
         contract::OptionRound, interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait,}
     },
-    fossil_client::interface::VerifierData,
     tests::{
         utils::{
             lib::{
@@ -29,6 +30,19 @@ use pitch_lake::{
         },
     }
 };
+
+fn pow(base: u256, exp: u256) -> u256 {
+    if exp == 0_u256 {
+        return 1_u256;
+    }
+    let mut result = base;
+    let mut e = exp - 1_u256;
+    while e > 0_u256 {
+        result = result * base;
+        e = e - 1_u256;
+    };
+    result
+}
 
 fn l1_data_to_verifier_data(l1_data: L1Data) -> VerifierData {
     // Convert u256->u128->UFixedPoint123x128->felt252
@@ -51,11 +65,16 @@ fn l1_data_to_verifier_data(l1_data: L1Data) -> VerifierData {
     // u128 -> felt252
     // i.e 1234 -> 0.1234 -> 0.1234_felt252
     let max_return: felt252 = {
-        let BPS: UFixedPoint123x128 = 10_000_u64.into(); // 10,000.0
-        let max_return_fp: UFixedPoint123x128 = max_return.into()
-            / BPS; // i.e 1234.0 / 10_000.0 = 0.1234; is 12.34%
+        // Need to round due to precision loss when casting through FP
+        let TWO_POW_128: u256 = pow(2_u256, 128_u256);
+        let max_return_u256: u256 = max_return.into();
+        let num: u256 = max_return_u256 * TWO_POW_128;
+        let num_rounded: u256 = num + 5_000;
+        let raw: u256 = num_rounded / 10_000;
 
-        max_return_fp.try_into().unwrap()
+        let raw_fp: UFixedPoint123x128 = raw.into();
+
+        raw_fp.try_into().unwrap()
     };
 
     VerifierData {
@@ -200,7 +219,14 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         ref self: VaultFacade, request: Span<felt252>, result: Span<felt252>
     ) -> u256 {
         set_contract_address(self.get_fossil_client_address());
-        self.vault_dispatcher.fossil_callback(request, result)
+        let payout = self.vault_dispatcher.fossil_callback(request, result);
+
+        let mut current_round = self.get_current_round();
+        eth_supply_and_approve_all_bidders(
+            current_round.contract_address(), self.get_eth_address()
+        );
+
+        payout
     }
 
     fn fossil_callback_using_l1_data(
@@ -216,7 +242,14 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         // job result serialized
         let v = l1_data_to_verifier_data_serialized(l1_data);
         set_contract_address(self.get_fossil_client_address());
-        self.vault_dispatcher.fossil_callback(j.span(), v)
+        let payout = self.vault_dispatcher.fossil_callback(j.span(), v);
+
+        let mut current_round = self.get_current_round();
+        eth_supply_and_approve_all_bidders(
+            current_round.contract_address(), self.get_eth_address()
+        );
+
+        payout
     }
 
     #[feature("safe_dispatcher")]
@@ -263,8 +296,8 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         let max_return_fp_felt: felt252 = max_return_bps_int.into(); // u128 -> felt252
 
         let v = VerifierData {
-            start_timestamp: 'irrelevent'.try_into().unwrap(),
-            end_timestamp: 'irrelevent'.try_into().unwrap(),
+            start_timestamp: 1234,
+            end_timestamp: 5678,
             reserve_price: reserve_price_fp_felt,
             floating_point_tolerance: 'irrelevent',
             reserve_price_tolerance: 'irrelevent',
