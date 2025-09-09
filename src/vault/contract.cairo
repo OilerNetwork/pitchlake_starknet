@@ -683,6 +683,7 @@ mod Vault {
                 core::num::traits::Bounded::MAX
             }
         }
+    }
 
     // *************************************************************************
     //                          INTERNAL FUNCTIONS
