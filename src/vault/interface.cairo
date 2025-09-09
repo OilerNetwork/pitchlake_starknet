@@ -1,15 +1,6 @@
 use starknet::{ContractAddress, ClassHash};
 use pitch_lake::option_round::interface::OptionRoundState;
-
 use pitch_lake::fossil_client::interface::{JobRequest, L1Data};
-
-// @dev An enum for each type of Vault
-#[derive(starknet::Store, Copy, Drop, Serde, PartialEq)]
-enum VaultType {
-    InTheMoney,
-    AtTheMoney,
-    OutOfMoney,
-}
 
 // @dev Constructor arguments
 #[derive(Drop, Serde)]
@@ -91,14 +82,42 @@ trait IVault<TContractState> {
     // @dev The account's % (bps) queued for withdrawal once the current round settles
     fn get_account_queued_bps(self: @TContractState, account: ContractAddress) -> u128;
 
-    /// Fossil
+    /// L1 Data
 
-    // @dev Get the request for Fossil to fulfill in order to settle the current round
-    fn get_request_to_settle_round(self: @TContractState) -> Span<felt252>;
+    // For each round, L1 data is required to:
+    // 1) Settle the current round
+    // 2) Deploy/initialize the next round
 
-    // @dev When a round settles, the l1 data used to settle round i also deploys round i+1,
-    // therefore this request is only needs to initialize the first round
+    // Round 1 requires a 1-time initialization with L1 data after the Vault's deployment (because
+    // there is no previous round), but upon its (and all subsequent round's) settlement the L1 data
+    // provided is also used to initialize the next round.
+    // The flow looks like this:
+    // -> Vault deployed
+    // *-> L1 data provided to initialize round 1
+    // -> Round 1 auction starts
+    // -> Round 1 auction ends
+    // *-> L1 data provided to settle round 1 and initialize round 2
+    // -> Round 2 auction starts
+    // -> Round 2 auction ends
+    // *-> L1 data provided to settle round n (2) and initialize round n + 1
+    // -> Round n + 1 auction starts
+    // -> Round n + 1 auction ends
+    // *-> L1 data provided to settle round n + 1 and initialize round n + 2
+    // ...
+
+    // Each of these job request is fulfilled and verified by the Pitchlake Verifier (via Fossil).
+    // They both result in the `fossil_callback` function being called by the verfier to provide the
+    // L1 data to the vault. This function is responsible for routing the data accordingly (either
+    // to initialize round 1, or to settle the current round and initialize the next round).
+
+    // @dev Gets the job request required to initialize round 1 (serialized)
+    // @dev This job's result is only used once
     fn get_request_to_start_first_round(self: @TContractState) -> Span<felt252>;
+
+    // @dev Gets the job request required to settle the current round (serialized)
+    // @dev This job's result is used for each round's settlement. It is also used to initialize the
+    // next round.
+    fn get_request_to_settle_round(self: @TContractState) -> Span<felt252>;
 
     /// Writes ///
 
@@ -126,11 +145,6 @@ trait IVault<TContractState> {
 
     /// State transitions
 
-    // @dev Set L1 data to settle the current round and start the next round
-    // @dev Called by Pitchlake Verifier
-    // @dev Used to initialize the first round and settle all subsequent rounds
-    fn fossil_callback(ref self: TContractState, job_request: Span<felt252>, result: Span<felt252>);
-
     // @dev Start the current round's auction
     // @return The total options available in the auction
     fn start_auction(ref self: TContractState) -> u256;
@@ -139,7 +153,13 @@ trait IVault<TContractState> {
     // @return The clearing price and total options sold
     fn end_auction(ref self: TContractState) -> (u256, u256);
 
-    // @dev Settle the current round
-    // @return The total payout for the round
-    fn settle_round(ref self: TContractState) -> u256;
+    // @dev This function is called by the Pitchlake Verifier to provide L1 data to
+    // the vault.
+    // @dev This function uses the data to initialize round 1 or to settle the current round (and
+    // open the next).
+    // @returns 0 if the callback was used to initialize round 1, or the total payout of the settled
+    // round if it was used to settle
+    fn fossil_callback(
+        ref self: TContractState, job_request: Span<felt252>, result: Span<felt252>
+    ) -> u256;
 }
