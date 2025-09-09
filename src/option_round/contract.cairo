@@ -921,7 +921,7 @@ mod OptionRound {
                         let bid = self.bids_tree._find(bid_id);
 
                         // @dev If there is no clearing bid, all bids are winning bids
-                        if bid_id == clearing_bid_id {
+                        if clearing_bid_id.is_zero() {
                             winning_bids.append(bid);
                         } // @dev If this bid is the clearing bid it could be mintable and refundable
                         else if bid_id == clearing_bid_id {
