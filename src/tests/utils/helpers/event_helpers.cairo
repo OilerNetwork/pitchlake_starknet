@@ -58,7 +58,7 @@ fn assert_fossil_callback_success_event(
     match pop_log::<Vault::Event>(vault_address) {
         Option::Some(e) => {
             let expected = Vault::Event::FossilCallbackSuccess(
-                Vault::FossilCallbackSuccess { vault_address, l1_data, timestamp }
+                Vault::FossilCallbackSuccess { l1_data, timestamp }
             );
             assert_events_equal(e, expected);
         },
