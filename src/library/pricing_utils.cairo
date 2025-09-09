@@ -35,37 +35,33 @@ fn calculate_total_options_available(
     }
 }
 
-// @note TODO: switch to using max_return and possibly floating points
-fn calculate_cap_level(a: u128, k: i128, max_return: u128) -> u128 {
-    //    // @dev λ = 2.3300 * vol
-    //    let lambda: i128 = 23300 * vol.try_into().expect('Vol u128 -> i128 failed') / BPS_i128;
-    //
-    //    // @dev Cap level must be positive
-    //    if k >= lambda {
-    //        1
-    //    } else {
-    //        // @dev `λ - k` >= 0 here, cast from i128 to u128 through felt252
-    //        let lambda_minus_k: u128 = Into::<i128, felt252>::into(lambda -
-    //        k).try_into().unwrap();
-    //
-    //        // @dev Ensure k+1 is positive then cast from i128 to u128 through felt252
-    //        let k_plus_1 = k + BPS_i128;
-    //        assert(k_plus_1 > 0, 'Strike price must be > 0');
-    //
-    //        let k_plus_1 = Into::<i128, felt252>::into(k_plus_1)
-    //            .try_into()
-    //            .expect('k_plus_1 felt252 -> u128 failed');
-    //
-    //        // @dev cl = λ − k / (α × (k + 1))
-    //        let numerator: u128 = lambda_minus_k;
-    //        let denominator: u128 = a * k_plus_1;
-    //
-    //        // @dev (λ - k) is BPS - BPS, (a * (k + 1)) is BPS * BPS, so multip
-    //        (BPS_u128 * BPS_u128 * numerator / denominator)
-    //    }
-    10_000
+// Calculate cap level using max returns, alpha, and k
+// `cl = (max_returns - k) / (alpha * (1 + k))`
+// @param alpha: target percentage of max returns in BPS (e.g., 2500 for 25%; translates loosely to:
+// in the event of a black swan event, LPs are willing to lose at most 25% of their capital)
+// @param k: strike level in BPS (e.g., 0 for ATM, -3333 for -33.33%)
+// @param max_returns: maximum returns in BPS (e.g., 12345 for 123.45%)
+fn calculate_cap_level(alpha: u128, k: i128, max_returns: u128) -> u128 {
+    let max_returns_minus_k: i128 = (max_returns.try_into().unwrap()) - k;
+    let k_plus_one = BPS_i128 + k;
+
+    // Avoid division by zero, clamp to min:1
+    if (alpha == 0 || k_plus_one <= 0) {
+        return 1;
+    }
+
+    // If (max_returns - k) is negative, clamp to min:1
+    if max_returns_minus_k <= 0 {
+        return 1;
+    }
+
+    let alpha_i128: i128 = alpha.try_into().unwrap();
+    let cl = (max_returns_minus_k * BPS_i128 * BPS_i128) / (alpha_i128 * k_plus_one);
+
+    return cl.try_into().unwrap();
 }
 
+// @note TODO: switch to using max_return and possibly floating points
 // Calculate a round's strike price `K = (1 + k)BF`
 // @param twap: the current TWAP of the basefee
 // @param k: the strike level
