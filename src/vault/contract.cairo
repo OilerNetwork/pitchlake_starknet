@@ -10,8 +10,7 @@ mod Vault {
         ERC20Component, interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait}
     };
     use openzeppelin_utils::serde::SerializedAppend;
-    use pitch_lake::fossil_client::interface::{VerifierData, JobRequest};
-    use pitch_lake::vault::interface::{ConstructorArgs, IVault};
+    use pitch_lake::vault::interface::{ConstructorArgs, IVault, VerifierData, JobRequest};
     use pitch_lake::option_round::contract::{OptionRound, OptionRound::Errors as RoundErrors};
     use pitch_lake::option_round::interface::{
         ConstructorArgs as OptionRoundConstructorArgs, OptionRoundState, IOptionRoundDispatcher,
@@ -23,7 +22,7 @@ mod Vault {
     use pitch_lake::library::constants::{REQUEST_TOLERANCE, PROGRAM_ID};
     use fp::{UFixedPoint123x128, UFixedPoint123x128Impl, UFixedPoint123x128StorePacking};
 
-    #[derive(Default, Copy, Drop, Serde, PartialEq, starknet::Store)]
+    #[derive(Debug, Default, Copy, Drop, Serde, PartialEq, starknet::Store)]
     struct L1Data {
         twap: u256,
         max_return: u128,
@@ -219,7 +218,6 @@ mod Vault {
     }
 
     // @dev Emitted when L1 data is successfully processed by the vault
-    //
     #[derive(Serde, Drop, starknet::Event, PartialEq)]
     struct FossilCallbackSuccess {
         l1_data: L1Data,
@@ -804,10 +802,17 @@ mod Vault {
             // @dev Deploy the next option round contract & update the current round id
             self.deploy_next_round(l1_data, current_round_id + 1);
 
+            // @dev Emit fossil callback success event
+            self
+                .emit(
+                    Event::FossilCallbackSuccess(
+                        FossilCallbackSuccess { l1_data, timestamp: job_request_timestamp }
+                    )
+                );
+
             // @dev Return the total payout of the settled round
             total_payout
         }
-
 
         // @dev Deploy the next option round, then calculate the strike price & cap level to
         // initialize the next round
@@ -821,7 +826,14 @@ mod Vault {
             let auction_duration = self.auction_duration.read();
             let round_duration = self.round_duration.read();
 
-            let pricing_data = self.convert_l1_data_to_round_data(l1_data);
+            // @dev Cap level is bound > 0 by this function. Only the first round will be deployed
+            // with default (0) pricing data (it is initialized after deployment), every other round
+            // will have valid pricing
+            let pricing_data = if new_round_id == 1 {
+                Default::default()
+            } else {
+                self.convert_l1_data_to_round_data(l1_data)
+            };
 
             let constructor_args = OptionRoundConstructorArgs {
                 vault_address,
@@ -868,21 +880,12 @@ mod Vault {
             assert(get_caller_address() == self.verifier_address.read(), Errors::CallerNotVerifier);
         }
 
-        // @dev Converts L1 data from Verifier (twap, max return, reserve price) to pricing data for
-        // the round (strike price, cap level, reserve price)
-        fn convert_l1_data_to_round_data(self: @ContractState, l1_data: L1Data) -> PricingData {
-            if l1_data == Default::default() {
-                Default::default()
-            }
-
-            let alpha = self.alpha.read();
-            let k = self.strike_level.read();
-            let L1Data { twap, max_return, reserve_price } = l1_data;
-
-            let cap_level = calculate_cap_level(alpha, k, max_return);
-            let strike_price = calculate_strike_price(k, twap);
-
-            PricingData { strike_price, cap_level, reserve_price }
+        // @dev Generate a JobRequest for a specific timestamp
+        fn generate_job_request(self: @ContractState, timestamp: u64) -> Span<felt252> {
+            let mut serialized_request = array![];
+            JobRequest { program_id: PROGRAM_ID, vault_address: get_contract_address(), timestamp }
+                .serialize(ref serialized_request);
+            serialized_request.span()
         }
 
         // Interpret l1 data to useful types
@@ -918,6 +921,22 @@ mod Vault {
             L1Data { twap, max_return, reserve_price }
         }
 
+        // @dev Converts L1 data from Verifier (twap, max return, reserve price) to pricing data for
+        // the round (strike price, cap level, reserve price)
+        fn convert_l1_data_to_round_data(self: @ContractState, l1_data: L1Data) -> PricingData {
+            if l1_data == Default::default() {
+                Default::default()
+            }
+
+            let alpha = self.alpha.read();
+            let k = self.strike_level.read();
+            let L1Data { twap, max_return, reserve_price } = l1_data;
+
+            let cap_level = calculate_cap_level(alpha, k, max_return);
+            let strike_price = calculate_strike_price(k, twap);
+
+            PricingData { strike_price, cap_level, reserve_price }
+        }
 
         /// Position management
 
@@ -1108,14 +1127,6 @@ mod Vault {
                     account_remaining_liq_not_stashed
                 }
             }
-        }
-
-        // @dev Generate a JobRequest for a specific timestamp
-        fn generate_job_request(self: @ContractState, timestamp: u64) -> Span<felt252> {
-            let mut serialized_request = array![];
-            JobRequest { program_id: PROGRAM_ID, vault_address: get_contract_address(), timestamp }
-                .serialize(ref serialized_request);
-            serialized_request.span()
         }
     }
 }
