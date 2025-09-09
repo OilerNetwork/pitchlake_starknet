@@ -55,6 +55,11 @@ fn assert_events_equal<T, +PartialEq<T>, +Drop<T>>(actual: T, expected: T) {
 fn assert_fossil_callback_success_event(
     vault_address: ContractAddress, l1_data: L1Data, timestamp: u64,
 ) {
+    // Remove the OptionRoundDeployed event that is fired before the callback success event
+    let _ = pop_log::<
+        Vault::OptionRoundDeployed
+    >(vault_address); // Pop the first (round deployed event)
+
     match pop_log::<Vault::Event>(vault_address) {
         Option::Some(e) => {
             let expected = Vault::Event::FossilCallbackSuccess(

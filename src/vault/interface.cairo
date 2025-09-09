@@ -1,6 +1,6 @@
 use starknet::{ContractAddress, ClassHash};
 use pitch_lake::option_round::interface::OptionRoundState;
-use pitch_lake::fossil_client::interface::{JobRequest, L1Data};
+use pitch_lake::fossil_client::interface::{JobRequest};
 
 // @dev Constructor arguments
 #[derive(Drop, Serde)]

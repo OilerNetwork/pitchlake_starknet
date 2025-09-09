@@ -161,7 +161,7 @@ fn test_default_l1_data_fails() {
 
 // Test callback event
 #[test]
-#[available_gas(50000000)]
+#[available_gas(100000000)]
 fn test_callback_event() {
     let (mut vault, _) = setup_facade();
     let mut current_round = vault.get_current_round();
@@ -169,11 +169,11 @@ fn test_callback_event() {
     accelerate_to_auctioning(ref vault);
     accelerate_to_running(ref vault);
     timeskip_to_settlement_date(ref vault);
-    clear_event_logs(array![vault.contract_address()]);
 
     set_contract_address(PITCHLAKE_VERIFIER());
     let request = get_request_serialized(ref vault);
     let result = get_mock_result_serialized();
+    clear_event_logs(array![vault.contract_address()]);
     vault.fossil_callback(request, result);
 
     assert_fossil_callback_success_event(
