@@ -181,12 +181,12 @@ struct VerifierData {
     pub start_timestamp: u64,
     pub end_timestamp: u64,
     pub reserve_price: felt252,
-    pub floating_point_tolerance: felt252,
-    pub reserve_price_tolerance: felt252,
-    pub twap_tolerance: felt252,
-    pub gradient_tolerance: felt252,
     pub twap_result: felt252,
     pub max_return: felt252,
+    //pub floating_point_tolerance: felt252,
+//pub reserve_price_tolerance: felt252,
+//pub twap_tolerance: felt252,
+//pub gradient_tolerance: felt252,
 }
 
 #[derive(Default, Copy, Drop, Serde, PartialEq, starknet::Store)]
@@ -223,10 +223,10 @@ impl SerdeVerifierData of Serde<VerifierData> {
         self.start_timestamp.serialize(ref output);
         self.end_timestamp.serialize(ref output);
         self.reserve_price.serialize(ref output);
-        self.floating_point_tolerance.serialize(ref output);
-        self.reserve_price_tolerance.serialize(ref output);
-        self.twap_tolerance.serialize(ref output);
-        self.gradient_tolerance.serialize(ref output);
+        //self.floating_point_tolerance.serialize(ref output);
+        //self.reserve_price_tolerance.serialize(ref output);
+        //self.twap_tolerance.serialize(ref output);
+        //self.gradient_tolerance.serialize(ref output);
         self.twap_result.serialize(ref output);
         self.max_return.serialize(ref output);
     }
@@ -239,10 +239,10 @@ impl SerdeVerifierData of Serde<VerifierData> {
             .try_into()
             .expect('failed to deser. end timestamp');
         let reserve_price: felt252 = *serialized.at(2);
-        let floating_point_tolerance: felt252 = *serialized.at(3);
-        let reserve_price_tolerance: felt252 = *serialized.at(4);
-        let twap_tolerance: felt252 = *serialized.at(5);
-        let gradient_tolerance: felt252 = *serialized.at(6);
+        //        let floating_point_tolerance: felt252 = *serialized.at(3);
+        //        let reserve_price_tolerance: felt252 = *serialized.at(4);
+        //        let twap_tolerance: felt252 = *serialized.at(5);
+        //        let gradient_tolerance: felt252 = *serialized.at(6);
         let twap_result: felt252 = *serialized.at(7);
         let max_return: felt252 = *serialized.at(8);
 
@@ -250,11 +250,10 @@ impl SerdeVerifierData of Serde<VerifierData> {
             VerifierData {
                 start_timestamp,
                 end_timestamp,
-                reserve_price,
-                floating_point_tolerance,
-                reserve_price_tolerance,
-                twap_tolerance,
-                gradient_tolerance,
+                reserve_price, //                floating_point_tolerance,
+                //                reserve_price_tolerance,
+                //                twap_tolerance,
+                //                gradient_tolerance,
                 twap_result,
                 max_return
             }

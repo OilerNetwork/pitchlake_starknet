@@ -78,15 +78,11 @@ fn l1_data_to_verifier_data(l1_data: L1Data) -> VerifierData {
     };
 
     VerifierData {
-        reserve_price,
-        twap_result,
-        max_return,
-        start_timestamp: 0xaaaa,
-        end_timestamp: 0xbbbb,
-        floating_point_tolerance: 'irrelevent',
-        reserve_price_tolerance: 'irrelevent',
-        twap_tolerance: 'irrelevent',
-        gradient_tolerance: 'irrelevent',
+        reserve_price, twap_result, max_return, start_timestamp: 0xaaaa, end_timestamp: 0xbbbb,
+        //        floating_point_tolerance: 'irrelevent',
+    //        reserve_price_tolerance: 'irrelevent',
+    //        twap_tolerance: 'irrelevent',
+    //        gradient_tolerance: 'irrelevent',
     }
 }
 
@@ -299,10 +295,10 @@ impl VaultFacadeImpl of VaultFacadeTrait {
             start_timestamp: 1234,
             end_timestamp: 5678,
             reserve_price: reserve_price_fp_felt,
-            floating_point_tolerance: 'irrelevent',
-            reserve_price_tolerance: 'irrelevent',
-            twap_tolerance: 'irrelevent',
-            gradient_tolerance: 'irrelevent',
+            //            floating_point_tolerance: 'irrelevent',
+            //            reserve_price_tolerance: 'irrelevent',
+            //            twap_tolerance: 'irrelevent',
+            //            gradient_tolerance: 'irrelevent',
             twap_result: twap_fp_felt,
             max_return: max_return_fp_felt
         };

@@ -90,10 +90,10 @@ fn test_verifier_serialization() {
         start_timestamp: 1000,
         end_timestamp: 2000,
         reserve_price: 3000,
-        floating_point_tolerance: 10,
-        reserve_price_tolerance: 20,
-        twap_tolerance: 30,
-        gradient_tolerance: 40,
+        //        floating_point_tolerance: 10,
+        //        reserve_price_tolerance: 20,
+        //        twap_tolerance: 30,
+        //        gradient_tolerance: 40,
         twap_result: 5000,
         max_return: 6000
     };
@@ -111,10 +111,10 @@ fn test_verifier_deserialization() {
         start_timestamp: 1000,
         end_timestamp: 2000,
         reserve_price: 3000,
-        floating_point_tolerance: 10,
-        reserve_price_tolerance: 20,
-        twap_tolerance: 30,
-        gradient_tolerance: 40,
+        //        floating_point_tolerance: 10,
+        //        reserve_price_tolerance: 20,
+        //        twap_tolerance: 30,
+        //        gradient_tolerance: 40,
         twap_result: 5000,
         max_return: 6000
     };

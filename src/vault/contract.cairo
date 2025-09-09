@@ -887,10 +887,10 @@ mod Vault {
             let VerifierData { start_timestamp: _,
             end_timestamp: _,
             reserve_price: reserve_price_fp_felt,
-            floating_point_tolerance: _,
-            reserve_price_tolerance: _,
-            twap_tolerance: _,
-            gradient_tolerance: _,
+            //           floating_point_tolerance: _,
+            //           reserve_price_tolerance: _,
+            //           twap_tolerance: _,
+            //           gradient_tolerance: _,
             twap_result: twap_fp_felt,
             max_return: max_return_fp_felt } =
                 raw_l1_data;
