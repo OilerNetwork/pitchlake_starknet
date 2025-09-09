@@ -6,7 +6,7 @@ use starknet::{
 use openzeppelin_utils::serde::SerializedAppend;
 use openzeppelin_token::erc20::interface::ERC20ABIDispatcherTrait;
 use pitch_lake::{
-    library::{eth::Eth, constants::PROGRAM_ID}, fossil_client::interface::JobRequest,
+    library::{eth::Eth, constants::PROGRAM_ID}, vault::interface::JobRequest,
     vault::{
         contract::Vault::L1Data,
         interface::{
@@ -15,7 +15,7 @@ use pitch_lake::{
         }
     },
     option_round::contract::OptionRound::Errors, option_round::interface::PricingData,
-    fossil_client::interface::VerifierData,
+    vault::interface::VerifierData,
     tests::{
         utils::{
             helpers::{

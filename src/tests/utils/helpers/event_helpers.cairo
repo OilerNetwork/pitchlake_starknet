@@ -2,10 +2,7 @@ use core::array::SpanTrait;
 use starknet::{testing, ContractAddress,};
 use openzeppelin_utils::serde::SerializedAppend;
 use openzeppelin_token::erc20::{ERC20Component, ERC20Component::Transfer};
-use pitch_lake::{
-    vault::contract::{Vault, Vault::L1Data}, option_round::contract::OptionRound,
-    fossil_client::contract::FossilClient
-};
+use pitch_lake::{vault::contract::{Vault, Vault::L1Data}, option_round::contract::OptionRound,};
 use pitch_lake::option_round::interface::{PricingData};
 use debug::PrintTrait;
 

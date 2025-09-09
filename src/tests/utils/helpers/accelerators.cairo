@@ -4,8 +4,8 @@ use starknet::{
 };
 use core::fmt::Display;
 use pitch_lake::{
-    vault::{contract::Vault::{L1Data}, interface::{IVaultDispatcher, IVaultDispatcherTrait}},
-    fossil_client::interface::{JobRequest, FossilResult},
+    vault::contract::Vault::L1Data,
+    vault::interface::{JobRequest, IVaultDispatcher, IVaultDispatcherTrait},
     option_round::{
         contract::{OptionRound},
         interface::{

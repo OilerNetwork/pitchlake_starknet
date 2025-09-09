@@ -3,9 +3,8 @@ use starknet::{
     testing::{set_contract_address, set_block_timestamp}
 };
 use pitch_lake::{
-    fossil_client::interface::{VerifierData, JobRequest, FossilResult}, vault::contract::Vault,
-    vault::contract::Vault::{Errors as vErrors, L1Data},
-    fossil_client::contract::FossilClient::Errors as fErrors, option_round::interface::PricingData,
+    vault::interface::{VerifierData, JobRequest}, vault::contract::Vault,
+    vault::contract::Vault::{Errors as vErrors, L1Data}, option_round::interface::PricingData,
     library::pricing_utils,
     tests::{
         utils::{
@@ -81,7 +80,7 @@ fn test_only_pitchlake_verifier_can_call_fossil_callback() {
     // Should fail
     set_contract_address(contract_address_const::<'NOT IT'>());
     // l1 data, timestamp, error
-    vault.fossil_callback_expect_error(request, result, fErrors::CallerNotVerifier);
+    vault.fossil_callback_expect_error(request, result, vErrors::CallerNotVerifier);
 
     // Should not fail
     set_contract_address(PITCHLAKE_VERIFIER());
@@ -103,7 +102,7 @@ fn test_invalid_request_fails() {
     // Should fail
     set_contract_address(PITCHLAKE_VERIFIER());
     let _ = request.pop_front();
-    vault.fossil_callback_expect_error(request, result, fErrors::FailedToDeserializeRequest);
+    vault.fossil_callback_expect_error(request, result, vErrors::FailedToDeserializeJobRequest);
 }
 
 // Test invalid Fossil result fails
@@ -121,7 +120,7 @@ fn test_invalid_result_fails() {
     // Should fail
     set_contract_address(PITCHLAKE_VERIFIER());
     let _ = result.pop_front();
-    vault.fossil_callback_expect_error(request, result, fErrors::FailedToDeserializeVerifierData);
+    vault.fossil_callback_expect_error(request, result, vErrors::FailedToDeserializeVerifierData);
 }
 
 // Test empty L1 data is not accepted

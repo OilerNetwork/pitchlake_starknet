@@ -9,8 +9,7 @@ use openzeppelin_utils::serde::SerializedAppend;
 use openzeppelin_token::erc20::{
     ERC20Component, interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait}
 };
-use pitch_lake::fossil_client::interface::{JobRequest, FossilResult};
-use pitch_lake::fossil_client::contract::FossilClient;
+use pitch_lake::vault::interface::{JobRequest};
 use pitch_lake::{
     library::eth::Eth, vault::contract::Vault, library::constants::{MINUTE},
     vault::{
