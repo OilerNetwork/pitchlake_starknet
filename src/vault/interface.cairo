@@ -178,15 +178,15 @@ struct JobRequest {
 // Fossil job results (args, data and tolerances)
 #[derive(Copy, Drop, PartialEq)]
 struct VerifierData {
-    pub start_timestamp: u64,
-    pub end_timestamp: u64,
+    pub reserve_price_start_timestamp: u64,
+    pub reserve_price_end_timestamp: u64,
     pub reserve_price: felt252,
+    pub twap_start_timestamp: u64,
+    pub twap_end_timestamp: u64,
     pub twap_result: felt252,
+    pub max_return_start_timestamp: u64,
+    pub max_return_end_timestamp: u64,
     pub max_return: felt252,
-    //pub floating_point_tolerance: felt252,
-//pub reserve_price_tolerance: felt252,
-//pub twap_tolerance: felt252,
-//pub gradient_tolerance: felt252,
 }
 
 #[derive(Default, Copy, Drop, Serde, PartialEq, starknet::Store)]
@@ -220,40 +220,52 @@ impl SerdeJobRequest of Serde<JobRequest> {
 // VerifierData <-> Array<felt252>
 impl SerdeVerifierData of Serde<VerifierData> {
     fn serialize(self: @VerifierData, ref output: Array<felt252>) {
-        self.start_timestamp.serialize(ref output);
-        self.end_timestamp.serialize(ref output);
+        self.reserve_price_start_timestamp.serialize(ref output);
+        self.reserve_price_end_timestamp.serialize(ref output);
         self.reserve_price.serialize(ref output);
-        //self.floating_point_tolerance.serialize(ref output);
-        //self.reserve_price_tolerance.serialize(ref output);
-        //self.twap_tolerance.serialize(ref output);
-        //self.gradient_tolerance.serialize(ref output);
+        self.twap_start_timestamp.serialize(ref output);
+        self.twap_end_timestamp.serialize(ref output);
         self.twap_result.serialize(ref output);
+        self.max_return_start_timestamp.serialize(ref output);
+        self.max_return_end_timestamp.serialize(ref output);
         self.max_return.serialize(ref output);
     }
 
     fn deserialize(ref serialized: Span<felt252>) -> Option<VerifierData> {
-        let start_timestamp: u64 = (*serialized.at(0))
+        let reserve_price_start_timestamp: u64 = (*serialized.at(0))
             .try_into()
             .expect('failed to deser. start timestmp');
-        let end_timestamp: u64 = (*serialized.at(1))
+        let reserve_price_end_timestamp: u64 = (*serialized.at(1))
             .try_into()
             .expect('failed to deser. end timestamp');
         let reserve_price: felt252 = *serialized.at(2);
-        let twap_result: felt252 = *serialized.at(3);
-        let max_return: felt252 = *serialized.at(4);
 
-        //        let twap_tolerance: felt252 = *serialized.at(5);
-        //        let gradient_tolerance: felt252 = *serialized.at(6);
+        let twap_start_timestamp: u64 = (*serialized.at(3))
+            .try_into()
+            .expect('failed to deser. start timestmp');
+        let twap_end_timestamp: u64 = (*serialized.at(4))
+            .try_into()
+            .expect('failed to deser. end timestamp');
+        let twap_result: felt252 = *serialized.at(5);
+
+        let max_return_start_timestamp: u64 = (*serialized.at(6))
+            .try_into()
+            .expect('failed to deser. start timestmp');
+        let max_return_end_timestamp: u64 = (*serialized.at(7))
+            .try_into()
+            .expect('failed to deser. end timestamp');
+        let max_return: felt252 = *serialized.at(8);
 
         Option::Some(
             VerifierData {
-                start_timestamp,
-                end_timestamp,
-                reserve_price, //                floating_point_tolerance,
-                //                reserve_price_tolerance,
-                //                twap_tolerance,
-                //                gradient_tolerance,
+                reserve_price_start_timestamp,
+                reserve_price_end_timestamp,
+                reserve_price,
+                twap_start_timestamp,
+                twap_end_timestamp,
                 twap_result,
+                max_return_start_timestamp,
+                max_return_end_timestamp,
                 max_return
             }
         )
