@@ -19,7 +19,6 @@ mod Vault {
     use pitch_lake::library::constants::{BPS_i128, BPS_felt252, BPS_u128, BPS_u256};
     use pitch_lake::library::utils::{assert_equal_in_range, generate_request_id};
     use pitch_lake::library::pricing_utils::{calculate_strike_price, calculate_cap_level};
-    use pitch_lake::library::constants::{REQUEST_TOLERANCE, PROGRAM_ID};
     use fp::{UFixedPoint123x128, UFixedPoint123x128Impl, UFixedPoint123x128StorePacking};
 
 
@@ -36,6 +35,8 @@ mod Vault {
         round_transition_duration: u64,
         auction_duration: u64,
         round_duration: u64,
+        program_id: felt252,
+        proving_delay: u64,
         ///
         l1_data: Map<u64, L1Data>,
         option_round_class_hash: ClassHash,
@@ -72,7 +73,9 @@ mod Vault {
         alpha,
         round_transition_duration,
         auction_duration,
-        round_duration } =
+        round_duration,
+        program_id,
+        proving_delay } =
             args;
 
         // @dev Set the Vault's parameters
@@ -83,6 +86,8 @@ mod Vault {
         self.auction_duration.write(auction_duration);
         self.round_duration.write(round_duration);
         self.deployment_block.write(starknet::get_block_number());
+        self.program_id.write(program_id);
+        self.proving_delay.write(proving_delay);
 
         // @dev Alpha is between 0.01% and 100.00%
         assert(alpha.is_non_zero() && alpha <= BPS_u128, Errors::AlphaOutOfRange);
@@ -104,7 +109,7 @@ mod Vault {
     mod Errors {
         const AlphaOutOfRange: felt252 = 'Alpha out of range';
         const StrikeLevelOutOfRange: felt252 = 'Strike level out of range';
-        // Fossil
+        // Verifier
         const L1DataNotAcceptedNow: felt252 = 'L1 data not accepted now';
         const L1DataOutOfRange: felt252 = 'L1 data out of range';
         const InvalidL1Data: felt252 = 'Invalid L1 data';
@@ -261,6 +266,14 @@ mod Vault {
 
         fn get_round_duration(self: @ContractState) -> u64 {
             self.round_duration.read()
+        }
+
+        fn get_program_id(self: @ContractState) -> felt252 {
+            self.program_id.read()
+        }
+
+        fn get_proving_delay(self: @ContractState) -> u64 {
+            self.proving_delay.read()
         }
 
 
@@ -632,47 +645,95 @@ mod Vault {
         fn fossil_callback(
             ref self: ContractState, mut job_request: Span<felt252>, mut result: Span<felt252>
         ) -> u256 {
-            // @dev Only the Pitchlake Verifier can call this function
-            self.assert_caller_is_verifier();
-
-            // @dev Deserialize and validate the job_request
-            let job_request: JobRequest = Serde::deserialize(ref job_request)
-                .expect(Errors::FailedToDeserializeJobRequest);
-
-            assert(job_request.vault_address == get_contract_address(), Errors::InvalidRequest);
-            assert(job_request.program_id == PROGRAM_ID, Errors::InvalidRequest);
-
-            // @dev Deserialize and validate the verifier data
-            let verifier_data: VerifierData = Serde::deserialize(ref result)
-                .expect(Errors::FailedToDeserializeVerifierData);
-
-            // @dev Extract the L1 data we need
-            let l1_data = self.interpret_l1_data(verifier_data);
-
-            // @dev Assert the L1 data is valid
-            assert(
-                verifier_data.twap_result.is_non_zero()
-                    && verifier_data.reserve_price.is_non_zero(),
-                Errors::InvalidL1Data
-            );
-
             // @dev This function is used to either start round 1's auction (Open -> Auctioning), or
-            // to settle each round (Running -> Settled).
+            // to settle each round (Running -> Settled), otherwise data is not being accepted at
+            // this time
             let current_round_id = self.current_round_id.read();
             let current_round = self.get_round_dispatcher(current_round_id);
             let state = current_round.get_state();
 
-            // @dev If the current round is 1 and Open, the L1 data is being used
-            // to initialize it
-            if current_round_id == 1 && state == OptionRoundState::Open {
-                self.initialize_round_one(current_round, l1_data, job_request.timestamp)
-            } // @dev If the current round is Running, the L1 data is being used to settle it
-            else if state == OptionRoundState::Running {
-                self.settle_round(current_round_id, current_round, l1_data, job_request.timestamp)
+            assert(
+                (current_round_id == 1 && state == OptionRoundState::Open)
+                    || state == OptionRoundState::Running,
+                Errors::L1DataNotAcceptedNow
+            );
+
+            /// @dev Validate the request/result (see @proposal for simplification details)
+
+            // @dev Deserialize the job_request and result
+            let req: JobRequest = Serde::deserialize(ref job_request)
+                .expect(Errors::FailedToDeserializeJobRequest);
+            // @dev Deserialize the verifier data
+            let res: VerifierData = Serde::deserialize(ref result)
+                .expect(Errors::FailedToDeserializeVerifierData);
+
+            // @dev Extract the L1 data we need (could just use res if @proposal is used)
+            let l1_data = self.interpret_verifier_data(res);
+
+            // @dev Only the Pitchlake Verifier can call this function
+            self.assert_caller_is_verifier();
+
+            // @dev Validate request program ID and vault address
+            assert(req.vault_address == get_contract_address(), Errors::InvalidRequest);
+            assert(req.program_id == self.program_id.read(), Errors::InvalidRequest);
+
+            // @dev Validate request timestamp is not before block headers are provable
+            let now = get_block_timestamp();
+            let max_provable_timestamp = now - self.proving_delay.read();
+            assert(req.timestamp <= max_provable_timestamp, Errors::InvalidRequest);
+
+            // @dev Validate bounds for each parameter
+            // - If this is the first (special/initialization) callback, the upper bound is the
+            // first round's deployment date.
+            // - If all other callbacks, the upper bound is the current round's settlement date
+            // @dev In either case, the lower bound for the TWAP is the upper bound minus the
+            // round_duration, and the reserve price & max return lower bounds are both the upper
+            // bound minus (3 x the round_duration)
+            let round_duration = self.round_duration.read();
+            let upper_bound = if state == OptionRoundState::Running {
+                current_round.get_option_settlement_date()
             } else {
-                // @dev If neither of the above, the L1 data is not being accepted now
-                assert(false, Errors::L1DataNotAcceptedNow);
-                core::num::traits::Bounded::MAX
+                current_round.get_deployment_date()
+            };
+
+            let twap_lower_bound = upper_bound - round_duration;
+            let reserve_price_lower_bound = upper_bound - (3 * round_duration);
+            let max_return_lower_bound = reserve_price_lower_bound;
+
+            assert(
+                res.twap_start_timestamp == twap_lower_bound
+                    && res.reserve_price_start_timestamp == reserve_price_lower_bound
+                    && res.max_return_start_timestamp == max_return_lower_bound
+                    && res.twap_end_timestamp == upper_bound
+                    && res.reserve_price_end_timestamp == upper_bound
+                    && res.max_return_end_timestamp == upper_bound,
+                Errors::L1DataOutOfRange
+            );
+
+            // @dev This is needed if the ranges do not correlate to the exact request bounds
+            // assert_equal_in_range(...); i.e withing 12 seconds on either side
+
+            // @dev Assert the L1 data is valid
+            assert(
+                res.twap_result.is_non_zero() && res.reserve_price.is_non_zero(),
+                Errors::InvalidL1Data
+            );
+
+            // @dev If the current round is 1 and Open, the L1 data is being used
+            // to initialize it, so we send it directly to the round
+            if current_round_id == 1 && state == OptionRoundState::Open {
+                current_round.set_pricing_data(self.convert_l1_data_to_round_data(l1_data));
+                self
+                    .emit(
+                        Event::FossilCallbackSuccess(
+                            FossilCallbackSuccess { l1_data, timestamp: req.timestamp }
+                        )
+                    );
+
+                0
+            } // @dev If the current round is Running, the L1 data is being used to settle it
+            else {
+                self.settle_round(current_round_id, current_round, l1_data, req.timestamp)
             }
         }
     }
@@ -725,25 +786,6 @@ mod Vault {
 
         /// Deploying and starting rounds
 
-        // @dev Required in order to start round 1's auction
-        fn initialize_round_one(
-            ref self: ContractState,
-            current_round: IOptionRoundDispatcher,
-            l1_data: L1Data,
-            timestamp: u64
-        ) -> u256 {
-            // @dev Ensure the job request's timestamp is for the round's deployment date
-            let deployment_date = current_round.get_deployment_date();
-            assert(timestamp == deployment_date, Errors::L1DataOutOfRange);
-
-            // @dev Set the round's pricing data directly
-            current_round.set_pricing_data(self.convert_l1_data_to_round_data(l1_data));
-
-            self.emit(Event::FossilCallbackSuccess(FossilCallbackSuccess { l1_data, timestamp }));
-
-            0
-        }
-
         // @dev Settle the current round and Open the next
         fn settle_round(
             ref self: ContractState,
@@ -752,10 +794,6 @@ mod Vault {
             l1_data: L1Data,
             job_request_timestamp: u64
         ) -> u256 {
-            // @dev Ensure the job request's timestamp is for the settlement date
-            let settlement_date = current_round.get_option_settlement_date();
-            assert(job_request_timestamp == settlement_date, Errors::L1DataOutOfRange);
-
             // @dev Settle the current round and return the total payout
             let total_payout = current_round.settle_round(l1_data.twap);
 
@@ -877,22 +915,24 @@ mod Vault {
         // @dev Generate a JobRequest for a specific timestamp
         fn generate_job_request(self: @ContractState, timestamp: u64) -> Span<felt252> {
             let mut serialized_request = array![];
-            JobRequest { program_id: PROGRAM_ID, vault_address: get_contract_address(), timestamp }
+            JobRequest {
+                program_id: self.program_id.read(), vault_address: get_contract_address(), timestamp
+            }
                 .serialize(ref serialized_request);
             serialized_request.span()
         }
 
         // Interpret l1 data to useful types
-        fn interpret_l1_data(self: @ContractState, raw_l1_data: VerifierData) -> L1Data {
-            let VerifierData { start_timestamp: _,
-            end_timestamp: _,
+        fn interpret_verifier_data(self: @ContractState, raw_l1_data: VerifierData) -> L1Data {
+            let VerifierData { reserve_price_start_timestamp: _,
+            reserve_price_end_timestamp: _,
             reserve_price: reserve_price_fp_felt,
-            //           floating_point_tolerance: _,
-            //           reserve_price_tolerance: _,
-            //           twap_tolerance: _,
-            //           gradient_tolerance: _,
+            twap_start_timestamp: _,
+            twap_end_timestamp: _,
             twap_result: twap_fp_felt,
-            max_return: max_return_fp_felt } =
+            max_return_start_timestamp: _,
+            max_return_end_timestamp: _,
+            max_return: max_return_fp_felt, } =
                 raw_l1_data;
 
             // @dev Each felt in the VerifierData is a UFixedPoint123x128 representation of a
