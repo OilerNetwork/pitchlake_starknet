@@ -87,17 +87,17 @@ fn test_job_request_deserialization() {
 #[test]
 fn test_verifier_serialization() {
     let verifier_data = VerifierData {
-        start_timestamp: 1000,
-        end_timestamp: 2000,
+        reserve_price_start_timestamp: 1000,
+        reserve_price_end_timestamp: 2000,
         reserve_price: 3000,
-        //        floating_point_tolerance: 10,
-        //        reserve_price_tolerance: 20,
-        //        twap_tolerance: 30,
-        //        gradient_tolerance: 40,
-        twap_result: 5000,
-        max_return: 6000
+        twap_start_timestamp: 4000,
+        twap_end_timestamp: 5000,
+        twap_result: 6000,
+        max_return_start_timestamp: 7000,
+        max_return_end_timestamp: 8000,
+        max_return: 9000
     };
-    let mut serialized_span = array![1000, 2000, 3000, 5000, 6000].span();
+    let mut serialized_span = array![1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000].span();
 
     // Test serialize
     let mut serialized: Array<felt252> = array![];
@@ -108,17 +108,17 @@ fn test_verifier_serialization() {
 #[test]
 fn test_verifier_deserialization() {
     let verifier_data = VerifierData {
-        start_timestamp: 1000,
-        end_timestamp: 2000,
+        reserve_price_start_timestamp: 1000,
+        reserve_price_end_timestamp: 2000,
         reserve_price: 3000,
-        //        floating_point_tolerance: 10,
-        //        reserve_price_tolerance: 20,
-        //        twap_tolerance: 30,
-        //        gradient_tolerance: 40,
-        twap_result: 5000,
-        max_return: 6000
+        twap_start_timestamp: 4000,
+        twap_end_timestamp: 5000,
+        twap_result: 6000,
+        max_return_start_timestamp: 7000,
+        max_return_end_timestamp: 8000,
+        max_return: 9000
     };
-    let mut serialized_span = array![1000, 2000, 3000, 5000, 6000].span();
+    let mut serialized_span = array![1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000].span();
 
     // Test deserialize
     let deserialized: VerifierData = Serde::deserialize(ref serialized_span)
@@ -136,11 +136,11 @@ fn test_caller_not_verifier_fossil_callback() {
 
     starknet::testing::set_contract_address('not verifier'.try_into().unwrap());
 
-    vault
-        .fossil_callback_expect_error_using_l1_data(
-            L1Data { twap: to_gwei(3000), max_return: 5000, reserve_price: to_gwei(2000) },
-            1234,
-            Errors::CallerNotVerifier
-        );
+    let l1_data = L1Data { twap: to_gwei(1111), max_return: 2222, reserve_price: to_gwei(3333) };
+
+    let request = vault.get_request_to_settle_round_serialized();
+    let result = vault.generate_job_result_serialized_from_l1_data_custom(l1_data);
+
+    vault.fossil_callback_expect_error(request, result, Errors::CallerNotVerifier);
 }
 
