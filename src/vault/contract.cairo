@@ -673,13 +673,28 @@ pub mod Vault {
             self.assert_caller_is_verifier();
 
             // @dev Validate request program ID and vault address
-            assert(req.vault_address == get_contract_address(), Errors::InvalidRequest);
-            assert(req.program_id == self.program_id.read(), Errors::InvalidRequest);
+            assert!(
+                req.vault_address == get_contract_address(),
+                "Invalid Request: vault address expected: {:?}, got: {:?}",
+                get_contract_address(),
+                req.vault_address,
+            );
+            assert!(
+                req.program_id == self.program_id.read(),
+                "Invalid Request: program ID expected: {}, got: {}",
+                self.program_id.read(),
+                req.program_id,
+            );
 
             // @dev Validate request timestamp is not before block headers are provable
             let now = get_block_timestamp();
             let max_provable_timestamp = now - self.proving_delay.read();
-            assert(req.timestamp <= max_provable_timestamp, Errors::InvalidRequest);
+            assert!(
+                req.timestamp <= max_provable_timestamp,
+                "Invalid Request: timestamp expected: {}, got: {}",
+                max_provable_timestamp,
+                req.timestamp,
+            );
 
             // @dev Validate bounds for each parameter
             // - If this is the first (special/initialization) callback, the upper bound is the
