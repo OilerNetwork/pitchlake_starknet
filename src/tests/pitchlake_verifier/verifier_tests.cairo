@@ -6,7 +6,7 @@ use pitch_lake::tests::utils::helpers::setup::{PITCHLAKE_VERIFIER};
 use openzeppelin_access::ownable::interface::{IOwnableDispatcher, IOwnableDispatcherTrait};
 use openzeppelin_access::ownable::{OwnableComponent::Errors as OErrors};
 use pitch_lake::{
-    library::{eth::Eth, constants::PROGRAM_ID}, vault::interface::{JobRequest, VerifierData},
+    library::{eth::Eth}, vault::interface::{JobRequest, VerifierData},
     vault::{
         contract::Vault::L1Data,
         interface::{

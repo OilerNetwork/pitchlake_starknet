@@ -11,7 +11,7 @@ use openzeppelin_token::erc20::{
 };
 use pitch_lake::vault::interface::{JobRequest};
 use pitch_lake::{
-    library::eth::Eth, vault::contract::Vault, library::constants::{MINUTE},
+    library::eth::Eth, vault::contract::Vault, library::constants::{MINUTE, HOUR, DAY},
     vault::interface::{ConstructorArgs, IVaultDispatcher, IVaultDispatcherTrait, L1Data},
     option_round::{
         contract::OptionRound,
@@ -49,8 +49,16 @@ use pitch_lake::{
 };
 use debug::PrintTrait;
 
+// ERC20 Constants
 const DECIMALS: u8 = 18_u8;
 const SUPPLY: u256 = 999999999999999999999999999999;
+
+// Vault Constants
+const ROUND_TRANSITION_DURATION: u64 = 3 * HOUR;
+const AUCTION_DURATION: u64 = 8 * HOUR;
+const ROUND_DURATION: u64 = 30 * DAY;
+const PROVING_DELAY: u64 = 10 * MINUTE;
+const PROGRAM_ID: felt252 = 'PITCH_LAKE_V1';
 
 fn PITCHLAKE_VERIFIER() -> ContractAddress {
     contract_address_const::<'FOSSIL PROCESSOR'>()
@@ -76,10 +84,6 @@ fn deploy_eth() -> ERC20ABIDispatcher {
     return ERC20ABIDispatcher { contract_address };
 }
 
-const ROUND_TRANSITION_DURATION: u64 = 3 * MINUTE;
-const AUCTION_DURATION: u64 = 3 * MINUTE;
-const ROUND_DURATION: u64 = 3 * MINUTE;
-
 // Deploy the vault and fossil client
 fn deploy_vault_with_events(
     alpha: u128, strike_level: i128, eth_address: ContractAddress
@@ -94,7 +98,9 @@ fn deploy_vault_with_events(
         strike_level, // strike price for r1 is settlement price of r0
         round_transition_duration: ROUND_TRANSITION_DURATION,
         auction_duration: AUCTION_DURATION,
-        round_duration: ROUND_DURATION
+        round_duration: ROUND_DURATION,
+        program_id: PROGRAM_ID,
+        proving_delay: PROVING_DELAY,
     };
     args.serialize(ref calldata);
 
@@ -144,12 +150,16 @@ fn setup_facade_custom(alpha: u128, strike_level: i128) -> VaultFacade {
     );
     let mut vault_facade = VaultFacade { vault_dispatcher };
 
-    // Fulfill request to start auction
-    let l1_data = L1Data { twap: to_gwei(10), max_return: 5000, reserve_price: to_gwei(2), };
-    let mut current_round = vault_facade.get_current_round();
-    let timestamp = current_round.get_deployment_date();
+    // Skip proving delay
+    set_block_timestamp(get_block_timestamp() + PROVING_DELAY);
 
-    vault_facade.fossil_callback_using_l1_data(l1_data, timestamp);
+    // Fulfill request to start auction
+    let req = vault_facade.get_request_to_start_first_round_serialized();
+    let res = vault_facade
+        .generate_first_round_result_serialized(
+            L1Data { twap: to_gwei(10), max_return: 5000, reserve_price: to_gwei(2), }
+        );
+    vault_facade.fossil_callback(req, res);
 
     // @dev Supply eth to liquidity providers and approve vault for transferring eth
     eth_supply_and_approve_all_providers(
@@ -268,13 +278,6 @@ fn eth_approval(
             Option::Some(approver) => {
                 set_contract_address(weth_owner());
                 let ob_amount_wei: u256 = a_lot_of_eth();
-
-                //Debug
-                // let felt_ca: felt252 = contract_address.into();
-                // let felt_eth: felt252 = eth_address.into();
-                // let app: ContractAddress = *approver;
-                // let felt_app: felt252 = app.into();
-
                 set_contract_address(*approver);
                 eth_dispatcher.approve(contract_address, ob_amount_wei);
             },

@@ -12,6 +12,8 @@ struct ConstructorArgs {
     round_transition_duration: u64,
     auction_duration: u64,
     round_duration: u64,
+    program_id: felt252,
+    proving_delay: u64,
 }
 
 // The interface for the vault contract
@@ -48,6 +50,13 @@ trait IVault<TContractState> {
 
     // @return The contract address of the option round
     fn get_round_address(self: @TContractState, option_round_id: u64) -> ContractAddress;
+
+    // @return This vault's program ID
+    fn get_program_id(self: @TContractState) -> felt252;
+
+    // @return The proving delay (in seconds)
+    // @dev This is about the time it takes for Fossil to be able to prove the latest block header
+    fn get_proving_delay(self: @TContractState) -> u64;
 
     /// Liquidity
 
@@ -234,26 +243,26 @@ impl SerdeVerifierData of Serde<VerifierData> {
     fn deserialize(ref serialized: Span<felt252>) -> Option<VerifierData> {
         let reserve_price_start_timestamp: u64 = (*serialized.at(0))
             .try_into()
-            .expect('failed to deser. start timestmp');
+            .expect('failed to deser. res price(0)');
         let reserve_price_end_timestamp: u64 = (*serialized.at(1))
             .try_into()
-            .expect('failed to deser. end timestamp');
+            .expect('failed to deser. res price(1)');
         let reserve_price: felt252 = *serialized.at(2);
 
         let twap_start_timestamp: u64 = (*serialized.at(3))
             .try_into()
-            .expect('failed to deser. start timestmp');
+            .expect('failed to deser. twap (0)');
         let twap_end_timestamp: u64 = (*serialized.at(4))
             .try_into()
-            .expect('failed to deser. end timestamp');
+            .expect('failed to deser. twap (1)');
         let twap_result: felt252 = *serialized.at(5);
 
         let max_return_start_timestamp: u64 = (*serialized.at(6))
             .try_into()
-            .expect('failed to deser. start timestmp');
+            .expect('failed to deser. max return(0)');
         let max_return_end_timestamp: u64 = (*serialized.at(7))
             .try_into()
-            .expect('failed to deser. end timestamp');
+            .expect('failed to deser. max return(1)');
         let max_return: felt252 = *serialized.at(8);
 
         Option::Some(
