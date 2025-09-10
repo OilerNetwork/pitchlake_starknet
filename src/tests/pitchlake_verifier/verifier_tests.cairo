@@ -46,10 +46,7 @@ use pitch_lake::{
                 variables::{decimals},
             },
             facades::{
-                vault_facade::{
-                    l1_data_to_verifier_data_serialized, l1_data_to_verifier_data, VaultFacade,
-                    VaultFacadeTrait
-                },
+                vault_facade::{VaultFacade, VaultFacadeTrait},
                 option_round_facade::{OptionRoundState, OptionRoundFacade, OptionRoundFacadeTrait},
             },
         },
@@ -139,7 +136,7 @@ fn test_caller_not_verifier_fossil_callback() {
     let l1_data = L1Data { twap: to_gwei(1111), max_return: 2222, reserve_price: to_gwei(3333) };
 
     let request = vault.get_request_to_settle_round_serialized();
-    let result = vault.generate_job_result_serialized_from_l1_data_custom(l1_data);
+    let result = vault.generate_custom_job_result_from_l1_data_serialized(l1_data);
 
     vault.fossil_callback_expect_error(request, result, Errors::CallerNotVerifier);
 }

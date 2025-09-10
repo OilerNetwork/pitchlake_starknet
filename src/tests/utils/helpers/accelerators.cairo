@@ -28,7 +28,7 @@ use pitch_lake::{
             },
             facades::{
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
-                vault_facade::{VaultFacade, VaultFacadeTrait, l1_data_to_verifier_data_serialized},
+                vault_facade::{VaultFacade, VaultFacadeTrait},
             },
         },
     },
@@ -92,9 +92,9 @@ fn accelerate_to_settled_custom(ref self: VaultFacade, l1_data: L1Data) -> u256 
 
     // Jump to the option expiry date and settle the round
     timeskip_to_settlement_date(ref self);
-    let mut current_round = self.get_current_round();
-    let settlement_timestamp = current_round.get_option_settlement_date();
-    self.fossil_callback_using_l1_data(l1_data, settlement_timestamp)
+    let req = self.get_request_to_settle_round_serialized();
+    let res = self.generate_settle_round_result_serialized(l1_data);
+    self.fossil_callback(req, res)
 }
 
 // Settle the option round with a custom settlement price (compared to strike to determine payout)
@@ -128,8 +128,14 @@ fn timeskip_past_round_transition_period(ref self: VaultFacade) {
     set_block_timestamp(now + round_transition_period);
 }
 
-// Jump to settlement date
+// Jump to settlement date includes proving delay
 fn timeskip_to_settlement_date(ref self: VaultFacade) {
+    let mut current_round = self.get_current_round();
+    set_block_timestamp(current_round.get_option_settlement_date() + self.get_proving_delay());
+}
+
+// Jump to settlement date does not include proving delay
+fn timeskip_to_settlement_date_no_delay(ref self: VaultFacade) {
     let mut current_round = self.get_current_round();
     set_block_timestamp(current_round.get_option_settlement_date());
 }
