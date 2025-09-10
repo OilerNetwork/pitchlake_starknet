@@ -3,7 +3,6 @@ use fp::{UFixedPoint123x128, UFixedPoint123x128Impl};
 use starknet::{ContractAddress, testing::{set_contract_address, set_block_timestamp}};
 use openzeppelin_token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
 use pitch_lake::{
-    library::constants::PROGRAM_ID,
     vault::{
         contract::Vault::{L1Data},
         interface::{
@@ -44,42 +43,10 @@ fn pow(base: u256, exp: u256) -> u256 {
     result
 }
 
-
-fn l1_data_to_verifier_data(l1_data: L1Data) -> VerifierData {
-    // Convert u256->u128->UFixedPoint123x128->felt252
-    let L1Data { twap, reserve_price, max_return } = l1_data;
-
-    let twap = u256_to_fp_felt(twap);
-    let reserve_price = u256_to_fp_felt(reserve_price);
-    let max_return = u128_to_bps_fp_felt(max_return);
-
-    VerifierData {
-        reserve_price_start_timestamp: 1234,
-        reserve_price_end_timestamp: 5678,
-        reserve_price,
-        twap_start_timestamp: 1234,
-        twap_end_timestamp: 5678,
-        twap_result: twap,
-        max_return_start_timestamp: 1234,
-        max_return_end_timestamp: 5678,
-        max_return
-    }
-}
-
-
-fn l1_data_to_verifier_data_serialized(l1_data: L1Data) -> Span<felt252> {
-    let _v = l1_data_to_verifier_data(l1_data);
-    let mut v: Array<felt252> = array![];
-    _v.serialize(ref v);
-    v.span()
-}
-
-
 #[derive(Drop, Copy)]
 struct VaultFacade {
     vault_dispatcher: IVaultDispatcher,
 }
-
 
 // 1234_u256 -> 1234_u128 -> 1234.0 -> 1234.0_felt
 fn u256_to_fp_felt(value: u256) -> felt252 {
@@ -120,11 +87,14 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         IVaultSafeDispatcher { contract_address: self.contract_address() }
     }
 
+    // Generate a JobRequest with custom timestamp and serialize it
     fn generate_custom_job_request_serialized(
         ref self: VaultFacade, timestamp: u64
     ) -> Span<felt252> {
         let j = JobRequest {
-            program_id: PROGRAM_ID, timestamp: timestamp, vault_address: self.contract_address(),
+            program_id: self.get_program_id(),
+            timestamp: timestamp,
+            vault_address: self.contract_address(),
         };
 
         let mut serialized: Array<felt252> = array![];
@@ -132,16 +102,61 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         serialized.span()
     }
 
+    fn generate_custom_job_result_from_l1_data_serialized(
+        ref self: VaultFacade, l1_data: L1Data,
+    ) -> Span<felt252> {
+        let mut current_round = self.get_current_round();
+        let upper_bound = current_round.get_option_settlement_date();
 
-    fn generate_job_result_serialized_from_l1_data(ref self: VaultFacade) -> Span<felt252> {
-        let l1_data = L1Data {
-            twap: to_gwei(33) / 100, max_return: 1009, reserve_price: to_gwei(11) / 10
-        };
+        let twap_range = self.get_option_run_time();
+        let other_range = 3 * twap_range;
 
-        self.generate_job_result_serialized_from_l1_data_custom(l1_data)
+        let mut serialized: Array<felt252> = array![];
+
+        // Add reserve price range and value
+        serialized.append((upper_bound - other_range).into());
+        serialized.append(upper_bound.into());
+        serialized.append(u256_to_fp_felt(l1_data.reserve_price));
+        // Add Twap range and value
+        serialized.append((upper_bound - twap_range).into());
+        serialized.append(upper_bound.into());
+        serialized.append(u256_to_fp_felt(l1_data.twap));
+        // Add max return range and value
+        serialized.append((upper_bound - other_range).into());
+        serialized.append(upper_bound.into());
+        serialized.append(u128_to_bps_fp_felt(l1_data.max_return));
+
+        serialized.span()
     }
 
-    fn generate_job_result_serialized_from_l1_data_custom(
+    fn generate_first_round_result_serialized(
+        ref self: VaultFacade, l1_data: L1Data,
+    ) -> Span<felt252> {
+        let mut current_round = self.get_current_round();
+        let upper_bound = current_round.get_deployment_date();
+
+        let twap_range = self.get_option_run_time();
+        let other_range = 3 * twap_range;
+
+        let mut serialized: Array<felt252> = array![];
+
+        // Add reserve price range and value
+        serialized.append((upper_bound - other_range).into());
+        serialized.append(upper_bound.into());
+        serialized.append(u256_to_fp_felt(l1_data.reserve_price));
+        // Add Twap range and value
+        serialized.append((upper_bound - twap_range).into());
+        serialized.append(upper_bound.into());
+        serialized.append(u256_to_fp_felt(l1_data.twap));
+        // Add max return range and value
+        serialized.append((upper_bound - other_range).into());
+        serialized.append(upper_bound.into());
+        serialized.append(u128_to_bps_fp_felt(l1_data.max_return));
+
+        serialized.span()
+    }
+
+    fn generate_settle_round_result_serialized(
         ref self: VaultFacade, l1_data: L1Data,
     ) -> Span<felt252> {
         let mut current_round = self.get_current_round();
@@ -295,35 +310,6 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         safe_vault.fossil_callback(request, result).expect_err(error);
     }
 
-
-    fn fossil_callback_using_l1_data(
-        ref self: VaultFacade, l1_data: L1Data, timestamp: u64
-    ) -> u256 {
-        let req = self.generate_custom_job_request_serialized(timestamp);
-        let res = self.generate_job_result_serialized_from_l1_data_custom(l1_data);
-
-        set_contract_address(self.get_fossil_client_address());
-        let payout = self.vault_dispatcher.fossil_callback(req, res);
-
-        let mut current_round = self.get_current_round();
-        eth_supply_and_approve_all_bidders(
-            current_round.contract_address(), self.get_eth_address()
-        );
-
-        payout
-    }
-
-    #[feature("safe_dispatcher")]
-    fn fossil_callback_expect_error_using_l1_data(
-        ref self: VaultFacade, l1_data: L1Data, timestamp: u64, error: felt252
-    ) {
-        let req = self.get_request_to_settle_round_serialized();
-        let res = self.generate_job_result_serialized_from_l1_data_custom(l1_data);
-
-        let safe_vault = self.get_safe_dispatcher();
-        safe_vault.fossil_callback(req, res).expect_err(error);
-    }
-
     fn start_auction(ref self: VaultFacade) -> u256 {
         // @dev Using bystander as caller so that gas fees do not throw off balance calculations
         set_contract_address(bystander());
@@ -389,18 +375,21 @@ impl VaultFacadeImpl of VaultFacadeTrait {
 
     /// Fossil
 
-    fn get_request_to_settle_round(ref self: VaultFacade) -> JobRequest {
-        let mut request = self.get_request_to_settle_round_serialized();
-        Serde::deserialize(ref request).expect('failed to fetch request')
+    fn get_request_to_start_first_round_serialized(ref self: VaultFacade,) -> Span<felt252> {
+        self.vault_dispatcher.get_request_to_start_first_round()
     }
 
     fn get_request_to_settle_round_serialized(ref self: VaultFacade) -> Span<felt252> {
         self.vault_dispatcher.get_request_to_settle_round()
     }
 
+    fn get_request_to_settle_round(ref self: VaultFacade) -> JobRequest {
+        let mut request = self.get_request_to_settle_round_serialized();
+        Serde::deserialize(ref request).expect('failed to fetch request')
+    }
 
     fn get_request_to_start_first_round(ref self: VaultFacade,) -> JobRequest {
-        let mut request = self.vault_dispatcher.get_request_to_start_first_round();
+        let mut request = self.get_request_to_start_first_round_serialized();
         Serde::deserialize(ref request).expect('failed to fetch request')
     }
 
@@ -663,6 +652,14 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     // @note TODO impl this in contract later
     fn get_round_transition_period(ref self: VaultFacade) -> u64 {
         self.vault_dispatcher.get_round_transition_duration()
+    }
+
+    fn get_program_id(ref self: VaultFacade) -> felt252 {
+        self.vault_dispatcher.get_program_id()
+    }
+
+    fn get_proving_delay(ref self: VaultFacade) -> u64 {
+        self.vault_dispatcher.get_proving_delay()
     }
 }
 
