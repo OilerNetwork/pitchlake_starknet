@@ -1,25 +1,25 @@
 #[cfg(test)]
-mod pitchlake_verifier {
-    mod verifier_tests;
+pub mod pitchlake_verifier {
+    pub mod verifier_tests;
 }
 
 #[cfg(test)]
-mod vault {
-    mod state_transition {
-        mod auction_end_tests;
-        mod auction_start_tests;
-        mod option_settle_tests;
+pub mod vault {
+    pub mod state_transition {
+        pub mod auction_end_tests;
+        pub mod auction_start_tests;
+        pub mod option_settle_tests;
     }
 
-    mod liquidity_providers {
-        mod deposit_tests;
-        mod withdraw_tests;
-        mod withdrawal_queue_tests;
+    pub mod liquidity_providers {
+        pub mod deposit_tests;
+        pub mod withdraw_tests;
+        pub mod withdrawal_queue_tests;
     }
 }
 
 #[cfg(test)]
-mod option_round {
+pub mod option_round {
     pub mod option_buyers {
         pub mod bidding_tests;
         pub mod exercise_options_tests;
@@ -54,7 +54,7 @@ mod option_round {
 }
 
 #[cfg(test)]
-mod deployment {
+pub mod deployment {
     pub mod constructor_tests;
     pub mod initializing_option_round_params_tests;
 }
@@ -65,7 +65,7 @@ mod misc {
 }
 
 #[cfg(test)]
-mod utils {
+pub mod utils {
     pub mod facades {
         pub mod option_round_facade;
         pub mod sanity_checks;

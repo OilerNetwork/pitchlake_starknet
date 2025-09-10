@@ -23,11 +23,11 @@ use starknet::testing::set_contract_address;
 
 #[derive(Drop)]
 pub struct OptionRoundFacade {
-    option_round_dispatcher: IOptionRoundDispatcher,
+    pub option_round_dispatcher: IOptionRoundDispatcher,
 }
 
 #[generate_trait]
-impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
+pub impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     fn get_safe_dispatcher(ref self: OptionRoundFacade) -> IOptionRoundSafeDispatcher {
         IOptionRoundSafeDispatcher { contract_address: self.contract_address() }
     }

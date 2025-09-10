@@ -1,46 +1,25 @@
-use debug::PrintTrait;
 use openzeppelin_token::erc20::interface::ERC20ABIDispatcherTrait;
-use openzeppelin_utils::serde::SerializedAppend;
-use pitch_lake::library::eth::Eth;
 use pitch_lake::option_round::contract::OptionRound::Errors;
-use pitch_lake::option_round::interface::PricingData;
-use pitch_lake::tests::utils::facades::option_round_facade::{
-    OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundState,
-};
+use pitch_lake::option_round::interface::{OptionRoundState, PricingData};
+use pitch_lake::tests::utils::facades::option_round_facade::OptionRoundFacadeTrait;
 use pitch_lake::tests::utils::facades::vault_facade::{VaultFacade, VaultFacadeTrait};
 use pitch_lake::tests::utils::helpers::accelerators::{
     accelerate_to_auctioning, accelerate_to_auctioning_custom, accelerate_to_running,
     accelerate_to_running_custom, accelerate_to_settled,
 };
 use pitch_lake::tests::utils::helpers::event_helpers::{
-    assert_event_option_round_deployed, assert_event_option_round_deployed_single,
-    assert_event_option_settle, assert_event_transfer, assert_no_events_left, clear_event_logs,
-    pop_log,
+    assert_event_option_round_deployed_single, assert_event_option_settle, clear_event_logs,
 };
-use pitch_lake::tests::utils::helpers::general_helpers::{
-    create_array_gradient, create_array_linear, get_erc20_balances, get_portion_of_amount,
-    sum_u256_array, to_gwei,
-};
+use pitch_lake::tests::utils::helpers::general_helpers::{create_array_gradient, to_gwei};
 use pitch_lake::tests::utils::helpers::setup::{
     AUCTION_DURATION, ROUND_DURATION, ROUND_TRANSITION_DURATION, deploy_vault_with_events,
     setup_facade, setup_test_auctioning_providers, setup_test_running,
 };
-use pitch_lake::tests::utils::lib::test_accounts::{
-    liquidity_provider_1, liquidity_provider_2, liquidity_provider_3, liquidity_provider_4,
-    liquidity_providers_get, option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
-    option_bidder_buyer_4,
-};
+use pitch_lake::tests::utils::lib::test_accounts::{liquidity_provider_1, option_bidder_buyer_1};
 use pitch_lake::tests::utils::lib::variables::decimals;
-use pitch_lake::vault::interface::{
-    IVaultDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcher, IVaultSafeDispatcherTrait,
-    JobRequest, L1Data, VerifierData,
-};
-use starknet::contract_address::ContractAddressZeroable;
-use starknet::testing::{set_block_timestamp, set_contract_address};
-use starknet::{
-    ClassHash, ContractAddress, Felt252TryIntoContractAddress, contract_address_const,
-    deploy_syscall, get_block_timestamp, get_contract_address,
-};
+use pitch_lake::vault::interface::{JobRequest, L1Data};
+use starknet::get_block_timestamp;
+use starknet::testing::set_block_timestamp;
 
 
 /// Failures ///
@@ -134,7 +113,7 @@ fn test_option_round_settled_event() {
 #[available_gas(500000000)]
 fn test_first_round_deployed_event() {
     set_block_timestamp(123);
-    let vault_dispatcher = deploy_vault_with_events(2222, 9999, contract_address_const::<'eth'>());
+    let vault_dispatcher = deploy_vault_with_events(2222, 9999, 'eth'.try_into().unwrap());
     let mut vault = VaultFacade { vault_dispatcher };
     let mut current_round = vault.get_current_round();
 
@@ -383,7 +362,7 @@ fn test_settling_option_round_updates_locked_and_unlocked_balances() {
                     'LP balance after wrong',
                 );
             },
-            Option::None => { break (); },
+            Option::None => { break; },
         }
     };
 }

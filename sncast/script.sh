@@ -3,56 +3,69 @@
 # Declare Contracts
 echo "Declaring contracts..."
 
-OUTPUT1=$(sncast declare -c FossilClient --fee-token eth)
-FOSSIL_CLASS_HASH=$(echo "$OUTPUT1" | awk '/class_hash:/ {print $2}')
-###   FOSSIL_CLASS_HASH=0x711b785a4c9741c731b01a7487e3aaaf73acb2d9da9f68704a06a39baa4f1b6
-echo "Fossil class hash: $FOSSIL_CLASS_HASH"
+# OUTPUT1=$(sncast declare -c FossilClient --fee-token eth)
+# FOSSIL_CLASS_HASH=$(echo "$OUTPUT1" | awk '/class_hash:/ {print $2}')
+# ###   FOSSIL_CLASS_HASH=0x711b785a4c9741c731b01a7487e3aaaf73acb2d9da9f68704a06a39baa4f1b6
+# echo "Fossil class hash: $FOSSIL_CLASS_HASH"
 
 OUTPUT2=$(sncast declare -c OptionRound --fee-token eth)
 OPTION_ROUND_CLASS_HASH=$(echo "$OUTPUT2" | awk '/class_hash:/ {print $2}')
-###   OPTION_ROUND_CLASS_HASH=0x378211be15fa10df3a5d70e92bfd1bca0752a0196ea0bfcd5b3131491a1305
 echo "Option round class hash: $OPTION_ROUND_CLASS_HASH"
 
 OUTPUT3=$(sncast declare -c Vault --fee-token eth)
 VAULT_CLASS_HASH=$(echo "$OUTPUT3" | awk '/class_hash:/ {print $2}')
-### VAULT_CLASS_HASH=0x51653f39500cfb021b791c3bf9f2b2f1e294a862c8824be21f3b44a0ee40449
 echo "Vault class hash: $VAULT_CLASS_HASH"
 
 # Deploy contracts
 echo "Deploying contracts..."
 
-ETH_ADDRESS=0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7
-echo "ETH address: $ETH_ADDRESS"
+#OUTPUT4=$(sncast deploy --fee-token eth --class-hash $FOSSIL_CLASS_HASH --constructor-calldata $FOSSIL_PROCESSOR)
+#FOSSIL_CONTRACT_ADDRESS=$(echo "$OUTPUT4" | awk '/contract_address:/ {print $2}')
+####   FOSSIL_CONTRACT_ADDRESS=0x0239664d7e16f82ad369eed526150fedfbb8c02d5ea374d826228d8f8ae3d91c
+#echo "Fossil Client address: $FOSSIL_CONTRACT_ADDRESS"
 
+# Vault Args
+
+# TODO: update .env to use `PITCHLAKE_VERIFIER`
 FOSSIL_PROCESSOR=$(grep '^FOSSIL_PROCESSOR=' .env | cut -d '=' -f2 | tr -d '"')
 echo "Fossil processor address: $FOSSIL_PROCESSOR"
 
-OUTPUT4=$(sncast deploy --fee-token eth --class-hash $FOSSIL_CLASS_HASH --constructor-calldata $FOSSIL_PROCESSOR)
-FOSSIL_CONTRACT_ADDRESS=$(echo "$OUTPUT4" | awk '/contract_address:/ {print $2}')
-###   FOSSIL_CONTRACT_ADDRESS=0x0239664d7e16f82ad369eed526150fedfbb8c02d5ea374d826228d8f8ae3d91c
-echo "Fossil Client address: $FOSSIL_CONTRACT_ADDRESS"
+ETH_ADDRESS=0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7
+echo "ETH address: $ETH_ADDRESS"
+
+K=0
+ALPHA=2500
+PROGRAM_ID=0x50495443485f4c414b455f5631 # PITCH_LAKE_V1
+PROVING_DELAY=0                         # Can settlement round at settlement date + 0
 
 # 12 minute vault
 ROUND_TRANSITION_DURATION1=180 # 3 min
 AUCTION_DURATION1=180          # 3 min
 ROUND_DURATION1=720            # 12 min
-sleep 60
-OUTPUT5=$(sncast deploy --fee-token eth --class-hash $VAULT_CLASS_HASH --constructor-calldata $FOSSIL_CONTRACT_ADDRESS $ETH_ADDRESS $OPTION_ROUND_CLASS_HASH 5000 0 $ROUND_TRANSITION_DURATION1 $AUCTION_DURATION1 $ROUND_DURATION1)
-VAULT_CONTRACT_ADDRESS=$(echo "$OUTPUT5" | awk '/contract_address:/ {print $2}')
-echo "(12 minute) Vault address: $VAULT_CONTRACT_ADDRESS"
 # 3 hour vault
 ROUND_TRANSITION_DURATION2=1800 # 30 min
 AUCTION_DURATION2=1800          # 30 min
 ROUND_DURATION2=10800           # 3 hour
-sleep 60
+# Rapid vault (5.5 min)
+ROUND_TRANSITION_DURATION3=90 # 1.5 min
+AUCTION_DURATION3=90          # 1.5 min
+ROUND_DURATION3=90            # 1.5 min
+
+# 1 month vault
+#sleep 60
+#ROUND_TRANSITION_DURATION3=10800 # 3 hours
+#AUCTION_DURATION3=10800          # 3 hours
+#ROUND_DURATION3=2592000          # 1 month
+
+OUTPUT5=$(sncast deploy --fee-token eth --class-hash $VAULT_CLASS_HASH --constructor-calldata $FOSSIL_CONTRACT_ADDRESS $ETH_ADDRESS $OPTION_ROUND_CLASS_HASH 5000 0 $ROUND_TRANSITION_DURATION1 $AUCTION_DURATION1 $ROUND_DURATION1)
+VAULT_CONTRACT_ADDRESS=$(echo "$OUTPUT5" | awk '/contract_address:/ {print $2}')
+echo "(12 minute) Vault address: $VAULT_CONTRACT_ADDRESS"
+
+sleep 25
 OUTPUT5_2=$(sncast deploy --fee-token eth --class-hash $VAULT_CLASS_HASH --constructor-calldata $FOSSIL_CONTRACT_ADDRESS $ETH_ADDRESS $OPTION_ROUND_CLASS_HASH 2500 0 $ROUND_TRANSITION_DURATION2 $AUCTION_DURATION2 $ROUND_DURATION2)
 VAULT_CONTRACT_ADDRESS2=$(echo "$OUTPUT5_2" | awk '/contract_address:/ {print $2}')
 echo "(15 minute) Vault address: $VAULT_CONTRACT_ADDRESS2"
-# 1 month vault
-sleep 60
-ROUND_TRANSITION_DURATION3=10800 # 3 hours
-AUCTION_DURATION3=10800          # 3 hours
-ROUND_DURATION3=2592000          # 1 month
+
 OUTPUT5_3=$(sncast deploy --fee-token eth --class-hash $VAULT_CLASS_HASH --constructor-calldata $FOSSIL_CONTRACT_ADDRESS $ETH_ADDRESS $OPTION_ROUND_CLASS_HASH 1250 0 $ROUND_TRANSITION_DURATION3 $AUCTION_DURATION3 $ROUND_DURATION3)
 VAULT_CONTRACT_ADDRESS3=$(echo "$OUTPUT5_3" | awk '/contract_address:/ {print $2}')
 echo "(30 day) Vault address: $VAULT_CONTRACT_ADDRESS3"

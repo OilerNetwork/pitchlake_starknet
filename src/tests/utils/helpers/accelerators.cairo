@@ -1,36 +1,24 @@
-use core::fmt::Display;
 use pitch_lake::{
-    vault::contract::Vault::L1Data,
-    vault::interface::{IVaultDispatcher, IVaultDispatcherTrait, JobRequest},
-    option_round::{
-        contract::{OptionRound},
-        interface::{
-            IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState, PricingData,
-        },
-    },
+    vault::interface::L1Data, vault::interface::{IVaultDispatcherTrait},
     tests::{
         utils::{
             lib::{
-                test_accounts::{
-                    bystander, liquidity_provider_1, liquidity_providers_get, option_bidder_buyer_1,
-                    option_bidders_get, vault_manager,
-                },
+                test_accounts::{bystander, liquidity_providers_get, option_bidders_get},
                 variables::{decimals},
             },
             helpers::{ // accelerators::{accelerate_to_auction_custom_auction_params},
-                event_helpers::{clear_event_logs},
-                general_helpers::{assert_two_arrays_equal_length, get_erc20_balances, to_gwei},
+                general_helpers::{to_gwei},
                 //setup::{deploy_custom_option_round},
             },
             facades::{
-                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
+                option_round_facade::{OptionRoundFacadeTrait},
                 vault_facade::{VaultFacade, VaultFacadeTrait},
             },
         },
     },
 };
 use starknet::testing::{set_block_timestamp, set_contract_address};
-use starknet::{ContractAddress, contract_address_const, get_block_timestamp};
+use starknet::{ContractAddress, get_block_timestamp};
 
 
 /// Accelerators ///
@@ -43,7 +31,7 @@ pub fn accelerate_to_auctioning(ref self: VaultFacade) -> u256 {
 }
 
 // Start the auction with custom deposits
-fn accelerate_to_auctioning_custom(
+pub fn accelerate_to_auctioning_custom(
     ref self: VaultFacade, liquidity_providers: Span<ContractAddress>, amounts: Span<u256>,
 ) -> u256 {
     // Deposit liquidity
@@ -55,7 +43,7 @@ fn accelerate_to_auctioning_custom(
 /// Ending Auction
 
 // End the auction, OB1 bids for all options at reserve price
-fn accelerate_to_running(ref self: VaultFacade) -> (u256, u256) {
+pub fn accelerate_to_running(ref self: VaultFacade) -> (u256, u256) {
     let mut current_round = self.get_current_round();
     let bid_amount = current_round.get_total_options_available();
     let bid_price = current_round.get_reserve_price();
@@ -68,7 +56,7 @@ fn accelerate_to_running(ref self: VaultFacade) -> (u256, u256) {
 }
 
 // End the auction with custom bids
-fn accelerate_to_running_custom(
+pub fn accelerate_to_running_custom(
     ref self: VaultFacade,
     bidders: Span<ContractAddress>,
     max_amounts: Span<u256>,
@@ -83,7 +71,7 @@ fn accelerate_to_running_custom(
 
 /// Settling option round
 
-fn accelerate_to_settled_custom(ref self: VaultFacade, l1_data: L1Data) -> u256 {
+pub fn accelerate_to_settled_custom(ref self: VaultFacade, l1_data: L1Data) -> u256 {
     // Get the data request to fulfill
     let mut j = array![];
     self.get_request_to_settle_round().serialize(ref j);
@@ -96,7 +84,7 @@ fn accelerate_to_settled_custom(ref self: VaultFacade, l1_data: L1Data) -> u256 
 }
 
 // Settle the option round with a custom settlement price (compared to strike to determine payout)
-fn accelerate_to_settled(ref self: VaultFacade, twap: u256) -> u256 {
+pub fn accelerate_to_settled(ref self: VaultFacade, twap: u256) -> u256 {
     accelerate_to_settled_custom(
         ref self, L1Data { twap, max_return: 5000, reserve_price: to_gwei(2) },
     )

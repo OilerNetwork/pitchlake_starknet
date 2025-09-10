@@ -141,7 +141,7 @@ pub mod OptionRound {
 
     #[event]
     #[derive(Drop, starknet::Event, PartialEq)]
-    enum Event {
+    pub enum Event {
         PricingDataSet: PricingDataSet,
         AuctionStarted: AuctionStarted,
         BidPlaced: BidPlaced,
@@ -160,17 +160,17 @@ pub mod OptionRound {
     // @dev Emitted when the pricing data is set
     // @member pricing_data: The pricing data (strike price, cap level, reserve price)
     #[derive(Drop, starknet::Event, PartialEq)]
-    struct PricingDataSet {
-        pricing_data: PricingData,
+    pub struct PricingDataSet {
+        pub pricing_data: PricingData,
     }
 
     // @dev Emitted when the auction starts
     // @member starting_liquidity: The liquidity locked at the start of the auction
     // @member options_available: The max number of options that can sell in the auction
     #[derive(Drop, starknet::Event, PartialEq)]
-    struct AuctionStarted {
-        starting_liquidity: u256,
-        options_available: u256,
+    pub struct AuctionStarted {
+        pub starting_liquidity: u256,
+        pub options_available: u256,
     }
 
     // @dev Emitted when the auction ends
@@ -178,20 +178,20 @@ pub mod OptionRound {
     // @member options_sold: The number of options that sold in the auction
     // @memeber unsold_liquidity: The amount of liquidity that was not sold in the auction
     #[derive(Drop, starknet::Event, PartialEq)]
-    struct AuctionEnded {
-        options_sold: u256,
-        clearing_price: u256,
-        unsold_liquidity: u256,
-        clearing_bid_tree_nonce: u64,
+    pub struct AuctionEnded {
+        pub options_sold: u256,
+        pub clearing_price: u256,
+        pub unsold_liquidity: u256,
+        pub clearing_bid_tree_nonce: u64,
     }
 
     // @dev Emitted when the round settles
     // @member payout_per_option: The exercisable amount for 1 option
     // @member settlement_price: The basefee TWAP used to settle the round
     #[derive(Drop, starknet::Event, PartialEq)]
-    struct OptionRoundSettled {
-        settlement_price: u256,
-        payout_per_option: u256,
+    pub struct OptionRoundSettled {
+        pub settlement_price: u256,
+        pub payout_per_option: u256,
     }
 
     // @dev Emitted when a bid is placed
@@ -202,13 +202,13 @@ pub mod OptionRound {
     // @member account_bid_nonce_now: The amount of bids the account has placed now
     // @member tree_bid_nonce_now: The bid tree's nonce now
     #[derive(Drop, starknet::Event, PartialEq)]
-    struct BidPlaced {
+    pub struct BidPlaced {
         #[key]
-        account: ContractAddress,
-        bid_id: felt252,
-        amount: u256,
-        price: u256,
-        bid_tree_nonce_now: u64,
+        pub account: ContractAddress,
+        pub bid_id: felt252,
+        pub amount: u256,
+        pub price: u256,
+        pub bid_tree_nonce_now: u64,
     }
 
     // @dev Emitted when a bid is updated
@@ -217,33 +217,33 @@ pub mod OptionRound {
     // @member price_increase: The bid's price increase amount
     // @member tree_bid_nonce_now: The nonce of the bid tree now
     #[derive(Drop, starknet::Event, PartialEq)]
-    struct BidUpdated {
+    pub struct BidUpdated {
         #[key]
-        account: ContractAddress,
-        bid_id: felt252,
-        price_increase: u256,
-        bid_tree_nonce_before: u64,
-        bid_tree_nonce_now: u64,
+        pub account: ContractAddress,
+        pub bid_id: felt252,
+        pub price_increase: u256,
+        pub bid_tree_nonce_before: u64,
+        pub bid_tree_nonce_now: u64,
     }
 
     // @dev Emitted when an account mints option ERC-20 tokens
     // @member account: The account that minted the options
     // @member minted_amount: The amount of options minted
     #[derive(Drop, starknet::Event, PartialEq)]
-    struct OptionsMinted {
+    pub struct OptionsMinted {
         #[key]
-        account: ContractAddress,
-        minted_amount: u256,
+        pub account: ContractAddress,
+        pub minted_amount: u256,
     }
 
     // @dev Emitted when an accounts unused bids are refunded
     // @param account: The account that's bids were refuned
     // @param refunded_amount: The amount refunded
     #[derive(Drop, starknet::Event, PartialEq)]
-    struct UnusedBidsRefunded {
+    pub struct UnusedBidsRefunded {
         #[key]
-        account: ContractAddress,
-        refunded_amount: u256,
+        pub account: ContractAddress,
+        pub refunded_amount: u256,
     }
 
     // @dev Emitted when an account exercises their options
@@ -252,12 +252,12 @@ pub mod OptionRound {
     // @param mintable_options_exercised: The number of options exercised that the caller could have
     // minted @param exercised_amount: The amount transferred
     #[derive(Drop, starknet::Event, PartialEq)]
-    struct OptionsExercised {
+    pub struct OptionsExercised {
         #[key]
-        account: ContractAddress,
-        total_options_exercised: u256,
-        mintable_options_exercised: u256,
-        exercised_amount: u256,
+        pub account: ContractAddress,
+        pub total_options_exercised: u256,
+        pub mintable_options_exercised: u256,
+        pub exercised_amount: u256,
     }
 
     // *************************************************************************
@@ -445,7 +445,7 @@ pub mod OptionRound {
             let clearing_price = self.bids_tree.clearing_price.read();
             loop {
                 match losing_bids.pop_front() {
-                    Option::None => { break (); },
+                    Option::None => { break; },
                     Option::Some(bid) => { refundable_balance += bid.amount * bid.price; },
                 }
             }
@@ -453,7 +453,7 @@ pub mod OptionRound {
             // @dev Add refundable balance for over paid bids
             loop {
                 match winning_bids.pop_front() {
-                    Option::None => { break (); },
+                    Option::None => { break; },
                     Option::Some(bid) => {
                         if (bid.price > clearing_price) {
                             let price_difference = bid.price - clearing_price;
@@ -479,21 +479,29 @@ pub mod OptionRound {
 
             // @dev Add mintable balance from the clearing bid
             let mut mintable_balance = 0;
-            match clearing_bid_maybe {
-                Option::Some(_) => {
-                    // @dev The clearing bid potentially sells < the total options bid for, so it is
-                    // stored separately
-                    let options_sold = self.bids_tree.clearing_bid_amount_sold.read();
-                    mintable_balance += options_sold;
-                },
-                Option::None => {},
+
+            if let Option::Some(_) = clearing_bid_maybe {
+                // @dev Only the clearing_bid can be partially sold, the
+                // clearing_bid_amount_sold is saved in the tree
+                let options_sold = self.bids_tree.clearing_bid_amount_sold.read();
+                mintable_balance += options_sold;
             }
+
+            //match clearing_bid_maybe {
+            //    Option::Some(_) => {
+            //        // @dev The clearing bid potentially sells < the total options bid for, so it
+            //        is // stored separately
+            //        let options_sold = self.bids_tree.clearing_bid_amount_sold.read();
+            //        mintable_balance += options_sold;
+            //    },
+            //    Option::None => {},
+            //}
 
             // @dev Add mintable balance from all winning bids
             loop {
                 match winning_bids.pop_front() {
                     Option::Some(bid) => { mintable_balance += bid.amount; },
-                    Option::None => { break (); },
+                    Option::None => { break; },
                 }
             }
 
@@ -636,7 +644,7 @@ pub mod OptionRound {
             // @dev Create Bid struct
             let account = get_caller_address();
             let account_bid_nonce = self.account_bid_nonce.read(account);
-            let bid_id = self.create_bid_id(account, account_bid_nonce);
+            let bid_id: felt252 = self.create_bid_id(account, account_bid_nonce);
             let tree_nonce = self.bids_tree.tree_nonce.read();
             let bid = Bid { bid_id, owner: account, amount, price, tree_nonce };
 
@@ -903,7 +911,7 @@ pub mod OptionRound {
             // @dev If the auction has not ended yet, all bids are pending
             let state = self.state.read();
             if (state == OptionRoundState::Open || state == OptionRoundState::Auctioning) {
-                return (winning_bids, losing_bids, Option::None(()));
+                return (winning_bids, losing_bids, Option::None);
             } // @dev Look at each bid of the account's bids compared to the clearing bid
             else {
                 // @dev Get the account's bid amount
@@ -912,7 +920,7 @@ pub mod OptionRound {
                 // @dev Get the clearing bid
                 let clearing_bid_id: felt252 = self.bids_tree.clearing_bid.read();
                 let clearing_bid: Bid = self.bids_tree._find(clearing_bid_id);
-                let mut clearing_bid_option: Option<Bid> = Option::None(());
+                let mut clearing_bid_option: Option<Bid> = Option::None;
 
                 // @dev Iterate over the account's bids and compare them to the clearing bid
                 for i in 0..bidder_nonce {
@@ -928,12 +936,10 @@ pub mod OptionRound {
                         clearing_bid_option = Option::Some(bid);
                     } // @dev If this bid is not the clearing bid, check if this bid is above or
                     // below the clearing bid
-                    else {
-                        if bid > clearing_bid {
-                            winning_bids.append(bid);
-                        } else {
-                            losing_bids.append(bid);
-                        }
+                    else if bid > clearing_bid {
+                        winning_bids.append(bid);
+                    } else {
+                        losing_bids.append(bid);
                     }
                 }
 

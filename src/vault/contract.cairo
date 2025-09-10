@@ -105,7 +105,7 @@ pub mod Vault {
     //                              Errors
     // *************************************************************************
 
-    mod Errors {
+    pub mod Errors {
         pub const AlphaOutOfRange: felt252 = 'Alpha out of range';
         pub const StrikeLevelOutOfRange: felt252 = 'Strike level out of range';
         // Verifier
@@ -130,7 +130,7 @@ pub mod Vault {
 
     #[event]
     #[derive(Serde, PartialEq, Drop, starknet::Event)]
-    enum Event {
+    pub enum Event {
         Deposit: Deposit,
         Withdrawal: Withdrawal,
         WithdrawalQueued: WithdrawalQueued,
@@ -145,12 +145,12 @@ pub mod Vault {
     // @member: account_unlocked_balance_now: The account's unlocked balance after the deposit
     // @member: vault_unlocked_balance_now: The vault's unlocked balance after the deposit
     #[derive(Serde, Drop, starknet::Event, PartialEq)]
-    struct Deposit {
+    pub struct Deposit {
         #[key]
-        account: ContractAddress,
-        amount: u256,
-        account_unlocked_balance_now: u256,
-        vault_unlocked_balance_now: u256,
+        pub account: ContractAddress,
+        pub amount: u256,
+        pub account_unlocked_balance_now: u256,
+        pub vault_unlocked_balance_now: u256,
     }
 
     // @dev Emitted when an account makes a withdrawal
@@ -159,12 +159,12 @@ pub mod Vault {
     // @member account_unlocked_balance_now: The account's unlocked balance after the withdrawal
     // @member vault_unlocked_balance_now: The vault's unlocked balance after the withdrawal
     #[derive(Serde, Drop, starknet::Event, PartialEq)]
-    struct Withdrawal {
+    pub struct Withdrawal {
         #[key]
-        account: ContractAddress,
-        amount: u256,
-        account_unlocked_balance_now: u256,
-        vault_unlocked_balance_now: u256,
+        pub account: ContractAddress,
+        pub amount: u256,
+        pub account_unlocked_balance_now: u256,
+        pub vault_unlocked_balance_now: u256,
     }
 
     // @dev Emitted when an account queues a withdrawal
@@ -174,14 +174,14 @@ pub mod Vault {
     // withdrawal @member vault_queued_liquidity_now: The vault's starting liquidity queued after
     // the withdrawal
     #[derive(Serde, Drop, starknet::Event, PartialEq)]
-    struct WithdrawalQueued {
+    pub struct WithdrawalQueued {
         #[key]
-        account: ContractAddress,
-        bps: u128,
-        round_id: u64,
-        account_queued_liquidity_before: u256,
-        account_queued_liquidity_now: u256,
-        vault_queued_liquidity_now: u256,
+        pub account: ContractAddress,
+        pub bps: u128,
+        pub round_id: u64,
+        pub account_queued_liquidity_before: u256,
+        pub account_queued_liquidity_now: u256,
+        pub vault_queued_liquidity_now: u256,
     }
 
     // @dev Emitted when an account withdraws their stashed liquidity
@@ -189,11 +189,11 @@ pub mod Vault {
     // @member amount: The amount withdrawn
     // @member vault_stashed_balance_now: The vault's stashed balance after the withdrawal
     #[derive(Serde, Drop, starknet::Event, PartialEq)]
-    struct StashWithdrawn {
+    pub struct StashWithdrawn {
         #[key]
-        account: ContractAddress,
-        amount: u256,
-        vault_stashed_balance_now: u256,
+        pub account: ContractAddress,
+        pub amount: u256,
+        pub vault_stashed_balance_now: u256,
     }
 
     // @dev Emitted when a new option round is deployed
@@ -207,19 +207,19 @@ pub mod Vault {
     // @member option_settlement_date: The option settlement date for the deployed round
     #[derive(Serde, Drop, starknet::Event, PartialEq)]
     pub struct OptionRoundDeployed {
-        round_id: u64,
-        address: ContractAddress,
-        auction_start_date: u64,
-        auction_end_date: u64,
-        option_settlement_date: u64,
-        pricing_data: PricingData,
+        pub round_id: u64,
+        pub address: ContractAddress,
+        pub auction_start_date: u64,
+        pub auction_end_date: u64,
+        pub option_settlement_date: u64,
+        pub pricing_data: PricingData,
     }
 
     // @dev Emitted when L1 data is successfully processed by the vault
     #[derive(Serde, Drop, starknet::Event, PartialEq)]
-    struct FossilCallbackSuccess {
-        l1_data: L1Data,
-        timestamp: u64,
+    pub struct FossilCallbackSuccess {
+        pub l1_data: L1Data,
+        pub timestamp: u64,
     }
 
 
@@ -228,7 +228,7 @@ pub mod Vault {
     // *************************************************************************
 
     #[abi(embed_v0)]
-    impl VaultImpl of IVault<ContractState> {
+    pub impl VaultImpl of IVault<ContractState> {
         // ***********************************
         //               READS
         // ***********************************
@@ -742,7 +742,7 @@ pub mod Vault {
     // *************************************************************************
 
     #[generate_trait]
-    impl InternalImpl of VaultInternalTrait {
+    pub impl InternalImpl of VaultInternalTrait {
         /// Get contract dispatchers
 
         fn get_eth_dispatcher(self: @ContractState) -> ERC20ABIDispatcher {

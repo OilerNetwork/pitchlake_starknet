@@ -1,6 +1,6 @@
-mod types;
+pub mod types;
 
-mod library {
+pub mod library {
     pub mod constants;
     pub mod eth;
     pub mod pricing_utils;
@@ -19,4 +19,4 @@ mod option_round {
 }
 
 #[cfg(test)]
-mod tests;
+pub mod tests;

@@ -1,7 +1,6 @@
 use core::array::SpanTrait;
 use openzeppelin_token::erc20::ERC20Component;
 use openzeppelin_token::erc20::ERC20Component::Transfer;
-use openzeppelin_utils::serde::SerializedAppend;
 use pitch_lake::option_round::contract::OptionRound;
 use pitch_lake::option_round::interface::PricingData;
 use pitch_lake::vault::contract::Vault;
@@ -43,17 +42,17 @@ pub fn clear_event_logs(mut addresses: Array<ContractAddress>) {
 }
 
 // Assert a contract's event log is empty
-fn assert_no_events_left(address: ContractAddress) {
+pub fn assert_no_events_left(address: ContractAddress) {
     assert(testing::pop_log_raw(address).is_none(), 'Events remaining on queue');
 }
 
 // Assert 2 events of the same type are equal
-fn assert_events_equal<T, +PartialEq<T>, +Drop<T>>(actual: T, expected: T) {
+pub fn assert_events_equal<T, +PartialEq<T>, +Drop<T>>(actual: T, expected: T) {
     assert(actual == expected, 'Event does not match expected');
 }
 
 /// Fossil Client Events ///
-fn assert_fossil_callback_success_event(
+pub fn assert_fossil_callback_success_event(
     vault_address: ContractAddress, l1_data: L1Data, timestamp: u64,
 ) {
     // Remove the OptionRoundDeployed event that is fired before the callback success event
@@ -75,7 +74,7 @@ fn assert_fossil_callback_success_event(
 /// OptionRound Events ///
 
 // Check AuctionStart emits correctly
-fn assert_event_auction_start(
+pub fn assert_event_auction_start(
     option_round_address: ContractAddress, starting_liquidity: u256, options_available: u256,
 ) {
     match pop_log::<OptionRound::Event>(option_round_address) {
@@ -90,7 +89,7 @@ fn assert_event_auction_start(
 }
 
 // Check AuctionAcceptedBid emits correctly
-fn assert_event_auction_bid_placed(
+pub fn assert_event_auction_bid_placed(
     contract: ContractAddress,
     account: ContractAddress,
     bid_id: felt252,
@@ -111,7 +110,7 @@ fn assert_event_auction_bid_placed(
     }
 }
 
-fn assert_event_auction_bid_updated(
+pub fn assert_event_auction_bid_updated(
     contract: ContractAddress,
     account: ContractAddress,
     bid_id: felt252,
@@ -133,7 +132,7 @@ fn assert_event_auction_bid_updated(
 }
 
 // Check PricingDataSet emits correctly
-fn assert_event_pricing_data_set(
+pub fn assert_event_pricing_data_set(
     option_round_address: ContractAddress, strike_price: u256, cap_level: u128, reserve_price: u256,
 ) {
     match pop_log::<OptionRound::Event>(option_round_address) {
@@ -149,7 +148,7 @@ fn assert_event_pricing_data_set(
     };
 }
 // Check AuctionEnd emits correctly
-fn assert_event_auction_end(
+pub fn assert_event_auction_end(
     option_round_address: ContractAddress,
     options_sold: u256,
     clearing_price: u256,
@@ -170,7 +169,7 @@ fn assert_event_auction_end(
 }
 
 // Check OptionSettle emits correctly
-fn assert_event_option_settle(
+pub fn assert_event_option_settle(
     option_round_address: ContractAddress, settlement_price: u256, payout_per_option: u256,
 ) {
     match pop_log::<OptionRound::Event>(option_round_address) {
@@ -185,7 +184,7 @@ fn assert_event_option_settle(
 }
 
 // Check UnusedBidsRefunded emits correctly
-fn assert_event_unused_bids_refunded(
+pub fn assert_event_unused_bids_refunded(
     contract: ContractAddress, account: ContractAddress, refunded_amount: u256,
 ) {
     match pop_log::<OptionRound::Event>(contract) {
@@ -199,7 +198,7 @@ fn assert_event_unused_bids_refunded(
     }
 }
 
-fn assert_event_options_tokenized(
+pub fn assert_event_options_tokenized(
     contract: ContractAddress, account: ContractAddress, minted_amount: u256,
 ) {
     // We pop here twice since the method fires a ERC20 transfer event before the OptionsTokenized
@@ -220,7 +219,7 @@ fn assert_event_options_tokenized(
     }
 }
 // Check OptionsExercised emits correctly
-fn assert_event_options_exercised(
+pub fn assert_event_options_exercised(
     contract: ContractAddress,
     account: ContractAddress,
     total_options_exercised: u256,
@@ -251,7 +250,7 @@ fn assert_event_options_exercised(
 // @note Can remove all instances of this test that are testing eth transfers, just testing the
 // balance changes is enough @note Add tests using this helper for erc20 transfer tests for options,
 // lp tokens later
-fn assert_event_transfer(
+pub fn assert_event_transfer(
     contract: ContractAddress, from: ContractAddress, to: ContractAddress, value: u256,
 ) {
     match pop_log::<ERC20Component::Event>(contract) {
@@ -265,7 +264,7 @@ fn assert_event_transfer(
 
 /// Vault Events ///
 
-fn assert_event_option_round_deployed(
+pub fn assert_event_option_round_deployed(
     contract: ContractAddress,
     round_id: u64,
     address: ContractAddress,
@@ -291,7 +290,7 @@ fn assert_event_option_round_deployed(
 }
 
 // Test OptionRoundCreated event emits correctly
-fn assert_event_option_round_deployed_single(
+pub fn assert_event_option_round_deployed_single(
     contract: ContractAddress,
     round_id: u64,
     address: ContractAddress,
@@ -319,7 +318,7 @@ fn assert_event_option_round_deployed_single(
 }
 
 // Test deposit event emits correctly
-fn assert_event_vault_deposit(
+pub fn assert_event_vault_deposit(
     vault: ContractAddress,
     account: ContractAddress,
     amount: u256,
@@ -341,7 +340,7 @@ fn assert_event_vault_deposit(
 }
 
 // Test withdrawal event emits correctly
-fn assert_event_vault_withdrawal(
+pub fn assert_event_vault_withdrawal(
     vault: ContractAddress,
     account: ContractAddress,
     amount: u256,
@@ -363,7 +362,7 @@ fn assert_event_vault_withdrawal(
 }
 
 // Test collect queued liquidity event emits correctly
-fn assert_event_queued_liquidity_collected(
+pub fn assert_event_queued_liquidity_collected(
     vault: ContractAddress, account: ContractAddress, amount: u256, vault_stashed_balance_now: u256,
 ) {
     match pop_log::<Vault::Event>(vault) {
@@ -379,7 +378,7 @@ fn assert_event_queued_liquidity_collected(
 }
 
 // Test withdrawal queued event emits correctly
-fn assert_event_withdrawal_queued(
+pub fn assert_event_withdrawal_queued(
     vault: ContractAddress,
     account: ContractAddress,
     bps: u128,

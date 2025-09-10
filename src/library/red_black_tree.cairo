@@ -157,7 +157,7 @@ pub mod RBTreeComponent {
     }
 
     #[generate_trait]
-    impl RBTreeOperationsImpl<
+    pub impl RBTreeOperationsImpl<
         TContractState, +HasComponent<TContractState>,
     > of RBTreeOperationsTrait<TContractState> {
         fn create_root_node(self: @ComponentState<TContractState>, value: @Bid) -> Node {

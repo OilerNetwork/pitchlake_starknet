@@ -1,6 +1,5 @@
 use core::num::traits::Zero;
 use core::starknet::SyscallResultTrait;
-use debug::PrintTrait;
 use openzeppelin_token::erc20::ERC20Component;
 use openzeppelin_token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
 use openzeppelin_utils::serde::SerializedAppend;
@@ -35,30 +34,27 @@ use pitch_lake::vault::contract::Vault;
 use pitch_lake::vault::interface::{
     ConstructorArgs, IVaultDispatcher, IVaultDispatcherTrait, JobRequest, L1Data,
 };
+use starknet::syscalls::deploy_syscall;
 use starknet::testing::{set_block_timestamp, set_contract_address};
-use starknet::{
-    ClassHash, ContractAddress, Felt252TryIntoContractAddress, contract_address_const,
-    contract_address_try_from_felt252, deploy_syscall, get_block_timestamp, get_contract_address,
-    testing,
-};
+use starknet::{ClassHash, ContractAddress, get_block_timestamp, get_contract_address, testing};
 
 // ERC20 Constants
-const DECIMALS: u8 = 18_u8;
-const SUPPLY: u256 = 999999999999999999999999999999;
+pub const DECIMALS: u8 = 18_u8;
+pub const SUPPLY: u256 = 999999999999999999999999999999;
 
 // Vault Constants
-const ROUND_TRANSITION_DURATION: u64 = 3 * HOUR;
-const AUCTION_DURATION: u64 = 8 * HOUR;
-const ROUND_DURATION: u64 = 30 * DAY;
-const PROVING_DELAY: u64 = 10 * MINUTE;
-const PROGRAM_ID: felt252 = 'PITCH_LAKE_V1';
+pub const ROUND_TRANSITION_DURATION: u64 = 3 * HOUR;
+pub const AUCTION_DURATION: u64 = 8 * HOUR;
+pub const ROUND_DURATION: u64 = 30 * DAY;
+pub const PROVING_DELAY: u64 = 10 * MINUTE;
+pub const PROGRAM_ID: felt252 = 'PITCH_LAKE_V1';
 
-fn PITCHLAKE_VERIFIER() -> ContractAddress {
-    contract_address_const::<'FOSSIL PROCESSOR'>()
+pub fn PITCHLAKE_VERIFIER() -> ContractAddress {
+    'FOSSIL VERIFIER'.try_into().unwrap()
 }
 
 // Deploy eth contract for testing
-fn deploy_eth() -> ERC20ABIDispatcher {
+pub fn deploy_eth() -> ERC20ABIDispatcher {
     let mut calldata = array![];
 
     calldata.append_serde(1000 * a_lot_of_eth());
@@ -78,7 +74,7 @@ fn deploy_eth() -> ERC20ABIDispatcher {
 }
 
 // Deploy the vault and fossil client
-fn deploy_vault_with_events(
+pub fn deploy_vault_with_events(
     alpha: u128, strike_level: i128, eth_address: ContractAddress,
 ) -> IVaultDispatcher {
     /// Deploy Vault
@@ -110,7 +106,9 @@ fn deploy_vault_with_events(
 }
 
 // Deploy the vault and fossil client with events cleared
-fn deploy_vault(alpha: u128, strike_level: i128, eth_address: ContractAddress) -> IVaultDispatcher {
+pub fn deploy_vault(
+    alpha: u128, strike_level: i128, eth_address: ContractAddress,
+) -> IVaultDispatcher {
     let vault = deploy_vault_with_events(alpha, strike_level, eth_address);
 
     // Clear the event log
@@ -119,7 +117,7 @@ fn deploy_vault(alpha: u128, strike_level: i128, eth_address: ContractAddress) -
     vault
 }
 
-fn setup_rb_tree_test() -> IRBTreeMockContractDispatcher {
+pub fn setup_rb_tree_test() -> IRBTreeMockContractDispatcher {
     let (address, _) = deploy_syscall(
         RBTreeMockContract::TEST_CLASS_HASH.try_into().unwrap(), 0, array![].span(), false,
     )
@@ -127,11 +125,11 @@ fn setup_rb_tree_test() -> IRBTreeMockContractDispatcher {
     IRBTreeMockContractDispatcher { contract_address: address }
 }
 
-fn to_gwei(amount: u256) -> u256 {
+pub fn to_gwei(amount: u256) -> u256 {
     amount * 1_000_000_000
 }
 
-fn setup_facade_custom(alpha: u128, strike_level: i128) -> VaultFacade {
+pub fn setup_facade_custom(alpha: u128, strike_level: i128) -> VaultFacade {
     set_block_timestamp(1234567890);
 
     // Deploy eth
@@ -174,7 +172,7 @@ fn setup_facade_custom(alpha: u128, strike_level: i128) -> VaultFacade {
     return vault_facade;
 }
 
-fn setup_facade() -> (VaultFacade, ERC20ABIDispatcher) {
+pub fn setup_facade() -> (VaultFacade, ERC20ABIDispatcher) {
     // Deploy vault with 33.33% risk factor and strikes equal to basefee at start
     let mut vault_facade = setup_facade_custom(10_000, 0);
     let eth_dispatcher = ERC20ABIDispatcher { contract_address: vault_facade.get_eth_address() };
@@ -182,7 +180,7 @@ fn setup_facade() -> (VaultFacade, ERC20ABIDispatcher) {
     (vault_facade, eth_dispatcher)
 }
 
-fn setup_test_auctioning_bidders(
+pub fn setup_test_auctioning_bidders(
     number_of_option_buyers: u32,
 ) -> (VaultFacade, ERC20ABIDispatcher, Span<ContractAddress>, u256) {
     let (mut vault, eth) = setup_facade();
@@ -196,7 +194,7 @@ fn setup_test_auctioning_bidders(
     (vault, eth, option_bidders.span(), total_options_available)
 }
 
-fn setup_test_running() -> (VaultFacade, OptionRoundFacade) {
+pub fn setup_test_running() -> (VaultFacade, OptionRoundFacade) {
     let (mut vault, _) = setup_facade();
     let mut current_round = vault.get_current_round();
 
@@ -206,7 +204,7 @@ fn setup_test_running() -> (VaultFacade, OptionRoundFacade) {
     (vault, current_round)
 }
 
-fn setup_test_auctioning_providers(
+pub fn setup_test_auctioning_providers(
     number_of_option_buyers: u32, deposit_amounts: Span<u256>,
 ) -> (VaultFacade, ERC20ABIDispatcher, Span<ContractAddress>, u256) {
     let (mut vault, eth) = setup_facade();
@@ -220,7 +218,7 @@ fn setup_test_auctioning_providers(
 
 //Eth setup helpers
 
-fn eth_supply_and_approve_all(
+pub fn eth_supply_and_approve_all(
     contract_address: ContractAddress,
     eth_address: ContractAddress,
     addresses: Span<ContractAddress>,
@@ -228,53 +226,65 @@ fn eth_supply_and_approve_all(
     eth_supply(eth_address, addresses);
     eth_approval(contract_address, eth_address, addresses);
 }
-fn eth_supply_and_approve_all_providers(
+pub fn eth_supply_and_approve_all_providers(
     contract_address: ContractAddress, eth_address: ContractAddress,
 ) {
     let mut liquidity_providers = liquidity_providers_get(6);
     eth_supply_and_approve_all(contract_address, eth_address, liquidity_providers.span());
 }
 
-fn eth_supply_and_approve_all_bidders(
+pub fn eth_supply_and_approve_all_bidders(
     contract_address: ContractAddress, eth_address: ContractAddress,
 ) {
     let option_biddders = option_bidders_get(6);
     eth_supply_and_approve_all(contract_address, eth_address, option_biddders.span());
 }
 
-fn a_lot_of_eth() -> u256 {
+pub fn a_lot_of_eth() -> u256 {
     decimals() * decimals() * decimals() //10^36 ETH
 }
 
-fn eth_supply(eth_address: ContractAddress, mut receivers: Span<ContractAddress>) {
+pub fn eth_supply(eth_address: ContractAddress, mut receivers: Span<ContractAddress>) {
     let eth_dispatcher = ERC20ABIDispatcher { contract_address: eth_address };
-    loop {
-        match receivers.pop_front() {
-            Option::Some(receiver) => {
-                set_contract_address(weth_owner());
-                let ob_amount_wei: u256 = a_lot_of_eth();
+    for receiver in receivers {
+        set_contract_address(weth_owner());
+        let ob_amount_wei: u256 = a_lot_of_eth();
 
-                eth_dispatcher.transfer(*receiver, ob_amount_wei);
-            },
-            Option::None => { break; },
-        };
-    };
+        eth_dispatcher.transfer(*receiver, ob_amount_wei);
+    }
+    //loop {
+//    match receivers.pop_front() {
+//        Option::Some(receiver) => {
+//            set_contract_address(weth_owner());
+//            let ob_amount_wei: u256 = a_lot_of_eth();
+
+    //            eth_dispatcher.transfer(*receiver, ob_amount_wei);
+//        },
+//        Option::None => { break; },
+//    };
+//};
 }
-fn eth_approval(
+pub fn eth_approval(
     contract_address: ContractAddress,
     eth_address: ContractAddress,
     mut approvers: Span<ContractAddress>,
 ) {
     let eth_dispatcher = ERC20ABIDispatcher { contract_address: eth_address };
-    loop {
-        match approvers.pop_front() {
-            Option::Some(approver) => {
-                set_contract_address(weth_owner());
-                let ob_amount_wei: u256 = a_lot_of_eth();
-                set_contract_address(*approver);
-                eth_dispatcher.approve(contract_address, ob_amount_wei);
-            },
-            Option::None => { break; },
-        };
-    };
+    for approver in approvers {
+        set_contract_address(weth_owner());
+        let ob_amount_wei: u256 = a_lot_of_eth();
+        set_contract_address(*approver);
+        eth_dispatcher.approve(contract_address, ob_amount_wei);
+    }
+    //    loop {
+//        match approvers.pop_front() {
+//            Option::Some(approver) => {
+//                set_contract_address(weth_owner());
+//                let ob_amount_wei: u256 = a_lot_of_eth();
+//                set_contract_address(*approver);
+//                eth_dispatcher.approve(contract_address, ob_amount_wei);
+//            },
+//            Option::None => { break; },
+//        };
+//    };
 }

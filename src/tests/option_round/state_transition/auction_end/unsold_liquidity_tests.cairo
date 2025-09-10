@@ -1,25 +1,18 @@
-use debug::PrintTrait;
 use pitch_lake::library::pricing_utils::max_payout_per_option;
-use pitch_lake::tests::utils::facades::option_round_facade::{
-    OptionRoundFacade, OptionRoundFacadeTrait,
-};
-use pitch_lake::tests::utils::facades::vault_facade::{VaultFacade, VaultFacadeTrait};
+use pitch_lake::tests::utils::facades::option_round_facade::OptionRoundFacadeTrait;
+use pitch_lake::tests::utils::facades::vault_facade::VaultFacadeTrait;
 use pitch_lake::tests::utils::helpers::accelerators::{
-    accelerate_to_auctioning, accelerate_to_auctioning_custom, accelerate_to_running,
-    accelerate_to_running_custom, accelerate_to_settled, timeskip_and_end_auction,
+    accelerate_to_auctioning, accelerate_to_auctioning_custom, accelerate_to_running_custom,
+    accelerate_to_settled,
 };
 use pitch_lake::tests::utils::helpers::general_helpers::{
-    create_array_gradient, create_array_gradient_reverse, create_array_linear, get_erc20_balance,
-    get_erc20_balances, get_portion_of_amount,
+    create_array_linear, get_portion_of_amount,
 };
-use pitch_lake::tests::utils::helpers::setup::{setup_facade, setup_test_auctioning_bidders};
+use pitch_lake::tests::utils::helpers::setup::setup_facade;
 use pitch_lake::tests::utils::lib::test_accounts::{
-    liquidity_provider_1, liquidity_provider_2, liquidity_provider_3, liquidity_providers_get,
-    option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
-    option_bidders_get,
+    liquidity_provider_1, liquidity_providers_get, option_bidder_buyer_1, option_bidders_get,
 };
 use pitch_lake::tests::utils::lib::variables::decimals;
-use starknet::testing::{set_block_timestamp, set_contract_address};
 
 
 // Test unsold liquidity is 0 before auction end
@@ -215,34 +208,52 @@ fn test_unsold_liquidity_is_unlocked_for_liquidity_providers() {
         .span();
     assert(unsold_liq > 0, 'unsold liq shd not be 0');
 
-    loop {
-        match liquidity_providers.pop_front() {
-            Option::Some(_) => {
-                let (locked_balance_before, unlocked_balance_before) =
-                    locked_and_unlocked_balances_before
-                    .pop_front()
-                    .unwrap();
-                let (locked_balance_after, unlocked_balance_after) =
-                    locked_and_unlocked_balances_after
-                    .pop_front()
-                    .unwrap();
-                let share_of_sold_liq = expected_sold_liq_shares.pop_front().unwrap();
-                let share_of_unsold_liq = deposit_amount - *share_of_sold_liq;
-                let share_of_premiums = expected_premiums_shares.pop_front().unwrap();
-                let expected_lp_locked_after = *locked_balance_before - share_of_unsold_liq;
+    for i in 0..liquidity_providers.len() {
+        let (locked_balance_before, unlocked_balance_before) =
+            locked_and_unlocked_balances_before[i];
+        let (locked_balance_after, unlocked_balance_after) = locked_and_unlocked_balances_after[i];
+        let share_of_sold_liq = expected_sold_liq_shares[i];
+        let share_of_unsold_liq = deposit_amount - *share_of_sold_liq;
+        let share_of_premiums = expected_premiums_shares[i];
+        let expected_lp_locked_after = *locked_balance_before - share_of_unsold_liq;
 
-                let share_of_unsold_liq = expected_unsold_liq_shares.pop_front().unwrap();
-                let expected_lp_unlocked_after = *unlocked_balance_before
-                    + *share_of_unsold_liq
-                    + *share_of_premiums;
+        let share_of_unsold_liq = expected_unsold_liq_shares[i];
+        let expected_lp_unlocked_after = *unlocked_balance_before
+            + *share_of_unsold_liq
+            + *share_of_premiums;
 
-                assert(*locked_balance_after == expected_lp_locked_after, 'lp locked wrong');
-
-                assert(*unlocked_balance_after == expected_lp_unlocked_after, 'lp unlocked wrong');
-            },
-            Option::None => { break (); },
-        }
-    };
+        assert(*locked_balance_after == expected_lp_locked_after, 'lp locked wrong');
+        assert(*unlocked_balance_after == expected_lp_unlocked_after, 'lp unlocked wrong');
+    }
+    //    loop {
+//        match liquidity_providers.pop_front() {
+//            Option::Some(_) => {
+//                let (locked_balance_before, unlocked_balance_before) =
+//                    locked_and_unlocked_balances_before
+//                    .pop_front()
+//                    .unwrap();
+//                let (locked_balance_after, unlocked_balance_after) =
+//                    locked_and_unlocked_balances_after
+//                    .pop_front()
+//                    .unwrap();
+//                let share_of_sold_liq = expected_sold_liq_shares.pop_front().unwrap();
+//                let share_of_unsold_liq = deposit_amount - *share_of_sold_liq;
+//                let share_of_premiums = expected_premiums_shares.pop_front().unwrap();
+//                let expected_lp_locked_after = *locked_balance_before - share_of_unsold_liq;
+//
+//                let share_of_unsold_liq = expected_unsold_liq_shares.pop_front().unwrap();
+//                let expected_lp_unlocked_after = *unlocked_balance_before
+//                    + *share_of_unsold_liq
+//                    + *share_of_premiums;
+//
+//                assert(*locked_balance_after == expected_lp_locked_after, 'lp locked wrong');
+//
+//                assert(*unlocked_balance_after == expected_lp_unlocked_after, 'lp unlocked
+//                wrong');
+//            },
+//            Option::None => { break (); },
+//        }
+//    };
 }
 
 // Test unsold liquidity adds to liquidity provider's unlocked when round settles

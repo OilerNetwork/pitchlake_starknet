@@ -1,7 +1,7 @@
 use pitch_lake::types::Bid;
 
 #[starknet::interface]
-trait IRBTreeMockContract<TContractState> {
+pub trait IRBTreeMockContract<TContractState> {
     fn insert(ref self: TContractState, value: Bid);
     fn find(self: @TContractState, bid_id: felt252) -> Bid;
     fn get_tree_structure(self: @TContractState) -> Array<Array<(u256, bool, u128)>>;
@@ -11,7 +11,7 @@ trait IRBTreeMockContract<TContractState> {
 }
 
 #[starknet::contract]
-mod RBTreeMockContract {
+pub mod RBTreeMockContract {
     use pitch_lake::library::red_black_tree::RBTreeComponent;
     use pitch_lake::types::Bid;
 

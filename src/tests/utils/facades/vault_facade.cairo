@@ -1,7 +1,4 @@
-use core::fmt::{Display, Error, Formatter};
 use fp::{UFixedPoint123x128, UFixedPoint123x128Impl};
-use openzeppelin_token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
-use pitch_lake::option_round::contract::OptionRound;
 use pitch_lake::option_round::interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait};
 use pitch_lake::tests::utils::facades::option_round_facade::{
     OptionRoundFacade, OptionRoundFacadeTrait,
@@ -9,15 +6,13 @@ use pitch_lake::tests::utils::facades::option_round_facade::{
 use pitch_lake::tests::utils::facades::sanity_checks;
 use pitch_lake::tests::utils::helpers::general_helpers::{assert_two_arrays_equal_length, to_gwei};
 use pitch_lake::tests::utils::helpers::setup::eth_supply_and_approve_all_bidders;
-use pitch_lake::tests::utils::lib::test_accounts::{bystander, liquidity_provider_1, vault_manager};
-use pitch_lake::tests::utils::lib::variables::decimals;
-use pitch_lake::vault::contract::Vault::L1Data;
+use pitch_lake::tests::utils::lib::test_accounts::bystander;
 use pitch_lake::vault::interface::{
     IVaultDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcher, IVaultSafeDispatcherTrait,
-    JobRequest, VerifierData,
+    JobRequest, L1Data,
 };
 use starknet::ContractAddress;
-use starknet::testing::{set_block_timestamp, set_contract_address};
+use starknet::testing::set_contract_address;
 
 fn pow(base: u256, exp: u256) -> u256 {
     if exp == 0_u256 {
@@ -34,7 +29,7 @@ fn pow(base: u256, exp: u256) -> u256 {
 
 #[derive(Drop, Copy)]
 pub struct VaultFacade {
-    vault_dispatcher: IVaultDispatcher,
+    pub vault_dispatcher: IVaultDispatcher,
 }
 
 // 1234_u256 -> 1234_u128 -> 1234.0 -> 1234.0_felt

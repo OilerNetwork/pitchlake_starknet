@@ -1,41 +1,22 @@
 use core::array::ArrayTrait;
-use debug::PrintTrait;
-use openzeppelin_token::erc20::interface::ERC20ABIDispatcherTrait;
-use pitch_lake::library::eth::Eth;
+use core::poseidon::poseidon_hash_span;
 use pitch_lake::option_round::contract::OptionRound::Errors;
-use pitch_lake::option_round::interface::{
-    IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState,
-};
-use pitch_lake::tests::utils::facades::option_round_facade::{
-    OptionRoundFacade, OptionRoundFacadeTrait,
-};
-use pitch_lake::tests::utils::facades::vault_facade::{VaultFacade, VaultFacadeTrait};
+use pitch_lake::tests::utils::facades::option_round_facade::OptionRoundFacadeTrait;
+use pitch_lake::tests::utils::facades::vault_facade::VaultFacadeTrait;
 use pitch_lake::tests::utils::helpers::accelerators::{
     accelerate_to_auctioning, accelerate_to_auctioning_custom, accelerate_to_running,
-    accelerate_to_settled, timeskip_and_end_auction, timeskip_past_auction_end_date,
+    accelerate_to_settled, timeskip_past_auction_end_date,
 };
 use pitch_lake::tests::utils::helpers::event_helpers::{
-    assert_event_auction_bid_placed, assert_event_transfer, assert_no_events_left, pop_log,
+    assert_event_auction_bid_placed, clear_event_logs,
 };
 use pitch_lake::tests::utils::helpers::general_helpers::{
     create_array_gradient, create_array_linear, get_erc20_balance, get_erc20_balances,
-    get_total_bids_amount, multiply_arrays, scale_array, sum_u256_array, to_wei,
+    get_total_bids_amount,
 };
-use pitch_lake::tests::utils::helpers::setup::{
-    clear_event_logs, decimals, deploy_vault, setup_facade,
-};
+use pitch_lake::tests::utils::helpers::setup::setup_facade;
 use pitch_lake::tests::utils::lib::test_accounts::{
-    liquidity_provider_1, liquidity_provider_2, liquidity_providers_get, option_bidder_buyer_1,
-    option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4, option_bidders_get,
-};
-use pitch_lake::vault::contract::Vault;
-use pitch_lake::vault::interface::{
-    IVaultDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcher, IVaultSafeDispatcherTrait,
-};
-use starknet::testing::{set_block_timestamp, set_contract_address};
-use starknet::{
-    ClassHash, ContractAddress, Felt252TryIntoContractAddress, contract_address_const,
-    deploy_syscall, get_block_timestamp, get_contract_address,
+    liquidity_provider_1, liquidity_providers_get, option_bidder_buyer_1, option_bidders_get,
 };
 
 /// Failues ///
@@ -182,26 +163,42 @@ fn test_bid_accepted_events() {
     let mut bids = current_round.place_bids(bid_amounts, bid_prices, option_bidders).span();
 
     // Check bid accepted events
-    loop {
-        match option_bidders.pop_front() {
-            Option::Some(ob) => {
-                let bid = bids.pop_front().unwrap();
-                let bid_id = bid.bid_id;
-                let tree_nonce = bid.tree_nonce;
-                let bid_amount = bid_amounts.pop_front().unwrap();
-                let bid_price = bid_prices.pop_front().unwrap();
-                assert_event_auction_bid_placed(
-                    current_round.contract_address(),
-                    *ob,
-                    *bid_id,
-                    *bid_amount,
-                    *bid_price,
-                    *tree_nonce + 1,
-                );
-            },
-            Option::None => { break; },
-        };
+    for i in 0..option_bidders.len() {
+        let ob = option_bidders[i];
+        let bid = bids[i];
+        let bid_id = bid.bid_id;
+        let tree_nonce = bid.tree_nonce;
+        let bid_amount = bid_amounts[i];
+        let bid_price = bid_prices[i];
+        assert_event_auction_bid_placed(
+            current_round.contract_address(),
+            *ob,
+            *bid_id,
+            *bid_amount,
+            *bid_price,
+            *tree_nonce + 1,
+        );
     }
+    //    loop {
+//        match option_bidders.pop_front() {
+//            Option::Some(ob) => {
+//                let bid = bids.pop_front().unwrap();
+//                let bid_id = bid.bid_id;
+//                let tree_nonce = bid.tree_nonce;
+//                let bid_amount = bid_amounts.pop_front().unwrap();
+//                let bid_price = bid_prices.pop_front().unwrap();
+//                assert_event_auction_bid_placed(
+//                    current_round.contract_address(),
+//                    *ob,
+//                    *bid_id,
+//                    *bid_amount,
+//                    *bid_price,
+//                    *tree_nonce + 1,
+//                );
+//            },
+//            Option::None => { break; },
+//        };
+//    }
 }
 
 // Test get_bids_for returns the correct array of bids
@@ -264,20 +261,30 @@ fn test_bid_eth_transfer() {
 
     assert(round_balance_after == round_balance_before + bids_total, 'round balance after wrong');
     // Check ob balances
-    loop {
-        match ob_balances_before.pop_front() {
-            Option::Some(ob_balance_before) => {
-                let ob_bid_price = bid_prices.pop_front().unwrap();
-                let ob_balance_after = ob_balances_after.pop_front().unwrap();
-                let ob_amount = bid_amounts.pop_front().unwrap();
-                assert(
-                    *ob_balance_after == *ob_balance_before - (*ob_bid_price * *ob_amount),
-                    'ob balance after wrong',
-                );
-            },
-            Option::None => { break; },
-        };
+    for i in 0..ob_balances_before.len() {
+        let ob_balance_before = ob_balances_before[i];
+        let ob_bid_price = bid_prices[i];
+        let ob_balance_after = ob_balances_after[i];
+        let ob_amount = bid_amounts[i];
+        assert(
+            *ob_balance_after == *ob_balance_before - (*ob_bid_price * *ob_amount),
+            'ob balance after wrong',
+        );
     }
+    //    loop {
+//        match ob_balances_before.pop_front() {
+//            Option::Some(ob_balance_before) => {
+//                let ob_bid_price = bid_prices.pop_front().unwrap();
+//                let ob_balance_after = ob_balances_after.pop_front().unwrap();
+//                let ob_amount = bid_amounts.pop_front().unwrap();
+//                assert(
+//                    *ob_balance_after == *ob_balance_before - (*ob_bid_price * *ob_amount),
+//                    'ob balance after wrong',
+//                );
+//            },
+//            Option::None => { break; },
+//        };
+//    }
 }
 
 ///// Test bidding transfers eth from bidder to round
@@ -411,9 +418,7 @@ fn test_place_bid_id() {
     let mut i = 3_u32;
     while i > 0 {
         let bid_nonce = current_round.get_bidding_nonce_for(bidder);
-        let expected_hash = poseidon::poseidon_hash_span(
-            array![bidder.into(), bid_nonce.into()].span(),
-        );
+        let expected_hash = poseidon_hash_span(array![bidder.into(), bid_nonce.into()].span());
         let bid = current_round.place_bid(bid_amount, bid_price, bidder);
         assert(bid.bid_id == expected_hash, 'Bid Id Incorrect');
         i -= 1;

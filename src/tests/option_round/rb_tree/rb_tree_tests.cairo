@@ -1,17 +1,16 @@
-use core::pedersen::pedersen;
 use pitch_lake::tests::option_round::rb_tree::rb_tree_mock_contract::{
     IRBTreeMockContractDispatcher, IRBTreeMockContractDispatcherTrait,
 };
 use pitch_lake::tests::utils::helpers::setup::setup_rb_tree_test;
 use pitch_lake::types::Bid;
-use starknet::{ContractAddress, contract_address_const};
+use starknet::ContractAddress;
 
-const BLACK: bool = false;
-const RED: bool = true;
-const MOCK_ADDRESS: felt252 = 123456;
+pub const BLACK: bool = false;
+pub const RED: bool = true;
+pub const MOCK_ADDRESS: felt252 = 123456;
 
-fn mock_address(value: felt252) -> ContractAddress {
-    contract_address_const::<'test_contract_address'>()
+pub fn mock_address(value: felt252) -> ContractAddress {
+    'test_contract_address'.try_into().unwrap()
 }
 
 // Tests for insertion
@@ -1189,34 +1188,34 @@ fn test_delete_tree_one_by_one() {
 
 // Test Utilities
 
-fn create_bid(price: u256, tree_nonce: u64) -> Bid {
+pub fn create_bid(price: u256, tree_nonce: u64) -> Bid {
     let owner = mock_address(MOCK_ADDRESS);
-    let bid_id = poseidon::poseidon_hash_span(
+    let bid_id = core::poseidon::poseidon_hash_span(
         array![owner.into(), tree_nonce.try_into().unwrap()].span(),
     );
     Bid { bid_id, owner, amount: 0, price, tree_nonce }
 }
 
-fn insert(rb_tree: IRBTreeMockContractDispatcher, price: u256, tree_nonce: u64) -> felt252 {
+pub fn insert(rb_tree: IRBTreeMockContractDispatcher, price: u256, tree_nonce: u64) -> felt252 {
     let owner = mock_address(MOCK_ADDRESS);
-    let bid_id = poseidon::poseidon_hash_span(
+    let bid_id = core::poseidon::poseidon_hash_span(
         array![owner.into(), tree_nonce.try_into().unwrap()].span(),
     );
     rb_tree.insert(Bid { bid_id, owner, amount: 0, price, tree_nonce });
     return bid_id;
 }
 
-fn is_tree_valid(rb_tree: IRBTreeMockContractDispatcher) -> bool {
+pub fn is_tree_valid(rb_tree: IRBTreeMockContractDispatcher) -> bool {
     let is_tree_valid = rb_tree.is_tree_valid();
     //println!("Is tree valid: {:?}", is_tree_valid);
     is_tree_valid
 }
 
-fn delete(rb_tree: IRBTreeMockContractDispatcher, bid_id: felt252) {
+pub fn delete(rb_tree: IRBTreeMockContractDispatcher, bid_id: felt252) {
     rb_tree.delete(bid_id);
 }
 
-fn compare_tree_structures(
+pub fn compare_tree_structures(
     actual: @Array<Array<(u256, bool, u128)>>, expected: @Array<Array<(u256, bool, u128)>>,
 ) {
     if actual.len() != expected.len() {
@@ -1234,7 +1233,7 @@ fn compare_tree_structures(
     }
 }
 
-fn compare_inner(actual: @Array<(u256, bool, u128)>, expected: @Array<(u256, bool, u128)>) {
+pub fn compare_inner(actual: @Array<(u256, bool, u128)>, expected: @Array<(u256, bool, u128)>) {
     if actual.len() != expected.len() {
         return;
     }
@@ -1249,7 +1248,7 @@ fn compare_inner(actual: @Array<(u256, bool, u128)>, expected: @Array<(u256, boo
     }
 }
 
-fn compare_tuple(actual: (u256, bool, u128), expected: (u256, bool, u128)) {
+pub fn compare_tuple(actual: (u256, bool, u128), expected: (u256, bool, u128)) {
     let (actual_price, actual_color, actual_position) = actual;
     let (expected_price, expected_color, expected_position) = expected;
 

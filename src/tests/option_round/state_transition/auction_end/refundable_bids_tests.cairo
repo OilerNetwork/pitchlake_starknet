@@ -1,28 +1,17 @@
-use core::traits::TryInto;
-use openzeppelin_token::erc20::interface::ERC20ABIDispatcherTrait;
 use pitch_lake::tests::utils::facades::option_round_facade::{
-    Bid, OptionRoundFacade, OptionRoundFacadeTrait,
+    OptionRoundFacade, OptionRoundFacadeTrait,
 };
 use pitch_lake::tests::utils::facades::vault_facade::{VaultFacade, VaultFacadeTrait};
 use pitch_lake::tests::utils::helpers::accelerators::{
-    accelerate_to_auctioning, accelerate_to_auctioning_custom, accelerate_to_running,
-    accelerate_to_running_custom, accelerate_to_settled, timeskip_and_end_auction,
-    timeskip_past_auction_end_date,
-};
-use pitch_lake::tests::utils::helpers::event_helpers::{
-    assert_event_unused_bids_refunded, clear_event_logs,
+    accelerate_to_auctioning, accelerate_to_running_custom, timeskip_and_end_auction,
 };
 use pitch_lake::tests::utils::helpers::general_helpers::{
-    create_array_gradient, create_array_linear, get_erc20_balance, get_erc20_balances, scale_array,
+    create_array_gradient, create_array_linear,
 };
 use pitch_lake::tests::utils::helpers::setup::{setup_facade, setup_test_auctioning_bidders};
-use pitch_lake::tests::utils::lib::test_accounts::{
-    liquidity_provider_1, option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
-    option_bidder_buyer_4, option_bidders_get,
-};
-use pitch_lake::tests::utils::lib::variables::decimals;
+use pitch_lake::tests::utils::lib::test_accounts::{option_bidder_buyer_1, option_bidders_get};
+use pitch_lake::types::Bid;
 use starknet::ContractAddress;
-use starknet::testing::{set_block_timestamp, set_contract_address};
 
 
 // Deploy vault, start auction, and place incremental bids
@@ -63,15 +52,19 @@ fn test_refundable_bids_before_auction_end() {
     let (_, _, mut current_round, _) = place_incremental_bids_internal(ref vault, option_bidders);
 
     // Check refunded bid balance is 0 for each bidder
-    loop {
-        match option_bidders.pop_front() {
-            Option::Some(bidder) => {
-                let refundable_amount = current_round.get_refundable_balance_for(*bidder);
-                assert(refundable_amount == 0, 'refunded bid shd be 0');
-            },
-            Option::None => { break; },
-        }
+    for ob in option_bidders {
+        let refundable_amount = current_round.get_refundable_balance_for(*ob);
+        assert(refundable_amount == 0, 'refunded bid shd be 0');
     }
+    //    loop {
+//        match option_bidders.pop_front() {
+//            Option::Some(bidder) => {
+//                let refundable_amount = current_round.get_refundable_balance_for(*bidder);
+//                assert(refundable_amount == 0, 'refunded bid shd be 0');
+//            },
+//            Option::None => { break; },
+//        }
+//    }
 }
 
 // Test refundable bid balance after auction ends
@@ -95,20 +88,27 @@ fn test_refundable_bids_after_auction_end() {
     match option_bidders.pop_back() {
         Option::Some(_) => {
             // Check refunded bid balance for each losing bidder
-            loop {
-                match option_bidders.pop_front() {
-                    Option::Some(bidder) => {
-                        let refunded_amount = current_round.get_refundable_balance_for(*bidder);
-                        let bid_amount = bid_amounts.pop_front().unwrap();
-                        let bid_price = bid_prices.pop_front().unwrap();
-                        assert(
-                            refunded_amount == (*bid_amount) * (*bid_price),
-                            'refunded bid balance wrong',
-                        );
-                    },
-                    Option::None => { break; },
-                }
+            for i in 0..option_bidders.len() {
+                let ob = option_bidders[i];
+                let refunded_amount = current_round.get_refundable_balance_for(*ob);
+                let bid_amount: u256 = *bid_amounts[i];
+                let bid_price = *bid_prices[i];
+                assert(refunded_amount == bid_amount * bid_price, 'refunded bid balance wrong');
             }
+            //loop {
+        //     match option_bidders.pop_front() {
+        //         Option::Some(bidder) => {
+        //             let refunded_amount = current_round.get_refundable_balance_for(*bidder);
+        //             let bid_amount = bid_amounts.pop_front().unwrap();
+        //             let bid_price = bid_prices.pop_front().unwrap();
+        //             assert(
+        //                 refunded_amount == (*bid_amount) * (*bid_price),
+        //                 'refunded bid balance wrong',
+        //             );
+        //         },
+        //         Option::None => { break; },
+        //     }
+        // }
         },
         Option::None => { panic!("this should not panic") },
     }

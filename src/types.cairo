@@ -5,9 +5,6 @@ pub mod Errors {
     pub const BidsShouldNotHaveSameTreeNonce: felt252 = 'Tree nonces should be unique';
 }
 
-pub mod Consts {}
-
-
 // The struct for a bid placed in a round's auction
 #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
 pub struct Bid {

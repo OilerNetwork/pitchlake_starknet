@@ -1,17 +1,18 @@
-use starknet::{ContractAddress, contract_address_const};
+use starknet::ContractAddress;
 
-fn vault_manager() -> ContractAddress {
-    contract_address_const::<'vault_manager'>()
+pub fn vault_manager() -> ContractAddress {
+    'vault_manager'.try_into().unwrap()
 }
 
-fn weth_owner() -> ContractAddress {
-    contract_address_const::<'weth_owner'>()
+pub fn weth_owner() -> ContractAddress {
+    'weth_owner'.try_into().unwrap()
 }
 
 // Bystander, perform state transition functions on vault so all gas costs are on it
 pub fn bystander() -> ContractAddress {
-    contract_address_const::<'bystander'>()
+    'bystander'.try_into().unwrap()
 }
+
 
 // Get an array of liquiditiy providers
 pub fn liquidity_providers_get(number: u32) -> Array<ContractAddress> {
@@ -25,7 +26,7 @@ pub fn liquidity_providers_get(number: u32) -> Array<ContractAddress> {
             3 => liquidity_provider_4(),
             4 => liquidity_provider_5(),
             5 => liquidity_provider_6(),
-            _ => contract_address_const::<'liquidity_provider_1'>(),
+            _ => liquidity_provider_1(),
         };
 
         data.append(contractAddress);
@@ -46,7 +47,7 @@ pub fn option_bidders_get(number: u32) -> Array<ContractAddress> {
             3 => option_bidder_buyer_4(),
             4 => option_bidder_buyer_5(),
             5 => option_bidder_buyer_6(),
-            _ => contract_address_const::<'option_bidder_buyer_1'>(),
+            _ => option_bidder_buyer_1(),
         };
 
         data.append(contractAddress);
@@ -56,42 +57,44 @@ pub fn option_bidders_get(number: u32) -> Array<ContractAddress> {
 }
 
 // Individual liquidity providers and option bidders/buyers
-fn liquidity_provider_1() -> ContractAddress {
-    contract_address_const::<'liquidity_provider_1'>()
+pub fn liquidity_provider_1() -> ContractAddress {
+    'liquidity_provider_1'.try_into().unwrap()
 }
-fn liquidity_provider_2() -> ContractAddress {
-    contract_address_const::<'liquidity_provider_2'>()
-}
-fn liquidity_provider_3() -> ContractAddress {
-    contract_address_const::<'liquidity_provider_3'>()
-}
-fn liquidity_provider_4() -> ContractAddress {
-    contract_address_const::<'liquidity_provider_4'>()
-}
-fn liquidity_provider_5() -> ContractAddress {
-    contract_address_const::<'liquidity_provider_5'>()
-}
-fn liquidity_provider_6() -> ContractAddress {
-    contract_address_const::<'liquidity_provider_6'>()
-}
-fn option_bidder_buyer_1() -> ContractAddress {
-    contract_address_const::<'option_bidder_buyer1'>()
-}
-fn option_bidder_buyer_2() -> ContractAddress {
-    contract_address_const::<'option_bidder_buyer2'>()
-}
-fn option_bidder_buyer_3() -> ContractAddress {
-    contract_address_const::<'option_bidder_buyer3'>()
-}
-fn option_bidder_buyer_4() -> ContractAddress {
-    contract_address_const::<'option_bidder_buyer4'>()
-}
-fn option_bidder_buyer_5() -> ContractAddress {
-    contract_address_const::<'option_bidder_buyer5'>()
-}
-fn option_bidder_buyer_6() -> ContractAddress {
-    contract_address_const::<'option_bidder_buyer6'>()
-}
-// Owners/Admins for contracts
 
+pub fn liquidity_provider_2() -> ContractAddress {
+    'liquidity_provider_2'.try_into().unwrap()
+}
+
+pub fn liquidity_provider_3() -> ContractAddress {
+    'liquidity_provider_3'.try_into().unwrap()
+}
+
+pub fn liquidity_provider_4() -> ContractAddress {
+    'liquidity_provider_4'.try_into().unwrap()
+}
+pub fn liquidity_provider_5() -> ContractAddress {
+    'liquidity_provider_5'.try_into().unwrap()
+}
+pub fn liquidity_provider_6() -> ContractAddress {
+    'liquidity_provider_6'.try_into().unwrap()
+}
+pub fn option_bidder_buyer_1() -> ContractAddress {
+    'option_bidder_buyer1'.try_into().unwrap()
+}
+
+pub fn option_bidder_buyer_2() -> ContractAddress {
+    'option_bidder_buyer2'.try_into().unwrap()
+}
+pub fn option_bidder_buyer_3() -> ContractAddress {
+    'option_bidder_buyer3'.try_into().unwrap()
+}
+pub fn option_bidder_buyer_4() -> ContractAddress {
+    'option_bidder_buyer4'.try_into().unwrap()
+}
+pub fn option_bidder_buyer_5() -> ContractAddress {
+    'option_bidder_buyer5'.try_into().unwrap()
+}
+pub fn option_bidder_buyer_6() -> ContractAddress {
+    'option_bidder_buyer6'.try_into().unwrap()
+}
 
