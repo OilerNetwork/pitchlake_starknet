@@ -1,12 +1,12 @@
 use argent::signer::signer_signature::{Eip191Signer, is_valid_secp256k1_signature};
-use integer::{u128_byte_reverse, u256_safe_div_rem, u256_as_non_zero};
+use integer::{u128_byte_reverse, u256_as_non_zero, u256_safe_div_rem};
 use keccak::cairo_keccak;
-use starknet::secp256_trait::{Signature as Secp256Signature};
+use starknet::secp256_trait::Signature as Secp256Signature;
 
 #[must_use]
 #[inline(always)]
 fn is_valid_eip191_signature(
-    hash: felt252, signer: Eip191Signer, signature: Secp256Signature
+    hash: felt252, signer: Eip191Signer, signature: Secp256Signature,
 ) -> bool {
     is_valid_secp256k1_signature(calculate_eip191_hash(hash), signer.eth_address.into(), signature)
 }
@@ -38,9 +38,7 @@ fn calculate_eip191_hash(message: felt252) -> u256 {
         0x7565726568744519, // = to_le(0x1945746865726575), 
         0x64656E676953206D, // = to_le(0x6d205369676e6564),
         0x6567617373654D20, // = to_le(0x204d657373616765), 
-        to_le(0x3a0a333200000000 + tx_hash_part_1),
-        to_le(tx_hash_part_2),
-        to_le(tx_hash_part_3),
+        to_le(0x3a0a333200000000 + tx_hash_part_1), to_le(tx_hash_part_2), to_le(tx_hash_part_3),
         to_le(tx_hash_part_4),
     ];
     // last part needs padded at the end with the missing 4 bytes

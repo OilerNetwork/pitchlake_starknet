@@ -2,20 +2,18 @@
 // This is achieved by adding outside_execution::ERC165_OUTSIDE_EXECUTION_INTERFACE_ID
 #[starknet::component]
 mod outside_execution_component {
-    use argent::outside_execution::{
-        outside_execution_hash::{
-            OffChainMessageOutsideExecutionRev0, OffChainMessageOutsideExecutionRev1
-        },
-        interface::{OutsideExecution, IOutsideExecutionCallback, IOutsideExecution}
+    use argent::outside_execution::interface::{
+        IOutsideExecution, IOutsideExecutionCallback, OutsideExecution,
     };
-    use hash::{HashStateTrait, HashStateExTrait};
-    use openzeppelin::security::reentrancyguard::{
-        ReentrancyGuardComponent, ReentrancyGuardComponent::InternalImpl
+    use argent::outside_execution::outside_execution_hash::{
+        OffChainMessageOutsideExecutionRev0, OffChainMessageOutsideExecutionRev1,
     };
+    use hash::{HashStateExTrait, HashStateTrait};
+    use openzeppelin::security::reentrancyguard::ReentrancyGuardComponent;
+    use openzeppelin::security::reentrancyguard::ReentrancyGuardComponent::InternalImpl;
     use pedersen::PedersenTrait;
-    use starknet::{
-        get_caller_address, get_contract_address, get_block_timestamp, get_tx_info, account::Call
-    };
+    use starknet::account::Call;
+    use starknet::{get_block_timestamp, get_caller_address, get_contract_address, get_tx_info};
 
     #[storage]
     struct Storage {
@@ -38,7 +36,7 @@ mod outside_execution_component {
         fn execute_from_outside(
             ref self: ComponentState<TContractState>,
             outside_execution: OutsideExecution,
-            signature: Array<felt252>
+            signature: Array<felt252>,
         ) -> Array<Span<felt252>> {
             let hash = outside_execution.get_message_hash_rev_0();
             self.assert_valid_outside_execution(outside_execution, hash, signature.span())
@@ -47,26 +45,26 @@ mod outside_execution_component {
         fn execute_from_outside_v2(
             ref self: ComponentState<TContractState>,
             outside_execution: OutsideExecution,
-            signature: Span<felt252>
+            signature: Span<felt252>,
         ) -> Array<Span<felt252>> {
             let hash = outside_execution.get_message_hash_rev_1();
             self.assert_valid_outside_execution(outside_execution, hash, signature)
         }
 
         fn get_outside_execution_message_hash_rev_0(
-            self: @ComponentState<TContractState>, outside_execution: OutsideExecution
+            self: @ComponentState<TContractState>, outside_execution: OutsideExecution,
         ) -> felt252 {
             outside_execution.get_message_hash_rev_0()
         }
 
         fn get_outside_execution_message_hash_rev_1(
-            self: @ComponentState<TContractState>, outside_execution: OutsideExecution
+            self: @ComponentState<TContractState>, outside_execution: OutsideExecution,
         ) -> felt252 {
             outside_execution.get_message_hash_rev_1()
         }
 
         fn is_valid_outside_execution_nonce(
-            self: @ComponentState<TContractState>, nonce: felt252
+            self: @ComponentState<TContractState>, nonce: felt252,
         ) -> bool {
             !self.outside_nonces.read(nonce)
         }
@@ -84,7 +82,7 @@ mod outside_execution_component {
             ref self: ComponentState<TContractState>,
             outside_execution: OutsideExecution,
             outside_tx_hash: felt252,
-            signature: Span<felt252>
+            signature: Span<felt252>,
         ) -> Array<Span<felt252>> {
             let mut reentrancy_guard = get_dep_component_mut!(ref self, ReentrancyGuard);
             reentrancy_guard.start();
@@ -97,7 +95,7 @@ mod outside_execution_component {
             assert(
                 outside_execution.execute_after < block_timestamp
                     && block_timestamp < outside_execution.execute_before,
-                'argent/invalid-timestamp'
+                'argent/invalid-timestamp',
             );
             let nonce = outside_execution.nonce;
             assert(!self.outside_nonces.read(nonce), 'argent/duplicated-outside-nonce');

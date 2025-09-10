@@ -1,7 +1,4 @@
-use starknet::{
-    contract_address_const, ContractAddress, testing::{set_block_timestamp, set_contract_address}
-};
-use openzeppelin_token::erc20::interface::{ERC20ABIDispatcherTrait,};
+use openzeppelin_token::erc20::interface::ERC20ABIDispatcherTrait;
 use pitch_lake::tests::{
     utils::{
         helpers::{
@@ -12,25 +9,27 @@ use pitch_lake::tests::{
             },
             setup::{setup_facade, setup_test_auctioning_bidders},
             general_helpers::{
-                pow, to_wei, to_wei_multi, sum_u256_array, create_array_linear,
-                create_array_gradient, create_array_gradient_reverse,
-                assert_two_arrays_equal_length,
+                assert_two_arrays_equal_length, create_array_gradient,
+                create_array_gradient_reverse, create_array_linear, pow, sum_u256_array, to_wei,
+                to_wei_multi,
             },
         },
         lib::{
             test_accounts::{
                 liquidity_provider_1, option_bidder_buyer_1, option_bidder_buyer_2,
                 option_bidder_buyer_3, option_bidder_buyer_4, option_bidder_buyer_5,
-                option_bidder_buyer_6, option_bidders_get
+                option_bidder_buyer_6, option_bidders_get,
             },
             variables::{decimals},
         },
         facades::{
+            option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
             vault_facade::{VaultFacade, VaultFacadeTrait},
-            option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait}
         },
     },
 };
+use starknet::testing::{set_block_timestamp, set_contract_address};
+use starknet::{ContractAddress, contract_address_const};
 
 // Test that options sold is 0 pre auction end
 #[test]
@@ -70,14 +69,14 @@ fn test_options_sold_is_0_when_no_bids() {
 fn test_bidding_for_more_than_total_options_available() {
     let number_of_option_bidders = 3;
     let (mut vault, _, option_bidders, total_options_available) = setup_test_auctioning_bidders(
-        number_of_option_bidders
+        number_of_option_bidders,
     );
     let mut current_round = vault.get_current_round();
 
     // Each option bidder bids for >= the total number of options
     let bid_amounts = create_array_gradient(total_options_available, 1, number_of_option_bidders);
     let bid_prices = create_array_linear(
-        current_round.get_reserve_price(), number_of_option_bidders
+        current_round.get_reserve_price(), number_of_option_bidders,
     );
     accelerate_to_running_custom(ref vault, option_bidders, bid_amounts.span(), bid_prices.span());
 
@@ -96,7 +95,7 @@ fn test_bidding_for_less_than_total_options_available() {
     // Each option bidder bids for < the total number of options (combined)
     let bid_amounts = create_array_linear(1, number_of_option_bidders);
     let bid_prices = create_array_linear(
-        current_round.get_reserve_price(), number_of_option_bidders
+        current_round.get_reserve_price(), number_of_option_bidders,
     );
     let (_, options_sold) = accelerate_to_running_custom(
         ref vault, option_bidders, bid_amounts.span(), bid_prices.span(),
@@ -118,7 +117,7 @@ fn test_bidding_for_less_than_total_options_available_different_prices() {
 
     let bid_amounts = create_array_linear(1, number_of_option_bidders);
     let bid_prices = create_array_gradient(
-        current_round.get_reserve_price(), 1, number_of_option_bidders
+        current_round.get_reserve_price(), 1, number_of_option_bidders,
     );
     let (_, options_sold) = accelerate_to_running_custom(
         ref vault, option_bidders, bid_amounts.span(), bid_prices.span(),
@@ -134,7 +133,7 @@ fn test_bidding_for_less_than_total_options_available_different_prices() {
 fn test_bidding_same_amount_higher_price_wins() {
     let number_of_option_bidders = 3;
     let (mut vault, _, mut option_bidders, total_options_available) = setup_test_auctioning_bidders(
-        number_of_option_bidders
+        number_of_option_bidders,
     );
     let mut current_round = vault.get_current_round();
 
@@ -142,7 +141,7 @@ fn test_bidding_same_amount_higher_price_wins() {
 
     let bid_amounts = create_array_linear(total_options_available, number_of_option_bidders);
     let bid_prices = create_array_gradient(
-        current_round.get_reserve_price(), 1, number_of_option_bidders
+        current_round.get_reserve_price(), 1, number_of_option_bidders,
     );
     accelerate_to_running_custom(ref vault, option_bidders, bid_amounts.span(), bid_prices.span());
 
@@ -151,7 +150,7 @@ fn test_bidding_same_amount_higher_price_wins() {
         Option::Some(ob) => {
             let winner_option_balance = current_round.get_mintable_options_for(*ob);
             assert(
-                winner_option_balance == total_options_available, 'winner should get all options'
+                winner_option_balance == total_options_available, 'winner should get all options',
             );
             loop {
                 match option_bidders.pop_front() {
@@ -159,11 +158,11 @@ fn test_bidding_same_amount_higher_price_wins() {
                         let loser_option_balance = current_round.get_mintable_options_for(*ob);
                         assert(loser_option_balance == 0, 'loser should get no options')
                     },
-                    Option::None => { break (); }
+                    Option::None => { break (); },
                 }
             }
         },
-        Option::None => { panic!("This shd not revert here") }
+        Option::None => { panic!("This shd not revert here") },
     }
 }
 
@@ -173,7 +172,7 @@ fn test_bidding_same_amount_higher_price_wins() {
 fn test_bidding_same_price_earlier_bids_win() {
     let number_of_option_bidders = 5;
     let (mut vault, _, mut option_bidders, total_options_available) = setup_test_auctioning_bidders(
-        number_of_option_bidders
+        number_of_option_bidders,
     );
     let mut current_round = vault.get_current_round();
 
@@ -181,7 +180,7 @@ fn test_bidding_same_price_earlier_bids_win() {
 
     let bid_amounts = create_array_gradient(total_options_available, 1, number_of_option_bidders);
     let bid_prices = create_array_linear(
-        current_round.get_reserve_price(), number_of_option_bidders
+        current_round.get_reserve_price(), number_of_option_bidders,
     );
     accelerate_to_running_custom(ref vault, option_bidders, bid_amounts.span(), bid_prices.span());
 
@@ -196,11 +195,11 @@ fn test_bidding_same_price_earlier_bids_win() {
                         let loser_option_balance = current_round.get_mintable_options_for(*ob);
                         assert_eq!(loser_option_balance, 0)
                     },
-                    Option::None => { break (); }
+                    Option::None => { break (); },
                 }
             }
         },
-        Option::None => { panic!("This shd not revert here") }
+        Option::None => { panic!("This shd not revert here") },
     }
 }
 
@@ -210,7 +209,7 @@ fn test_bidding_same_price_earlier_bids_win() {
 fn test_bidding_higher_price_beats_higher_total_bid_amount() {
     let number_of_option_bidders = 3;
     let (mut vault, _, mut option_bidders, total_options_available) = setup_test_auctioning_bidders(
-        number_of_option_bidders
+        number_of_option_bidders,
     );
     let mut current_round = vault.get_current_round();
 
@@ -219,10 +218,10 @@ fn test_bidding_higher_price_beats_higher_total_bid_amount() {
     // (amount * price)
 
     let bid_amounts = create_array_gradient_reverse(
-        total_options_available + 10, 1, number_of_option_bidders
+        total_options_available + 10, 1, number_of_option_bidders,
     );
     let bid_prices = create_array_gradient(
-        current_round.get_reserve_price(), 1, number_of_option_bidders
+        current_round.get_reserve_price(), 1, number_of_option_bidders,
     );
     accelerate_to_running_custom(ref vault, option_bidders, bid_amounts.span(), bid_prices.span());
     // Check last bidder (winner) receives all options, others receive 0
@@ -230,7 +229,7 @@ fn test_bidding_higher_price_beats_higher_total_bid_amount() {
         Option::Some(ob) => {
             let winner_option_balance = current_round.get_mintable_options_for(*ob);
             assert(
-                winner_option_balance == total_options_available, 'winner should get all options'
+                winner_option_balance == total_options_available, 'winner should get all options',
             );
             loop {
                 match option_bidders.pop_front() {
@@ -238,11 +237,11 @@ fn test_bidding_higher_price_beats_higher_total_bid_amount() {
                         let loser_option_balance = current_round.get_mintable_options_for(*ob);
                         assert(loser_option_balance == 0, 'loser should get no options')
                     },
-                    Option::None => { break (); }
+                    Option::None => { break (); },
                 }
             }
         },
-        Option::None => { panic!("This shd not revert here") }
+        Option::None => { panic!("This shd not revert here") },
     }
 }
 
@@ -252,18 +251,18 @@ fn test_bidding_higher_price_beats_higher_total_bid_amount() {
 fn test_remaining_bids_go_to_last_bidder() {
     let number_of_option_bidders = 3;
     let (mut vault, _, mut option_bidders, total_options_available) = setup_test_auctioning_bidders(
-        number_of_option_bidders
+        number_of_option_bidders,
     );
     let mut current_round = vault.get_current_round();
 
     // Each bidder bids the same price for a portion of the bids
     // the last bidder should get some of their bid amount
     let bid_amounts = array![
-        total_options_available / 2, total_options_available / 3, total_options_available / 3
+        total_options_available / 2, total_options_available / 3, total_options_available / 3,
     ]
         .span();
     let bid_prices = create_array_linear(
-        current_round.get_reserve_price(), number_of_option_bidders
+        current_round.get_reserve_price(), number_of_option_bidders,
     )
         .span();
     accelerate_to_running_custom(ref vault, option_bidders, bid_amounts, bid_prices);
@@ -271,16 +270,16 @@ fn test_remaining_bids_go_to_last_bidder() {
     // Check bidder 1 & 2 get their bid amounts, and bidder 3 gets the remaining
     assert(
         current_round.get_mintable_options_for(*option_bidders[0]) == *bid_amounts[0],
-        'ob1 wrong option amount'
+        'ob1 wrong option amount',
     );
     assert(
         current_round.get_mintable_options_for(*option_bidders[1]) == *bid_amounts[1],
-        'ob2 wrong option amount'
+        'ob2 wrong option amount',
     );
     let remaining_options = total_options_available - (*bid_amounts[0] + *bid_amounts[1]);
     assert(
         current_round.get_mintable_options_for(*option_bidders[2]) == remaining_options,
-        'ob3 wrong option amount'
+        'ob3 wrong option amount',
     )
 }
 
@@ -408,7 +407,7 @@ fn test_the_last_bidder_gets_no_options_if_none_left() {
     let number_of_option_bidders = 5;
     let (mut vault_facade, _, mut option_bidders, total_options_available) =
         setup_test_auctioning_bidders(
-        number_of_option_bidders
+        number_of_option_bidders,
     );
     let mut current_round: OptionRoundFacade = vault_facade.get_current_round();
 
@@ -416,10 +415,10 @@ fn test_the_last_bidder_gets_no_options_if_none_left() {
     let bid_amount = total_options_available / 3;
     let bid_amounts = create_array_linear(bid_amount, number_of_option_bidders);
     let bid_prices = create_array_linear(
-        current_round.get_reserve_price(), number_of_option_bidders
+        current_round.get_reserve_price(), number_of_option_bidders,
     );
     accelerate_to_running_custom(
-        ref vault_facade, option_bidders, bid_amounts.span(), bid_prices.span()
+        ref vault_facade, option_bidders, bid_amounts.span(), bid_prices.span(),
     );
 
     // Check that the last bidder gets 0 options,
@@ -427,7 +426,7 @@ fn test_the_last_bidder_gets_no_options_if_none_left() {
         Option::Some(last_bidder) => {
             assert(
                 current_round.get_mintable_options_for(*last_bidder) == 0,
-                'last bidder shd get 0 options'
+                'last bidder shd get 0 options',
             );
             // Check the partial bidder gets the remaining
             match option_bidders.pop_back() {
@@ -435,10 +434,10 @@ fn test_the_last_bidder_gets_no_options_if_none_left() {
                     let expected = total_options_available - (3 * bid_amount);
                     assert(
                         current_round.get_mintable_options_for(*bidder) == expected,
-                        'bidder shd get bid amount'
+                        'bidder shd get bid amount',
                     );
                 },
-                Option::None => { panic!("This shd not revert here") }
+                Option::None => { panic!("This shd not revert here") },
             }
 
             loop {
@@ -446,14 +445,14 @@ fn test_the_last_bidder_gets_no_options_if_none_left() {
                     Option::Some(bidder) => {
                         assert(
                             current_round.get_mintable_options_for(*bidder) == bid_amount,
-                            'bidder shd get bid amount'
+                            'bidder shd get bid amount',
                         );
                     },
-                    Option::None => { break (); }
+                    Option::None => { break (); },
                 }
             }
         },
-        Option::None => { panic!("This shd not revert here") }
+        Option::None => { panic!("This shd not revert here") },
     }
 }
 
@@ -463,7 +462,7 @@ fn test_the_last_bidder_gets_no_options_if_none_left() {
 fn test_last_bid_is_partial() {
     let number_of_option_bidders = 5;
     let (mut vault, _, mut option_bidders, total_options_available) = setup_test_auctioning_bidders(
-        number_of_option_bidders
+        number_of_option_bidders,
     );
     // Deposit liquidity and start the auction
     let mut current_round = vault.get_current_round();
@@ -473,7 +472,7 @@ fn test_last_bid_is_partial() {
     let bid_amount = total_options_available / 4;
     let mut bid_amounts = create_array_linear(bid_amount, option_bidders.len()).span();
     let bid_prices = create_array_gradient(
-        current_round.get_reserve_price(), 1, option_bidders.len()
+        current_round.get_reserve_price(), 1, option_bidders.len(),
     )
         .span();
 
@@ -494,11 +493,11 @@ fn test_last_bid_is_partial() {
                         let mintable_options = current_round.get_mintable_options_for(*bidder);
                         assert(mintable_options == bid_amount, 'bidder should get bid amount');
                     },
-                    Option::None => { break (); }
+                    Option::None => { break (); },
                 }
             }
         },
-        Option::None => { panic!("This shd not revert here") }
+        Option::None => { panic!("This shd not revert here") },
     }
 }
 
@@ -532,7 +531,7 @@ fn test_option_distribution_real_numbers_1() {
         bid_amounts,
         bid_prices,
         expected_options_sold,
-        expected_option_distribution
+        expected_option_distribution,
     )
 }
 
@@ -557,7 +556,7 @@ fn test_option_distribution_real_numbers_2() {
         bid_amounts,
         bid_prices,
         expected_options_sold,
-        expected_option_distribution
+        expected_option_distribution,
     )
 }
 
@@ -581,7 +580,7 @@ fn test_option_distribution_real_numbers_3() {
         bid_amounts,
         bid_prices,
         expected_options_sold,
-        expected_option_distribution
+        expected_option_distribution,
     )
 }
 
@@ -622,7 +621,7 @@ fn auction_real_numbers_test_helper(
                 let expected_options = expected_option_distribution.pop_front().unwrap();
                 assert(options == *expected_options, 'options should match');
             },
-            Option::None => { break (); }
+            Option::None => { break (); },
         }
     }
 }

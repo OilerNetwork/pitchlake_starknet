@@ -1,6 +1,7 @@
 use hash::{HashStateExTrait, HashStateTrait};
 use pedersen::PedersenTrait;
-use starknet::{ContractAddress, get_contract_address, get_tx_info, account::Call};
+use starknet::account::Call;
+use starknet::{ContractAddress, get_contract_address, get_tx_info};
 
 // Interface ID for revision 0 of the OutsideExecute interface
 // see https://github.com/starknet-io/SNIPs/blob/main/SNIPS/snip-9.md
@@ -27,7 +28,7 @@ struct OutsideExecution {
     nonce: felt252,
     execute_after: u64,
     execute_before: u64,
-    calls: Span<Call>
+    calls: Span<Call>,
 }
 
 /// @notice get_outside_execution_message_hash_rev_* is not part of the standard interface
@@ -40,12 +41,12 @@ trait IOutsideExecution<TContractState> {
     /// @notice This function does not allow reentrancy. A call to `__execute__` or
     /// `execute_from_outside` cannot trigger another nested transaction to `execute_from_outside`.
     fn execute_from_outside(
-        ref self: TContractState, outside_execution: OutsideExecution, signature: Array<felt252>
+        ref self: TContractState, outside_execution: OutsideExecution, signature: Array<felt252>,
     ) -> Array<Span<felt252>>;
 
     /// @notice Outside execution using SNIP-12 Rev 1
     fn execute_from_outside_v2(
-        ref self: TContractState, outside_execution: OutsideExecution, signature: Span<felt252>
+        ref self: TContractState, outside_execution: OutsideExecution, signature: Span<felt252>,
     ) -> Array<Span<felt252>>;
 
     /// Get the status of a given nonce, true if the nonce is available to use
@@ -54,13 +55,13 @@ trait IOutsideExecution<TContractState> {
     /// Get the message hash for some `OutsideExecution` rev 0 following Eip712. Can be used to know
     /// what needs to be signed
     fn get_outside_execution_message_hash_rev_0(
-        self: @TContractState, outside_execution: OutsideExecution
+        self: @TContractState, outside_execution: OutsideExecution,
     ) -> felt252;
 
     /// Get the message hash for some `OutsideExecution` rev 1 following Eip712. Can be used to know
     /// what needs to be signed
     fn get_outside_execution_message_hash_rev_1(
-        self: @TContractState, outside_execution: OutsideExecution
+        self: @TContractState, outside_execution: OutsideExecution,
     ) -> felt252;
 }
 

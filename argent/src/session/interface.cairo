@@ -1,7 +1,7 @@
 use argent::signer::signer_signature::SignerSignature;
 use poseidon::poseidon_hash_span;
 use starknet::account::Call;
-use starknet::{get_tx_info, get_contract_address, ContractAddress};
+use starknet::{ContractAddress, get_contract_address, get_tx_info};
 
 /// @notice Session struct that the owner and guardian has to sign to initiate a session
 /// @dev The hash of the session is also signed by the guardian (backend) and
@@ -45,7 +45,7 @@ trait ISessionCallback<TContractState> {
     /// @param authorization_signature The owner + guardian signature of the session
     /// @return The parsed array of SignerSignature
     fn parse_and_verify_authorization(
-        self: @TContractState, session_hash: felt252, authorization_signature: Span<felt252>
+        self: @TContractState, session_hash: felt252, authorization_signature: Span<felt252>,
     ) -> Array<SignerSignature>;
 }
 

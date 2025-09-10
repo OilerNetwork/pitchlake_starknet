@@ -24,7 +24,7 @@ impl SpanU8TryIntoFelt252 of TryInto<Span<u8>, felt252> {
             while let Option::Some(byte) = self.pop_front() {
                 let byte = (*byte).into();
                 result = (0x100 * result) + byte;
-            };
+            }
             Option::Some(result)
         } else if self.len() == 32 {
             let result: u256 = self.try_into()?;
@@ -67,38 +67,17 @@ fn u256_to_u8s(word: u256) -> Array<u8> {
     let (rest, byte_3) = integer::u128_safe_divmod(rest, 0x100);
     let (byte_1, byte_2) = integer::u128_safe_divmod(rest, 0x100);
     array![
-        byte_1.try_into().unwrap(),
-        byte_2.try_into().unwrap(),
-        byte_3.try_into().unwrap(),
-        byte_4.try_into().unwrap(),
-        byte_5.try_into().unwrap(),
-        byte_6.try_into().unwrap(),
-        byte_7.try_into().unwrap(),
-        byte_8.try_into().unwrap(),
-        byte_9.try_into().unwrap(),
-        byte_10.try_into().unwrap(),
-        byte_11.try_into().unwrap(),
-        byte_12.try_into().unwrap(),
-        byte_13.try_into().unwrap(),
-        byte_14.try_into().unwrap(),
-        byte_15.try_into().unwrap(),
-        byte_16.try_into().unwrap(),
-        byte_17.try_into().unwrap(),
-        byte_18.try_into().unwrap(),
-        byte_19.try_into().unwrap(),
-        byte_20.try_into().unwrap(),
-        byte_21.try_into().unwrap(),
-        byte_22.try_into().unwrap(),
-        byte_23.try_into().unwrap(),
-        byte_24.try_into().unwrap(),
-        byte_25.try_into().unwrap(),
-        byte_26.try_into().unwrap(),
-        byte_27.try_into().unwrap(),
-        byte_28.try_into().unwrap(),
-        byte_29.try_into().unwrap(),
-        byte_30.try_into().unwrap(),
-        byte_31.try_into().unwrap(),
-        byte_32.try_into().unwrap(),
+        byte_1.try_into().unwrap(), byte_2.try_into().unwrap(), byte_3.try_into().unwrap(),
+        byte_4.try_into().unwrap(), byte_5.try_into().unwrap(), byte_6.try_into().unwrap(),
+        byte_7.try_into().unwrap(), byte_8.try_into().unwrap(), byte_9.try_into().unwrap(),
+        byte_10.try_into().unwrap(), byte_11.try_into().unwrap(), byte_12.try_into().unwrap(),
+        byte_13.try_into().unwrap(), byte_14.try_into().unwrap(), byte_15.try_into().unwrap(),
+        byte_16.try_into().unwrap(), byte_17.try_into().unwrap(), byte_18.try_into().unwrap(),
+        byte_19.try_into().unwrap(), byte_20.try_into().unwrap(), byte_21.try_into().unwrap(),
+        byte_22.try_into().unwrap(), byte_23.try_into().unwrap(), byte_24.try_into().unwrap(),
+        byte_25.try_into().unwrap(), byte_26.try_into().unwrap(), byte_27.try_into().unwrap(),
+        byte_28.try_into().unwrap(), byte_29.try_into().unwrap(), byte_30.try_into().unwrap(),
+        byte_31.try_into().unwrap(), byte_32.try_into().unwrap(),
     ]
 }
 
@@ -111,7 +90,7 @@ impl ByteArrayExt of ByteArrayExtTrait {
         while i != len {
             output.append(self[i]);
             i += 1;
-        };
+        }
         output
     }
 }
@@ -144,7 +123,7 @@ fn u32s_to_u8s(mut words: Span<felt252>) -> Span<u8> {
         output.append(byte_2.try_into().unwrap());
         output.append(byte_3.try_into().unwrap());
         output.append(byte_4.try_into().unwrap());
-    };
+    }
     output.span()
 }
 // Takes an array of u8s and returns an array of u32s, padding the end with 0s if necessary
@@ -160,8 +139,8 @@ fn u8s_to_u32s_pad_end(mut bytes: Span<u8>) -> Array<u32> {
                 0x100_00_00 * byte1.into()
                     + 0x100_00 * byte2.into()
                     + 0x100 * byte3.into()
-                    + byte4.into()
+                    + byte4.into(),
             );
-    };
+    }
     output
 }

@@ -6,7 +6,7 @@
 #[starknet::contract]
 mod ThresholdRecoveryMock {
     use argent::multisig::multisig::multisig_component;
-    use argent::recovery::{threshold_recovery::threshold_recovery_component};
+    use argent::recovery::threshold_recovery::threshold_recovery_component;
     use argent::signer_storage::signer_list::signer_list_component;
 
     component!(path: threshold_recovery_component, storage: escape, event: EscapeEvents);
@@ -51,8 +51,8 @@ mod ThresholdRecoveryMock {
 }
 #[starknet::contract]
 mod ExternalRecoveryMock {
-    use argent::external_recovery::{
-        external_recovery::{external_recovery_component, IExternalRecoveryCallback}
+    use argent::external_recovery::external_recovery::{
+        IExternalRecoveryCallback, external_recovery_component,
     };
     use argent::multisig::multisig::multisig_component;
     use argent::signer_storage::signer_list::signer_list_component;
@@ -73,7 +73,7 @@ mod ExternalRecoveryMock {
 
     // Reentrancy guard
     component!(
-        path: ReentrancyGuardComponent, storage: reentrancy_guard, event: ReentrancyGuardEvent
+        path: ReentrancyGuardComponent, storage: reentrancy_guard, event: ReentrancyGuardEvent,
     );
     impl ReentrancyGuardInternalImpl = ReentrancyGuardComponent::InternalImpl<ContractState>;
 
@@ -104,15 +104,15 @@ mod ExternalRecoveryMock {
 
     impl IExternalRecoveryCallbackImpl of IExternalRecoveryCallback<ContractState> {
         fn execute_recovery_call(
-            ref self: ContractState, selector: felt252, calldata: Span<felt252>
+            ref self: ContractState, selector: felt252, calldata: Span<felt252>,
         ) {
             execute_multicall(
                 array![
                     starknet::account::Call {
-                        to: starknet::get_contract_address(), selector, calldata
-                    }
+                        to: starknet::get_contract_address(), selector, calldata,
+                    },
                 ]
-                    .span()
+                    .span(),
             );
         }
     }

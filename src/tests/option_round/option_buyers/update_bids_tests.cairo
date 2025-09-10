@@ -1,24 +1,20 @@
 use core::traits::Into;
-use pitch_lake::{
-    option_round::contract::OptionRound::Errors,
-    tests::{
-        utils::{
-            helpers::{
-                setup::{setup_facade},
-                accelerators::{accelerate_to_auctioning, timeskip_and_end_auction},
-                event_helpers::{assert_event_auction_bid_updated, clear_event_logs},
-            },
-            lib::{
-                test_accounts::{option_bidders_get, option_bidder_buyer_1, option_bidder_buyer_2},
-                variables::{decimals},
-            },
-            facades::{
-                vault_facade::{VaultFacade, VaultFacadeTrait},
-                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait}
-            },
-        },
-    }
+use pitch_lake::option_round::contract::OptionRound::Errors;
+use pitch_lake::tests::utils::facades::option_round_facade::{
+    OptionRoundFacade, OptionRoundFacadeTrait,
 };
+use pitch_lake::tests::utils::facades::vault_facade::{VaultFacade, VaultFacadeTrait};
+use pitch_lake::tests::utils::helpers::accelerators::{
+    accelerate_to_auctioning, timeskip_and_end_auction,
+};
+use pitch_lake::tests::utils::helpers::event_helpers::{
+    assert_event_auction_bid_updated, clear_event_logs,
+};
+use pitch_lake::tests::utils::helpers::setup::setup_facade;
+use pitch_lake::tests::utils::lib::test_accounts::{
+    option_bidder_buyer_1, option_bidder_buyer_2, option_bidders_get,
+};
+use pitch_lake::tests::utils::lib::variables::decimals;
 
 #[test]
 #[available_gas(50000000)]

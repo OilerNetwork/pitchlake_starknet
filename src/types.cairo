@@ -1,22 +1,18 @@
-use starknet::{ContractAddress, Event};
-use core::fmt::{Formatter, Error, Display};
+use starknet::ContractAddress;
 
 /// Errors
 pub mod Errors {
     pub const BidsShouldNotHaveSameTreeNonce: felt252 = 'Tree nonces should be unique';
 }
 
-pub mod Consts {}
-
-
 // The struct for a bid placed in a round's auction
 #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
 pub struct Bid {
-    bid_id: felt252,
-    owner: ContractAddress,
-    amount: u256,
-    price: u256,
-    tree_nonce: u64,
+    pub bid_id: felt252,
+    pub owner: ContractAddress,
+    pub amount: u256,
+    pub price: u256,
+    pub tree_nonce: u64,
 }
 
 // Allows Bids to be sorted using >, >=, <, <=

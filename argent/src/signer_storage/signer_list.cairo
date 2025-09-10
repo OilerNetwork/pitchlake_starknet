@@ -42,7 +42,7 @@ mod signer_list_component {
 
     #[embeddable_as(SignerListInternalImpl)]
     impl InternalImpl<
-        TContractState, +HasComponent<TContractState>
+        TContractState, +HasComponent<TContractState>,
     > of ISignerList<ComponentState<TContractState>> {
         #[inline(always)]
         fn is_signer_in_list(self: @ComponentState<TContractState>, signer: felt252) -> bool {
@@ -61,7 +61,7 @@ mod signer_list_component {
 
         #[inline(always)]
         fn add_signer(
-            ref self: ComponentState<TContractState>, signer_to_add: felt252, last_signer: felt252
+            ref self: ComponentState<TContractState>, signer_to_add: felt252, last_signer: felt252,
         ) {
             assert(signer_to_add != 0, 'argent/invalid-zero-signer');
             let is_signer = self.is_signer_using_last(signer_to_add, last_signer);
@@ -73,7 +73,7 @@ mod signer_list_component {
         fn add_signers(
             ref self: ComponentState<TContractState>,
             mut signers_to_add: Span<felt252>,
-            last_signer: felt252
+            last_signer: felt252,
         ) {
             match signers_to_add.pop_front() {
                 Option::Some(signer_ref) => {
@@ -91,7 +91,7 @@ mod signer_list_component {
         fn remove_signer(
             ref self: ComponentState<TContractState>,
             signer_to_remove: felt252,
-            last_signer: felt252
+            last_signer: felt252,
         ) -> felt252 {
             let is_signer = self.is_signer_using_last(signer_to_remove, last_signer);
             assert(is_signer, 'argent/not-a-signer');
@@ -114,12 +114,12 @@ mod signer_list_component {
         fn remove_signers(
             ref self: ComponentState<TContractState>,
             mut signers_to_remove: Span<felt252>,
-            mut last_signer: felt252
+            mut last_signer: felt252,
         ) {
             loop {
                 let signer = match signers_to_remove.pop_front() {
                     Option::Some(signer) => *signer,
-                    Option::None => { break; }
+                    Option::None => { break; },
                 };
                 last_signer = self
                     .remove_signer(signer_to_remove: signer, last_signer: last_signer);
@@ -131,7 +131,7 @@ mod signer_list_component {
             ref self: ComponentState<TContractState>,
             signer_to_remove: felt252,
             signer_to_add: felt252,
-            last_signer: felt252
+            last_signer: felt252,
         ) {
             assert(signer_to_add != 0, 'argent/invalid-zero-signer');
 
@@ -190,13 +190,13 @@ mod signer_list_component {
                 }
                 signers.append(current_signer);
                 current_signer = self.signer_list.read(current_signer);
-            };
+            }
             signers
         }
 
         // Returns true if `first_signer` is before `second_signer` in the signer list.
         fn is_signer_before(
-            self: @ComponentState<TContractState>, first_signer: felt252, second_signer: felt252
+            self: @ComponentState<TContractState>, first_signer: felt252, second_signer: felt252,
         ) -> bool {
             let mut is_before: bool = false;
             let mut current_signer = first_signer;
@@ -210,7 +210,7 @@ mod signer_list_component {
                     break;
                 }
                 current_signer = next_signer;
-            };
+            }
             return is_before;
         }
     }
@@ -221,7 +221,7 @@ mod signer_list_component {
         // last signer
         #[inline(always)]
         fn is_signer_using_last(
-            self: @ComponentState<TContractState>, signer: felt252, last_signer: felt252
+            self: @ComponentState<TContractState>, signer: felt252, last_signer: felt252,
         ) -> bool {
             if signer == 0 {
                 return false;
@@ -251,7 +251,7 @@ mod signer_list_component {
         // Reverts if `signer_after` is not found
         // Cost increases with the list size
         fn find_signer_before(
-            self: @ComponentState<TContractState>, signer_after: felt252
+            self: @ComponentState<TContractState>, signer_after: felt252,
         ) -> felt252 {
             let mut current_signer = 0;
             loop {

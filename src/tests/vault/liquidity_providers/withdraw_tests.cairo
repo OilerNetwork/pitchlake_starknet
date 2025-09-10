@@ -1,45 +1,18 @@
-use core::option::OptionTrait;
 use core::array::SpanTrait;
-use openzeppelin_token::erc20::interface::{ERC20ABIDispatcherTrait,};
-use starknet::{
-    ClassHash, ContractAddress, contract_address_const, deploy_syscall,
-    Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
-    testing::{set_block_timestamp, set_contract_address}
+use openzeppelin_token::erc20::interface::ERC20ABIDispatcherTrait;
+use pitch_lake::tests::utils::facades::option_round_facade::OptionRoundFacadeTrait;
+use pitch_lake::tests::utils::facades::vault_facade::VaultFacadeTrait;
+use pitch_lake::tests::utils::helpers::accelerators::{
+    accelerate_to_auctioning, accelerate_to_running, accelerate_to_settled,
 };
-use pitch_lake::{
-    library::eth::Eth, vault::{contract::Vault}, vault::contract::Vault::Errors,
-    tests::{
-        utils::{
-            helpers::{
-                general_helpers::{get_erc20_balances, sum_u256_array},
-                event_helpers::{
-                    pop_log, assert_no_events_left, assert_event_transfer,
-                    assert_event_vault_withdrawal, clear_event_logs,
-                },
-                accelerators::{
-                    accelerate_to_auctioning, accelerate_to_auctioning_custom,
-                    accelerate_to_running, accelerate_to_settled, timeskip_and_start_auction,
-                },
-                setup::{setup_facade},
-            },
-            lib::{
-                test_accounts::{
-                    liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
-                    option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
-                    liquidity_providers_get,
-                },
-                variables::{decimals},
-            },
-            facades::{
-                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
-                vault_facade::{VaultFacade, VaultFacadeTrait},
-            }
-        },
-    },
+use pitch_lake::tests::utils::helpers::event_helpers::{
+    assert_event_vault_withdrawal, clear_event_logs,
 };
-use debug::PrintTrait;
-
-
+use pitch_lake::tests::utils::helpers::general_helpers::{get_erc20_balances, sum_u256_array};
+use pitch_lake::tests::utils::helpers::setup::setup_facade;
+use pitch_lake::tests::utils::lib::test_accounts::{liquidity_provider_1, liquidity_providers_get};
+use pitch_lake::tests::utils::lib::variables::decimals;
+use pitch_lake::vault::contract::Vault::Errors;
 /// Failures ///
 
 // @note instead of testing withdrawing 0 fails or returns 0, we should just include in
@@ -62,7 +35,7 @@ fn test_withdrawing_more_than_unlocked_balance_fails() {
     let unlocked_balance = vault.get_lp_unlocked_balance(liquidity_provider);
     vault
         .withdraw_expect_error(
-            unlocked_balance + 1, liquidity_provider, Errors::InsufficientBalance
+            unlocked_balance + 1, liquidity_provider, Errors::InsufficientBalance,
         );
 }
 
@@ -89,23 +62,36 @@ fn test_withdrawal_events() {
         .withdraw_multiple(deposit_amounts, liquidity_providers);
 
     // Check event emissions
-    loop {
-        match liquidity_providers.pop_front() {
-            Option::Some(liquidity_provider) => {
-                let withdraw_amount = *deposit_amounts.pop_front().unwrap();
-                let unlocked_amount_after = lp_unlocked_balances_after.pop_front().unwrap();
-                vault_unlocked_balance_before -= withdraw_amount;
-                assert_event_vault_withdrawal(
-                    vault.contract_address(),
-                    *liquidity_provider,
-                    withdraw_amount,
-                    unlocked_amount_after, // account unlocked balance before the withdraw
-                    vault_unlocked_balance_before, // vault unlocked balance after the withdraw
-                );
-            },
-            Option::None => { break (); }
-        }
+    for i in 0..liquidity_providers.len() {
+        let lp = *liquidity_providers[i];
+        let withdraw_amount = *deposit_amounts[i];
+        let unlocked_amount_after = *lp_unlocked_balances_after[i];
+        vault_unlocked_balance_before -= withdraw_amount;
+        assert_event_vault_withdrawal(
+            vault.contract_address(),
+            lp,
+            withdraw_amount,
+            unlocked_amount_after, // account unlocked balance before the withdraw
+            vault_unlocked_balance_before // vault unlocked balance after the withdraw
+        );
     }
+    //loop {
+//    match liquidity_providers.pop_front() {
+//        Option::Some(liquidity_provider) => {
+//            let withdraw_amount = *deposit_amounts.pop_front().unwrap();
+//            let unlocked_amount_after = lp_unlocked_balances_after.pop_front().unwrap();
+//            vault_unlocked_balance_before -= withdraw_amount;
+//            assert_event_vault_withdrawal(
+//                vault.contract_address(),
+//                *liquidity_provider,
+//                withdraw_amount,
+//                unlocked_amount_after, // account unlocked balance before the withdraw
+//                vault_unlocked_balance_before // vault unlocked balance after the withdraw
+//            );
+//        },
+//        Option::None => { break (); },
+//    }
+//}
 }
 
 /// State Tests ///
@@ -136,21 +122,29 @@ fn test_withdrawing_from_vault_eth_transfer() {
     assert_eq!(vault_balance_after, vault_balance_before - total_withdrawals);
 
     // Check liquidity provider eth balances
-    loop {
-        match liquidity_providers.pop_front() {
-            Option::Some(_) => {
-                let lp_balance_before = lp_balances_before.pop_front().unwrap();
-                let lp_balance_after = lp_balances_after.pop_front().unwrap();
-                let withdraw_amount = *deposit_amounts.pop_front().unwrap();
+    for i in 0..liquidity_providers.len() {
+        let lp_balance_before = *lp_balances_before[i];
+        let lp_balance_after = *lp_balances_after[i];
+        let withdraw_amount = *deposit_amounts[i];
 
-                // Check eth transfers to liquidity provider
-                assert(
-                    lp_balance_after == lp_balance_before + withdraw_amount, 'lp eth balance wrong'
-                );
-            },
-            Option::None => { break (); }
-        }
+        assert(lp_balance_after == lp_balance_before + withdraw_amount, 'lp eth balance wrong');
     }
+    //    loop {
+//        match liquidity_providers.pop_front() {
+//            Option::Some(_) => {
+//                let lp_balance_before = lp_balances_before.pop_front().unwrap();
+//                let lp_balance_after = lp_balances_after.pop_front().unwrap();
+//                let withdraw_amount = *deposit_amounts.pop_front().unwrap();
+//
+//                // Check eth transfers to liquidity provider
+//                assert(
+//                    lp_balance_after == lp_balance_before + withdraw_amount, 'lp eth balance
+//                    wrong',
+//                );
+//            },
+//            Option::None => { break (); },
+//        }
+//    }
 }
 
 // Test withdrawal always come from the vault's unlocked pool, regardless of the state of the
@@ -161,7 +155,7 @@ fn test_withdrawing_always_come_from_unlocked_pool() {
     let (mut vault, _) = setup_facade();
     let mut current_round = vault.get_current_round();
     let deposit_amount = 100 * decimals();
-    let withdraw_amount = 1 * decimals();
+    let withdraw_amount = decimals();
     let liquidity_provider = liquidity_provider_1();
 
     // Withdraw while current round is auctioning
@@ -170,7 +164,8 @@ fn test_withdrawing_always_come_from_unlocked_pool() {
     let unlocked_amount_after = vault.withdraw(withdraw_amount, liquidity_provider);
 
     assert(
-        unlocked_amount_after == unlocked_amount_before - withdraw_amount, 'unlocked amount 1 wrong'
+        unlocked_amount_after == unlocked_amount_before - withdraw_amount,
+        'unlocked amount 1 wrong',
     );
 
     // Withdraw while current round is running
@@ -178,7 +173,8 @@ fn test_withdrawing_always_come_from_unlocked_pool() {
     let unlocked_amount_before = vault.get_lp_unlocked_balance(liquidity_provider);
     let unlocked_amount_after = vault.withdraw(withdraw_amount, liquidity_provider);
     assert(
-        unlocked_amount_after == unlocked_amount_before - withdraw_amount, 'unlocked amount 2 wrong'
+        unlocked_amount_after == unlocked_amount_before - withdraw_amount,
+        'unlocked amount 2 wrong',
     );
 
     // Withdraw while the current round is settled
@@ -186,6 +182,7 @@ fn test_withdrawing_always_come_from_unlocked_pool() {
     let unlocked_amount_before = vault.get_lp_unlocked_balance(liquidity_provider);
     let unlocked_amount_after = vault.withdraw(withdraw_amount, liquidity_provider);
     assert(
-        unlocked_amount_after == unlocked_amount_before - withdraw_amount, 'unlocked amount 3 wrong'
+        unlocked_amount_after == unlocked_amount_before - withdraw_amount,
+        'unlocked amount 3 wrong',
     );
 }

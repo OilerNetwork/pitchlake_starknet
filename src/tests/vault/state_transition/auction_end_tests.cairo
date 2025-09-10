@@ -1,57 +1,42 @@
 use core::array::SpanTrait;
-use starknet::{
-    ClassHash, ContractAddress, contract_address_const, deploy_syscall,
-    Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
-    testing::{set_block_timestamp, set_contract_address}
+use openzeppelin_token::erc20::interface::ERC20ABIDispatcherTrait;
+use pitch_lake::library::eth::Eth;
+use pitch_lake::option_round::contract::OptionRound::Errors;
+use pitch_lake::option_round::interface::{
+    IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState,
 };
-use openzeppelin_token::erc20::interface::{ERC20ABIDispatcherTrait,};
-use pitch_lake::{
-    library::eth::Eth,
-    vault::{
-        contract::Vault,
-        interface::{
-            IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcherTrait
-        },
-    },
-    option_round::{
-        interface::{OptionRoundState, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,},
-    },
-    option_round::contract::OptionRound::Errors,
-    tests::{
-        utils::{
-            helpers::{
-                event_helpers::{
-                    pop_log, assert_no_events_left, assert_event_auction_end, clear_event_logs
-                },
-                accelerators::{
-                    accelerate_to_auctioning, accelerate_to_running,
-                    accelerate_to_auctioning_custom, accelerate_to_running_custom,
-                    accelerate_to_settled, timeskip_past_round_transition_period,
-                    timeskip_and_end_auction,
-                },
-                general_helpers::{
-                    create_array_gradient, create_array_linear, sum_u256_array,
-                    get_portion_of_amount, span_to_array,
-                },
-                setup::{setup_facade, setup_test_auctioning_providers, setup_test_running},
-            },
-            lib::{
-                test_accounts::{
-                    liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
-                    option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
-                    liquidity_providers_get, option_bidders_get, liquidity_provider_4,
-                    liquidity_provider_5, liquidity_provider_3,
-                },
-                variables::{decimals},
-            },
-            facades::{
-                vault_facade::{VaultFacade, VaultFacadeTrait},
-                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
-            },
-        },
-    },
+use pitch_lake::tests::utils::facades::option_round_facade::{
+    OptionRoundFacade, OptionRoundFacadeTrait,
 };
-use debug::PrintTrait;
+use pitch_lake::tests::utils::facades::vault_facade::{VaultFacade, VaultFacadeTrait};
+use pitch_lake::tests::utils::helpers::accelerators::{
+    accelerate_to_auctioning, accelerate_to_auctioning_custom, accelerate_to_running,
+    accelerate_to_running_custom, accelerate_to_settled, timeskip_and_end_auction,
+    timeskip_past_round_transition_period,
+};
+use pitch_lake::tests::utils::helpers::event_helpers::{
+    assert_event_auction_end, assert_no_events_left, clear_event_logs, pop_log,
+};
+use pitch_lake::tests::utils::helpers::general_helpers::{
+    create_array_gradient, create_array_linear, get_portion_of_amount, span_to_array,
+    sum_u256_array,
+};
+use pitch_lake::tests::utils::helpers::setup::{
+    setup_facade, setup_test_auctioning_providers, setup_test_running,
+};
+use pitch_lake::tests::utils::lib::test_accounts::{
+    liquidity_provider_1, liquidity_provider_2, liquidity_provider_3, liquidity_provider_4,
+    liquidity_provider_5, liquidity_providers_get, option_bidder_buyer_1, option_bidder_buyer_2,
+    option_bidder_buyer_3, option_bidder_buyer_4, option_bidders_get,
+};
+use pitch_lake::tests::utils::lib::variables::decimals;
+use pitch_lake::vault::contract::Vault;
+use pitch_lake::vault::interface::{
+    IVaultDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcher, IVaultSafeDispatcherTrait,
+};
+use starknet::syscalls::deploy_syscall;
+use starknet::testing::{set_block_timestamp, set_contract_address};
+use starknet::{ClassHash, ContractAddress, get_block_timestamp, get_contract_address};
 
 
 /// Failures ///
@@ -133,7 +118,7 @@ fn test_auction_ended_option_round_event() {
             total_options_sold,
             clearing_price,
             current_round.unsold_liquidity(),
-            0
+            0,
         );
 
         accelerate_to_settled(ref vault, current_round.get_strike_price() * 2);
@@ -181,7 +166,7 @@ fn test_end_auction_updates_current_round_state() {
         accelerate_to_running(ref vault);
         let mut current_round = vault.get_current_round();
         assert(
-            current_round.get_state() == OptionRoundState::Running, 'current round shd be running'
+            current_round.get_state() == OptionRoundState::Running, 'current round shd be running',
         );
 
         accelerate_to_settled(ref vault, current_round.get_strike_price());
@@ -209,7 +194,7 @@ fn test_end_auction_eth_transfer() {
         .place_bids(
             array![bid_amount, bid_amount].span(),
             array![losing_price, winning_price].span(),
-            option_bidders
+            option_bidders,
         );
 
     // Vault and round balances before auction ends
@@ -227,15 +212,15 @@ fn test_end_auction_eth_transfer() {
     assert(clearing_price * options_sold != 0, 'premiums shd be > 0');
     assert(
         round_balance_before == bid_amount * losing_price + bid_amount * winning_price,
-        'round balance before wrong'
+        'round balance before wrong',
     );
     assert(
         round_balance_after == round_balance_before - bid_amount * winning_price,
-        'round balance after wrong'
+        'round balance after wrong',
     );
     assert(
         vault_balance_after == vault_balance_before + bid_amount * winning_price,
-        'vault balance after wrong'
+        'vault balance after wrong',
     );
 }
 
@@ -245,11 +230,11 @@ fn test_end_auction_eth_transfer() {
 fn test_end_auction_updates_locked_and_unlocked_balances() {
     let number_of_liquidity_providers = 4;
     let mut deposit_amounts = create_array_gradient(
-        100 * decimals(), 100 * decimals(), number_of_liquidity_providers
+        100 * decimals(), 100 * decimals(), number_of_liquidity_providers,
     )
         .span();
     let (mut vault, _, liquidity_providers, _) = setup_test_auctioning_providers(
-        number_of_liquidity_providers, deposit_amounts
+        number_of_liquidity_providers, deposit_amounts,
     );
     let mut current_round = vault.get_current_round();
     // Amounts to deposit: [100, 200, 300, 400]
@@ -282,11 +267,12 @@ fn test_end_auction_updates_locked_and_unlocked_balances() {
 
     // Check vault balances
     assert(
-        (vault_locked_before, vault_unlocked_before) == (total_liq, 0), 'vault balance before wrong'
+        (vault_locked_before, vault_unlocked_before) == (total_liq, 0),
+        'vault balance before wrong',
     );
     assert(
         (vault_locked_after, vault_unlocked_after) == (sold_liq, unsold_liq + total_premiums),
-        'vault balance after'
+        'vault balance after',
     );
     assert(total_premiums > 0, 'premiums shd be greater than 0');
 
@@ -306,16 +292,16 @@ fn test_end_auction_updates_locked_and_unlocked_balances() {
 
                 assert(
                     (*lp_locked_before, *lp_unlocked_before) == (*lp_deposit_amount, 0),
-                    'LP locked before wrong'
+                    'LP locked before wrong',
                 );
                 assert(
                     (
-                        *lp_locked_after, *lp_unlocked_after
+                        *lp_locked_after, *lp_unlocked_after,
                     ) == (lp_sold_liq, lp_unsold_liq_and_prems),
-                    'LP locked after wrong'
+                    'LP locked after wrong',
                 );
             },
-            Option::None => { break (); }
+            Option::None => { break (); },
         }
     }
 }
@@ -327,12 +313,12 @@ fn test_end_auction_updates_locked_and_unlocked_balances() {
 fn test_end_auction_updates_vault_and_lp_spreads_complex() {
     let number_of_liquidity_providers = 4;
     let round1_deposits = create_array_gradient(
-        100 * decimals(), 100 * decimals(), number_of_liquidity_providers
+        100 * decimals(), 100 * decimals(), number_of_liquidity_providers,
     )
         .span();
     // Accelerate through round 1 with premiums and a payout
     let (mut vault, _, liquidity_providers, _) = setup_test_auctioning_providers(
-        number_of_liquidity_providers, round1_deposits
+        number_of_liquidity_providers, round1_deposits,
     );
 
     // (100, 200, 300, 400)
@@ -391,15 +377,15 @@ fn test_end_auction_updates_vault_and_lp_spreads_complex() {
     //remaining_liquidity1 + topup_amount - withdraw_amount, 0),
     assert(
         vault_spread_before == (remaining_liq1 + earned_liq1 + topup_amount - withdraw_amount, 0),
-        'vault spread before wrong'
+        'vault spread before wrong',
     );
     //            remaining_liquidity1 + topup_amount - withdraw_amount, total_premiums2
     assert_eq!(
         vault_spread_after,
         (
             remaining_liq1 + earned_liq1 + topup_amount - withdraw_amount - unsold_liq2,
-            total_premiums2 + unsold_liq2
-        )
+            total_premiums2 + unsold_liq2,
+        ),
     );
     // Check LP spreads
     loop {
@@ -411,12 +397,12 @@ fn test_end_auction_updates_vault_and_lp_spreads_complex() {
                 assert(
                     *lp_spread_after == (
                         *lp_starting_liquidity2 * sold_liq2 / total_liq2,
-                        *lp_starting_liquidity2 * earned_liq2 / total_liq2
+                        *lp_starting_liquidity2 * earned_liq2 / total_liq2,
                     ),
-                    'LP spread after wrong'
+                    'LP spread after wrong',
                 );
             },
-            Option::None => { break (); }
+            Option::None => { break (); },
         }
     }
 }

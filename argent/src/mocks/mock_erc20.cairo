@@ -10,10 +10,10 @@ trait IErc20Mock<TContractState> {
     fn mint(ref self: TContractState, to: ContractAddress, amount: u256);
     fn approve(ref self: TContractState, spender: ContractAddress, amount: u256);
     fn transfer_from(
-        ref self: TContractState, sender: ContractAddress, recipient: ContractAddress, amount: u256
+        ref self: TContractState, sender: ContractAddress, recipient: ContractAddress, amount: u256,
     ) -> bool;
     fn transferFrom(
-        ref self: TContractState, sender: ContractAddress, recipient: ContractAddress, amount: u256
+        ref self: TContractState, sender: ContractAddress, recipient: ContractAddress, amount: u256,
     ) -> bool;
     fn balance_of(self: @TContractState, account: ContractAddress) -> u256;
     fn allowance(self: @TContractState, owner: ContractAddress, spender: ContractAddress) -> u256;
@@ -21,7 +21,8 @@ trait IErc20Mock<TContractState> {
 
 #[starknet::contract]
 mod Erc20Mock {
-    use starknet::{info::{get_caller_address}, ContractAddress};
+    use starknet::ContractAddress;
+    use starknet::info::get_caller_address;
 
     #[storage]
     struct Storage {
@@ -39,7 +40,7 @@ mod Erc20Mock {
             ref self: ContractState,
             sender: ContractAddress,
             recipient: ContractAddress,
-            amount: u256
+            amount: u256,
         ) -> bool {
             self.transfer_from_internal(sender, recipient, amount)
         }
@@ -48,7 +49,7 @@ mod Erc20Mock {
             ref self: ContractState,
             sender: ContractAddress,
             recipient: ContractAddress,
-            amount: u256
+            amount: u256,
         ) -> bool {
             self.transfer_from_internal(sender, recipient, amount)
         }
@@ -63,7 +64,7 @@ mod Erc20Mock {
         }
 
         fn allowance(
-            self: @ContractState, owner: ContractAddress, spender: ContractAddress
+            self: @ContractState, owner: ContractAddress, spender: ContractAddress,
         ) -> u256 {
             self.allowances.read((owner, spender))
         }
@@ -74,7 +75,7 @@ mod Erc20Mock {
             ref self: ContractState,
             sender: ContractAddress,
             recipient: ContractAddress,
-            amount: u256
+            amount: u256,
         ) -> bool {
             let caller = get_caller_address();
             let current_allowance = self.allowances.read((sender, caller));

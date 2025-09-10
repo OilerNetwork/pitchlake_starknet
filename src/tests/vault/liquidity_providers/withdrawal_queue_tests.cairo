@@ -1,49 +1,24 @@
-use core::option::OptionTrait;
 use core::array::SpanTrait;
-use openzeppelin_token::erc20::interface::{ERC20ABIDispatcherTrait,};
-use starknet::{
-    ClassHash, ContractAddress, contract_address_const, deploy_syscall,
-    Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
-    testing::{set_block_timestamp, set_contract_address}
+use core::num::traits::Zero;
+use pitch_lake::library::constants::BPS_u256;
+use pitch_lake::tests::utils::facades::option_round_facade::OptionRoundFacadeTrait;
+use pitch_lake::tests::utils::facades::vault_facade::VaultFacadeTrait;
+use pitch_lake::tests::utils::helpers::accelerators::{
+    accelerate_to_auctioning_custom, accelerate_to_running, accelerate_to_running_custom,
+    accelerate_to_settled, timeskip_and_start_auction,
 };
-use pitch_lake::{
-    library::eth::Eth, vault::{contract::Vault::Errors}, library::constants::{BPS_u256},
-    tests::{
-        utils::{
-            helpers::{
-                general_helpers::{
-                    get_erc20_balances, get_erc20_balance, sum_u256_array, create_array_gradient,
-                    create_array_linear, to_wei, to_wei_multi, get_portion_of_amount,
-                    assert_u256s_equal_in_range,
-                },
-                event_helpers::{
-                    pop_log, assert_no_events_left, assert_event_transfer,
-                    assert_event_vault_withdrawal, clear_event_logs,
-                    assert_event_queued_liquidity_collected, assert_event_withdrawal_queued
-                },
-                accelerators::{
-                    accelerate_to_auctioning, accelerate_to_auctioning_custom,
-                    accelerate_to_running_custom, accelerate_to_running, accelerate_to_settled,
-                    timeskip_and_start_auction,
-                },
-                setup::{setup_facade},
-            },
-            lib::{
-                test_accounts::{
-                    liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
-                    option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
-                    liquidity_providers_get,
-                },
-                variables::{decimals},
-            },
-            facades::{
-                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
-                vault_facade::{VaultFacade, VaultFacadeTrait},
-            }
-        },
-    },
+use pitch_lake::tests::utils::helpers::event_helpers::{
+    assert_event_queued_liquidity_collected, assert_event_withdrawal_queued, clear_event_logs,
 };
-use debug::PrintTrait;
+use pitch_lake::tests::utils::helpers::general_helpers::{
+    create_array_linear, get_erc20_balance, sum_u256_array,
+};
+use pitch_lake::tests::utils::helpers::setup::setup_facade;
+use pitch_lake::tests::utils::lib::test_accounts::{
+    liquidity_provider_1, liquidity_providers_get, option_bidder_buyer_1,
+};
+use pitch_lake::tests::utils::lib::variables::decimals;
+use pitch_lake::vault::contract::Vault::Errors;
 
 
 /// Queueing
@@ -58,14 +33,14 @@ fn test_queueing_part_of_position_with_unsold() {
     let liquidity_provider = liquidity_provider_1();
     let deposit_amount = 100 * decimals();
     accelerate_to_auctioning_custom(
-        ref vault, array![liquidity_provider].span(), array![deposit_amount].span()
+        ref vault, array![liquidity_provider].span(), array![deposit_amount].span(),
     );
     /// Only sell 1/2 of the options
     accelerate_to_running_custom(
         ref vault,
         array![option_bidder_buyer_1()].span(),
         array![current_round.get_total_options_available() / 2].span(),
-        array![current_round.get_reserve_price()].span()
+        array![current_round.get_reserve_price()].span(),
     );
 
     // Queue 33% for stash
@@ -117,14 +92,14 @@ fn test_queueing_part_of_position_with_unsold_and_max_payout() {
     let liquidity_provider = liquidity_provider_1();
     let deposit_amount = 100 * decimals();
     accelerate_to_auctioning_custom(
-        ref vault, array![liquidity_provider].span(), array![deposit_amount].span()
+        ref vault, array![liquidity_provider].span(), array![deposit_amount].span(),
     );
     /// Only sell 1/3 of the coll.
     accelerate_to_running_custom(
         ref vault,
         array![option_bidder_buyer_1()].span(),
         array![current_round.get_total_options_available() / 3].span(),
-        array![current_round.get_reserve_price()].span()
+        array![current_round.get_reserve_price()].span(),
     );
 
     // Queue 20% for stash
@@ -173,13 +148,13 @@ fn test_stashed_liquidity_does_not_roll_over() {
     let liquidity_provider = liquidity_provider_1();
     let deposit_amount = 100 * decimals();
     accelerate_to_auctioning_custom(
-        ref vault, array![liquidity_provider].span(), array![deposit_amount].span()
+        ref vault, array![liquidity_provider].span(), array![deposit_amount].span(),
     );
     accelerate_to_running_custom(
         ref vault,
         array![option_bidder_buyer_1()].span(),
         array![current_round.get_total_options_available() / 2].span(),
-        array![current_round.get_reserve_price()].span()
+        array![current_round.get_reserve_price()].span(),
     );
     let starting_liq = current_round.starting_liquidity();
     let premiums = current_round.total_premiums();
@@ -190,7 +165,7 @@ fn test_stashed_liquidity_does_not_roll_over() {
 
     // Start round 2
     let total_payout = accelerate_to_settled(
-        ref vault, current_round.get_strike_price()
+        ref vault, current_round.get_strike_price(),
     ); //no payout
     accelerate_to_auctioning_custom(ref vault, array![].span(), array![].span());
 
@@ -253,7 +228,7 @@ fn test_stashed_liquidity_does_not_roll_over_multiple_LPs() {
         ref vault,
         array![option_bidder_buyer_1()].span(),
         array![bid_count].span(),
-        array![current_round.get_reserve_price()].span()
+        array![current_round.get_reserve_price()].span(),
     );
 
     // LP 1 & 2 Queue withdrawal
@@ -298,14 +273,14 @@ fn test_queueing_more_than_position_value_at_start_fails() {
     let deposit_amount = 100 * decimals();
 
     accelerate_to_auctioning_custom(
-        ref vault, array![liquidity_provider].span(), array![deposit_amount].span()
+        ref vault, array![liquidity_provider].span(), array![deposit_amount].span(),
     );
 
     accelerate_to_running_custom(
         ref vault,
         array![option_bidder_buyer_1()].span(),
         array![current_round.get_total_options_available() / 2].span(),
-        array![current_round.get_reserve_price()].span()
+        array![current_round.get_reserve_price()].span(),
     );
 
     vault.queue_withdrawal(liquidity_provider, 10_000);
@@ -323,14 +298,14 @@ fn test_queueing_withdrawal_amount_can_be_updated() {
     let deposit_amount = 100 * decimals();
 
     accelerate_to_auctioning_custom(
-        ref vault, array![liquidity_provider].span(), array![deposit_amount].span()
+        ref vault, array![liquidity_provider].span(), array![deposit_amount].span(),
     );
 
     accelerate_to_running_custom(
         ref vault,
         array![option_bidder_buyer_1()].span(),
         array![current_round.get_total_options_available() / 2].span(),
-        array![current_round.get_reserve_price()].span()
+        array![current_round.get_reserve_price()].span(),
     );
 
     vault.queue_withdrawal(liquidity_provider, 10_000);
@@ -358,7 +333,7 @@ fn test_queued_amount_is_0_after_round_settles() {
         ref vault,
         array![option_bidder_buyer_1()].span(),
         array![current_round.get_total_options_available() / 2].span(),
-        array![current_round.get_reserve_price()].span()
+        array![current_round.get_reserve_price()].span(),
     );
 
     let bps_multi = array![3333, 6666, 9999].span();
@@ -385,7 +360,7 @@ fn test_vault_queued_bps_is_accurate() {
         ref vault,
         array![option_bidder_buyer_1()].span(),
         array![current_round.get_total_options_available() / 2].span(),
-        array![current_round.get_reserve_price()].span()
+        array![current_round.get_reserve_price()].span(),
     );
 
     let bps_multi = array![3333, 6666, 9999].span();
@@ -401,7 +376,7 @@ fn test_vault_queued_bps_is_accurate() {
             total += (deposit_amount * bps.into()) / BPS_u256;
 
             i += 1;
-        };
+        }
         total
     };
     let expected_vault_bps = (total_queued * BPS_u256) / current_round.starting_liquidity();
@@ -422,7 +397,7 @@ fn test_vault_queued_bps_changes_correctly() {
         ref vault,
         array![option_bidder_buyer_1()].span(),
         array![current_round.get_total_options_available() / 2].span(),
-        array![current_round.get_reserve_price()].span()
+        array![current_round.get_reserve_price()].span(),
     );
 
     let bps_multi1 = array![3333, 6666, 9999].span();
@@ -441,7 +416,7 @@ fn test_vault_queued_bps_changes_correctly() {
             total += (deposit_amount * bps.into()) / BPS_u256;
 
             i += 1;
-        };
+        }
         total
     };
     let expected_vault_bps = (total_queued * BPS_u256) / current_round.starting_liquidity();
@@ -460,7 +435,7 @@ fn test_vault_queued_bps_changes_correctly() {
             total += (deposit_amount * bps.into()) / BPS_u256;
 
             i += 1;
-        };
+        }
         total
     };
     let expected_vault_bps = (total_queued * BPS_u256) / current_round.starting_liquidity();
@@ -483,7 +458,7 @@ fn test_queuing_0_puts_nothing_in_stash() {
     let liquidity_provider = liquidity_provider_1();
     let deposit_amount = 100 * decimals();
     accelerate_to_auctioning_custom(
-        ref vault, array![liquidity_provider].span(), array![deposit_amount].span()
+        ref vault, array![liquidity_provider].span(), array![deposit_amount].span(),
     );
 
     accelerate_to_running(ref vault);
@@ -525,7 +500,7 @@ fn test_queuing_some_gets_stashed() {
     let liquidity_provider = liquidity_provider_1();
     let deposit_amount = 100 * decimals();
     accelerate_to_auctioning_custom(
-        ref vault, array![liquidity_provider].span(), array![deposit_amount].span()
+        ref vault, array![liquidity_provider].span(), array![deposit_amount].span(),
     );
     accelerate_to_running(ref vault);
     let premiums = current_round.total_premiums();
@@ -576,9 +551,9 @@ fn test_claiming_queued_liquidity_transfers_eth() {
     // 9999999999999999999999999999999999333299999995167150
     // 9999999999999999999999999999999999166650000000000000
     let liquidity_provider = liquidity_provider_1();
-    let deposit_amount = 1 * decimals();
+    let deposit_amount = decimals();
     accelerate_to_auctioning_custom(
-        ref vault, array![liquidity_provider].span(), array![deposit_amount].span()
+        ref vault, array![liquidity_provider].span(), array![deposit_amount].span(),
     );
     accelerate_to_running(ref vault);
     let sold_liq = current_round.sold_liquidity();
@@ -607,7 +582,7 @@ fn test_claiming_queued_liquidity_sets_stashed_to_0() {
     let liquidity_provider = liquidity_provider_1();
     let deposit_amount = 100 * decimals();
     accelerate_to_auctioning_custom(
-        ref vault, array![liquidity_provider].span(), array![deposit_amount].span()
+        ref vault, array![liquidity_provider].span(), array![deposit_amount].span(),
     );
     accelerate_to_running(ref vault);
     let sold_liq = current_round.sold_liquidity();
@@ -632,7 +607,7 @@ fn test_claiming_queued_liquidity_twice_does_nothing() {
     let liquidity_provider = liquidity_provider_1();
     let deposit_amount = 100 * decimals();
     accelerate_to_auctioning_custom(
-        ref vault, array![liquidity_provider].span(), array![deposit_amount].span()
+        ref vault, array![liquidity_provider].span(), array![deposit_amount].span(),
     );
     accelerate_to_running(ref vault);
     let bps = 3333;
@@ -688,24 +663,24 @@ fn test_queueing_withdrawal_does_not_affect_stashed_balance_before_round_settle(
         // Assert stashed balances are unchanged until auction settled
         assert!(
             stashed_balances_before_auctioning == stashed_balances_before_running,
-            "stashed before auctioning != stashed before running"
+            "stashed before auctioning != stashed before running",
         );
         assert!(
             stashed_balances_before_running == stashed_balances_before_settled,
-            "stashed before running != stashed before settled"
+            "stashed before running != stashed before settled",
         );
 
         assert!(
             stashed_balances_before_settled.at(0) != stashed_balances_after_settled.at(0),
-            "stashed before settled 1 == stashed after settled 1"
+            "stashed before settled 1 == stashed after settled 1",
         );
         assert!(
             stashed_balances_before_settled.at(1) != stashed_balances_after_settled.at(1),
-            "stashed before settled 2 == stashed after settled 2"
+            "stashed before settled 2 == stashed after settled 2",
         );
         assert!(
             stashed_balances_before_settled.at(2) == stashed_balances_after_settled.at(2),
-            "stashed before settled 3 != stashed after settled 3"
+            "stashed before settled 3 != stashed after settled 3",
         );
 
         rounds_to_run -= 1;
@@ -750,20 +725,18 @@ fn test_stashed_balance_correct_after_round_settles() {
     // Assert stashed balances are correct after round settles
     let expected_stashed_amounts1 = array![
         (remaining_liq1 * deposit_amount) / total_liq1,
-        (remaining_liq1 * deposit_amount) / total_liq1,
-        0
+        (remaining_liq1 * deposit_amount) / total_liq1, 0,
     ]
         .span();
     // Assert unlocked balances are correct after round settles
     let expected_unlocked_amounts1 = array![
-        (earned_liq1 * deposit_amount) / total_liq1,
-        (earned_liq1 * deposit_amount) / total_liq1,
-        (deposit_amount * (earned_liq1 + remaining_liq1)) / total_liq1
+        (earned_liq1 * deposit_amount) / total_liq1, (earned_liq1 * deposit_amount) / total_liq1,
+        (deposit_amount * (earned_liq1 + remaining_liq1)) / total_liq1,
     ]
         .span();
 
-    assert_eq!(stashed_balances_after_settled1, expected_stashed_amounts1,);
-    assert_eq!(unlocked_balances_after_settled1, expected_unlocked_amounts1,);
+    assert_eq!(stashed_balances_after_settled1, expected_stashed_amounts1);
+    assert_eq!(unlocked_balances_after_settled1, expected_unlocked_amounts1);
 
     /// ROUND 2
 
@@ -795,7 +768,7 @@ fn test_stashed_balance_correct_after_round_settles() {
             + *stashed_balances_after_settled1.at(0),
         (remaining_liq2 * *starting_deposits2.at(1)) / total_liq2
             + *stashed_balances_after_settled1.at(1),
-        0
+        0,
     ]
         .span();
     let expected_unlocked_amounts2 = array![
@@ -813,7 +786,7 @@ fn test_stashed_balance_correct_after_round_settles() {
             + total_premiums1
             - total_payout1
             + total_premiums2
-            - total_payout2
+            - total_payout2,
     );
 
     assert_eq!(*stashed_balances_after_settled2.at(0), *expected_stashed_amounts2.at(0));
@@ -834,7 +807,7 @@ fn test_unstashed_liquidity_adds_to_next_round_deposits() {
     let liquidity_provider = liquidity_provider_1();
     let deposit_amount = 100 * decimals();
     accelerate_to_auctioning_custom(
-        ref vault, array![liquidity_provider].span(), array![deposit_amount].span()
+        ref vault, array![liquidity_provider].span(), array![deposit_amount].span(),
     );
     accelerate_to_running(ref vault);
     let premiums = current_round.total_premiums();
@@ -890,7 +863,7 @@ fn test_queueing_multiple_rounds_stashed_amount_no_payouts() {
 
     /// Round 1
     accelerate_to_auctioning_custom(
-        ref vault, array![liquidity_provider].span(), array![deposit_amount].span()
+        ref vault, array![liquidity_provider].span(), array![deposit_amount].span(),
     );
     accelerate_to_running(ref vault);
     let premiums = current_round.total_premiums();
@@ -920,7 +893,7 @@ fn test_queueing_multiple_rounds_stashed_amount_no_payouts() {
 
     assert_eq!(
         get_erc20_balance(eth.contract_address, vault.contract_address()),
-        deposit_amount + premiums + premiums2 + premiums3
+        deposit_amount + premiums + premiums2 + premiums3,
     );
     assert_eq!(vault.get_total_balance(), deposit_amount + premiums + premiums2 + premiums3);
     assert_eq!(lp_stashed, sold_liq + sold_liq2 + sold_liq3);
@@ -936,7 +909,7 @@ fn test_queueing_multiple_rounds_stashed_amount_payouts() {
     /// Round 1
     let mut current_round = vault.get_current_round();
     accelerate_to_auctioning_custom(
-        ref vault, array![liquidity_provider].span(), array![deposit_amount].span()
+        ref vault, array![liquidity_provider].span(), array![deposit_amount].span(),
     );
     accelerate_to_running(ref vault);
     let premiums = current_round.total_premiums();
@@ -972,11 +945,11 @@ fn test_queueing_multiple_rounds_stashed_amount_payouts() {
 
     assert_eq!(
         get_erc20_balance(eth.contract_address, vault.contract_address()),
-        deposit_amount - payout + premiums - payout2 + premiums2 - payout3 + premiums3
+        deposit_amount - payout + premiums - payout2 + premiums2 - payout3 + premiums3,
     );
     assert_eq!(
         vault.get_total_balance(),
-        deposit_amount - payout + premiums - payout2 + premiums2 - payout3 + premiums3
+        deposit_amount - payout + premiums - payout2 + premiums2 - payout3 + premiums3,
     );
 }
 
@@ -990,13 +963,13 @@ fn test_queueing_multiple_rounds_stashed_amount_payouts_and_unsold() {
     /// Round 1
     let mut current_round = vault.get_current_round();
     accelerate_to_auctioning_custom(
-        ref vault, array![liquidity_provider].span(), array![deposit_amount].span()
+        ref vault, array![liquidity_provider].span(), array![deposit_amount].span(),
     );
     accelerate_to_running_custom(
         ref vault,
         array![option_bidder_buyer_1()].span(),
         array![current_round.get_total_options_available() / 2].span(),
-        array![current_round.get_reserve_price()].span()
+        array![current_round.get_reserve_price()].span(),
     );
     let unsold = current_round.unsold_liquidity();
     let sold = current_round.starting_liquidity() - unsold;
@@ -1011,7 +984,7 @@ fn test_queueing_multiple_rounds_stashed_amount_payouts_and_unsold() {
         ref vault,
         array![option_bidder_buyer_1()].span(),
         array![current_round.get_total_options_available() / 2].span(),
-        array![current_round.get_reserve_price()].span()
+        array![current_round.get_reserve_price()].span(),
     );
     let unsold2 = current_round.unsold_liquidity();
     let sold2 = current_round.starting_liquidity() - unsold2;
@@ -1024,7 +997,7 @@ fn test_queueing_multiple_rounds_stashed_amount_payouts_and_unsold() {
         ref vault,
         array![option_bidder_buyer_1()].span(),
         array![current_round.get_total_options_available() / 2].span(),
-        array![current_round.get_reserve_price()].span()
+        array![current_round.get_reserve_price()].span(),
     );
     let premiums3 = current_round.total_premiums();
     let unsold3 = current_round.unsold_liquidity();
@@ -1044,7 +1017,7 @@ fn test_queueing_multiple_rounds_stashed_amount_payouts_and_unsold() {
     assert_eq!(vault.get_total_balance(), lp_stashed + premiums3 + unsold3);
     assert_eq!(
         get_erc20_balance(eth.contract_address, vault.contract_address()),
-        lp_stashed + premiums3 + unsold3
+        lp_stashed + premiums3 + unsold3,
     );
 }
 
@@ -1056,7 +1029,7 @@ fn test_queueing_withdrawal_event() {
     let liquidity_provider = liquidity_provider_1();
     let deposit_amount = 100 * decimals();
     accelerate_to_auctioning_custom(
-        ref vault, array![liquidity_provider].span(), array![deposit_amount].span()
+        ref vault, array![liquidity_provider].span(), array![deposit_amount].span(),
     );
     accelerate_to_running(ref vault);
     clear_event_logs(array![vault.contract_address()]);
@@ -1079,7 +1052,7 @@ fn test_queueing_withdrawal_event() {
         1,
         queued_amount,
         queued_amount2,
-        queued_amount2
+        queued_amount2,
     );
 }
 
@@ -1092,7 +1065,7 @@ fn test_claiming_stashed_liquidity_event() {
     let liquidity_provider = liquidity_provider_1();
     let deposit_amount = 100 * decimals();
     accelerate_to_auctioning_custom(
-        ref vault, array![liquidity_provider].span(), array![deposit_amount].span()
+        ref vault, array![liquidity_provider].span(), array![deposit_amount].span(),
     );
     accelerate_to_running(ref vault);
     let sold_liq = current_round.sold_liquidity();
