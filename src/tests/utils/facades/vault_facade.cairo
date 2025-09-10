@@ -44,45 +44,25 @@ fn pow(base: u256, exp: u256) -> u256 {
     result
 }
 
+
 fn l1_data_to_verifier_data(l1_data: L1Data) -> VerifierData {
     // Convert u256->u128->UFixedPoint123x128->felt252
     let L1Data { twap, reserve_price, max_return } = l1_data;
 
-    // u256 -> felt252
-    let twap_result: felt252 = {
-        let twap_u128: u128 = twap.try_into().unwrap();
-        let twap_fp: UFixedPoint123x128 = twap_u128.into();
-        twap_fp.try_into().unwrap()
-    };
-
-    // u256 -> felt252
-    let reserve_price: felt252 = {
-        let reserve_price_u128: u128 = reserve_price.try_into().unwrap();
-        let reserve_price_fp: UFixedPoint123x128 = reserve_price_u128.into();
-        reserve_price_fp.try_into().unwrap()
-    };
-
-    // u128 -> felt252
-    // i.e 1234 -> 0.1234 -> 0.1234_felt252
-    let max_return: felt252 = {
-        // Need to round due to precision loss when casting through FP
-        let TWO_POW_128: u256 = pow(2_u256, 128_u256);
-        let max_return_u256: u256 = max_return.into();
-        let num: u256 = max_return_u256 * TWO_POW_128;
-        let num_rounded: u256 = num + 5_000;
-        let raw: u256 = num_rounded / 10_000;
-
-        let raw_fp: UFixedPoint123x128 = raw.into();
-
-        raw_fp.try_into().unwrap()
-    };
+    let twap = u256_to_fp_felt(twap);
+    let reserve_price = u256_to_fp_felt(reserve_price);
+    let max_return = u128_to_bps_fp_felt(max_return);
 
     VerifierData {
-        reserve_price, twap_result, max_return, start_timestamp: 0xaaaa, end_timestamp: 0xbbbb,
-        //        floating_point_tolerance: 'irrelevent',
-    //        reserve_price_tolerance: 'irrelevent',
-    //        twap_tolerance: 'irrelevent',
-    //        gradient_tolerance: 'irrelevent',
+        reserve_price_start_timestamp: 1234,
+        reserve_price_end_timestamp: 5678,
+        reserve_price,
+        twap_start_timestamp: 1234,
+        twap_end_timestamp: 5678,
+        twap_result: twap,
+        max_return_start_timestamp: 1234,
+        max_return_end_timestamp: 5678,
+        max_return
     }
 }
 
@@ -100,10 +80,92 @@ struct VaultFacade {
     vault_dispatcher: IVaultDispatcher,
 }
 
+
+// 1234_u256 -> 1234_u128 -> 1234.0 -> 1234.0_felt
+fn u256_to_fp_felt(value: u256) -> felt252 {
+    let value_u128: u128 = value.try_into().expect('value larger than u128');
+
+    let value_fp: UFixedPoint123x128 = value_u128.into();
+
+    let value_felt: felt252 = value_fp.try_into().expect('value failed from fp -> felt');
+
+    value_felt
+}
+
+// Rounds value to ensure same bps <-> fp
+// 1234 -> {low: 1234: high: 0} -> {low: 0, high: 1234} -> {low: 5_000, high: 1234}
+//  -> {low: 12340000....0, high: 0} -> 0.1234.0 -> 0.1234.0_felt
+// @dev without rounding, converting 1009 bps should give 0.1009, but gives 0.1008..., this ensures
+// symmetry
+fn u128_to_bps_fp_felt(value: u128) -> felt252 {
+    // 2^128
+    let TWO_POW_128: u256 = pow(2_u256, 128_u256);
+
+    let value_u256: u256 = value.into();
+    let value_scaled: u256 = value_u256 * TWO_POW_128;
+    let value_rounded: u256 = value_scaled + 5_000;
+    let raw: u256 = value_rounded / 10_000;
+
+    let raw_fp: UFixedPoint123x128 = raw.into();
+
+    let raw_fp_felt: felt252 = raw_fp.try_into().unwrap();
+
+    raw_fp_felt
+}
+
+
 #[generate_trait]
 impl VaultFacadeImpl of VaultFacadeTrait {
     fn get_safe_dispatcher(ref self: VaultFacade) -> IVaultSafeDispatcher {
         IVaultSafeDispatcher { contract_address: self.contract_address() }
+    }
+
+    fn generate_custom_job_request_serialized(
+        ref self: VaultFacade, timestamp: u64
+    ) -> Span<felt252> {
+        let j = JobRequest {
+            program_id: PROGRAM_ID, timestamp: timestamp, vault_address: self.contract_address(),
+        };
+
+        let mut serialized: Array<felt252> = array![];
+        j.serialize(ref serialized);
+        serialized.span()
+    }
+
+
+    fn generate_job_result_serialized_from_l1_data(ref self: VaultFacade) -> Span<felt252> {
+        let l1_data = L1Data {
+            twap: to_gwei(33) / 100, max_return: 1009, reserve_price: to_gwei(11) / 10
+        };
+
+        self.generate_job_result_serialized_from_l1_data_custom(l1_data)
+    }
+
+    fn generate_job_result_serialized_from_l1_data_custom(
+        ref self: VaultFacade, l1_data: L1Data,
+    ) -> Span<felt252> {
+        let mut current_round = self.get_current_round();
+        let upper_bound = current_round.get_option_settlement_date();
+
+        let twap_range = self.get_option_run_time();
+        let other_range = 3 * twap_range;
+
+        let mut serialized: Array<felt252> = array![];
+
+        // Add reserve price range and value
+        serialized.append((upper_bound - other_range).into());
+        serialized.append(upper_bound.into());
+        serialized.append(u256_to_fp_felt(l1_data.reserve_price));
+        // Add Twap range and value
+        serialized.append((upper_bound - twap_range).into());
+        serialized.append(upper_bound.into());
+        serialized.append(u256_to_fp_felt(l1_data.twap));
+        // Add max return range and value
+        serialized.append((upper_bound - other_range).into());
+        serialized.append(upper_bound.into());
+        serialized.append(u128_to_bps_fp_felt(l1_data.max_return));
+
+        serialized.span()
     }
 
     /// Writes ///
@@ -225,20 +287,23 @@ impl VaultFacadeImpl of VaultFacadeTrait {
         payout
     }
 
+    #[feature("safe_dispatcher")]
+    fn fossil_callback_expect_error(
+        ref self: VaultFacade, request: Span<felt252>, result: Span<felt252>, error: felt252
+    ) {
+        let safe_vault = self.get_safe_dispatcher();
+        safe_vault.fossil_callback(request, result).expect_err(error);
+    }
+
+
     fn fossil_callback_using_l1_data(
         ref self: VaultFacade, l1_data: L1Data, timestamp: u64
     ) -> u256 {
-        // job span serialized
-        let mut j: Array<felt252> = array![];
-        let _j = JobRequest {
-            program_id: PROGRAM_ID, vault_address: self.contract_address(), timestamp
-        };
-        _j.serialize(ref j);
+        let req = self.generate_custom_job_request_serialized(timestamp);
+        let res = self.generate_job_result_serialized_from_l1_data_custom(l1_data);
 
-        // job result serialized
-        let v = l1_data_to_verifier_data_serialized(l1_data);
         set_contract_address(self.get_fossil_client_address());
-        let payout = self.vault_dispatcher.fossil_callback(j.span(), v);
+        let payout = self.vault_dispatcher.fossil_callback(req, res);
 
         let mut current_round = self.get_current_round();
         eth_supply_and_approve_all_bidders(
@@ -249,64 +314,14 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     }
 
     #[feature("safe_dispatcher")]
-    fn fossil_callback_expect_error(
-        ref self: VaultFacade, request: Span<felt252>, result: Span<felt252>, error: felt252
-    ) {
-        let safe_vault = self.get_safe_dispatcher();
-        safe_vault.fossil_callback(request, result).expect_err(error);
-    }
-
-    #[feature("safe_dispatcher")]
     fn fossil_callback_expect_error_using_l1_data(
         ref self: VaultFacade, l1_data: L1Data, timestamp: u64, error: felt252
     ) {
-        // job span serialized
-        let mut job_request: Array<felt252> = array![];
-        let j = JobRequest {
-            program_id: PROGRAM_ID, vault_address: self.contract_address(), timestamp
-        };
-        j.serialize(ref job_request);
-
-        // job result serialized
-        let mut job_result: Array<felt252> = array![];
-
-        // convert l1 data that we want back to UFixedPoint123x128 as felts
-        let (twap_fp_felt, reserve_price_fp_felt): (felt252, felt252) = {
-            // u256 -> u128
-            let (twap_u128, reserve_price_u128): (u128, u128) = {
-                (l1_data.twap.try_into().unwrap(), l1_data.reserve_price.try_into().unwrap())
-            };
-            // u128 -> UFixedPoint123x128
-            let (twap_fp, reserve_price_fp): (UFixedPoint123x128, UFixedPoint123x128) = {
-                (twap_u128.into(), reserve_price_u128.into())
-            };
-
-            // UFixedPoint123x128 -> felt252
-            (twap_fp.try_into().unwrap(), reserve_price_fp.try_into().unwrap())
-        };
-
-        let max_return_fp: UFixedPoint123x128 = l1_data.max_return.into(); // i.e 1234 for 12.34%
-        let BPS: UFixedPoint123x128 = 10_000_u64.into(); // 10,000.0
-        let max_return_bps_fp = max_return_fp / BPS; // i.e 1234 / 10,000 = 0.1234.0
-        let max_return_bps_int: u128 = max_return_bps_fp.get_integer(); // i.e 0.1234.0 -> 1234
-        let max_return_fp_felt: felt252 = max_return_bps_int.into(); // u128 -> felt252
-
-        let v = VerifierData {
-            start_timestamp: 1234,
-            end_timestamp: 5678,
-            reserve_price: reserve_price_fp_felt,
-            //            floating_point_tolerance: 'irrelevent',
-            //            reserve_price_tolerance: 'irrelevent',
-            //            twap_tolerance: 'irrelevent',
-            //            gradient_tolerance: 'irrelevent',
-            twap_result: twap_fp_felt,
-            max_return: max_return_fp_felt
-        };
-
-        v.serialize(ref job_result);
+        let req = self.get_request_to_settle_round_serialized();
+        let res = self.generate_job_result_serialized_from_l1_data_custom(l1_data);
 
         let safe_vault = self.get_safe_dispatcher();
-        safe_vault.fossil_callback(job_request.span(), job_result.span()).expect_err(error);
+        safe_vault.fossil_callback(req, res).expect_err(error);
     }
 
     fn start_auction(ref self: VaultFacade) -> u256 {
@@ -375,9 +390,14 @@ impl VaultFacadeImpl of VaultFacadeTrait {
     /// Fossil
 
     fn get_request_to_settle_round(ref self: VaultFacade) -> JobRequest {
-        let mut request = self.vault_dispatcher.get_request_to_settle_round();
+        let mut request = self.get_request_to_settle_round_serialized();
         Serde::deserialize(ref request).expect('failed to fetch request')
     }
+
+    fn get_request_to_settle_round_serialized(ref self: VaultFacade) -> Span<felt252> {
+        self.vault_dispatcher.get_request_to_settle_round()
+    }
+
 
     fn get_request_to_start_first_round(ref self: VaultFacade,) -> JobRequest {
         let mut request = self.vault_dispatcher.get_request_to_start_first_round();
