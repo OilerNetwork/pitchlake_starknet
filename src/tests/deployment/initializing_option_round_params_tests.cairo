@@ -1,37 +1,30 @@
-use starknet::{
-    ClassHash, ContractAddress, contract_address_const, deploy_syscall,
-    Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
-    testing::{set_block_timestamp, set_contract_address}, contract_address::ContractAddressZeroable
-};
-use openzeppelin_token::erc20::interface::ERC20ABIDispatcherTrait;
-
-use pitch_lake::{
-    vault::{contract::Vault, interface::{IVaultDispatcher, IVaultDispatcherTrait},},
-    option_round::interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
-    tests::{
-        utils::{
-            helpers::{
-                setup::{deploy_eth, decimals, setup_facade, setup_facade_custom, deploy_vault,},
-                event_helpers::{pop_log, assert_no_events_left},
-                accelerators::{
-                    accelerate_to_auctioning, accelerate_to_running, accelerate_to_settled
-                }
-            },
-            lib::test_accounts::{
-                liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
-                option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4, bystander,
-            },
-            facades::{
-                option_round_facade::{
-                    OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundFacadeImpl
-                },
-                vault_facade::{VaultFacade, VaultFacadeTrait},
-            },
-        },
-    },
-    library::pricing_utils::calculate_strike_price
-};
 use debug::PrintTrait;
+use openzeppelin_token::erc20::interface::ERC20ABIDispatcherTrait;
+use pitch_lake::library::pricing_utils::calculate_strike_price;
+use pitch_lake::option_round::interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait};
+use pitch_lake::tests::utils::facades::option_round_facade::{
+    OptionRoundFacade, OptionRoundFacadeImpl, OptionRoundFacadeTrait,
+};
+use pitch_lake::tests::utils::facades::vault_facade::{VaultFacade, VaultFacadeTrait};
+use pitch_lake::tests::utils::helpers::accelerators::{
+    accelerate_to_auctioning, accelerate_to_running, accelerate_to_settled,
+};
+use pitch_lake::tests::utils::helpers::event_helpers::{assert_no_events_left, pop_log};
+use pitch_lake::tests::utils::helpers::setup::{
+    decimals, deploy_eth, deploy_vault, setup_facade, setup_facade_custom,
+};
+use pitch_lake::tests::utils::lib::test_accounts::{
+    bystander, liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
+    option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
+};
+use pitch_lake::vault::contract::Vault;
+use pitch_lake::vault::interface::{IVaultDispatcher, IVaultDispatcherTrait};
+use starknet::contract_address::ContractAddressZeroable;
+use starknet::testing::{set_block_timestamp, set_contract_address};
+use starknet::{
+    ClassHash, ContractAddress, Felt252TryIntoContractAddress, contract_address_const,
+    deploy_syscall, get_block_timestamp, get_contract_address,
+};
 
 
 fn to_gwei(amount: u256) -> u256 {

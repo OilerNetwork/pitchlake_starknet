@@ -1,36 +1,29 @@
-use starknet::{
-    get_block_timestamp, ContractAddress, contract_address_const,
-    testing::{set_contract_address, set_block_timestamp}
+use pitch_lake::library::pricing_utils;
+use pitch_lake::option_round::contract::OptionRound::Errors;
+use pitch_lake::option_round::interface::PricingData;
+use pitch_lake::tests::utils::facades::option_round_facade::{
+    OptionRoundFacade, OptionRoundFacadeTrait,
 };
-use pitch_lake::{
-    vault::contract::Vault, vault::contract::Vault::Errors as vErrors,
-    option_round::contract::OptionRound::Errors, vault::interface::{JobRequest},
-    option_round::interface::PricingData, library::pricing_utils,
-    tests::{
-        utils::{
-            helpers::{
-                accelerators::{
-                    accelerate_to_auctioning, accelerate_to_running, accelerate_to_running_custom,
-                    accelerate_to_settled, clear_event_logs
-                },
-                setup::{setup_facade, deploy_vault, deploy_eth},
-                event_helpers::{assert_fossil_callback_success_event}, general_helpers::{to_gwei},
-                event_helpers::{assert_event_pricing_data_set},
-            },
-            lib::{
-                test_accounts::{
-                    liquidity_provider_1, option_bidder_buyer_1, option_bidder_buyer_2,
-                    option_bidder_buyer_3, option_bidder_buyer_4, option_bidders_get,
-                },
-                variables::{decimals},
-            },
-            facades::{
-                vault_facade::{VaultFacade, VaultFacadeTrait},
-                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
-            },
-        },
-    }
+use pitch_lake::tests::utils::facades::vault_facade::{VaultFacade, VaultFacadeTrait};
+use pitch_lake::tests::utils::helpers::accelerators::{
+    accelerate_to_auctioning, accelerate_to_running, accelerate_to_running_custom,
+    accelerate_to_settled, clear_event_logs,
 };
+use pitch_lake::tests::utils::helpers::event_helpers::{
+    assert_event_pricing_data_set, assert_fossil_callback_success_event,
+};
+use pitch_lake::tests::utils::helpers::general_helpers::to_gwei;
+use pitch_lake::tests::utils::helpers::setup::{deploy_eth, deploy_vault, setup_facade};
+use pitch_lake::tests::utils::lib::test_accounts::{
+    liquidity_provider_1, option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
+    option_bidder_buyer_4, option_bidders_get,
+};
+use pitch_lake::tests::utils::lib::variables::decimals;
+use pitch_lake::vault::contract::Vault;
+use pitch_lake::vault::contract::Vault::Errors as vErrors;
+use pitch_lake::vault::interface::JobRequest;
+use starknet::testing::{set_block_timestamp, set_contract_address};
+use starknet::{ContractAddress, contract_address_const, get_block_timestamp};
 
 const salt: u64 = 0x123;
 const err: felt252 = Errors::CallerIsNotVault;
@@ -81,7 +74,7 @@ fn test_only_vault_can_settle_option_round() {
 }
 
 fn get_random_pricing_data_points() -> PricingData {
-    PricingData { strike_price: to_gwei(5829), cap_level: 20084, reserve_price: to_gwei(482745), }
+    PricingData { strike_price: to_gwei(5829), cap_level: 20084, reserve_price: to_gwei(482745) }
 }
 
 #[test]

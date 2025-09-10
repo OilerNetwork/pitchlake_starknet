@@ -1,36 +1,28 @@
 //Helper functions for posterity
 use openzeppelin_token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
-use starknet::{ContractAddress, testing::{set_contract_address}};
-use pitch_lake::{
-    types::{Errors, Bid}, library::constants::BPS_u256,
-    option_round::{
-        interface::{
-            OptionRoundState, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,
-            IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait, PricingData
-        }
-    },
-    vault::{
-        interface::{
-            IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait,
-            IVaultSafeDispatcherTrait,
-        },
-        contract::Vault,
-    },
-    tests::{
-        utils::{
-            helpers::{
-                setup::eth_supply_and_approve_all_bidders,
-                general_helpers::{to_gwei, assert_two_arrays_equal_length, get_erc20_balance},
-                accelerators::{accelerate_to_auctioning_custom},
-            },
-            lib::{test_accounts::{vault_manager, bystander, liquidity_provider_1},},
-            facades::{sanity_checks, vault_facade::{VaultFacade, VaultFacadeTrait},},
-        }
-    },
+use pitch_lake::library::constants::BPS_u256;
+use pitch_lake::option_round::interface::{
+    IOptionRoundDispatcher, IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher,
+    IOptionRoundSafeDispatcherTrait, OptionRoundState, PricingData,
 };
+use pitch_lake::tests::utils::facades::sanity_checks;
+use pitch_lake::tests::utils::facades::vault_facade::{VaultFacade, VaultFacadeTrait};
+use pitch_lake::tests::utils::helpers::accelerators::accelerate_to_auctioning_custom;
+use pitch_lake::tests::utils::helpers::general_helpers::{
+    assert_two_arrays_equal_length, get_erc20_balance, to_gwei,
+};
+use pitch_lake::tests::utils::helpers::setup::eth_supply_and_approve_all_bidders;
+use pitch_lake::tests::utils::lib::test_accounts::{bystander, liquidity_provider_1, vault_manager};
+use pitch_lake::types::{Bid, Errors};
+use pitch_lake::vault::contract::Vault;
+use pitch_lake::vault::interface::{
+    IVaultDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcher, IVaultSafeDispatcherTrait,
+};
+use starknet::ContractAddress;
+use starknet::testing::set_contract_address;
 
 #[derive(Drop)]
-struct OptionRoundFacade {
+pub struct OptionRoundFacade {
     option_round_dispatcher: IOptionRoundDispatcher,
 }
 
@@ -42,7 +34,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
 
     fn get_vault_facade(ref self: OptionRoundFacade) -> VaultFacade {
         VaultFacade {
-            vault_dispatcher: IVaultDispatcher { contract_address: self.vault_address() }
+            vault_dispatcher: IVaultDispatcher { contract_address: self.vault_address() },
         }
     }
 
@@ -60,7 +52,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
 
     #[feature("safe_dispatcher")]
     fn set_pricing_data_expect_err(
-        ref self: OptionRoundFacade, pricing_data: PricingData, error: felt252
+        ref self: OptionRoundFacade, pricing_data: PricingData, error: felt252,
     ) {
         let safe = self.get_safe_dispatcher();
         safe.set_pricing_data(pricing_data).expect_err(error);
@@ -84,14 +76,14 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
         let starting_liquidity = (options_available * capped_payout_per_option);
 
         // Update the params of the option round
-        let pricing_data = PricingData { strike_price, cap_level, reserve_price, };
+        let pricing_data = PricingData { strike_price, cap_level, reserve_price };
 
         // Update the pricing data points as the Vault
         set_contract_address(vault.contract_address());
         self.set_pricing_data(pricing_data);
 
         let total_options_available = accelerate_to_auctioning_custom(
-            ref vault, array![liquidity_provider_1()].span(), array![starting_liquidity].span()
+            ref vault, array![liquidity_provider_1()].span(), array![starting_liquidity].span(),
         );
 
         assert(total_options_available == options_available, 'options available mismatch');
@@ -180,9 +172,9 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
                     // Append result
                     results.append(bid_id);
                 },
-                Option::None => { break (); }
+                Option::None => { break (); },
             }
-        };
+        }
         results
     }
 
@@ -223,10 +215,10 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
                     set_contract_address(*bidder);
                     match safe_option_round.place_bid(*bid_amount, *bid_price) {
                         Result::Ok(_) => {},
-                        Result::Err(_) => {}
+                        Result::Err(_) => {},
                     }
                 },
-                Option::None => { break (); }
+                Option::None => { break (); },
             }
         }
     }
@@ -255,7 +247,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
                     // Make bid
                     safe_option_round.place_bid(*bid_amount, *bid_price).expect_err(*error);
                 },
-                Option::None => { break (); }
+                Option::None => { break (); },
             }
         };
     }
@@ -310,9 +302,9 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
                     let refund_amount = self.refund_bid(*bidder);
                     refund_amounts.append(refund_amount)
                 },
-                Option::None => { break (); }
+                Option::None => { break (); },
             }
-        };
+        }
         refund_amounts
     }
 
@@ -338,15 +330,15 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     // Exercise options for multiple option buyers
     // @return: The payout amounts
     fn exercise_options_multiple(
-        ref self: OptionRoundFacade, mut bidders: Span<ContractAddress>
+        ref self: OptionRoundFacade, mut bidders: Span<ContractAddress>,
     ) -> Array<u256> {
         let mut payouts = array![];
         loop {
             match bidders.pop_front() {
                 Option::Some(bidder) => { payouts.append(self.exercise_options(*bidder)); },
-                Option::None => { break (); }
+                Option::None => { break (); },
             }
-        };
+        }
         payouts
     }
 
@@ -355,7 +347,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     fn mint_options(ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress) -> u256 {
         set_contract_address(option_bidder_buyer);
         let option_erc20_balance_before = get_erc20_balance(
-            self.contract_address(), option_bidder_buyer
+            self.contract_address(), option_bidder_buyer,
         );
         let options_minted = self.option_round_dispatcher.mint_options();
         sanity_checks::tokenize_options(
@@ -429,7 +421,7 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
     }
 
     fn get_bidding_nonce_for(
-        ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
+        ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress,
     ) -> u64 {
         self.option_round_dispatcher.get_account_bid_nonce(option_bidder_buyer)
     }
@@ -440,25 +432,25 @@ impl OptionRoundFacadeImpl of OptionRoundFacadeTrait {
 
 
     fn get_bids_for(
-        ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
+        ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress,
     ) -> Array<Bid> {
         self.option_round_dispatcher.get_account_bids(option_bidder_buyer)
     }
 
     fn get_refundable_balance_for(
-        ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
+        ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress,
     ) -> u256 {
         self.option_round_dispatcher.get_account_refundable_balance(option_bidder_buyer)
     }
 
     fn get_payout_balance_for(
-        ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
+        ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress,
     ) -> u256 {
         self.option_round_dispatcher.get_account_payout_balance(option_bidder_buyer)
     }
 
     fn get_mintable_options_for(
-        ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress
+        ref self: OptionRoundFacade, option_bidder_buyer: ContractAddress,
     ) -> u256 {
         self.option_round_dispatcher.get_account_mintable_options(option_bidder_buyer)
     }

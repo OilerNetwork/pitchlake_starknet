@@ -1,5 +1,6 @@
 use argent::utils::array_ext::ArrayExtTrait;
-use starknet::{call_contract_syscall, account::Call};
+use starknet::account::Call;
+use starknet::call_contract_syscall;
 
 fn execute_multicall(mut calls: Span<Call>) -> Array<Span<felt252>> {
     let mut result = array![];
@@ -16,6 +17,6 @@ fn execute_multicall(mut calls: Span<Call>) -> Array<Span<felt252>> {
                 panic(data);
             },
         }
-    };
+    }
     result
 }

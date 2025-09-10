@@ -1,16 +1,10 @@
 use core::pedersen::pedersen;
-use starknet::{contract_address_const, ContractAddress};
-use pitch_lake::{
-    types::{Bid},
-    tests::{
-        option_round::{
-            rb_tree::rb_tree_mock_contract::{
-                IRBTreeMockContractDispatcher, IRBTreeMockContractDispatcherTrait
-            }
-        },
-        utils::helpers::setup::setup_rb_tree_test
-    },
+use pitch_lake::tests::option_round::rb_tree::rb_tree_mock_contract::{
+    IRBTreeMockContractDispatcher, IRBTreeMockContractDispatcherTrait,
 };
+use pitch_lake::tests::utils::helpers::setup::setup_rb_tree_test;
+use pitch_lake::types::Bid;
+use starknet::{ContractAddress, contract_address_const};
 
 const BLACK: bool = false;
 const RED: bool = true;
@@ -70,10 +64,9 @@ fn test_insert_into_empty_tree() {
 
     let tree = rb_tree.get_tree_structure();
     let expected_tree_structure = array![
-        array![(5, false, 0)],
-        array![(2, true, 0), (7, true, 1)],
+        array![(5, false, 0)], array![(2, true, 0), (7, true, 1)],
         array![(1, false, 0), (4, false, 1), (6, false, 2), (9, false, 3)],
-        array![(3, true, 2), (15, true, 7)]
+        array![(3, true, 2), (15, true, 7)],
     ];
     compare_tree_structures(@tree, @expected_tree_structure);
 
@@ -128,11 +121,9 @@ fn test_recoloring_only() {
     insert(rb_tree, 25, 10);
 
     let tree_after_recolor = array![
-        array![(31, false, 0)],
-        array![(11, false, 0), (41, false, 1)],
+        array![(31, false, 0)], array![(11, false, 0), (41, false, 1)],
         array![(1, false, 0), (27, true, 1), (36, false, 2), (46, false, 3)],
-        array![(23, false, 2), (29, false, 3)],
-        array![(25, true, 5)]
+        array![(23, false, 2), (29, false, 3)], array![(25, true, 5)],
     ];
     let tree_structure = rb_tree.get_tree_structure();
     compare_tree_structures(@tree_structure, @tree_after_recolor);
@@ -180,11 +171,9 @@ fn test_recoloring_two() {
     insert(rb_tree, 40, 10);
 
     let tree_after_recolor = array![
-        array![(31, false, 0)],
-        array![(11, false, 0), (41, false, 1)],
+        array![(31, false, 0)], array![(11, false, 0), (41, false, 1)],
         array![(1, false, 0), (27, false, 1), (36, true, 2), (46, false, 3)],
-        array![(33, false, 4), (38, false, 5)],
-        array![(40, true, 11)]
+        array![(33, false, 4), (38, false, 5)], array![(40, true, 11)],
     ];
     let tree_structure = rb_tree.get_tree_structure();
     compare_tree_structures(@tree_structure, @tree_after_recolor);
@@ -220,9 +209,8 @@ fn test_right_rotation() {
     insert(rb_tree, 24, 6);
 
     let tree_after_right_rotation = array![
-        array![(21, false, 0)],
-        array![(1, false, 0), (26, false, 1)],
-        array![(18, true, 1), (24, true, 2), (31, true, 3)]
+        array![(21, false, 0)], array![(1, false, 0), (26, false, 1)],
+        array![(18, true, 1), (24, true, 2), (31, true, 3)],
     ];
     let tree_structure = rb_tree.get_tree_structure();
     compare_tree_structures(@tree_structure, @tree_after_right_rotation);
@@ -256,9 +244,8 @@ fn test_left_rotation_no_sibling() {
     insert(rb_tree, 9, 5);
 
     let tree_after_left_rotation = array![
-        array![(10, false, 0)],
-        array![(8, false, 0), (20, false, 1)],
-        array![(7, true, 0), (9, true, 1)]
+        array![(10, false, 0)], array![(8, false, 0), (20, false, 1)],
+        array![(7, true, 0), (9, true, 1)],
     ];
 
     let tree_structure = rb_tree.get_tree_structure();
@@ -296,9 +283,8 @@ fn test_right_rotation_no_sibling_left_subtree() {
 
     let tree = rb_tree.get_tree_structure();
     let expected_tree_structure = array![
-        array![(23, false, 0)],
-        array![(2, false, 0), (33, false, 1)],
-        array![(1, true, 0), (3, true, 1), (28, true, 2)]
+        array![(23, false, 0)], array![(2, false, 0), (33, false, 1)],
+        array![(1, true, 0), (3, true, 1), (28, true, 2)],
     ];
     compare_tree_structures(@tree, @expected_tree_structure);
 
@@ -333,9 +319,8 @@ fn test_left_right_rotation_no_sibling() {
     insert(rb_tree, 28, 6);
 
     let tree_after_left_right_rotation = array![
-        array![(21, false, 0)],
-        array![(1, false, 0), (28, false, 1)],
-        array![(18, true, 1), (26, true, 2), (31, true, 3)]
+        array![(21, false, 0)], array![(1, false, 0), (28, false, 1)],
+        array![(18, true, 1), (26, true, 2), (31, true, 3)],
     ];
 
     let tree_structure = rb_tree.get_tree_structure();
@@ -372,9 +357,8 @@ fn test_right_left_rotation_no_sibling() {
 
     let result = rb_tree.get_tree_structure();
     let expected_tree_structure = array![
-        array![(21, false, 0)],
-        array![(13, false, 0), (31, false, 1)],
-        array![(1, true, 0), (18, true, 1), (26, true, 2)]
+        array![(21, false, 0)], array![(13, false, 0), (31, false, 1)],
+        array![(1, true, 0), (18, true, 1), (26, true, 2)],
     ];
 
     compare_tree_structures(@result, @expected_tree_structure);
@@ -422,10 +406,9 @@ fn test_recolor_lr() {
     insert(rb_tree, 25, 10);
 
     let tree_after_recolor = array![
-        array![(27, false, 0)],
-        array![(11, true, 0), (31, true, 1)],
+        array![(27, false, 0)], array![(11, true, 0), (31, true, 1)],
         array![(1, false, 0), (22, false, 1), (30, false, 2), (41, false, 3)],
-        array![(25, true, 3), (36, true, 6), (51, true, 7)]
+        array![(25, true, 3), (36, true, 6), (51, true, 7)],
     ];
     let tree_structure = rb_tree.get_tree_structure();
     compare_tree_structures(@tree_structure, @tree_after_recolor);
@@ -450,7 +433,7 @@ fn test_functional_test_build_tree() {
 
     insert(rb_tree, 4, 3);
     let tree_with_right_node = array![
-        array![(2, false, 0)], array![(1, true, 0)], array![(4, true, 0)]
+        array![(2, false, 0)], array![(1, true, 0)], array![(4, true, 0)],
     ];
     let tree_structure = rb_tree.get_tree_structure();
     compare_tree_structures(@tree_structure, @tree_with_right_node);
@@ -459,7 +442,7 @@ fn test_functional_test_build_tree() {
 
     insert(rb_tree, 5, 4);
     let tree_after_recolor_parents = array![
-        array![(2, false, 0)], array![(1, false, 0), (4, false, 1)], array![(5, true, 3)]
+        array![(2, false, 0)], array![(1, false, 0), (4, false, 1)], array![(5, true, 3)],
     ];
     let tree_structure = rb_tree.get_tree_structure();
     compare_tree_structures(@tree_structure, @tree_after_recolor_parents);
@@ -468,9 +451,8 @@ fn test_functional_test_build_tree() {
 
     insert(rb_tree, 9, 5);
     let tree_after_left_rotation = array![
-        array![(2, false, 0)],
-        array![(1, false, 0), (5, false, 1)],
-        array![(4, true, 2), (9, true, 3)]
+        array![(2, false, 0)], array![(1, false, 0), (5, false, 1)],
+        array![(4, true, 2), (9, true, 3)],
     ];
     let tree_structure = rb_tree.get_tree_structure();
     compare_tree_structures(@tree_structure, @tree_after_left_rotation);
@@ -479,10 +461,8 @@ fn test_functional_test_build_tree() {
 
     insert(rb_tree, 3, 6);
     let tree_after_recolor = array![
-        array![(2, false, 0)],
-        array![(1, false, 0), (5, true, 1)],
-        array![(4, false, 2), (9, false, 3)],
-        array![(3, true, 4)],
+        array![(2, false, 0)], array![(1, false, 0), (5, true, 1)],
+        array![(4, false, 2), (9, false, 3)], array![(3, true, 4)],
     ];
     let tree_structure = rb_tree.get_tree_structure();
     compare_tree_structures(@tree_structure, @tree_after_recolor);
@@ -491,10 +471,8 @@ fn test_functional_test_build_tree() {
 
     insert(rb_tree, 6, 7);
     let tree_after_insertion = array![
-        array![(2, false, 0)],
-        array![(1, false, 0), (5, true, 1)],
-        array![(4, false, 2), (9, false, 3)],
-        array![(3, true, 4), (6, true, 6)],
+        array![(2, false, 0)], array![(1, false, 0), (5, true, 1)],
+        array![(4, false, 2), (9, false, 3)], array![(3, true, 4), (6, true, 6)],
     ];
     let tree_structure = rb_tree.get_tree_structure();
     compare_tree_structures(@tree_structure, @tree_after_insertion);
@@ -504,10 +482,8 @@ fn test_functional_test_build_tree() {
     insert(rb_tree, 7, 8);
     let tree_structure = rb_tree.get_tree_structure();
     let tree_after_left_right_rotation_recolor = array![
-        array![(2, false, 0)],
-        array![(1, false, 0), (5, true, 1)],
-        array![(4, false, 2), (7, false, 3)],
-        array![(3, true, 4), (6, true, 6), (9, true, 7)],
+        array![(2, false, 0)], array![(1, false, 0), (5, true, 1)],
+        array![(4, false, 2), (7, false, 3)], array![(3, true, 4), (6, true, 6), (9, true, 7)],
     ];
     compare_tree_structures(@tree_structure, @tree_after_left_right_rotation_recolor);
     let is_tree_valid = rb_tree.is_tree_valid();
@@ -516,8 +492,7 @@ fn test_functional_test_build_tree() {
     insert(rb_tree, 15, 9);
     let tree_structure = rb_tree.get_tree_structure();
     let tree_after_recolor = array![
-        array![(5, false, 0)],
-        array![(2, true, 0), (7, true, 1)],
+        array![(5, false, 0)], array![(2, true, 0), (7, true, 1)],
         array![(1, false, 0), (4, false, 1), (6, false, 2), (9, false, 3)],
         array![(3, true, 2), (15, true, 7)],
     ];
@@ -559,10 +534,9 @@ fn test_right_left_rotation_after_recolor() {
     insert(rb_tree, 19, 8);
 
     let tree_after_right_left_rotation = array![
-        array![(15, false, 0)],
-        array![(10, true, 0), (20, true, 1)],
+        array![(15, false, 0)], array![(10, true, 0), (20, true, 1)],
         array![(5, false, 0), (12, false, 1), (17, false, 2), (25, false, 3)],
-        array![(19, true, 5)]
+        array![(19, true, 5)],
     ];
 
     let tree_structure = rb_tree.get_tree_structure();
@@ -611,10 +585,9 @@ fn test_right_rotation_after_recolor() {
     insert(rb_tree, 1, 10);
 
     let tree_after_right_rotation = array![
-        array![(13, false, 0)],
-        array![(3, true, 0), (33, true, 1)],
+        array![(13, false, 0)], array![(3, true, 0), (33, true, 1)],
         array![(2, false, 0), (4, false, 1), (29, false, 2), (43, false, 3)],
-        array![(1, true, 0), (38, true, 6), (48, true, 7)]
+        array![(1, true, 0), (38, true, 6), (48, true, 7)],
     ];
 
     let tree_structure = rb_tree.get_tree_structure();
@@ -739,10 +712,9 @@ fn test_delete_single_deep_child() {
     delete(rb_tree, node_49);
 
     let tree_after_deletion = array![
-        array![(20, false, 0)],
-        array![(10, false, 0), (38, true, 1)],
+        array![(20, false, 0)], array![(10, false, 0), (38, true, 1)],
         array![(5, true, 0), (15, true, 1), (28, false, 2), (48, false, 3)],
-        array![(23, true, 4), (29, true, 5), (41, true, 6)]
+        array![(23, true, 4), (29, true, 5), (41, true, 6)],
     ];
     let tree_structure = rb_tree.get_tree_structure();
     compare_tree_structures(@tree_structure, @tree_after_deletion);
@@ -787,9 +759,8 @@ fn test_deletion_red_node_red_successor_no_children() {
     delete(rb_tree, node_41);
 
     let tree_after_deletion = array![
-        array![(16, false, 0)],
-        array![(11, true, 0), (42, true, 1)],
-        array![(1, false, 0), (13, false, 1), (26, false, 2), (44, false, 3)]
+        array![(16, false, 0)], array![(11, true, 0), (42, true, 1)],
+        array![(1, false, 0), (13, false, 1), (26, false, 2), (44, false, 3)],
     ];
     let tree_structure = rb_tree.get_tree_structure();
     compare_tree_structures(@tree_structure, @tree_after_deletion);
@@ -837,10 +808,9 @@ fn test_mirror_deletion_red_node_red_successor_no_children() {
     delete(rb_tree, node_11);
 
     let tree_after_deletion = array![
-        array![(16, false, 0)],
-        array![(12, true, 0), (41, true, 1)],
+        array![(16, false, 0)], array![(12, true, 0), (41, true, 1)],
         array![(1, false, 0), (13, false, 1), (26, false, 2), (44, false, 3)],
-        array![(42, true, 6)]
+        array![(42, true, 6)],
     ];
     let tree_structure = rb_tree.get_tree_structure();
     compare_tree_structures(@tree_structure, @tree_after_deletion);
@@ -891,10 +861,9 @@ fn test_deletion_black_node_black_successor_right_red_child() {
     delete(rb_tree, node_36);
 
     let tree_after_deletion = array![
-        array![(16, false, 0)],
-        array![(11, false, 0), (38, false, 1)],
+        array![(16, false, 0)], array![(11, false, 0), (38, false, 1)],
         array![(1, false, 0), (13, false, 1), (26, false, 2), (44, true, 3)],
-        array![(41, false, 6), (47, false, 7)]
+        array![(41, false, 6), (47, false, 7)],
     ];
 
     let tree_structure = rb_tree.get_tree_structure();
@@ -932,7 +901,7 @@ fn test_deletion_black_node_black_successor_no_child() {
 
     let tree = rb_tree.get_tree_structure();
     let expected_tree_structure = array![
-        array![(31, false, 0)], array![(1, false, 0), (41, false, 1)], array![(49, true, 3)]
+        array![(31, false, 0)], array![(1, false, 0), (41, false, 1)], array![(49, true, 3)],
     ];
     compare_tree_structures(@tree, @expected_tree_structure);
 
@@ -968,7 +937,7 @@ fn test_deletion_black_node_no_successor() {
 
     let tree = rb_tree.get_tree_structure();
     let expected_tree_structure = array![
-        array![(41, false, 0)], array![(21, false, 0), (51, false, 1)], array![(36, true, 1)]
+        array![(41, false, 0)], array![(21, false, 0), (51, false, 1)], array![(36, true, 1)],
     ];
     compare_tree_structures(@tree, @expected_tree_structure);
 
@@ -1004,7 +973,7 @@ fn test_mirror_deletion_black_node_no_successor() {
 
     let tree = rb_tree.get_tree_structure();
     let expected_tree_structure = array![
-        array![(5, false, 0)], array![(1, false, 0), (10, false, 1)], array![(7, true, 2)]
+        array![(5, false, 0)], array![(1, false, 0), (10, false, 1)], array![(7, true, 2)],
     ];
 
     compare_tree_structures(@tree, @expected_tree_structure);
@@ -1072,10 +1041,8 @@ fn test_deletion_black_node_no_successor_3() {
     delete(rb_tree, node_4);
 
     let tree_after_deletion = array![
-        array![(30, false, 0)],
-        array![(10, false, 0), (50, false, 1)],
-        array![(7, false, 0), (15, false, 1), (40, false, 2), (70, false, 3)],
-        array![(9, true, 1)]
+        array![(30, false, 0)], array![(10, false, 0), (50, false, 1)],
+        array![(7, false, 0), (15, false, 1), (40, false, 2), (70, false, 3)], array![(9, true, 1)],
     ];
 
     let tree_structure = rb_tree.get_tree_structure();
@@ -1125,10 +1092,8 @@ fn test_deletion_black_node_successor() {
     delete(rb_tree, node_10);
 
     let tree_after_deletion = array![
-        array![(20, false, 0)],
-        array![(5, false, 0), (60, false, 1)],
-        array![(3, false, 0), (7, false, 1), (40, false, 2), (80, false, 3)],
-        array![(50, true, 5)]
+        array![(20, false, 0)], array![(5, false, 0), (60, false, 1)],
+        array![(3, false, 0), (7, false, 1), (40, false, 2), (80, false, 3)], array![(50, true, 5)],
     ];
 
     let tree_structure = rb_tree.get_tree_structure();
@@ -1177,10 +1142,8 @@ fn test_mirror_deletion_black_node_successor() {
     delete(rb_tree, node_15);
 
     let tree_after_deletion = array![
-        array![(20, false, 0)],
-        array![(8, false, 0), (30, false, 1)],
-        array![(6, false, 0), (10, false, 1), (25, false, 2), (35, false, 3)],
-        array![(9, true, 2)]
+        array![(20, false, 0)], array![(8, false, 0), (30, false, 1)],
+        array![(6, false, 0), (10, false, 1), (25, false, 2), (35, false, 3)], array![(9, true, 2)],
     ];
 
     let tree_structure = rb_tree.get_tree_structure();
@@ -1216,9 +1179,8 @@ fn test_delete_tree_one_by_one() {
 
     let final_tree = rb_tree.get_tree_structure();
     let expected_tree_structure = array![
-        array![(57, false, 0)],
-        array![(24, false, 0), (60, false, 1)],
-        array![(14, true, 0), (49, true, 1), (93, true, 3)]
+        array![(57, false, 0)], array![(24, false, 0), (60, false, 1)],
+        array![(14, true, 0), (49, true, 1), (93, true, 3)],
     ];
     compare_tree_structures(@final_tree, @expected_tree_structure);
     let is_tree_valid = rb_tree.is_tree_valid();
@@ -1230,7 +1192,7 @@ fn test_delete_tree_one_by_one() {
 fn create_bid(price: u256, tree_nonce: u64) -> Bid {
     let owner = mock_address(MOCK_ADDRESS);
     let bid_id = poseidon::poseidon_hash_span(
-        array![owner.into(), tree_nonce.try_into().unwrap()].span()
+        array![owner.into(), tree_nonce.try_into().unwrap()].span(),
     );
     Bid { bid_id, owner, amount: 0, price, tree_nonce }
 }
@@ -1238,7 +1200,7 @@ fn create_bid(price: u256, tree_nonce: u64) -> Bid {
 fn insert(rb_tree: IRBTreeMockContractDispatcher, price: u256, tree_nonce: u64) -> felt252 {
     let owner = mock_address(MOCK_ADDRESS);
     let bid_id = poseidon::poseidon_hash_span(
-        array![owner.into(), tree_nonce.try_into().unwrap()].span()
+        array![owner.into(), tree_nonce.try_into().unwrap()].span(),
     );
     rb_tree.insert(Bid { bid_id, owner, amount: 0, price, tree_nonce });
     return bid_id;
@@ -1255,7 +1217,7 @@ fn delete(rb_tree: IRBTreeMockContractDispatcher, bid_id: felt252) {
 }
 
 fn compare_tree_structures(
-    actual: @Array<Array<(u256, bool, u128)>>, expected: @Array<Array<(u256, bool, u128)>>
+    actual: @Array<Array<(u256, bool, u128)>>, expected: @Array<Array<(u256, bool, u128)>>,
 ) {
     if actual.len() != expected.len() {
         return;

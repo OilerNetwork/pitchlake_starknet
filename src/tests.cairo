@@ -20,43 +20,43 @@ mod vault {
 
 #[cfg(test)]
 mod option_round {
-    mod option_buyers {
-        mod bidding_tests;
-        mod exercise_options_tests;
-        mod refunding_bids_tests;
-        mod update_bids_tests;
-        mod tokenizing_options_tests;
+    pub mod option_buyers {
+        pub mod bidding_tests;
+        pub mod exercise_options_tests;
+        pub mod refunding_bids_tests;
+        pub mod tokenizing_options_tests;
+        pub mod update_bids_tests;
     }
-    mod rb_tree {
-        mod rb_tree_tests;
-        mod rb_tree_mock_contract;
-        mod rb_tree_stress_tests;
+    pub mod rb_tree {
+        pub mod rb_tree_mock_contract;
+        pub mod rb_tree_stress_tests;
+        pub mod rb_tree_tests;
     }
-    mod state_transition {
-        mod auction_end {
-            mod auction_end_tests;
-            mod refundable_bids_tests;
-            mod clearing_price_tests;
-            mod option_distribution_tests;
-            mod premium_earned_tests;
-            mod unsold_liquidity_tests;
+    pub mod state_transition {
+        pub mod auction_end {
+            pub mod auction_end_tests;
+            pub mod clearing_price_tests;
+            pub mod option_distribution_tests;
+            pub mod premium_earned_tests;
+            pub mod refundable_bids_tests;
+            pub mod unsold_liquidity_tests;
         }
-        mod auction_start {
-            mod auction_start_tests;
+        pub mod auction_start {
+            pub mod auction_start_tests;
         }
-        mod option_settle {
-            mod calculated_payout_tests;
-            mod option_settle_tests;
+        pub mod option_settle {
+            pub mod calculated_payout_tests;
+            pub mod option_settle_tests;
         }
-        mod caller_is_not_vault_tests;
-        mod fulfill_request_tests;
+        pub mod caller_is_not_vault_tests;
+        pub mod fulfill_request_tests;
     }
 }
 
 #[cfg(test)]
 mod deployment {
-    mod constructor_tests;
-    mod initializing_option_round_params_tests;
+    pub mod constructor_tests;
+    pub mod initializing_option_round_params_tests;
 }
 
 #[cfg(test)]
@@ -66,22 +66,21 @@ mod misc {
 
 #[cfg(test)]
 mod utils {
-    mod facades {
-        mod vault_facade;
-        mod option_round_facade;
-        mod sanity_checks;
+    pub mod facades {
+        pub mod option_round_facade;
+        pub mod sanity_checks;
+        pub mod vault_facade;
     }
 
-    mod helpers {
-        mod accelerators;
-        mod event_helpers;
-        mod general_helpers;
-        mod setup;
+    pub mod helpers {
+        pub mod accelerators;
+        pub mod event_helpers;
+        pub mod general_helpers;
+        pub mod setup;
     }
 
-    mod lib {
-        mod test_accounts;
-        mod variables;
+    pub mod lib {
+        pub mod test_accounts;
+        pub mod variables;
     }
 }
-

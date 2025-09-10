@@ -1,11 +1,11 @@
-use argent::signer::signer_signature::{Signer, SignerStorageValue, SignerSignature, SignerType};
+use argent::signer::signer_signature::{Signer, SignerSignature, SignerStorageValue, SignerType};
 use argent::utils::array_store::StoreFelt252Array;
 use starknet::ContractAddress;
 
 #[starknet::interface]
 trait IRecovery<TContractState> {
     fn trigger_escape(
-        ref self: TContractState, target_signers: Array<Signer>, new_signers: Array<Signer>
+        ref self: TContractState, target_signers: Array<Signer>, new_signers: Array<Signer>,
     );
     fn execute_escape(ref self: TContractState);
     fn cancel_escape(ref self: TContractState);
@@ -21,7 +21,7 @@ trait IRecovery<TContractState> {
 struct EscapeTriggered {
     ready_at: u64,
     target_signers: Span<felt252>,
-    new_signers: Span<felt252>
+    new_signers: Span<felt252>,
 }
 
 /// @notice Signer escape was completed
@@ -30,7 +30,7 @@ struct EscapeTriggered {
 #[derive(Drop, starknet::Event)]
 struct EscapeExecuted {
     target_signers: Span<felt252>,
-    new_signers: Span<felt252>
+    new_signers: Span<felt252>,
 }
 
 /// @notice Signer escape was canceled
@@ -39,7 +39,7 @@ struct EscapeExecuted {
 #[derive(Drop, starknet::Event)]
 struct EscapeCanceled {
     target_signers: Span<felt252>,
-    new_signers: Span<felt252>
+    new_signers: Span<felt252>,
 }
 
 /// @notice The status of the Escape
@@ -84,7 +84,7 @@ enum LegacyEscapeType {
     #[default]
     None,
     Guardian,
-    Owner
+    Owner,
 }
 
 /// @notice The Legacy Escape (only used in the ArgentAccount)
@@ -134,7 +134,7 @@ impl PackEscape of starknet::StorePacking<Escape, Array<felt252>> {
         while let Option::Some(target_signer) = target_signers_span.pop_front() {
             arr.append(*target_signer);
             arr.append(*new_signers_span.pop_front().expect('argent/invalid-array-len'));
-        };
+        }
         arr
     }
 
@@ -151,15 +151,15 @@ impl PackEscape of starknet::StorePacking<Escape, Array<felt252>> {
                 let target_signer = value_span.pop_front();
                 let new_signer = match value_span.pop_front() {
                     Option::Some(item) => *item,
-                    Option::None => { break; }
+                    Option::None => { break; },
                 };
                 target_signers.append(*target_signer.unwrap());
                 new_signers.append(new_signer);
-            };
+            }
             Escape {
                 ready_at: ready_at.try_into().unwrap(),
                 target_signers: target_signers,
-                new_signers: new_signers
+                new_signers: new_signers,
             }
         }
     }
@@ -174,9 +174,9 @@ impl LegacyEscapeStorePacking of starknet::StorePacking<LegacyEscape, (felt252, 
     fn pack(value: LegacyEscape) -> (felt252, felt252) {
         let (signer_type_ordinal, stored_value) = match value.new_signer {
             Option::Some(new_signer) => (
-                new_signer.signer_type.into(), new_signer.stored_value.into()
+                new_signer.signer_type.into(), new_signer.stored_value.into(),
             ),
-            Option::None => (0, 0)
+            Option::None => (0, 0),
         };
         let packed = value.ready_at.into()
             + (value.escape_type.into() * SHIFT_64)
@@ -198,7 +198,7 @@ impl LegacyEscapeStorePacking of starknet::StorePacking<LegacyEscape, (felt252, 
                 let signer_type = signer_type_ordinal.try_into().unwrap();
                 let stored_value = stored_value.try_into().unwrap();
                 Option::Some(SignerStorageValue { signer_type, stored_value })
-            }
+            },
         }
     }
 }
@@ -209,7 +209,7 @@ impl EscapeTypeIntoFelt252 of Into<LegacyEscapeType, felt252> {
         match self {
             LegacyEscapeType::None => 0,
             LegacyEscapeType::Guardian => 1,
-            LegacyEscapeType::Owner => 2
+            LegacyEscapeType::Owner => 2,
         }
     }
 }

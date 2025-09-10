@@ -1,20 +1,17 @@
 #[starknet::component]
 mod session_component {
-    use alexandria_merkle_tree::merkle_tree::{
-        Hasher, MerkleTree, MerkleTreeImpl, poseidon::PoseidonHasherImpl, MerkleTreeTrait,
-    };
+    use alexandria_merkle_tree::merkle_tree::poseidon::PoseidonHasherImpl;
+    use alexandria_merkle_tree::merkle_tree::{Hasher, MerkleTree, MerkleTreeImpl, MerkleTreeTrait};
     use argent::account::interface::{IAccount, IArgentUserAccount};
-    use argent::session::{
-        session_hash::{OffChainMessageHashSessionRev1, MerkleLeafHash},
-        interface::{ISessionable, SessionToken, Session, ISessionCallback},
-    };
-    use argent::signer::signer_signature::{SignerSignatureTrait, SignerTrait, SignerSignature};
-    use argent::utils::{
-        asserts::{assert_no_self_call, assert_only_self}, serialization::full_deserialize
-    };
+    use argent::session::interface::{ISessionCallback, ISessionable, Session, SessionToken};
+    use argent::session::session_hash::{MerkleLeafHash, OffChainMessageHashSessionRev1};
+    use argent::signer::signer_signature::{SignerSignature, SignerSignatureTrait, SignerTrait};
+    use argent::utils::asserts::{assert_no_self_call, assert_only_self};
+    use argent::utils::serialization::full_deserialize;
     use hash::{HashStateExTrait, HashStateTrait};
     use poseidon::PoseidonTrait;
-    use starknet::{account::Call, get_contract_address, VALIDATED, get_block_timestamp};
+    use starknet::account::Call;
+    use starknet::{VALIDATED, get_block_timestamp, get_contract_address};
 
 
     #[storage]
@@ -30,7 +27,7 @@ mod session_component {
     #[event]
     #[derive(Drop, starknet::Event)]
     enum Event {
-        SessionRevoked: SessionRevoked
+        SessionRevoked: SessionRevoked,
     }
 
     #[derive(Drop, starknet::Event)]
@@ -54,14 +51,14 @@ mod session_component {
 
         #[inline(always)]
         fn is_session_revoked(
-            self: @ComponentState<TContractState>, session_hash: felt252
+            self: @ComponentState<TContractState>, session_hash: felt252,
         ) -> bool {
             self.revoked_session.read(session_hash)
         }
 
         #[inline(always)]
         fn is_session_authorization_cached(
-            self: @ComponentState<TContractState>, session_hash: felt252
+            self: @ComponentState<TContractState>, session_hash: felt252,
         ) -> bool {
             let state = self.get_contract();
             if let Option::Some(guardian_guid) = state.get_guardian_guid() {
@@ -88,7 +85,7 @@ mod session_component {
         fn is_session(self: @ComponentState<TContractState>, signature: Span<felt252>) -> bool {
             match signature.get(0) {
                 Option::Some(session_magic) => *session_magic.unbox() == SESSION_MAGIC,
-                Option::None => false
+                Option::None => false,
             }
         }
 
@@ -118,7 +115,7 @@ mod session_component {
                     state,
                     token.session_authorization,
                     token.cache_authorization,
-                    token_session_hash
+                    token_session_hash,
                 );
 
             let message_hash = PoseidonTrait::new()
@@ -131,21 +128,21 @@ mod session_component {
             let session_guid_from_sig = token.session_signature.signer().into_guid();
             assert(
                 token.session.session_key_guid == session_guid_from_sig,
-                'session/session-key-mismatch'
+                'session/session-key-mismatch',
             );
             assert(
                 token.session_signature.is_valid_signature(message_hash),
-                'session/invalid-session-sig'
+                'session/invalid-session-sig',
             );
 
             // checks that its the account guardian that signed the session
             assert(
                 state.is_guardian(token.guardian_signature.signer()),
-                'session/guardian-key-mismatch'
+                'session/guardian-key-mismatch',
             );
             assert(
                 token.guardian_signature.is_valid_signature(message_hash),
-                'session/invalid-backend-sig'
+                'session/invalid-backend-sig',
             );
 
             assert_valid_session_calls(@token, calls);
@@ -173,7 +170,7 @@ mod session_component {
                     // authorization is cached, we can skip the signature verification
                     // prevents a DoS attack where authorization can be replaced by a bigger one
                     assert(
-                        session_authorization.len() <= cached_sig_len, 'session/invalid-auth-len'
+                        session_authorization.len() <= cached_sig_len, 'session/invalid-auth-len',
                     );
                     return;
                 }
@@ -193,7 +190,7 @@ mod session_component {
                     .valid_session_cache
                     .write(
                         (owner_guid_for_cache, guardian_guid, session_hash),
-                        session_authorization.len()
+                        session_authorization.len(),
                     );
             }
         }

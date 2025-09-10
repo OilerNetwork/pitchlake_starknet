@@ -1,21 +1,21 @@
 mod types;
 
 mod library {
-    mod eth;
-    mod red_black_tree;
-    mod utils;
-    mod pricing_utils;
-    mod constants;
+    pub mod constants;
+    pub mod eth;
+    pub mod pricing_utils;
+    pub mod red_black_tree;
+    pub mod utils;
 }
 
 mod vault {
-    mod interface;
-    mod contract;
+    pub mod contract;
+    pub mod interface;
 }
 
 mod option_round {
-    mod interface;
-    mod contract;
+    pub mod contract;
+    pub mod interface;
 }
 
 #[cfg(test)]

@@ -1,36 +1,28 @@
 use core::traits::Into;
-use starknet::testing::{set_block_timestamp, set_contract_address};
-use openzeppelin_token::erc20::interface::{ERC20ABIDispatcherTrait,};
-use pitch_lake::{
-    option_round::contract::OptionRound::Errors,
-    tests::{
-        utils::{
-            helpers::{
-                general_helpers::{create_array_linear, get_erc20_balance, get_erc20_balances},
-                event_helpers::{
-                    assert_event_transfer, assert_event_vault_withdrawal,
-                    assert_event_options_exercised, clear_event_logs,
-                },
-                setup::{setup_facade},
-                accelerators::{
-                    accelerate_to_auctioning, accelerate_to_running, accelerate_to_settled,
-                    accelerate_to_running_custom,
-                },
-            },
-            lib::{
-                test_accounts::{
-                    liquidity_provider_1, option_bidder_buyer_1, option_bidder_buyer_2,
-                    option_bidder_buyer_3, option_bidders_get
-                },
-                variables::decimals,
-            },
-            facades::{
-                vault_facade::{VaultFacade, VaultFacadeTrait},
-                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
-            },
-        },
-    }
+use openzeppelin_token::erc20::interface::ERC20ABIDispatcherTrait;
+use pitch_lake::option_round::contract::OptionRound::Errors;
+use pitch_lake::tests::utils::facades::option_round_facade::{
+    OptionRoundFacade, OptionRoundFacadeTrait,
 };
+use pitch_lake::tests::utils::facades::vault_facade::{VaultFacade, VaultFacadeTrait};
+use pitch_lake::tests::utils::helpers::accelerators::{
+    accelerate_to_auctioning, accelerate_to_running, accelerate_to_running_custom,
+    accelerate_to_settled,
+};
+use pitch_lake::tests::utils::helpers::event_helpers::{
+    assert_event_options_exercised, assert_event_transfer, assert_event_vault_withdrawal,
+    clear_event_logs,
+};
+use pitch_lake::tests::utils::helpers::general_helpers::{
+    create_array_linear, get_erc20_balance, get_erc20_balances,
+};
+use pitch_lake::tests::utils::helpers::setup::setup_facade;
+use pitch_lake::tests::utils::lib::test_accounts::{
+    liquidity_provider_1, option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
+    option_bidders_get,
+};
+use pitch_lake::tests::utils::lib::variables::decimals;
+use starknet::testing::{set_block_timestamp, set_contract_address};
 
 
 /// Failures ///
@@ -92,11 +84,11 @@ fn test_exercise_options_events() {
             clear_event_logs(array![current_round.contract_address()]);
             let payout_amount = current_round.exercise_options(*ob);
             assert_event_options_exercised(
-                current_round.contract_address(), *ob, bid_count, 0_u256, payout_amount
+                current_round.contract_address(), *ob, bid_count, 0_u256, payout_amount,
             );
         },
-        Option::None => {}
-    };
+        Option::None => {},
+    }
     // The rest of the OBs exercise all of their options which are mintable
     loop {
         match option_bidders.pop_front() {
@@ -104,10 +96,10 @@ fn test_exercise_options_events() {
                 clear_event_logs(array![current_round.contract_address()]);
                 let payout_amount = current_round.exercise_options(*ob);
                 assert_event_options_exercised(
-                    current_round.contract_address(), *ob, bid_count, bid_count, payout_amount
+                    current_round.contract_address(), *ob, bid_count, bid_count, payout_amount,
                 );
             },
-            Option::None => { break (); }
+            Option::None => { break (); },
         }
     };
 }
@@ -133,7 +125,7 @@ fn test_exercise_options_eth_transfer() {
 
     // Eth balance before
     let round_balance_before = get_erc20_balance(
-        eth.contract_address, current_round.contract_address()
+        eth.contract_address, current_round.contract_address(),
     );
     loop {
         match option_bidders.pop_front() {
@@ -144,11 +136,11 @@ fn test_exercise_options_eth_transfer() {
                 let lp_balance_after = get_erc20_balance(eth.contract_address, *ob);
                 assert_eq!(lp_balance_after, lp_balance_before + payout_amount);
             },
-            Option::None => { break (); }
+            Option::None => { break (); },
         }
-    };
+    }
     let round_balance_after = get_erc20_balance(
-        eth.contract_address, current_round.contract_address()
+        eth.contract_address, current_round.contract_address(),
     );
     assert(round_balance_after == round_balance_before - total_payout, 'round balance after wrong');
 }

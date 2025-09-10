@@ -1,24 +1,23 @@
-use starknet::{ContractAddress, ClassHash};
-use pitch_lake::option_round::interface::OptionRoundState;
+use starknet::{ClassHash, ContractAddress};
 
 // @dev Constructor arguments
 #[derive(Drop, Serde)]
-struct ConstructorArgs {
-    verifier_address: ContractAddress,
-    eth_address: ContractAddress,
-    option_round_class_hash: ClassHash,
-    alpha: u128,
-    strike_level: i128,
-    round_transition_duration: u64,
-    auction_duration: u64,
-    round_duration: u64,
-    program_id: felt252,
-    proving_delay: u64,
+pub struct ConstructorArgs {
+    pub verifier_address: ContractAddress,
+    pub eth_address: ContractAddress,
+    pub option_round_class_hash: ClassHash,
+    pub alpha: u128,
+    pub strike_level: i128,
+    pub round_transition_duration: u64,
+    pub auction_duration: u64,
+    pub round_duration: u64,
+    pub program_id: felt252,
+    pub proving_delay: u64,
 }
 
 // The interface for the vault contract
 #[starknet::interface]
-trait IVault<TContractState> {
+pub trait IVault<TContractState> {
     /// Reads ///
 
     // @dev Get the alpha risk factor of the vault
@@ -168,7 +167,7 @@ trait IVault<TContractState> {
     // @returns 0 if the callback was used to initialize round 1, or the total payout of the settled
     // round if it was used to settle
     fn fossil_callback(
-        ref self: TContractState, job_request: Span<felt252>, result: Span<felt252>
+        ref self: TContractState, job_request: Span<felt252>, result: Span<felt252>,
     ) -> u256;
 }
 
@@ -178,15 +177,15 @@ trait IVault<TContractState> {
 // timestamp: Upper bound timestamp of gas data used in data calculation
 // program_id: 'PITCH_LAKE_V1'
 #[derive(Copy, Drop, PartialEq)]
-struct JobRequest {
-    vault_address: ContractAddress,
-    timestamp: u64,
-    program_id: felt252,
+pub struct JobRequest {
+    pub vault_address: ContractAddress,
+    pub timestamp: u64,
+    pub program_id: felt252,
 }
 
 // Fossil job results (args, data and tolerances)
 #[derive(Copy, Drop, PartialEq)]
-struct VerifierData {
+pub struct VerifierData {
     pub reserve_price_start_timestamp: u64,
     pub reserve_price_end_timestamp: u64,
     pub reserve_price: felt252,
@@ -199,10 +198,10 @@ struct VerifierData {
 }
 
 #[derive(Default, Copy, Drop, Serde, PartialEq, starknet::Store)]
-struct L1Data {
-    twap: u256,
-    max_return: u128,
-    reserve_price: u256,
+pub struct L1Data {
+    pub twap: u256,
+    pub max_return: u128,
+    pub reserve_price: u256,
 }
 
 
@@ -275,8 +274,8 @@ impl SerdeVerifierData of Serde<VerifierData> {
                 twap_result,
                 max_return_start_timestamp,
                 max_return_end_timestamp,
-                max_return
-            }
+                max_return,
+            },
         )
     }
 }

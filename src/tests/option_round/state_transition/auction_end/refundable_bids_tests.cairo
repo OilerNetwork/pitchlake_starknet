@@ -1,34 +1,28 @@
 use core::traits::TryInto;
-use starknet::{ContractAddress, testing::{set_block_timestamp, set_contract_address}};
 use openzeppelin_token::erc20::interface::ERC20ABIDispatcherTrait;
-use pitch_lake::tests::{
-    utils::{
-        helpers::{
-            event_helpers::{assert_event_unused_bids_refunded, clear_event_logs},
-            accelerators::{
-                accelerate_to_auctioning, accelerate_to_running_custom, accelerate_to_running,
-                accelerate_to_settled, timeskip_and_end_auction, accelerate_to_auctioning_custom,
-                timeskip_past_auction_end_date,
-            },
-            setup::{setup_facade, setup_test_auctioning_bidders},
-            general_helpers::{
-                scale_array, get_erc20_balance, get_erc20_balances, create_array_gradient,
-                create_array_linear
-            },
-        },
-        lib::{
-            test_accounts::{
-                liquidity_provider_1, option_bidder_buyer_1, option_bidder_buyer_2,
-                option_bidder_buyer_3, option_bidders_get, option_bidder_buyer_4,
-            },
-            variables::{decimals},
-        },
-        facades::{
-            vault_facade::{VaultFacade, VaultFacadeTrait},
-            option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait, Bid}
-        },
-    },
+use pitch_lake::tests::utils::facades::option_round_facade::{
+    Bid, OptionRoundFacade, OptionRoundFacadeTrait,
 };
+use pitch_lake::tests::utils::facades::vault_facade::{VaultFacade, VaultFacadeTrait};
+use pitch_lake::tests::utils::helpers::accelerators::{
+    accelerate_to_auctioning, accelerate_to_auctioning_custom, accelerate_to_running,
+    accelerate_to_running_custom, accelerate_to_settled, timeskip_and_end_auction,
+    timeskip_past_auction_end_date,
+};
+use pitch_lake::tests::utils::helpers::event_helpers::{
+    assert_event_unused_bids_refunded, clear_event_logs,
+};
+use pitch_lake::tests::utils::helpers::general_helpers::{
+    create_array_gradient, create_array_linear, get_erc20_balance, get_erc20_balances, scale_array,
+};
+use pitch_lake::tests::utils::helpers::setup::{setup_facade, setup_test_auctioning_bidders};
+use pitch_lake::tests::utils::lib::test_accounts::{
+    liquidity_provider_1, option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
+    option_bidder_buyer_4, option_bidders_get,
+};
+use pitch_lake::tests::utils::lib::variables::decimals;
+use starknet::ContractAddress;
+use starknet::testing::{set_block_timestamp, set_contract_address};
 
 
 // Deploy vault, start auction, and place incremental bids
@@ -42,7 +36,7 @@ fn place_incremental_bids_internal(
 
     // @dev Bids start at reserve price and increment by reserve price
     let bid_prices = create_array_gradient(
-        option_reserve_price, option_reserve_price, number_of_option_bidders
+        option_reserve_price, option_reserve_price, number_of_option_bidders,
     );
 
     // @dev Bid amounts are each bid price * the number of options available
@@ -62,7 +56,7 @@ fn place_incremental_bids_internal(
 fn test_refundable_bids_before_auction_end() {
     let number_of_option_bidders = 3;
     let (mut vault, _, mut option_bidders, _) = setup_test_auctioning_bidders(
-        number_of_option_bidders
+        number_of_option_bidders,
     );
 
     // Each option buyer out bids the next
@@ -75,7 +69,7 @@ fn test_refundable_bids_before_auction_end() {
                 let refundable_amount = current_round.get_refundable_balance_for(*bidder);
                 assert(refundable_amount == 0, 'refunded bid shd be 0');
             },
-            Option::None => { break; }
+            Option::None => { break; },
         }
     }
 }
@@ -86,12 +80,12 @@ fn test_refundable_bids_before_auction_end() {
 fn test_refundable_bids_after_auction_end() {
     let number_of_option_bidders = 3;
     let (mut vault, _, mut option_bidders, _) = setup_test_auctioning_bidders(
-        number_of_option_bidders
+        number_of_option_bidders,
     );
 
     // Each option buyer out bids the next
     let (mut bid_amounts, mut bid_prices, mut current_round, _) = place_incremental_bids_internal(
-        ref vault, option_bidders
+        ref vault, option_bidders,
     );
 
     // End auction
@@ -109,14 +103,14 @@ fn test_refundable_bids_after_auction_end() {
                         let bid_price = bid_prices.pop_front().unwrap();
                         assert(
                             refunded_amount == (*bid_amount) * (*bid_price),
-                            'refunded bid balance wrong'
+                            'refunded bid balance wrong',
                         );
                     },
-                    Option::None => { break; }
+                    Option::None => { break; },
                 }
             }
         },
-        Option::None => { panic!("this should not panic") }
+        Option::None => { panic!("this should not panic") },
     }
 }
 
@@ -148,7 +142,7 @@ fn test_refundable_bids_includes_partial_and_fully_refunded_bids() {
 
     assert(
         current_round.get_refundable_balance_for(bidder) == total_refundable_amount,
-        'refunable amount wrong'
+        'refunable amount wrong',
     );
 }
 
@@ -173,6 +167,6 @@ fn test_over_bids_are_refundable() {
     assert(current_round.get_refundable_balance_for(*bidders[0]) == 0, 'ob1 shd get no refunds');
     assert(
         current_round.get_refundable_balance_for(*bidders[1]) == reserve_price * bid_amount,
-        'ob2 shd have a partial refund'
+        'ob2 shd have a partial refund',
     );
 }

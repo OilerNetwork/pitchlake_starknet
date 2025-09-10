@@ -1,54 +1,42 @@
 use core::array::ArrayTrait;
-use starknet::{
-    ClassHash, ContractAddress, contract_address_const, deploy_syscall,
-    Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
-    testing::{set_block_timestamp, set_contract_address}
-};
-use openzeppelin_token::erc20::interface::ERC20ABIDispatcherTrait;
-use pitch_lake::{
-    library::eth::Eth,
-    vault::{
-        contract::Vault,
-        interface::{
-            IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcherTrait
-        }
-    },
-    option_round::{
-        contract::OptionRound::Errors,
-        interface::{OptionRoundState, IOptionRoundDispatcher, IOptionRoundDispatcherTrait},
-    },
-    tests::{
-        utils::{
-            helpers::{
-                general_helpers::{
-                    multiply_arrays, scale_array, sum_u256_array, get_erc20_balance,
-                    get_erc20_balances, get_total_bids_amount, create_array_linear,
-                    create_array_gradient, to_wei
-                },
-                setup::{setup_facade, decimals, deploy_vault, clear_event_logs,},
-                accelerators::{
-                    accelerate_to_auctioning, timeskip_and_end_auction, accelerate_to_running,
-                    accelerate_to_settled, timeskip_past_auction_end_date,
-                    accelerate_to_auctioning_custom,
-                },
-                event_helpers::{
-                    assert_event_transfer, assert_event_auction_bid_placed, pop_log,
-                    assert_no_events_left,
-                }
-            },
-            lib::test_accounts::{
-                liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
-                option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
-                option_bidders_get, liquidity_providers_get,
-            },
-            facades::{
-                vault_facade::{VaultFacade, VaultFacadeTrait},
-                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
-            },
-        },
-    },
-};
 use debug::PrintTrait;
+use openzeppelin_token::erc20::interface::ERC20ABIDispatcherTrait;
+use pitch_lake::library::eth::Eth;
+use pitch_lake::option_round::contract::OptionRound::Errors;
+use pitch_lake::option_round::interface::{
+    IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState,
+};
+use pitch_lake::tests::utils::facades::option_round_facade::{
+    OptionRoundFacade, OptionRoundFacadeTrait,
+};
+use pitch_lake::tests::utils::facades::vault_facade::{VaultFacade, VaultFacadeTrait};
+use pitch_lake::tests::utils::helpers::accelerators::{
+    accelerate_to_auctioning, accelerate_to_auctioning_custom, accelerate_to_running,
+    accelerate_to_settled, timeskip_and_end_auction, timeskip_past_auction_end_date,
+};
+use pitch_lake::tests::utils::helpers::event_helpers::{
+    assert_event_auction_bid_placed, assert_event_transfer, assert_no_events_left, pop_log,
+};
+use pitch_lake::tests::utils::helpers::general_helpers::{
+    create_array_gradient, create_array_linear, get_erc20_balance, get_erc20_balances,
+    get_total_bids_amount, multiply_arrays, scale_array, sum_u256_array, to_wei,
+};
+use pitch_lake::tests::utils::helpers::setup::{
+    clear_event_logs, decimals, deploy_vault, setup_facade,
+};
+use pitch_lake::tests::utils::lib::test_accounts::{
+    liquidity_provider_1, liquidity_provider_2, liquidity_providers_get, option_bidder_buyer_1,
+    option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4, option_bidders_get,
+};
+use pitch_lake::vault::contract::Vault;
+use pitch_lake::vault::interface::{
+    IVaultDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcher, IVaultSafeDispatcherTrait,
+};
+use starknet::testing::{set_block_timestamp, set_contract_address};
+use starknet::{
+    ClassHash, ContractAddress, Felt252TryIntoContractAddress, contract_address_const,
+    deploy_syscall, get_block_timestamp, get_contract_address,
+};
 
 /// Failues ///
 
@@ -160,7 +148,7 @@ fn test_bidding_no_options_fail() {
     let (mut vault, _) = setup_facade();
     let mut current_round = vault.get_current_round();
     accelerate_to_auctioning_custom(
-        ref vault, liquidity_providers_get(2).span(), array![0, 0].span()
+        ref vault, liquidity_providers_get(2).span(), array![0, 0].span(),
     );
 
     current_round
@@ -168,7 +156,7 @@ fn test_bidding_no_options_fail() {
             1234,
             current_round.get_reserve_price(),
             liquidity_provider_1(),
-            Errors::NoOptionsToBidFor
+            Errors::NoOptionsToBidFor,
         );
 }
 
@@ -208,10 +196,10 @@ fn test_bid_accepted_events() {
                     *bid_id,
                     *bid_amount,
                     *bid_price,
-                    *tree_nonce + 1
+                    *tree_nonce + 1,
                 );
             },
-            Option::None => { break; }
+            Option::None => { break; },
         };
     }
 }
@@ -261,7 +249,7 @@ fn test_bid_eth_transfer() {
     let mut option_bidders = option_bidders_get(3).span();
     let mut ob_balances_before = get_erc20_balances(eth.contract_address, option_bidders).span();
     let round_balance_before = get_erc20_balance(
-        eth.contract_address, current_round.contract_address()
+        eth.contract_address, current_round.contract_address(),
     );
     // Place bids
     let mut bid_prices = create_array_gradient(reserve_price, reserve_price, 3).span();
@@ -271,7 +259,7 @@ fn test_bid_eth_transfer() {
     // Eth balances after bid
     let mut ob_balances_after = get_erc20_balances(eth.contract_address, option_bidders).span();
     let round_balance_after = get_erc20_balance(
-        eth.contract_address, current_round.contract_address()
+        eth.contract_address, current_round.contract_address(),
     );
 
     assert(round_balance_after == round_balance_before + bids_total, 'round balance after wrong');
@@ -284,10 +272,10 @@ fn test_bid_eth_transfer() {
                 let ob_amount = bid_amounts.pop_front().unwrap();
                 assert(
                     *ob_balance_after == *ob_balance_before - (*ob_bid_price * *ob_amount),
-                    'ob balance after wrong'
+                    'ob balance after wrong',
                 );
             },
-            Option::None => { break; }
+            Option::None => { break; },
         };
     }
 }
@@ -393,7 +381,7 @@ fn test_failed_bid_nonce_unchanged() {
             //Failed bid in alternate rounds and check nonce update
             let _ = current_round
                 .place_bid_expect_error(
-                    bid_amount, bid_price - 1, bidder, Errors::BidBelowReservePrice
+                    bid_amount, bid_price - 1, bidder, Errors::BidBelowReservePrice,
                 );
             let nonce_after = current_round.get_bidding_nonce_for(bidder);
             assert(nonce_before == nonce_after, 'Nonce Mismatch');
@@ -424,7 +412,7 @@ fn test_place_bid_id() {
     while i > 0 {
         let bid_nonce = current_round.get_bidding_nonce_for(bidder);
         let expected_hash = poseidon::poseidon_hash_span(
-            array![bidder.into(), bid_nonce.into()].span()
+            array![bidder.into(), bid_nonce.into()].span(),
         );
         let bid = current_round.place_bid(bid_amount, bid_price, bidder);
         assert(bid.bid_id == expected_hash, 'Bid Id Incorrect');

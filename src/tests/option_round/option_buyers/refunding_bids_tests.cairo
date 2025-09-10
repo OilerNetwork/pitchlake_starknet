@@ -1,37 +1,29 @@
 use core::traits::TryInto;
-use starknet::{ContractAddress, testing::{set_block_timestamp, set_contract_address}};
-use openzeppelin_token::erc20::interface::{ERC20ABI, ERC20ABIDispatcher, ERC20ABIDispatcherTrait,};
-use pitch_lake::{
-    option_round::contract::OptionRound::Errors,
-    tests::{
-        utils::{
-            helpers::{
-                setup::{setup_facade},
-                general_helpers::{
-                    scale_array, get_erc20_balance, get_erc20_balances, create_array_gradient,
-                    create_array_linear,
-                },
-                event_helpers::{assert_event_unused_bids_refunded, clear_event_logs},
-                accelerators::{
-                    accelerate_to_auctioning, accelerate_to_running_custom, accelerate_to_running,
-                    accelerate_to_settled, timeskip_and_end_auction,
-                    accelerate_to_auctioning_custom, timeskip_past_auction_end_date,
-                },
-            },
-            lib::{
-                test_accounts::{
-                    liquidity_provider_1, option_bidder_buyer_1, option_bidder_buyer_2,
-                    option_bidder_buyer_3, option_bidders_get, option_bidder_buyer_4,
-                },
-                variables::{decimals},
-            },
-            facades::{
-                vault_facade::{VaultFacade, VaultFacadeTrait},
-                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait}
-            },
-        },
-    }
+use openzeppelin_token::erc20::interface::{ERC20ABI, ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
+use pitch_lake::option_round::contract::OptionRound::Errors;
+use pitch_lake::tests::utils::facades::option_round_facade::{
+    OptionRoundFacade, OptionRoundFacadeTrait,
 };
+use pitch_lake::tests::utils::facades::vault_facade::{VaultFacade, VaultFacadeTrait};
+use pitch_lake::tests::utils::helpers::accelerators::{
+    accelerate_to_auctioning, accelerate_to_auctioning_custom, accelerate_to_running,
+    accelerate_to_running_custom, accelerate_to_settled, timeskip_and_end_auction,
+    timeskip_past_auction_end_date,
+};
+use pitch_lake::tests::utils::helpers::event_helpers::{
+    assert_event_unused_bids_refunded, clear_event_logs,
+};
+use pitch_lake::tests::utils::helpers::general_helpers::{
+    create_array_gradient, create_array_linear, get_erc20_balance, get_erc20_balances, scale_array,
+};
+use pitch_lake::tests::utils::helpers::setup::setup_facade;
+use pitch_lake::tests::utils::lib::test_accounts::{
+    liquidity_provider_1, option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
+    option_bidder_buyer_4, option_bidders_get,
+};
+use pitch_lake::tests::utils::lib::variables::decimals;
+use starknet::ContractAddress;
+use starknet::testing::{set_block_timestamp, set_contract_address};
 
 // @note Break up into separate files
 // - pending/refundable bids tests can be in the same file, needs to move to
@@ -46,7 +38,7 @@ use pitch_lake::{
 // Deploy vault and start auction
 // @return The vault facade, eth dispatcher, and span of option bidders
 fn setup_test(
-    number_of_option_buyers: u32
+    number_of_option_buyers: u32,
 ) -> (VaultFacade, ERC20ABIDispatcher, Span<ContractAddress>) {
     let (mut vault, eth) = setup_facade();
 
@@ -71,7 +63,7 @@ fn place_incremental_bids_internal(
 
     // @dev Bids start at reserve price and increment by reserve price
     let bid_prices = create_array_gradient(
-        option_reserve_price, option_reserve_price, number_of_option_bidders
+        option_reserve_price, option_reserve_price, number_of_option_bidders,
     );
 
     // @dev Bid amounts are the number of options available
@@ -127,14 +119,14 @@ fn test_refunding_bids_events() {
                         // Check refunding bids emits the correct event
                         let refund_amount = current_round.refund_bid(*bidder);
                         assert_event_unused_bids_refunded(
-                            current_round.contract_address(), *bidder, refund_amount
+                            current_round.contract_address(), *bidder, refund_amount,
                         );
                     },
-                    Option::None => { break; }
+                    Option::None => { break; },
                 }
             }
         },
-        Option::None => { panic!("this should not panic") }
+        Option::None => { panic!("this should not panic") },
     }
 }
 
@@ -160,7 +152,7 @@ fn test_refund_bids_sets_refunded_balance_to_0() {
             // Check refunded bid balance is 0 for bidder
             assert(0 == current_round.get_refundable_balance_for(*bidder), 'refunded bid shd be 0');
         },
-        Option::None => { panic!("this should not panic") }
+        Option::None => { panic!("this should not panic") },
     }
 }
 
@@ -189,14 +181,14 @@ fn test_refund_bids_eth_transfer() {
                         let eth_balance_after = eth_dispatcher.balance_of(*bidder);
                         assert(
                             eth_balance_after == eth_balance_before + refunded_amount,
-                            'lp did not receive eth'
+                            'lp did not receive eth',
                         );
                     },
-                    Option::None => { break; }
+                    Option::None => { break; },
                 }
             }
         },
-        Option::None => { panic!("this should not panic") }
+        Option::None => { panic!("this should not panic") },
     }
 }
 // @note Add test for bidder having a portion of their bid refundable

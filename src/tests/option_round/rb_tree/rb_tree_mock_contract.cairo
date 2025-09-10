@@ -31,7 +31,7 @@ mod RBTreeMockContract {
     #[event]
     #[derive(Drop, starknet::Event)]
     enum Event {
-        RBTreeEvent: RBTreeComponent::Event
+        RBTreeEvent: RBTreeComponent::Event,
     }
 
     #[abi(embed_v0)]

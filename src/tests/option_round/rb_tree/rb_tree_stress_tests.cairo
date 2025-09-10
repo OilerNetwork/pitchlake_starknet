@@ -1,16 +1,12 @@
 use core::pedersen::pedersen;
-use pitch_lake::{
-    types::Bid,
-    tests::{
-        utils::helpers::setup::setup_rb_tree_test,
-        option_round::rb_tree::{
-            rb_tree_tests::{insert, mock_address, MOCK_ADDRESS, delete, create_bid},
-            rb_tree_mock_contract::{
-                IRBTreeMockContractDispatcher, IRBTreeMockContractDispatcherTrait
-            }
-        }
-    },
+use pitch_lake::tests::option_round::rb_tree::rb_tree_mock_contract::{
+    IRBTreeMockContractDispatcher, IRBTreeMockContractDispatcherTrait,
 };
+use pitch_lake::tests::option_round::rb_tree::rb_tree_tests::{
+    MOCK_ADDRESS, create_bid, delete, insert, mock_address,
+};
+use pitch_lake::tests::utils::helpers::setup::setup_rb_tree_test;
+use pitch_lake::types::Bid;
 
 #[test]
 #[available_gas(50000000000)]
@@ -24,19 +20,19 @@ fn test_add_1_to_100_delete_100_to_1() {
         let is_tree_valid = rb_tree.is_tree_valid();
         assert(is_tree_valid, 'Tree is not valid');
         i += 1;
-    };
+    }
 
     i = 100;
     while i >= 1 {
         let id = poseidon::poseidon_hash_span(
-            array![mock_address(MOCK_ADDRESS).into(), i.try_into().unwrap()].span()
+            array![mock_address(MOCK_ADDRESS).into(), i.try_into().unwrap()].span(),
         );
         delete(rb_tree, id);
         println!("Deleted: {:?}", i);
         let is_tree_valid = rb_tree.is_tree_valid();
         assert(is_tree_valid, 'Tree is not valid');
         i -= 1;
-    };
+    }
 
     let is_tree_valid = rb_tree.is_tree_valid();
     assert(is_tree_valid, 'Tree is not valid');
@@ -54,12 +50,12 @@ fn test_add_1_to_100_delete_1_to_100() {
         let is_tree_valid = rb_tree.is_tree_valid();
         assert(is_tree_valid, 'Tree is not valid');
         i += 1;
-    };
+    }
 
     i = 1;
     while i <= 100 {
         let id = poseidon::poseidon_hash_span(
-            array![mock_address(MOCK_ADDRESS).into(), i.try_into().unwrap()].span()
+            array![mock_address(MOCK_ADDRESS).into(), i.try_into().unwrap()].span(),
         );
         delete(rb_tree, id);
         println!("Deleted: {:?}", i);
@@ -112,7 +108,7 @@ fn testing_random_insertion_and_deletion() {
         assert(is_tree_valid, 'Tree is not valid');
 
         i += 1;
-    };
+    }
 
     let mut j: u32 = 0;
 

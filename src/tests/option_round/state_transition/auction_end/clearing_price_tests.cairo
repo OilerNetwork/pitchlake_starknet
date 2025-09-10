@@ -1,30 +1,20 @@
-use pitch_lake::{
-    tests::{
-        utils::{
-            helpers::{
-                accelerators::{
-                    accelerate_to_auctioning, accelerate_to_running, accelerate_to_running_custom,
-                    timeskip_and_end_auction,
-                },
-                setup::{setup_facade, setup_test_auctioning_bidders},
-                general_helpers::{
-                    create_array_linear, create_array_gradient, create_array_gradient_reverse
-                },
-            },
-            lib::{
-                test_accounts::{
-                    option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
-                    option_bidder_buyer_4, option_bidders_get,
-                },
-                variables::{decimals},
-            },
-            facades::{
-                vault_facade::{VaultFacade, VaultFacadeTrait},
-                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
-            },
-        },
-    }
+use pitch_lake::tests::utils::facades::option_round_facade::{
+    OptionRoundFacade, OptionRoundFacadeTrait,
 };
+use pitch_lake::tests::utils::facades::vault_facade::{VaultFacade, VaultFacadeTrait};
+use pitch_lake::tests::utils::helpers::accelerators::{
+    accelerate_to_auctioning, accelerate_to_running, accelerate_to_running_custom,
+    timeskip_and_end_auction,
+};
+use pitch_lake::tests::utils::helpers::general_helpers::{
+    create_array_gradient, create_array_gradient_reverse, create_array_linear,
+};
+use pitch_lake::tests::utils::helpers::setup::{setup_facade, setup_test_auctioning_bidders};
+use pitch_lake::tests::utils::lib::test_accounts::{
+    option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
+    option_bidders_get,
+};
+use pitch_lake::tests::utils::lib::variables::decimals;
 use starknet::testing::{set_block_timestamp, set_contract_address};
 
 // Test clearing price is 0 before auction end
@@ -73,7 +63,7 @@ fn test_clearing_price_is_only_bid_price() {
     let bid_amount = array![total_options_available].span();
     let bid_price = array![current_round.get_reserve_price() + 1].span();
     let (clearing_price, _) = accelerate_to_running_custom(
-        ref vault, bidder, bid_amount, bid_price
+        ref vault, bidder, bid_amount, bid_price,
     );
 
     assert(clearing_price == *bid_price[0], 'clearing price wrong');
@@ -96,7 +86,7 @@ fn test_clearing_price_is_highest_price_to_sell_all_options() {
         .span();
 
     let (clearing_price, _) = accelerate_to_running_custom(
-        ref vault, bidders, bid_amounts, bid_prices
+        ref vault, bidders, bid_amounts, bid_prices,
     );
     // Check that clearing price is the 2nd bid price (max price to sell all options)
     assert(clearing_price == *bid_prices[1], 'clearing price wrong');

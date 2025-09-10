@@ -1,24 +1,18 @@
-use pitch_lake::{
-    library::utils::{min, max}, library::constants::{BPS_u256},
-    tests::{
-        utils::{
-            helpers::{
-                setup::{setup_facade, setup_test_running},
-                accelerators::{
-                    accelerate_to_auctioning, accelerate_to_running, accelerate_to_settled
-                },
-            },
-            lib::{test_accounts::{option_bidder_buyer_1}, variables::{bps},},
-            facades::{
-                vault_facade::{VaultFacade, VaultFacadeTrait},
-                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait}
-            },
-        },
-    }
+use pitch_lake::library::constants::BPS_u256;
+use pitch_lake::library::utils::{max, min};
+use pitch_lake::tests::utils::facades::option_round_facade::{
+    OptionRoundFacade, OptionRoundFacadeTrait,
 };
+use pitch_lake::tests::utils::facades::vault_facade::{VaultFacade, VaultFacadeTrait};
+use pitch_lake::tests::utils::helpers::accelerators::{
+    accelerate_to_auctioning, accelerate_to_running, accelerate_to_settled,
+};
+use pitch_lake::tests::utils::helpers::setup::{setup_facade, setup_test_running};
+use pitch_lake::tests::utils::lib::test_accounts::option_bidder_buyer_1;
+use pitch_lake::tests::utils::lib::variables::bps;
 
 
-fn calculate_expected_payout(ref round: OptionRoundFacade, settlement_price: u256,) -> u256 {
+fn calculate_expected_payout(ref round: OptionRoundFacade, settlement_price: u256) -> u256 {
     let strike_price = round.get_strike_price();
     let cap_level = round.get_cap_level();
     let max_payout_per_option = (cap_level.into() * strike_price) / BPS_u256;

@@ -1,5 +1,5 @@
-use openzeppelin_token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait,};
-use starknet::{ContractAddress};
+use openzeppelin_token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
+use starknet::ContractAddress;
 
 /// Array helpers ///
 
@@ -15,7 +15,7 @@ fn create_array_linear<T, +Drop<T>, +Copy<T>>(amount: T, len: u32) -> Array<T> {
     while (index < len) {
         arr.append(amount);
         index += 1;
-    };
+    }
     arr
 }
 
@@ -27,7 +27,7 @@ fn create_array_gradient(amount: u256, step: u256, len: u32) -> Array<u256> {
     while (index < len) {
         arr.append(amount + index.into() * step);
         index += 1;
-    };
+    }
     arr
 }
 
@@ -39,7 +39,7 @@ fn create_array_gradient_reverse(amount: u256, step: u256, len: u32) -> Array<u2
     while (index < len) {
         arr.append(amount - index.into() * step);
         index += 1;
-    };
+    }
     arr
 }
 
@@ -49,9 +49,9 @@ fn sum_u256_array(mut arr: Span<u256>) -> u256 {
     loop {
         match arr.pop_front() {
             Option::Some(el) => { sum += *el; },
-            Option::None => { break; }
+            Option::None => { break; },
         }
-    };
+    }
     sum
 }
 
@@ -65,9 +65,9 @@ fn get_total_bids_amount(mut bid_prices: Span<u256>, mut bid_amounts: Span<u256>
                 let bid_amount = bid_amounts.pop_front().unwrap();
                 sum += *bid_amount * *bid_price;
             },
-            Option::None => { break (); }
+            Option::None => { break (); },
         }
-    };
+    }
     sum
 }
 
@@ -82,15 +82,15 @@ fn scale_array<T, +Drop<T>, +Copy<T>, +Mul<T>>(mut arr: Span<T>, scalar: T) -> A
     loop {
         match arr.pop_front() {
             Option::Some(el) => { scaled.append(*el * scalar); },
-            Option::None => { break (); }
+            Option::None => { break (); },
         }
-    };
+    }
     scaled
 }
 
 // Multiply each element in an array by the corresponding element in another array
 fn multiply_arrays<T, +Drop<T>, +Copy<T>, +Mul<T>>(
-    mut arr1: Span<T>, mut arr2: Span<T>
+    mut arr1: Span<T>, mut arr2: Span<T>,
 ) -> Array<T> {
     assert_two_arrays_equal_length(arr1, arr2);
     let mut multiplied: Array<T> = array![];
@@ -100,9 +100,9 @@ fn multiply_arrays<T, +Drop<T>, +Copy<T>, +Mul<T>>(
                 let el2 = arr2.pop_front().unwrap();
                 multiplied.append(*el1 * *el2);
             },
-            Option::None => { break (); }
+            Option::None => { break (); },
         }
-    };
+    }
     multiplied
 }
 // Make an array from a span
@@ -111,13 +111,13 @@ fn span_to_array<T, +Drop<T>, +Copy<T>>(mut span: Span<T>) -> Array<T> {
     loop {
         match span.pop_front() {
             Option::Some(el) => { arr.append(*el); },
-            Option::None => { break (); }
+            Option::None => { break (); },
         }
-    };
+    }
     arr
 }
 
-fn pow(base: u256, exp: u256,) -> u256 {
+fn pow(base: u256, exp: u256) -> u256 {
     if exp == 0 {
         1
     } else if exp == 1 {
@@ -139,9 +139,9 @@ fn to_wei_multi(mut values: Span<u256>, mut decimals: u8) -> Span<u256> {
     loop {
         match values.pop_front() {
             Option::Some(value) => { arr_res.append(to_wei(*value, decimals.into())); },
-            Option::None => { break; }
+            Option::None => { break; },
         }
-    };
+    }
     arr_res.span()
 }
 
@@ -156,15 +156,15 @@ fn get_erc20_balance(contract_address: ContractAddress, account_address: Contrac
 
 // Get erc20 balances for multiple addresses
 fn get_erc20_balances(
-    contract_address: ContractAddress, mut account_addresses: Span<ContractAddress>
+    contract_address: ContractAddress, mut account_addresses: Span<ContractAddress>,
 ) -> Array<u256> {
     let mut balances = array![];
     loop {
         match account_addresses.pop_front() {
             Option::Some(addr) => { balances.append(get_erc20_balance(contract_address, *addr)); },
-            Option::None => { break (); }
+            Option::None => { break (); },
         }
-    };
+    }
     balances
 }
 
@@ -180,9 +180,9 @@ fn get_portion_of_amount(mut arr: Span<u256>, amount: u256) -> Array<u256> {
                 let portion = (*value * amount) / total;
                 portions.append(portion);
             },
-            Option::None => { break (); }
+            Option::None => { break (); },
         }
-    };
+    }
     portions
 }
 

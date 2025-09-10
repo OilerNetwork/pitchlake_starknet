@@ -1,36 +1,25 @@
-use pitch_lake::{
-    tests::{
-        utils::{
-            helpers::{
-                accelerators::{
-                    accelerate_to_auctioning, accelerate_to_running, accelerate_to_running_custom,
-                    timeskip_and_end_auction, accelerate_to_auctioning_custom,
-                    accelerate_to_settled,
-                },
-                setup::{setup_facade, setup_test_auctioning_bidders},
-                general_helpers::{
-                    create_array_linear, create_array_gradient, create_array_gradient_reverse,
-                    get_portion_of_amount, get_erc20_balance, get_erc20_balances,
-                },
-            },
-            lib::{
-                test_accounts::{
-                    liquidity_provider_1, liquidity_provider_2, liquidity_provider_3,
-                    option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
-                    option_bidder_buyer_4, option_bidders_get, liquidity_providers_get,
-                },
-                variables::{decimals},
-            },
-            facades::{
-                vault_facade::{VaultFacade, VaultFacadeTrait},
-                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
-            },
-        },
-    }
-};
-use pitch_lake::library::pricing_utils::max_payout_per_option;
-use starknet::testing::{set_block_timestamp, set_contract_address};
 use debug::PrintTrait;
+use pitch_lake::library::pricing_utils::max_payout_per_option;
+use pitch_lake::tests::utils::facades::option_round_facade::{
+    OptionRoundFacade, OptionRoundFacadeTrait,
+};
+use pitch_lake::tests::utils::facades::vault_facade::{VaultFacade, VaultFacadeTrait};
+use pitch_lake::tests::utils::helpers::accelerators::{
+    accelerate_to_auctioning, accelerate_to_auctioning_custom, accelerate_to_running,
+    accelerate_to_running_custom, accelerate_to_settled, timeskip_and_end_auction,
+};
+use pitch_lake::tests::utils::helpers::general_helpers::{
+    create_array_gradient, create_array_gradient_reverse, create_array_linear, get_erc20_balance,
+    get_erc20_balances, get_portion_of_amount,
+};
+use pitch_lake::tests::utils::helpers::setup::{setup_facade, setup_test_auctioning_bidders};
+use pitch_lake::tests::utils::lib::test_accounts::{
+    liquidity_provider_1, liquidity_provider_2, liquidity_provider_3, liquidity_providers_get,
+    option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
+    option_bidders_get,
+};
+use pitch_lake::tests::utils::lib::variables::decimals;
+use starknet::testing::{set_block_timestamp, set_contract_address};
 
 
 // Test unsold liquidity is 0 before auction end
@@ -83,7 +72,7 @@ fn test_sold_liquidity_backs_all_sold_options() {
         ref vault,
         array![option_bidder_buyer_1()].span(),
         array![bid_amount].span(),
-        array![bid_price].span()
+        array![bid_price].span(),
     );
 
     let req_collateral = options_sold
@@ -93,7 +82,7 @@ fn test_sold_liquidity_backs_all_sold_options() {
     assert(
         current_round.sold_liquidity()
             + current_round.unsold_liquidity() == current_round.starting_liquidity(),
-        'unsold liq wrong'
+        'unsold liq wrong',
     );
 }
 
@@ -111,7 +100,7 @@ fn test_sold_liquidity_backs_all_sold_options_all() {
         ref vault,
         array![option_bidder_buyer_1()].span(),
         array![bid_amount].span(),
-        array![bid_price].span()
+        array![bid_price].span(),
     );
 
     let req_collateral = options_sold
@@ -121,7 +110,7 @@ fn test_sold_liquidity_backs_all_sold_options_all() {
     assert(
         current_round.sold_liquidity()
             + current_round.unsold_liquidity() == current_round.starting_liquidity(),
-        'unsold liq wrong'
+        'unsold liq wrong',
     );
 }
 
@@ -139,11 +128,11 @@ fn test_unsold_liquidity_1() {
     let bid_amounts = array![bid_amount, bid_amount];
     let bid_prices = create_array_linear((current_round.get_reserve_price()), bid_amounts.len());
     let (_, sold_options) = accelerate_to_running_custom(
-        ref vault, bidders.span(), bid_amounts.span(), bid_prices.span()
+        ref vault, bidders.span(), bid_amounts.span(), bid_prices.span(),
     );
 
     let expected_sold_liq = max_payout_per_option(
-        current_round.get_strike_price(), current_round.get_cap_level()
+        current_round.get_strike_price(), current_round.get_cap_level(),
     )
         * sold_options;
     let expected_unsold_liq = current_round.starting_liquidity() - expected_sold_liq;
@@ -171,7 +160,7 @@ fn test_unsold_liquidity_moves_from_locked_to_unlocked() {
     let bid_prices = array![current_round.get_reserve_price(), current_round.get_reserve_price()];
 
     let (clearing_price, total_options_sold) = accelerate_to_running_custom(
-        ref vault, option_buyers.span(), bid_amounts.span(), bid_prices.span()
+        ref vault, option_buyers.span(), bid_amounts.span(), bid_prices.span(),
     );
 
     // Check unsold moves from locked to unlocked
@@ -183,7 +172,7 @@ fn test_unsold_liquidity_moves_from_locked_to_unlocked() {
     assert(total_locked_after == total_locked_before - unsold_liq, 'locked balance after fail');
     assert(
         total_unlocked_after == total_unlocked_before + unsold_liq + total_premium,
-        'unlocked balance after fail'
+        'unlocked balance after fail',
     );
 }
 
@@ -198,7 +187,7 @@ fn test_unsold_liquidity_is_unlocked_for_liquidity_providers() {
     let deposit_amount = 20 * decimals();
     let deposit_amounts = create_array_linear(deposit_amount, number_of_lps).span();
     let options_available = accelerate_to_auctioning_custom(
-        ref vault, liquidity_providers, deposit_amounts
+        ref vault, liquidity_providers, deposit_amounts,
     );
 
     // Get liquidity providers locked and unlocked balances before auction end
@@ -251,7 +240,7 @@ fn test_unsold_liquidity_is_unlocked_for_liquidity_providers() {
 
                 assert(*unlocked_balance_after == expected_lp_unlocked_after, 'lp unlocked wrong');
             },
-            Option::None => { break (); }
+            Option::None => { break (); },
         }
     };
 }
@@ -265,7 +254,7 @@ fn test_unsold_liquidity_is_unlocked_for_liquidity_providers_end_of_round() {
     let deposit_amount = 20 * decimals();
     let liquidity_provider = liquidity_provider_1();
     let options_available = accelerate_to_auctioning_custom(
-        ref vault, array![liquidity_provider].span(), array![deposit_amount].span()
+        ref vault, array![liquidity_provider].span(), array![deposit_amount].span(),
     );
 
     // Get liquidity providers locked and unlocked balances before auction end

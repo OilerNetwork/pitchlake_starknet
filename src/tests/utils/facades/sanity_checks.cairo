@@ -1,25 +1,22 @@
-use starknet::{ContractAddress, testing::{set_contract_address}};
-use openzeppelin_token::erc20::interface::{ERC20ABIDispatcherTrait,};
-use pitch_lake::{
-    types::Bid, option_round::{interface::IOptionRoundDispatcherTrait},
-    tests::{
-        utils::{
-            helpers::{
-                event_helpers,
-                accelerators::{
-                    accelerate_to_auctioning, accelerate_to_running, accelerate_to_running_custom,
-                    accelerate_to_settled,
-                },
-                general_helpers::{get_erc20_balance}, setup::{setup_facade},
-            },
-            lib::test_accounts::{option_bidders_get, liquidity_provider_1, liquidity_provider_2},
-            facades::{
-                vault_facade::{VaultFacade, VaultFacadeTrait},
-                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait}
-            },
-        }
-    }
+use openzeppelin_token::erc20::interface::ERC20ABIDispatcherTrait;
+use pitch_lake::option_round::interface::IOptionRoundDispatcherTrait;
+use pitch_lake::tests::utils::facades::option_round_facade::{
+    OptionRoundFacade, OptionRoundFacadeTrait,
 };
+use pitch_lake::tests::utils::facades::vault_facade::{VaultFacade, VaultFacadeTrait};
+use pitch_lake::tests::utils::helpers::accelerators::{
+    accelerate_to_auctioning, accelerate_to_running, accelerate_to_running_custom,
+    accelerate_to_settled,
+};
+use pitch_lake::tests::utils::helpers::event_helpers;
+use pitch_lake::tests::utils::helpers::general_helpers::get_erc20_balance;
+use pitch_lake::tests::utils::helpers::setup::setup_facade;
+use pitch_lake::tests::utils::lib::test_accounts::{
+    liquidity_provider_1, liquidity_provider_2, option_bidders_get,
+};
+use pitch_lake::types::Bid;
+use starknet::ContractAddress;
+use starknet::testing::set_contract_address;
 
 
 /// Sanity checks ///
@@ -33,7 +30,7 @@ fn start_auction(ref option_round: OptionRoundFacade, total_options_available: u
 }
 
 fn end_auction(
-    ref option_round: OptionRoundFacade, clearing_price: u256, total_options_sold: u256
+    ref option_round: OptionRoundFacade, clearing_price: u256, total_options_sold: u256,
 ) -> (u256, u256) {
     let expected1 = option_round.get_auction_clearing_price();
     let expected2 = option_round.total_options_sold();
@@ -54,7 +51,7 @@ fn refund_bid(ref option_round: OptionRoundFacade, refund_amount: u256, expected
 }
 
 fn exercise_options(
-    ref option_round: OptionRoundFacade, individual_payout: u256, expected: u256
+    ref option_round: OptionRoundFacade, individual_payout: u256, expected: u256,
 ) -> u256 {
     assert(individual_payout == expected, 'Exercise opts sanity check fail');
     individual_payout
@@ -77,14 +74,14 @@ fn tokenize_options(
     ref option_round: OptionRoundFacade,
     option_bidder: ContractAddress,
     option_erc20_balance_before: u256,
-    options_minted: u256
+    options_minted: u256,
 ) -> u256 {
     let option_erc20_balance_after = get_erc20_balance(
-        option_round.contract_address(), option_bidder
+        option_round.contract_address(), option_bidder,
     );
     assert(
         option_erc20_balance_after == option_erc20_balance_before + options_minted,
-        'ERC20 Balance Mismatch'
+        'ERC20 Balance Mismatch',
     );
     options_minted
 }
@@ -93,7 +90,7 @@ fn tokenize_options(
 /// Vault
 
 fn deposit(
-    ref vault: VaultFacade, liquidity_provider: ContractAddress, unlocked_amount: u256
+    ref vault: VaultFacade, liquidity_provider: ContractAddress, unlocked_amount: u256,
 ) -> u256 {
     let storage_unlocked_amount = vault.get_lp_unlocked_balance(liquidity_provider);
 
@@ -102,7 +99,7 @@ fn deposit(
 }
 
 fn withdraw(
-    ref vault: VaultFacade, liquidity_provider: ContractAddress, unlocked_amount: u256
+    ref vault: VaultFacade, liquidity_provider: ContractAddress, unlocked_amount: u256,
 ) -> u256 {
     let unlocked_amount_in_storage = vault.get_lp_unlocked_balance(liquidity_provider);
     assert_eq!(unlocked_amount, unlocked_amount_in_storage);

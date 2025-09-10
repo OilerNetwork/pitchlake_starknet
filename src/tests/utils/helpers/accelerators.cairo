@@ -1,29 +1,25 @@
-use starknet::{
-    contract_address_const, get_block_timestamp, ContractAddress,
-    testing::{set_block_timestamp, set_contract_address}
-};
 use core::fmt::Display;
 use pitch_lake::{
     vault::contract::Vault::L1Data,
-    vault::interface::{JobRequest, IVaultDispatcher, IVaultDispatcherTrait},
+    vault::interface::{IVaultDispatcher, IVaultDispatcherTrait, JobRequest},
     option_round::{
         contract::{OptionRound},
         interface::{
-            PricingData, OptionRoundState, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,
+            IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState, PricingData,
         },
     },
     tests::{
         utils::{
             lib::{
                 test_accounts::{
-                    vault_manager, liquidity_provider_1, option_bidder_buyer_1, bystander,
-                    option_bidders_get, liquidity_providers_get,
+                    bystander, liquidity_provider_1, liquidity_providers_get, option_bidder_buyer_1,
+                    option_bidders_get, vault_manager,
                 },
                 variables::{decimals},
             },
             helpers::{ // accelerators::{accelerate_to_auction_custom_auction_params},
-                event_helpers::{clear_event_logs,},
-                general_helpers::{to_gwei, assert_two_arrays_equal_length, get_erc20_balances},
+                event_helpers::{clear_event_logs},
+                general_helpers::{assert_two_arrays_equal_length, get_erc20_balances, to_gwei},
                 //setup::{deploy_custom_option_round},
             },
             facades::{
@@ -33,20 +29,22 @@ use pitch_lake::{
         },
     },
 };
+use starknet::testing::{set_block_timestamp, set_contract_address};
+use starknet::{ContractAddress, contract_address_const, get_block_timestamp};
 
 
 /// Accelerators ///
 
 // Start the auction with LP1 depositing 100 eth
-fn accelerate_to_auctioning(ref self: VaultFacade) -> u256 {
+pub fn accelerate_to_auctioning(ref self: VaultFacade) -> u256 {
     accelerate_to_auctioning_custom(
-        ref self, array![*liquidity_providers_get(1)[0]].span(), array![100 * decimals()].span()
+        ref self, array![*liquidity_providers_get(1)[0]].span(), array![100 * decimals()].span(),
     )
 }
 
 // Start the auction with custom deposits
 fn accelerate_to_auctioning_custom(
-    ref self: VaultFacade, liquidity_providers: Span<ContractAddress>, amounts: Span<u256>
+    ref self: VaultFacade, liquidity_providers: Span<ContractAddress>, amounts: Span<u256>,
 ) -> u256 {
     // Deposit liquidity
     self.deposit_multiple(amounts, liquidity_providers);
@@ -65,7 +63,7 @@ fn accelerate_to_running(ref self: VaultFacade) -> (u256, u256) {
         ref self,
         array![*option_bidders_get(1)[0]].span(),
         array![bid_amount].span(),
-        array![bid_price].span()
+        array![bid_price].span(),
     )
 }
 
@@ -74,7 +72,7 @@ fn accelerate_to_running_custom(
     ref self: VaultFacade,
     bidders: Span<ContractAddress>,
     max_amounts: Span<u256>,
-    prices: Span<u256>
+    prices: Span<u256>,
 ) -> (u256, u256) {
     let mut current_round = self.get_current_round();
     current_round.place_bids(max_amounts, prices, bidders);
@@ -100,7 +98,7 @@ fn accelerate_to_settled_custom(ref self: VaultFacade, l1_data: L1Data) -> u256 
 // Settle the option round with a custom settlement price (compared to strike to determine payout)
 fn accelerate_to_settled(ref self: VaultFacade, twap: u256) -> u256 {
     accelerate_to_settled_custom(
-        ref self, L1Data { twap, max_return: 5000, reserve_price: to_gwei(2) }
+        ref self, L1Data { twap, max_return: 5000, reserve_price: to_gwei(2) },
     )
 }
 
@@ -110,32 +108,32 @@ fn accelerate_to_settled(ref self: VaultFacade, twap: u256) -> u256 {
 /// Timeskip and do nothing
 
 // Jump past the auction end date
-fn timeskip_past_auction_end_date(ref self: VaultFacade) {
+pub fn timeskip_past_auction_end_date(ref self: VaultFacade) {
     let mut current_round = self.get_current_round();
     set_block_timestamp(current_round.get_auction_end_date());
 }
 
 // Jump past the option expiry date
-fn timeskip_past_option_expiry_date(ref self: VaultFacade) {
+pub fn timeskip_past_option_expiry_date(ref self: VaultFacade) {
     let mut current_round = self.get_current_round();
     set_block_timestamp(current_round.get_option_settlement_date());
 }
 
 // Jump past the round transition period
-fn timeskip_past_round_transition_period(ref self: VaultFacade) {
+pub fn timeskip_past_round_transition_period(ref self: VaultFacade) {
     let now = get_block_timestamp();
     let round_transition_period = self.get_round_transition_period();
     set_block_timestamp(now + round_transition_period);
 }
 
 // Jump to settlement date includes proving delay
-fn timeskip_to_settlement_date(ref self: VaultFacade) {
+pub fn timeskip_to_settlement_date(ref self: VaultFacade) {
     let mut current_round = self.get_current_round();
     set_block_timestamp(current_round.get_option_settlement_date() + self.get_proving_delay());
 }
 
 // Jump to settlement date does not include proving delay
-fn timeskip_to_settlement_date_no_delay(ref self: VaultFacade) {
+pub fn timeskip_to_settlement_date_no_delay(ref self: VaultFacade) {
     let mut current_round = self.get_current_round();
     set_block_timestamp(current_round.get_option_settlement_date());
 }
@@ -143,17 +141,16 @@ fn timeskip_to_settlement_date_no_delay(ref self: VaultFacade) {
 /// Timeskip and do something
 
 // Jump past round transition period and start the auction
-fn timeskip_and_start_auction(ref self: VaultFacade) -> u256 {
+pub fn timeskip_and_start_auction(ref self: VaultFacade) -> u256 {
     timeskip_past_round_transition_period(ref self);
     set_contract_address(bystander());
     self.vault_dispatcher.start_auction()
 }
 
 // Jump to the auction end date and end the auction
-fn timeskip_and_end_auction(ref self: VaultFacade) -> (u256, u256) {
+pub fn timeskip_and_end_auction(ref self: VaultFacade) -> (u256, u256) {
     let mut current_round = self.get_current_round();
     set_block_timestamp(current_round.get_auction_end_date());
     set_contract_address(bystander());
     self.vault_dispatcher.end_auction()
 }
-

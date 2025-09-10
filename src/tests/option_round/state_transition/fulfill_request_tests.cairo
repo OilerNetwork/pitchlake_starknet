@@ -1,37 +1,32 @@
-use starknet::{
-    get_block_timestamp, ContractAddress, contract_address_const,
-    testing::{set_contract_address, set_block_timestamp}
+use core::integer::I128Neg;
+use pitch_lake::library::pricing_utils;
+use pitch_lake::library::pricing_utils::calculate_strike_price;
+use pitch_lake::option_round::interface::PricingData;
+use pitch_lake::tests::utils::facades::option_round_facade::{
+    OptionRoundFacade, OptionRoundFacadeTrait,
 };
-use pitch_lake::{
-    vault::interface::{VerifierData, JobRequest, L1Data}, vault::contract::Vault,
-    vault::contract::Vault::{Errors as vErrors}, option_round::interface::PricingData,
-    library::pricing_utils,
-    tests::{
-        utils::{
-            lib::{test_accounts::{liquidity_provider_1,}},
-            helpers::{
-                accelerators::{
-                    accelerate_to_auctioning, accelerate_to_auctioning_custom,
-                    accelerate_to_running_custom, accelerate_to_running,
-                    accelerate_to_settled_custom, timeskip_to_settlement_date, accelerate_to_settled
-                },
-                setup::{
-                    eth_supply_and_approve_all_providers, eth_supply_and_approve_all_bidders,
-                    deploy_eth, deploy_vault, setup_facade, PITCHLAKE_VERIFIER
-                },
-                event_helpers::{clear_event_logs, assert_fossil_callback_success_event},
-                general_helpers::{to_gwei},
-            },
-            facades::{
-                vault_facade::{VaultFacadeImpl, VaultFacade, VaultFacadeTrait},
-                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
-            },
-        },
-    }
+use pitch_lake::tests::utils::facades::vault_facade::{
+    VaultFacade, VaultFacadeImpl, VaultFacadeTrait,
 };
-
-use pitch_lake::library::pricing_utils::{calculate_strike_price};
-use core::integer::{I128Neg};
+use pitch_lake::tests::utils::helpers::accelerators::{
+    accelerate_to_auctioning, accelerate_to_auctioning_custom, accelerate_to_running,
+    accelerate_to_running_custom, accelerate_to_settled, accelerate_to_settled_custom,
+    timeskip_to_settlement_date,
+};
+use pitch_lake::tests::utils::helpers::event_helpers::{
+    assert_fossil_callback_success_event, clear_event_logs,
+};
+use pitch_lake::tests::utils::helpers::general_helpers::to_gwei;
+use pitch_lake::tests::utils::helpers::setup::{
+    PITCHLAKE_VERIFIER, deploy_eth, deploy_vault, eth_supply_and_approve_all_bidders,
+    eth_supply_and_approve_all_providers, setup_facade,
+};
+use pitch_lake::tests::utils::lib::test_accounts::liquidity_provider_1;
+use pitch_lake::vault::contract::Vault;
+use pitch_lake::vault::contract::Vault::Errors as vErrors;
+use pitch_lake::vault::interface::{JobRequest, L1Data, VerifierData};
+use starknet::testing::{set_block_timestamp, set_contract_address};
+use starknet::{ContractAddress, contract_address_const, get_block_timestamp};
 
 
 fn get_mock_l1_data() -> L1Data {
@@ -152,7 +147,7 @@ fn test_callback_event() {
     vault.fossil_callback(req, res);
 
     assert_fossil_callback_success_event(
-        vault.contract_address(), get_mock_l1_data(), current_round.get_option_settlement_date()
+        vault.contract_address(), get_mock_l1_data(), current_round.get_option_settlement_date(),
     );
 }
 
@@ -202,7 +197,7 @@ fn test_callback_sets_pricing_data_for_round() {
     let L1Data { twap, max_return, reserve_price } = get_mock_l1_data();
     let exp_strike_price = pricing_utils::calculate_strike_price(vault.get_strike_level(), twap);
     let exp_cap_level = pricing_utils::calculate_cap_level(
-        vault.get_alpha(), vault.get_strike_level(), max_return
+        vault.get_alpha(), vault.get_strike_level(), max_return,
     );
 
     assert_eq!(current_round.get_strike_price(), exp_strike_price);
@@ -261,10 +256,10 @@ fn test_callback_for_first_round_if_in_range() {
     vault.fossil_callback(req, res);
 
     let expected_strike = pricing_utils::calculate_strike_price(
-        vault.get_strike_level(), l1_data.twap
+        vault.get_strike_level(), l1_data.twap,
     );
     let expected_cap = pricing_utils::calculate_cap_level(
-        vault.get_alpha(), vault.get_strike_level(), l1_data.max_return
+        vault.get_alpha(), vault.get_strike_level(), l1_data.max_return,
     );
 
     assert_eq!(current_round.get_strike_price(), expected_strike);
@@ -339,7 +334,7 @@ fn test_callback_works_as_expected() {
     let l1_data = get_mock_l1_data();
     let strike = pricing_utils::calculate_strike_price(vault.get_strike_level(), l1_data.twap);
     let cap = pricing_utils::calculate_cap_level(
-        vault.get_alpha(), vault.get_strike_level(), l1_data.max_return
+        vault.get_alpha(), vault.get_strike_level(), l1_data.max_return,
     );
 
     assert_eq!(next_round.get_cap_level(), cap);

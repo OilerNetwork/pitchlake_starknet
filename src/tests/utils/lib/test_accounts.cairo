@@ -9,12 +9,12 @@ fn weth_owner() -> ContractAddress {
 }
 
 // Bystander, perform state transition functions on vault so all gas costs are on it
-fn bystander() -> ContractAddress {
+pub fn bystander() -> ContractAddress {
     contract_address_const::<'bystander'>()
 }
 
 // Get an array of liquiditiy providers
-fn liquidity_providers_get(number: u32) -> Array<ContractAddress> {
+pub fn liquidity_providers_get(number: u32) -> Array<ContractAddress> {
     let mut data: Array<ContractAddress> = array![];
     let mut index = 0;
     while index < number {
@@ -30,12 +30,12 @@ fn liquidity_providers_get(number: u32) -> Array<ContractAddress> {
 
         data.append(contractAddress);
         index = index + 1;
-    };
+    }
     data
 }
 
 // Get an array of option bidders/buyers
-fn option_bidders_get(number: u32) -> Array<ContractAddress> {
+pub fn option_bidders_get(number: u32) -> Array<ContractAddress> {
     let mut data: Array<ContractAddress> = array![];
     let mut index = 0;
     while index < number {
@@ -51,7 +51,7 @@ fn option_bidders_get(number: u32) -> Array<ContractAddress> {
 
         data.append(contractAddress);
         index = index + 1;
-    };
+    }
     data
 }
 

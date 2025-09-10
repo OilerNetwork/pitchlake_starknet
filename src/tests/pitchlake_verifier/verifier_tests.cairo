@@ -1,56 +1,36 @@
-use pitch_lake::vault::contract::Vault::Errors;
-use pitch_lake::tests::utils::helpers::setup::{PITCHLAKE_VERIFIER};
-//use pitch_lake::tests::utils::facades::fossil_client_facade::{
-//    FossilClientFacade, FossilClientFacadeTrait
-//};
-use openzeppelin_access::ownable::interface::{IOwnableDispatcher, IOwnableDispatcherTrait};
-use openzeppelin_access::ownable::{OwnableComponent::Errors as OErrors};
-use pitch_lake::{
-    library::{eth::Eth}, vault::interface::{JobRequest, VerifierData},
-    vault::{
-        contract::Vault::L1Data,
-        interface::{
-            IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait,
-            IVaultSafeDispatcherTrait,
-        }
-    },
-    option_round::contract::OptionRound::Errors as rErrors, option_round::interface::PricingData,
-    tests::{
-        utils::{
-            helpers::{
-                general_helpers::{
-                    get_portion_of_amount, create_array_linear, create_array_gradient,
-                    get_erc20_balances, sum_u256_array, to_gwei,
-                },
-                event_helpers::{
-                    clear_event_logs, assert_event_option_settle, assert_event_transfer,
-                    assert_no_events_left, pop_log, assert_event_option_round_deployed_single,
-                    assert_event_option_round_deployed,
-                },
-                accelerators::{
-                    timeskip_to_settlement_date, accelerate_to_auctioning, accelerate_to_running,
-                    accelerate_to_settled, accelerate_to_auctioning_custom,
-                    accelerate_to_running_custom
-                },
-                setup::{
-                    deploy_vault_with_events, setup_facade, setup_test_auctioning_providers,
-                    setup_test_running, AUCTION_DURATION, ROUND_TRANSITION_DURATION, ROUND_DURATION
-                },
-            },
-            lib::{
-                test_accounts::{
-                    liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
-                    option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
-                    liquidity_providers_get, liquidity_provider_3, liquidity_provider_4,
-                },
-                variables::{decimals},
-            },
-            facades::{
-                vault_facade::{VaultFacade, VaultFacadeTrait},
-                option_round_facade::{OptionRoundState, OptionRoundFacade, OptionRoundFacadeTrait},
-            },
-        },
-    }
+use pitch_lake::library::eth::Eth;
+use pitch_lake::option_round::contract::OptionRound::Errors as rErrors;
+use pitch_lake::tests::utils::facades::option_round_facade::{
+    OptionRoundFacade, OptionRoundFacadeTrait, OptionRoundState,
+};
+use pitch_lake::tests::utils::facades::vault_facade::{VaultFacade, VaultFacadeTrait};
+use pitch_lake::tests::utils::helpers::accelerators::{
+    accelerate_to_auctioning, accelerate_to_auctioning_custom, accelerate_to_running,
+    accelerate_to_running_custom, accelerate_to_settled, timeskip_to_settlement_date,
+};
+use pitch_lake::tests::utils::helpers::event_helpers::{
+    assert_event_option_round_deployed, assert_event_option_round_deployed_single,
+    assert_event_option_settle, assert_event_transfer, assert_no_events_left, clear_event_logs,
+    pop_log,
+};
+use pitch_lake::tests::utils::helpers::general_helpers::{
+    create_array_gradient, create_array_linear, get_erc20_balances, get_portion_of_amount,
+    sum_u256_array, to_gwei,
+};
+use pitch_lake::tests::utils::helpers::setup::{
+    AUCTION_DURATION, PITCHLAKE_VERIFIER, ROUND_DURATION, ROUND_TRANSITION_DURATION,
+    deploy_vault_with_events, setup_facade, setup_test_auctioning_providers, setup_test_running,
+};
+use pitch_lake::tests::utils::lib::test_accounts::{
+    liquidity_provider_1, liquidity_provider_2, liquidity_provider_3, liquidity_provider_4,
+    liquidity_providers_get, option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
+    option_bidder_buyer_4,
+};
+use pitch_lake::tests::utils::lib::variables::decimals;
+use pitch_lake::vault::contract::Vault::{Errors, L1Data};
+use pitch_lake::vault::interface::{
+    IVaultDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcher, IVaultSafeDispatcherTrait,
+    JobRequest, VerifierData,
 };
 
 // TODO: Change these after verifier cleanup
@@ -92,7 +72,7 @@ fn test_verifier_serialization() {
         twap_result: 6000,
         max_return_start_timestamp: 7000,
         max_return_end_timestamp: 8000,
-        max_return: 9000
+        max_return: 9000,
     };
     let mut serialized_span = array![1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000].span();
 
@@ -113,7 +93,7 @@ fn test_verifier_deserialization() {
         twap_result: 6000,
         max_return_start_timestamp: 7000,
         max_return_end_timestamp: 8000,
-        max_return: 9000
+        max_return: 9000,
     };
     let mut serialized_span = array![1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000].span();
 
@@ -140,4 +120,3 @@ fn test_caller_not_verifier_fossil_callback() {
 
     vault.fossil_callback_expect_error(request, result, Errors::CallerNotVerifier);
 }
-

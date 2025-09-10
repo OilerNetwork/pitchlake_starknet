@@ -1,53 +1,46 @@
-use core::starknet::SyscallResultTrait;
 use core::num::traits::Zero;
-use starknet::{
-    ClassHash, ContractAddress, contract_address_const, deploy_syscall,
-    Felt252TryIntoContractAddress, get_contract_address, contract_address_try_from_felt252, testing,
-    get_block_timestamp, testing::{set_block_timestamp, set_contract_address}
-};
-use openzeppelin_utils::serde::SerializedAppend;
-use openzeppelin_token::erc20::{
-    ERC20Component, interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait}
-};
-use pitch_lake::vault::interface::{JobRequest};
-use pitch_lake::{
-    library::eth::Eth, vault::contract::Vault, library::constants::{MINUTE, HOUR, DAY},
-    vault::interface::{ConstructorArgs, IVaultDispatcher, IVaultDispatcherTrait, L1Data},
-    option_round::{
-        contract::OptionRound,
-        interface::{
-            PricingData, ConstructorArgs as ConstructorArgsOptionRound, IOptionRoundDispatcher,
-            IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher,
-            IOptionRoundSafeDispatcherTrait, OptionRoundState
-        },
-    },
-    tests::{
-        option_round::rb_tree::{
-            rb_tree_mock_contract::{
-                RBTreeMockContract, IRBTreeMockContractDispatcher,
-                IRBTreeMockContractDispatcherTrait
-            }
-        },
-        utils::{
-            lib::{
-                test_accounts::{weth_owner, liquidity_providers_get, option_bidders_get, bystander},
-                variables::{week_duration, decimals},
-            },
-            helpers::{
-                accelerators::{
-                    accelerate_to_settled, accelerate_to_auctioning,
-                    accelerate_to_auctioning_custom, accelerate_to_running
-                },
-                event_helpers::{clear_event_logs}, general_helpers::{to_wei},
-            },
-            facades::{
-                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
-                vault_facade::{VaultFacade, VaultFacadeImpl, VaultFacadeTrait},
-            },
-        },
-    },
-};
+use core::starknet::SyscallResultTrait;
 use debug::PrintTrait;
+use openzeppelin_token::erc20::ERC20Component;
+use openzeppelin_token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
+use openzeppelin_utils::serde::SerializedAppend;
+use pitch_lake::library::constants::{DAY, HOUR, MINUTE};
+use pitch_lake::library::eth::Eth;
+use pitch_lake::option_round::contract::OptionRound;
+use pitch_lake::option_round::interface::{
+    ConstructorArgs as ConstructorArgsOptionRound, IOptionRoundDispatcher,
+    IOptionRoundDispatcherTrait, IOptionRoundSafeDispatcher, IOptionRoundSafeDispatcherTrait,
+    OptionRoundState, PricingData,
+};
+use pitch_lake::tests::option_round::rb_tree::rb_tree_mock_contract::{
+    IRBTreeMockContractDispatcher, IRBTreeMockContractDispatcherTrait, RBTreeMockContract,
+};
+use pitch_lake::tests::utils::facades::option_round_facade::{
+    OptionRoundFacade, OptionRoundFacadeTrait,
+};
+use pitch_lake::tests::utils::facades::vault_facade::{
+    VaultFacade, VaultFacadeImpl, VaultFacadeTrait,
+};
+use pitch_lake::tests::utils::helpers::accelerators::{
+    accelerate_to_auctioning, accelerate_to_auctioning_custom, accelerate_to_running,
+    accelerate_to_settled,
+};
+use pitch_lake::tests::utils::helpers::event_helpers::clear_event_logs;
+use pitch_lake::tests::utils::helpers::general_helpers::to_wei;
+use pitch_lake::tests::utils::lib::test_accounts::{
+    bystander, liquidity_providers_get, option_bidders_get, weth_owner,
+};
+use pitch_lake::tests::utils::lib::variables::{decimals, week_duration};
+use pitch_lake::vault::contract::Vault;
+use pitch_lake::vault::interface::{
+    ConstructorArgs, IVaultDispatcher, IVaultDispatcherTrait, JobRequest, L1Data,
+};
+use starknet::testing::{set_block_timestamp, set_contract_address};
+use starknet::{
+    ClassHash, ContractAddress, Felt252TryIntoContractAddress, contract_address_const,
+    contract_address_try_from_felt252, deploy_syscall, get_block_timestamp, get_contract_address,
+    testing,
+};
 
 // ERC20 Constants
 const DECIMALS: u8 = 18_u8;
@@ -75,7 +68,7 @@ fn deploy_eth() -> ERC20ABIDispatcher {
         Eth::TEST_CLASS_HASH.try_into().unwrap(),
         'some saltt' + get_block_timestamp().into(),
         calldata.span(),
-        false
+        false,
     )
         .expect('deploy eth failed');
 
@@ -86,7 +79,7 @@ fn deploy_eth() -> ERC20ABIDispatcher {
 
 // Deploy the vault and fossil client
 fn deploy_vault_with_events(
-    alpha: u128, strike_level: i128, eth_address: ContractAddress
+    alpha: u128, strike_level: i128, eth_address: ContractAddress,
 ) -> IVaultDispatcher {
     /// Deploy Vault
     let mut calldata = array![];
@@ -109,7 +102,7 @@ fn deploy_vault_with_events(
     let salt = 'some salt' + now.into();
 
     let (contract_address, _) = deploy_syscall(
-        Vault::TEST_CLASS_HASH.try_into().unwrap(), salt, calldata.span(), true
+        Vault::TEST_CLASS_HASH.try_into().unwrap(), salt, calldata.span(), true,
     )
         .expect('DEPLOY_VAULT_FAILED');
 
@@ -128,7 +121,7 @@ fn deploy_vault(alpha: u128, strike_level: i128, eth_address: ContractAddress) -
 
 fn setup_rb_tree_test() -> IRBTreeMockContractDispatcher {
     let (address, _) = deploy_syscall(
-        RBTreeMockContract::TEST_CLASS_HASH.try_into().unwrap(), 0, array![].span(), false
+        RBTreeMockContract::TEST_CLASS_HASH.try_into().unwrap(), 0, array![].span(), false,
     )
         .unwrap_syscall();
     IRBTreeMockContractDispatcher { contract_address: address }
@@ -146,7 +139,7 @@ fn setup_facade_custom(alpha: u128, strike_level: i128) -> VaultFacade {
 
     // Deploy vault facade
     let vault_dispatcher: IVaultDispatcher = deploy_vault(
-        alpha, strike_level, eth_dispatcher.contract_address
+        alpha, strike_level, eth_dispatcher.contract_address,
     );
     let mut vault_facade = VaultFacade { vault_dispatcher };
 
@@ -157,13 +150,13 @@ fn setup_facade_custom(alpha: u128, strike_level: i128) -> VaultFacade {
     let req = vault_facade.get_request_to_start_first_round_serialized();
     let res = vault_facade
         .generate_first_round_result_serialized(
-            L1Data { twap: to_gwei(10), max_return: 5000, reserve_price: to_gwei(2), }
+            L1Data { twap: to_gwei(10), max_return: 5000, reserve_price: to_gwei(2) },
         );
     vault_facade.fossil_callback(req, res);
 
     // @dev Supply eth to liquidity providers and approve vault for transferring eth
     eth_supply_and_approve_all_providers(
-        vault_dispatcher.contract_address, eth_dispatcher.contract_address
+        vault_dispatcher.contract_address, eth_dispatcher.contract_address,
     );
 
     // @dev Supply eth to option buyers and approve current round for transferring eth
@@ -174,8 +167,8 @@ fn setup_facade_custom(alpha: u128, strike_level: i128) -> VaultFacade {
     // Clear eth transfer events
     clear_event_logs(
         array![
-            eth_dispatcher.contract_address, vault_facade.contract_address(), current_round_address
-        ]
+            eth_dispatcher.contract_address, vault_facade.contract_address(), current_round_address,
+        ],
     );
 
     return vault_facade;
@@ -190,7 +183,7 @@ fn setup_facade() -> (VaultFacade, ERC20ABIDispatcher) {
 }
 
 fn setup_test_auctioning_bidders(
-    number_of_option_buyers: u32
+    number_of_option_buyers: u32,
 ) -> (VaultFacade, ERC20ABIDispatcher, Span<ContractAddress>, u256) {
     let (mut vault, eth) = setup_facade();
 
@@ -214,13 +207,13 @@ fn setup_test_running() -> (VaultFacade, OptionRoundFacade) {
 }
 
 fn setup_test_auctioning_providers(
-    number_of_option_buyers: u32, deposit_amounts: Span<u256>
+    number_of_option_buyers: u32, deposit_amounts: Span<u256>,
 ) -> (VaultFacade, ERC20ABIDispatcher, Span<ContractAddress>, u256) {
     let (mut vault, eth) = setup_facade();
     let mut liquidity_providers = liquidity_providers_get(number_of_option_buyers).span();
     // Amounts to deposit: [100, 200, 300, 400]
     let total_options_available = accelerate_to_auctioning_custom(
-        ref vault, liquidity_providers, deposit_amounts
+        ref vault, liquidity_providers, deposit_amounts,
     );
     (vault, eth, liquidity_providers, total_options_available)
 }
@@ -230,20 +223,20 @@ fn setup_test_auctioning_providers(
 fn eth_supply_and_approve_all(
     contract_address: ContractAddress,
     eth_address: ContractAddress,
-    addresses: Span<ContractAddress>
+    addresses: Span<ContractAddress>,
 ) {
     eth_supply(eth_address, addresses);
     eth_approval(contract_address, eth_address, addresses);
 }
 fn eth_supply_and_approve_all_providers(
-    contract_address: ContractAddress, eth_address: ContractAddress
+    contract_address: ContractAddress, eth_address: ContractAddress,
 ) {
     let mut liquidity_providers = liquidity_providers_get(6);
     eth_supply_and_approve_all(contract_address, eth_address, liquidity_providers.span());
 }
 
 fn eth_supply_and_approve_all_bidders(
-    contract_address: ContractAddress, eth_address: ContractAddress
+    contract_address: ContractAddress, eth_address: ContractAddress,
 ) {
     let option_biddders = option_bidders_get(6);
     eth_supply_and_approve_all(contract_address, eth_address, option_biddders.span());
@@ -270,7 +263,7 @@ fn eth_supply(eth_address: ContractAddress, mut receivers: Span<ContractAddress>
 fn eth_approval(
     contract_address: ContractAddress,
     eth_address: ContractAddress,
-    mut approvers: Span<ContractAddress>
+    mut approvers: Span<ContractAddress>,
 ) {
     let eth_dispatcher = ERC20ABIDispatcher { contract_address: eth_address };
     loop {

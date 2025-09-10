@@ -25,6 +25,6 @@ trait IUpgradableCallback<TContractState> {
     /// events The methods can only be called by the account after a call to `upgrade`
     /// @param new_implementation The class hash of the new implementation
     fn perform_upgrade(
-        ref self: TContractState, new_implementation: ClassHash, data: Span<felt252>
+        ref self: TContractState, new_implementation: ClassHash, data: Span<felt252>,
     );
 }
