@@ -271,4 +271,67 @@ impl SerdeVerifierData of Serde<VerifierData> {
         )
     }
 }
+// @proposal Verifier sends these structs to the Vault (serialized)
+// This is all necessary data needed to validate a Verifier result and the result itself. These
+// contain no additional/ignored values.
+
+// Matches initial off-chain request sent to processor
+//struct PitchlakeRequest {
+//    program_id: u64,
+//    vault_address: ContractAddress,
+//    timestamp: u64,
+//    reserve_price_bounds: (u64, u64),
+//    twap_bounds: (u64, u64),
+//    max_return_bounds: (u64, u64),
+//}
+
+//struct PitchlakeResponse {
+//    reserve_price: felt252,
+//    twap: felt252,
+//    max_return: felt252,
+//}
+
+// @dev What the Vault does with this data:
+
+// - program_id & vault_address: validate that this Verifier result is intended for this specific
+// Vault; i.e,
+// assert program_id == 'PITCH_LAKE_V1' && vault_address == this.address
+
+// - timestamp: validates that the job request was not created in the future/before headers are
+// provable
+
+// - twap_bounds: the start and end timestamps used to calculate the TWAP, prod vaults will expect
+// this range to be 30d in seconds (upper bound == T, lower bound == T - A) -> [T-A, T]
+
+// - reserve_price_bounds: the start and end timestamps used to calculate the reserve price, prod
+// vaults will expect this range to be 90d in seconds (upper bound == T, lower bound == T - B) ->
+// [T-B, T]
+
+// - max_return_bounds: the start and end timestamps used to calculate the max return, prod vaults
+// will expect this range to be 90d in seconds (upper bound == T, lower bound == T - B) -> [T-B, T]
+
+// In a prod vault, the Vault::get_round_duration() == 30d in seconds, this is A, B == 3 * A ==
+// 90d in seconds (for prod vaults), and T is the settlement timestamp of the current round
+
+// In english, assume the current round's settlement timestamp is March 30th, 2025 00:00:00 UTC
+// (and every month has exactly 30 days for simplicity):
+//
+//    let march_job_request = PitchlakeRequest {
+//      program_id: 'PITCH_LAKE_V1',
+//      vault_address: prod.vault.address,
+//      timestamp: "March 30, 00:15:30".to_unix_timestamp(), // ~15 min after the settlement date
+//      twap_price_bounds: (
+//        "March 1, 00:00:00 UTC".to_unix_timestamp(), // 30d ago
+//        "March 30, 00:00:00 UTC".to_unix_timestamp()  // settlement date
+//      ),
+//      reserve_price_bounds: (
+//        "January 1, 00:00:00 UTC".to_unix_timestamp(), // 90d ago
+//        "March 30, 00:00:00 UTC".to_unix_timestamp()  // settlement date
+//      ),
+//      max_return_bounds: (
+//        "January 1, 00:00:00 UTC".to_unix_timestamp(), // 90d ago
+//        "March 30, 00:00:00 UTC".to_unix_timestamp()  // settlement date
+//      ),
+//    }
+
 
