@@ -11,6 +11,6 @@ const BPS_felt252: felt252 = 10_000;
 // The identifier of the program Fossil will run
 const PROGRAM_ID: felt252 = 'PITCH_LAKE_V1';
 
-// Vaults accept data from Fossil if the timestamp is within this tolerance
-const REQUEST_TOLERANCE: u64 = 1 * HOUR;
+// The time it takes for Fossil to be able to prove the latest block header
+const PROVING_DELAY: u64 = 10 * MINUTE;
 
