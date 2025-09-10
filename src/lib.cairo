@@ -8,7 +8,7 @@ mod library {
     pub mod utils;
 }
 
-mod vault {
+pub mod vault {
     pub mod contract;
     pub mod interface;
 }

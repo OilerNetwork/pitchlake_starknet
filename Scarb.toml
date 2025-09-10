@@ -22,3 +22,5 @@ cairo_test = "2.12.1"
 
 [tool.fmt]
 sort-module-level-items = true
+
+[lib]
