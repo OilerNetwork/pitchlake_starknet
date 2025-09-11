@@ -714,45 +714,90 @@ pub mod Vault {
             let reserve_price_lower_bound = upper_bound - (3 * round_duration);
             let max_return_lower_bound = reserve_price_lower_bound;
 
+            // @dev Allow tolerance for timestamp validation to account for proving time variations
+            // Tolerance of 60 seconds on either side to handle timing between proof generation and
+            // validation
+            let tolerance = 60;
+
+            // Check TWAP timestamps with tolerance
+            let twap_start_diff = if res.twap_start_timestamp >= twap_lower_bound {
+                res.twap_start_timestamp - twap_lower_bound
+            } else {
+                twap_lower_bound - res.twap_start_timestamp
+            };
             assert!(
-                res.twap_start_timestamp == twap_lower_bound,
+                twap_start_diff <= tolerance,
                 "Invalid L1 Data: twap_start_timestamp expected: {}, got: {}",
                 twap_lower_bound,
                 res.twap_start_timestamp,
             );
+
+            // Check reserve price start timestamp with tolerance
+            let reserve_price_start_diff = if res
+                .reserve_price_start_timestamp >= reserve_price_lower_bound {
+                res.reserve_price_start_timestamp - reserve_price_lower_bound
+            } else {
+                reserve_price_lower_bound - res.reserve_price_start_timestamp
+            };
             assert!(
-                res.reserve_price_start_timestamp == reserve_price_lower_bound,
+                reserve_price_start_diff <= tolerance,
                 "Invalid L1 Data: reserve_price_start_timestamp expected: {}, got: {}",
                 reserve_price_lower_bound,
                 res.reserve_price_start_timestamp,
             );
+
+            // Check max return start timestamp with tolerance
+            let max_return_start_diff = if res
+                .max_return_start_timestamp >= max_return_lower_bound {
+                res.max_return_start_timestamp - max_return_lower_bound
+            } else {
+                max_return_lower_bound - res.max_return_start_timestamp
+            };
             assert!(
-                res.max_return_start_timestamp == max_return_lower_bound,
+                max_return_start_diff <= tolerance,
                 "Invalid L1 Data: max_return_start_timestamp expected: {}, got: {}",
                 max_return_lower_bound,
                 res.max_return_start_timestamp,
             );
+
+            // Check TWAP end timestamp with tolerance
+            let twap_end_diff = if res.twap_end_timestamp >= upper_bound {
+                res.twap_end_timestamp - upper_bound
+            } else {
+                upper_bound - res.twap_end_timestamp
+            };
             assert!(
-                res.twap_end_timestamp == upper_bound,
+                twap_end_diff <= tolerance,
                 "Invalid L1 Data: twap_end_timestamp expected: {}, got: {}",
                 upper_bound,
                 res.twap_end_timestamp,
             );
+
+            // Check reserve price end timestamp with tolerance
+            let reserve_price_end_diff = if res.reserve_price_end_timestamp >= upper_bound {
+                res.reserve_price_end_timestamp - upper_bound
+            } else {
+                upper_bound - res.reserve_price_end_timestamp
+            };
             assert!(
-                res.reserve_price_end_timestamp == upper_bound,
+                reserve_price_end_diff <= tolerance,
                 "Invalid L1 Data: reserve_price_end_timestamp expected: {}, got: {}",
                 upper_bound,
                 res.reserve_price_end_timestamp,
             );
+
+            // Check max return end timestamp with tolerance
+            let max_return_end_diff = if res.max_return_end_timestamp >= upper_bound {
+                res.max_return_end_timestamp - upper_bound
+            } else {
+                upper_bound - res.max_return_end_timestamp
+            };
             assert!(
-                res.max_return_end_timestamp == upper_bound,
+                max_return_end_diff <= tolerance,
                 "Invalid L1 Data: max_return_end_timestamp expected: {}, got: {}",
                 upper_bound,
                 res.max_return_end_timestamp,
             );
-
-            // @dev This is needed if the ranges do not correlate to the exact request bounds
-            // assert_equal_in_range(...); i.e withing 12 seconds on either side
 
             // @dev Assert the L1 data is valid
             assert!(
