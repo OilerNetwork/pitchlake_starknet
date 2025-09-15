@@ -1,60 +1,25 @@
-use starknet::{
-    ClassHash, ContractAddress, contract_address_const, deploy_syscall,
-    Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
-    testing::{set_block_timestamp, set_contract_address}, contract_address::ContractAddressZeroable,
-};
-use openzeppelin_utils::serde::SerializedAppend;
 use openzeppelin_token::erc20::interface::ERC20ABIDispatcherTrait;
-use pitch_lake::{
-    library::{eth::Eth, constants::PROGRAM_ID}, vault::interface::JobRequest,
-    vault::{
-        interface::{
-            L1Data, IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait,
-            IVaultSafeDispatcherTrait,
-        }
-    },
-    option_round::contract::OptionRound::Errors, option_round::interface::PricingData,
-    vault::interface::VerifierData,
-    tests::{
-        utils::{
-            helpers::{
-                general_helpers::{
-                    get_portion_of_amount, create_array_linear, create_array_gradient,
-                    get_erc20_balances, sum_u256_array, to_gwei,
-                },
-                event_helpers::{
-                    clear_event_logs, assert_event_option_settle, assert_event_transfer,
-                    assert_no_events_left, pop_log, assert_event_option_round_deployed_single,
-                    assert_event_option_round_deployed,
-                },
-                accelerators::{
-                    accelerate_to_auctioning, accelerate_to_running, accelerate_to_settled,
-                    accelerate_to_auctioning_custom, accelerate_to_running_custom
-                },
-                setup::{
-                    deploy_vault_with_events, setup_facade, setup_test_auctioning_providers,
-                    setup_test_running, AUCTION_DURATION, ROUND_TRANSITION_DURATION, ROUND_DURATION
-                },
-            },
-            lib::{
-                test_accounts::{
-                    liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
-                    option_bidder_buyer_2, option_bidder_buyer_3, option_bidder_buyer_4,
-                    liquidity_providers_get, liquidity_provider_3, liquidity_provider_4,
-                },
-                variables::{decimals},
-            },
-            facades::{
-                vault_facade::{
-                    l1_data_to_verifier_data_serialized, l1_data_to_verifier_data, VaultFacade,
-                    VaultFacadeTrait
-                },
-                option_round_facade::{OptionRoundState, OptionRoundFacade, OptionRoundFacadeTrait},
-            },
-        },
-    }
+use pitch_lake::option_round::contract::OptionRound::Errors;
+use pitch_lake::option_round::interface::{OptionRoundState, PricingData};
+use pitch_lake::tests::utils::facades::option_round_facade::OptionRoundFacadeTrait;
+use pitch_lake::tests::utils::facades::vault_facade::{VaultFacade, VaultFacadeTrait};
+use pitch_lake::tests::utils::helpers::accelerators::{
+    accelerate_to_auctioning, accelerate_to_auctioning_custom, accelerate_to_running,
+    accelerate_to_running_custom, accelerate_to_settled,
 };
-use debug::PrintTrait;
+use pitch_lake::tests::utils::helpers::event_helpers::{
+    assert_event_option_round_deployed_single, assert_event_option_settle, clear_event_logs,
+};
+use pitch_lake::tests::utils::helpers::general_helpers::{create_array_gradient, to_gwei};
+use pitch_lake::tests::utils::helpers::setup::{
+    AUCTION_DURATION, ROUND_DURATION, ROUND_TRANSITION_DURATION, deploy_vault_with_events,
+    setup_facade, setup_test_auctioning_providers, setup_test_running,
+};
+use pitch_lake::tests::utils::lib::test_accounts::{liquidity_provider_1, option_bidder_buyer_1};
+use pitch_lake::tests::utils::lib::variables::decimals;
+use pitch_lake::vault::interface::{JobRequest, L1Data};
+use starknet::get_block_timestamp;
+use starknet::testing::set_block_timestamp;
 
 
 /// Failures ///
@@ -64,38 +29,19 @@ use debug::PrintTrait;
 #[available_gas(50000000)]
 fn test_settling_option_round_while_round_auctioning_fails() {
     let (mut vault_facade, _) = setup_facade();
-    let mut current_round = vault_facade.get_current_round();
-
-    let mut j: Array<felt252> = array![];
-    let _j = JobRequest {
-        program_id: PROGRAM_ID,
-        vault_address: vault_facade.contract_address(),
-        timestamp: current_round.get_option_settlement_date()
-    };
-    _j.serialize(ref j);
 
     let l1_data = L1Data { twap: to_gwei(5), reserve_price: to_gwei(2), max_return: (3333) };
-    let v = l1_data_to_verifier_data_serialized(l1_data);
+    let req = vault_facade.get_request_to_settle_round_serialized();
+    let res = vault_facade.generate_custom_job_result_from_l1_data_serialized(l1_data);
 
-    accelerate_to_auctioning(ref vault_facade,);
+    accelerate_to_auctioning(ref vault_facade);
 
     // Settle option round before auction ends
-    vault_facade
-        .settle_option_round_expect_error(j.span(), v, Errors::OptionSettlementDateNotReached);
+    vault_facade.settle_option_round_expect_error(req, res, Errors::OptionSettlementDateNotReached);
 }
 
 fn get_mock_l1_data() -> L1Data {
     L1Data { twap: to_gwei(33) / 100, max_return: 1009, reserve_price: to_gwei(11) / 10 }
-}
-
-fn get_mock_result() -> VerifierData {
-    l1_data_to_verifier_data(get_mock_l1_data())
-}
-
-fn get_mock_result_serialized() -> Span<felt252> {
-    let mut result_serialized = array![];
-    get_mock_result().serialize(ref result_serialized);
-    result_serialized.span()
 }
 
 fn get_request(ref vault: VaultFacade) -> JobRequest {
@@ -114,11 +60,11 @@ fn get_request_serialized(ref vault: VaultFacade) -> Span<felt252> {
 fn test_settling_option_round_before_settlement_date_fails() {
     let (mut vault_facade, _) = setup_test_running();
 
-    let j = get_request_serialized(ref vault_facade);
-    let v = get_mock_result_serialized();
+    let req = vault_facade.get_request_to_settle_round_serialized();
+    let res = vault_facade.generate_custom_job_result_from_l1_data_serialized(get_mock_l1_data());
 
     // Settle option round before expiry
-    vault_facade.settle_option_round_expect_error(j, v, Errors::OptionSettlementDateNotReached);
+    vault_facade.settle_option_round_expect_error(req, res, Errors::OptionSettlementDateNotReached);
 }
 
 // Test settling an option round while round settled fails
@@ -130,11 +76,11 @@ fn test_settling_option_round_while_settled_fails() {
     accelerate_to_running(ref vault_facade);
     accelerate_to_settled(ref vault_facade, 0x123);
 
-    let j = get_request_serialized(ref vault_facade);
-    let v = get_mock_result_serialized();
+    let req = vault_facade.get_request_to_settle_round_serialized();
+    let res = vault_facade.generate_custom_job_result_from_l1_data_serialized(get_mock_l1_data());
 
     // Settle option round after it has already settled
-    vault_facade.settle_option_round_expect_error(j, v, Errors::OptionRoundAlreadySettled);
+    vault_facade.settle_option_round_expect_error(req, res, Errors::OptionRoundAlreadySettled);
 }
 
 /// Event Tests ///
@@ -167,7 +113,7 @@ fn test_option_round_settled_event() {
 #[available_gas(500000000)]
 fn test_first_round_deployed_event() {
     set_block_timestamp(123);
-    let vault_dispatcher = deploy_vault_with_events(2222, 9999, contract_address_const::<'eth'>());
+    let vault_dispatcher = deploy_vault_with_events(2222, 9999, 'eth'.try_into().unwrap());
     let mut vault = VaultFacade { vault_dispatcher };
     let mut current_round = vault.get_current_round();
 
@@ -183,7 +129,7 @@ fn test_first_round_deployed_event() {
         exp_auction_start_date,
         exp_auction_end_date,
         exp_option_settlement_date,
-        pricing_data: PricingData { strike_price: 0, cap_level: 0, reserve_price: 0 }
+        pricing_data: PricingData { strike_price: 0, cap_level: 0, reserve_price: 0 },
     );
 
     assert_eq!(current_round.get_deployment_date(), exp_deployment_date);
@@ -199,40 +145,39 @@ fn test_first_round_deployed_event() {
 fn test_next_round_deployed_events() {
     let (mut vault, _) = setup_facade();
 
-    for i in 1_u64
-        ..4 {
-            let mut round_i = vault.get_current_round();
-            accelerate_to_auctioning(ref vault);
-            accelerate_to_running(ref vault);
-            clear_event_logs(array![vault.contract_address()]);
-            accelerate_to_settled(ref vault, round_i.get_strike_price());
+    for i in 1_u64..4 {
+        let mut round_i = vault.get_current_round();
+        accelerate_to_auctioning(ref vault);
+        accelerate_to_running(ref vault);
+        clear_event_logs(array![vault.contract_address()]);
+        accelerate_to_settled(ref vault, round_i.get_strike_price());
 
-            let mut round_i_plus_1 = vault.get_current_round();
-            let auction_start_date = round_i_plus_1.get_auction_start_date();
-            let auction_end_date = round_i_plus_1.get_auction_end_date();
-            let settlement_date = round_i_plus_1.get_option_settlement_date();
+        let mut round_i_plus_1 = vault.get_current_round();
+        let auction_start_date = round_i_plus_1.get_auction_start_date();
+        let auction_end_date = round_i_plus_1.get_auction_end_date();
+        let settlement_date = round_i_plus_1.get_option_settlement_date();
 
-            // Check new round is deployed
-            assert(i + 1 == round_i_plus_1.get_round_id(), 'round contract address wrong');
+        // Check new round is deployed
+        assert(i + 1 == round_i_plus_1.get_round_id(), 'round contract address wrong');
 
-            // Check the event emits correctly
-            let pricing_data = PricingData {
-                strike_price: round_i_plus_1.get_strike_price(),
-                cap_level: round_i_plus_1.get_cap_level(),
-                reserve_price: round_i_plus_1.get_reserve_price()
-            };
+        // Check the event emits correctly
+        let pricing_data = PricingData {
+            strike_price: round_i_plus_1.get_strike_price(),
+            cap_level: round_i_plus_1.get_cap_level(),
+            reserve_price: round_i_plus_1.get_reserve_price(),
+        };
 
-            assert(pricing_data != Default::default(), 'Pricing data not set correctly');
-            assert_event_option_round_deployed_single(
-                vault.contract_address(),
-                i + 1,
-                round_i_plus_1.contract_address(),
-                auction_start_date,
-                auction_end_date,
-                settlement_date,
-                pricing_data
-            );
-        }
+        assert(pricing_data != Default::default(), 'Pricing data not set correctly');
+        assert_event_option_round_deployed_single(
+            vault.contract_address(),
+            i + 1,
+            round_i_plus_1.contract_address(),
+            auction_start_date,
+            auction_end_date,
+            settlement_date,
+            pricing_data,
+        );
+    }
 }
 
 
@@ -276,14 +221,14 @@ fn test_settle_option_round_updates_round_state() {
         let mut current_round = vault.get_current_round();
 
         assert(
-            current_round.get_state() == OptionRoundState::Running, 'current round shd be running'
+            current_round.get_state() == OptionRoundState::Running, 'current round shd be running',
         );
 
         //accelerate_to_settled(ref vault, 0);
         accelerate_to_settled(ref vault, current_round.get_strike_price());
 
         assert(
-            current_round.get_state() == OptionRoundState::Settled, 'current round shd be settled'
+            current_round.get_state() == OptionRoundState::Settled, 'current round shd be settled',
         );
 
         rounds_to_run -= 1;
@@ -330,12 +275,12 @@ fn test_settling_option_round_transfers_payout() {
 fn test_settling_option_round_updates_locked_and_unlocked_balances() {
     let number_of_liquidity_providers = 4;
     let mut deposit_amounts = create_array_gradient(
-        100 * decimals(), 100 * decimals(), number_of_liquidity_providers
+        100 * decimals(), 100 * decimals(), number_of_liquidity_providers,
     )
         .span();
     //    let total_deposits = sum_u256_array(deposit_amounts);
     let (mut vault, _, liquidity_providers, _) = setup_test_auctioning_providers(
-        number_of_liquidity_providers, deposit_amounts
+        number_of_liquidity_providers, deposit_amounts,
     );
     let mut current_round = vault.get_current_round();
 
@@ -375,11 +320,11 @@ fn test_settling_option_round_updates_locked_and_unlocked_balances() {
     assert(total_premiums > 0, 'premiums shd be > 0');
     assert(
         (vault_locked_before, vault_unlocked_before) == (sold_liq, gained_liq),
-        'vault balance before wrong'
+        'vault balance before wrong',
     );
     assert(
         (vault_locked_after, vault_unlocked_after) == (0, gained_liq + remaining_liq),
-        'vault balance after wrong'
+        'vault balance after wrong',
     );
 
     // Check liquidity provider balances
@@ -406,18 +351,18 @@ fn test_settling_option_round_updates_locked_and_unlocked_balances() {
 
                 assert(
                     (
-                        lp_locked_balance_before, lp_unlocked_balance_before
+                        lp_locked_balance_before, lp_unlocked_balance_before,
                     ) == (lp_sold_liq, lp_gained_liq),
-                    'LP balance before wrong'
+                    'LP balance before wrong',
                 );
                 assert(
                     (
-                        lp_locked_balance_after, lp_unlocked_balance_after
+                        lp_locked_balance_after, lp_unlocked_balance_after,
                     ) == (0, lp_gained_liq + lp_remaining_liq),
-                    'LP balance after wrong'
+                    'LP balance after wrong',
                 );
             },
-            Option::None => { break (); }
+            Option::None => { break; },
         }
     };
 }
@@ -431,7 +376,7 @@ fn test_null_round_settling() {
     let liquidity_provider = liquidity_provider_1();
     let deposit_amount = 0;
     accelerate_to_auctioning_custom(
-        ref vault, array![liquidity_provider].span(), array![deposit_amount].span()
+        ref vault, array![liquidity_provider].span(), array![deposit_amount].span(),
     );
 
     let option_buyer = option_bidder_buyer_1();
@@ -439,7 +384,7 @@ fn test_null_round_settling() {
     let reserve_price = current_round.get_reserve_price();
     current_round
         .place_bid_expect_error(
-            options_available, reserve_price, option_buyer, Errors::NoOptionsToBidFor
+            options_available, reserve_price, option_buyer, Errors::NoOptionsToBidFor,
         );
 
     accelerate_to_running_custom(ref vault, array![].span(), array![].span(), array![].span());

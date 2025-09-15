@@ -1,26 +1,23 @@
 #[starknet::contract]
-mod Vault {
-    use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess,};
-    use starknet::storage::{Map, StoragePathEntry};
-    use starknet::{
-        ContractAddress, ClassHash, deploy_syscall, get_caller_address, contract_address_const,
-        get_contract_address, get_block_timestamp
-    };
-    use openzeppelin_token::erc20::{
-        ERC20Component, interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait}
-    };
-    use openzeppelin_utils::serde::SerializedAppend;
-    use pitch_lake::vault::interface::{L1Data, ConstructorArgs, IVault, VerifierData, JobRequest};
-    use pitch_lake::option_round::contract::{OptionRound, OptionRound::Errors as RoundErrors};
-    use pitch_lake::option_round::interface::{
-        ConstructorArgs as OptionRoundConstructorArgs, OptionRoundState, IOptionRoundDispatcher,
-        IOptionRoundDispatcherTrait, PricingData,
-    };
-    use pitch_lake::library::constants::{BPS_i128, BPS_felt252, BPS_u128, BPS_u256};
-    use pitch_lake::library::utils::{assert_equal_in_range, generate_request_id};
-    use pitch_lake::library::pricing_utils::{calculate_strike_price, calculate_cap_level};
-    use pitch_lake::library::constants::{REQUEST_TOLERANCE, PROGRAM_ID};
+pub mod Vault {
+    use core::num::traits::Zero;
     use fp::{UFixedPoint123x128, UFixedPoint123x128Impl, UFixedPoint123x128StorePacking};
+    use openzeppelin_token::erc20::interface::{ERC20ABIDispatcher, ERC20ABIDispatcherTrait};
+    use openzeppelin_utils::serde::SerializedAppend;
+    use pitch_lake::library::constants::{BPS_i128, BPS_u128, BPS_u256};
+    use pitch_lake::library::pricing_utils::{calculate_cap_level, calculate_strike_price};
+    use pitch_lake::option_round::interface::{
+        ConstructorArgs as OptionRoundConstructorArgs, IOptionRoundDispatcher,
+        IOptionRoundDispatcherTrait, OptionRoundState, PricingData,
+    };
+    use pitch_lake::vault::interface::{ConstructorArgs, IVault, JobRequest, L1Data, VerifierData};
+    use starknet::storage::{
+        Map, StoragePathEntry, StoragePointerReadAccess, StoragePointerWriteAccess,
+    };
+    use starknet::syscalls::deploy_syscall;
+    use starknet::{
+        ClassHash, ContractAddress, get_block_timestamp, get_caller_address, get_contract_address,
+    };
 
 
     // *************************************************************************
@@ -36,6 +33,8 @@ mod Vault {
         round_transition_duration: u64,
         auction_duration: u64,
         round_duration: u64,
+        program_id: felt252,
+        proving_delay: u64,
         ///
         l1_data: Map<u64, L1Data>,
         option_round_class_hash: ClassHash,
@@ -65,15 +64,18 @@ mod Vault {
     #[constructor]
     fn constructor(ref self: ContractState, args: ConstructorArgs) {
         // @dev Get the constructor arguments
-        let ConstructorArgs { verifier_address,
-        eth_address,
-        option_round_class_hash,
-        strike_level,
-        alpha,
-        round_transition_duration,
-        auction_duration,
-        round_duration } =
-            args;
+        let ConstructorArgs {
+            verifier_address,
+            eth_address,
+            option_round_class_hash,
+            strike_level,
+            alpha,
+            round_transition_duration,
+            auction_duration,
+            round_duration,
+            program_id,
+            proving_delay,
+        } = args;
 
         // @dev Set the Vault's parameters
         self.verifier_address.write(verifier_address);
@@ -83,6 +85,8 @@ mod Vault {
         self.auction_duration.write(auction_duration);
         self.round_duration.write(round_duration);
         self.deployment_block.write(starknet::get_block_number());
+        self.program_id.write(program_id);
+        self.proving_delay.write(proving_delay);
 
         // @dev Alpha is between 0.01% and 100.00%
         assert(alpha.is_non_zero() && alpha <= BPS_u128, Errors::AlphaOutOfRange);
@@ -101,23 +105,23 @@ mod Vault {
     //                              Errors
     // *************************************************************************
 
-    mod Errors {
-        const AlphaOutOfRange: felt252 = 'Alpha out of range';
-        const StrikeLevelOutOfRange: felt252 = 'Strike level out of range';
-        // Fossil
-        const L1DataNotAcceptedNow: felt252 = 'L1 data not accepted now';
-        const L1DataOutOfRange: felt252 = 'L1 data out of range';
-        const InvalidL1Data: felt252 = 'Invalid L1 data';
-        const CallerNotVerifier: felt252 = 'Caller not the verifier';
-        const InvalidRequest: felt252 = 'Invalid request';
-        const FailedToDeserializeJobRequest: felt252 = 'Failed to deserialize request';
-        const FailedToDeserializeVerifierData: felt252 = 'Failed to desr. verifier data';
+    pub mod Errors {
+        pub const AlphaOutOfRange: felt252 = 'Alpha out of range';
+        pub const StrikeLevelOutOfRange: felt252 = 'Strike level out of range';
+        // Verifier
+        pub const L1DataNotAcceptedNow: felt252 = 'L1 data not accepted now';
+        pub const L1DataOutOfRange: felt252 = 'L1 data out of range';
+        pub const InvalidL1Data: felt252 = 'Invalid L1 data';
+        pub const CallerNotVerifier: felt252 = 'Caller not the verifier';
+        pub const InvalidRequest: felt252 = 'Invalid request';
+        pub const FailedToDeserializeJobRequest: felt252 = 'Failed to deserialize request';
+        pub const FailedToDeserializeVerifierData: felt252 = 'Failed to desr. verifier data';
         // Withdraw/queuing withdrawals
-        const InsufficientBalance: felt252 = 'Insufficient unlocked balance';
-        const QueueingMoreThanPositionValue: felt252 = 'Insufficient balance to queue';
-        const WithdrawalQueuedWhileUnlocked: felt252 = 'Can only queue while locked';
+        pub const InsufficientBalance: felt252 = 'Insufficient unlocked balance';
+        pub const QueueingMoreThanPositionValue: felt252 = 'Insufficient balance to queue';
+        pub const WithdrawalQueuedWhileUnlocked: felt252 = 'Can only queue while locked';
         // Deploying option rounds
-        const OptionRoundDeploymentFailed: felt252 = 'Option round deployment failed';
+        pub const OptionRoundDeploymentFailed: felt252 = 'Option round deployment failed';
     }
 
     // *************************************************************************
@@ -126,7 +130,7 @@ mod Vault {
 
     #[event]
     #[derive(Serde, PartialEq, Drop, starknet::Event)]
-    enum Event {
+    pub enum Event {
         Deposit: Deposit,
         Withdrawal: Withdrawal,
         WithdrawalQueued: WithdrawalQueued,
@@ -141,12 +145,12 @@ mod Vault {
     // @member: account_unlocked_balance_now: The account's unlocked balance after the deposit
     // @member: vault_unlocked_balance_now: The vault's unlocked balance after the deposit
     #[derive(Serde, Drop, starknet::Event, PartialEq)]
-    struct Deposit {
+    pub struct Deposit {
         #[key]
-        account: ContractAddress,
-        amount: u256,
-        account_unlocked_balance_now: u256,
-        vault_unlocked_balance_now: u256,
+        pub account: ContractAddress,
+        pub amount: u256,
+        pub account_unlocked_balance_now: u256,
+        pub vault_unlocked_balance_now: u256,
     }
 
     // @dev Emitted when an account makes a withdrawal
@@ -155,12 +159,12 @@ mod Vault {
     // @member account_unlocked_balance_now: The account's unlocked balance after the withdrawal
     // @member vault_unlocked_balance_now: The vault's unlocked balance after the withdrawal
     #[derive(Serde, Drop, starknet::Event, PartialEq)]
-    struct Withdrawal {
+    pub struct Withdrawal {
         #[key]
-        account: ContractAddress,
-        amount: u256,
-        account_unlocked_balance_now: u256,
-        vault_unlocked_balance_now: u256,
+        pub account: ContractAddress,
+        pub amount: u256,
+        pub account_unlocked_balance_now: u256,
+        pub vault_unlocked_balance_now: u256,
     }
 
     // @dev Emitted when an account queues a withdrawal
@@ -170,14 +174,14 @@ mod Vault {
     // withdrawal @member vault_queued_liquidity_now: The vault's starting liquidity queued after
     // the withdrawal
     #[derive(Serde, Drop, starknet::Event, PartialEq)]
-    struct WithdrawalQueued {
+    pub struct WithdrawalQueued {
         #[key]
-        account: ContractAddress,
-        bps: u128,
-        round_id: u64,
-        account_queued_liquidity_before: u256,
-        account_queued_liquidity_now: u256,
-        vault_queued_liquidity_now: u256,
+        pub account: ContractAddress,
+        pub bps: u128,
+        pub round_id: u64,
+        pub account_queued_liquidity_before: u256,
+        pub account_queued_liquidity_now: u256,
+        pub vault_queued_liquidity_now: u256,
     }
 
     // @dev Emitted when an account withdraws their stashed liquidity
@@ -185,11 +189,11 @@ mod Vault {
     // @member amount: The amount withdrawn
     // @member vault_stashed_balance_now: The vault's stashed balance after the withdrawal
     #[derive(Serde, Drop, starknet::Event, PartialEq)]
-    struct StashWithdrawn {
+    pub struct StashWithdrawn {
         #[key]
-        account: ContractAddress,
-        amount: u256,
-        vault_stashed_balance_now: u256,
+        pub account: ContractAddress,
+        pub amount: u256,
+        pub vault_stashed_balance_now: u256,
     }
 
     // @dev Emitted when a new option round is deployed
@@ -202,20 +206,20 @@ mod Vault {
     // @member auction_end_date: The auction end date for the deployed round
     // @member option_settlement_date: The option settlement date for the deployed round
     #[derive(Serde, Drop, starknet::Event, PartialEq)]
-    struct OptionRoundDeployed {
-        round_id: u64,
-        address: ContractAddress,
-        auction_start_date: u64,
-        auction_end_date: u64,
-        option_settlement_date: u64,
-        pricing_data: PricingData,
+    pub struct OptionRoundDeployed {
+        pub round_id: u64,
+        pub address: ContractAddress,
+        pub auction_start_date: u64,
+        pub auction_end_date: u64,
+        pub option_settlement_date: u64,
+        pub pricing_data: PricingData,
     }
 
     // @dev Emitted when L1 data is successfully processed by the vault
     #[derive(Serde, Drop, starknet::Event, PartialEq)]
-    struct FossilCallbackSuccess {
-        l1_data: L1Data,
-        timestamp: u64,
+    pub struct FossilCallbackSuccess {
+        pub l1_data: L1Data,
+        pub timestamp: u64,
     }
 
 
@@ -224,7 +228,7 @@ mod Vault {
     // *************************************************************************
 
     #[abi(embed_v0)]
-    impl VaultImpl of IVault<ContractState> {
+    pub impl VaultImpl of IVault<ContractState> {
         // ***********************************
         //               READS
         // ***********************************
@@ -261,6 +265,14 @@ mod Vault {
 
         fn get_round_duration(self: @ContractState) -> u64 {
             self.round_duration.read()
+        }
+
+        fn get_program_id(self: @ContractState) -> felt252 {
+            self.program_id.read()
+        }
+
+        fn get_proving_delay(self: @ContractState) -> u64 {
+            self.proving_delay.read()
         }
 
 
@@ -307,7 +319,7 @@ mod Vault {
             // @dev Calculate the queued BPS %, avoiding division by 0
             match total_liq.is_zero() {
                 true => 0,
-                false => ((BPS_u256 * queued_liq) / total_liq).try_into().unwrap()
+                false => ((BPS_u256 * queued_liq) / total_liq).try_into().unwrap(),
             }
         }
 
@@ -330,7 +342,7 @@ mod Vault {
             // @dev Calculate how much belongs to the account, avoiding division by 0
             match total_liq.is_zero() {
                 true => 0,
-                false => (locked_liq * account_liq) / total_liq
+                false => (locked_liq * account_liq) / total_liq,
             }
         }
 
@@ -362,7 +374,7 @@ mod Vault {
                 }
 
                 i += 1;
-            };
+            }
 
             total
         }
@@ -378,7 +390,7 @@ mod Vault {
             // by 0
             match total_liq.is_zero() {
                 true => 0,
-                false => ((BPS_u256 * queued_liq) / total_liq).try_into().unwrap()
+                false => ((BPS_u256 * queued_liq) / total_liq).try_into().unwrap(),
             }
         }
 
@@ -440,9 +452,9 @@ mod Vault {
                             account,
                             amount,
                             account_unlocked_balance_now,
-                            vault_unlocked_balance_now
-                        }
-                    )
+                            vault_unlocked_balance_now,
+                        },
+                    ),
                 );
 
             // @dev Return the account's unlocked balance after the deposit
@@ -488,9 +500,9 @@ mod Vault {
                             account,
                             amount,
                             account_unlocked_balance_now,
-                            vault_unlocked_balance_now
-                        }
-                    )
+                            vault_unlocked_balance_now,
+                        },
+                    ),
                 );
 
             // @dev Return the account's unlocked balance after the withdrawal
@@ -555,9 +567,9 @@ mod Vault {
                             round_id: current_round_id,
                             account_queued_liquidity_before,
                             account_queued_liquidity_now,
-                            vault_queued_liquidity_now
-                        }
-                    )
+                            vault_queued_liquidity_now,
+                        },
+                    ),
                 );
         }
 
@@ -580,8 +592,8 @@ mod Vault {
             self
                 .emit(
                     Event::StashWithdrawn(
-                        StashWithdrawn { account, amount, vault_stashed_balance_now }
-                    )
+                        StashWithdrawn { account, amount, vault_stashed_balance_now },
+                    ),
                 );
 
             amount
@@ -630,49 +642,190 @@ mod Vault {
         /// L1 Data/Settlement
 
         fn fossil_callback(
-            ref self: ContractState, mut job_request: Span<felt252>, mut result: Span<felt252>
+            ref self: ContractState, mut job_request: Span<felt252>, mut result: Span<felt252>,
         ) -> u256 {
-            // @dev Only the Pitchlake Verifier can call this function
-            self.assert_caller_is_verifier();
-
-            // @dev Deserialize and validate the job_request
-            let job_request: JobRequest = Serde::deserialize(ref job_request)
-                .expect(Errors::FailedToDeserializeJobRequest);
-
-            assert(job_request.vault_address == get_contract_address(), Errors::InvalidRequest);
-            assert(job_request.program_id == PROGRAM_ID, Errors::InvalidRequest);
-
-            // @dev Deserialize and validate the verifier data
-            let verifier_data: VerifierData = Serde::deserialize(ref result)
-                .expect(Errors::FailedToDeserializeVerifierData);
-
-            // @dev Extract the L1 data we need
-            let l1_data = self.interpret_l1_data(verifier_data);
-
-            // @dev Assert the L1 data is valid
-            assert(
-                verifier_data.twap_result.is_non_zero()
-                    && verifier_data.reserve_price.is_non_zero(),
-                Errors::InvalidL1Data
-            );
-
             // @dev This function is used to either start round 1's auction (Open -> Auctioning), or
-            // to settle each round (Running -> Settled).
+            // to settle each round (Running -> Settled), otherwise data is not being accepted at
+            // this time
             let current_round_id = self.current_round_id.read();
             let current_round = self.get_round_dispatcher(current_round_id);
             let state = current_round.get_state();
 
-            // @dev If the current round is 1 and Open, the L1 data is being used
-            // to initialize it
-            if current_round_id == 1 && state == OptionRoundState::Open {
-                self.initialize_round_one(current_round, l1_data, job_request.timestamp)
-            } // @dev If the current round is Running, the L1 data is being used to settle it
-            else if state == OptionRoundState::Running {
-                self.settle_round(current_round_id, current_round, l1_data, job_request.timestamp)
+            assert(
+                (current_round_id == 1 && state == OptionRoundState::Open)
+                    || state == OptionRoundState::Running,
+                Errors::L1DataNotAcceptedNow,
+            );
+
+            /// @dev Validate the request/result (see @proposal for simplification details)
+
+            // @dev Deserialize the job_request and result
+            let req: JobRequest = Serde::deserialize(ref job_request)
+                .expect(Errors::FailedToDeserializeJobRequest);
+            // @dev Deserialize the verifier data
+            let res: VerifierData = Serde::deserialize(ref result)
+                .expect(Errors::FailedToDeserializeVerifierData);
+
+            // @dev Extract the L1 data we need (could just use res if @proposal is used)
+            let l1_data = self.interpret_verifier_data(res);
+
+            // @dev Only the Pitchlake Verifier can call this function
+            self.assert_caller_is_verifier();
+
+            // @dev Validate request program ID and vault address
+            assert!(
+                req.vault_address == get_contract_address(),
+                "Invalid Request: vault address expected: {:?}, got: {:?}",
+                get_contract_address(),
+                req.vault_address,
+            );
+            assert!(
+                req.program_id == self.program_id.read(),
+                "Invalid Request: program ID expected: {}, got: {}",
+                self.program_id.read(),
+                req.program_id,
+            );
+
+            // @dev Validate request timestamp is not before block headers are provable
+            let now = get_block_timestamp();
+            let max_provable_timestamp = now - self.proving_delay.read();
+            assert!(
+                req.timestamp <= max_provable_timestamp,
+                "Invalid Request: timestamp expected: {}, got: {}",
+                max_provable_timestamp,
+                req.timestamp,
+            );
+
+            // @dev Validate bounds for each parameter
+            // - If this is the first (special/initialization) callback, the upper bound is the
+            // first round's deployment date.
+            // - If all other callbacks, the upper bound is the current round's settlement date
+            // @dev In either case, the lower bound for the TWAP is the upper bound minus the
+            // round_duration, and the reserve price & max return lower bounds are both the upper
+            // bound minus (3 x the round_duration)
+            let round_duration = self.round_duration.read();
+            let upper_bound = if state == OptionRoundState::Running {
+                current_round.get_option_settlement_date()
             } else {
-                // @dev If neither of the above, the L1 data is not being accepted now
-                assert(false, Errors::L1DataNotAcceptedNow);
-                core::num::traits::Bounded::MAX
+                current_round.get_deployment_date()
+            };
+
+            let twap_lower_bound = upper_bound - round_duration;
+            let reserve_price_lower_bound = upper_bound - (3 * round_duration);
+            let max_return_lower_bound = reserve_price_lower_bound;
+
+            // @dev Allow tolerance for timestamp validation to account for proving time variations
+            // Tolerance of 60 seconds on either side to handle timing between proof generation and
+            // validation
+            let tolerance = 60;
+
+            // Check TWAP timestamps with tolerance
+            let twap_start_diff = if res.twap_start_timestamp >= twap_lower_bound {
+                res.twap_start_timestamp - twap_lower_bound
+            } else {
+                twap_lower_bound - res.twap_start_timestamp
+            };
+            assert!(
+                twap_start_diff <= tolerance,
+                "Invalid L1 Data: twap_start_timestamp expected: {}, got: {}",
+                twap_lower_bound,
+                res.twap_start_timestamp,
+            );
+
+            // Check reserve price start timestamp with tolerance
+            let reserve_price_start_diff = if res
+                .reserve_price_start_timestamp >= reserve_price_lower_bound {
+                res.reserve_price_start_timestamp - reserve_price_lower_bound
+            } else {
+                reserve_price_lower_bound - res.reserve_price_start_timestamp
+            };
+            assert!(
+                reserve_price_start_diff <= tolerance,
+                "Invalid L1 Data: reserve_price_start_timestamp expected: {}, got: {}",
+                reserve_price_lower_bound,
+                res.reserve_price_start_timestamp,
+            );
+
+            // Check max return start timestamp with tolerance
+            let max_return_start_diff = if res
+                .max_return_start_timestamp >= max_return_lower_bound {
+                res.max_return_start_timestamp - max_return_lower_bound
+            } else {
+                max_return_lower_bound - res.max_return_start_timestamp
+            };
+            assert!(
+                max_return_start_diff <= tolerance,
+                "Invalid L1 Data: max_return_start_timestamp expected: {}, got: {}",
+                max_return_lower_bound,
+                res.max_return_start_timestamp,
+            );
+
+            // Check TWAP end timestamp with tolerance
+            let twap_end_diff = if res.twap_end_timestamp >= upper_bound {
+                res.twap_end_timestamp - upper_bound
+            } else {
+                upper_bound - res.twap_end_timestamp
+            };
+            assert!(
+                twap_end_diff <= tolerance,
+                "Invalid L1 Data: twap_end_timestamp expected: {}, got: {}",
+                upper_bound,
+                res.twap_end_timestamp,
+            );
+
+            // Check reserve price end timestamp with tolerance
+            let reserve_price_end_diff = if res.reserve_price_end_timestamp >= upper_bound {
+                res.reserve_price_end_timestamp - upper_bound
+            } else {
+                upper_bound - res.reserve_price_end_timestamp
+            };
+            assert!(
+                reserve_price_end_diff <= tolerance,
+                "Invalid L1 Data: reserve_price_end_timestamp expected: {}, got: {}",
+                upper_bound,
+                res.reserve_price_end_timestamp,
+            );
+
+            // Check max return end timestamp with tolerance
+            let max_return_end_diff = if res.max_return_end_timestamp >= upper_bound {
+                res.max_return_end_timestamp - upper_bound
+            } else {
+                upper_bound - res.max_return_end_timestamp
+            };
+            assert!(
+                max_return_end_diff <= tolerance,
+                "Invalid L1 Data: max_return_end_timestamp expected: {}, got: {}",
+                upper_bound,
+                res.max_return_end_timestamp,
+            );
+
+            // @dev Assert the L1 data is valid
+            assert!(
+                res.twap_result.is_non_zero(),
+                "Invalid L1 Data: twap_result expected: non-zero, got: {}",
+                res.twap_result,
+            );
+            assert!(
+                res.reserve_price.is_non_zero(),
+                "Invalid L1 Data: reserve_price expected: non-zero, got: {}",
+                res.reserve_price,
+            );
+
+            // @dev If the current round is 1 and Open, the L1 data is being used
+            // to initialize it, so we send it directly to the round
+            if current_round_id == 1 && state == OptionRoundState::Open {
+                current_round.set_pricing_data(self.convert_l1_data_to_round_data(l1_data));
+                self
+                    .emit(
+                        Event::FossilCallbackSuccess(
+                            FossilCallbackSuccess { l1_data, timestamp: req.timestamp },
+                        ),
+                    );
+
+                0
+            } // @dev If the current round is Running, the L1 data is being used to settle it
+            else {
+                self.settle_round(current_round_id, current_round, l1_data, req.timestamp)
             }
         }
     }
@@ -682,7 +835,7 @@ mod Vault {
     // *************************************************************************
 
     #[generate_trait]
-    impl InternalImpl of VaultInternalTrait {
+    pub impl InternalImpl of VaultInternalTrait {
         /// Get contract dispatchers
 
         fn get_eth_dispatcher(self: @ContractState) -> ERC20ABIDispatcher {
@@ -699,14 +852,14 @@ mod Vault {
             let current_round_id = self.current_round_id.read();
             match self.get_round_dispatcher(current_round_id).get_state() {
                 OptionRoundState::Open => current_round_id,
-                _ => current_round_id + 1
+                _ => current_round_id + 1,
             }
         }
 
         fn get_round_outcome(self: @ContractState, round_id: u64) -> (u256, u256, u256) {
             let round = self.get_round_dispatcher(round_id);
             assert!(
-                round_id < self.current_round_id.read(), "Round must be settled to get outcome"
+                round_id < self.current_round_id.read(), "Round must be settled to get outcome",
             );
 
             // @dev Get the round's details
@@ -725,37 +878,14 @@ mod Vault {
 
         /// Deploying and starting rounds
 
-        // @dev Required in order to start round 1's auction
-        fn initialize_round_one(
-            ref self: ContractState,
-            current_round: IOptionRoundDispatcher,
-            l1_data: L1Data,
-            timestamp: u64
-        ) -> u256 {
-            // @dev Ensure the job request's timestamp is for the round's deployment date
-            let deployment_date = current_round.get_deployment_date();
-            assert(timestamp == deployment_date, Errors::L1DataOutOfRange);
-
-            // @dev Set the round's pricing data directly
-            current_round.set_pricing_data(self.convert_l1_data_to_round_data(l1_data));
-
-            self.emit(Event::FossilCallbackSuccess(FossilCallbackSuccess { l1_data, timestamp }));
-
-            0
-        }
-
         // @dev Settle the current round and Open the next
         fn settle_round(
             ref self: ContractState,
             current_round_id: u64,
             current_round: IOptionRoundDispatcher,
             l1_data: L1Data,
-            job_request_timestamp: u64
+            job_request_timestamp: u64,
         ) -> u256 {
-            // @dev Ensure the job request's timestamp is for the settlement date
-            let settlement_date = current_round.get_option_settlement_date();
-            assert(job_request_timestamp == settlement_date, Errors::L1DataOutOfRange);
-
             // @dev Settle the current round and return the total payout
             let total_payout = current_round.settle_round(l1_data.twap);
 
@@ -774,7 +904,7 @@ mod Vault {
                 .read();
             let remaining_liq_stashed = match starting_liq.is_zero() {
                 true => 0,
-                false => (remaining_liq * starting_liq_queued) / starting_liq
+                false => (remaining_liq * starting_liq_queued) / starting_liq,
             };
             let remaining_liq_not_stashed = remaining_liq - remaining_liq_stashed;
 
@@ -800,8 +930,8 @@ mod Vault {
             self
                 .emit(
                     Event::FossilCallbackSuccess(
-                        FossilCallbackSuccess { l1_data, timestamp: job_request_timestamp }
-                    )
+                        FossilCallbackSuccess { l1_data, timestamp: job_request_timestamp },
+                    ),
                 );
 
             // @dev Return the total payout of the settled round
@@ -835,13 +965,13 @@ mod Vault {
                 round_transition_duration,
                 auction_duration,
                 round_duration,
-                round_id: new_round_id
+                round_id: new_round_id,
             };
             calldata.append_serde(constructor_args);
 
             // @dev Deploy the round
             let (address, _) = deploy_syscall(
-                self.option_round_class_hash.read(), 'some salt', calldata.span(), false
+                self.option_round_class_hash.read(), 'some salt', calldata.span(), false,
             )
                 .expect(Errors::OptionRoundDeploymentFailed);
             let round = IOptionRoundDispatcher { contract_address: address };
@@ -862,9 +992,9 @@ mod Vault {
                             auction_start_date: round.get_auction_start_date(),
                             auction_end_date: round.get_auction_end_date(),
                             option_settlement_date: round.get_option_settlement_date(),
-                            pricing_data
-                        }
-                    )
+                            pricing_data,
+                        },
+                    ),
                 );
         }
 
@@ -877,23 +1007,28 @@ mod Vault {
         // @dev Generate a JobRequest for a specific timestamp
         fn generate_job_request(self: @ContractState, timestamp: u64) -> Span<felt252> {
             let mut serialized_request = array![];
-            JobRequest { program_id: PROGRAM_ID, vault_address: get_contract_address(), timestamp }
+            JobRequest {
+                program_id: self.program_id.read(),
+                vault_address: get_contract_address(),
+                timestamp,
+            }
                 .serialize(ref serialized_request);
             serialized_request.span()
         }
 
         // Interpret l1 data to useful types
-        fn interpret_l1_data(self: @ContractState, raw_l1_data: VerifierData) -> L1Data {
-            let VerifierData { start_timestamp: _,
-            end_timestamp: _,
-            reserve_price: reserve_price_fp_felt,
-            //           floating_point_tolerance: _,
-            //           reserve_price_tolerance: _,
-            //           twap_tolerance: _,
-            //           gradient_tolerance: _,
-            twap_result: twap_fp_felt,
-            max_return: max_return_fp_felt } =
-                raw_l1_data;
+        fn interpret_verifier_data(self: @ContractState, raw_l1_data: VerifierData) -> L1Data {
+            let VerifierData {
+                reserve_price_start_timestamp: _,
+                reserve_price_end_timestamp: _,
+                reserve_price: reserve_price_fp_felt,
+                twap_start_timestamp: _,
+                twap_end_timestamp: _,
+                twap_result: twap_fp_felt,
+                max_return_start_timestamp: _,
+                max_return_end_timestamp: _,
+                max_return: max_return_fp_felt,
+            } = raw_l1_data;
 
             // @dev Each felt in the VerifierData is a UFixedPoint123x128 representation of a
             // decimal
@@ -936,7 +1071,7 @@ mod Vault {
 
         // @dev Calculate an account's starting deposit for the current round
         fn get_realized_deposit_for_current_round(
-            self: @ContractState, account: ContractAddress
+            self: @ContractState, account: ContractAddress,
         ) -> u256 {
             // @dev Calculate the value of the account's deposit from the round after their
             // deposit checkpoint to the start of the current round
@@ -954,13 +1089,13 @@ mod Vault {
                 // @dev Get the liquidity that remained for the account in this round
                 let account_remaining_liq = self
                     .get_account_liquidity_that_remained_in_round_unstashed(
-                        account, realized_deposit, i
+                        account, realized_deposit, i,
                     );
 
                 realized_deposit = account_unlocked_liq + account_remaining_liq;
 
                 i += 1;
-            };
+            }
 
             // @dev Add in the liquidity provider's current round deposit
             realized_deposit + self.positions.entry(account).entry(current_round_id).read()
@@ -990,7 +1125,7 @@ mod Vault {
                         // deposit into the upcoming round
                         upcoming_round_deposit += self
                             .get_liquidity_unlocked_for_account_in_round(
-                                account, current_round_deposit, current_round_id
+                                account, current_round_deposit, current_round_id,
                             );
                     }
 
@@ -1056,7 +1191,7 @@ mod Vault {
             self: @ContractState,
             account: ContractAddress,
             account_starting_liq: u256,
-            round_id: u64
+            round_id: u64,
         ) -> u256 {
             // @dev If the round is Open | Auctioning, there are no premiums/unsold liquidity yet,
             // return 0 @dev If the unlocked liquidity was moved as a deposit into the next round,
@@ -1075,7 +1210,7 @@ mod Vault {
                 // @dev Liquidity provider's share of the unlocked liquidity, avoiding division by 0
                 match round_starting_liq.is_zero() {
                     true => 0,
-                    false => { (round_unlocked_liq * account_starting_liq) / round_starting_liq }
+                    false => { (round_unlocked_liq * account_starting_liq) / round_starting_liq },
                 }
             }
         }
@@ -1089,7 +1224,7 @@ mod Vault {
             self: @ContractState,
             account: ContractAddress,
             account_starting_liq: u256,
-            round_id: u64
+            round_id: u64,
         ) -> u256 {
             // @dev Return 0 if the round is not Settled
             if self.get_round_dispatcher(round_id).get_state() != OptionRoundState::Settled {

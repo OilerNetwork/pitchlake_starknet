@@ -3,25 +3,25 @@ use pitch_lake::vault::interface::JobRequest;
 
 pub const VALUES_NOT_IN_RANGE: felt252 = 'Values not in range';
 
-fn assert_equal_in_range<T, +PartialOrd<T>, +Add<T>, +Sub<T>, +Drop<T>, +Copy<T>>(
-    a: T, b: T, range: T
+pub fn assert_equal_in_range<T, +PartialOrd<T>, +Add<T>, +Sub<T>, +Drop<T>, +Copy<T>>(
+    a: T, b: T, range: T,
 ) {
     assert(a >= b - range && a <= b + range, VALUES_NOT_IN_RANGE);
 }
 
 // @dev Returns the minimum of a and b
-fn min<T, +PartialEq<T>, +PartialOrd<T>, +Drop<T>, +Copy<T>>(a: T, b: T) -> T {
+pub fn min<T, +PartialEq<T>, +PartialOrd<T>, +Drop<T>, +Copy<T>>(a: T, b: T) -> T {
     match a < b {
         true => a,
-        false => b
+        false => b,
     }
 }
 
 // @dev Returns the maximum of a and b
-fn max<T, +PartialEq<T>, +PartialOrd<T>, +Drop<T>, +Copy<T>>(a: T, b: T) -> T {
+pub fn max<T, +PartialEq<T>, +PartialOrd<T>, +Drop<T>, +Copy<T>>(a: T, b: T) -> T {
     match a < b {
         true => b,
-        false => a
+        false => a,
     }
 }
 
@@ -39,9 +39,8 @@ fn pow(base: u256, exp: u8) -> u256 {
 }
 
 // @dev Serialize the job request and hash it to create the its ID
-fn generate_request_id(request: JobRequest) -> felt252 {
+pub fn generate_request_id(request: JobRequest) -> felt252 {
     let mut serialized: Array<felt252> = Default::default();
     request.serialize(ref serialized);
     poseidon_hash_span(serialized.span())
 }
-

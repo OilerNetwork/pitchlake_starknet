@@ -1,38 +1,39 @@
 //use openzeppelin_token::erc20::interface::{ERC20ABIDispatcherTrait,};
-use starknet::ContractAddress;
 use pitch_lake::{
     library::eth::Eth,
     vault::{
         contract::Vault,
         interface::{
-            IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcherTrait
-        }
+            IVaultDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcher,
+            IVaultSafeDispatcherTrait,
+        },
     },
     option_round::{
         //contract::{OptionRound,},
-        interface::{OptionRoundState, IOptionRoundDispatcher, IOptionRoundDispatcherTrait,},
+        interface::{IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState},
     },
     tests::{
         utils::{
             helpers::{
-                setup::{setup_facade},
                 event_helpers::{
-                    assert_event_auction_start, assert_event_auction_end, assert_event_option_settle
-                }
+                    assert_event_auction_end, assert_event_auction_start,
+                    assert_event_option_settle,
+                },
+                setup::{PROGRAM_ID, PROVING_DELAY, setup_facade},
             },
             facades::{
-                vault_facade::VaultFacadeTrait,
                 option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
+                vault_facade::VaultFacadeTrait,
             },
-            lib::{variables::{decimals}, //            test_accounts::{
+            lib::{variables::{decimals} //            test_accounts::{
             //                liquidity_provider_1, liquidity_provider_2, option_bidder_buyer_1,
             //                option_bidder_buyer_2
             //            },
-            }
+            },
         },
     },
 };
-use debug::PrintTrait;
+use starknet::ContractAddress;
 
 
 /// Constructor Tests ///
@@ -53,6 +54,10 @@ fn test_vault_constructor() {
     assert(current_round.get_state() == OptionRoundState::Open, 'next round should be Open');
     // Test vault constructor values
     assert(vault.get_eth_address() == eth.contract_address, 'eth address incorrect');
+    // Test program id
+    assert(vault.get_program_id() == PROGRAM_ID, 'program id incorrect');
+    // Test proving delay
+    assert(vault.get_proving_delay() == PROVING_DELAY, 'proving delay incorrect');
 }
 
 
@@ -73,16 +78,16 @@ fn test_option_round_constructor() {
     assert_eq!(current_round.get_round_id(), 1);
 
     // Get time params
-    let now = starknet::get_block_timestamp();
+    let deployment_timestamp = current_round.get_deployment_date();
     let (auction_run_time, option_run_time, round_transition_period) = {
         (
             vault.get_auction_run_time(),
             vault.get_option_run_time(),
-            vault.get_round_transition_period()
+            vault.get_round_transition_period(),
         )
     };
 
-    let auction_start_date = now + round_transition_period;
+    let auction_start_date = deployment_timestamp + round_transition_period;
     let auction_end_date = auction_start_date + auction_run_time;
     let option_settlement_date = auction_end_date + option_run_time;
 

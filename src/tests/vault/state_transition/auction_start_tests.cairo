@@ -1,52 +1,37 @@
-use starknet::{
-    ClassHash, ContractAddress, contract_address_const, deploy_syscall,
-    Felt252TryIntoContractAddress, get_contract_address, get_block_timestamp,
-    testing::{set_block_timestamp, set_contract_address}
+use openzeppelin_token::erc20::interface::ERC20ABIDispatcherTrait;
+use pitch_lake::option_round::contract::OptionRound::Errors;
+use pitch_lake::option_round::interface::{
+    IOptionRoundDispatcher, IOptionRoundDispatcherTrait, OptionRoundState,
 };
-use openzeppelin_token::erc20::interface::{ERC20ABIDispatcherTrait,};
-use pitch_lake::{
-    vault::{
-        contract::Vault,
-        interface::{
-            IVaultDispatcher, IVaultSafeDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcherTrait
-        }
-    },
-    option_round::{
-        interface::{OptionRoundState, IOptionRoundDispatcher, IOptionRoundDispatcherTrait}
-    },
-    option_round::contract::OptionRound::Errors,
-    tests::{
-        utils::{
-            helpers::{
-                event_helpers::{assert_event_auction_start, assert_event_option_round_deployed},
-                accelerators::{
-                    accelerate_to_auctioning, accelerate_to_running, accelerate_to_settled,
-                    accelerate_to_auctioning_custom, accelerate_to_running_custom,
-                    timeskip_and_end_auction, timeskip_and_start_auction,
-                },
-                general_helpers::{
-                    create_array_linear, create_array_gradient, sum_u256_array,
-                    get_portion_of_amount,
-                },
-                setup::{setup_facade},
-            },
-            lib::{
-                test_accounts::{
-                    liquidity_provider_1, liquidity_provider_2, liquidity_providers_get,
-                    option_bidder_buyer_1, option_bidder_buyer_2, option_bidder_buyer_3,
-                    liquidity_provider_5, option_bidder_buyer_4, liquidity_provider_4,
-                    liquidity_provider_3,
-                },
-                variables::{decimals},
-            },
-            facades::{
-                vault_facade::{VaultFacade, VaultFacadeTrait},
-                option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
-            },
-        },
-    },
+use pitch_lake::tests::utils::facades::option_round_facade::{
+    OptionRoundFacade, OptionRoundFacadeTrait,
 };
-use debug::PrintTrait;
+use pitch_lake::tests::utils::facades::vault_facade::{VaultFacade, VaultFacadeTrait};
+use pitch_lake::tests::utils::helpers::accelerators::{
+    accelerate_to_auctioning, accelerate_to_auctioning_custom, accelerate_to_running,
+    accelerate_to_running_custom, accelerate_to_settled, timeskip_and_end_auction,
+    timeskip_and_start_auction,
+};
+use pitch_lake::tests::utils::helpers::event_helpers::{
+    assert_event_auction_start, assert_event_option_round_deployed,
+};
+use pitch_lake::tests::utils::helpers::general_helpers::{
+    create_array_gradient, create_array_linear, get_portion_of_amount, sum_u256_array,
+};
+use pitch_lake::tests::utils::helpers::setup::setup_facade;
+use pitch_lake::tests::utils::lib::test_accounts::{
+    liquidity_provider_1, liquidity_provider_2, liquidity_provider_3, liquidity_provider_4,
+    liquidity_provider_5, liquidity_providers_get, option_bidder_buyer_1, option_bidder_buyer_2,
+    option_bidder_buyer_3, option_bidder_buyer_4,
+};
+use pitch_lake::tests::utils::lib::variables::decimals;
+use pitch_lake::vault::contract::Vault;
+use pitch_lake::vault::interface::{
+    IVaultDispatcher, IVaultDispatcherTrait, IVaultSafeDispatcher, IVaultSafeDispatcherTrait,
+};
+use starknet::syscalls::deploy_syscall;
+use starknet::testing::{set_block_timestamp, set_contract_address};
+use starknet::{ClassHash, ContractAddress, get_block_timestamp, get_contract_address};
 
 
 /// Failures ///
@@ -107,7 +92,7 @@ fn test_auction_started_option_round_event() {
 
         // Check the event emits correctly
         assert_event_auction_start(
-            current_round.contract_address(), starting_liquidity, total_options_available
+            current_round.contract_address(), starting_liquidity, total_options_available,
         );
 
         accelerate_to_running(ref vault);
@@ -160,7 +145,7 @@ fn test_starting_auction_updates_current_rounds_state() {
 
         assert(
             current_round.get_state() == OptionRoundState::Auctioning,
-            'current round shd be auctioning'
+            'current round shd be auctioning',
         );
 
         accelerate_to_running(ref vault);
@@ -180,7 +165,7 @@ fn test_starting_auction_updates_locked_and_unlocked_balances() {
     let mut liquidity_providers = liquidity_providers_get(4).span();
     // Amounts to deposit: [100, 200, 300, 400]
     let mut deposit_amounts = create_array_gradient(
-        100 * decimals(), 100 * decimals(), liquidity_providers.len()
+        100 * decimals(), 100 * decimals(), liquidity_providers.len(),
     )
         .span();
     let total_deposits = sum_u256_array(deposit_amounts);
@@ -204,11 +189,11 @@ fn test_starting_auction_updates_locked_and_unlocked_balances() {
     // Check vault balance
     assert(
         (vault_locked_before, vault_unlocked_before) == (0, total_deposits),
-        'vault spread before wrong'
+        'vault spread before wrong',
     );
     assert(
         (vault_locked_after, vault_unlocked_after) == (total_deposits, 0),
-        'vault spread after wrong'
+        'vault spread after wrong',
     );
 
     // Check liquidity provider balances
@@ -222,14 +207,14 @@ fn test_starting_auction_updates_locked_and_unlocked_balances() {
 
                 assert(
                     (lp_locked_before, lp_unlocked_before) == (0, *lp_deposit_amount),
-                    'LP spread before wrong'
+                    'LP spread before wrong',
                 );
                 assert(
                     (lp_locked_after, lp_unlocked_after) == (*lp_deposit_amount, 0),
-                    'LP spread after wrong'
+                    'LP spread after wrong',
                 );
             },
-            Option::None => { break (); }
+            Option::None => { break (); },
         }
     };
 }

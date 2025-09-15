@@ -1,22 +1,22 @@
 #[starknet::contract]
-mod OptionRound {
-    use starknet::{get_block_timestamp, get_caller_address, get_contract_address, ContractAddress,};
-    use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess,};
-    use starknet::storage::{Map};
-    use openzeppelin_token::erc20::{ERC20Component, ERC20HooksEmptyImpl};
+pub mod OptionRound {
+    use core::num::traits::Zero;
     use openzeppelin_token::erc20::interface::{
-        ERC20ABIDispatcher, ERC20ABIDispatcherTrait, IERC20Metadata
+        ERC20ABIDispatcher, ERC20ABIDispatcherTrait, IERC20Metadata,
     };
-    use pitch_lake::vault::interface::{IVaultDispatcher, IVaultDispatcherTrait};
-    use pitch_lake::option_round::interface::{
-        PricingData, ConstructorArgs, IOptionRound, OptionRoundState
-    };
-    use pitch_lake::types::{Bid};
-    use pitch_lake::library::utils::{max, min};
+    use openzeppelin_token::erc20::{DefaultConfig, ERC20Component, ERC20HooksEmptyImpl};
     use pitch_lake::library::pricing_utils::{
-        max_payout_per_option, calculate_total_options_available, calculate_payout_per_option,
+        calculate_payout_per_option, calculate_total_options_available, max_payout_per_option,
     };
-    use pitch_lake::library::red_black_tree::{RBTreeComponent, RBTreeComponent::Node};
+    use pitch_lake::library::red_black_tree::RBTreeComponent;
+    use pitch_lake::library::red_black_tree::RBTreeComponent::Node;
+    use pitch_lake::option_round::interface::{
+        ConstructorArgs, IOptionRound, OptionRoundState, PricingData,
+    };
+    use pitch_lake::types::Bid;
+    use pitch_lake::vault::interface::{IVaultDispatcher, IVaultDispatcherTrait};
+    use starknet::storage::{Map, StoragePointerReadAccess, StoragePointerWriteAccess};
+    use starknet::{ContractAddress, get_block_timestamp, get_caller_address, get_contract_address};
 
     // *************************************************************************
     //                                COMPONENTS
@@ -70,32 +70,32 @@ mod OptionRound {
     //                                Errors
     // *************************************************************************
 
-    mod Errors {
-        const CallerIsNotVault: felt252 = 'Caller not the Vault';
-        const InvalidPricingData: felt252 = 'Invalid pricing data';
-        const NotFirstRound: felt252 = 'Not first round';
+    pub mod Errors {
+        pub const CallerIsNotVault: felt252 = 'Caller not the Vault';
+        pub const InvalidPricingData: felt252 = 'Invalid pricing data';
+        pub const NotFirstRound: felt252 = 'Not first round';
         // Starting an auction
-        const PricingDataNotSet: felt252 = 'Pricing data not set';
-        const AuctionStartDateNotReached: felt252 = 'Auction start date not reached';
-        const AuctionAlreadyStarted: felt252 = 'Auction already started';
+        pub const PricingDataNotSet: felt252 = 'Pricing data not set';
+        pub const AuctionStartDateNotReached: felt252 = 'Auction start date not reached';
+        pub const AuctionAlreadyStarted: felt252 = 'Auction already started';
         // Ending an auction
-        const AuctionEndDateNotReached: felt252 = 'Auction end date not reached';
-        const AuctionAlreadyEnded: felt252 = 'Auction has already ended';
+        pub const AuctionEndDateNotReached: felt252 = 'Auction end date not reached';
+        pub const AuctionAlreadyEnded: felt252 = 'Auction has already ended';
         // Settling an option round
-        const OptionSettlementDateNotReached: felt252 = 'Settlement date not reached';
-        const OptionRoundAlreadySettled: felt252 = 'Option round already settled';
+        pub const OptionSettlementDateNotReached: felt252 = 'Settlement date not reached';
+        pub const OptionRoundAlreadySettled: felt252 = 'Option round already settled';
         // Bidding & upating bids
-        const NoOptionsToBidFor: felt252 = 'No options to bid for';
-        const BiddingWhileNotAuctioning: felt252 = 'Can only bid while auctioning';
-        const BidAmountZero: felt252 = 'Bid amount cannot be 0';
-        const BidBelowReservePrice: felt252 = 'Bid price below reserve price';
-        const CallerNotBidOwner: felt252 = 'Caller is not bid owner';
-        const BidMustBeIncreased: felt252 = 'Bid updates must increase price';
+        pub const NoOptionsToBidFor: felt252 = 'No options to bid for';
+        pub const BiddingWhileNotAuctioning: felt252 = 'Can only bid while auctioning';
+        pub const BidAmountZero: felt252 = 'Bid amount cannot be 0';
+        pub const BidBelowReservePrice: felt252 = 'Bid price below reserve price';
+        pub const CallerNotBidOwner: felt252 = 'Caller is not bid owner';
+        pub const BidMustBeIncreased: felt252 = 'Bid updates must increase price';
         // Refunding bids & tokenizing options
-        const AuctionNotEnded: felt252 = 'Auction has not ended yet';
-        const OptionRoundNotSettled: felt252 = 'Option round not settled yet';
+        pub const AuctionNotEnded: felt252 = 'Auction has not ended yet';
+        pub const OptionRoundNotSettled: felt252 = 'Option round not settled yet';
         /// Internal Errors ///
-        const BidsShouldNotHaveSameTreeNonce: felt252 = 'Tree nonces should be unique';
+        pub const BidsShouldNotHaveSameTreeNonce: felt252 = 'Tree nonces should be unique';
     }
 
     // *************************************************************************
@@ -105,13 +105,14 @@ mod OptionRound {
     #[constructor]
     fn constructor(ref self: ContractState, args: ConstructorArgs) {
         // @dev Get the constructor arguments
-        let ConstructorArgs { vault_address,
-        round_id,
-        pricing_data,
-        round_transition_duration,
-        auction_duration,
-        round_duration, } =
-            args;
+        let ConstructorArgs {
+            vault_address,
+            round_id,
+            pricing_data,
+            round_transition_duration,
+            auction_duration,
+            round_duration,
+        } = args;
 
         // @dev Set the name and symbol for the minted option (ERC-20) tokens
         let (name, symbol) = self.generate_erc20_name_and_symbol(round_id);
@@ -140,7 +141,7 @@ mod OptionRound {
 
     #[event]
     #[derive(Drop, starknet::Event, PartialEq)]
-    enum Event {
+    pub enum Event {
         PricingDataSet: PricingDataSet,
         AuctionStarted: AuctionStarted,
         BidPlaced: BidPlaced,
@@ -159,17 +160,17 @@ mod OptionRound {
     // @dev Emitted when the pricing data is set
     // @member pricing_data: The pricing data (strike price, cap level, reserve price)
     #[derive(Drop, starknet::Event, PartialEq)]
-    struct PricingDataSet {
-        pricing_data: PricingData,
+    pub struct PricingDataSet {
+        pub pricing_data: PricingData,
     }
 
     // @dev Emitted when the auction starts
     // @member starting_liquidity: The liquidity locked at the start of the auction
     // @member options_available: The max number of options that can sell in the auction
     #[derive(Drop, starknet::Event, PartialEq)]
-    struct AuctionStarted {
-        starting_liquidity: u256,
-        options_available: u256,
+    pub struct AuctionStarted {
+        pub starting_liquidity: u256,
+        pub options_available: u256,
     }
 
     // @dev Emitted when the auction ends
@@ -177,20 +178,20 @@ mod OptionRound {
     // @member options_sold: The number of options that sold in the auction
     // @memeber unsold_liquidity: The amount of liquidity that was not sold in the auction
     #[derive(Drop, starknet::Event, PartialEq)]
-    struct AuctionEnded {
-        options_sold: u256,
-        clearing_price: u256,
-        unsold_liquidity: u256,
-        clearing_bid_tree_nonce: u64,
+    pub struct AuctionEnded {
+        pub options_sold: u256,
+        pub clearing_price: u256,
+        pub unsold_liquidity: u256,
+        pub clearing_bid_tree_nonce: u64,
     }
 
     // @dev Emitted when the round settles
     // @member payout_per_option: The exercisable amount for 1 option
     // @member settlement_price: The basefee TWAP used to settle the round
     #[derive(Drop, starknet::Event, PartialEq)]
-    struct OptionRoundSettled {
-        settlement_price: u256,
-        payout_per_option: u256,
+    pub struct OptionRoundSettled {
+        pub settlement_price: u256,
+        pub payout_per_option: u256,
     }
 
     // @dev Emitted when a bid is placed
@@ -201,13 +202,13 @@ mod OptionRound {
     // @member account_bid_nonce_now: The amount of bids the account has placed now
     // @member tree_bid_nonce_now: The bid tree's nonce now
     #[derive(Drop, starknet::Event, PartialEq)]
-    struct BidPlaced {
+    pub struct BidPlaced {
         #[key]
-        account: ContractAddress,
-        bid_id: felt252,
-        amount: u256,
-        price: u256,
-        bid_tree_nonce_now: u64,
+        pub account: ContractAddress,
+        pub bid_id: felt252,
+        pub amount: u256,
+        pub price: u256,
+        pub bid_tree_nonce_now: u64,
     }
 
     // @dev Emitted when a bid is updated
@@ -216,33 +217,33 @@ mod OptionRound {
     // @member price_increase: The bid's price increase amount
     // @member tree_bid_nonce_now: The nonce of the bid tree now
     #[derive(Drop, starknet::Event, PartialEq)]
-    struct BidUpdated {
+    pub struct BidUpdated {
         #[key]
-        account: ContractAddress,
-        bid_id: felt252,
-        price_increase: u256,
-        bid_tree_nonce_before: u64,
-        bid_tree_nonce_now: u64,
+        pub account: ContractAddress,
+        pub bid_id: felt252,
+        pub price_increase: u256,
+        pub bid_tree_nonce_before: u64,
+        pub bid_tree_nonce_now: u64,
     }
 
     // @dev Emitted when an account mints option ERC-20 tokens
     // @member account: The account that minted the options
     // @member minted_amount: The amount of options minted
     #[derive(Drop, starknet::Event, PartialEq)]
-    struct OptionsMinted {
+    pub struct OptionsMinted {
         #[key]
-        account: ContractAddress,
-        minted_amount: u256,
+        pub account: ContractAddress,
+        pub minted_amount: u256,
     }
 
     // @dev Emitted when an accounts unused bids are refunded
     // @param account: The account that's bids were refuned
     // @param refunded_amount: The amount refunded
     #[derive(Drop, starknet::Event, PartialEq)]
-    struct UnusedBidsRefunded {
+    pub struct UnusedBidsRefunded {
         #[key]
-        account: ContractAddress,
-        refunded_amount: u256
+        pub account: ContractAddress,
+        pub refunded_amount: u256,
     }
 
     // @dev Emitted when an account exercises their options
@@ -251,12 +252,12 @@ mod OptionRound {
     // @param mintable_options_exercised: The number of options exercised that the caller could have
     // minted @param exercised_amount: The amount transferred
     #[derive(Drop, starknet::Event, PartialEq)]
-    struct OptionsExercised {
+    pub struct OptionsExercised {
         #[key]
-        account: ContractAddress,
-        total_options_exercised: u256,
-        mintable_options_exercised: u256,
-        exercised_amount: u256
+        pub account: ContractAddress,
+        pub total_options_exercised: u256,
+        pub mintable_options_exercised: u256,
+        pub exercised_amount: u256,
     }
 
     // *************************************************************************
@@ -324,7 +325,7 @@ mod OptionRound {
 
             if state == OptionRoundState::Running || state == OptionRoundState::Settled {
                 let max_payout_per_option = max_payout_per_option(
-                    self.pricing_data.strike_price.read(), self.pricing_data.cap_level.read()
+                    self.pricing_data.strike_price.read(), self.pricing_data.cap_level.read(),
                 );
                 let options_sold = self.bids_tree.total_options_sold.read();
 
@@ -409,7 +410,7 @@ mod OptionRound {
                 let bid: Bid = self.bids_tree._find(hash);
                 bids.append(bid);
                 i += 1;
-            };
+            }
             bids
         }
 
@@ -444,15 +445,15 @@ mod OptionRound {
             let clearing_price = self.bids_tree.clearing_price.read();
             loop {
                 match losing_bids.pop_front() {
-                    Option::None => { break (); },
+                    Option::None => { break; },
                     Option::Some(bid) => { refundable_balance += bid.amount * bid.price; },
                 }
-            };
+            }
 
             // @dev Add refundable balance for over paid bids
             loop {
                 match winning_bids.pop_front() {
-                    Option::None => { break (); },
+                    Option::None => { break; },
                     Option::Some(bid) => {
                         if (bid.price > clearing_price) {
                             let price_difference = bid.price - clearing_price;
@@ -460,7 +461,7 @@ mod OptionRound {
                         }
                     },
                 }
-            };
+            }
 
             refundable_balance
         }
@@ -478,23 +479,31 @@ mod OptionRound {
 
             // @dev Add mintable balance from the clearing bid
             let mut mintable_balance = 0;
-            match clearing_bid_maybe {
-                Option::Some(_) => {
-                    // @dev The clearing bid potentially sells < the total options bid for, so it is
-                    // stored separately
-                    let options_sold = self.bids_tree.clearing_bid_amount_sold.read();
-                    mintable_balance += options_sold;
-                },
-                Option::None => {}
+
+            if let Option::Some(_) = clearing_bid_maybe {
+                // @dev Only the clearing_bid can be partially sold, the
+                // clearing_bid_amount_sold is saved in the tree
+                let options_sold = self.bids_tree.clearing_bid_amount_sold.read();
+                mintable_balance += options_sold;
             }
+
+            //match clearing_bid_maybe {
+            //    Option::Some(_) => {
+            //        // @dev The clearing bid potentially sells < the total options bid for, so it
+            //        is // stored separately
+            //        let options_sold = self.bids_tree.clearing_bid_amount_sold.read();
+            //        mintable_balance += options_sold;
+            //    },
+            //    Option::None => {},
+            //}
 
             // @dev Add mintable balance from all winning bids
             loop {
                 match winning_bids.pop_front() {
                     Option::Some(bid) => { mintable_balance += bid.amount; },
-                    Option::None => { break (); },
+                    Option::None => { break; },
                 }
-            };
+            }
 
             mintable_balance
         }
@@ -543,7 +552,7 @@ mod OptionRound {
             assert(strike_price.is_non_zero(), Errors::PricingDataNotSet);
             // @dev Calculate total options available
             let options_available = calculate_total_options_available(
-                starting_liquidity, strike_price, cap_level
+                starting_liquidity, strike_price, cap_level,
             );
 
             // @dev Write auction params to storage
@@ -554,7 +563,7 @@ mod OptionRound {
             self.transition_state_to(OptionRoundState::Auctioning);
             self
                 .emit(
-                    Event::AuctionStarted(AuctionStarted { starting_liquidity, options_available })
+                    Event::AuctionStarted(AuctionStarted { starting_liquidity, options_available }),
                 );
 
             // @dev Return total options available in the auction
@@ -571,7 +580,7 @@ mod OptionRound {
             let starting_liq = self.starting_liquidity.read();
             let sold_liquidity = options_sold
                 * max_payout_per_option(
-                    self.pricing_data.strike_price.read(), self.pricing_data.cap_level.read()
+                    self.pricing_data.strike_price.read(), self.pricing_data.cap_level.read(),
                 );
             let unsold_liquidity = starting_liq - sold_liquidity;
 
@@ -586,9 +595,9 @@ mod OptionRound {
                 .emit(
                     Event::AuctionEnded(
                         AuctionEnded {
-                            options_sold, clearing_price, unsold_liquidity, clearing_bid_tree_nonce
-                        }
-                    )
+                            options_sold, clearing_price, unsold_liquidity, clearing_bid_tree_nonce,
+                        },
+                    ),
                 );
 
             // @dev Return clearing price and options sold
@@ -600,7 +609,7 @@ mod OptionRound {
             let strike_price = self.pricing_data.strike_price.read();
             let cap_level = self.pricing_data.cap_level.read();
             let payout_per_option = calculate_payout_per_option(
-                strike_price, cap_level, settlement_price
+                strike_price, cap_level, settlement_price,
             );
 
             // @dev Set payout per option and settlement price
@@ -612,8 +621,8 @@ mod OptionRound {
             self
                 .emit(
                     Event::OptionRoundSettled(
-                        OptionRoundSettled { settlement_price, payout_per_option, }
-                    )
+                        OptionRoundSettled { settlement_price, payout_per_option },
+                    ),
                 );
 
             // @dev Return total payout
@@ -635,7 +644,7 @@ mod OptionRound {
             // @dev Create Bid struct
             let account = get_caller_address();
             let account_bid_nonce = self.account_bid_nonce.read(account);
-            let bid_id = self.create_bid_id(account, account_bid_nonce);
+            let bid_id: felt252 = self.create_bid_id(account, account_bid_nonce);
             let tree_nonce = self.bids_tree.tree_nonce.read();
             let bid = Bid { bid_id, owner: account, amount, price, tree_nonce };
 
@@ -656,9 +665,9 @@ mod OptionRound {
                 .emit(
                     Event::BidPlaced(
                         BidPlaced {
-                            account, bid_id, amount, price, bid_tree_nonce_now: tree_nonce + 1
-                        }
-                    )
+                            account, bid_id, amount, price, bid_tree_nonce_now: tree_nonce + 1,
+                        },
+                    ),
                 );
 
             // @dev Return the created Bid struct
@@ -700,8 +709,8 @@ mod OptionRound {
                             price_increase,
                             bid_tree_nonce_before,
                             bid_tree_nonce_now: tree_nonce + 1,
-                        }
-                    )
+                        },
+                    ),
                 );
 
             // @dev Return the edited bid
@@ -779,9 +788,9 @@ mod OptionRound {
                             account,
                             total_options_exercised,
                             mintable_options_exercised,
-                            exercised_amount
-                        }
-                    )
+                            exercised_amount,
+                        },
+                    ),
                 );
 
             // @dev Return the exercised amount
@@ -817,7 +826,7 @@ mod OptionRound {
                     let target = self.get_auction_end_date();
                     assert(now >= target, Errors::AuctionEndDateNotReached);
                     assert(
-                        current_state == OptionRoundState::Auctioning, Errors::AuctionAlreadyEnded
+                        current_state == OptionRoundState::Auctioning, Errors::AuctionAlreadyEnded,
                     );
                     self.state.write(to_state);
                 },
@@ -827,7 +836,7 @@ mod OptionRound {
                     assert(now >= target, Errors::OptionSettlementDateNotReached);
                     assert(
                         current_state == OptionRoundState::Running,
-                        Errors::OptionRoundAlreadySettled
+                        Errors::OptionRoundAlreadySettled,
                     );
                     self.state.write(to_state);
                 },
@@ -847,7 +856,7 @@ mod OptionRound {
             let state = self.get_state();
             assert(
                 state == OptionRoundState::Running || state == OptionRoundState::Settled,
-                Errors::AuctionNotEnded
+                Errors::AuctionNotEnded,
             );
         }
 
@@ -864,7 +873,7 @@ mod OptionRound {
             let options_available = self.bids_tree._get_total_options_available();
             assert(
                 now < target && state == OptionRoundState::Auctioning,
-                Errors::BiddingWhileNotAuctioning
+                Errors::BiddingWhileNotAuctioning,
             );
             assert(options_available.is_non_zero(), Errors::NoOptionsToBidFor);
         }
@@ -873,7 +882,7 @@ mod OptionRound {
 
         // @dev Create the contract's ERC20 name and symbol
         fn generate_erc20_name_and_symbol(
-            self: @ContractState, round_id: u64
+            self: @ContractState, round_id: u64,
         ) -> (ByteArray, ByteArray) {
             let name: ByteArray = format!("Pitch Lake Option Round {round_id}");
             let symbol: ByteArray = format!("PLOR{round_id}");
@@ -894,7 +903,7 @@ mod OptionRound {
         // @dev Get an account's winning bids, losing bids, and the clearing bid if the account owns
         // it
         fn calculate_bid_outcome_for(
-            self: @ContractState, account: ContractAddress
+            self: @ContractState, account: ContractAddress,
         ) -> (Array<Bid>, Array<Bid>, Option<Bid>) {
             let mut winning_bids: Array<Bid> = array![];
             let mut losing_bids: Array<Bid> = array![];
@@ -902,7 +911,7 @@ mod OptionRound {
             // @dev If the auction has not ended yet, all bids are pending
             let state = self.state.read();
             if (state == OptionRoundState::Open || state == OptionRoundState::Auctioning) {
-                return (winning_bids, losing_bids, Option::None(()));
+                return (winning_bids, losing_bids, Option::None);
             } // @dev Look at each bid of the account's bids compared to the clearing bid
             else {
                 // @dev Get the account's bid amount
@@ -911,31 +920,28 @@ mod OptionRound {
                 // @dev Get the clearing bid
                 let clearing_bid_id: felt252 = self.bids_tree.clearing_bid.read();
                 let clearing_bid: Bid = self.bids_tree._find(clearing_bid_id);
-                let mut clearing_bid_option: Option<Bid> = Option::None(());
+                let mut clearing_bid_option: Option<Bid> = Option::None;
 
                 // @dev Iterate over the account's bids and compare them to the clearing bid
-                for i in 0
-                    ..bidder_nonce {
-                        // @dev Get the account's i-th bid
-                        let bid_id = self.create_bid_id(account, i);
-                        let bid = self.bids_tree._find(bid_id);
+                for i in 0..bidder_nonce {
+                    // @dev Get the account's i-th bid
+                    let bid_id = self.create_bid_id(account, i);
+                    let bid = self.bids_tree._find(bid_id);
 
-                        // @dev If there is no clearing bid, all bids are winning bids
-                        if clearing_bid_id.is_zero() {
-                            winning_bids.append(bid);
-                        } // @dev If this bid is the clearing bid it could be mintable and refundable
-                        else if bid_id == clearing_bid_id {
-                            clearing_bid_option = Option::Some(bid);
-                        } // @dev If this bid is not the clearing bid, check if this bid is above or
-                        // below the clearing bid
-                        else {
-                            if bid > clearing_bid {
-                                winning_bids.append(bid);
-                            } else {
-                                losing_bids.append(bid);
-                            }
-                        }
-                    };
+                    // @dev If there is no clearing bid, all bids are winning bids
+                    if clearing_bid_id.is_zero() {
+                        winning_bids.append(bid);
+                    } // @dev If this bid is the clearing bid it could be mintable and refundable
+                    else if bid_id == clearing_bid_id {
+                        clearing_bid_option = Option::Some(bid);
+                    } // @dev If this bid is not the clearing bid, check if this bid is above or
+                    // below the clearing bid
+                    else if bid > clearing_bid {
+                        winning_bids.append(bid);
+                    } else {
+                        losing_bids.append(bid);
+                    }
+                }
 
                 // @dev Return the winning bids, losing bids, and the clearing bid if owned
                 (winning_bids, losing_bids, clearing_bid_option)
@@ -949,8 +955,9 @@ mod OptionRound {
 
         // @dev Calculate a bid's id
         fn create_bid_id(self: @ContractState, bidder: ContractAddress, nonce: u64) -> felt252 {
-            poseidon::poseidon_hash_span(array![bidder.into(), nonce.try_into().unwrap()].span())
+            core::poseidon::poseidon_hash_span(
+                array![bidder.into(), nonce.try_into().unwrap()].span(),
+            )
         }
     }
 }
-

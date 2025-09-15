@@ -5,31 +5,30 @@
 mod ArgentUserAccount {
     use argent::account::interface::{IAccount, IArgentAccount, Version};
     use argent::introspection::src5::src5_component;
-    use argent::multisig::{
-        multisig::{multisig_component, multisig_component::MultisigInternalImpl}
+    use argent::multisig::multisig::multisig_component;
+    use argent::multisig::multisig::multisig_component::MultisigInternalImpl;
+    use argent::outside_execution::interface::IOutsideExecutionCallback;
+    use argent::outside_execution::outside_execution::outside_execution_component;
+    use argent::recovery::threshold_recovery::{
+        IThresholdRecoveryInternal, threshold_recovery_component,
     };
-    use argent::outside_execution::{
-        outside_execution::outside_execution_component, interface::{IOutsideExecutionCallback}
+    use argent::signer::signer_signature::{
+        Signer, SignerSignature, SignerSignatureTrait, SignerTrait,
     };
-    use argent::recovery::threshold_recovery::IThresholdRecoveryInternal;
-    use argent::recovery::{threshold_recovery::threshold_recovery_component};
-    use argent::signer::{
-        signer_signature::{Signer, SignerTrait, SignerSignature, SignerSignatureTrait}
-    };
-    use argent::signer_storage::{
-        interface::ISignerList,
-        signer_list::{signer_list_component, signer_list_component::SignerListInternalImpl}
-    };
-    use argent::upgrade::{upgrade::upgrade_component, interface::IUpgradableCallback};
-    use argent::utils::{
-        asserts::{assert_no_self_call, assert_only_protocol, assert_only_self,},
-        calls::execute_multicall, serialization::full_deserialize,
-        transaction_version::{assert_correct_invoke_version, assert_correct_deploy_account_version},
+    use argent::signer_storage::interface::ISignerList;
+    use argent::signer_storage::signer_list::signer_list_component;
+    use argent::signer_storage::signer_list::signer_list_component::SignerListInternalImpl;
+    use argent::upgrade::interface::IUpgradableCallback;
+    use argent::upgrade::upgrade::upgrade_component;
+    use argent::utils::asserts::{assert_no_self_call, assert_only_protocol, assert_only_self};
+    use argent::utils::calls::execute_multicall;
+    use argent::utils::serialization::full_deserialize;
+    use argent::utils::transaction_version::{
+        assert_correct_deploy_account_version, assert_correct_invoke_version,
     };
     use openzeppelin::security::reentrancyguard::ReentrancyGuardComponent;
-    use starknet::{
-        get_tx_info, get_contract_address, get_execution_info, VALIDATED, ClassHash, account::Call
-    };
+    use starknet::account::Call;
+    use starknet::{ClassHash, VALIDATED, get_contract_address, get_execution_info, get_tx_info};
 
     const NAME: felt252 = 'ArgentAccount';
     const VERSION_MAJOR: u8 = 0;
@@ -47,7 +46,7 @@ mod ArgentUserAccount {
     component!(
         path: outside_execution_component,
         storage: execute_from_outside,
-        event: ExecuteFromOutsideEvents
+        event: ExecuteFromOutsideEvents,
     );
     #[abi(embed_v0)]
     impl ExecuteFromOutside =
@@ -74,7 +73,7 @@ mod ArgentUserAccount {
         threshold_recovery_component::ThresholdRecoveryInternalImpl<ContractState>;
     // Reentrancy guard
     component!(
-        path: ReentrancyGuardComponent, storage: reentrancy_guard, event: ReentrancyGuardEvent
+        path: ReentrancyGuardComponent, storage: reentrancy_guard, event: ReentrancyGuardEvent,
     );
     impl ReentrancyGuardInternalImpl = ReentrancyGuardComponent::InternalImpl<ContractState>;
 
@@ -123,7 +122,7 @@ mod ArgentUserAccount {
     struct TransactionExecuted {
         #[key]
         hash: felt252,
-        response: Span<Span<felt252>>
+        response: Span<Span<felt252>>,
     }
 
     #[constructor]
@@ -162,13 +161,13 @@ mod ArgentUserAccount {
         }
 
         fn is_valid_signature(
-            self: @ContractState, hash: felt252, signature: Array<felt252>
+            self: @ContractState, hash: felt252, signature: Array<felt252>,
         ) -> felt252 {
             let threshold = self.multisig.threshold.read();
             if self
                 .multisig
                 .is_valid_signature_with_threshold(
-                    hash, threshold, parse_signature_array(signature.span())
+                    hash, threshold, parse_signature_array(signature.span()),
                 ) {
                 VALIDATED
             } else {
@@ -188,7 +187,7 @@ mod ArgentUserAccount {
             class_hash: felt252,
             contract_address_salt: felt252,
             threshold: usize,
-            signers: Array<Signer>
+            signers: Array<Signer>,
         ) -> felt252 {
             let tx_info = get_tx_info().unbox();
             assert_correct_deploy_account_version(tx_info.version);
@@ -197,7 +196,7 @@ mod ArgentUserAccount {
             let is_valid = self
                 .multisig
                 .is_valid_signature_with_threshold(
-                    tx_info.transaction_hash, 1, parse_signature_array(tx_info.signature)
+                    tx_info.transaction_hash, 1, parse_signature_array(tx_info.signature),
                 );
             assert(is_valid, 'argent/invalid-signature');
             VALIDATED
@@ -216,7 +215,7 @@ mod ArgentUserAccount {
     #[abi(embed_v0)]
     impl UpgradeableCallbackImpl of IUpgradableCallback<ContractState> {
         fn perform_upgrade(
-            ref self: ContractState, new_implementation: ClassHash, data: Span<felt252>
+            ref self: ContractState, new_implementation: ClassHash, data: Span<felt252>,
         ) {
             panic_with_felt252('argent/downgrade-not-allowed');
         }
@@ -238,7 +237,7 @@ mod ArgentUserAccount {
             let retdata = execute_multicall(calls);
             self
                 .emit(
-                    TransactionExecuted { hash: outside_execution_hash, response: retdata.span() }
+                    TransactionExecuted { hash: outside_execution_hash, response: retdata.span() },
                 );
             retdata
         }
@@ -266,7 +265,7 @@ mod ArgentUserAccount {
             self: @ContractState,
             calls: Span<Call>,
             execution_hash: felt252,
-            signature: Span<felt252>
+            signature: Span<felt252>,
         ) {
             // get threshold
             let threshold = self.multisig.threshold.read();
@@ -276,30 +275,30 @@ mod ArgentUserAccount {
             let effective_threshold =
                 match self
                     .parse_escape_call(
-                        *first_call.to, *first_call.selector, *first_call.calldata, threshold
+                        *first_call.to, *first_call.selector, *first_call.calldata, threshold,
                     ) {
                 Option::Some((
-                    required_signatures, excluded_signer_guid
+                    required_signatures, excluded_signer_guid,
                 )) => {
                     let mut signature_span = signature_array.span();
                     while !signature_span.is_empty() {
                         let signer_sig = *signature_span.pop_front().unwrap();
                         assert(
                             signer_sig.signer().into_guid() != excluded_signer_guid,
-                            'argent/unauthorized-signer'
+                            'argent/unauthorized-signer',
                         )
-                    };
+                    }
                     required_signatures
                 },
-                Option::None => threshold
+                Option::None => threshold,
             };
             assert(
                 self
                     .multisig
                     .is_valid_signature_with_threshold(
-                        execution_hash, effective_threshold, signature_array
+                        execution_hash, effective_threshold, signature_array,
                     ),
-                'argent/invalid-signature'
+                'argent/invalid-signature',
             );
         }
     }

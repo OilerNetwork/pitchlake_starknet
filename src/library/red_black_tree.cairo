@@ -1,12 +1,15 @@
-use pitch_lake::{library::red_black_tree, types::{Bid}};
-use starknet::ContractAddress;
+use pitch_lake::types::Bid;
 
 #[starknet::component]
 pub mod RBTreeComponent {
-    use super::{Bid, ContractAddress};
-    use core::{array::ArrayTrait, option::OptionTrait, traits::{TryInto}};
-    use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess,};
-    use starknet::storage::{Map, StoragePathEntry};
+    use core::array::ArrayTrait;
+    use core::num::traits::Zero;
+    use core::option::OptionTrait;
+    use core::traits::TryInto;
+    use starknet::storage::{
+        Map, StoragePathEntry, StoragePointerReadAccess, StoragePointerWriteAccess,
+    };
+    use super::Bid;
 
     const BLACK: bool = false;
     const RED: bool = true;
@@ -14,7 +17,7 @@ pub mod RBTreeComponent {
     #[storage]
     struct Storage {
         root: felt252,
-        tree: Map::<felt252, Node>,
+        tree: Map<felt252, Node>,
         tree_nonce: u64,
         clearing_bid_amount_sold: u256,
         clearing_price: u256,
@@ -24,8 +27,8 @@ pub mod RBTreeComponent {
     }
 
     #[derive(Copy, Drop, Serde, starknet::Store, PartialEq)]
-    struct Node {
-        value: Bid,
+    pub struct Node {
+        pub value: Bid,
         left: felt252,
         right: felt252,
         parent: felt252,
@@ -35,7 +38,7 @@ pub mod RBTreeComponent {
     #[event]
     #[derive(Drop, starknet::Event, PartialEq)]
     pub enum Event {
-        InsertEvent: InsertEvent
+        InsertEvent: InsertEvent,
     }
 
     #[derive(Drop, starknet::Event, PartialEq)]
@@ -45,7 +48,7 @@ pub mod RBTreeComponent {
 
     #[generate_trait]
     pub impl RBTreeImpl<
-        TContractState, +HasComponent<TContractState>
+        TContractState, +HasComponent<TContractState>,
     > of RBTreeTrait<TContractState> {
         fn _insert(ref self: ComponentState<TContractState>, value: Bid) {
             let new_node_id = value.bid_id;
@@ -85,7 +88,7 @@ pub mod RBTreeComponent {
 
     #[generate_trait]
     pub impl RBTreeOptionRoundImpl<
-        TContractState, +HasComponent<TContractState>
+        TContractState, +HasComponent<TContractState>,
     > of RBTreeOptionRoundTrait<TContractState> {
         fn find_clearing_price(ref self: ComponentState<TContractState>) -> (u256, u256, u64) {
             let total_options_available = self._get_total_options_available();
@@ -94,7 +97,7 @@ pub mod RBTreeComponent {
             let root_bid: Bid = root_node.value;
             let (clearing_felt, remaining_options) = self
                 .traverse_postorder_clearing_price_from_node(
-                    root, total_options_available, root_bid.price, root
+                    root, total_options_available, root_bid.price, root,
                 );
             let clearing_node: Node = self.tree.entry(clearing_felt).read();
             let clearing_bid: Bid = clearing_node.value;
@@ -130,7 +133,7 @@ pub mod RBTreeComponent {
             //Recursive on Right Node
             let (clearing_felt, mut remaining_options) = self
                 .traverse_postorder_clearing_price_from_node(
-                    current_node.right, total_options_available, clearing_price, clearing_felt
+                    current_node.right, total_options_available, clearing_price, clearing_felt,
                 );
             if (remaining_options == 0) {
                 return (clearing_felt, 0);
@@ -148,23 +151,23 @@ pub mod RBTreeComponent {
             //Recursive on Left Node and return result directly to the outer call
             self
                 .traverse_postorder_clearing_price_from_node(
-                    current_node.left, remaining_options, clearing_price, current_id
+                    current_node.left, remaining_options, clearing_price, current_id,
                 )
         }
     }
 
     #[generate_trait]
-    impl RBTreeOperationsImpl<
-        TContractState, +HasComponent<TContractState>
+    pub impl RBTreeOperationsImpl<
+        TContractState, +HasComponent<TContractState>,
     > of RBTreeOperationsTrait<TContractState> {
         fn create_root_node(self: @ComponentState<TContractState>, value: @Bid) -> Node {
-            Node { value: *value, left: 0, right: 0, parent: 0, color: BLACK, }
+            Node { value: *value, left: 0, right: 0, parent: 0, color: BLACK }
         }
 
         fn create_leaf_node(
-            self: @ComponentState<TContractState>, value: @Bid, parent: felt252
+            self: @ComponentState<TContractState>, value: @Bid, parent: felt252,
         ) -> Node {
-            Node { value: *value, left: 0, right: 0, parent: parent, color: RED, }
+            Node { value: *value, left: 0, right: 0, parent: parent, color: RED }
         }
 
         fn is_left_child(ref self: ComponentState<TContractState>, node_id: felt252) -> bool {
@@ -175,7 +178,7 @@ pub mod RBTreeComponent {
         }
 
         fn update_left(
-            ref self: ComponentState<TContractState>, node_id: felt252, left_id: felt252
+            ref self: ComponentState<TContractState>, node_id: felt252, left_id: felt252,
         ) {
             let mut node: Node = self.tree.entry(node_id).read();
             node.left = left_id;
@@ -183,7 +186,7 @@ pub mod RBTreeComponent {
         }
 
         fn update_right(
-            ref self: ComponentState<TContractState>, node_id: felt252, right_id: felt252
+            ref self: ComponentState<TContractState>, node_id: felt252, right_id: felt252,
         ) {
             let mut node: Node = self.tree.entry(node_id).read();
             node.right = right_id;
@@ -191,7 +194,7 @@ pub mod RBTreeComponent {
         }
 
         fn update_parent(
-            ref self: ComponentState<TContractState>, node_id: felt252, parent_id: felt252
+            ref self: ComponentState<TContractState>, node_id: felt252, parent_id: felt252,
         ) {
             let mut node: Node = self.tree.entry(node_id).read();
             node.parent = parent_id;
@@ -236,9 +239,9 @@ pub mod RBTreeComponent {
 
         // Add a new node directly by accepting parent and value (bid)
         fn _add_node(
-            ref self: ComponentState<TContractState>, bid: Bid, color: bool, parent: felt252
+            ref self: ComponentState<TContractState>, bid: Bid, color: bool, parent: felt252,
         ) -> felt252 {
-            let new_node = Node { value: bid, left: 0, right: 0, parent: parent, color: color, };
+            let new_node = Node { value: bid, left: 0, right: 0, parent: parent, color: color };
             let bid_id = bid.bid_id;
             let parent_node = self.tree.entry(parent).read();
             if bid <= parent_node.value {
@@ -254,10 +257,10 @@ pub mod RBTreeComponent {
 
     #[generate_trait]
     pub impl RBTreeTestingImpl<
-        TContractState, +HasComponent<TContractState>
+        TContractState, +HasComponent<TContractState>,
     > of RBTreeTestingTrait<TContractState> {
         fn _get_tree_structure(
-            self: @ComponentState<TContractState>
+            self: @ComponentState<TContractState>,
         ) -> Array<Array<(u256, bool, u128)>> {
             self.build_tree_structure_list()
         }
@@ -267,7 +270,7 @@ pub mod RBTreeComponent {
         }
 
         fn get_node_positions_by_level(
-            self: @ComponentState<TContractState>
+            self: @ComponentState<TContractState>,
         ) -> Array<Array<(felt252, u128)>> {
             let mut queue: Array<(felt252, u128)> = ArrayTrait::new();
             let root_id = self.root.read();
@@ -279,7 +282,7 @@ pub mod RBTreeComponent {
 
             self
                 .collect_position_and_levels_of_nodes(
-                    root_id, 0, initial_level, ref node_positions
+                    root_id, 0, initial_level, ref node_positions,
                 );
             queue.append((root_id, 0));
 
@@ -304,13 +307,13 @@ pub mod RBTreeComponent {
                 if node.right != 0 {
                     queue.append((node.right, current_level + 1));
                 }
-            };
+            }
             filled_position_in_levels.append(filled_position_in_level);
             return filled_position_in_levels;
         }
 
         fn build_tree_structure_list(
-            self: @ComponentState<TContractState>
+            self: @ComponentState<TContractState>,
         ) -> Array<Array<(u256, bool, u128)>> {
             if (self.root.read() == 0) {
                 return ArrayTrait::new();
@@ -327,11 +330,11 @@ pub mod RBTreeComponent {
                     let node = self.tree.entry(*node_id).read();
                     filled_position_in_level.append((node.value.price, node.color, *position));
                     j += 1;
-                };
+                }
                 filled_position_in_levels.append(filled_position_in_level);
                 filled_position_in_level = ArrayTrait::new();
                 i += 1;
-            };
+            }
             return filled_position_in_levels;
         }
 
@@ -340,7 +343,7 @@ pub mod RBTreeComponent {
             node_id: felt252,
             position: u128,
             level: u256,
-            ref node_positions: Felt252Dict<u128>
+            ref node_positions: Felt252Dict<u128>,
         ) {
             if node_id == 0 {
                 return;
@@ -352,11 +355,11 @@ pub mod RBTreeComponent {
 
             self
                 .collect_position_and_levels_of_nodes(
-                    node.left, position * 2, level + 1, ref node_positions
+                    node.left, position * 2, level + 1, ref node_positions,
                 );
             self
                 .collect_position_and_levels_of_nodes(
-                    node.right, position * 2 + 1, level + 1, ref node_positions
+                    node.right, position * 2 + 1, level + 1, ref node_positions,
                 );
         }
 
@@ -412,7 +415,7 @@ pub mod RBTreeComponent {
 
     #[generate_trait]
     impl RBTreeDeleteBalance<
-        TContractState, +HasComponent<TContractState>
+        TContractState, +HasComponent<TContractState>,
     > of RBTreeDeleteBalanceTrait<TContractState> {
         fn delete_node(ref self: ComponentState<TContractState>, delete_id: felt252) {
             let mut y = delete_id;
@@ -468,7 +471,7 @@ pub mod RBTreeComponent {
         }
 
         fn delete_fixup(
-            ref self: ComponentState<TContractState>, mut x: felt252, mut x_parent: felt252
+            ref self: ComponentState<TContractState>, mut x: felt252, mut x_parent: felt252,
         ) {
             while x != self.root.read() && (x == 0 || self.is_black(x)) {
                 let mut x_parent_node: Node = self.tree.entry(x_parent).read();
@@ -562,7 +565,7 @@ pub mod RBTreeComponent {
                         break;
                     }
                 }
-            };
+            }
 
             // Final color adjustment
             if x != 0 {
@@ -590,13 +593,13 @@ pub mod RBTreeComponent {
             while node.left != 0 {
                 current = node.left;
                 node = self.tree.entry(current).read();
-            };
+            }
             current
         }
 
 
         fn get_default_node(ref self: ComponentState<TContractState>) -> Node {
-            Node { value: self.get_default_bid(), left: 0, right: 0, parent: 0, color: BLACK, }
+            Node { value: self.get_default_bid(), left: 0, right: 0, parent: 0, color: BLACK }
         }
 
         fn get_default_bid(ref self: ComponentState<TContractState>) -> Bid {
@@ -606,13 +609,13 @@ pub mod RBTreeComponent {
 
     #[generate_trait]
     impl RBTreeInsertBalance<
-        TContractState, +HasComponent<TContractState>
+        TContractState, +HasComponent<TContractState>,
     > of RBTreeInsertBalanceTrait<TContractState> {
         fn insert_node_recursively(
             ref self: ComponentState<TContractState>,
             current_id: felt252,
             new_node_id: felt252,
-            value: Bid
+            value: Bid,
         ) {
             let mut current_node: Node = self.tree.entry(current_id).read();
             if value <= current_node.value {
@@ -655,7 +658,7 @@ pub mod RBTreeComponent {
                     current = self.balance_right_case(current, parent, grandparent);
                 }
                 current_node = self.tree.entry(current).read();
-            };
+            }
             self.ensure_root_is_black();
         }
 
@@ -663,7 +666,7 @@ pub mod RBTreeComponent {
             ref self: ComponentState<TContractState>,
             current: felt252,
             parent: felt252,
-            grandparent: felt252
+            grandparent: felt252,
         ) -> felt252 {
             let grandparent_node: Node = self.tree.entry(grandparent).read();
             let uncle = grandparent_node.right;
@@ -679,7 +682,7 @@ pub mod RBTreeComponent {
             ref self: ComponentState<TContractState>,
             current: felt252,
             parent: felt252,
-            grandparent: felt252
+            grandparent: felt252,
         ) -> felt252 {
             let grandparent_node: Node = self.tree.entry(grandparent).read();
             let uncle = grandparent_node.left;
@@ -696,7 +699,7 @@ pub mod RBTreeComponent {
             current: felt252,
             parent: felt252,
             grandparent: felt252,
-            uncle: felt252
+            uncle: felt252,
         ) -> felt252 {
             self.set_color(parent, BLACK); // Black
             self.set_color(uncle, BLACK); // Black
@@ -708,7 +711,7 @@ pub mod RBTreeComponent {
             ref self: ComponentState<TContractState>,
             current: felt252,
             parent: felt252,
-            grandparent: felt252
+            grandparent: felt252,
         ) -> felt252 {
             let mut new_current = current;
             if !self.is_left_child(current) {
@@ -727,7 +730,7 @@ pub mod RBTreeComponent {
             ref self: ComponentState<TContractState>,
             current: felt252,
             parent: felt252,
-            grandparent: felt252
+            grandparent: felt252,
         ) -> felt252 {
             let mut new_current = current;
             if self.is_left_child(current) {
@@ -745,7 +748,7 @@ pub mod RBTreeComponent {
 
     #[generate_trait]
     impl RBTreeRotations<
-        TContractState, +HasComponent<TContractState>
+        TContractState, +HasComponent<TContractState>,
     > of RBTreeRotationsTrait<TContractState> {
         fn rotate_right(ref self: ComponentState<TContractState>, y: felt252) -> felt252 {
             let mut y_node: Node = self.tree.entry(y).read();

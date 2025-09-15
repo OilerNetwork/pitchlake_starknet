@@ -1,5 +1,6 @@
 use argent::signer::signer_signature::{Signer, SignerSignature};
-use starknet::{ContractAddress, account::Call};
+use starknet::ContractAddress;
+use starknet::account::Call;
 
 #[starknet::interface]
 trait IArgentMultisig<TContractState> {
@@ -21,7 +22,7 @@ trait IArgentMultisig<TContractState> {
     /// @param new_threshold New threshold
     /// @param signers_to_remove All the signers to remove
     fn remove_signers(
-        ref self: TContractState, new_threshold: usize, signers_to_remove: Array<Signer>
+        ref self: TContractState, new_threshold: usize, signers_to_remove: Array<Signer>,
     );
 
     /// @notice Replace one signer with a different one
@@ -43,7 +44,7 @@ trait IArgentMultisig<TContractState> {
     /// @param hash Hash of the message being signed
     /// @param signer_signature Signature to be verified
     fn is_valid_signer_signature(
-        self: @TContractState, hash: felt252, signer_signature: SignerSignature
+        self: @TContractState, hash: felt252, signer_signature: SignerSignature,
     ) -> bool;
 }
 
@@ -51,13 +52,13 @@ trait IArgentMultisig<TContractState> {
 trait IArgentMultisigInternal<TContractState> {
     fn initialize(ref self: TContractState, threshold: usize, signers: Array<Signer>);
     fn assert_valid_threshold_and_signers_count(
-        self: @TContractState, threshold: usize, signers_len: usize
+        self: @TContractState, threshold: usize, signers_len: usize,
     );
     fn assert_valid_storage(self: @TContractState);
     fn is_valid_signature_with_threshold(
         self: @TContractState,
         hash: felt252,
         threshold: u32,
-        signer_signatures: Array<SignerSignature>
+        signer_signatures: Array<SignerSignature>,
     ) -> bool;
 }

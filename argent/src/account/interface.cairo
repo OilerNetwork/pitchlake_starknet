@@ -1,5 +1,5 @@
-use argent::recovery::interface::{LegacyEscape, EscapeStatus};
-use argent::signer::signer_signature::{Signer, SignerType, SignerSignature};
+use argent::recovery::interface::{EscapeStatus, LegacyEscape};
+use argent::signer::signer_signature::{Signer, SignerSignature, SignerType};
 use starknet::account::Call;
 
 const SRC5_ACCOUNT_INTERFACE_ID: felt252 =
@@ -28,7 +28,7 @@ trait IAccount<TContractState> {
     /// @return The shortstring 'VALID' when the signature is valid, 0 if the signature doesn't
     /// match the hash @dev it can also panic if the signature is not in a valid format
     fn is_valid_signature(
-        self: @TContractState, hash: felt252, signature: Array<felt252>
+        self: @TContractState, hash: felt252, signature: Array<felt252>,
     ) -> felt252;
 }
 
@@ -40,7 +40,7 @@ trait IArgentAccount<TContractState> {
         class_hash: felt252,
         contract_address_salt: felt252,
         threshold: usize,
-        signers: Array<Signer>
+        signers: Array<Signer>,
     ) -> felt252;
     fn get_name(self: @TContractState) -> felt252;
     fn get_version(self: @TContractState) -> Version;
@@ -54,7 +54,7 @@ trait IArgentUserAccount<TContractState> {
         class_hash: felt252,
         contract_address_salt: felt252,
         owner: Signer,
-        guardian: Option<Signer>
+        guardian: Option<Signer>,
     ) -> felt252;
 
     /// @notice Changes the security period used for escapes
@@ -164,6 +164,6 @@ trait IDeprecatedArgentAccount<TContractState> {
     /// For compatibility reasons this function returns 1 when the signature is valid, and panics
     /// otherwise
     fn isValidSignature(
-        self: @TContractState, hash: felt252, signatures: Array<felt252>
+        self: @TContractState, hash: felt252, signatures: Array<felt252>,
     ) -> felt252;
 }

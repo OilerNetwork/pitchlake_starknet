@@ -6,7 +6,7 @@ use starknet::ContractAddress;
 #[starknet::interface]
 trait IToggleThresholdRecovery<TContractState> {
     fn toggle_escape(
-        ref self: TContractState, is_enabled: bool, security_period: u64, expiry_period: u64
+        ref self: TContractState, is_enabled: bool, security_period: u64, expiry_period: u64,
     );
 }
 
@@ -17,7 +17,7 @@ trait IThresholdRecoveryInternal<TContractState> {
         to: ContractAddress,
         selector: felt252,
         calldata: Span<felt252>,
-        threshold: u32
+        threshold: u32,
     ) -> Option<(u32, felt252)>;
 }
 
@@ -27,20 +27,19 @@ trait IThresholdRecoveryInternal<TContractState> {
 #[starknet::component]
 mod threshold_recovery_component {
     use argent::recovery::interface::{
-        Escape, EscapeEnabled, EscapeStatus, IRecovery, EscapeExecuted, EscapeTriggered,
-        EscapeCanceled
+        Escape, EscapeCanceled, EscapeEnabled, EscapeExecuted, EscapeStatus, EscapeTriggered,
+        IRecovery,
     };
     use argent::signer::signer_signature::{Signer, SignerTrait};
     use argent::signer_storage::interface::ISignerList;
-    use argent::signer_storage::signer_list::{
-        signer_list_component,
-        signer_list_component::{
-            SignerListInternalImpl, OwnerAddedGuid, OwnerRemovedGuid, SignerLinked
-        }
+    use argent::signer_storage::signer_list::signer_list_component;
+    use argent::signer_storage::signer_list::signer_list_component::{
+        OwnerAddedGuid, OwnerRemovedGuid, SignerLinked, SignerListInternalImpl,
     };
     use argent::utils::asserts::assert_only_self;
     use core::array::ArrayTrait;
-    use starknet::{get_block_timestamp, get_contract_address, ContractAddress, account::Call};
+    use starknet::account::Call;
+    use starknet::{ContractAddress, get_block_timestamp, get_contract_address};
     use super::{IThresholdRecoveryInternal, IToggleThresholdRecovery};
 
     #[storage]
@@ -62,18 +61,18 @@ mod threshold_recovery_component {
         TContractState,
         +HasComponent<TContractState>,
         impl SignerList: signer_list_component::HasComponent<TContractState>,
-        +Drop<TContractState>
+        +Drop<TContractState>,
     > of IRecovery<ComponentState<TContractState>> {
         /// @notice Triggers the escape. The function must be called through the __validate__ method
         /// and authorized by threshold-1 signers.
         fn trigger_escape(
             ref self: ComponentState<TContractState>,
             target_signers: Array<Signer>,
-            new_signers: Array<Signer>
+            new_signers: Array<Signer>,
         ) {
             assert_only_self();
             assert(
-                target_signers.len() == 1 && new_signers.len() == 1, 'argent/invalid-escape-length'
+                target_signers.len() == 1 && new_signers.len() == 1, 'argent/invalid-escape-length',
             );
 
             let escape_config: EscapeEnabled = self.escape_enabled.read();
@@ -97,14 +96,14 @@ mod threshold_recovery_component {
                     self
                         .get_contract()
                         .is_signer_before(current_escaped_signer, target_signer_guid),
-                    'argent/cannot-override-escape'
+                    'argent/cannot-override-escape',
                 );
             }
             let ready_at = get_block_timestamp() + escape_config.security_period;
             let escape = Escape {
                 ready_at,
                 target_signers: array![target_signer_guid],
-                new_signers: array![new_signer_guid]
+                new_signers: array![new_signer_guid],
             };
             self.escape.write(escape);
             self
@@ -112,8 +111,8 @@ mod threshold_recovery_component {
                     EscapeTriggered {
                         ready_at,
                         target_signers: array![target_signer_guid].span(),
-                        new_signers: array![new_signer_guid].span()
-                    }
+                        new_signers: array![new_signer_guid].span(),
+                    },
                 );
         }
 
@@ -138,8 +137,8 @@ mod threshold_recovery_component {
                 .emit(
                     EscapeExecuted {
                         target_signers: current_escape.target_signers.span(),
-                        new_signers: current_escape.new_signers.span()
-                    }
+                        new_signers: current_escape.new_signers.span(),
+                    },
                 );
             signer_list_comp.emit(OwnerRemovedGuid { removed_owner_guid: target_signer_guid });
             signer_list_comp.emit(OwnerAddedGuid { new_owner_guid: new_signer_guid });
@@ -185,13 +184,13 @@ mod threshold_recovery_component {
 
     #[embeddable_as(ToggleThresholdRecoveryImpl)]
     impl ToggleThresholdRecovery<
-        TContractState, +HasComponent<TContractState>
+        TContractState, +HasComponent<TContractState>,
     > of IToggleThresholdRecovery<ComponentState<TContractState>> {
         fn toggle_escape(
             ref self: ComponentState<TContractState>,
             is_enabled: bool,
             security_period: u64,
-            expiry_period: u64
+            expiry_period: u64,
         ) {
             assert_only_self();
             // cannot toggle escape if there is an ongoing escape
@@ -202,7 +201,7 @@ mod threshold_recovery_component {
             assert(
                 current_escape.target_signers.len() == 0
                     || current_escape_status == EscapeStatus::Expired,
-                'argent/ongoing-escape'
+                'argent/ongoing-escape',
             );
 
             if is_enabled {
@@ -222,21 +221,21 @@ mod threshold_recovery_component {
 
     #[embeddable_as(ThresholdRecoveryInternalImpl)]
     impl ThresholdRecoveryInternal<
-        TContractState, +HasComponent<TContractState>, +ISignerList<TContractState>
+        TContractState, +HasComponent<TContractState>, +ISignerList<TContractState>,
     > of IThresholdRecoveryInternal<ComponentState<TContractState>> {
         fn parse_escape_call(
             self: @ComponentState<TContractState>,
             to: ContractAddress,
             selector: felt252,
             mut calldata: Span<felt252>,
-            threshold: u32
+            threshold: u32,
         ) -> Option<(u32, felt252)> {
             if to == get_contract_address() {
                 if selector == selector!("trigger_escape_signer") {
                     // check we can do recovery
                     let escape_config: EscapeEnabled = self.escape_enabled.read();
                     assert(
-                        escape_config.is_enabled && threshold > 1, 'argent/recovery-unavailable'
+                        escape_config.is_enabled && threshold > 1, 'argent/recovery-unavailable',
                     );
                     // get escaped signer
                     let escaped_signer: Signer = Serde::deserialize(ref calldata)
@@ -251,7 +250,7 @@ mod threshold_recovery_component {
                     // check we can do recovery
                     let escape_config: EscapeEnabled = self.escape_enabled.read();
                     assert(
-                        escape_config.is_enabled && threshold > 1, 'argent/recovery-unavailable'
+                        escape_config.is_enabled && threshold > 1, 'argent/recovery-unavailable',
                     );
                     // get escaped signer
                     let current_escape: Escape = self.escape.read();
@@ -267,7 +266,7 @@ mod threshold_recovery_component {
     #[generate_trait]
     impl Private<TContractState, +HasComponent<TContractState>> of PrivateTrait<TContractState> {
         fn get_escape_status(
-            self: @ComponentState<TContractState>, escape_ready_at: u64, expiry_period: u64
+            self: @ComponentState<TContractState>, escape_ready_at: u64, expiry_period: u64,
         ) -> EscapeStatus {
             if escape_ready_at == 0 {
                 return EscapeStatus::None;

@@ -1,22 +1,23 @@
-use starknet::{ContractAddress, ClassHash};
-use pitch_lake::option_round::interface::OptionRoundState;
+use starknet::{ClassHash, ContractAddress};
 
 // @dev Constructor arguments
 #[derive(Drop, Serde)]
-struct ConstructorArgs {
-    verifier_address: ContractAddress,
-    eth_address: ContractAddress,
-    option_round_class_hash: ClassHash,
-    alpha: u128,
-    strike_level: i128,
-    round_transition_duration: u64,
-    auction_duration: u64,
-    round_duration: u64,
+pub struct ConstructorArgs {
+    pub verifier_address: ContractAddress,
+    pub eth_address: ContractAddress,
+    pub option_round_class_hash: ClassHash,
+    pub alpha: u128,
+    pub strike_level: i128,
+    pub round_transition_duration: u64,
+    pub auction_duration: u64,
+    pub round_duration: u64,
+    pub program_id: felt252,
+    pub proving_delay: u64,
 }
 
 // The interface for the vault contract
 #[starknet::interface]
-trait IVault<TContractState> {
+pub trait IVault<TContractState> {
     /// Reads ///
 
     // @dev Get the alpha risk factor of the vault
@@ -48,6 +49,13 @@ trait IVault<TContractState> {
 
     // @return The contract address of the option round
     fn get_round_address(self: @TContractState, option_round_id: u64) -> ContractAddress;
+
+    // @return This vault's program ID
+    fn get_program_id(self: @TContractState) -> felt252;
+
+    // @return The proving delay (in seconds)
+    // @dev This is about the time it takes for Fossil to be able to prove the latest block header
+    fn get_proving_delay(self: @TContractState) -> u64;
 
     /// Liquidity
 
@@ -159,7 +167,7 @@ trait IVault<TContractState> {
     // @returns 0 if the callback was used to initialize round 1, or the total payout of the settled
     // round if it was used to settle
     fn fossil_callback(
-        ref self: TContractState, job_request: Span<felt252>, result: Span<felt252>
+        ref self: TContractState, job_request: Span<felt252>, result: Span<felt252>,
     ) -> u256;
 }
 
@@ -169,31 +177,31 @@ trait IVault<TContractState> {
 // timestamp: Upper bound timestamp of gas data used in data calculation
 // program_id: 'PITCH_LAKE_V1'
 #[derive(Copy, Drop, PartialEq)]
-struct JobRequest {
-    vault_address: ContractAddress,
-    timestamp: u64,
-    program_id: felt252,
+pub struct JobRequest {
+    pub vault_address: ContractAddress,
+    pub timestamp: u64,
+    pub program_id: felt252,
 }
 
 // Fossil job results (args, data and tolerances)
 #[derive(Copy, Drop, PartialEq)]
-struct VerifierData {
-    pub start_timestamp: u64,
-    pub end_timestamp: u64,
+pub struct VerifierData {
+    pub reserve_price_start_timestamp: u64,
+    pub reserve_price_end_timestamp: u64,
     pub reserve_price: felt252,
+    pub twap_start_timestamp: u64,
+    pub twap_end_timestamp: u64,
     pub twap_result: felt252,
+    pub max_return_start_timestamp: u64,
+    pub max_return_end_timestamp: u64,
     pub max_return: felt252,
-    //pub floating_point_tolerance: felt252,
-//pub reserve_price_tolerance: felt252,
-//pub twap_tolerance: felt252,
-//pub gradient_tolerance: felt252,
 }
 
 #[derive(Default, Copy, Drop, Serde, PartialEq, starknet::Store)]
-struct L1Data {
-    twap: u256,
-    max_return: u128,
-    reserve_price: u256,
+pub struct L1Data {
+    pub twap: u256,
+    pub max_return: u128,
+    pub reserve_price: u256,
 }
 
 
@@ -220,43 +228,118 @@ impl SerdeJobRequest of Serde<JobRequest> {
 // VerifierData <-> Array<felt252>
 impl SerdeVerifierData of Serde<VerifierData> {
     fn serialize(self: @VerifierData, ref output: Array<felt252>) {
-        self.start_timestamp.serialize(ref output);
-        self.end_timestamp.serialize(ref output);
+        self.reserve_price_start_timestamp.serialize(ref output);
+        self.reserve_price_end_timestamp.serialize(ref output);
         self.reserve_price.serialize(ref output);
-        //self.floating_point_tolerance.serialize(ref output);
-        //self.reserve_price_tolerance.serialize(ref output);
-        //self.twap_tolerance.serialize(ref output);
-        //self.gradient_tolerance.serialize(ref output);
+        self.twap_start_timestamp.serialize(ref output);
+        self.twap_end_timestamp.serialize(ref output);
         self.twap_result.serialize(ref output);
+        self.max_return_start_timestamp.serialize(ref output);
+        self.max_return_end_timestamp.serialize(ref output);
         self.max_return.serialize(ref output);
     }
 
     fn deserialize(ref serialized: Span<felt252>) -> Option<VerifierData> {
-        let start_timestamp: u64 = (*serialized.at(0))
+        let reserve_price_start_timestamp: u64 = (*serialized.at(0))
             .try_into()
-            .expect('failed to deser. start timestmp');
-        let end_timestamp: u64 = (*serialized.at(1))
+            .expect('failed to deser. res price(0)');
+        let reserve_price_end_timestamp: u64 = (*serialized.at(1))
             .try_into()
-            .expect('failed to deser. end timestamp');
+            .expect('failed to deser. res price(1)');
         let reserve_price: felt252 = *serialized.at(2);
-        let twap_result: felt252 = *serialized.at(3);
-        let max_return: felt252 = *serialized.at(4);
 
-        //        let twap_tolerance: felt252 = *serialized.at(5);
-        //        let gradient_tolerance: felt252 = *serialized.at(6);
+        let twap_start_timestamp: u64 = (*serialized.at(3))
+            .try_into()
+            .expect('failed to deser. twap (0)');
+        let twap_end_timestamp: u64 = (*serialized.at(4))
+            .try_into()
+            .expect('failed to deser. twap (1)');
+        let twap_result: felt252 = *serialized.at(5);
+
+        let max_return_start_timestamp: u64 = (*serialized.at(6))
+            .try_into()
+            .expect('failed to deser. max return(0)');
+        let max_return_end_timestamp: u64 = (*serialized.at(7))
+            .try_into()
+            .expect('failed to deser. max return(1)');
+        let max_return: felt252 = *serialized.at(8);
 
         Option::Some(
             VerifierData {
-                start_timestamp,
-                end_timestamp,
-                reserve_price, //                floating_point_tolerance,
-                //                reserve_price_tolerance,
-                //                twap_tolerance,
-                //                gradient_tolerance,
+                reserve_price_start_timestamp,
+                reserve_price_end_timestamp,
+                reserve_price,
+                twap_start_timestamp,
+                twap_end_timestamp,
                 twap_result,
-                max_return
-            }
+                max_return_start_timestamp,
+                max_return_end_timestamp,
+                max_return,
+            },
         )
     }
 }
+// @proposal Verifier sends these structs to the Vault (serialized)
+// This is all necessary data needed to validate a Verifier result and the result itself. These
+// contain no additional/ignored values.
+
+// Matches initial off-chain request sent to processor
+//struct PitchlakeRequest {
+//    program_id: u64,
+//    vault_address: ContractAddress,
+//    timestamp: u64,
+//    reserve_price_bounds: (u64, u64),
+//    twap_bounds: (u64, u64),
+//    max_return_bounds: (u64, u64),
+//}
+
+//struct PitchlakeResponse {
+//    reserve_price: felt252,
+//    twap: felt252,
+//    max_return: felt252,
+//}
+
+// @dev What the Vault does with this data:
+
+// - program_id & vault_address: validate that this Verifier result is intended for this specific
+// Vault; i.e,
+// assert program_id == 'PITCH_LAKE_V1' && vault_address == this.address
+
+// - timestamp: validates that the job request was not created in the future/before headers are
+// provable
+
+// - twap_bounds: the start and end timestamps used to calculate the TWAP, prod vaults will expect
+// this range to be 30d in seconds (upper bound == T, lower bound == T - A) -> [T-A, T]
+
+// - reserve_price_bounds: the start and end timestamps used to calculate the reserve price, prod
+// vaults will expect this range to be 90d in seconds (upper bound == T, lower bound == T - B) ->
+// [T-B, T]
+
+// - max_return_bounds: the start and end timestamps used to calculate the max return, prod vaults
+// will expect this range to be 90d in seconds (upper bound == T, lower bound == T - B) -> [T-B, T]
+
+// In a prod vault, the Vault::get_round_duration() == 30d in seconds, this is A, B == 3 * A ==
+// 90d in seconds (for prod vaults), and T is the settlement timestamp of the current round
+
+// In english, assume the current round's settlement timestamp is March 30th, 2025 00:00:00 UTC
+// (and every month has exactly 30 days for simplicity):
+//
+//    let march_job_request = PitchlakeRequest {
+//      program_id: 'PITCH_LAKE_V1',
+//      vault_address: prod.vault.address,
+//      timestamp: "March 30, 00:15:30".to_unix_timestamp(), // ~15 min after the settlement date
+//      twap_price_bounds: (
+//        "March 1, 00:00:00 UTC".to_unix_timestamp(), // 30d ago
+//        "March 30, 00:00:00 UTC".to_unix_timestamp()  // settlement date
+//      ),
+//      reserve_price_bounds: (
+//        "January 1, 00:00:00 UTC".to_unix_timestamp(), // 90d ago
+//        "March 30, 00:00:00 UTC".to_unix_timestamp()  // settlement date
+//      ),
+//      max_return_bounds: (
+//        "January 1, 00:00:00 UTC".to_unix_timestamp(), // 90d ago
+//        "March 30, 00:00:00 UTC".to_unix_timestamp()  // settlement date
+//      ),
+//    }
+
 

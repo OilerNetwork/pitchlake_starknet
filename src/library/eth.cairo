@@ -6,9 +6,9 @@
 // deploy contracts at different addresses like in governance
 
 #[starknet::contract]
-mod Eth {
+pub mod Eth {
+    use openzeppelin_token::erc20::{DefaultConfig, ERC20Component, ERC20HooksEmptyImpl};
     use starknet::ContractAddress;
-    use openzeppelin_token::erc20::{ERC20Component, ERC20HooksEmptyImpl};
 
     component!(path: ERC20Component, storage: erc20, event: ERC20Event);
     // Exposes snake_case & CamelCase entry points
@@ -20,14 +20,14 @@ mod Eth {
     #[storage]
     struct Storage {
         #[substorage(v0)]
-        pub erc20: ERC20Component::Storage
+        pub erc20: ERC20Component::Storage,
     }
 
     #[event]
     #[derive(Drop, starknet::Event)]
     enum Event {
         #[flat]
-        ERC20Event: ERC20Component::Event
+        ERC20Event: ERC20Component::Event,
     }
 
     #[constructor]

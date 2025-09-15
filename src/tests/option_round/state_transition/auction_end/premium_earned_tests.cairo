@@ -1,30 +1,16 @@
-use starknet::testing::{set_block_timestamp, set_contract_address, ContractAddress};
-use openzeppelin_token::erc20::interface::{ERC20ABIDispatcherTrait,};
-use pitch_lake::tests::{
-    utils::{
-        helpers::{
-            event_helpers::{assert_event_transfer, assert_event_vault_withdrawal},
-            accelerators::{
-                accelerate_to_auctioning, accelerate_to_auctioning_custom, accelerate_to_running,
-                accelerate_to_running_custom, accelerate_to_settled, clear_event_logs
-            },
-            setup::{setup_facade},
-        },
-        lib::{
-            test_accounts::{
-                liquidity_provider_1, liquidity_provider_2, liquidity_provider_3,
-                liquidity_provider_4, liquidity_provider_5, option_bidder_buyer_1,
-                option_bidder_buyer_2, option_bidder_buyer_3, liquidity_providers_get
-            },
-            variables::{decimals},
-        },
-        facades::{
-            option_round_facade::{OptionRoundFacade, OptionRoundFacadeTrait},
-            vault_facade::{VaultFacade, VaultFacadeTrait},
-        },
-    },
+use pitch_lake::tests::utils::facades::option_round_facade::{
+    OptionRoundFacade, OptionRoundFacadeTrait,
 };
-use debug::PrintTrait;
+use pitch_lake::tests::utils::facades::vault_facade::{VaultFacade, VaultFacadeTrait};
+use pitch_lake::tests::utils::helpers::accelerators::{
+    accelerate_to_auctioning, accelerate_to_auctioning_custom, accelerate_to_running,
+};
+use pitch_lake::tests::utils::helpers::setup::setup_facade;
+use pitch_lake::tests::utils::lib::test_accounts::{
+    liquidity_provider_1, liquidity_providers_get, option_bidder_buyer_1,
+};
+use pitch_lake::tests::utils::lib::variables::decimals;
+use starknet::ContractAddress;
 
 // @note move these tests to ./src/tests/option_round/state_transition/auction_end_tests
 
@@ -72,7 +58,7 @@ fn test_premium_amount_for_liquidity_providers_2() {
     // LPs
     let liquidity_providers = liquidity_providers_get(4);
     // Deposit amounts
-    let amounts = array![250 * decimals(), 500 * decimals(), 1000 * decimals(), 1500 * decimals(),];
+    let amounts = array![250 * decimals(), 500 * decimals(), 1000 * decimals(), 1500 * decimals()];
 
     _test_premiums_collectable_helper(ref vault_facade, liquidity_providers.span(), amounts.span());
 }
@@ -85,7 +71,7 @@ fn test_premium_amount_for_liquidity_providers_3() {
     // LPs
     let liquidity_providers = liquidity_providers_get(4);
     // Deposit amounts
-    let amounts = array![333 * decimals(), 333 * decimals(), 333 * decimals(), 1 * decimals(),];
+    let amounts = array![333 * decimals(), 333 * decimals(), 333 * decimals(), 1 * decimals()];
 
     _test_premiums_collectable_helper(ref vault_facade, liquidity_providers.span(), amounts.span());
 }
@@ -99,7 +85,7 @@ fn test_premium_amount_for_liquidity_providers_4() {
     let liquidity_providers = liquidity_providers_get(5);
     // Deposit amounts
     let amounts = array![
-        25 * decimals(), 25 * decimals(), 25 * decimals(), 25 * decimals(), 1 * decimals()
+        25 * decimals(), 25 * decimals(), 25 * decimals(), 25 * decimals(), 1 * decimals(),
     ];
 
     _test_premiums_collectable_helper(ref vault_facade, liquidity_providers.span(), amounts.span());
@@ -268,7 +254,7 @@ fn test_premium_amount_for_liquidity_providers_5() {
 
 // Internal tester to check the premiums collectable for LPs is correct
 fn _test_premiums_collectable_helper(
-    ref vault: VaultFacade, liquidity_providers: Span<ContractAddress>, amounts: Span<u256>
+    ref vault: VaultFacade, liquidity_providers: Span<ContractAddress>, amounts: Span<u256>,
 ) {
     assert(liquidity_providers.len() == amounts.len(), 'Span missmatch');
 
@@ -285,14 +271,12 @@ fn _test_premiums_collectable_helper(
     let total_premium = current_round.total_premiums();
 
     // Check each LP's collectable premiums matches expected
-    for i in 0
-        ..liquidity_providers
-            .len() {
-                let deposit_amount = *amounts.at(i);
+    for i in 0..liquidity_providers.len() {
+        let deposit_amount = *amounts.at(i);
 
-                let exp_lp_unlocked = (deposit_amount * (unsold_liq + total_premium)) / (total_liq);
-                let lp_unlocked = vault.get_lp_unlocked_balance(*liquidity_providers.at(i));
+        let exp_lp_unlocked = (deposit_amount * (unsold_liq + total_premium)) / (total_liq);
+        let lp_unlocked = vault.get_lp_unlocked_balance(*liquidity_providers.at(i));
 
-                assert(lp_unlocked == exp_lp_unlocked, 'LP unlocked wrong');
-            };
+        assert(lp_unlocked == exp_lp_unlocked, 'LP unlocked wrong');
+    };
 }
