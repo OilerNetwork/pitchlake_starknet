@@ -673,13 +673,28 @@ pub mod Vault {
             self.assert_caller_is_verifier();
 
             // @dev Validate request program ID and vault address
-            assert(req.vault_address == get_contract_address(), Errors::InvalidRequest);
-            assert(req.program_id == self.program_id.read(), Errors::InvalidRequest);
+            assert!(
+                req.vault_address == get_contract_address(),
+                "Invalid Request: vault address expected: {:?}, got: {:?}",
+                get_contract_address(),
+                req.vault_address,
+            );
+            assert!(
+                req.program_id == self.program_id.read(),
+                "Invalid Request: program ID expected: {}, got: {}",
+                self.program_id.read(),
+                req.program_id,
+            );
 
             // @dev Validate request timestamp is not before block headers are provable
             let now = get_block_timestamp();
             let max_provable_timestamp = now - self.proving_delay.read();
-            assert(req.timestamp <= max_provable_timestamp, Errors::InvalidRequest);
+            assert!(
+                req.timestamp <= max_provable_timestamp,
+                "Invalid Request: timestamp expected: {}, got: {}",
+                max_provable_timestamp,
+                req.timestamp,
+            );
 
             // @dev Validate bounds for each parameter
             // - If this is the first (special/initialization) callback, the upper bound is the
@@ -699,23 +714,101 @@ pub mod Vault {
             let reserve_price_lower_bound = upper_bound - (3 * round_duration);
             let max_return_lower_bound = reserve_price_lower_bound;
 
-            assert(
-                res.twap_start_timestamp == twap_lower_bound
-                    && res.reserve_price_start_timestamp == reserve_price_lower_bound
-                    && res.max_return_start_timestamp == max_return_lower_bound
-                    && res.twap_end_timestamp == upper_bound
-                    && res.reserve_price_end_timestamp == upper_bound
-                    && res.max_return_end_timestamp == upper_bound,
-                Errors::L1DataOutOfRange,
+            // @dev Allow tolerance for timestamp validation to account for proving time variations
+            // Tolerance of 60 seconds on either side to handle timing between proof generation and
+            // validation
+            let tolerance = 60;
+
+            // Check TWAP timestamps with tolerance
+            let twap_start_diff = if res.twap_start_timestamp >= twap_lower_bound {
+                res.twap_start_timestamp - twap_lower_bound
+            } else {
+                twap_lower_bound - res.twap_start_timestamp
+            };
+            assert!(
+                twap_start_diff <= tolerance,
+                "Invalid L1 Data: twap_start_timestamp expected: {}, got: {}",
+                twap_lower_bound,
+                res.twap_start_timestamp,
             );
 
-            // @dev This is needed if the ranges do not correlate to the exact request bounds
-            // assert_equal_in_range(...); i.e withing 12 seconds on either side
+            // Check reserve price start timestamp with tolerance
+            let reserve_price_start_diff = if res
+                .reserve_price_start_timestamp >= reserve_price_lower_bound {
+                res.reserve_price_start_timestamp - reserve_price_lower_bound
+            } else {
+                reserve_price_lower_bound - res.reserve_price_start_timestamp
+            };
+            assert!(
+                reserve_price_start_diff <= tolerance,
+                "Invalid L1 Data: reserve_price_start_timestamp expected: {}, got: {}",
+                reserve_price_lower_bound,
+                res.reserve_price_start_timestamp,
+            );
+
+            // Check max return start timestamp with tolerance
+            let max_return_start_diff = if res
+                .max_return_start_timestamp >= max_return_lower_bound {
+                res.max_return_start_timestamp - max_return_lower_bound
+            } else {
+                max_return_lower_bound - res.max_return_start_timestamp
+            };
+            assert!(
+                max_return_start_diff <= tolerance,
+                "Invalid L1 Data: max_return_start_timestamp expected: {}, got: {}",
+                max_return_lower_bound,
+                res.max_return_start_timestamp,
+            );
+
+            // Check TWAP end timestamp with tolerance
+            let twap_end_diff = if res.twap_end_timestamp >= upper_bound {
+                res.twap_end_timestamp - upper_bound
+            } else {
+                upper_bound - res.twap_end_timestamp
+            };
+            assert!(
+                twap_end_diff <= tolerance,
+                "Invalid L1 Data: twap_end_timestamp expected: {}, got: {}",
+                upper_bound,
+                res.twap_end_timestamp,
+            );
+
+            // Check reserve price end timestamp with tolerance
+            let reserve_price_end_diff = if res.reserve_price_end_timestamp >= upper_bound {
+                res.reserve_price_end_timestamp - upper_bound
+            } else {
+                upper_bound - res.reserve_price_end_timestamp
+            };
+            assert!(
+                reserve_price_end_diff <= tolerance,
+                "Invalid L1 Data: reserve_price_end_timestamp expected: {}, got: {}",
+                upper_bound,
+                res.reserve_price_end_timestamp,
+            );
+
+            // Check max return end timestamp with tolerance
+            let max_return_end_diff = if res.max_return_end_timestamp >= upper_bound {
+                res.max_return_end_timestamp - upper_bound
+            } else {
+                upper_bound - res.max_return_end_timestamp
+            };
+            assert!(
+                max_return_end_diff <= tolerance,
+                "Invalid L1 Data: max_return_end_timestamp expected: {}, got: {}",
+                upper_bound,
+                res.max_return_end_timestamp,
+            );
 
             // @dev Assert the L1 data is valid
-            assert(
-                res.twap_result.is_non_zero() && res.reserve_price.is_non_zero(),
-                Errors::InvalidL1Data,
+            assert!(
+                res.twap_result.is_non_zero(),
+                "Invalid L1 Data: twap_result expected: non-zero, got: {}",
+                res.twap_result,
+            );
+            assert!(
+                res.reserve_price.is_non_zero(),
+                "Invalid L1 Data: reserve_price expected: non-zero, got: {}",
+                res.reserve_price,
             );
 
             // @dev If the current round is 1 and Open, the L1 data is being used
